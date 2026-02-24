@@ -32,12 +32,7 @@ return new class extends Migration
             $table->dateTime('reviewed_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
-            //FK to wmaster
-            $table->foreign('acctno')
-                ->references('acctno')
-                ->on('wmaster')
-                ->cascadeOnUpdate()
-                ->restrictOnDelete();
+            // Self-reviewer FK
             $table->foreign('reviewed_by')
                 ->references('user_id')
                 ->on('appusers')

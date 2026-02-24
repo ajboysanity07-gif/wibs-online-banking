@@ -10,7 +10,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class AppUser extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<\Database\Factories\AppUserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
     protected $table = 'appusers';
     protected $primaryKey = 'user_id';
@@ -42,6 +42,11 @@ class AppUser extends Authenticatable
         'two_factor_recovery_codes',
         'remember_token',
     ];
+
+    public function getIdAttribute(): int
+    {
+        return $this->attributes['user_id'];
+    }
 
     /**
      * Get the attributes that should be cast.
