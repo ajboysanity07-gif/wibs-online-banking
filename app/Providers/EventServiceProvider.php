@@ -11,9 +11,7 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
-        Login::class => [
-            UpdateSessionUserFields::class,
-        ],
+        // Add event listeners here as needed.
     ];
     /**
      * Register services.

@@ -13,9 +13,9 @@ class AppUser extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
     protected $table = 'appusers';
-    protected $primaryKey = 'acctno';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $primaryKey = 'user_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     /**
      * The attributes that are mass assignable.
@@ -26,6 +26,9 @@ class AppUser extends Authenticatable
         'username',
         'email',
         'password',
+        'acctno',
+        'role',
+        'status',
     ];
 
     /**

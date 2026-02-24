@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('appusers', function (Blueprint $table) {
-            $table->string('acctno', 6)->primary();
+            $table->id('user_id');
+            $table->string('acctno', 6)->unique()->index();
             $table->string('email')->unique()->index();
             $table->string('username')->unique()->index();
             $table->timestamp('email_verified_at')->nullable();
@@ -24,11 +25,10 @@ return new class extends Migration
             $table->string('prc_back_path')->nullable();
             //Payslip photo
             $table->string('payslip_path')->nullable();
-            //Role and status
-            // $table->string('role', 20)->default('client');
+            $table->string('role', 20)->default('client');
             $table->string('status', 20)->default('pending');
             //Review history
-            $table->string('reviewed_by',6)->nullable()->index();
+            $table->unsignedBigInteger('reviewed_by')->nullable()->index();
             $table->dateTime('reviewed_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
@@ -38,10 +38,9 @@ return new class extends Migration
                 ->on('wmaster')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
-            //FK to wmaster
             $table->foreign('reviewed_by')
-                ->references('admin_id')
-                ->on('adminusers')
+                ->references('user_id')
+                ->on('appusers')
                 ->nullOnDelete()
                 ->cascadeOnUpdate();
         });
@@ -54,8 +53,6 @@ return new class extends Migration
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->string('user_id', 64)->nullable()->index();
-            $table->string('user_type', 32)->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
