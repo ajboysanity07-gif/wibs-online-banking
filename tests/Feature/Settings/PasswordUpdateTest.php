@@ -1,10 +1,14 @@
 <?php
 
 use App\Models\AppUser as User;
+use App\Models\UserProfile;
 use Illuminate\Support\Facades\Hash;
 
 test('password update page is displayed', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -15,6 +19,9 @@ test('password update page is displayed', function () {
 
 test('password can be updated', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -34,6 +41,9 @@ test('password can be updated', function () {
 
 test('correct password must be provided to update password', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)

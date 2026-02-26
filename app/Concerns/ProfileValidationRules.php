@@ -12,11 +12,12 @@ trait ProfileValidationRules
      *
      * @return array<string, array<int, \Illuminate\Contracts\Validation\Rule|array<mixed>|string>>
      */
-    protected function profileRules(?int $userId = null): array
+    protected function profileRules(?int $userId = null, bool $requirePhone = true): array
     {
         return [
             'username' => $this->usernameRules($userId),
             'email' => $this->emailRules($userId),
+            'phoneno' => $this->phoneRules($userId, $requirePhone),
         ];
     }
 
@@ -52,6 +53,23 @@ trait ProfileValidationRules
             $userId === null
                 ? Rule::unique(AppUser::class)
                 : Rule::unique(AppUser::class)->ignore($userId, 'user_id'),
+        ];
+    }
+
+    /**
+     * Get the validation rules used to validate phone numbers.
+     *
+     * @return array<int, \Illuminate\Contracts\Validation\Rule|array<mixed>|string>
+     */
+    protected function phoneRules(?int $userId = null, bool $required = true): array
+    {
+        return [
+            $required ? 'required' : 'nullable',
+            'string',
+            'digits:11',
+            $userId === null
+                ? Rule::unique(AppUser::class, 'phoneno')
+                : Rule::unique(AppUser::class, 'phoneno')->ignore($userId, 'user_id'),
         ];
     }
 }

@@ -87,7 +87,7 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/register'));
+        Fortify::registerView(fn () => Inertia::render('auth/verify-member'));
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 
@@ -108,6 +108,21 @@ class FortifyServiceProvider extends ServiceProvider
             $throttleKey = Str::transliterate(Str::lower($login).'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
+        });
+
+        RateLimiter::for('member-verification', function (Request $request) {
+            $accountNumber = (string) $request->input('accntno', '');
+            $throttleKey = Str::transliterate(Str::lower($accountNumber).'|'.$request->ip());
+
+            return Limit::perMinute(5)->by($throttleKey);
+        });
+
+        RateLimiter::for('username-suggestions', function (Request $request) {
+            $verification = $request->session()->get('member_verification');
+            $accountNumber = is_array($verification) ? (string) ($verification['acctno'] ?? '') : '';
+            $throttleKey = Str::transliterate(Str::lower($accountNumber.'|'.$request->ip()));
+
+            return Limit::perMinute(30)->by($throttleKey);
         });
     }
 }

@@ -3,7 +3,7 @@ import createServer from '@inertiajs/react/server';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import ReactDOMServer from 'react-dom/server';
 
-const appName = import.meta.env.VITE_APP_NAME || 'WIBS Online Banking';
+const appName = import.meta.env.VITE_APP_NAME || 'MRDINC Portal';
 
 createServer((page) =>
     createInertiaApp({

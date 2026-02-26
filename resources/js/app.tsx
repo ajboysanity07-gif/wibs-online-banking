@@ -4,8 +4,13 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../css/app.css';
 import { initializeTheme } from './hooks/use-appearance';
+import { mrdincTheme } from './theme/clients/mrdinc';
+import { injectClientTheme } from './theme/inject-theme';
 
-const appName = import.meta.env.VITE_APP_NAME || 'WIBS Online Banking';
+const appName = import.meta.env.VITE_APP_NAME || 'MRDINC Portal';
+
+injectClientTheme(mrdincTheme);
+initializeTheme();
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -27,6 +32,3 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
-
-// This will set light / dark mode on load...
-initializeTheme();

@@ -1,9 +1,13 @@
 <?php
 
 use App\Models\AppUser as User;
+use App\Models\UserProfile;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -14,12 +18,16 @@ test('profile page is displayed', function () {
 
 test('profile information can be updated', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'username' => 'TestUser',
             'email' => 'test@example.com',
+            'phoneno' => '09123456789',
         ]);
 
     $response
@@ -30,17 +38,22 @@ test('profile information can be updated', function () {
 
     expect($user->username)->toBe('TestUser');
     expect($user->email)->toBe('test@example.com');
+    expect($user->phoneno)->toBe('09123456789');
     expect($user->email_verified_at)->toBeNull();
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'username' => 'TestUser',
             'email' => $user->email,
+            'phoneno' => '09123456788',
         ]);
 
     $response
@@ -52,6 +65,9 @@ test('email verification status is unchanged when the email address is unchanged
 
 test('user can delete their account', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -69,6 +85,9 @@ test('user can delete their account', function () {
 
 test('correct password must be provided to delete account', function () {
     $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)

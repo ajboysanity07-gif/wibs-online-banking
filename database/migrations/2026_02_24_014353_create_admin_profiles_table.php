@@ -14,6 +14,10 @@ return new class extends Migration
         Schema::create('admin_profiles', function (Blueprint $table) {
             $table->unsignedBigInteger('user_id')->primary();
             $table->string('fullname');
+            // Profile pic
+            $table->string('profile_pic_path')->nullable();
+            $table->unsignedBigInteger('reviewed_by')->nullable()->index();
+            $table->dateTime('reviewed_at')->nullable();
             $table->timestamps();
 
             $table->foreign('user_id')
@@ -21,6 +25,9 @@ return new class extends Migration
                 ->on('appusers')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
+            $table->foreign('reviewed_by')
+                ->references('user_id')
+                ->on('appusers');
         });
     }
 
@@ -32,4 +39,3 @@ return new class extends Migration
         Schema::dropIfExists('admin_profiles');
     }
 };
-

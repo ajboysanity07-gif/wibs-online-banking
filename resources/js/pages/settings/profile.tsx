@@ -40,7 +40,7 @@ export default function Profile({
                     <Heading
                         variant="small"
                         title="Profile information"
-                        description="Update your name and email address"
+                        description="Update your username, phone number, and email address"
                     />
 
                     <Form
@@ -53,21 +53,23 @@ export default function Profile({
                         {({ processing, recentlySuccessful, errors }) => (
                             <>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name">Name</Label>
+                                    <Label htmlFor="username">Username</Label>
 
                                     <Input
-                                        id="name"
+                                        id="username"
                                         className="mt-1 block w-full"
-                                        defaultValue={auth.user.name}
-                                        name="name"
+                                        defaultValue={
+                                            auth.user.username ?? auth.user.name
+                                        }
+                                        name="username"
                                         required
-                                        autoComplete="name"
-                                        placeholder="Full name"
+                                        autoComplete="username"
+                                        placeholder="Username"
                                     />
 
                                     <InputError
                                         className="mt-2"
-                                        message={errors.name}
+                                        message={errors.username}
                                     />
                                 </div>
 
@@ -88,6 +90,28 @@ export default function Profile({
                                     <InputError
                                         className="mt-2"
                                         message={errors.email}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="phoneno">Phone number</Label>
+
+                                    <Input
+                                        id="phoneno"
+                                        type="tel"
+                                        className="mt-1 block w-full"
+                                        defaultValue={auth.user.phoneno}
+                                        name="phoneno"
+                                        required
+                                        autoComplete="tel"
+                                        inputMode="numeric"
+                                        maxLength={11}
+                                        placeholder="09XXXXXXXXX"
+                                    />
+
+                                    <InputError
+                                        className="mt-2"
+                                        message={errors.phoneno}
                                     />
                                 </div>
 

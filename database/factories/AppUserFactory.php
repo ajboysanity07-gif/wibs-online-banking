@@ -21,11 +21,10 @@ class AppUserFactory extends Factory
         return [
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
+            'phoneno' => fake()->unique()->numerify('09#########'),
             'acctno' => str_pad((string) fake()->numberBetween(1, 999999), 6, '0', STR_PAD_LEFT),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'role' => 'client',
-            'status' => 'pending',
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
