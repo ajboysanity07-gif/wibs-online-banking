@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
+@import './vendor/fullcalendar.css';
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -16,6 +17,7 @@
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
+    --spacing-215: 53.75rem;
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -140,4 +142,55 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+.fc {
+    --fc-page-bg-color: var(--card);
+    --fc-border-color: var(--border);
+    --fc-neutral-bg-color: var(--muted);
+    --fc-neutral-text-color: var(--muted-foreground);
+    --fc-today-bg-color: color-mix(in oklab, var(--muted) 70%, transparent);
+    --fc-event-bg-color: var(--primary);
+    --fc-event-border-color: var(--primary);
+    --fc-event-text-color: var(--primary-foreground);
+    --fc-button-bg-color: var(--secondary);
+    --fc-button-border-color: var(--border);
+    --fc-button-text-color: var(--secondary-foreground);
+    --fc-button-hover-bg-color: var(--muted);
+    --fc-button-hover-border-color: var(--border);
+    --fc-button-active-bg-color: var(--primary);
+    --fc-button-active-border-color: var(--primary);
+    --fc-button-active-text-color: var(--primary-foreground);
+    --fc-small-font-size: 0.75rem;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.fc .fc-button {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.65rem;
+    box-shadow: none;
+}
+
+.fc .fc-button:focus {
+    box-shadow: none;
+}
+
+.fc .fc-daygrid-day-number {
+    color: var(--foreground);
+    font-weight: 500;
+}
+
+.fc .fc-col-header-cell-cushion {
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.65rem;
 }

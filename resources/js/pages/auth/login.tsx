@@ -1,4 +1,6 @@
-import { Form, Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import { type FormEvent, useState } from 'react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -8,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
+import api, { mapValidationErrors } from '@/lib/api';
 import { register } from '@/routes';
-import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
 type Props = {
@@ -23,6 +25,47 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: Props) {
+    const [formData, setFormData] = useState({
+        email: '',
+        password: '',
+        remember: false,
+    });
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [processing, setProcessing] = useState(false);
+
+    const clearError = (key: string) => {
+        setErrors((current) => {
+            if (!current[key]) {
+                return current;
+            }
+
+            const next = { ...current };
+            delete next[key];
+            return next;
+        });
+    };
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setProcessing(true);
+        setErrors({});
+
+        try {
+            const response = await api.post('/spa/auth/login', formData);
+            const redirectTo = response.data?.redirect_to;
+
+            if (redirectTo) {
+                router.visit(redirectTo);
+            }
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 422) {
+                setErrors(mapValidationErrors(error.response.data?.errors));
+            }
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     return (
         <AuthLayout
             title="Log in to your account"
@@ -30,88 +73,101 @@ export default function Login({
         >
             <Head title="Log in" />
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">
-                                    Email address or username
-                                </Label>
-                                <Input
-                                    id="email"
-                                    type="text"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="username"
-                                    placeholder="email@example.com or username"
+            <form onSubmit={submit} className="flex flex-col gap-6">
+                <div className="grid gap-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">
+                            Email address or username
+                        </Label>
+                        <Input
+                            id="email"
+                            type="text"
+                            name="email"
+                            required
+                            autoFocus
+                            tabIndex={1}
+                            autoComplete="username"
+                            placeholder="email@example.com or username"
+                            value={formData.email}
+                            onChange={(event) => {
+                                setFormData((current) => ({
+                                    ...current,
+                                    email: event.target.value,
+                                }));
+                                clearError('email');
+                            }}
+                        />
+                        <InputError message={errors.email} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="password">Password</Label>
+                        <PasswordInput
+                            id="password"
+                            name="password"
+                            required
+                            tabIndex={2}
+                            autoComplete="current-password"
+                            placeholder="Password"
+                            value={formData.password}
+                            onChange={(event) => {
+                                setFormData((current) => ({
+                                    ...current,
+                                    password: event.target.value,
+                                }));
+                                clearError('password');
+                            }}
+                        />
+                        <InputError message={errors.password} />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <Checkbox
+                                    id="remember"
+                                    name="remember"
+                                    tabIndex={3}
+                                    checked={formData.remember}
+                                    onCheckedChange={(checked) => {
+                                        setFormData((current) => ({
+                                            ...current,
+                                            remember: checked === true,
+                                        }));
+                                    }}
                                 />
-                                <InputError message={errors.email} />
+                                <Label htmlFor="remember">Remember me</Label>
                             </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <Checkbox
-                                            id="remember"
-                                            name="remember"
-                                            tabIndex={3}
-                                        />
-                                        <Label htmlFor="remember">
-                                            Remember me
-                                        </Label>
-                                    </div>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
-                        </div>
-
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                Don't have an account?{' '}
-                                <TextLink href={register()} tabIndex={5}>
-                                    Sign up
+                            {canResetPassword && (
+                                <TextLink
+                                    href={request()}
+                                    className="text-sm"
+                                    tabIndex={5}
+                                >
+                                    Forgot password?
                                 </TextLink>
-                            </div>
-                        )}
-                    </>
+                            )}
+                        </div>
+                    </div>
+
+                    <Button
+                        type="submit"
+                        className="mt-4 w-full"
+                        tabIndex={4}
+                        disabled={processing}
+                        data-test="login-button"
+                    >
+                        {processing && <Spinner />}
+                        Log in
+                    </Button>
+                </div>
+
+                {canRegister && (
+                    <div className="text-center text-sm text-muted-foreground">
+                        Don't have an account?{' '}
+                        <TextLink href={register()} tabIndex={5}>
+                            Sign up
+                        </TextLink>
+                    </div>
                 )}
-            </Form>
+            </form>
 
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">

@@ -1,5 +1,13 @@
-import { Form, Head } from '@inertiajs/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import {
+    type FormEvent,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -9,8 +17,8 @@ import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
+import api, { mapValidationErrors } from '@/lib/api';
 import { login } from '@/routes';
-import { store, usernameSuggestions } from '@/routes/register';
 
 type MemberName = {
     first_name: string;
@@ -28,19 +36,15 @@ type Props = {
 };
 
 const fetchSuggestions = async (
-    url: string,
+    currentValue: string,
     signal: AbortSignal,
 ): Promise<SuggestionsResponse> => {
-    const response = await fetch(url, {
-        headers: { Accept: 'application/json' },
+    const response = await api.get('/spa/username/suggestions', {
+        params: currentValue === '' ? undefined : { current: currentValue },
         signal,
     });
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch suggestions: ${response.status}`);
-    }
-
-    return response.json();
+    return response.data?.data ?? { suggestions: [] };
 };
 
 export default function Register({ memberName }: Props) {
@@ -48,15 +52,31 @@ export default function Register({ memberName }: Props) {
     const [passwordConfirmationValue, setPasswordConfirmationValue] =
         useState('');
     const [usernameValue, setUsernameValue] = useState('');
+    const [emailValue, setEmailValue] = useState('');
+    const [phoneValue, setPhoneValue] = useState('');
     const [availability, setAvailability] = useState<
         'unknown' | 'checking' | 'available' | 'taken'
     >('unknown');
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [hasFocused, setHasFocused] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [processing, setProcessing] = useState(false);
     const abortRef = useRef<AbortController | null>(null);
     const hasMemberName = Boolean(memberName);
     const shownSuggestions = hasMemberName ? suggestions : [];
     const shownAvailability = hasMemberName ? availability : 'unknown';
+
+    const clearError = (key: string) => {
+        setErrors((current) => {
+            if (!current[key]) {
+                return current;
+            }
+
+            const next = { ...current };
+            delete next[key];
+            return next;
+        });
+    };
 
     const availabilityLabel = useMemo(() => {
         if (shownAvailability === 'checking') {
@@ -103,11 +123,7 @@ export default function Register({ memberName }: Props) {
                 setAvailability('unknown');
             }
 
-            const url =
-                currentValue === ''
-                    ? usernameSuggestions.url()
-                    : usernameSuggestions.url({ query: { current: currentValue } });
-            const data = await fetchSuggestions(url, signal);
+            const data = await fetchSuggestions(currentValue, signal);
 
             setSuggestions(data.suggestions ?? []);
 
@@ -152,7 +168,34 @@ export default function Register({ memberName }: Props) {
             window.clearTimeout(timer);
             controller.abort();
         };
-    }, [hasMemberName, memberName, requestSuggestions, usernameValue]);
+    }, [hasMemberName, requestSuggestions, usernameValue]);
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setProcessing(true);
+        setErrors({});
+
+        try {
+            const response = await api.post('/spa/auth/register', {
+                username: usernameValue,
+                email: emailValue,
+                phoneno: phoneValue,
+                password: passwordValue,
+                password_confirmation: passwordConfirmationValue,
+            });
+            const redirectTo = response.data?.redirect_to;
+
+            if (redirectTo) {
+                router.visit(redirectTo);
+            }
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 422) {
+                setErrors(mapValidationErrors(error.response.data?.errors));
+            }
+        } finally {
+            setProcessing(false);
+        }
+    };
 
     return (
         <AuthLayout
@@ -160,19 +203,12 @@ export default function Register({ memberName }: Props) {
             description="Enter your login details to finish setting up your account"
         >
             <Head title="Create login" />
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password', 'password_confirmation']}
-                disableWhileProcessing
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors, clearErrors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <InputError
-                                message={errors.verification}
-                                className="text-sm"
-                            />
+            <form onSubmit={submit} className="flex flex-col gap-6">
+                <div className="grid gap-6">
+                    <InputError
+                        message={errors.verification}
+                        className="text-sm"
+                    />
 
                             <div className="grid gap-2">
                                 <Label htmlFor="username">Username</Label>
@@ -188,9 +224,7 @@ export default function Register({ memberName }: Props) {
                                     value={usernameValue}
                                     onChange={(event) => {
                                         setUsernameValue(event.target.value);
-                                        if (errors.username) {
-                                            clearErrors?.('username');
-                                        }
+                                        clearError('username');
                                     }}
                                     onFocus={() => setHasFocused(true)}
                                 />
@@ -227,6 +261,7 @@ export default function Register({ memberName }: Props) {
                                                         setAvailability(
                                                             'checking',
                                                         );
+                                                        clearError('username');
                                                     }}
                                                 >
                                                     {suggestion}
@@ -247,6 +282,11 @@ export default function Register({ memberName }: Props) {
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
+                                    value={emailValue}
+                                    onChange={(event) => {
+                                        setEmailValue(event.target.value);
+                                        clearError('email');
+                                    }}
                                 />
                                 <FieldMessage
                                     error={errors.email}
@@ -267,6 +307,11 @@ export default function Register({ memberName }: Props) {
                                     name="phoneno"
                                     placeholder="09XXXXXXXXX"
                                     maxLength={11}
+                                    value={phoneValue}
+                                    onChange={(event) => {
+                                        setPhoneValue(event.target.value);
+                                        clearError('phoneno');
+                                    }}
                                 />
                                 <FieldMessage
                                     error={errors.phoneno}
@@ -283,9 +328,11 @@ export default function Register({ memberName }: Props) {
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Password"
-                                    onChange={(event) =>
-                                        setPasswordValue(event.target.value)
-                                    }
+                                    value={passwordValue}
+                                    onChange={(event) => {
+                                        setPasswordValue(event.target.value);
+                                        clearError('password');
+                                    }}
                                 />
                                 <FieldMessage
                                     error={errors.password}
@@ -304,14 +351,11 @@ export default function Register({ memberName }: Props) {
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirm password"
+                                    value={passwordConfirmationValue}
                                     onChange={(event) => {
                                         const value = event.target.value;
                                         setPasswordConfirmationValue(value);
-                                        if (errors.password_confirmation) {
-                                            clearErrors?.(
-                                                'password_confirmation',
-                                            );
-                                        }
+                                        clearError('password_confirmation');
                                     }}
                                 />
                                 <FieldMessage
@@ -343,21 +387,20 @@ export default function Register({ memberName }: Props) {
                                 className="mt-2 w-full"
                                 tabIndex={6}
                                 data-test="register-user-button"
+                                disabled={processing}
                             >
                                 {processing && <Spinner />}
                                 Create login
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={7}>
-                                Log in
-                            </TextLink>
-                        </div>
-                    </>
-                )}
-            </Form>
+                <div className="text-center text-sm text-muted-foreground">
+                    Already have an account?{' '}
+                    <TextLink href={login()} tabIndex={7}>
+                        Log in
+                    </TextLink>
+                </div>
+            </form>
         </AuthLayout>
     );
 }

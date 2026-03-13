@@ -3,87 +3,46 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppUser;
-use Illuminate\Http\Request;
+use App\Http\Resources\Admin\PendingApprovalPreviewResource;
+use App\Http\Resources\Admin\RequestPreviewResource;
+use App\Http\Resources\Admin\WatchlistItemResource;
+use App\Services\Admin\AdminDashboardService;
+use App\Services\Admin\WatchlistService;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AdminDashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(AdminDashboardService $dashboardService): Response
     {
-        $search = trim((string) $request->query('search', ''));
-        $searchLike = $search !== ''
-            ? '%'.addcslashes($search, '%_\\').'%'
-            : null;
+        $metrics = $dashboardService->getMetrics();
+        $pendingApprovals = PendingApprovalPreviewResource::collection(
+            $dashboardService->getPendingApprovalsPreview()
+        )->resolve();
+        $recentRequests = RequestPreviewResource::collection(
+            $dashboardService->getRecentRequestsPreview()
+        )->resolve();
 
-        $pendingQuery = AppUser::query()
-            ->whereHas('userProfile', function ($query) {
-                $query->where('status', 'pending');
-            });
+        $watchlistTypes = ['eligible', 'near', 'risk', 'inactive'];
+        $watchlistItems = [];
 
-        $pendingCount = (clone $pendingQuery)->count();
-        $pendingUsers = $pendingQuery
-            ->orderBy('user_id')
-            ->limit(10)
-            ->get([
-                'user_id',
-                'username',
-                'email',
-                'acctno',
-                'created_at',
-            ]);
-
-        $activeCount = AppUser::query()
-            ->whereHas('userProfile', function ($query) {
-                $query->where('status', 'active');
-            })
-            ->count();
-
-        $totalCount = AppUser::query()->count();
-
-        $searchResults = collect();
-
-        if ($searchLike !== null) {
-            $searchResults = AppUser::query()
-                ->with('userProfile')
-                ->where(function ($query) use ($searchLike) {
-                    $query->where('acctno', 'like', $searchLike)
-                        ->orWhere('username', 'like', $searchLike)
-                        ->orWhere('email', 'like', $searchLike);
-                })
-                ->orderBy('user_id')
-                ->limit(10)
-                ->get([
-                    'user_id',
-                    'username',
-                    'email',
-                    'acctno',
-                    'created_at',
-                ])
-                ->map(function (AppUser $user): array {
-                    return [
-                        'user_id' => $user->user_id,
-                        'username' => $user->username,
-                        'email' => $user->email,
-                        'acctno' => $user->acctno,
-                        'status' => $user->userProfile?->status,
-                        'created_at' => $user->created_at?->toDateTimeString(),
-                    ];
-                });
+        foreach ($watchlistTypes as $type) {
+            $watchlistItems[$type] = WatchlistItemResource::collection(
+                $dashboardService->getWatchlistPreview($type)
+            )->resolve();
         }
 
         return Inertia::render('admin/dashboard', [
-            'metrics' => [
-                'pendingCount' => $pendingCount,
-                'activeCount' => $activeCount,
-                'totalCount' => $totalCount,
-                'requestsCount' => null,
-                'lastSync' => 'Manual WIBS Desktop processing',
+            'summary' => [
+                'metrics' => $metrics,
+                'pendingApprovals' => $pendingApprovals,
+                'requests' => $recentRequests,
+                'watchlist' => [
+                    'available' => false,
+                    'message' => WatchlistService::UNAVAILABLE_MESSAGE,
+                    'items' => $watchlistItems,
+                ],
             ],
-            'pendingUsers' => $pendingUsers,
-            'search' => $search,
-            'searchResults' => $searchResults,
         ]);
     }
 }

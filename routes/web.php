@@ -1,10 +1,35 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\MemberLoanPaymentsController;
+use App\Http\Controllers\Admin\MemberLoanPaymentsExportController;
+use App\Http\Controllers\Admin\MemberLoanScheduleController;
+use App\Http\Controllers\Admin\MemberLoansController;
+use App\Http\Controllers\Admin\MemberProfileController;
+use App\Http\Controllers\Admin\MemberSavingsController;
+use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\UserApprovalController;
+use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Auth\MemberVerificationController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
+use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
+use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
+use App\Http\Controllers\Spa\Admin\MemberAccountActionsController as SpaMemberAccountActionsController;
+use App\Http\Controllers\Spa\Admin\MemberAccountsSummaryController as SpaMemberAccountsSummaryController;
+use App\Http\Controllers\Spa\Admin\MemberLoanPaymentsController as SpaMemberLoanPaymentsController;
+use App\Http\Controllers\Spa\Admin\MemberLoanScheduleController as SpaMemberLoanScheduleController;
+use App\Http\Controllers\Spa\Admin\MemberLoansController as SpaMemberLoansController;
+use App\Http\Controllers\Spa\Admin\MemberSavingsController as SpaMemberSavingsController;
+use App\Http\Controllers\Spa\Admin\MembersController as SpaMembersController;
+use App\Http\Controllers\Spa\Admin\MemberStatusController as SpaMemberStatusController;
+use App\Http\Controllers\Spa\Admin\PendingApprovalController as SpaPendingApprovalController;
+use App\Http\Controllers\Spa\Admin\RequestsController as SpaRequestsController;
+use App\Http\Controllers\Spa\Admin\UserApprovalController as SpaUserApprovalController;
+use App\Http\Controllers\Spa\Admin\WatchlistController as SpaWatchlistController;
+use App\Http\Controllers\Spa\AuthController as SpaAuthController;
+use App\Http\Controllers\Spa\MemberVerificationController as SpaMemberVerificationController;
+use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -26,6 +51,50 @@ Route::middleware('guest')->group(function () {
 
     Route::get('register/create', [MemberVerificationController::class, 'create'])
         ->name('register.create');
+});
+
+Route::prefix('spa')->middleware('web')->group(function () {
+    Route::middleware('guest')->group(function () {
+        Route::post('auth/login', [SpaAuthController::class, 'login'])
+            ->middleware('throttle:login');
+
+        Route::post('member/verify', [SpaMemberVerificationController::class, 'store'])
+            ->middleware('throttle:member-verification');
+
+        Route::get('username/suggestions', SpaUsernameSuggestionController::class)
+            ->middleware(['member-verified', 'throttle:username-suggestions']);
+
+        Route::post('auth/register', [SpaAuthController::class, 'register'])
+            ->middleware('member-verified');
+    });
+
+    Route::middleware('auth')->group(function () {
+        Route::get('auth/me', [SpaAuthController::class, 'me']);
+        Route::post('auth/logout', [SpaAuthController::class, 'logout']);
+    });
+
+    Route::middleware(['auth', 'admin', 'verified'])->group(function () {
+        Route::patch('admin/users/{user}/approve', [SpaUserApprovalController::class, 'approve']);
+        Route::get('admin/summary', SpaAccountSummaryController::class);
+        Route::get('admin/dashboard/summary', SpaDashboardDataController::class);
+        Route::get('admin/members', [SpaMembersController::class, 'index']);
+        Route::get('admin/members/{user}', [SpaMembersController::class, 'show']);
+        Route::patch('admin/members/{user}/approve', [SpaMemberStatusController::class, 'approve']);
+        Route::patch('admin/members/{user}/suspend', [SpaMemberStatusController::class, 'suspend']);
+        Route::patch('admin/members/{user}/reactivate', [SpaMemberStatusController::class, 'reactivate']);
+        Route::get('admin/pending-approvals', SpaPendingApprovalController::class);
+        Route::get('admin/requests', SpaRequestsController::class);
+        Route::get('admin/watchlist', SpaWatchlistController::class);
+    });
+});
+
+Route::prefix('admin/api')->middleware(['auth', 'admin', 'verified'])->group(function () {
+    Route::get('members/{user}/accounts/summary', SpaMemberAccountsSummaryController::class);
+    Route::get('members/{user}/accounts/actions', SpaMemberAccountActionsController::class);
+    Route::get('members/{user}/accounts/loans', SpaMemberLoansController::class);
+    Route::get('members/{user}/accounts/savings', SpaMemberSavingsController::class);
+    Route::get('members/{user}/loans/{loanNumber}/schedule', SpaMemberLoanScheduleController::class);
+    Route::get('members/{user}/loans/{loanNumber}/payments', SpaMemberLoanPaymentsController::class);
 });
 
 Route::get('client/dashboard', function () {
@@ -64,11 +133,37 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
     Route::get('dashboard', [AdminDashboardController::class, 'index'])
         ->name('admin.dashboard');
 
+    Route::get('members/{user}', [MemberProfileController::class, 'show'])
+        ->name('admin.members.show');
+
+    Route::get('members/{user}/loans', [MemberLoansController::class, 'show'])
+        ->name('admin.members.loans');
+
+    Route::get('members/{user}/loans/{loanNumber}/schedule', [MemberLoanScheduleController::class, 'show'])
+        ->name('admin.members.loan-schedule');
+
+    Route::get('members/{user}/loans/{loanNumber}/payments', [MemberLoanPaymentsController::class, 'show'])
+        ->name('admin.members.loan-payments');
+
+    Route::get(
+        'members/{user}/loans/{loanNumber}/payments/export',
+        MemberLoanPaymentsExportController::class,
+    )->name('admin.members.loan-payments-export');
+
+    Route::get('members/{user}/savings', [MemberSavingsController::class, 'show'])
+        ->name('admin.members.savings');
+
+    Route::get('requests', [RequestsController::class, 'index'])
+        ->name('admin.requests.index');
+
     Route::get('users/pending', [UserApprovalController::class, 'index'])
         ->name('admin.users.pending');
 
     Route::patch('users/{user}/approve', [UserApprovalController::class, 'approve'])
         ->name('admin.users.approve');
+
+    Route::get('watchlist', [WatchlistController::class, 'index'])
+        ->name('admin.watchlist.index');
 });
 
 require __DIR__.'/settings.php';

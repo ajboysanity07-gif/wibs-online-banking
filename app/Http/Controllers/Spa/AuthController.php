@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Http\Controllers\Spa;
+
+use App\Actions\Fortify\CreateNewUser;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Spa\LoginRequest;
+use App\Http\Requests\Spa\RegisterRequest;
+use App\Models\AppUser;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+
+class AuthController extends Controller
+{
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $user->loadMissing('adminProfile', 'userProfile');
+        $status = $user->role === 'admin' ? 'active' : $user->userProfile?->status;
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->getKey(),
+                    'user_id' => $user->user_id,
+                    'display_code' => $user->display_code,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'status' => $status,
+                    'acctno' => $user->acctno,
+                ],
+            ],
+        ]);
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        $login = $request->input('email') ?? $request->input('username');
+        $password = (string) $request->input('password');
+
+        if (! is_string($login) || trim($login) === '') {
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        $user = AppUser::query()
+            ->where('email', $login)
+            ->orWhere('username', $login)
+            ->first();
+
+        if ($user === null || ! Hash::check($password, (string) $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+
+        return response()->json([
+            'ok' => true,
+            'redirect_to' => $this->postAuthRedirect($user),
+        ]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'ok' => true,
+            'redirect_to' => '/',
+        ]);
+    }
+
+    public function register(RegisterRequest $request, CreateNewUser $creator): JsonResponse
+    {
+        $user = $creator->create($request->validated());
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'ok' => true,
+            'redirect_to' => $this->postAuthRedirect($user),
+        ]);
+    }
+
+    private function postAuthRedirect(AppUser $user): string
+    {
+        $user->loadMissing('adminProfile', 'userProfile');
+
+        if ($user->role === 'admin') {
+            return '/admin/dashboard';
+        }
+
+        if ($user->userProfile?->status !== 'active') {
+            return '/pending-approval';
+        }
+
+        return '/client/dashboard';
+    }
+}

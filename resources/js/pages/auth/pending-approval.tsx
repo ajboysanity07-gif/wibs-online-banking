@@ -1,9 +1,55 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AuthLayout from '@/layouts/auth-layout';
-import { logout } from '@/routes';
+import api from '@/lib/api';
 
 export default function PendingApproval() {
+    const [refreshing, setRefreshing] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
+
+    const refreshStatus = async () => {
+        setRefreshing(true);
+
+        try {
+            const response = await api.get('/spa/auth/me');
+            const user = response.data?.data?.user;
+
+            if (user?.role === 'admin') {
+                router.visit('/admin/dashboard');
+                return;
+            }
+
+            if (user?.status === 'active') {
+                router.visit('/client/dashboard');
+            }
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                return;
+            }
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        setLoggingOut(true);
+
+        try {
+            const response = await api.post('/spa/auth/logout');
+            const redirectTo = response.data?.redirect_to ?? '/';
+
+            router.visit(redirectTo);
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                return;
+            }
+        } finally {
+            setLoggingOut(false);
+        }
+    };
+
     return (
         <AuthLayout
             title="Pending approval"
@@ -19,14 +65,17 @@ export default function PendingApproval() {
                     <Button
                         type="button"
                         variant="secondary"
-                        onClick={() => router.reload()}
+                        onClick={refreshStatus}
+                        disabled={refreshing}
                     >
                         Refresh status
                     </Button>
-                    <Button asChild>
-                        <Link href={logout()} method="post" as="button">
-                            Log out
-                        </Link>
+                    <Button
+                        type="button"
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                    >
+                        Log out
                     </Button>
                 </div>
             </div>

@@ -19,9 +19,10 @@ import {
 import { useAppearance } from '@/hooks/use-appearance';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
+import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
+import { confirm } from '@/routes/two-factor';
 import AlertError from './alert-error';
 import { Spinner } from './ui/spinner';
-import { confirm } from '@/routes/two-factor';
 
 function GridScanIcon() {
     return (
@@ -157,7 +158,22 @@ function TwoFactorVerificationStep({
     return (
         <Form
             {...confirm.form()}
-            onSuccess={() => onClose()}
+            onSuccess={() => {
+                showSuccessToast(
+                    adminToastCopy.success.enabled(
+                        'Two-factor authentication',
+                    ),
+                    { id: 'two-factor-confirm' },
+                );
+                onClose();
+            }}
+            onError={(formErrors) => {
+                showErrorToast(
+                    formErrors,
+                    adminToastCopy.error.enabled('Two-factor authentication'),
+                    { id: 'two-factor-confirm' },
+                );
+            }}
             resetOnError
             resetOnSuccess
         >

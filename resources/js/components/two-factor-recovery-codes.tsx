@@ -9,8 +9,9 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import AlertError from './alert-error';
+import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { regenerateRecoveryCodes } from '@/routes/two-factor';
+import AlertError from './alert-error';
 
 type Props = {
     recoveryCodesList: string[];
@@ -83,7 +84,24 @@ export default function TwoFactorRecoveryCodes({
                         <Form
                             {...regenerateRecoveryCodes.form()}
                             options={{ preserveScroll: true }}
-                            onSuccess={fetchRecoveryCodes}
+                            onSuccess={() => {
+                                showSuccessToast(
+                                    adminToastCopy.success.updated(
+                                        'Recovery codes',
+                                    ),
+                                    { id: 'recovery-codes' },
+                                );
+                                fetchRecoveryCodes();
+                            }}
+                            onError={(formErrors) => {
+                                showErrorToast(
+                                    formErrors,
+                                    adminToastCopy.error.updated(
+                                        'Recovery codes',
+                                    ),
+                                    { id: 'recovery-codes' },
+                                );
+                            }}
                         >
                             {({ processing }) => (
                                 <Button

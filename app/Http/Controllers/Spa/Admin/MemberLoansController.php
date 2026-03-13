@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Http\Controllers\Spa\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\MemberAccountLoansRequest;
+use App\Http\Resources\Admin\MemberLoanResource;
+use App\Models\AppUser;
+use App\Services\Admin\MemberAccounts\MemberAccountsService;
+use Illuminate\Http\JsonResponse;
+
+class MemberLoansController extends Controller
+{
+    /**
+     * Handle the incoming request.
+     */
+    public function __invoke(
+        MemberAccountLoansRequest $request,
+        AppUser $user,
+        MemberAccountsService $service,
+    ): JsonResponse {
+        $user->loadMissing('adminProfile');
+
+        if ($user->adminProfile !== null) {
+            abort(404);
+        }
+
+        $page = (int) $request->query('page', 1);
+        $perPage = (int) $request->query('perPage', 10);
+
+        $paginator = $service->getPaginatedLoans($user, $perPage, $page);
+        $items = MemberLoanResource::collection($paginator->items())->resolve();
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'items' => $items,
+                'meta' => [
+                    'page' => $paginator->currentPage(),
+                    'perPage' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                    'lastPage' => $paginator->lastPage(),
+                ],
+            ],
+        ]);
+    }
+}

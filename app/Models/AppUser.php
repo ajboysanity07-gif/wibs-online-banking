@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class AppUser extends Authenticatable
@@ -26,7 +27,7 @@ class AppUser extends Authenticatable
     /**
      * @var list<string>
      */
-    protected $appends = ['id', 'name', 'display_code'];
+    protected $appends = ['id', 'name', 'display_code', 'avatar'];
 
     /**
      * The attributes that are mass assignable.
@@ -96,6 +97,19 @@ class AppUser extends Authenticatable
         $id = (int) ($this->getKey() ?? 0);
 
         return sprintf('%s-%06d', $prefix, $id);
+    }
+
+    public function getAvatarAttribute(): ?string
+    {
+        $profilePath = $this->adminProfile !== null
+            ? $this->adminProfile->profile_pic_path
+            : $this->userProfile?->profile_pic_path;
+
+        if (! is_string($profilePath) || $profilePath === '') {
+            return null;
+        }
+
+        return Storage::disk('public')->url($profilePath);
     }
 
     /**

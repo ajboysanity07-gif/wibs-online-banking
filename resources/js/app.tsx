@@ -3,6 +3,8 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../css/app.css';
+import ApiNotice from '@/components/api-notice';
+import { Toaster } from '@/components/ui/sonner';
 import { initializeTheme } from './hooks/use-appearance';
 import { mrdincTheme } from './theme/clients/mrdinc';
 import { injectClientTheme } from './theme/inject-theme';
@@ -24,6 +26,8 @@ createInertiaApp({
 
         root.render(
             <StrictMode>
+                <ApiNotice />
+                <Toaster />
                 <App {...props} />
             </StrictMode>,
         );

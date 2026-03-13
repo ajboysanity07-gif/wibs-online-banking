@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\SettingsPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,10 +21,10 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
-        return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => $request->session()->get('status'),
-        ]);
+        return Inertia::render(
+            'settings/profile',
+            SettingsPageData::fromRequest($request, 'profile'),
+        );
     }
 
     /**
@@ -30,13 +32,39 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $validated = $request->validated();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user->fill(Arr::only($validated, [
+            'username',
+            'email',
+            'phoneno',
+        ]));
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
+
+        $adminProfile = $user->adminProfile;
+
+        if ($adminProfile !== null) {
+            $adminProfileData = Arr::only($validated, ['fullname']);
+
+            if ($request->hasFile('profile_photo')) {
+                if ($adminProfile->profile_pic_path) {
+                    Storage::disk('public')->delete($adminProfile->profile_pic_path);
+                }
+
+                $adminProfileData['profile_pic_path'] = $request->file('profile_photo')
+                    ->store("profile-photos/admin/{$user->user_id}", 'public');
+            }
+
+            if ($adminProfileData !== []) {
+                $adminProfile->update($adminProfileData);
+            }
+        }
 
         return to_route('profile.edit');
     }

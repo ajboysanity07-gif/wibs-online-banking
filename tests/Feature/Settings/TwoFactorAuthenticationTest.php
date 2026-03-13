@@ -24,8 +24,9 @@ test('two factor settings page can be rendered', function () {
         ->withSession(['auth.password_confirmed_at' => time()])
         ->get(route('two-factor.show'))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/two-factor')
+            ->component('settings/profile')
             ->where('twoFactorEnabled', false)
+            ->where('initialTab', 'two-factor')
         );
 });
 
@@ -69,7 +70,8 @@ test('two factor settings page does not requires password confirmation when disa
         ->get(route('two-factor.show'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/two-factor')
+            ->component('settings/profile')
+            ->where('initialTab', 'two-factor')
         );
 });
 

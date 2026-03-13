@@ -5,6 +5,7 @@ namespace App\Http\Requests\Settings;
 use App\Concerns\ProfileValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
@@ -17,6 +18,21 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->profileRules($this->user()->id);
+        $isAdmin = $this->user()?->adminProfile !== null;
+
+        return [
+            ...$this->profileRules($this->user()->id),
+            'fullname' => [
+                Rule::requiredIf($isAdmin),
+                'string',
+                'max:255',
+            ],
+            'profile_photo' => [
+                'nullable',
+                'image',
+                'max:2048',
+                'mimes:jpg,jpeg,png,webp',
+            ],
+        ];
     }
 }
