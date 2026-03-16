@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api';
 import { adminApi } from '@/lib/api/admin';
-import type { MemberSavingsResponse, PaginationMeta } from '@/types/admin';
+import type {
+    MemberSavingsLedgerResponse,
+    PaginationMeta,
+} from '@/types/admin';
 
 type MemberSavingsState = {
-    data: MemberSavingsResponse;
+    data: MemberSavingsLedgerResponse;
     loading: boolean;
     error: string | null;
 };
 
 type MemberSavingsOptions = {
     enabled?: boolean;
-    initial?: MemberSavingsResponse;
+    initial?: MemberSavingsLedgerResponse;
 };
 
-const buildEmptyResponse = (perPage: number): MemberSavingsResponse => ({
+const buildEmptyResponse = (perPage: number): MemberSavingsLedgerResponse => ({
     items: [],
     meta: {
         page: 1,

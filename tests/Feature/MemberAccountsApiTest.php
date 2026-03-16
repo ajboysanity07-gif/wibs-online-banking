@@ -25,6 +25,7 @@ beforeEach(function () {
             $table->string('acctno');
             $table->string('svnumber');
             $table->string('svtype')->nullable();
+            $table->integer('typecode')->default(0);
             $table->decimal('mortuary', 12, 2)->default(0);
             $table->decimal('balance', 12, 2)->default(0);
             $table->decimal('wbalance', 12, 2)->default(0);
@@ -102,10 +103,22 @@ test('admin can view member accounts summary', function () {
         'acctno' => $member->acctno,
         'svnumber' => 'SV-1',
         'svtype' => 'Regular',
+        'typecode' => 4,
         'mortuary' => 100,
         'balance' => 500,
         'wbalance' => 400,
         'lastmove' => Carbon::parse('2024-02-12 09:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-2',
+        'svtype' => 'Regular',
+        'typecode' => 2,
+        'mortuary' => 50,
+        'balance' => 900,
+        'wbalance' => 800,
+        'lastmove' => Carbon::parse('2024-03-01 09:00:00')->toDateTimeString(),
     ]);
 
     $response = $this->actingAs($admin)
@@ -135,6 +148,8 @@ test('admin can view member accounts summary', function () {
     expect($response->json('data.summary.lastSavingsTransactionDate'))->toBe(
         '2024-02-12 09:00:00'
     );
+    expect($response->json('data.summary.recentSavings'))->toHaveCount(1);
+    expect($response->json('data.summary.recentSavings.0.svnumber'))->toBe('SV-1');
 
     $recentLoan = $response->json('data.summary.recentLoans.0');
 
@@ -188,6 +203,39 @@ test('recent account actions are paginated and ordered', function () {
         'debit' => 0,
     ]);
 
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => '100',
+        'svtype' => 'Regular',
+        'typecode' => 2,
+        'mortuary' => 0,
+        'balance' => 500,
+        'wbalance' => 500,
+        'lastmove' => Carbon::parse('2024-02-14 08:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => '101',
+        'svtype' => 'Regular',
+        'typecode' => 4,
+        'mortuary' => 0,
+        'balance' => 300,
+        'wbalance' => 300,
+        'lastmove' => Carbon::parse('2024-02-12 08:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => '102',
+        'svtype' => 'Regular',
+        'typecode' => 4,
+        'mortuary' => 0,
+        'balance' => 400,
+        'wbalance' => 400,
+        'lastmove' => Carbon::parse('2024-02-01 08:00:00')->toDateTimeString(),
+    ]);
+
     DB::table('wsavled')->insert([
         'acctno' => $member->acctno,
         'svnumber' => '100',
@@ -225,9 +273,14 @@ test('recent account actions are paginated and ordered', function () {
 
     expect($response->json('data.items'))->toHaveCount(5);
     expect($response->json('data.meta.perPage'))->toBe(5);
-    expect($response->json('data.meta.total'))->toBe(6);
+    expect($response->json('data.meta.total'))->toBe(5);
     expect($response->json('data.items.0.ln_sv_number'))->toBe('LN001');
     expect($response->json('data.items.0.source'))->toBe('LOAN');
+    $numbers = collect($response->json('data.items'))->pluck('ln_sv_number')->all();
+
+    expect($numbers)->not->toContain('SV100');
+    expect($numbers)->toContain('SV101');
+    expect($numbers)->toContain('SV102');
 });
 
 test('member loans endpoint is paginated', function () {
@@ -280,15 +333,15 @@ test('member savings endpoint is paginated', function () {
     ]);
 
     foreach (range(1, 6) as $index) {
-        DB::table('wsvmaster')->insert([
+        DB::table('wsavled')->insert([
             'acctno' => $member->acctno,
             'svnumber' => sprintf('SV-%02d', $index),
             'svtype' => 'Regular',
-            'mortuary' => 10 + $index,
-            'balance' => 200 + $index,
-            'wbalance' => 150 + $index,
-            'lastmove' => Carbon::parse("2024-03-{$index} 09:00:00")
+            'date_in' => Carbon::parse("2024-03-{$index} 09:00:00")
                 ->toDateTimeString(),
+            'deposit' => 100 + $index,
+            'withdrawal' => 50 + $index,
+            'balance' => 500 + $index,
         ]);
     }
 
@@ -298,9 +351,32 @@ test('member savings endpoint is paginated', function () {
 
     $response->assertOk();
 
+    $response->assertJsonStructure([
+        'data' => [
+            'items' => [
+                [
+                    'svnumber',
+                    'svtype',
+                    'date_in',
+                    'deposit',
+                    'withdrawal',
+                    'balance',
+                ],
+            ],
+        ],
+    ]);
+
+    $response->assertJsonMissingPath('data.items.0.mortuary');
+    $response->assertJsonMissingPath('data.items.0.wbalance');
+    $response->assertJsonMissingPath('data.items.0.lastmove');
+
     expect($response->json('data.items'))->toHaveCount(5);
     expect($response->json('data.meta.total'))->toBe(6);
     expect($response->json('data.meta.lastPage'))->toBe(2);
+    expect($response->json('data.items.0.svnumber'))->toBe('SV-06');
+    expect($response->json('data.items.0.date_in'))->toBe(
+        '2024-03-06 09:00:00'
+    );
 });
 
 test('non-admin users cannot access member account endpoints', function () {

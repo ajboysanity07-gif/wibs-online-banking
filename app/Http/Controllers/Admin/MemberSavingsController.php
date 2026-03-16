@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\MemberAccountsSummaryResource;
-use App\Http\Resources\Admin\MemberSavingsResource;
+use App\Http\Resources\Admin\MemberSavingsLedgerResource;
 use App\Models\AppUser;
 use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Support\Facades\Schema;
@@ -33,7 +33,7 @@ class MemberSavingsController extends Controller
             ],
             'summary' => (new MemberAccountsSummaryResource($summary))->resolve(),
             'savings' => [
-                'items' => MemberSavingsResource::collection($paginator->items())->resolve(),
+                'items' => MemberSavingsLedgerResource::collection($paginator->items())->resolve(),
                 'meta' => [
                     'page' => $paginator->currentPage(),
                     'perPage' => $paginator->perPage(),

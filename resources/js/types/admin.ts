@@ -68,6 +68,15 @@ export type MemberSavings = {
     lastmove: string | null;
 };
 
+export type MemberSavingsLedgerEntry = {
+    svnumber: string | number | null;
+    svtype: string | null;
+    date_in: string | null;
+    deposit: number | null;
+    withdrawal: number | null;
+    balance: number | null;
+};
+
 export type MemberRecentAccountActionSource = 'LOAN' | 'SAV';
 
 export type MemberRecentAccountAction = {
@@ -193,7 +202,8 @@ export type MemberAccountActionsResponse =
 
 export type MemberLoansResponse = PaginatedResponse<MemberLoan>;
 
-export type MemberSavingsResponse = PaginatedResponse<MemberSavings>;
+export type MemberSavingsLedgerResponse =
+    PaginatedResponse<MemberSavingsLedgerEntry>;
 
 export type RequestsResponse = {
     items: RequestPreview[];

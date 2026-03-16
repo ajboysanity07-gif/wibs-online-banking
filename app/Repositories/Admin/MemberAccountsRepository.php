@@ -3,6 +3,7 @@
 namespace App\Repositories\Admin;
 
 use App\Models\Wlnmaster;
+use App\Models\Wsavled;
 use App\Models\Wsvmaster;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Schema;
  */
 class MemberAccountsRepository
 {
+    private const PERSONAL_SAVINGS_TYPECODE = 4;
+
     /**
      * @return array{
      *     loanBalanceLeft: float,
@@ -83,7 +86,7 @@ class MemberAccountsRepository
      */
     public function getRecentSavings(string $acctno, int $limit = 5): Collection
     {
-        if (! $this->hasTable('wsvmaster')) {
+        if (! $this->hasTable('wsvmaster') || ! $this->hasColumn('wsvmaster', 'typecode')) {
             return collect();
         }
 
@@ -91,6 +94,7 @@ class MemberAccountsRepository
 
         return Wsvmaster::query()
             ->where('acctno', $acctno)
+            ->where('typecode', self::PERSONAL_SAVINGS_TYPECODE)
             ->select([
                 'svnumber',
                 'svtype',
@@ -140,21 +144,21 @@ class MemberAccountsRepository
         int $perPage,
         int $page,
     ): LengthAwarePaginator {
-        if (! $this->hasTable('wsvmaster')) {
+        if (! $this->hasTable('wsavled')) {
             return $this->emptyPaginator($perPage, $page);
         }
 
-        $orderBy = $this->hasColumn('wsvmaster', 'lastmove') ? 'lastmove' : 'svnumber';
+        $orderBy = $this->hasColumn('wsavled', 'date_in') ? 'date_in' : 'svnumber';
 
-        return Wsvmaster::query()
+        return Wsavled::query()
             ->where('acctno', $acctno)
             ->select([
                 'svnumber',
                 'svtype',
-                'mortuary',
+                'date_in',
+                'deposit',
+                'withdrawal',
                 'balance',
-                'wbalance',
-                'lastmove',
             ])
             ->orderByDesc($orderBy)
             ->paginate($perPage, ['*'], 'page', $page);
@@ -167,6 +171,9 @@ class MemberAccountsRepository
     ): LengthAwarePaginator {
         $hasLoans = $this->hasTable('wlnled');
         $hasSavings = $this->hasTable('wsavled');
+        $hasSavingsLedgerTypecode = $hasSavings && $this->hasColumn('wsavled', 'typecode');
+        $hasSavingsMasterTypecode = $this->hasTable('wsvmaster')
+            && $this->hasColumn('wsvmaster', 'typecode');
 
         if (! $hasLoans && ! $hasSavings) {
             return $this->emptyPaginator($perPage, $page);
@@ -196,29 +203,44 @@ class MemberAccountsRepository
                 })
             : null;
 
-        $savingsQuery = $hasSavings
+        $savingsQuery = $hasSavings && ($hasSavingsLedgerTypecode || $hasSavingsMasterTypecode)
             ? DB::table('wsavled')
                 ->select([
-                    'acctno',
-                    'svnumber as number',
-                    'date_in',
-                    'svtype as transaction_type',
-                    'deposit as amount',
-                    'withdrawal as movement',
-                    'balance',
+                    'wsavled.acctno',
+                    'wsavled.svnumber as number',
+                    'wsavled.date_in',
+                    'wsavled.svtype as transaction_type',
+                    'wsavled.deposit as amount',
+                    'wsavled.withdrawal as movement',
+                    'wsavled.balance',
                     DB::raw("'SAV' as source"),
                     DB::raw('null as principal'),
-                    'deposit',
-                    'withdrawal',
+                    'wsavled.deposit',
+                    'wsavled.withdrawal',
                     DB::raw('null as payments'),
                     DB::raw('null as debit'),
                 ])
-                ->where('acctno', $acctno)
+                ->where('wsavled.acctno', $acctno)
                 ->where(function ($builder) {
-                    $builder->where('withdrawal', '!=', 0)
-                        ->orWhere('deposit', '!=', 0);
+                    $builder->where('wsavled.withdrawal', '!=', 0)
+                        ->orWhere('wsavled.deposit', '!=', 0);
                 })
             : null;
+
+        if ($savingsQuery) {
+            if ($hasSavingsLedgerTypecode) {
+                $savingsQuery->where('wsavled.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+            } else {
+                $savingsQuery->join('wsvmaster', function ($join) {
+                    $join->on('wsvmaster.svnumber', '=', 'wsavled.svnumber')
+                        ->on('wsvmaster.acctno', '=', 'wsavled.acctno');
+                })->where('wsvmaster.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+            }
+        }
+
+        if (! $loanQuery && ! $savingsQuery) {
+            return $this->emptyPaginator($perPage, $page);
+        }
 
         if ($loanQuery && $savingsQuery) {
             $union = $loanQuery->unionAll($savingsQuery);
@@ -256,12 +278,13 @@ class MemberAccountsRepository
      */
     private function getSavingsTotals(string $acctno): array
     {
-        if (! $this->hasTable('wsvmaster')) {
+        if (! $this->hasTable('wsvmaster') || ! $this->hasColumn('wsvmaster', 'typecode')) {
             return [0.0, 0.0];
         }
 
         $totals = Wsvmaster::query()
             ->where('acctno', $acctno)
+            ->where('typecode', self::PERSONAL_SAVINGS_TYPECODE)
             ->selectRaw('COALESCE(SUM(balance), 0) as balance_total, COALESCE(SUM(mortuary), 0) as mortuary_total')
             ->first();
 
@@ -284,11 +307,18 @@ class MemberAccountsRepository
 
     private function getLastSavingsTransactionDate(string $acctno): ?string
     {
-        if (! $this->hasTable('wsvmaster') || ! $this->hasColumn('wsvmaster', 'lastmove')) {
+        if (
+            ! $this->hasTable('wsvmaster')
+            || ! $this->hasColumn('wsvmaster', 'lastmove')
+            || ! $this->hasColumn('wsvmaster', 'typecode')
+        ) {
             return null;
         }
 
-        $value = Wsvmaster::query()->where('acctno', $acctno)->max('lastmove');
+        $value = Wsvmaster::query()
+            ->where('acctno', $acctno)
+            ->where('typecode', self::PERSONAL_SAVINGS_TYPECODE)
+            ->max('lastmove');
 
         return $value ? (string) $value : null;
     }

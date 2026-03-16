@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Spa\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberAccountSavingsRequest;
-use App\Http\Resources\Admin\MemberSavingsResource;
+use App\Http\Resources\Admin\MemberSavingsLedgerResource;
 use App\Models\AppUser;
 use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +29,7 @@ class MemberSavingsController extends Controller
         $perPage = (int) $request->query('perPage', 10);
 
         $paginator = $service->getPaginatedSavings($user, $perPage, $page);
-        $items = MemberSavingsResource::collection($paginator->items())->resolve();
+        $items = MemberSavingsLedgerResource::collection($paginator->items())->resolve();
 
         return response()->json([
             'ok' => true,

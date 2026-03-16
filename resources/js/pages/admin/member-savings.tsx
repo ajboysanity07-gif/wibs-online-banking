@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Clock, Eye, PiggyBank } from 'lucide-react';
+import { Clock, PiggyBank } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
     MemberDetailPrimaryCard,
@@ -30,8 +30,8 @@ import { savings as memberSavings, show as showMember } from '@/routes/admin/mem
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
-    MemberSavings,
-    MemberSavingsResponse,
+    MemberSavingsLedgerEntry,
+    MemberSavingsLedgerResponse,
 } from '@/types/admin';
 
 type MemberSummary = {
@@ -43,17 +43,16 @@ type MemberSummary = {
 type Props = {
     member: MemberSummary;
     summary: MemberAccountsSummary;
-    savings: MemberSavingsResponse;
+    savings: MemberSavingsLedgerResponse;
 };
 
 const savingsTableSkeletonColumns = [
+    { headerClassName: 'w-24', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-16', cellClassName: 'w-20' },
-    { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-20', cellClassName: 'w-20' },
-    { headerClassName: 'w-12', cellClassName: 'h-8 w-28', align: 'right' },
+    { headerClassName: 'w-20', cellClassName: 'w-24' },
 ];
 
 const MobileSavingsCardSkeleton = () => (
@@ -79,9 +78,6 @@ const MobileSavingsCardSkeleton = () => (
                 </div>
             ))}
         </div>
-        <div className="mt-3">
-            <Skeleton className="h-8 w-full sm:w-28" />
-        </div>
     </div>
 );
 
@@ -97,10 +93,8 @@ const MobileSavingsCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
 
 const MobileSavingsCard = ({
     savings,
-    viewSavingsAvailable,
 }: {
-    savings: MemberSavings;
-    viewSavingsAvailable: boolean;
+    savings: MemberSavingsLedgerEntry;
 }) => (
     <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex items-start justify-between gap-3">
@@ -113,44 +107,31 @@ const MobileSavingsCard = ({
                 </p>
             </div>
             <div className="text-right">
-                <p className="text-xs text-muted-foreground">Withdrawable</p>
+                <p className="text-xs text-muted-foreground">Balance</p>
                 <p className="text-lg font-semibold tabular-nums">
-                    {formatCurrency(savings.wbalance)}
+                    {formatCurrency(savings.balance)}
                 </p>
             </div>
         </div>
         <div className="mt-3 rounded-md border border-border/60 bg-muted/40 p-3">
             <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Last move</span>
+                <span className="text-muted-foreground">Transaction date</span>
                 <span className="text-sm font-medium tabular-nums">
-                    {formatDate(savings.lastmove)}
+                    {formatDate(savings.date_in)}
                 </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Balance</span>
+                <span className="text-muted-foreground">Deposit</span>
                 <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(savings.balance)}
+                    {formatCurrency(savings.deposit)}
                 </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Mortuary</span>
+                <span className="text-muted-foreground">Withdrawal</span>
                 <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(savings.mortuary)}
+                    {formatCurrency(savings.withdrawal)}
                 </span>
             </div>
-        </div>
-        <div className="mt-3">
-            <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="w-full sm:w-auto"
-                disabled={!viewSavingsAvailable}
-                title="View savings flow not available yet."
-            >
-                <Eye />
-                View savings
-            </Button>
         </div>
     </div>
 );
@@ -179,10 +160,13 @@ export default function MemberSavings({ member, summary, savings }: Props) {
         enabled: true,
     });
 
-    const viewSavingsAvailable = false;
-
-    const columns = useMemo<ColumnDef<MemberSavings>[]>(
+    const columns = useMemo<ColumnDef<MemberSavingsLedgerEntry>[]>(
         () => [
+            {
+                accessorKey: 'date_in',
+                header: 'Transaction Date',
+                cell: ({ row }) => formatDate(row.original.date_in),
+            },
             {
                 accessorKey: 'svnumber',
                 header: 'Savings No',
@@ -194,45 +178,22 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                 cell: ({ row }) => row.original.svtype ?? '--',
             },
             {
-                accessorKey: 'mortuary',
-                header: 'Mortuary',
-                cell: ({ row }) => formatCurrency(row.original.mortuary),
+                accessorKey: 'deposit',
+                header: 'Deposit',
+                cell: ({ row }) => formatCurrency(row.original.deposit),
+            },
+            {
+                accessorKey: 'withdrawal',
+                header: 'Withdrawal',
+                cell: ({ row }) => formatCurrency(row.original.withdrawal),
             },
             {
                 accessorKey: 'balance',
                 header: 'Balance',
                 cell: ({ row }) => formatCurrency(row.original.balance),
             },
-            {
-                accessorKey: 'wbalance',
-                header: 'Withdrawable',
-                cell: ({ row }) => formatCurrency(row.original.wbalance),
-            },
-            {
-                accessorKey: 'lastmove',
-                header: 'Last move',
-                cell: ({ row }) => formatDate(row.original.lastmove),
-            },
-            {
-                id: 'actions',
-                header: '',
-                cell: () => (
-                    <div className="flex items-center justify-end">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={!viewSavingsAvailable}
-                            title="View savings flow not available yet."
-                        >
-                            <Eye />
-                            View savings
-                        </Button>
-                    </div>
-                ),
-            },
         ],
-        [viewSavingsAvailable],
+        [],
     );
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -246,7 +207,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
     );
     const savingsEmptyMessage = loading
         ? 'Loading savings...'
-        : 'No savings found.';
+        : 'No savings transactions found.';
     const showSkeleton = loading && items.length === 0;
 
     return (
@@ -304,7 +265,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                         <div>
                             <CardTitle>Savings</CardTitle>
                             <CardDescription>
-                                Full savings list with pagination.
+                                Savings ledger activity with pagination.
                             </CardDescription>
                         </div>
                         {loading ? (
@@ -340,7 +301,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                                         columns={savingsTableSkeletonColumns}
                                         rows={perPage}
                                         className="rounded-md border"
-                                        tableClassName="min-w-[980px]"
+                                        tableClassName="min-w-[840px]"
                                     />
                                 </div>
                             </>
@@ -354,14 +315,8 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                                     ) : (
                                         items.map((savingsRow, index) => (
                                             <MobileSavingsCard
-                                                key={
-                                                    savingsRow.svnumber ??
-                                                    `savings-${index}`
-                                                }
+                                                key={`${savingsRow.svnumber ?? 'savings'}-${savingsRow.date_in ?? index}`}
                                                 savings={savingsRow}
-                                                viewSavingsAvailable={
-                                                    viewSavingsAvailable
-                                                }
                                             />
                                         ))
                                     )}
@@ -371,7 +326,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                                         <DataTable
                                             columns={columns}
                                             data={items}
-                                            className="min-w-[980px]"
+                                            className="min-w-[840px]"
                                             emptyMessage={savingsEmptyMessage}
                                         />
                                     </div>
