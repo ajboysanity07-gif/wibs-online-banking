@@ -192,24 +192,21 @@ class MemberLoansRepository
 
     private function applyPaymentAmountFilter(Builder $query): void
     {
-        $columns = array_filter([
-            $this->hasColumn('wlnled', 'principal') ? 'principal' : null,
-            $this->hasColumn('wlnled', 'payments') ? 'payments' : null,
-            $this->hasColumn('wlnled', 'debit') ? 'debit' : null,
-            $this->hasColumn('wlnled', 'credit') ? 'credit' : null,
-        ]);
+        $principalColumn = $this->hasColumn('wlnled', 'principal') ? 'principal' : null;
+        $paymentsColumn = $this->hasColumn('wlnled', 'payments') ? 'payments' : null;
 
-        if ($columns === []) {
+        if ($principalColumn === null && $paymentsColumn === null) {
             return;
         }
 
-        $query->where(function (Builder $builder) use ($columns) {
-            foreach ($columns as $index => $column) {
-                if ($index === 0) {
-                    $builder->where($column, '!=', 0);
-                } else {
-                    $builder->orWhere($column, '!=', 0);
-                }
+        $query->where(function (Builder $builder) use ($principalColumn, $paymentsColumn) {
+            if ($principalColumn !== null) {
+                $builder->where($principalColumn, '!=', 0);
+            }
+
+            if ($paymentsColumn !== null) {
+                $method = $principalColumn !== null ? 'orWhere' : 'where';
+                $builder->{$method}($paymentsColumn, '!=', 0);
             }
         });
     }

@@ -2,6 +2,7 @@
 
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
+use App\Repositories\Admin\MemberLoansRepository;
 use App\Services\Admin\MemberLoans\MemberLoanService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
@@ -285,6 +286,110 @@ test('payments api respects date filters', function () {
     expect($response->json('data.items.0.date_in'))->toBe('2024-02-10 00:00:00');
 });
 
+test('payments api excludes rows without principal or payments', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $member = User::factory()->create(['acctno' => '000920']);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-920',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-920',
+        'date_in' => Carbon::parse('2024-01-10 00:00:00')->toDateTimeString(),
+        'principal' => 0,
+        'payments' => 0,
+        'debit' => 200,
+        'credit' => 0,
+        'transno' => 'TR-EXCLUDE',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-920',
+        'date_in' => Carbon::parse('2024-01-11 00:00:00')->toDateTimeString(),
+        'principal' => 250,
+        'payments' => 0,
+        'transno' => 'TR-PRINCIPAL',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-920',
+        'date_in' => Carbon::parse('2024-01-12 00:00:00')->toDateTimeString(),
+        'principal' => 0,
+        'payments' => 175,
+        'transno' => 'TR-PAYMENT',
+    ]);
+
+    $response = $this->actingAs($admin)->getJson(
+        "/admin/api/members/{$member->user_id}/loans/LN-920/payments?range=all",
+    );
+
+    $response->assertOk();
+
+    $references = collect($response->json('data.items'))
+        ->pluck('reference_no')
+        ->all();
+
+    expect($references)
+        ->toHaveCount(2)
+        ->toContain('TR-PRINCIPAL', 'TR-PAYMENT')
+        ->not->toContain('TR-EXCLUDE');
+});
+
+test('export payments exclude rows without principal or payments', function () {
+    $member = User::factory()->create(['acctno' => '000921']);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-921',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-921',
+        'date_in' => Carbon::parse('2024-01-10 00:00:00')->toDateTimeString(),
+        'principal' => 0,
+        'payments' => 0,
+        'debit' => 200,
+        'credit' => 0,
+        'transno' => 'TR-EXCLUDE',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-921',
+        'date_in' => Carbon::parse('2024-01-11 00:00:00')->toDateTimeString(),
+        'principal' => 250,
+        'payments' => 0,
+        'transno' => 'TR-PRINCIPAL',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-921',
+        'date_in' => Carbon::parse('2024-01-12 00:00:00')->toDateTimeString(),
+        'principal' => 0,
+        'payments' => 175,
+        'transno' => 'TR-PAYMENT',
+    ]);
+
+    $repository = app(MemberLoansRepository::class);
+    $payments = $repository->getPaymentsForExport($member->acctno, 'LN-921', null, null);
+
+    $references = $payments->pluck('transno')->all();
+
+    expect($references)
+        ->toHaveCount(2)
+        ->toContain('TR-PRINCIPAL', 'TR-PAYMENT')
+        ->not->toContain('TR-EXCLUDE');
+});
+
 test('export request validates format and date range', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -350,4 +455,46 @@ test('export filename uses member lastname and range', function () {
     $disposition = $response->headers->get('content-disposition');
 
     expect($disposition)->toContain('doe-lnpayment-2024-02-01-2024-02-28.csv');
+});
+
+test('loan payment report template uses simplified columns', function () {
+    $payments = collect([
+        (object) [
+            'date_in' => '2024-02-10 00:00:00',
+            'mreference' => 'REF-123',
+            'transno' => null,
+            'controlno' => null,
+            'principal' => 200,
+            'payments' => 150,
+            'balance' => 850,
+        ],
+    ]);
+
+    $html = view('reports.loan-payments', [
+        'logoData' => null,
+        'companyName' => 'WIBS Cooperative',
+        'memberName' => 'Jane Doe',
+        'memberAccountNo' => '000001',
+        'loanNumber' => 'LN-100',
+        'reportStart' => Carbon::parse('2024-02-01'),
+        'reportEnd' => Carbon::parse('2024-02-28'),
+        'generatedAt' => Carbon::parse('2024-03-01 10:00:00'),
+        'generatedBy' => 'Admin User',
+        'payments' => $payments,
+        'openingBalance' => 1000,
+        'closingBalance' => 900,
+    ])->render();
+
+    expect($html)
+        ->toContain('Transaction Date')
+        ->toContain('Reference No')
+        ->toContain('Principal')
+        ->toContain('Payment')
+        ->toContain('Balance')
+        ->not->toContain('Loan Type')
+        ->not->toContain('Debit')
+        ->not->toContain('Credit')
+        ->not->toContain('Accrued Interest')
+        ->not->toContain('Status')
+        ->not->toContain('Control No');
 });

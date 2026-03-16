@@ -275,7 +275,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
             {
                 id: 'actions',
                 header: '',
-                cell: () => (
+                cell: ({ row }) => (
                     <div className="flex items-center justify-end gap-2">
                         {canNavigate && row.original.lnnumber ? (
                             <Button asChild type="button" size="sm" variant="outline">

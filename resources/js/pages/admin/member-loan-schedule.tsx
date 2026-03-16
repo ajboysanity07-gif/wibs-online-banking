@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Table,
     TableBody,
@@ -34,7 +35,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { dashboard } from '@/routes/admin';
-import { loans as memberLoans, show as showMember } from '@/routes/admin/members';
+import {
+    loanPayments,
+    loanSchedule,
+    loans as memberLoans,
+    show as showMember,
+} from '@/routes/admin/members';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberLoan,
@@ -224,6 +230,7 @@ export default function MemberLoanSchedule({
         ? formatDate(summary.last_payment_date)
         : 'No payment recorded yet';
     const showSkeleton = loading && items.length === 0;
+    const canNavigate = Boolean(member.acctno && loanNumber);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -243,7 +250,73 @@ export default function MemberLoanSchedule({
                             {loan.lntype ?? '--'}
                         </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ToggleGroup
+                            type="single"
+                            value="schedule"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-md bg-muted/40 p-1"
+                            aria-label="Loan detail views"
+                        >
+                            {canNavigate ? (
+                                <ToggleGroupItem
+                                    value="schedule"
+                                    asChild
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    <Link
+                                        href={
+                                            loanSchedule({
+                                                user: member.user_id,
+                                                loanNumber: loanNumber ?? '',
+                                            }).url
+                                        }
+                                        aria-current="page"
+                                    >
+                                        Schedule
+                                        <span className="sr-only">
+                                            {' '}
+                                            (current)
+                                        </span>
+                                    </Link>
+                                </ToggleGroupItem>
+                            ) : (
+                                <ToggleGroupItem
+                                    value="schedule"
+                                    disabled
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    Schedule
+                                </ToggleGroupItem>
+                            )}
+                            {canNavigate ? (
+                                <ToggleGroupItem
+                                    value="payments"
+                                    asChild
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    <Link
+                                        href={
+                                            loanPayments({
+                                                user: member.user_id,
+                                                loanNumber: loanNumber ?? '',
+                                            }).url
+                                        }
+                                    >
+                                        Payments
+                                    </Link>
+                                </ToggleGroupItem>
+                            ) : (
+                                <ToggleGroupItem
+                                    value="payments"
+                                    disabled
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    Payments
+                                </ToggleGroupItem>
+                            )}
+                        </ToggleGroup>
                         <Button asChild variant="outline" size="sm">
                             <Link href={memberLoans(member.user_id).url}>
                                 Back to loans

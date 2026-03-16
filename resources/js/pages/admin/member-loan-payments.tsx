@@ -30,12 +30,15 @@ import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useMemberLoanPayments } from '@/hooks/admin/use-member-loan-payments';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { dashboard } from '@/routes/admin';
 import {
+    loanPayments,
     loanPaymentsExport,
+    loanSchedule,
     loans as memberLoans,
     show as showMember,
 } from '@/routes/admin/members';
@@ -67,12 +70,6 @@ const paymentTableSkeletonColumns = [
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-16', cellClassName: 'w-20' },
-    { headerClassName: 'w-16', cellClassName: 'w-20' },
 ];
 
 const MobilePaymentCardSkeleton = () => (
@@ -80,7 +77,7 @@ const MobilePaymentCardSkeleton = () => (
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-2">
                 <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3 w-24" />
             </div>
             <div className="space-y-2 text-right">
                 <Skeleton className="ml-auto h-3 w-16" />
@@ -88,7 +85,7 @@ const MobilePaymentCardSkeleton = () => (
             </div>
         </div>
         <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/40 p-3">
-            {Array.from({ length: 3 }).map((_, index) => (
+            {Array.from({ length: 2 }).map((_, index) => (
                 <div
                     key={`payment-card-meta-${index}`}
                     className="flex items-center justify-between"
@@ -97,9 +94,6 @@ const MobilePaymentCardSkeleton = () => (
                     <Skeleton className="h-4 w-24" />
                 </div>
             ))}
-        </div>
-        <div className="mt-3">
-            <Skeleton className="h-3 w-24" />
         </div>
     </div>
 );
@@ -120,7 +114,7 @@ const MobilePaymentCard = ({ payment }: { payment: MemberLoanPayment }) => (
                     {payment.reference_no ?? payment.control_no ?? '--'}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                    {payment.loan_type ?? '--'}
+                    {formatDate(payment.date_in)}
                 </p>
             </div>
             <div className="text-right">
@@ -138,22 +132,12 @@ const MobilePaymentCard = ({ payment }: { payment: MemberLoanPayment }) => (
                 </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Debit / Credit</span>
+                <span className="text-muted-foreground">Principal</span>
                 <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(payment.debit)} /{' '}
-                    {formatCurrency(payment.credit)}
-                </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Accrued Int.</span>
-                <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(payment.accrued_interest)}
+                    {formatCurrency(payment.principal)}
                 </span>
             </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-            Date: {formatDate(payment.date_in)}
-        </p>
     </div>
 );
 
@@ -220,6 +204,7 @@ export default function MemberLoanPayments({
         ? formatDate(summary.last_payment_date)
         : 'No payment recorded yet';
     const showSkeleton = loading && items.length === 0;
+    const canNavigate = Boolean(member.acctno && loanNumber);
 
     const columns = useMemo<ColumnDef<MemberLoanPayment>[]>(
         () => [
@@ -235,11 +220,6 @@ export default function MemberLoanPayments({
                     row.original.reference_no ?? row.original.control_no ?? '--',
             },
             {
-                accessorKey: 'loan_type',
-                header: 'Loan Type',
-                cell: ({ row }) => row.original.loan_type ?? '--',
-            },
-            {
                 accessorKey: 'principal',
                 header: 'Principal',
                 cell: ({ row }) => formatCurrency(row.original.principal),
@@ -250,35 +230,9 @@ export default function MemberLoanPayments({
                 cell: ({ row }) => formatCurrency(row.original.payment_amount),
             },
             {
-                accessorKey: 'debit',
-                header: 'Debit',
-                cell: ({ row }) => formatCurrency(row.original.debit),
-            },
-            {
-                accessorKey: 'credit',
-                header: 'Credit',
-                cell: ({ row }) => formatCurrency(row.original.credit),
-            },
-            {
                 accessorKey: 'balance',
                 header: 'Balance',
                 cell: ({ row }) => formatCurrency(row.original.balance),
-            },
-            {
-                accessorKey: 'accrued_interest',
-                header: 'Accrued Int.',
-                cell: ({ row }) =>
-                    formatCurrency(row.original.accrued_interest),
-            },
-            {
-                accessorKey: 'status',
-                header: 'Status',
-                cell: ({ row }) => row.original.status ?? '--',
-            },
-            {
-                accessorKey: 'control_no',
-                header: 'Control No',
-                cell: ({ row }) => row.original.control_no ?? '--',
             },
         ],
         [],
@@ -341,7 +295,73 @@ export default function MemberLoanPayments({
                             {loan.lntype ?? '--'}
                         </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ToggleGroup
+                            type="single"
+                            value="payments"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-md bg-muted/40 p-1"
+                            aria-label="Loan detail views"
+                        >
+                            {canNavigate ? (
+                                <ToggleGroupItem
+                                    value="schedule"
+                                    asChild
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    <Link
+                                        href={
+                                            loanSchedule({
+                                                user: member.user_id,
+                                                loanNumber: loanNumber ?? '',
+                                            }).url
+                                        }
+                                    >
+                                        Schedule
+                                    </Link>
+                                </ToggleGroupItem>
+                            ) : (
+                                <ToggleGroupItem
+                                    value="schedule"
+                                    disabled
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    Schedule
+                                </ToggleGroupItem>
+                            )}
+                            {canNavigate ? (
+                                <ToggleGroupItem
+                                    value="payments"
+                                    asChild
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    <Link
+                                        href={
+                                            loanPayments({
+                                                user: member.user_id,
+                                                loanNumber: loanNumber ?? '',
+                                            }).url
+                                        }
+                                        aria-current="page"
+                                    >
+                                        Payments
+                                        <span className="sr-only">
+                                            {' '}
+                                            (current)
+                                        </span>
+                                    </Link>
+                                </ToggleGroupItem>
+                            ) : (
+                                <ToggleGroupItem
+                                    value="payments"
+                                    disabled
+                                    className="data-[state=on]:font-semibold"
+                                >
+                                    Payments
+                                </ToggleGroupItem>
+                            )}
+                        </ToggleGroup>
                         <Button asChild variant="outline" size="sm">
                             <Link href={memberLoans(member.user_id).url}>
                                 Back to loans
@@ -549,7 +569,7 @@ export default function MemberLoanPayments({
                                         columns={paymentTableSkeletonColumns}
                                         rows={perPage}
                                         className="rounded-md border"
-                                        tableClassName="min-w-[1200px]"
+                                        tableClassName="min-w-[840px]"
                                     />
                                 </div>
                             </>
@@ -578,7 +598,7 @@ export default function MemberLoanPayments({
                                         <DataTable
                                             columns={columns}
                                             data={items}
-                                            className="min-w-[1200px]"
+                                            className="min-w-[840px]"
                                             emptyMessage="No payments found for this period."
                                         />
                                     </div>
