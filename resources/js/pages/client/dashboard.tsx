@@ -1,6 +1,7 @@
-import { Head } from '@inertiajs/react';
-import { Banknote, PiggyBank } from 'lucide-react';
-import { MemberAccountSummaryCard } from '@/components/member-account-summary-card';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
+import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
+import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,10 +13,14 @@ import {
 } from '@/components/ui/card';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/formatters';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import type { MemberAccountsSummary } from '@/types/admin';
+import type {
+    MemberAccountActionsResponse,
+    MemberAccountsSummary,
+    PaginationMeta,
+} from '@/types/admin';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -37,7 +42,10 @@ type MemberProfile = {
 
 type Props = {
     member: MemberProfile;
-    summary: MemberAccountsSummary;
+    summary: MemberAccountsSummary | null;
+    summaryError?: string | null;
+    recentAccountActions: MemberAccountActionsResponse | null;
+    recentAccountActionsError?: string | null;
 };
 
 const statusVariant = (status?: string | null) => {
@@ -72,8 +80,50 @@ const statusLabel = (status?: string | null) => {
     return 'Unknown';
 };
 
-export default function MemberProfile({ member, summary }: Props) {
+const fallbackActionsMeta: PaginationMeta = {
+    page: 1,
+    perPage: 5,
+    total: 0,
+    lastPage: 1,
+};
+
+export default function MemberProfile({
+    member,
+    summary,
+    summaryError = null,
+    recentAccountActions,
+    recentAccountActionsError = null,
+}: Props) {
     const getInitials = useInitials();
+    const [actionsLoading, setActionsLoading] = useState(false);
+    const actionsMeta = recentAccountActions?.meta ?? fallbackActionsMeta;
+    const actionsItems = recentAccountActions?.items ?? [];
+    const summaryLoading = summary === null && !summaryError;
+    const actionsLoadingState =
+        actionsLoading || (!recentAccountActions && !recentAccountActionsError);
+
+    const reloadWithActionsPage = (page: number) => {
+        setActionsLoading(true);
+        router.get(
+            dashboard().url,
+            { actions_page: page },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => {
+                    setActionsLoading(false);
+                },
+            },
+        );
+    };
+
+    const handleActionsPageChange = (page: number) => {
+        reloadWithActionsPage(page);
+    };
+
+    const handleRetry = () => {
+        reloadWithActionsPage(actionsMeta.page);
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -163,34 +213,23 @@ export default function MemberProfile({ member, summary }: Props) {
                     </CardContent>
                 </Card>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    <MemberAccountSummaryCard
-                        title="Loans"
-                        subtitle="Loan portfolio snapshot"
-                        primaryLabel="Total Outstanding Loan Balance"
-                        primaryValue={formatCurrency(summary.loanBalanceLeft)}
-                        secondaryLabel="Last Loan Transaction"
-                        secondaryValue={formatDate(
-                            summary.lastLoanTransactionDate,
-                        )}
-                        icon={Banknote}
-                        accent="primary"
-                    />
-                    <MemberAccountSummaryCard
-                        title="Savings"
-                        subtitle="Savings overview"
-                        primaryLabel="Total Current Savings"
-                        primaryValue={formatCurrency(
-                            summary.currentSavingsBalance,
-                        )}
-                        secondaryLabel="Last Savings Transaction"
-                        secondaryValue={formatDate(
-                            summary.lastSavingsTransactionDate,
-                        )}
-                        icon={PiggyBank}
-                        accent="accent"
-                    />
-                </div>
+                <MemberAccountsSummarySection
+                    acctno={member.acctno}
+                    summary={summary}
+                    loading={summaryLoading}
+                    error={summaryError}
+                    onRetry={handleRetry}
+                />
+
+                <MemberRecentAccountActionsCard
+                    acctno={member.acctno}
+                    actions={actionsItems}
+                    meta={actionsMeta}
+                    loading={actionsLoadingState}
+                    error={recentAccountActionsError}
+                    onRetry={handleRetry}
+                    onPageChange={handleActionsPageChange}
+                />
             </div>
         </AppLayout>
     );
