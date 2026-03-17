@@ -1,12 +1,59 @@
+import { cn } from '@/lib/utils';
+import { useBranding } from '@/hooks/use-branding';
 import AppLogoIcon from './app-logo-icon';
 
-export default function AppLogo() {
+type AppLogoProps = {
+    variant?: 'horizontal' | 'stacked';
+    className?: string;
+    iconClassName?: string;
+    titleClassName?: string;
+    subtitleClassName?: string;
+};
+
+export default function AppLogo({
+    variant = 'horizontal',
+    className,
+    iconClassName,
+    titleClassName,
+    subtitleClassName,
+}: AppLogoProps) {
+    const branding = useBranding();
+    const isStacked = variant === 'stacked';
+
     return (
-        <>
-            <AppLogoIcon className="h-8 w-auto object-contain" />
-            <span className="text-sm font-semibold leading-tight">
-                MRDINC Portal
+        <span
+            className={cn(
+                'flex gap-2',
+                isStacked ? 'flex-col items-center text-center' : 'items-center',
+                className,
+            )}
+        >
+            <AppLogoIcon
+                className={cn(
+                    isStacked
+                        ? 'h-10 w-auto object-contain'
+                        : 'h-8 w-auto object-contain',
+                    iconClassName,
+                )}
+            />
+            <span
+                className={cn(
+                    'flex flex-col leading-tight',
+                    isStacked ? 'items-center' : '',
+                )}
+            >
+                <span className={cn('text-sm font-semibold', titleClassName)}>
+                    {branding.companyName}
+                </span>
+                <span
+                    className={cn(
+                        'text-xs text-muted-foreground',
+                        subtitleClassName,
+                    )}
+                >
+                    {branding.portalLabel}
+                </span>
             </span>
-        </>
+        </span>
     );
 }

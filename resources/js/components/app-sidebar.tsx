@@ -4,6 +4,7 @@ import {
     FileText,
     Folder,
     LayoutGrid,
+    Settings,
     UserCheck,
     Users,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import { index as requestsIndex } from '@/routes/admin/requests';
+import { organization as organizationSettings } from '@/routes/admin/settings';
 import { pending as pendingApprovals } from '@/routes/admin/users';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
@@ -55,6 +57,11 @@ const adminNavItems: NavItem[] = [
         title: 'Requests',
         href: requestsIndex(),
         icon: FileText,
+    },
+    {
+        title: 'Organization settings',
+        href: organizationSettings(),
+        icon: Settings,
     },
 ];
 

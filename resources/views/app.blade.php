@@ -31,10 +31,10 @@
             }
         </style>
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        @php($branding = app(\App\Services\OrganizationSettingsService::class)->branding())
+        <title inertia>{{ $branding['appTitle'] }}</title>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="{{ $branding['faviconUrl'] }}" sizes="any">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
         <link rel="preconnect" href="https://fonts.bunny.net">

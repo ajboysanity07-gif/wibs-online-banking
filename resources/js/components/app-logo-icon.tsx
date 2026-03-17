@@ -1,10 +1,16 @@
 import type { ImgHTMLAttributes } from 'react';
+import { useBranding } from '@/hooks/use-branding';
 
 export default function AppLogoIcon({
-    alt = 'MRDINC Portal',
+    alt,
+    src,
     ...props
 }: ImgHTMLAttributes<HTMLImageElement>) {
+    const branding = useBranding();
+    const resolvedSrc = src ?? branding.logoUrl;
+    const resolvedAlt = alt ?? branding.appTitle;
+
     return (
-        <img {...props} src="/mrdinc-logo-mark.png" alt={alt} />
+        <img {...props} src={resolvedSrc} alt={resolvedAlt} />
     );
 }

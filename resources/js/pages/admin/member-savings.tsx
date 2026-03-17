@@ -247,7 +247,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                     <MemberDetailPrimaryCard
                         title="Total Current Savings"
                         value={currentSavings}
-                        helper="Sum of current savings balances."
+                        helper="Latest personal savings balance."
                         icon={PiggyBank}
                         accent="accent"
                     />

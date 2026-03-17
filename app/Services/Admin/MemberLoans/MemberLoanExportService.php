@@ -4,6 +4,7 @@ namespace App\Services\Admin\MemberLoans;
 
 use App\Models\AppUser;
 use App\Services\Admin\MemberLoans\Exports\LoanPaymentsExport;
+use App\Services\OrganizationSettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -17,6 +18,7 @@ class MemberLoanExportService
 {
     public function __construct(
         private MemberLoanService $loanService,
+        private OrganizationSettingsService $brandingService,
     ) {}
 
     public function exportPayments(
@@ -98,13 +100,14 @@ class MemberLoanExportService
         array $reportPeriod,
         string $filename,
     ): Response {
-        $logoData = $this->resolveLogoData();
+        $logoData = $this->brandingService->logoDataUri();
+        $branding = $this->brandingService->branding();
         $generatedBy = auth()->user()?->name ?? auth()->user()?->username;
 
         $pdf = Pdf::setOption('isPhpEnabled', true)
             ->loadView('reports.loan-payments', [
                 'logoData' => $logoData,
-                'companyName' => config('app.name'),
+                'companyName' => $branding['companyName'],
                 'memberName' => $memberName,
                 'memberAccountNo' => $payload['loan']->acctno ?? null,
                 'loanNumber' => $payload['loan']->lnnumber,
@@ -214,22 +217,5 @@ class MemberLoanExportService
         $parts = preg_split('/\s+/', $value) ?: [];
 
         return $parts !== [] ? (string) end($parts) : $value;
-    }
-
-    private function resolveLogoData(): ?string
-    {
-        $logoPath = public_path('mrdinc-logo.png');
-
-        if (! is_file($logoPath)) {
-            return null;
-        }
-
-        $contents = file_get_contents($logoPath);
-
-        if ($contents === false) {
-            return null;
-        }
-
-        return 'data:image/png;base64,'.base64_encode($contents);
     }
 }

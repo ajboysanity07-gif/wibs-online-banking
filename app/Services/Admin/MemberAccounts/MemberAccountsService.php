@@ -66,6 +66,20 @@ class MemberAccountsService
         return $this->repository->getPaginatedSavings($acctno, $perPage, $page);
     }
 
+    /**
+     * @return array{latestBalance: float, lastTransactionDate: ?string}
+     */
+    public function getPersonalSavingsLedgerSummary(AppUser $member): array
+    {
+        $acctno = $this->resolveAcctno($member);
+
+        if ($acctno === null) {
+            return $this->emptySavingsLedgerSummary();
+        }
+
+        return $this->repository->getPersonalSavingsLedgerSummary($acctno);
+    }
+
     public function getPaginatedRecentActions(
         AppUser $member,
         int $perPage,
@@ -114,6 +128,17 @@ class MemberAccountsService
             'lastSavingsTransactionDate' => null,
             'recentLoans' => collect(),
             'recentSavings' => collect(),
+        ];
+    }
+
+    /**
+     * @return array{latestBalance: float, lastTransactionDate: ?string}
+     */
+    private function emptySavingsLedgerSummary(): array
+    {
+        return [
+            'latestBalance' => 0.0,
+            'lastTransactionDate' => null,
         ];
     }
 }

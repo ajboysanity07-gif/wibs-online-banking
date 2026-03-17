@@ -148,20 +148,86 @@ class MemberAccountsRepository
             return $this->emptyPaginator($perPage, $page);
         }
 
-        $orderBy = $this->hasColumn('wsavled', 'date_in') ? 'date_in' : 'svnumber';
+        $hasSavingsLedgerTypecode = $this->hasColumn('wsavled', 'typecode');
+        $hasSavingsMasterTypecode = $this->hasTable('wsvmaster')
+            && $this->hasColumn('wsvmaster', 'typecode');
 
-        return Wsavled::query()
-            ->where('acctno', $acctno)
+        if (! $hasSavingsLedgerTypecode && ! $hasSavingsMasterTypecode) {
+            return $this->emptyPaginator($perPage, $page);
+        }
+
+        $orderBy = $this->hasColumn('wsavled', 'date_in')
+            ? 'wsavled.date_in'
+            : 'wsavled.svnumber';
+
+        $query = Wsavled::query()
+            ->where('wsavled.acctno', $acctno)
             ->select([
-                'svnumber',
-                'svtype',
-                'date_in',
-                'deposit',
-                'withdrawal',
-                'balance',
+                'wsavled.svnumber',
+                'wsavled.svtype',
+                'wsavled.date_in',
+                'wsavled.deposit',
+                'wsavled.withdrawal',
+                'wsavled.balance',
             ])
-            ->orderByDesc($orderBy)
-            ->paginate($perPage, ['*'], 'page', $page);
+            ->orderByDesc($orderBy);
+
+        if ($hasSavingsLedgerTypecode) {
+            $query->where('wsavled.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+        } else {
+            $query->join('wsvmaster', function ($join) {
+                $join->on('wsvmaster.svnumber', '=', 'wsavled.svnumber')
+                    ->on('wsvmaster.acctno', '=', 'wsavled.acctno');
+            })->where('wsvmaster.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * @return array{latestBalance: float, lastTransactionDate: ?string}
+     */
+    public function getPersonalSavingsLedgerSummary(string $acctno): array
+    {
+        if (! $this->hasTable('wsavled')) {
+            return ['latestBalance' => 0.0, 'lastTransactionDate' => null];
+        }
+
+        $hasSavingsLedgerTypecode = $this->hasColumn('wsavled', 'typecode');
+        $hasSavingsMasterTypecode = $this->hasTable('wsvmaster')
+            && $this->hasColumn('wsvmaster', 'typecode');
+
+        if (! $hasSavingsLedgerTypecode && ! $hasSavingsMasterTypecode) {
+            return ['latestBalance' => 0.0, 'lastTransactionDate' => null];
+        }
+
+        $orderBy = $this->hasColumn('wsavled', 'date_in')
+            ? 'wsavled.date_in'
+            : 'wsavled.svnumber';
+
+        $query = DB::table('wsavled')
+            ->where('wsavled.acctno', $acctno)
+            ->select([
+                'wsavled.balance',
+                'wsavled.date_in',
+            ])
+            ->orderByDesc($orderBy);
+
+        if ($hasSavingsLedgerTypecode) {
+            $query->where('wsavled.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+        } else {
+            $query->join('wsvmaster', function ($join) {
+                $join->on('wsvmaster.svnumber', '=', 'wsavled.svnumber')
+                    ->on('wsvmaster.acctno', '=', 'wsavled.acctno');
+            })->where('wsvmaster.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+        }
+
+        $row = $query->first();
+
+        return [
+            'latestBalance' => (float) ($row?->balance ?? 0),
+            'lastTransactionDate' => $row?->date_in ? (string) $row->date_in : null,
+        ];
     }
 
     public function getPaginatedRecentActions(

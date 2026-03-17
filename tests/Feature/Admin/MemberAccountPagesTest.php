@@ -20,6 +20,19 @@ beforeEach(function () {
             $table->decimal('balance', 12, 2)->default(0);
         });
     }
+
+    if (! Schema::hasTable('wsvmaster')) {
+        Schema::create('wsvmaster', function (Blueprint $table) {
+            $table->string('acctno');
+            $table->string('svnumber');
+            $table->string('svtype')->nullable();
+            $table->integer('typecode')->default(0);
+            $table->decimal('mortuary', 12, 2)->default(0);
+            $table->decimal('balance', 12, 2)->default(0);
+            $table->decimal('wbalance', 12, 2)->default(0);
+            $table->dateTime('lastmove')->nullable();
+        });
+    }
 });
 
 test('admin can view member loans page', function () {
@@ -56,14 +69,56 @@ test('admin can view member savings page', function () {
         'acctno' => '000702',
     ]);
 
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-701',
+        'svtype' => 'Regular',
+        'typecode' => 4,
+        'mortuary' => 0,
+        'balance' => 0,
+        'wbalance' => 0,
+        'lastmove' => null,
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-702',
+        'svtype' => 'Regular',
+        'typecode' => 2,
+        'mortuary' => 0,
+        'balance' => 0,
+        'wbalance' => 0,
+        'lastmove' => null,
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-702',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-11 08:00:00')->toDateTimeString(),
+        'deposit' => 100,
+        'withdrawal' => 0,
+        'balance' => 100,
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-701',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-10 08:00:00')->toDateTimeString(),
+        'deposit' => 250,
+        'withdrawal' => 0,
+        'balance' => 500,
+    ]);
+
     DB::table('wsavled')->insert([
         'acctno' => $member->acctno,
         'svnumber' => 'SV-701',
         'svtype' => 'Regular',
         'date_in' => Carbon::parse('2024-02-12 08:00:00')->toDateTimeString(),
-        'deposit' => 250,
+        'deposit' => 300,
         'withdrawal' => 0,
-        'balance' => 750,
+        'balance' => 800,
     ]);
 
     $response = $this
@@ -77,10 +132,13 @@ test('admin can view member savings page', function () {
             ->has('member')
             ->has('summary')
             ->has('savings')
-            ->has('savings.items', 1)
+            ->has('savings.items', 2)
             ->where('member.user_id', $member->user_id)
+            ->where('summary.currentSavingsBalance', 800)
+            ->where('summary.lastSavingsTransactionDate', '2024-02-12 08:00:00')
             ->where('savings.items.0.svnumber', 'SV-701')
-            ->where('savings.items.0.date_in', '2024-02-12 08:00:00'));
+            ->where('savings.items.0.date_in', '2024-02-12 08:00:00')
+            ->where('savings.items.1.svnumber', 'SV-701'));
 });
 
 test('non-admin users cannot access member account pages', function () {

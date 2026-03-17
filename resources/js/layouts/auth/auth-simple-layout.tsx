@@ -1,8 +1,8 @@
 import { Link } from '@inertiajs/react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import AppLogo from '@/components/app-logo';
+import SupportContact from '@/components/support-contact';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
-
 
 export default function AuthSimpleLayout({
     children,
@@ -18,10 +18,10 @@ export default function AuthSimpleLayout({
                             href={home()}
                             className="flex flex-col items-center gap-2 font-medium"
                         >
-                            <AppLogoIcon className="h-12 w-auto object-contain" />
-                            <span className="text-sm font-semibold">
-                                MRDINC Portal
-                            </span>
+                            <AppLogo
+                                variant="stacked"
+                                iconClassName="h-12 w-auto object-contain"
+                            />
                             <span className="sr-only">{title}</span>
                         </Link>
 
@@ -33,6 +33,10 @@ export default function AuthSimpleLayout({
                         </div>
                     </div>
                     {children}
+                    <SupportContact
+                        variant="stacked"
+                        className="text-center"
+                    />
                 </div>
             </div>
         </div>

@@ -8,6 +8,8 @@ import {
     Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useBranding } from '@/hooks/use-branding';
+import SupportContact from '@/components/support-contact';
 import { dashboard, login, register } from '@/routes';
 
 type PageProps = {
@@ -78,6 +80,7 @@ const steps = [
 
 export default function Welcome() {
     const { auth, canRegister } = usePage<PageProps>().props;
+    const branding = useBranding();
     const isAuthenticated = Boolean(auth?.user);
 
     return (
@@ -91,16 +94,16 @@ export default function Welcome() {
                 <header className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <img
-                            src="/mrdinc-logo-mark.png"
-                            alt="MRDINC Portal"
+                            src={branding.logoUrl}
+                            alt={branding.appTitle}
                             className="h-10 w-auto object-contain md:h-12"
                         />
                         <div>
                             <p className="text-sm font-semibold">
-                                MRDINC Portal
+                                {branding.companyName}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Member Portal
+                                {branding.portalLabel}
                             </p>
                         </div>
                     </div>
@@ -131,14 +134,14 @@ export default function Welcome() {
                     <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                         <div className="space-y-6">
                             <p className="hidden text-xs font-semibold uppercase tracking-[0.3em] text-primary sm:flex">
-                                MRDINC Portal
+                                {branding.appTitle}
                             </p>
                             <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
                                 Member portal built for cooperative services.
                             </h1>
                             <p className="text-lg text-muted-foreground sm:text-xl">
                                 View loan history, payments, and submit
-                                requests—processed in WIBS Desktop.
+                                requests processed in WIBS Desktop.
                             </p>
 
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -294,19 +297,20 @@ export default function Welcome() {
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3">
                             <img
-                                src="/mrdinc-logo-mark.png"
-                                alt="MRDINC Portal"
+                                src={branding.logoUrl}
+                                alt={branding.appTitle}
                                 className="h-9 w-auto object-contain"
                             />
                             <div>
                                 <p className="text-sm font-semibold text-foreground">
-                                    MRDINC Portal
+                                    {branding.companyName}
                                 </p>
                                 <p className="text-xs">
                                     Integrated with WIBS Desktop
                                 </p>
                             </div>
                         </div>
+                        <SupportContact variant="inline" />
                         <div className="flex flex-wrap items-center gap-4 text-xs">
                             {['Privacy', 'Terms', 'Support'].map((label) => (
                                 <a

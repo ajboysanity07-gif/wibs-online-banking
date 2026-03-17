@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\MemberLoanScheduleController;
 use App\Http\Controllers\Admin\MemberLoansController;
 use App\Http\Controllers\Admin\MemberProfileController;
 use App\Http\Controllers\Admin\MemberSavingsController;
+use App\Http\Controllers\Admin\OrganizationSettingsController;
 use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\WatchlistController;
@@ -164,6 +165,12 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
 
     Route::get('watchlist', [WatchlistController::class, 'index'])
         ->name('admin.watchlist.index');
+
+    Route::get('settings/organization', [OrganizationSettingsController::class, 'index'])
+        ->name('admin.settings.organization');
+
+    Route::patch('settings/organization', [OrganizationSettingsController::class, 'update'])
+        ->name('admin.settings.organization.update');
 });
 
 require __DIR__.'/settings.php';

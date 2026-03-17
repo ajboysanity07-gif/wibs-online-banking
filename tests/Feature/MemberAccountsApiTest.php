@@ -333,6 +333,19 @@ test('member savings endpoint is paginated', function () {
     ]);
 
     foreach (range(1, 6) as $index) {
+        $typecode = $index < 3 ? 2 : 4;
+
+        DB::table('wsvmaster')->insert([
+            'acctno' => $member->acctno,
+            'svnumber' => sprintf('SV-%02d', $index),
+            'svtype' => 'Regular',
+            'typecode' => $typecode,
+            'mortuary' => 0,
+            'balance' => 0,
+            'wbalance' => 0,
+            'lastmove' => null,
+        ]);
+
         DB::table('wsavled')->insert([
             'acctno' => $member->acctno,
             'svnumber' => sprintf('SV-%02d', $index),
@@ -370,13 +383,17 @@ test('member savings endpoint is paginated', function () {
     $response->assertJsonMissingPath('data.items.0.wbalance');
     $response->assertJsonMissingPath('data.items.0.lastmove');
 
-    expect($response->json('data.items'))->toHaveCount(5);
-    expect($response->json('data.meta.total'))->toBe(6);
-    expect($response->json('data.meta.lastPage'))->toBe(2);
+    expect($response->json('data.items'))->toHaveCount(4);
+    expect($response->json('data.meta.total'))->toBe(4);
+    expect($response->json('data.meta.lastPage'))->toBe(1);
     expect($response->json('data.items.0.svnumber'))->toBe('SV-06');
     expect($response->json('data.items.0.date_in'))->toBe(
         '2024-03-06 09:00:00'
     );
+
+    $numbers = collect($response->json('data.items'))->pluck('svnumber')->all();
+    expect($numbers)->not->toContain('SV-01');
+    expect($numbers)->not->toContain('SV-02');
 });
 
 test('non-admin users cannot access member account endpoints', function () {

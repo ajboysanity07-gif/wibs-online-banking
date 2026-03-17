@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import AppLogo from '@/components/app-logo';
+import SupportContact from '@/components/support-contact';
 import {
     Card,
     CardContent,
@@ -26,10 +27,7 @@ export default function AuthCardLayout({
                     href={home()}
                     className="flex items-center gap-3 self-center font-medium"
                 >
-                    <AppLogoIcon className="h-9 w-auto object-contain" />
-                    <span className="text-sm font-semibold">
-                        MRDINC Portal
-                    </span>
+                    <AppLogo iconClassName="h-9 w-auto object-contain" />
                 </Link>
 
                 <div className="flex flex-col gap-6">
@@ -42,6 +40,10 @@ export default function AuthCardLayout({
                             {children}
                         </CardContent>
                     </Card>
+                    <SupportContact
+                        variant="stacked"
+                        className="text-center"
+                    />
                 </div>
             </div>
         </div>
