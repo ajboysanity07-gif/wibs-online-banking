@@ -28,6 +28,7 @@ export function DataTable<TData, TValue>({
   emptyMessage = "No results.",
   className,
 }: DataTableProps<TData, TValue>) {
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns non-memoizable helpers.
   const table = useReactTable({
     data,
     columns,
