@@ -109,8 +109,14 @@ export default function OrganizationSettings() {
         normalizeHexInputValue(branding.brandAccentColor),
     );
     const [brandAccentTouched, setBrandAccentTouched] = useState(false);
-    const normalizedPrimary = normalizeHexValue(brandPrimaryValue);
-    const normalizedAccent = normalizeHexValue(brandAccentValue);
+    const primaryInputValue = brandPrimaryTouched
+        ? brandPrimaryValue
+        : normalizeHexInputValue(branding.brandPrimaryColor);
+    const accentInputValue = brandAccentTouched
+        ? brandAccentValue
+        : normalizeHexInputValue(branding.brandAccentColor);
+    const normalizedPrimary = normalizeHexValue(primaryInputValue);
+    const normalizedAccent = normalizeHexValue(accentInputValue);
     const primarySwatch = normalizedPrimary ?? DEFAULT_BRAND_PRIMARY;
     const accentSwatch = normalizedAccent ?? DEFAULT_BRAND_ACCENT;
     const brandPrimaryHelpId = 'brand_primary_color_help';
@@ -135,20 +141,6 @@ export default function OrganizationSettings() {
             URL.revokeObjectURL(faviconPreview);
         };
     }, [faviconPreview]);
-
-    useEffect(() => {
-        setBrandPrimaryValue(
-            normalizeHexInputValue(branding.brandPrimaryColor),
-        );
-        setBrandPrimaryTouched(false);
-    }, [branding.brandPrimaryColor]);
-
-    useEffect(() => {
-        setBrandAccentValue(
-            normalizeHexInputValue(branding.brandAccentColor),
-        );
-        setBrandAccentTouched(false);
-    }, [branding.brandAccentColor]);
 
     const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -278,13 +270,13 @@ export default function OrganizationSettings() {
                             }) => {
                                 const primaryClientError =
                                     brandPrimaryTouched &&
-                                    brandPrimaryValue.trim() !== '' &&
+                                    primaryInputValue.trim() !== '' &&
                                     normalizedPrimary === null
                                         ? PRIMARY_COLOR_ERROR
                                         : undefined;
                                 const accentClientError =
                                     brandAccentTouched &&
-                                    brandAccentValue.trim() !== '' &&
+                                    accentInputValue.trim() !== '' &&
                                     normalizedAccent === null
                                         ? ACCENT_COLOR_ERROR
                                         : undefined;
@@ -624,8 +616,11 @@ export default function OrganizationSettings() {
                                                     <Input
                                                         id="brand_primary_color"
                                                         name="brand_primary_color"
-                                                        value={brandPrimaryValue}
+                                                        value={primaryInputValue}
                                                         onChange={(event) => {
+                                                            setBrandPrimaryTouched(
+                                                                true,
+                                                            );
                                                             setBrandPrimaryValue(
                                                                 event.target.value,
                                                             );
@@ -720,8 +715,11 @@ export default function OrganizationSettings() {
                                                     <Input
                                                         id="brand_accent_color"
                                                         name="brand_accent_color"
-                                                        value={brandAccentValue}
+                                                        value={accentInputValue}
                                                         onChange={(event) => {
+                                                            setBrandAccentTouched(
+                                                                true,
+                                                            );
                                                             setBrandAccentValue(
                                                                 event.target.value,
                                                             );

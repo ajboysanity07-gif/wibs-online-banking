@@ -1,10 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
+import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
+import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
-import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import {
     Card,
     CardContent,

@@ -38,6 +38,7 @@ export function useMemberDetails(userId: number | null, initial?: MemberDetail) 
 
     useEffect(() => {
         const controller = new AbortController();
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch intentionally updates state.
         void refresh(controller.signal);
 
         return () => {

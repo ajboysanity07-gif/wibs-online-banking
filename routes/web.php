@@ -121,12 +121,16 @@ Route::get('client/dashboard', function (
 
     $memberName = $user->username;
 
-    if (Schema::hasTable('wmaster')) {
-        $wmasterName = $user->wmaster()->value('bname');
+    try {
+        if (Schema::hasTable('wmaster')) {
+            $wmasterName = $user->wmaster()->value('bname');
 
-        if (is_string($wmasterName) && trim($wmasterName) !== '') {
-            $memberName = $wmasterName;
+            if (is_string($wmasterName) && trim($wmasterName) !== '') {
+                $memberName = $wmasterName;
+            }
         }
+    } catch (Throwable $exception) {
+        report($exception);
     }
 
     $summary = null;

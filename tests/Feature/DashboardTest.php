@@ -33,6 +33,13 @@ test('approved users can visit the dashboard', function () {
             ->where('member.username', $user->username)
             ->where('member.acctno', '000701')
             ->has('summary')
+            ->has('summary.loanBalanceLeft')
+            ->has('summary.currentPersonalSavings')
+            ->has('summary.currentSavingsBalance')
+            ->has('summary.lastLoanTransactionDate')
+            ->has('summary.lastSavingsTransactionDate')
+            ->has('summary.recentLoans')
+            ->has('summary.recentSavings')
             ->has('recentAccountActions')
             ->where('recentAccountActions.meta.page', 1));
 });

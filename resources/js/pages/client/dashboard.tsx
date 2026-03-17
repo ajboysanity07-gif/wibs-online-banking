@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
 import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
@@ -15,7 +15,7 @@ import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
 import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
+import type { Auth, BreadcrumbItem } from '@/types';
 import type {
     MemberAccountActionsResponse,
     MemberAccountsSummary,
@@ -41,11 +41,15 @@ type MemberProfile = {
 };
 
 type Props = {
-    member: MemberProfile;
-    summary: MemberAccountsSummary | null;
+    member?: MemberProfile | null;
+    summary?: MemberAccountsSummary | null;
     summaryError?: string | null;
-    recentAccountActions: MemberAccountActionsResponse | null;
+    recentAccountActions?: MemberAccountActionsResponse | null;
     recentAccountActionsError?: string | null;
+};
+
+type PageProps = {
+    auth: Auth;
 };
 
 const statusVariant = (status?: string | null) => {
@@ -94,11 +98,23 @@ export default function MemberProfile({
     recentAccountActions,
     recentAccountActionsError = null,
 }: Props) {
+    const { auth } = usePage<PageProps>().props;
     const getInitials = useInitials();
     const [actionsLoading, setActionsLoading] = useState(false);
+    const currentMember: MemberProfile = member ?? {
+        name: auth.user.name ?? auth.user.username ?? auth.user.email ?? 'Member',
+        username: auth.user.username ?? auth.user.email ?? '',
+        email: auth.user.email,
+        phone: auth.user.phoneno ?? null,
+        acctno: null,
+        status: null,
+        created_at: auth.user.created_at ?? null,
+        avatar_url: auth.user.avatar ?? null,
+    };
     const actionsMeta = recentAccountActions?.meta ?? fallbackActionsMeta;
     const actionsItems = recentAccountActions?.items ?? [];
-    const summaryLoading = summary === null && !summaryError;
+    const summaryValue = summary ?? null;
+    const summaryLoading = summaryValue === null && !summaryError;
     const actionsLoadingState =
         actionsLoading || (!recentAccountActions && !recentAccountActionsError);
 
@@ -133,24 +149,24 @@ export default function MemberProfile({
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <Avatar className="size-12">
                             <AvatarImage
-                                src={member.avatar_url ?? undefined}
-                                alt={member.name}
+                                src={currentMember.avatar_url ?? undefined}
+                                alt={currentMember.name}
                             />
                             <AvatarFallback>
-                                {getInitials(member.name)}
+                                {getInitials(currentMember.name)}
                             </AvatarFallback>
                         </Avatar>
                         <div className="space-y-1">
                             <h1 className="text-2xl font-semibold">
-                                {member.name}
+                                {currentMember.name}
                             </h1>
                             <p className="text-sm text-muted-foreground">
                                 Member profile overview and account snapshot.
                             </p>
                         </div>
                     </div>
-                    <Badge variant={statusVariant(member.status)}>
-                        {statusLabel(member.status)}
+                    <Badge variant={statusVariant(currentMember.status)}>
+                        {statusLabel(currentMember.status)}
                     </Badge>
                 </div>
 
@@ -167,7 +183,7 @@ export default function MemberProfile({
                                 Member name
                             </p>
                             <p className="text-sm font-medium">
-                                {member.name}
+                                {currentMember.name}
                             </p>
                         </div>
                         <div>
@@ -175,7 +191,7 @@ export default function MemberProfile({
                                 Username
                             </p>
                             <p className="text-sm font-medium">
-                                {member.username}
+                                {currentMember.username}
                             </p>
                         </div>
                         <div>
@@ -183,7 +199,7 @@ export default function MemberProfile({
                                 Email
                             </p>
                             <p className="text-sm font-medium">
-                                {member.email}
+                                {currentMember.email}
                             </p>
                         </div>
                         <div>
@@ -191,7 +207,7 @@ export default function MemberProfile({
                                 Phone
                             </p>
                             <p className="text-sm font-medium">
-                                {member.phone ?? '--'}
+                                {currentMember.phone ?? '--'}
                             </p>
                         </div>
                         <div>
@@ -199,7 +215,7 @@ export default function MemberProfile({
                                 Account No
                             </p>
                             <p className="text-sm font-medium">
-                                {member.acctno ?? '--'}
+                                {currentMember.acctno ?? '--'}
                             </p>
                         </div>
                         <div>
@@ -207,22 +223,22 @@ export default function MemberProfile({
                                 Member since
                             </p>
                             <p className="text-sm font-medium">
-                                {formatDateTime(member.created_at)}
+                                {formatDateTime(currentMember.created_at)}
                             </p>
                         </div>
                     </CardContent>
                 </Card>
 
                 <MemberAccountsSummarySection
-                    acctno={member.acctno}
-                    summary={summary}
+                    acctno={currentMember.acctno}
+                    summary={summaryValue}
                     loading={summaryLoading}
                     error={summaryError}
                     onRetry={handleRetry}
                 />
 
                 <MemberRecentAccountActionsCard
-                    acctno={member.acctno}
+                    acctno={currentMember.acctno}
                     actions={actionsItems}
                     meta={actionsMeta}
                     loading={actionsLoadingState}

@@ -1,5 +1,5 @@
 import { Minus, Plus } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import Cropper, { type Area, type Point } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import { Button } from '@/components/ui/button';
@@ -41,15 +41,11 @@ export default function ProfileImageCropModal({
     );
     const hasPreview = Boolean(imagePreviewUrl);
 
-    useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
+    const resetCropState = useCallback(() => {
         setCrop({ x: 0, y: 0 });
         setZoom(MIN_ZOOM);
         setCroppedAreaPixels(null);
-    }, [isOpen, imagePreviewUrl]);
+    }, []);
 
     const handleCropComplete = useCallback(
         (_: Area, croppedPixels: Area) => {
@@ -92,7 +88,17 @@ export default function ProfileImageCropModal({
     const canSave = hasPreview && Boolean(croppedAreaPixels);
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog
+            open={isOpen}
+            onOpenChange={(open) => {
+                if (!open) {
+                    onClose();
+                    return;
+                }
+
+                resetCropState();
+            }}
+        >
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Crop profile photo</DialogTitle>

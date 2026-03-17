@@ -1,4 +1,4 @@
-import axios, { type AxiosError } from 'axios';
+import axios from 'axios';
 import client from '@/lib/api/client';
 
 type ValidationErrors = Record<string, string[]>;
