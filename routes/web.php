@@ -31,7 +31,11 @@ use App\Http\Controllers\Spa\Admin\WatchlistController as SpaWatchlistController
 use App\Http\Controllers\Spa\AuthController as SpaAuthController;
 use App\Http\Controllers\Spa\MemberVerificationController as SpaMemberVerificationController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
+use App\Http\Resources\Admin\MemberAccountsSummaryResource;
+use App\Services\Admin\MemberAccounts\MemberAccountsService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
@@ -98,8 +102,39 @@ Route::prefix('admin/api')->middleware(['auth', 'admin', 'verified'])->group(fun
     Route::get('members/{user}/loans/{loanNumber}/payments', SpaMemberLoanPaymentsController::class);
 });
 
-Route::get('client/dashboard', function () {
-    return Inertia::render('client/dashboard');
+Route::get('client/dashboard', function (
+    Request $request,
+    MemberAccountsService $service,
+) {
+    $user = $request->user();
+
+    if ($user === null) {
+        return redirect()->route('login');
+    }
+
+    $user->loadMissing('userProfile');
+    $memberName = $user->username;
+
+    if (Schema::hasTable('wmaster')) {
+        $user->loadMissing('wmaster');
+        $memberName = $user->wmaster?->bname ?? $memberName;
+    }
+
+    $summary = $service->getSummary($user);
+
+    return Inertia::render('client/dashboard', [
+        'member' => [
+            'name' => $memberName,
+            'username' => $user->username,
+            'email' => $user->email,
+            'phone' => $user->phoneno,
+            'acctno' => $user->acctno,
+            'status' => $user->userProfile?->status,
+            'created_at' => $user->created_at?->toDateTimeString(),
+            'avatar_url' => $user->avatar,
+        ],
+        'summary' => (new MemberAccountsSummaryResource($summary))->resolve(),
+    ]);
 })->middleware(['auth', 'approved', 'verified'])->name('client.dashboard');
 
 Route::get('dashboard', function () {

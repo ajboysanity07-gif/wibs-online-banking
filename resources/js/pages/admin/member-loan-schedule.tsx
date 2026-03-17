@@ -1,8 +1,7 @@
-import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list';
+import FullCalendar from '@fullcalendar/react';
 import { Head, Link } from '@inertiajs/react';
 import { Banknote, CalendarDays, Clock, List } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -20,8 +19,6 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Table,
     TableBody,
@@ -30,17 +27,19 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useMemberLoanSchedule } from '@/hooks/admin/use-member-loan-schedule';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { dashboard } from '@/routes/admin';
 import {
     loanPayments,
     loanSchedule,
     loans as memberLoans,
     show as showMember,
 } from '@/routes/admin/members';
+import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberLoan,
@@ -216,7 +215,7 @@ export default function MemberLoanSchedule({
     );
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Admin Dashboard', href: dashboard().url },
+        { title: 'Members', href: membersIndex().url },
         { title: 'Member profile', href: showMember(member.user_id).url },
         { title: 'Loans', href: memberLoans(member.user_id).url },
         { title: 'Schedule', href: '#' },
@@ -412,7 +411,6 @@ export default function MemberLoanSchedule({
                                 ref={calendarRef}
                                 plugins={[
                                     dayGridPlugin,
-                                    timeGridPlugin,
                                     listPlugin,
                                     interactionPlugin,
                                 ]}
@@ -420,7 +418,10 @@ export default function MemberLoanSchedule({
                                 headerToolbar={{
                                     left: 'prev,next today',
                                     center: 'title',
-                                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth',
+                                    right: 'dayGridMonth,listMonth',
+                                }}
+                                buttonText={{
+                                    dayGridMonth: 'Calendar',
                                 }}
                                 height="auto"
                                 events={events}

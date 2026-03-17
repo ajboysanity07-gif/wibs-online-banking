@@ -523,8 +523,8 @@ export default function MemberProfile({
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
-            title: 'Admin Dashboard',
-            href: dashboard().url,
+            title: 'Members',
+            href: membersIndex().url,
         },
         {
             title: 'Member profile',

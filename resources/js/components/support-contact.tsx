@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import { useBranding } from '@/hooks/use-branding';
+import { cn } from '@/lib/utils';
 
 type SupportContactProps = {
     className?: string;

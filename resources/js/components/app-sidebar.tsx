@@ -22,16 +22,16 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
-import { index as membersIndex } from '@/routes/admin/watchlist';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { pending as pendingApprovals } from '@/routes/admin/users';
+import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Member profile',
         href: dashboard(),
         icon: LayoutGrid,
     },

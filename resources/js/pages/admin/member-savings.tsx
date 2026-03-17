@@ -25,8 +25,8 @@ import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { useMemberSavings } from '@/hooks/admin/use-member-savings';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { dashboard } from '@/routes/admin';
 import { savings as memberSavings, show as showMember } from '@/routes/admin/members';
+import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
@@ -197,7 +197,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
     );
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Admin Dashboard', href: dashboard().url },
+        { title: 'Members', href: membersIndex().url },
         { title: 'Member profile', href: showMember(member.user_id).url },
         { title: 'Savings', href: memberSavings(member.user_id).url },
     ];

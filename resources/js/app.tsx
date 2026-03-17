@@ -1,15 +1,15 @@
-import { createInertiaApp } from '@inertiajs/react';
 import type { Page } from '@inertiajs/core';
+import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../css/app.css';
 import ApiNotice from '@/components/api-notice';
 import { Toaster } from '@/components/ui/sonner';
+import type { Branding } from '@/types';
 import { initializeTheme } from './hooks/use-appearance';
 import { mrdincTheme } from './theme/clients/mrdinc';
 import { injectClientTheme } from './theme/inject-theme';
-import type { Branding } from '@/types';
 
 type SharedProps = {
     branding?: Branding;

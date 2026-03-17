@@ -7,9 +7,9 @@ import {
     ShieldCheck,
     Sparkles,
 } from 'lucide-react';
+import SupportContact from '@/components/support-contact';
 import { Button } from '@/components/ui/button';
 import { useBranding } from '@/hooks/use-branding';
-import SupportContact from '@/components/support-contact';
 import { dashboard, login, register } from '@/routes';
 
 type PageProps = {

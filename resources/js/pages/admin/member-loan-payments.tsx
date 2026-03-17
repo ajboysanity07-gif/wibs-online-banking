@@ -22,11 +22,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 import {
     DataTablePagination,
     DataTablePaginationSkeleton,
 } from '@/components/ui/data-table-pagination';
-import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
@@ -34,7 +34,6 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useMemberLoanPayments } from '@/hooks/admin/use-member-loan-payments';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { dashboard } from '@/routes/admin';
 import {
     loanPayments,
     loanPaymentsExport,
@@ -42,6 +41,7 @@ import {
     loans as memberLoans,
     show as showMember,
 } from '@/routes/admin/members';
+import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberLoan,
@@ -239,7 +239,7 @@ export default function MemberLoanPayments({
     );
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Admin Dashboard', href: dashboard().url },
+        { title: 'Members', href: membersIndex().url },
         { title: 'Member profile', href: showMember(member.user_id).url },
         { title: 'Loans', href: memberLoans(member.user_id).url },
         { title: 'Payments', href: '#' },
