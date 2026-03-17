@@ -115,12 +115,30 @@ Route::get('client/dashboard', function (
     $user->loadMissing('userProfile');
     $memberName = $user->username;
 
-    if (Schema::hasTable('wmaster')) {
-        $user->loadMissing('wmaster');
-        $memberName = $user->wmaster?->bname ?? $memberName;
+    try {
+        if (Schema::hasTable('wmaster')) {
+            $user->loadMissing('wmaster');
+            $memberName = $user->wmaster?->bname ?? $memberName;
+        }
+    } catch (Throwable $exception) {
+        report($exception);
     }
 
-    $summary = $service->getSummary($user);
+    $summary = [
+        'loanBalanceLeft' => 0.0,
+        'currentPersonalSavings' => 0.0,
+        'currentSavingsBalance' => 0.0,
+        'lastLoanTransactionDate' => null,
+        'lastSavingsTransactionDate' => null,
+        'recentLoans' => [],
+        'recentSavings' => [],
+    ];
+
+    try {
+        $summary = $service->getSummary($user);
+    } catch (Throwable $exception) {
+        report($exception);
+    }
 
     return Inertia::render('client/dashboard', [
         'member' => [

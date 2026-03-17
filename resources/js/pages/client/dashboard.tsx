@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Banknote, PiggyBank } from 'lucide-react';
 import { MemberAccountSummaryCard } from '@/components/member-account-summary-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,7 +14,7 @@ import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
 import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
+import type { Auth, BreadcrumbItem } from '@/types';
 import type { MemberAccountsSummary } from '@/types/admin';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -36,8 +36,22 @@ type MemberProfile = {
 };
 
 type Props = {
-    member: MemberProfile;
-    summary: MemberAccountsSummary;
+    member?: MemberProfile | null;
+    summary?: MemberAccountsSummary | null;
+};
+
+type PageProps = {
+    auth: Auth;
+};
+
+const emptySummary: MemberAccountsSummary = {
+    loanBalanceLeft: 0,
+    currentPersonalSavings: 0,
+    currentSavingsBalance: 0,
+    lastLoanTransactionDate: null,
+    lastSavingsTransactionDate: null,
+    recentLoans: [],
+    recentSavings: [],
 };
 
 const statusVariant = (status?: string | null) => {
@@ -73,7 +87,19 @@ const statusLabel = (status?: string | null) => {
 };
 
 export default function MemberProfile({ member, summary }: Props) {
+    const { auth } = usePage<PageProps>().props;
     const getInitials = useInitials();
+    const currentMember: MemberProfile = member ?? {
+        name: auth.user.name ?? auth.user.username ?? auth.user.email ?? 'Member',
+        username: auth.user.username ?? auth.user.email ?? '',
+        email: auth.user.email,
+        phone: auth.user.phoneno ?? null,
+        acctno: null,
+        status: null,
+        created_at: auth.user.created_at ?? null,
+        avatar_url: auth.user.avatar ?? null,
+    };
+    const currentSummary = summary ?? emptySummary;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -83,24 +109,24 @@ export default function MemberProfile({ member, summary }: Props) {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <Avatar className="size-12">
                             <AvatarImage
-                                src={member.avatar_url ?? undefined}
-                                alt={member.name}
+                                src={currentMember.avatar_url ?? undefined}
+                                alt={currentMember.name}
                             />
                             <AvatarFallback>
-                                {getInitials(member.name)}
+                                {getInitials(currentMember.name)}
                             </AvatarFallback>
                         </Avatar>
                         <div className="space-y-1">
                             <h1 className="text-2xl font-semibold">
-                                {member.name}
+                                {currentMember.name}
                             </h1>
                             <p className="text-sm text-muted-foreground">
                                 Member profile overview and account snapshot.
                             </p>
                         </div>
                     </div>
-                    <Badge variant={statusVariant(member.status)}>
-                        {statusLabel(member.status)}
+                    <Badge variant={statusVariant(currentMember.status)}>
+                        {statusLabel(currentMember.status)}
                     </Badge>
                 </div>
 
@@ -117,7 +143,7 @@ export default function MemberProfile({ member, summary }: Props) {
                                 Member name
                             </p>
                             <p className="text-sm font-medium">
-                                {member.name}
+                                {currentMember.name}
                             </p>
                         </div>
                         <div>
@@ -125,7 +151,7 @@ export default function MemberProfile({ member, summary }: Props) {
                                 Username
                             </p>
                             <p className="text-sm font-medium">
-                                {member.username}
+                                {currentMember.username}
                             </p>
                         </div>
                         <div>
@@ -133,7 +159,7 @@ export default function MemberProfile({ member, summary }: Props) {
                                 Email
                             </p>
                             <p className="text-sm font-medium">
-                                {member.email}
+                                {currentMember.email}
                             </p>
                         </div>
                         <div>
@@ -141,7 +167,7 @@ export default function MemberProfile({ member, summary }: Props) {
                                 Phone
                             </p>
                             <p className="text-sm font-medium">
-                                {member.phone ?? '--'}
+                                {currentMember.phone ?? '--'}
                             </p>
                         </div>
                         <div>
@@ -149,7 +175,7 @@ export default function MemberProfile({ member, summary }: Props) {
                                 Account No
                             </p>
                             <p className="text-sm font-medium">
-                                {member.acctno ?? '--'}
+                                {currentMember.acctno ?? '--'}
                             </p>
                         </div>
                         <div>
@@ -157,7 +183,7 @@ export default function MemberProfile({ member, summary }: Props) {
                                 Member since
                             </p>
                             <p className="text-sm font-medium">
-                                {formatDateTime(member.created_at)}
+                                {formatDateTime(currentMember.created_at)}
                             </p>
                         </div>
                     </CardContent>
@@ -168,10 +194,12 @@ export default function MemberProfile({ member, summary }: Props) {
                         title="Loans"
                         subtitle="Loan portfolio snapshot"
                         primaryLabel="Total Outstanding Loan Balance"
-                        primaryValue={formatCurrency(summary.loanBalanceLeft)}
+                        primaryValue={formatCurrency(
+                            currentSummary.loanBalanceLeft,
+                        )}
                         secondaryLabel="Last Loan Transaction"
                         secondaryValue={formatDate(
-                            summary.lastLoanTransactionDate,
+                            currentSummary.lastLoanTransactionDate,
                         )}
                         icon={Banknote}
                         accent="primary"
@@ -181,11 +209,11 @@ export default function MemberProfile({ member, summary }: Props) {
                         subtitle="Savings overview"
                         primaryLabel="Total Current Savings"
                         primaryValue={formatCurrency(
-                            summary.currentSavingsBalance,
+                            currentSummary.currentSavingsBalance,
                         )}
                         secondaryLabel="Last Savings Transaction"
                         secondaryValue={formatDate(
-                            summary.lastSavingsTransactionDate,
+                            currentSummary.lastSavingsTransactionDate,
                         )}
                         icon={PiggyBank}
                         accent="accent"
