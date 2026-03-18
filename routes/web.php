@@ -117,7 +117,7 @@ Route::get('client/dashboard', function (
         return redirect()->route('login');
     }
 
-    $user->loadMissing('userProfile', 'adminProfile');
+    $user->loadMissing('userProfile.reviewedBy', 'adminProfile');
 
     if ($user->adminProfile !== null) {
         return redirect()->route('admin.dashboard');
@@ -142,6 +142,10 @@ Route::get('client/dashboard', function (
 
     try {
         $summary = $service->getSummary($user);
+        $ledgerSummary = $service->getPersonalSavingsLedgerSummary($user);
+        $summary['currentPersonalSavings'] = $ledgerSummary['latestBalance'];
+        $summary['currentSavingsBalance'] = $ledgerSummary['latestBalance'];
+        $summary['lastSavingsTransactionDate'] = $ledgerSummary['lastTransactionDate'];
     } catch (Throwable $exception) {
         report($exception);
         $summaryError = 'Unable to load summary.';
@@ -203,6 +207,13 @@ Route::get('client/dashboard', function (
         'acctno' => $user->acctno,
         'status' => $user->userProfile?->status,
         'created_at' => $user->created_at?->toDateTimeString(),
+        'reviewed_by' => $user->userProfile?->reviewedBy
+            ? [
+                'user_id' => $user->userProfile->reviewedBy->user_id,
+                'name' => $user->userProfile->reviewedBy->name,
+            ]
+            : null,
+        'reviewed_at' => $user->userProfile?->reviewed_at?->toDateTimeString(),
         'avatar_url' => $user->avatar,
     ]);
     $summaryPayload = $summary === null

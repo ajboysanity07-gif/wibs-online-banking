@@ -18,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { TableSkeleton, type TableSkeletonColumn } from '@/components/ui/table-skeleton';
 import { useMembers } from '@/hooks/admin/use-members';
 import AppLayout from '@/layouts/app-layout';
 import { show as showMember } from '@/routes/admin/members';
@@ -131,7 +131,7 @@ const columns: ColumnDef<MemberSummary>[] = [
     },
 ];
 
-const membersTableSkeletonColumns = [
+const membersTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-32', cellClassName: 'w-36' },

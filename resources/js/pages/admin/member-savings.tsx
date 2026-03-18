@@ -1,5 +1,4 @@
 import { Head, Link } from '@inertiajs/react';
-import type { ColumnDef } from '@tanstack/react-table';
 import { Clock, PiggyBank } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { MemberAccountAlert } from '@/components/member-account-alert';
@@ -8,19 +7,9 @@ import {
     MemberDetailPrimaryCard,
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
-import {
-    MemberMobileCard,
-    MemberMobileCardSkeleton,
-} from '@/components/member-mobile-card';
-import { MemberRecordsCard } from '@/components/member-records-card';
+import { MemberSavingsLedgerCard } from '@/components/member-savings-ledger-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DataTable } from '@/components/ui/data-table';
-import {
-    DataTablePagination,
-    DataTablePaginationSkeleton,
-} from '@/components/ui/data-table-pagination';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { useMemberSavings } from '@/hooks/admin/use-member-savings';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -29,7 +18,6 @@ import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
-    MemberSavingsLedgerEntry,
     MemberSavingsLedgerResponse,
 } from '@/types/admin';
 
@@ -43,94 +31,6 @@ type Props = {
     member: MemberSummary;
     summary: MemberAccountsSummary;
     savings: MemberSavingsLedgerResponse;
-};
-
-const savingsTableSkeletonColumns = [
-    { headerClassName: 'w-24', cellClassName: 'w-32' },
-    { headerClassName: 'w-16', cellClassName: 'w-20' },
-    { headerClassName: 'w-16', cellClassName: 'w-20' },
-    { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-20', cellClassName: 'w-24' },
-    { headerClassName: 'w-20', cellClassName: 'w-24' },
-];
-
-type SavingsMovement = 'Deposit' | 'Withdrawal' | 'Unknown';
-
-const movementVariants = {
-    Deposit: 'secondary',
-    Withdrawal: 'outline',
-    Unknown: 'outline',
-} as const;
-
-const resolveMovementLabel = (
-    entry: MemberSavingsLedgerEntry,
-): SavingsMovement => {
-    const deposit = entry.deposit ?? 0;
-    const withdrawal = entry.withdrawal ?? 0;
-
-    if (deposit > 0) {
-        return 'Deposit';
-    }
-
-    if (withdrawal > 0) {
-        return 'Withdrawal';
-    }
-
-    return 'Unknown';
-};
-
-const renderSavingsType = (value?: string | null) => {
-    if (!value) {
-        return '--';
-    }
-
-    return <Badge variant="outline">{value}</Badge>;
-};
-
-const MobileSavingsCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
-    <div className="space-y-3">
-        {Array.from({ length: rows }).map((_, index) => (
-            <MemberMobileCardSkeleton
-                key={`savings-card-skeleton-${index}`}
-                valueLabelClassName="w-24"
-            />
-        ))}
-    </div>
-);
-
-const MobileSavingsCard = ({
-    savings,
-}: {
-    savings: MemberSavingsLedgerEntry;
-}) => {
-    const movement = resolveMovementLabel(savings);
-    const movementLabel = movement === 'Unknown' ? '--' : movement;
-
-    return (
-        <MemberMobileCard
-            title={
-                <span className="inline-flex flex-wrap items-center gap-2">
-                    <Badge variant={movementVariants[movement]}>
-                        {movementLabel}
-                    </Badge>
-                </span>
-            }
-            subtitle={renderSavingsType(savings.svtype)}
-            valueLabel="Balance"
-            value={formatCurrency(savings.balance)}
-            meta={[
-                {
-                    label: 'Transaction date',
-                    value: formatDate(savings.date_in),
-                },
-                { label: 'Deposit', value: formatCurrency(savings.deposit) },
-                {
-                    label: 'Withdrawal',
-                    value: formatCurrency(savings.withdrawal),
-                },
-            ]}
-        />
-    );
 };
 
 export default function MemberSavings({ member, summary, savings }: Props) {
@@ -171,52 +71,6 @@ export default function MemberSavings({ member, summary, savings }: Props) {
         return Array.from(uniqueNumbers);
     }, [items]);
 
-    const columns = useMemo<ColumnDef<MemberSavingsLedgerEntry>[]>(
-        () => [
-            {
-                accessorKey: 'date_in',
-                header: 'Transaction Date',
-                cell: ({ row }) => formatDate(row.original.date_in),
-            },
-            {
-                id: 'movement',
-                header: 'Movement',
-                cell: ({ row }) => {
-                    const movement = resolveMovementLabel(row.original);
-                    const movementLabel =
-                        movement === 'Unknown' ? '--' : movement;
-
-                    return (
-                        <Badge variant={movementVariants[movement]}>
-                            {movementLabel}
-                        </Badge>
-                    );
-                },
-            },
-            {
-                accessorKey: 'svtype',
-                header: 'Type',
-                cell: ({ row }) => renderSavingsType(row.original.svtype),
-            },
-            {
-                accessorKey: 'deposit',
-                header: 'Deposit',
-                cell: ({ row }) => formatCurrency(row.original.deposit),
-            },
-            {
-                accessorKey: 'withdrawal',
-                header: 'Withdrawal',
-                cell: ({ row }) => formatCurrency(row.original.withdrawal),
-            },
-            {
-                accessorKey: 'balance',
-                header: 'Balance',
-                cell: ({ row }) => formatCurrency(row.original.balance),
-            },
-        ],
-        [],
-    );
-
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Members', href: membersIndex().url },
         { title: 'Member profile', href: showMember(member.user_id).url },
@@ -229,7 +83,6 @@ export default function MemberSavings({ member, summary, savings }: Props) {
     const savingsEmptyMessage = loading
         ? 'Loading savings...'
         : 'No savings transactions found.';
-    const showSkeleton = loading && items.length === 0;
     const savingsNumberMeta =
         savingsNumbers.length === 0 ? (
             <span>--</span>
@@ -293,60 +146,14 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                     />
                 </div>
 
-                <MemberRecordsCard
-                    title="Savings"
-                    description="Savings ledger activity with pagination."
+                <MemberSavingsLedgerCard
+                    items={items}
+                    meta={meta}
                     isUpdating={loading}
                     error={error}
-                    errorTitle="Unable to load savings"
                     onRetry={() => void refresh()}
-                    showSkeleton={showSkeleton}
-                    skeletonMobile={<MobileSavingsCardSkeletonList rows={4} />}
-                    skeletonDesktop={
-                        <TableSkeleton
-                            columns={savingsTableSkeletonColumns}
-                            rows={perPage}
-                            className="rounded-md border"
-                            tableClassName="min-w-[840px]"
-                        />
-                    }
-                    mobileWrapperClassName="space-y-3"
-                    mobileContent={
-                        items.length === 0 ? (
-                            <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
-                                {savingsEmptyMessage}
-                            </div>
-                        ) : (
-                            items.map((savingsRow, index) => (
-                                <MobileSavingsCard
-                                    key={`${savingsRow.svnumber ?? 'savings'}-${savingsRow.date_in ?? index}`}
-                                    savings={savingsRow}
-                                />
-                            ))
-                        )
-                    }
-                    desktopContent={
-                        <div className="overflow-x-auto">
-                            <DataTable
-                                columns={columns}
-                                data={items}
-                                className="min-w-[840px]"
-                                emptyMessage={savingsEmptyMessage}
-                            />
-                        </div>
-                    }
-                    footer={
-                        showSkeleton ? (
-                            <DataTablePaginationSkeleton />
-                        ) : (
-                            <DataTablePagination
-                                page={meta.page}
-                                perPage={meta.perPage}
-                                total={meta.total}
-                                onPageChange={setPage}
-                            />
-                        )
-                    }
+                    onPageChange={setPage}
+                    emptyMessage={savingsEmptyMessage}
                 />
             </div>
         </AppLayout>

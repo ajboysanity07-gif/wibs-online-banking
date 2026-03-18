@@ -1,23 +1,18 @@
 import { Head, Link } from '@inertiajs/react';
 import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
 import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
+import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
+import { MemberProfileHeader } from '@/components/member-profile-header';
+import { MemberStatusCard } from '@/components/member-status-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     MemberAccountsProvider,
     useMemberAccounts,
 } from '@/hooks/admin/use-member-accounts';
 import { useMemberDetails } from '@/hooks/admin/use-member-details';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
+import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/formatters';
 import {
@@ -52,16 +47,6 @@ type Props = {
     member: MemberSeed;
     accountsSummary: MemberAccountsSummary;
     recentAccountActions: MemberAccountActionsResponse;
-};
-
-const getInitials = (value: string): string => {
-    const parts = value.trim().split(/\s+/).slice(0, 2);
-
-    if (parts.length === 0) {
-        return 'U';
-    }
-
-    return parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
 };
 
 function LoansAndSavingsSummarySection() {
@@ -149,6 +134,7 @@ export default function MemberProfile({
     } = useMemberDetails(initialMember.user_id, seededMember);
     const currentMember = member ?? seededMember;
     const memberName = currentMember.member_name ?? currentMember.username;
+    const getInitials = useInitials();
 
     const { updateStatus, processingIds } = useUpdateMemberStatus({
         onUpdated: (updated) => {
@@ -177,34 +163,26 @@ export default function MemberProfile({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Member profile" />
             <div className="flex flex-col gap-6 p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <Avatar className="size-12">
-                            <AvatarImage src={currentMember.avatar_url ?? undefined} />
-                            <AvatarFallback>
-                                {getInitials(memberName)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold">
-                                {memberName}
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                Account status and profile details.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button asChild variant="outline" size="sm">
-                            <Link href={membersIndex().url}>All members</Link>
-                        </Button>
-                        <Button asChild variant="ghost" size="sm">
-                            <Link href={dashboard().url}>
-                                Back to dashboard
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
+                <MemberProfileHeader
+                    name={memberName}
+                    subtitle="Account status and profile details."
+                    avatarUrl={currentMember.avatar_url}
+                    avatarFallback={getInitials(memberName) || 'U'}
+                    accessory={
+                        <>
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={membersIndex().url}>
+                                    All members
+                                </Link>
+                            </Button>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link href={dashboard().url}>
+                                    Back to dashboard
+                                </Link>
+                            </Button>
+                        </>
+                    }
+                />
 
                 {error ? (
                     <Alert variant="destructive">
@@ -214,103 +192,52 @@ export default function MemberProfile({
                 ) : null}
 
                 <div className="grid gap-4 lg:grid-cols-3">
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle>Member details</CardTitle>
-                            <CardDescription>
-                                Portal profile information and contact details.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-3 sm:grid-cols-2">
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Member name
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {memberName}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Username
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {currentMember.username}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Email
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {currentMember.email}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Phone
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {currentMember.phoneno ?? '--'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Account No
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {currentMember.acctno ?? '--'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Created
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {formatDate(currentMember.created_at)}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Reviewed by
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {currentMember.reviewed_by?.name ?? '--'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">
-                                    Reviewed at
-                                </p>
-                                <p className="text-sm font-medium">
-                                    {formatDateTime(
+                    <div className="lg:col-span-2">
+                        <MemberProfileDetailsCard
+                            title="Member details"
+                            description="Portal profile information and contact details."
+                            items={[
+                                { label: 'Member name', value: memberName },
+                                {
+                                    label: 'Username',
+                                    value: currentMember.username,
+                                },
+                                { label: 'Email', value: currentMember.email },
+                                {
+                                    label: 'Phone',
+                                    value: currentMember.phoneno ?? '--',
+                                },
+                                {
+                                    label: 'Account No',
+                                    value: currentMember.acctno ?? '--',
+                                },
+                                {
+                                    label: 'Created',
+                                    value: formatDate(currentMember.created_at),
+                                },
+                                {
+                                    label: 'Reviewed by',
+                                    value:
+                                        currentMember.reviewed_by?.name ?? '--',
+                                },
+                                {
+                                    label: 'Reviewed at',
+                                    value: formatDateTime(
                                         currentMember.reviewed_at,
-                                    )}
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Account status</CardTitle>
-                            <CardDescription>
-                                Manage portal access state.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-muted-foreground">
-                                    Current status
-                                </span>
-                                <Badge
-                                    variant={getMemberStatusVariant(
-                                        currentMember.status,
-                                    )}
-                                >
-                                    {getMemberStatusLabel(currentMember.status)}
-                                </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
+                                    ),
+                                },
+                            ]}
+                        />
+                    </div>
+                    <MemberStatusCard
+                        statusLabel={getMemberStatusLabel(
+                            currentMember.status,
+                        )}
+                        statusVariant={getMemberStatusVariant(
+                            currentMember.status,
+                        )}
+                        actions={
+                            <>
                                 {canApprove ? (
                                     <Button
                                         type="button"
@@ -358,14 +285,14 @@ export default function MemberProfile({
                                         Reactivate
                                     </Button>
                                 ) : null}
-                            </div>
-                            {loading ? (
-                                <p className="text-xs text-muted-foreground">
-                                    Refreshing member status...
-                                </p>
-                            ) : null}
-                        </CardContent>
-                    </Card>
+                            </>
+                        }
+                        helper={
+                            loading
+                                ? 'Refreshing member status...'
+                                : undefined
+                        }
+                    />
                 </div>
 
                 <MemberAccountsProvider

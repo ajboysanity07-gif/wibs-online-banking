@@ -20,7 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { TableSkeleton, type TableSkeletonColumn } from '@/components/ui/table-skeleton';
 import { useAdminDashboard } from '@/hooks/admin/use-admin-dashboard';
 import { useMembers } from '@/hooks/admin/use-members';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
@@ -88,7 +88,7 @@ const statusVariant = (status?: MemberStatusValue | null) => {
     return 'outline';
 };
 
-const pendingApprovalsSkeletonColumns = [
+const pendingApprovalsSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-32', cellClassName: 'w-36' },
@@ -97,13 +97,13 @@ const pendingApprovalsSkeletonColumns = [
     { headerClassName: 'w-12', cellClassName: 'h-8 w-20', align: 'right' },
 ];
 
-const requestPreviewSkeletonColumns = [
+const requestPreviewSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
 ];
 
-const memberLookupSkeletonColumns = [
+const memberLookupSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-16', cellClassName: 'w-16' },

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-type TableSkeletonColumn = {
+export type TableSkeletonColumn = {
   headerClassName?: string
   cellClassName?: string
   align?: "left" | "center" | "right"

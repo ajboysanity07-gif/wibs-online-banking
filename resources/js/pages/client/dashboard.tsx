@@ -2,18 +2,12 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
 import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
+import { MemberProfileHeader } from '@/components/member-profile-header';
+import { MemberStatusCard } from '@/components/member-status-card';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime } from '@/lib/formatters';
+import { formatDate, formatDateTime } from '@/lib/formatters';
 import {
     getMemberStatusLabel,
     getMemberStatusVariant,
@@ -45,6 +39,8 @@ type MemberProfile = {
     acctno: string | null;
     status: string | null;
     created_at: string | null;
+    reviewed_by?: { user_id: number; name: string } | null;
+    reviewed_at?: string | null;
     avatar_url: string | null;
 };
 
@@ -85,6 +81,8 @@ export default function MemberProfile({
         acctno: null,
         status: null,
         created_at: auth.user.created_at ?? null,
+        reviewed_by: null,
+        reviewed_at: null,
         avatar_url: auth.user.avatar ?? null,
     };
     const actionsMeta = recentAccountActions?.meta ?? fallbackActionsMeta;
@@ -122,91 +120,65 @@ export default function MemberProfile({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Member profile" />
             <div className="flex flex-col gap-6 p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <Avatar className="size-12">
-                            <AvatarImage
-                                src={currentMember.avatar_url ?? undefined}
-                                alt={currentMember.name}
-                            />
-                            <AvatarFallback>
-                                {getInitials(currentMember.name)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-semibold">
-                                {currentMember.name}
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                Member profile overview and account snapshot.
-                            </p>
-                        </div>
-                    </div>
-                    <Badge
-                        variant={getMemberStatusVariant(currentMember.status)}
-                    >
-                        {getMemberStatusLabel(currentMember.status)}
-                    </Badge>
-                </div>
+                <MemberProfileHeader
+                    name={currentMember.name}
+                    subtitle="Account status and profile details."
+                    avatarUrl={currentMember.avatar_url}
+                    avatarFallback={getInitials(currentMember.name) || 'U'}
+                />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Profile details</CardTitle>
-                        <CardDescription>
-                            Account and contact information.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <p className="text-xs text-muted-foreground">
-                                Member name
-                            </p>
-                            <p className="text-sm font-medium">
-                                {currentMember.name}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">
-                                Username
-                            </p>
-                            <p className="text-sm font-medium">
-                                {currentMember.username}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">
-                                Email
-                            </p>
-                            <p className="text-sm font-medium">
-                                {currentMember.email}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">
-                                Phone
-                            </p>
-                            <p className="text-sm font-medium">
-                                {currentMember.phone ?? '--'}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">
-                                Account No
-                            </p>
-                            <p className="text-sm font-medium">
-                                {currentMember.acctno ?? '--'}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">
-                                Member since
-                            </p>
-                            <p className="text-sm font-medium">
-                                {formatDateTime(currentMember.created_at)}
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="lg:col-span-2">
+                        <MemberProfileDetailsCard
+                            title="Member details"
+                            description="Portal profile information and contact details."
+                            items={[
+                                {
+                                    label: 'Member name',
+                                    value: currentMember.name,
+                                },
+                                {
+                                    label: 'Username',
+                                    value: currentMember.username,
+                                },
+                                {
+                                    label: 'Email',
+                                    value: currentMember.email,
+                                },
+                                {
+                                    label: 'Phone',
+                                    value: currentMember.phone ?? '--',
+                                },
+                                {
+                                    label: 'Account No',
+                                    value: currentMember.acctno ?? '--',
+                                },
+                                {
+                                    label: 'Created',
+                                    value: formatDate(currentMember.created_at),
+                                },
+                                {
+                                    label: 'Reviewed by',
+                                    value: currentMember.reviewed_by?.name ?? '--',
+                                },
+                                {
+                                    label: 'Reviewed at',
+                                    value: formatDateTime(
+                                        currentMember.reviewed_at ?? null,
+                                    ),
+                                },
+                            ]}
+                        />
+                    </div>
+                    <MemberStatusCard
+                        statusLabel={getMemberStatusLabel(
+                            currentMember.status,
+                        )}
+                        statusVariant={getMemberStatusVariant(
+                            currentMember.status,
+                        )}
+                    />
+                </div>
 
                 <MemberAccountsSummarySection
                     acctno={currentMember.acctno}
@@ -215,12 +187,12 @@ export default function MemberProfile({
                     error={summaryError}
                     onRetry={handleRetry}
                     loansAction={{
-                        label: 'See more',
+                        label: 'View all',
                         href: clientLoans().url,
                         disabled: !canNavigate,
                     }}
                     savingsAction={{
-                        label: 'See more',
+                        label: 'View all',
                         href: clientSavings().url,
                         disabled: !canNavigate,
                     }}

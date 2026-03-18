@@ -18,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
+import { TableSkeleton, type TableSkeletonColumn } from '@/components/ui/table-skeleton';
 import { usePendingApprovals } from '@/hooks/admin/use-pending-approvals';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
 import AppLayout from '@/layouts/app-layout';
@@ -133,7 +133,7 @@ const columns = (
     },
 ];
 
-const pendingTableSkeletonColumns = [
+const pendingTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-32', cellClassName: 'w-36' },
