@@ -164,9 +164,9 @@ test('admin can view member savings page', function () {
         'svnumber' => 'SV-701',
         'svtype' => 'Regular',
         'typecode' => 4,
-        'mortuary' => 0,
-        'balance' => 0,
-        'wbalance' => 0,
+        'mortuary' => 50,
+        'balance' => 700,
+        'wbalance' => 700,
         'lastmove' => null,
     ]);
 
@@ -224,10 +224,14 @@ test('admin can view member savings page', function () {
             ->has('savings')
             ->has('savings.items', 2)
             ->where('member.user_id', $member->user_id)
-            ->where('summary.currentSavingsBalance', 800)
+            ->where('summary.currentPersonalSavings', 800)
+            ->where('summary.currentSavingsBalance', 750)
             ->where('summary.lastSavingsTransactionDate', '2024-02-12 08:00:00')
             ->where('savings.items.0.svnumber', 'SV-701')
+            ->where('savings.items.0.svtype', 'Regular')
             ->where('savings.items.0.date_in', '2024-02-12 08:00:00')
+            ->where('savings.items.0.deposit', 300)
+            ->where('savings.items.0.withdrawal', 0)
             ->where('savings.items.1.svnumber', 'SV-701'));
 });
 

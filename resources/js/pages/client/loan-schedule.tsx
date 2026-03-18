@@ -17,10 +17,7 @@ import {
 } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
@@ -32,17 +29,15 @@ import {
 } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useMemberLoanSchedule } from '@/hooks/admin/use-member-loan-schedule';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
+    dashboard as clientDashboard,
     loanPayments,
     loanSchedule,
-    loans as memberLoans,
-    show as showMember,
-} from '@/routes/admin/members';
-import { index as membersIndex } from '@/routes/admin/watchlist';
+    loans as clientLoans,
+} from '@/routes/client';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberLoan,
@@ -52,7 +47,6 @@ import type {
 } from '@/types/admin';
 
 type MemberSummary = {
-    user_id: number;
     member_name: string | null;
     acctno: string | null;
 };
@@ -99,9 +93,7 @@ const CalendarSkeleton = () => (
 const MobileScheduleCardSkeletonList = ({ rows = 3 }: { rows?: number }) => (
     <div className="space-y-3">
         {Array.from({ length: rows }).map((_, index) => (
-            <MemberMobileCardSkeleton
-                key={`schedule-card-${index}`}
-            />
+            <MemberMobileCardSkeleton key={`schedule-card-${index}`} />
         ))}
     </div>
 );
@@ -119,7 +111,7 @@ const MobileScheduleCard = ({ entry }: { entry: MemberLoanScheduleEntry }) => (
     />
 );
 
-export default function MemberLoanSchedule({
+export default function LoanSchedule({
     member,
     loan,
     summary,
@@ -131,14 +123,7 @@ export default function MemberLoanSchedule({
     const [selectedEntry, setSelectedEntry] =
         useState<MemberLoanScheduleEntry | null>(null);
 
-    const { items, loading, error, refresh } = useMemberLoanSchedule(
-        member.user_id,
-        loanNumber,
-        {
-            initial: schedule,
-            enabled: Boolean(member.acctno && loanNumber),
-        },
-    );
+    const items = useMemo(() => schedule.items ?? [], [schedule.items]);
 
     useEffect(() => {
         const calendarApi = calendarRef.current?.getApi();
@@ -172,9 +157,8 @@ export default function MemberLoanSchedule({
     );
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Members', href: membersIndex().url },
-        { title: 'Member profile', href: showMember(member.user_id).url },
-        { title: 'Loans', href: memberLoans(member.user_id).url },
+        { title: 'Member profile', href: clientDashboard().url },
+        { title: 'Loans', href: clientLoans().url },
         { title: 'Schedule', href: '#' },
     ];
 
@@ -185,7 +169,7 @@ export default function MemberLoanSchedule({
     const lastPayment = summary.last_payment_date
         ? formatDate(summary.last_payment_date)
         : 'No payment recorded yet';
-    const showSkeleton = loading && items.length === 0;
+    const showSkeleton = false;
     const canNavigate = Boolean(member.acctno && loanNumber);
 
     return (
@@ -214,10 +198,9 @@ export default function MemberLoanSchedule({
                                     >
                                         <Link
                                             href={
-                                                loanSchedule({
-                                                    user: member.user_id,
-                                                    loanNumber: loanNumber ?? '',
-                                                }).url
+                                                loanSchedule(
+                                                    loanNumber ?? '',
+                                                ).url
                                             }
                                             aria-current="page"
                                         >
@@ -245,10 +228,9 @@ export default function MemberLoanSchedule({
                                     >
                                         <Link
                                             href={
-                                                loanPayments({
-                                                    user: member.user_id,
-                                                    loanNumber: loanNumber ?? '',
-                                                }).url
+                                                loanPayments(
+                                                    loanNumber ?? '',
+                                                ).url
                                             }
                                         >
                                             Payments
@@ -265,12 +247,12 @@ export default function MemberLoanSchedule({
                                 )}
                             </ToggleGroup>
                             <Button asChild variant="outline" size="sm">
-                                <Link href={memberLoans(member.user_id).url}>
+                                <Link href={clientLoans().url}>
                                     Back to loans
                                 </Link>
                             </Button>
                             <Button asChild variant="ghost" size="sm">
-                                <Link href={showMember(member.user_id).url}>
+                                <Link href={clientDashboard().url}>
                                     Back to profile
                                 </Link>
                             </Button>
@@ -316,10 +298,6 @@ export default function MemberLoanSchedule({
                 <MemberRecordsCard
                     title="Schedule Calendar"
                     description="Visual timeline of upcoming amortizations."
-                    isUpdating={loading}
-                    error={error}
-                    errorTitle="Unable to load schedule"
-                    onRetry={() => void refresh()}
                     showSkeleton={showSkeleton}
                     skeletonBody={<CalendarSkeleton />}
                     body={
@@ -336,7 +314,9 @@ export default function MemberLoanSchedule({
                                         listPlugin,
                                         interactionPlugin,
                                     ]}
-                                    initialView={isMobile ? 'listMonth' : 'dayGridMonth'}
+                                    initialView={
+                                        isMobile ? 'listMonth' : 'dayGridMonth'
+                                    }
                                     headerToolbar={{
                                         left: 'prev,next today',
                                         center: 'title',
@@ -350,12 +330,16 @@ export default function MemberLoanSchedule({
                                     eventClick={(info) => {
                                         const scheduleEntry =
                                             info.event.extendedProps
-                                                .schedule as MemberLoanScheduleEntry | undefined;
+                                                .schedule as
+                                                | MemberLoanScheduleEntry
+                                                | undefined;
                                         setSelectedEntry(scheduleEntry ?? null);
                                     }}
                                     eventDidMount={(info) => {
                                         const entry = info.event.extendedProps
-                                            .schedule as MemberLoanScheduleEntry | undefined;
+                                            .schedule as
+                                            | MemberLoanScheduleEntry
+                                            | undefined;
                                         if (!entry) {
                                             return;
                                         }
@@ -381,7 +365,9 @@ export default function MemberLoanSchedule({
                                             type="button"
                                             size="sm"
                                             variant="ghost"
-                                            onClick={() => setSelectedEntry(null)}
+                                            onClick={() =>
+                                                setSelectedEntry(null)
+                                            }
                                         >
                                             Clear
                                         </Button>

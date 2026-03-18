@@ -121,6 +121,26 @@ test('admin can view member accounts summary', function () {
         'lastmove' => Carbon::parse('2024-03-01 09:00:00')->toDateTimeString(),
     ]);
 
+    DB::table('wsavled')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-1',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-11 09:00:00')->toDateTimeString(),
+        'deposit' => 200,
+        'withdrawal' => 0,
+        'balance' => 450,
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-1',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-15 09:00:00')->toDateTimeString(),
+        'deposit' => 100,
+        'withdrawal' => 0,
+        'balance' => 550,
+    ]);
+
     $response = $this->actingAs($admin)
         ->getJson("/admin/api/members/{$member->user_id}/accounts/summary");
 
@@ -140,13 +160,13 @@ test('admin can view member accounts summary', function () {
     ]);
 
     expect((float) $response->json('data.summary.loanBalanceLeft'))->toBe(900.0);
-    expect((float) $response->json('data.summary.currentPersonalSavings'))->toBe(500.0);
+    expect((float) $response->json('data.summary.currentPersonalSavings'))->toBe(550.0);
     expect((float) $response->json('data.summary.currentSavingsBalance'))->toBe(600.0);
     expect($response->json('data.summary.lastLoanTransactionDate'))->toBe(
         '2024-02-10 10:00:00'
     );
     expect($response->json('data.summary.lastSavingsTransactionDate'))->toBe(
-        '2024-02-12 09:00:00'
+        '2024-02-15 09:00:00'
     );
     expect($response->json('data.summary.recentSavings'))->toHaveCount(1);
     expect($response->json('data.summary.recentSavings.0.svnumber'))->toBe('SV-1');

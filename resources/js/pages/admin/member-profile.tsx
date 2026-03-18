@@ -20,6 +20,10 @@ import { useMemberDetails } from '@/hooks/admin/use-member-details';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/formatters';
+import {
+    getMemberStatusLabel,
+    getMemberStatusVariant,
+} from '@/lib/member-status';
 import { dashboard } from '@/routes/admin';
 import {
     loans as memberLoans,
@@ -48,38 +52,6 @@ type Props = {
     member: MemberSeed;
     accountsSummary: MemberAccountsSummary;
     recentAccountActions: MemberAccountActionsResponse;
-};
-
-const statusVariant = (status?: MemberStatusValue | null) => {
-    if (status === 'active') {
-        return 'default';
-    }
-
-    if (status === 'pending') {
-        return 'secondary';
-    }
-
-    if (status === 'suspended') {
-        return 'destructive';
-    }
-
-    return 'outline';
-};
-
-const statusLabel = (status?: MemberStatusValue | null) => {
-    if (status === 'active') {
-        return 'Active';
-    }
-
-    if (status === 'pending') {
-        return 'Pending';
-    }
-
-    if (status === 'suspended') {
-        return 'Suspended';
-    }
-
-    return 'Unknown';
 };
 
 const getInitials = (value: string): string => {
@@ -331,11 +303,11 @@ export default function MemberProfile({
                                     Current status
                                 </span>
                                 <Badge
-                                    variant={statusVariant(
+                                    variant={getMemberStatusVariant(
                                         currentMember.status,
                                     )}
                                 >
-                                    {statusLabel(currentMember.status)}
+                                    {getMemberStatusLabel(currentMember.status)}
                                 </Badge>
                             </div>
                             <div className="flex flex-wrap gap-2">

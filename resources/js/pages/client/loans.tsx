@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Banknote, CalendarClock, Clock, CreditCard } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -20,33 +20,33 @@ import {
     DataTablePaginationSkeleton,
 } from '@/components/ui/data-table-pagination';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
-import { useMemberLoans } from '@/hooks/admin/use-member-loans';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
+    dashboard as clientDashboard,
     loanPayments,
     loanSchedule,
-    loans as memberLoans,
-    show as showMember,
-} from '@/routes/admin/members';
-import { index as membersIndex } from '@/routes/admin/watchlist';
+    loans as clientLoans,
+} from '@/routes/client';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
     MemberLoan,
     MemberLoansResponse,
+    PaginationMeta,
 } from '@/types/admin';
 
 type MemberSummary = {
-    user_id: number;
-    member_name: string | null;
+    name: string;
     acctno: string | null;
 };
 
 type Props = {
     member: MemberSummary;
-    summary: MemberAccountsSummary;
-    loans: MemberLoansResponse;
+    summary: MemberAccountsSummary | null;
+    summaryError?: string | null;
+    loans: MemberLoansResponse | null;
+    loansError?: string | null;
 };
 
 const loanTableSkeletonColumns = [
@@ -56,7 +56,11 @@ const loanTableSkeletonColumns = [
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-16', cellClassName: 'w-20' },
-    { headerClassName: 'w-12', cellClassName: 'h-8 w-28', align: 'right' },
+    {
+        headerClassName: 'w-12',
+        cellClassName: 'h-8 w-28',
+        align: 'right' as const,
+    },
 ];
 
 const MobileLoanCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
@@ -72,11 +76,9 @@ const MobileLoanCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
 
 const MobileLoanCard = ({
     loan,
-    memberId,
     canNavigate,
 }: {
     loan: MemberLoan;
-    memberId: number;
     canNavigate: boolean;
 }) => (
     <MemberMobileCard
@@ -99,14 +101,7 @@ const MobileLoanCard = ({
                         variant="outline"
                         className="w-full sm:w-auto"
                     >
-                        <Link
-                            href={
-                                loanSchedule({
-                                    user: memberId,
-                                    loanNumber: loan.lnnumber,
-                                }).url
-                            }
-                        >
+                        <Link href={loanSchedule(loan.lnnumber).url}>
                             <CalendarClock />
                             Schedule
                         </Link>
@@ -131,14 +126,7 @@ const MobileLoanCard = ({
                         variant="outline"
                         className="w-full sm:w-auto"
                     >
-                        <Link
-                            href={
-                                loanPayments({
-                                    user: memberId,
-                                    loanNumber: loan.lnnumber,
-                                }).url
-                            }
-                        >
+                        <Link href={loanPayments(loan.lnnumber).url}>
                             <CreditCard />
                             Payment
                         </Link>
@@ -160,30 +148,26 @@ const MobileLoanCard = ({
     />
 );
 
-export default function MemberLoans({ member, summary, loans }: Props) {
-    const memberKey = `${member.user_id}`;
-    const [pageState, setPageState] = useState(() => ({
-        memberKey,
-        page: loans.meta.page,
-    }));
-    const page =
-        pageState.memberKey === memberKey ? pageState.page : loans.meta.page;
-    const perPage = loans.meta.perPage;
-    const setPage = (nextPage: number) => {
-        setPageState({ memberKey, page: nextPage });
-    };
+const fallbackMeta: PaginationMeta = {
+    page: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+};
 
-    const {
-        items,
-        meta,
-        loading,
-        error,
-        refresh,
-    } = useMemberLoans(member.user_id, page, perPage, {
-        initial: loans,
-        enabled: true,
-    });
-
+export default function MemberLoans({
+    member,
+    summary,
+    loans,
+    loansError = null,
+}: Props) {
+    const [loading, setLoading] = useState(false);
+    const items = loans?.items ?? [];
+    const meta = loans?.meta ?? fallbackMeta;
+    const summaryValue = summary ?? null;
+    const isLoading = loading || (loans === null && !loansError);
+    const showSkeleton = isLoading && items.length === 0;
+    const loanEmptyMessage = isLoading ? 'Loading loans...' : 'No loans found.';
     const canNavigate = Boolean(member.acctno);
 
     const columns = useMemo<ColumnDef<MemberLoan>[]>(
@@ -224,13 +208,17 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                 cell: ({ row }) => (
                     <div className="flex items-center justify-end gap-2">
                         {canNavigate && row.original.lnnumber ? (
-                            <Button asChild type="button" size="sm" variant="outline">
+                            <Button
+                                asChild
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                            >
                                 <Link
                                     href={
-                                        loanSchedule({
-                                            user: member.user_id,
-                                            loanNumber: row.original.lnnumber,
-                                        }).url
+                                        loanSchedule(
+                                            row.original.lnnumber,
+                                        ).url
                                     }
                                 >
                                     <CalendarClock />
@@ -238,19 +226,28 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                                 </Link>
                             </Button>
                         ) : (
-                            <Button type="button" size="sm" variant="outline" disabled>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled
+                            >
                                 <CalendarClock />
                                 Schedule
                             </Button>
                         )}
                         {canNavigate && row.original.lnnumber ? (
-                            <Button asChild type="button" size="sm" variant="outline">
+                            <Button
+                                asChild
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                            >
                                 <Link
                                     href={
-                                        loanPayments({
-                                            user: member.user_id,
-                                            loanNumber: row.original.lnnumber,
-                                        }).url
+                                        loanPayments(
+                                            row.original.lnnumber,
+                                        ).url
                                     }
                                 >
                                     <CreditCard />
@@ -258,7 +255,12 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                                 </Link>
                             </Button>
                         ) : (
-                            <Button type="button" size="sm" variant="outline" disabled>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled
+                            >
                                 <CreditCard />
                                 Payment
                             </Button>
@@ -267,32 +269,54 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                 ),
             },
         ],
-        [canNavigate, member.user_id],
+        [canNavigate],
     );
 
+    const reloadPage = (nextPage: number) => {
+        setLoading(true);
+        router.get(
+            clientLoans().url,
+            { page: nextPage },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => {
+                    setLoading(false);
+                },
+            },
+        );
+    };
+
+    const handlePageChange = (nextPage: number) => {
+        if (nextPage === meta.page) {
+            return;
+        }
+
+        reloadPage(nextPage);
+    };
+
+    const handleRetry = () => {
+        reloadPage(meta.page);
+    };
+
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Members', href: membersIndex().url },
-        { title: 'Member profile', href: showMember(member.user_id).url },
-        { title: 'Loans', href: memberLoans(member.user_id).url },
+        { title: 'Member profile', href: clientDashboard().url },
+        { title: 'Loans', href: clientLoans().url },
     ];
-    const loanBalance = formatCurrency(summary.loanBalanceLeft);
-    const lastLoanTransaction = formatDate(summary.lastLoanTransactionDate);
-    const loanEmptyMessage = loading
-        ? 'Loading loans...'
-        : 'No loans found.';
-    const showSkeleton = loading && items.length === 0;
+    const loanBalance = formatCurrency(summaryValue?.loanBalanceLeft);
+    const lastLoanTransaction = formatDate(summaryValue?.lastLoanTransactionDate);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Member Loans" />
+            <Head title="Loans" />
             <div className="flex flex-col gap-6 p-4">
                 <MemberDetailPageHeader
-                    title="Member Loans"
-                    subtitle={`Loan portfolio for ${member.member_name ?? 'this member'}.`}
+                    title="Loans"
+                    subtitle="Your current loan portfolio."
                     meta={`Account No: ${member.acctno ?? '--'}`}
                     actions={
                         <Button asChild variant="ghost" size="sm">
-                            <Link href={showMember(member.user_id).url}>
+                            <Link href={clientDashboard().url}>
                                 Back to profile
                             </Link>
                         </Button>
@@ -326,16 +350,16 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                 <MemberRecordsCard
                     title="Loans"
                     description="Full loan list with pagination."
-                    isUpdating={loading}
-                    error={error}
+                    isUpdating={isLoading}
+                    error={loansError}
                     errorTitle="Unable to load loans"
-                    onRetry={() => void refresh()}
+                    onRetry={handleRetry}
                     showSkeleton={showSkeleton}
                     skeletonMobile={<MobileLoanCardSkeletonList rows={4} />}
                     skeletonDesktop={
                         <TableSkeleton
                             columns={loanTableSkeletonColumns}
-                            rows={perPage}
+                            rows={meta.perPage}
                             className="rounded-md border"
                             tableClassName="min-w-[980px]"
                         />
@@ -351,7 +375,6 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                                 <MobileLoanCard
                                     key={loan.lnnumber ?? `loan-${index}`}
                                     loan={loan}
-                                    memberId={member.user_id}
                                     canNavigate={canNavigate}
                                 />
                             ))
@@ -375,7 +398,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                                 page={meta.page}
                                 perPage={meta.perPage}
                                 total={meta.total}
-                                onPageChange={setPage}
+                                onPageChange={handlePageChange}
                             />
                         )
                     }

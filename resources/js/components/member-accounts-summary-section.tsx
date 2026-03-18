@@ -39,7 +39,7 @@ export function MemberAccountsSummarySection({
             <div className="space-y-1">
                 <h2 className="text-xl font-semibold">Loans and Savings</h2>
                 <p className="text-sm text-muted-foreground">
-                    Quick snapshot of loan and savings activity.
+                    Quick snapshot of loan and personal savings activity.
                 </p>
             </div>
             {!acctno ? (
@@ -87,10 +87,10 @@ export function MemberAccountsSummarySection({
                 />
                 <MemberAccountSummaryCard
                     title="Savings"
-                    subtitle="Savings overview"
-                    primaryLabel="Total Current Savings"
+                    subtitle="Personal savings overview"
+                    primaryLabel="Personal Savings Balance"
                     primaryValue={formatCurrency(
-                        summary?.currentSavingsBalance,
+                        summary?.currentPersonalSavings,
                     )}
                     secondaryLabel="Last Savings Transaction"
                     secondaryValue={formatDate(

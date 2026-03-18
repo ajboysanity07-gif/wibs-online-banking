@@ -14,6 +14,10 @@ use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Auth\MemberVerificationController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
+use App\Http\Controllers\Client\MemberLoanPaymentsController as ClientMemberLoanPaymentsController;
+use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
+use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
+use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\MemberAccountActionsController as SpaMemberAccountActionsController;
@@ -246,6 +250,22 @@ Route::get('client/dashboard', function (
         'recentAccountActionsError' => $recentAccountActionsError,
     ]);
 })->middleware(['auth', 'approved', 'verified'])->name('client.dashboard');
+
+Route::get('client/loans', ClientMemberLoansController::class)
+    ->middleware(['auth', 'approved', 'verified'])
+    ->name('client.loans');
+
+Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
+    ->middleware(['auth', 'approved', 'verified'])
+    ->name('client.loan-schedule');
+
+Route::get('client/loans/{loanNumber}/payments', ClientMemberLoanPaymentsController::class)
+    ->middleware(['auth', 'approved', 'verified'])
+    ->name('client.loan-payments');
+
+Route::get('client/savings', ClientMemberSavingsController::class)
+    ->middleware(['auth', 'approved', 'verified'])
+    ->name('client.savings');
 
 Route::get('dashboard', function () {
     $user = request()->user();

@@ -25,7 +25,6 @@ class MemberSavingsController extends Controller
         $summary = $service->getSummary($user);
         $ledgerSummary = $service->getPersonalSavingsLedgerSummary($user);
         $summary['currentPersonalSavings'] = $ledgerSummary['latestBalance'];
-        $summary['currentSavingsBalance'] = $ledgerSummary['latestBalance'];
         $summary['lastSavingsTransactionDate'] = $ledgerSummary['lastTransactionDate'];
         $paginator = $service->getPaginatedSavings($user, 10, 1);
 

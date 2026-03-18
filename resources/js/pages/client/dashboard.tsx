@@ -14,7 +14,15 @@ import {
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
-import { dashboard } from '@/routes';
+import {
+    getMemberStatusLabel,
+    getMemberStatusVariant,
+} from '@/lib/member-status';
+import {
+    dashboard as clientDashboard,
+    loans as clientLoans,
+    savings as clientSavings,
+} from '@/routes/client';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type {
     MemberAccountActionsResponse,
@@ -25,7 +33,7 @@ import type {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Member profile',
-        href: dashboard().url,
+        href: clientDashboard().url,
     },
 ];
 
@@ -50,38 +58,6 @@ type Props = {
 
 type PageProps = {
     auth: Auth;
-};
-
-const statusVariant = (status?: string | null) => {
-    if (status === 'active') {
-        return 'default';
-    }
-
-    if (status === 'pending') {
-        return 'secondary';
-    }
-
-    if (status === 'suspended') {
-        return 'destructive';
-    }
-
-    return 'outline';
-};
-
-const statusLabel = (status?: string | null) => {
-    if (status === 'active') {
-        return 'Active';
-    }
-
-    if (status === 'pending') {
-        return 'Pending';
-    }
-
-    if (status === 'suspended') {
-        return 'Suspended';
-    }
-
-    return 'Unknown';
 };
 
 const fallbackActionsMeta: PaginationMeta = {
@@ -121,7 +97,7 @@ export default function MemberProfile({
     const reloadWithActionsPage = (page: number) => {
         setActionsLoading(true);
         router.get(
-            dashboard().url,
+            clientDashboard().url,
             { actions_page: page },
             {
                 preserveScroll: true,
@@ -140,6 +116,7 @@ export default function MemberProfile({
     const handleRetry = () => {
         reloadWithActionsPage(actionsMeta.page);
     };
+    const canNavigate = Boolean(currentMember.acctno);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -165,8 +142,10 @@ export default function MemberProfile({
                             </p>
                         </div>
                     </div>
-                    <Badge variant={statusVariant(currentMember.status)}>
-                        {statusLabel(currentMember.status)}
+                    <Badge
+                        variant={getMemberStatusVariant(currentMember.status)}
+                    >
+                        {getMemberStatusLabel(currentMember.status)}
                     </Badge>
                 </div>
 
@@ -235,6 +214,16 @@ export default function MemberProfile({
                     loading={summaryLoading}
                     error={summaryError}
                     onRetry={handleRetry}
+                    loansAction={{
+                        label: 'See more',
+                        href: clientLoans().url,
+                        disabled: !canNavigate,
+                    }}
+                    savingsAction={{
+                        label: 'See more',
+                        href: clientSavings().url,
+                        disabled: !canNavigate,
+                    }}
                 />
 
                 <MemberRecentAccountActionsCard

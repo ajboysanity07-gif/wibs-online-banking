@@ -1,9 +1,11 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Banknote,
     BookOpen,
     FileText,
     Folder,
     LayoutGrid,
+    PiggyBank,
     Settings,
     UserCheck,
     Users,
@@ -20,20 +22,34 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { pending as pendingApprovals } from '@/routes/admin/users';
 import { index as membersIndex } from '@/routes/admin/watchlist';
+import {
+    dashboard as clientDashboard,
+    loans as clientLoans,
+    savings as clientSavings,
+} from '@/routes/client';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
 const baseNavItems: NavItem[] = [
     {
         title: 'Member profile',
-        href: dashboard(),
+        href: clientDashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Loans',
+        href: clientLoans(),
+        icon: Banknote,
+    },
+    {
+        title: 'Savings',
+        href: clientSavings(),
+        icon: PiggyBank,
     },
 ];
 
@@ -82,7 +98,7 @@ export function AppSidebar() {
     const { url } = usePage();
     const isAdminSection = url.startsWith('/admin');
     const mainNavItems = isAdminSection ? adminNavItems : baseNavItems;
-    const homeLink = isAdminSection ? adminDashboard() : dashboard();
+    const homeLink = isAdminSection ? adminDashboard() : clientDashboard();
 
     return (
         <Sidebar collapsible="icon" variant="inset">
