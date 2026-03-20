@@ -1604,11 +1604,10 @@ export default function Profile({
                                                                         <div className="grid gap-2">
                                                                             <Label
                                                                                 htmlFor="employer_business_city"
-                                                                                className="sr-only"
+                                                                                className="invisible"
+                                                                                aria-hidden="true"
                                                                             >
                                                                                 City
-                                                                                or
-                                                                                municipality
                                                                             </Label>
 
                                                                             <div className="relative">
@@ -1620,6 +1619,7 @@ export default function Profile({
                                                                                     }
                                                                                     name="employer_business_city"
                                                                                     placeholder="City or municipality"
+                                                                                    aria-label="City or municipality"
                                                                                     autoComplete="off"
                                                                                     onChange={(event) => {
                                                                                         employerBusinessCitySearch.setQuery(
