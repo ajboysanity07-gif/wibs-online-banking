@@ -20,17 +20,10 @@ class MemberApplicationProfileFactory extends Factory
     {
         return [
             'user_id' => AppUser::factory(),
-            'first_name' => fake()->firstName(),
-            'last_name' => fake()->lastName(),
-            'middle_name' => null,
             'nickname' => null,
-            'birthdate' => null,
             'birthplace' => null,
-            'age' => null,
-            'address' => null,
             'length_of_stay' => null,
             'housing_status' => null,
-            'civil_status' => null,
             'educational_attainment' => null,
             'number_of_children' => null,
             'spouse_name' => null,
@@ -52,12 +45,10 @@ class MemberApplicationProfileFactory extends Factory
     public function completed(): static
     {
         return $this->state(fn () => [
-            'first_name' => fake()->firstName(),
-            'last_name' => fake()->lastName(),
-            'birthdate' => fake()->date(),
             'birthplace' => fake()->city(),
-            'address' => fake()->streetAddress(),
-            'civil_status' => fake()->randomElement(['Single', 'Married', 'Widowed']),
+            'length_of_stay' => fake()->randomElement(['1 year', '2 years', '5 years']),
+            'housing_status' => fake()->randomElement(['Owned', 'Rented', 'Living with family']),
+            'educational_attainment' => fake()->randomElement(['High School', 'College', 'Vocational']),
             'employment_type' => fake()->randomElement(['Regular', 'Contract', 'Self-Employed']),
             'employer_business_name' => fake()->company(),
             'current_position' => fake()->jobTitle(),

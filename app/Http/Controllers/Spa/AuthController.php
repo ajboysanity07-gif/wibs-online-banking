@@ -102,7 +102,7 @@ class AuthController extends Controller
 
     private function postAuthRedirect(AppUser $user): string
     {
-        $user->loadMissing('adminProfile', 'userProfile', 'memberApplicationProfile');
+        $user->loadMissing('adminProfile', 'userProfile');
 
         if ($user->role === 'admin') {
             return '/admin/dashboard';
@@ -112,9 +112,7 @@ class AuthController extends Controller
             return '/pending-approval';
         }
 
-        $memberProfile = $user->memberApplicationProfile;
-
-        if ($memberProfile === null || ! $memberProfile->isComplete()) {
+        if (! $user->memberApplicationProfileIsComplete()) {
             return '/settings/profile?onboarding=1';
         }
 

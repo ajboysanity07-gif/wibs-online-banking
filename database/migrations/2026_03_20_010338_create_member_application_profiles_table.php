@@ -14,17 +14,10 @@ return new class extends Migration
         Schema::create('member_application_profiles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->unique();
-            $table->string('first_name')->nullable();
-            $table->string('last_name')->nullable();
-            $table->string('middle_name')->nullable();
             $table->string('nickname')->nullable();
-            $table->date('birthdate')->nullable();
             $table->string('birthplace')->nullable();
-            $table->unsignedTinyInteger('age')->nullable();
-            $table->text('address')->nullable();
             $table->string('length_of_stay')->nullable();
             $table->string('housing_status')->nullable();
-            $table->string('civil_status')->nullable();
             $table->string('educational_attainment')->nullable();
             $table->unsignedTinyInteger('number_of_children')->nullable();
             $table->string('spouse_name')->nullable();

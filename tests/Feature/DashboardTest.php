@@ -9,6 +9,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
+beforeEach(function () {
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('lname')->nullable();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('bname')->nullable();
+            $table->date('birthday')->nullable();
+            $table->string('address')->nullable();
+            $table->string('civilstat')->nullable();
+            $table->string('occupation')->nullable();
+        });
+    }
+});
+
 test('guests are redirected to the login page', function () {
     $response = $this->get(route('dashboard'));
     $response->assertRedirect(route('login'));
@@ -20,6 +36,16 @@ test('approved users can visit the dashboard', function () {
     ]);
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Rivera, Ana',
+        'fname' => 'Ana',
+        'lname' => 'Rivera',
+        'birthday' => '1992-06-15',
+        'address' => '123 Mabini Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
     ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
@@ -53,6 +79,16 @@ test('approved users without a completed profile are redirected to onboarding', 
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Cruz, Jose',
+        'fname' => 'Jose',
+        'lname' => 'Cruz',
+        'birthday' => '1988-02-20',
+        'address' => '456 Pilar Street',
+        'civilstat' => 'Married',
+        'occupation' => 'Supervisor',
+    ]);
 
     $this->actingAs($user);
 
@@ -61,13 +97,6 @@ test('approved users without a completed profile are redirected to onboarding', 
 });
 
 test('client dashboard sanitizes legacy member payloads', function () {
-    if (! Schema::hasTable('wmaster')) {
-        Schema::create('wmaster', function (Blueprint $table) {
-            $table->string('acctno')->primary();
-            $table->string('bname')->nullable();
-        });
-    }
-
     $user = User::factory()->create([
         'acctno' => '000701',
     ]);
@@ -83,6 +112,12 @@ test('client dashboard sanitizes legacy member payloads', function () {
     DB::table('wmaster')->insert([
         'acctno' => $user->acctno,
         'bname' => $legacyName,
+        'fname' => 'Legacy',
+        'lname' => 'Member',
+        'birthday' => '1990-01-01',
+        'address' => 'Legacy Address',
+        'civilstat' => 'Single',
+        'occupation' => 'Member',
     ]);
 
     $this->actingAs($user);

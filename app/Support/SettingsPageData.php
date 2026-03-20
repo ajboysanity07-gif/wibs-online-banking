@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Features;
 
@@ -23,19 +24,31 @@ class SettingsPageData
         $twoFactorEnabled = $twoFactorAvailable
             && $user?->hasEnabledTwoFactorAuthentication();
 
+        $memberRecord = null;
+
+        if ($user !== null && $adminProfile === null && Schema::hasTable('wmaster')) {
+            $user->loadMissing('wmaster');
+
+            if ($user->wmaster !== null) {
+                $memberRecord = [
+                    'bname' => $user->wmaster->bname,
+                    'fname' => $user->wmaster->fname,
+                    'lname' => $user->wmaster->lname,
+                    'mname' => $user->wmaster->mname,
+                    'birthday' => $user->wmaster->birthday?->toDateString(),
+                    'address' => $user->wmaster->address,
+                    'civilstat' => $user->wmaster->civilstat,
+                    'occupation' => $user->wmaster->occupation,
+                ];
+            }
+        }
+
         $memberProfilePayload = $memberApplicationProfile
             ? [
-                'first_name' => $memberApplicationProfile->first_name,
-                'last_name' => $memberApplicationProfile->last_name,
-                'middle_name' => $memberApplicationProfile->middle_name,
                 'nickname' => $memberApplicationProfile->nickname,
-                'birthdate' => $memberApplicationProfile->birthdate?->toDateString(),
                 'birthplace' => $memberApplicationProfile->birthplace,
-                'age' => $memberApplicationProfile->age,
-                'address' => $memberApplicationProfile->address,
                 'length_of_stay' => $memberApplicationProfile->length_of_stay,
                 'housing_status' => $memberApplicationProfile->housing_status,
-                'civil_status' => $memberApplicationProfile->civil_status,
                 'educational_attainment' => $memberApplicationProfile->educational_attainment,
                 'number_of_children' => $memberApplicationProfile->number_of_children,
                 'spouse_name' => $memberApplicationProfile->spouse_name,
@@ -56,15 +69,10 @@ class SettingsPageData
             ]
             : null;
 
-        $profileCompletion = $memberApplicationProfile
-            ? [
-                'isComplete' => $memberApplicationProfile->isComplete(),
-                'completedAt' => $memberApplicationProfile->profile_completed_at?->toDateTimeString(),
-            ]
-            : [
-                'isComplete' => false,
-                'completedAt' => null,
-            ];
+        $profileCompletion = [
+            'isComplete' => $user?->memberApplicationProfileIsComplete() ?? false,
+            'completedAt' => $memberApplicationProfile?->profile_completed_at?->toDateTimeString(),
+        ];
 
         return [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
@@ -77,6 +85,7 @@ class SettingsPageData
                         : null,
                 ]
                 : null,
+            'memberRecord' => $memberRecord,
             'memberApplicationProfile' => $memberProfilePayload,
             'initialTab' => $initialTab,
             'profileCompletion' => $profileCompletion,

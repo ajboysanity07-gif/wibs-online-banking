@@ -35,45 +35,15 @@ class ProfileUpdateRequest extends FormRequest
                 'max:2048',
                 'mimes:jpg,jpeg,png,webp',
             ],
-            'first_name' => [
-                $memberRequirement('first_name'),
-                'string',
-                'max:100',
-            ],
-            'last_name' => [
-                $memberRequirement('last_name'),
-                'string',
-                'max:100',
-            ],
-            'middle_name' => [
-                $memberRequirement('middle_name'),
-                'string',
-                'max:100',
-            ],
             'nickname' => [
                 $memberRequirement('nickname'),
                 'string',
                 'max:100',
             ],
-            'birthdate' => [
-                $memberRequirement('birthdate'),
-                'date',
-            ],
             'birthplace' => [
                 $memberRequirement('birthplace'),
                 'string',
                 'max:255',
-            ],
-            'age' => [
-                $memberRequirement('age'),
-                'integer',
-                'min:0',
-                'max:120',
-            ],
-            'address' => [
-                $memberRequirement('address'),
-                'string',
-                'max:500',
             ],
             'length_of_stay' => [
                 $memberRequirement('length_of_stay'),
@@ -82,11 +52,6 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'housing_status' => [
                 $memberRequirement('housing_status'),
-                'string',
-                'max:100',
-            ],
-            'civil_status' => [
-                $memberRequirement('civil_status'),
                 'string',
                 'max:100',
             ],
@@ -170,12 +135,10 @@ class ProfileUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'first_name.required' => 'First name is required to complete your profile.',
-            'last_name.required' => 'Last name is required to complete your profile.',
-            'birthdate.required' => 'Birthdate is required to complete your profile.',
             'birthplace.required' => 'Birthplace is required to complete your profile.',
-            'address.required' => 'Address is required to complete your profile.',
-            'civil_status.required' => 'Civil status is required to complete your profile.',
+            'length_of_stay.required' => 'Length of stay is required to complete your profile.',
+            'housing_status.required' => 'Housing status is required to complete your profile.',
+            'educational_attainment.required' => 'Educational attainment is required to complete your profile.',
             'employment_type.required' => 'Employment type is required to complete your profile.',
             'employer_business_name.required' => 'Employer or business name is required to complete your profile.',
             'current_position.required' => 'Current position is required to complete your profile.',

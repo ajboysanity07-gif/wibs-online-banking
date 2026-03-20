@@ -38,12 +38,14 @@ class HandleInertiaRequests extends Middleware
     {
         $branding = app(OrganizationSettingsService::class)->branding();
 
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => $branding['appTitle'],
             'branding' => $branding,
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user?->withoutRelations(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

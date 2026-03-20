@@ -21,15 +21,13 @@ class EnsureMemberProfileComplete
             return $next($request);
         }
 
-        $user->loadMissing('adminProfile', 'memberApplicationProfile');
+        $user->loadMissing('adminProfile');
 
         if ($user->adminProfile !== null) {
             return $next($request);
         }
 
-        $memberProfile = $user->memberApplicationProfile;
-
-        if ($memberProfile !== null && $memberProfile->isComplete()) {
+        if ($user->memberApplicationProfileIsComplete()) {
             return $next($request);
         }
 

@@ -11,6 +11,20 @@ use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('lname')->nullable();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('bname')->nullable();
+            $table->date('birthday')->nullable();
+            $table->string('address')->nullable();
+            $table->string('civilstat')->nullable();
+            $table->string('occupation')->nullable();
+        });
+    }
+
     if (! Schema::hasTable('wlnmaster')) {
         Schema::create('wlnmaster', function (Blueprint $table) {
             $table->string('acctno');
@@ -85,6 +99,16 @@ test('approved client can view the dashboard profile page', function () {
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Ana',
+        'fname' => 'Ana',
+        'lname' => 'Member',
+        'birthday' => '1991-05-10',
+        'address' => '123 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Clerk',
+    ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
@@ -109,6 +133,16 @@ test('client dashboard summary uses latest savings ledger balance', function () 
     ]);
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Bea',
+        'fname' => 'Bea',
+        'lname' => 'Member',
+        'birthday' => '1990-03-08',
+        'address' => '456 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Staff',
     ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
@@ -154,6 +188,16 @@ test('approved client can view the loans page', function () {
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Chris',
+        'fname' => 'Chris',
+        'lname' => 'Member',
+        'birthday' => '1989-11-02',
+        'address' => '789 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Technician',
+    ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
@@ -176,6 +220,16 @@ test('approved client can view the savings page', function () {
     ]);
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Dana',
+        'fname' => 'Dana',
+        'lname' => 'Member',
+        'birthday' => '1993-07-22',
+        'address' => '321 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Assistant',
     ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
@@ -228,6 +282,16 @@ test('approved client can view the loan schedule page', function () {
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Eli',
+        'fname' => 'Eli',
+        'lname' => 'Member',
+        'birthday' => '1994-01-14',
+        'address' => '654 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Associate',
+    ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
@@ -260,6 +324,16 @@ test('approved client can view the loan payments page', function () {
     ]);
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Fran',
+        'fname' => 'Fran',
+        'lname' => 'Member',
+        'birthday' => '1995-09-09',
+        'address' => '987 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Coordinator',
     ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,

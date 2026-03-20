@@ -94,6 +94,18 @@ class Wmaster extends Model
         return $this->normalizeValue($this->bname);
     }
 
+    public function hasRequiredProfileFields(): bool
+    {
+        $hasName = $this->hasValue($this->bname)
+            || ($this->hasValue($this->fname) && $this->hasValue($this->lname));
+
+        return $hasName
+            && $this->hasValue($this->birthday)
+            && $this->hasValue($this->address)
+            && $this->hasValue($this->civilstat)
+            && $this->hasValue($this->occupation);
+    }
+
     private function normalizeValue(?string $value): string
     {
         $normalized = Str::upper(trim((string) $value));
@@ -101,5 +113,18 @@ class Wmaster extends Model
         $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
 
         return trim($normalized);
+    }
+
+    private function hasValue(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        if (is_string($value)) {
+            return trim($value) !== '';
+        }
+
+        return true;
     }
 }

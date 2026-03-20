@@ -16,17 +16,10 @@ class MemberApplicationProfile extends Model
      */
     protected $fillable = [
         'user_id',
-        'first_name',
-        'last_name',
-        'middle_name',
         'nickname',
-        'birthdate',
         'birthplace',
-        'age',
-        'address',
         'length_of_stay',
         'housing_status',
-        'civil_status',
         'educational_attainment',
         'number_of_children',
         'spouse_name',
@@ -54,34 +47,16 @@ class MemberApplicationProfile extends Model
         return $this->profile_completed_at !== null;
     }
 
-    public function syncCompletionStatus(): void
-    {
-        if ($this->hasRequiredFields()) {
-            $this->profile_completed_at ??= now();
-
-            return;
-        }
-
-        $this->profile_completed_at = null;
-    }
-
     /**
      * @return list<string>
      */
     public static function fields(): array
     {
         return [
-            'first_name',
-            'last_name',
-            'middle_name',
             'nickname',
-            'birthdate',
             'birthplace',
-            'age',
-            'address',
             'length_of_stay',
             'housing_status',
-            'civil_status',
             'educational_attainment',
             'number_of_children',
             'spouse_name',
@@ -105,12 +80,10 @@ class MemberApplicationProfile extends Model
     public static function completionRequiredFields(): array
     {
         return [
-            'first_name',
-            'last_name',
-            'birthdate',
             'birthplace',
-            'address',
-            'civil_status',
+            'length_of_stay',
+            'housing_status',
+            'educational_attainment',
             'employment_type',
             'employer_business_name',
             'current_position',
@@ -119,7 +92,7 @@ class MemberApplicationProfile extends Model
         ];
     }
 
-    private function hasRequiredFields(): bool
+    public function hasRequiredFields(): bool
     {
         foreach (self::completionRequiredFields() as $field) {
             $value = $this->getAttribute($field);
@@ -142,7 +115,6 @@ class MemberApplicationProfile extends Model
     protected function casts(): array
     {
         return [
-            'birthdate' => 'date',
             'gross_monthly_income' => 'decimal:2',
             'profile_completed_at' => 'datetime',
         ];

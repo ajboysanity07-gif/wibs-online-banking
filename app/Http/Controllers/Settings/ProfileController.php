@@ -75,8 +75,7 @@ class ProfileController extends Controller
 
             $memberProfile = $user->memberApplicationProfile()->firstOrNew();
             $memberProfile->fill($memberProfileData);
-            $memberProfile->syncCompletionStatus();
-            $memberProfile->save();
+            $user->syncMemberApplicationProfileCompletion($memberProfile);
         }
 
         return to_route('profile.edit');

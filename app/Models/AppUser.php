@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
@@ -72,6 +73,51 @@ class AppUser extends Authenticatable
     public function wmaster(): BelongsTo
     {
         return $this->belongsTo(Wmaster::class, 'acctno', 'acctno');
+    }
+
+    public function hasCanonicalMemberRecord(): bool
+    {
+        if (! Schema::hasTable('wmaster')) {
+            return false;
+        }
+
+        $this->loadMissing('wmaster');
+
+        return $this->wmaster?->hasRequiredProfileFields() ?? false;
+    }
+
+    public function memberApplicationProfileIsComplete(): bool
+    {
+        $this->loadMissing('memberApplicationProfile');
+
+        $memberProfile = $this->memberApplicationProfile;
+
+        if ($memberProfile === null) {
+            return false;
+        }
+
+        return $this->hasCanonicalMemberRecord()
+            && $memberProfile->hasRequiredFields();
+    }
+
+    public function syncMemberApplicationProfileCompletion(?MemberApplicationProfile $memberProfile = null): void
+    {
+        if ($memberProfile === null) {
+            $this->loadMissing('memberApplicationProfile');
+            $memberProfile = $this->memberApplicationProfile;
+        }
+
+        if ($memberProfile === null) {
+            return;
+        }
+
+        if ($this->hasCanonicalMemberRecord() && $memberProfile->hasRequiredFields()) {
+            $memberProfile->profile_completed_at ??= now();
+        } else {
+            $memberProfile->profile_completed_at = null;
+        }
+
+        $memberProfile->save();
     }
 
     public function getIdAttribute(): int
