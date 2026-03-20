@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\MemberApplicationProfile;
 use App\Support\SettingsPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,6 +65,18 @@ class ProfileController extends Controller
             if ($adminProfileData !== []) {
                 $adminProfile->update($adminProfileData);
             }
+        }
+
+        if ($adminProfile === null) {
+            $memberProfileData = Arr::only(
+                $validated,
+                MemberApplicationProfile::fields(),
+            );
+
+            $memberProfile = $user->memberApplicationProfile()->firstOrNew();
+            $memberProfile->fill($memberProfileData);
+            $memberProfile->syncCompletionStatus();
+            $memberProfile->save();
         }
 
         return to_route('profile.edit');

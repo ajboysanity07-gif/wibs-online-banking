@@ -64,6 +64,19 @@ test('profile information can be updated', function () {
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
+            'first_name' => 'Renee',
+            'last_name' => 'Santos',
+            'birthdate' => '1990-05-12',
+            'birthplace' => 'Cebu City',
+            'address' => '123 Mabini Street',
+            'civil_status' => 'Single',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.50',
+            'payday' => '15',
+            'years_in_work_business' => '5 years',
+            'spouse_cell_no' => '09123456780',
         ]);
 
     $response
@@ -76,6 +89,16 @@ test('profile information can be updated', function () {
     expect($user->email)->toBe('test@example.com');
     expect($user->phoneno)->toBe('09123456789');
     expect($user->email_verified_at)->toBeNull();
+
+    $memberProfile = $user->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->first_name)->toBe('Renee');
+    expect($memberProfile->last_name)->toBe('Santos');
+    expect($memberProfile->birthdate?->toDateString())->toBe('1990-05-12');
+    expect($memberProfile->employment_type)->toBe('Regular');
+    expect($memberProfile->gross_monthly_income)->toBe('35000.50');
+    expect($memberProfile->profile_completed_at)->not->toBeNull();
 });
 
 test('admin profile information can be updated with a profile photo', function () {
@@ -125,6 +148,17 @@ test('email verification status is unchanged when the email address is unchanged
             'username' => 'TestUser',
             'email' => $user->email,
             'phoneno' => '09123456788',
+            'first_name' => 'Renee',
+            'last_name' => 'Santos',
+            'birthdate' => '1990-05-12',
+            'birthplace' => 'Cebu City',
+            'address' => '123 Mabini Street',
+            'civil_status' => 'Single',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.50',
+            'payday' => '15',
         ]);
 
     $response

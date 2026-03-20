@@ -14,6 +14,7 @@ import ProfileImageCropModal, {
 } from '@/components/profile/profile-image-crop-modal';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,10 +47,47 @@ type AdminProfileSummary = {
     profilePicUrl: string | null;
 };
 
+type MemberApplicationProfileData = {
+    first_name: string | null;
+    last_name: string | null;
+    middle_name: string | null;
+    nickname: string | null;
+    birthdate: string | null;
+    birthplace: string | null;
+    age: number | null;
+    address: string | null;
+    length_of_stay: string | null;
+    housing_status: string | null;
+    civil_status: string | null;
+    educational_attainment: string | null;
+    number_of_children: number | null;
+    spouse_name: string | null;
+    spouse_age: number | null;
+    spouse_cell_no: string | null;
+    employment_type: string | null;
+    employer_business_name: string | null;
+    employer_business_address: string | null;
+    telephone_no: string | null;
+    current_position: string | null;
+    nature_of_business: string | null;
+    years_in_work_business: string | null;
+    gross_monthly_income: string | null;
+    payday: string | null;
+    profile_completed_at: string | null;
+};
+
+type ProfileCompletion = {
+    isComplete: boolean;
+    completedAt: string | null;
+};
+
 type Props = {
     mustVerifyEmail: boolean;
     status?: string;
     adminProfile?: AdminProfileSummary | null;
+    memberApplicationProfile?: MemberApplicationProfileData | null;
+    profileCompletion?: ProfileCompletion | null;
+    onboarding?: boolean;
     initialTab?: SettingsTab;
     twoFactorEnabled?: boolean;
     requiresConfirmation?: boolean;
@@ -72,6 +110,9 @@ export default function Profile({
     mustVerifyEmail,
     status,
     adminProfile = null,
+    memberApplicationProfile = null,
+    profileCompletion = null,
+    onboarding = false,
     initialTab = 'profile',
     twoFactorEnabled = false,
     requiresConfirmation = false,
@@ -110,6 +151,8 @@ export default function Profile({
     const profilePhotoUrl =
         profilePhotoPreview ?? adminProfile?.profilePicUrl ?? auth.user.avatar;
     const displayName = adminProfile?.fullname ?? auth.user.name;
+    const isProfileComplete = Boolean(profileCompletion?.isComplete);
+    const showOnboardingAlert = onboarding && adminProfile === null && !isProfileComplete;
 
     useEffect(() => {
         setActiveTab(initialTab);
@@ -297,19 +340,48 @@ export default function Profile({
 
                         <Separator className="my-6 lg:hidden" />
 
-                        <div className="flex-1 md:max-w-2xl">
+                        <div className="flex-1 md:max-w-3xl">
                             <TabsContent
                                 value="profile"
                                 forceMount
                                 className={tabContentClasses}
                             >
-                                <section className="max-w-xl space-y-12">
+                                <section className="max-w-3xl space-y-12">
                                     <div className="space-y-6">
-                                        <Heading
-                                            variant="small"
-                                            title="Profile information"
-                                            description="Update your profile details, photo, and contact information"
-                                        />
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <Heading
+                                                variant="small"
+                                                title="Profile information"
+                                                description="Update your profile details, photo, and contact information"
+                                            />
+                                            {adminProfile === null && (
+                                                <Badge
+                                                    variant={
+                                                        isProfileComplete
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    }
+                                                >
+                                                    {isProfileComplete
+                                                        ? 'Profile complete'
+                                                        : 'Profile incomplete'}
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        {showOnboardingAlert && (
+                                            <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
+                                                <AlertTitle>
+                                                    Complete your profile to
+                                                    continue
+                                                </AlertTitle>
+                                                <AlertDescription>
+                                                    Add the personal and work
+                                                    details below to unlock
+                                                    your client dashboard.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
 
                                         <Form
                                             {...ProfileController.update.form()}
@@ -334,7 +406,7 @@ export default function Profile({
                                                 );
                                             }}
                                             encType="multipart/form-data"
-                                            className="space-y-6"
+                                            className="space-y-8"
                                         >
                                             {({
                                                 processing,
@@ -343,7 +415,7 @@ export default function Profile({
                                             }) => (
                                                 <>
                                                     {adminProfile && (
-                                                        <>
+                                                        <div className="space-y-6">
                                                             <div className="grid gap-3">
                                                                 <Label htmlFor="profile_photo">
                                                                     Profile
@@ -449,128 +521,879 @@ export default function Profile({
                                                                     }
                                                                 />
                                                             </div>
-                                                        </>
+                                                        </div>
                                                     )}
 
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="username">
-                                                            Username
-                                                        </Label>
+                                                    <div className="space-y-6">
+                                                        <div className="space-y-1">
+                                                            <h3 className="text-base font-semibold">
+                                                                Basic Account
+                                                                Information
+                                                            </h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Update your
+                                                                login and
+                                                                contact
+                                                                details.
+                                                            </p>
+                                                        </div>
 
-                                                        <Input
-                                                            id="username"
-                                                            className="mt-1 block w-full"
-                                                            defaultValue={
-                                                                auth.user
-                                                                    .username ??
-                                                                auth.user.name
-                                                            }
-                                                            name="username"
-                                                            required
-                                                            autoComplete="username"
-                                                            placeholder="Username"
-                                                        />
+                                                        <div className="grid gap-4 md:grid-cols-2">
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="username">
+                                                                    Username
+                                                                </Label>
 
-                                                        <InputError
-                                                            className="mt-2"
-                                                            message={
-                                                                formErrors.username
-                                                            }
-                                                        />
-                                                    </div>
+                                                                <Input
+                                                                    id="username"
+                                                                    className="mt-1 block w-full"
+                                                                    defaultValue={
+                                                                        auth
+                                                                            .user
+                                                                            .username ??
+                                                                        auth
+                                                                            .user
+                                                                            .name
+                                                                    }
+                                                                    name="username"
+                                                                    required
+                                                                    autoComplete="username"
+                                                                    placeholder="Username"
+                                                                />
 
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="email">
-                                                            Email address
-                                                        </Label>
-
-                                                        <Input
-                                                            id="email"
-                                                            type="email"
-                                                            className="mt-1 block w-full"
-                                                            defaultValue={
-                                                                auth.user.email
-                                                            }
-                                                            name="email"
-                                                            required
-                                                            autoComplete="username"
-                                                            placeholder="Email address"
-                                                        />
-
-                                                        <InputError
-                                                            className="mt-2"
-                                                            message={
-                                                                formErrors.email
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="phoneno">
-                                                            Phone number
-                                                        </Label>
-
-                                                        <Input
-                                                            id="phoneno"
-                                                            type="tel"
-                                                            className="mt-1 block w-full"
-                                                            defaultValue={
-                                                                auth.user.phoneno
-                                                            }
-                                                            name="phoneno"
-                                                            required
-                                                            autoComplete="tel"
-                                                            inputMode="numeric"
-                                                            maxLength={11}
-                                                            placeholder="09XXXXXXXXX"
-                                                        />
-
-                                                        <InputError
-                                                            className="mt-2"
-                                                            message={
-                                                                formErrors.phoneno
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    {mustVerifyEmail &&
-                                                        auth.user
-                                                            .email_verified_at ===
-                                                            null && (
-                                                            <div>
-                                                                <p className="-mt-4 text-sm text-muted-foreground">
-                                                                    Your email
-                                                                    address is
-                                                                    unverified.{' '}
-                                                                    <Link
-                                                                        href={send()}
-                                                                        as="button"
-                                                                        className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                                                    >
-                                                                        Click
-                                                                        here to
-                                                                        resend
-                                                                        the
-                                                                        verification
-                                                                        email.
-                                                                    </Link>
-                                                                </p>
-
-                                                                {status ===
-                                                                    'verification-link-sent' && (
-                                                                    <div className="mt-2 text-sm font-medium text-green-600">
-                                                                        A new
-                                                                        verification
-                                                                        link has
-                                                                        been
-                                                                        sent to
-                                                                        your
-                                                                        email
-                                                                        address.
-                                                                    </div>
-                                                                )}
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        formErrors.username
+                                                                    }
+                                                                />
                                                             </div>
-                                                        )}
+
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="email">
+                                                                    Email
+                                                                    address
+                                                                </Label>
+
+                                                                <Input
+                                                                    id="email"
+                                                                    type="email"
+                                                                    className="mt-1 block w-full"
+                                                                    defaultValue={
+                                                                        auth
+                                                                            .user
+                                                                            .email
+                                                                    }
+                                                                    name="email"
+                                                                    required
+                                                                    autoComplete="username"
+                                                                    placeholder="Email address"
+                                                                />
+
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        formErrors.email
+                                                                    }
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid gap-2 md:col-span-2">
+                                                                <Label htmlFor="phoneno">
+                                                                    Phone number
+                                                                </Label>
+
+                                                                <Input
+                                                                    id="phoneno"
+                                                                    type="tel"
+                                                                    className="mt-1 block w-full"
+                                                                    defaultValue={
+                                                                        auth
+                                                                            .user
+                                                                            .phoneno
+                                                                    }
+                                                                    name="phoneno"
+                                                                    required
+                                                                    autoComplete="tel"
+                                                                    inputMode="numeric"
+                                                                    maxLength={
+                                                                        11
+                                                                    }
+                                                                    placeholder="09XXXXXXXXX"
+                                                                />
+
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        formErrors.phoneno
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {mustVerifyEmail &&
+                                                            auth.user
+                                                                .email_verified_at ===
+                                                                null && (
+                                                                <div>
+                                                                    <p className="-mt-4 text-sm text-muted-foreground">
+                                                                        Your
+                                                                        email
+                                                                        address
+                                                                        is
+                                                                        unverified.{' '}
+                                                                        <Link
+                                                                            href={send()}
+                                                                            as="button"
+                                                                            className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                                                        >
+                                                                            Click
+                                                                            here
+                                                                            to
+                                                                            resend
+                                                                            the
+                                                                            verification
+                                                                            email.
+                                                                        </Link>
+                                                                    </p>
+
+                                                                    {status ===
+                                                                        'verification-link-sent' && (
+                                                                        <div className="mt-2 text-sm font-medium text-green-600">
+                                                                            A
+                                                                            new
+                                                                            verification
+                                                                            link
+                                                                            has
+                                                                            been
+                                                                            sent
+                                                                            to
+                                                                            your
+                                                                            email
+                                                                            address.
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                    </div>
+
+                                                    {adminProfile === null && (
+                                                        <>
+                                                            <Separator />
+
+                                                            <div className="space-y-6">
+                                                                <div className="space-y-1">
+                                                                    <h3 className="text-base font-semibold">
+                                                                        Personal
+                                                                        Data
+                                                                    </h3>
+                                                                    <p className="text-sm text-muted-foreground">
+                                                                        Provide
+                                                                        the
+                                                                        personal
+                                                                        details
+                                                                        we need
+                                                                        for
+                                                                        member
+                                                                        records
+                                                                        and
+                                                                        future
+                                                                        applications.
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className="grid gap-4 md:grid-cols-2">
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="first_name">
+                                                                            First
+                                                                            name
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="first_name"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.first_name ??
+                                                                                ''
+                                                                            }
+                                                                            name="first_name"
+                                                                            required
+                                                                            autoComplete="given-name"
+                                                                            placeholder="First name"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.first_name
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="last_name">
+                                                                            Last
+                                                                            name
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="last_name"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.last_name ??
+                                                                                ''
+                                                                            }
+                                                                            name="last_name"
+                                                                            required
+                                                                            autoComplete="family-name"
+                                                                            placeholder="Last name"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.last_name
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="middle_name">
+                                                                            Middle
+                                                                            name
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="middle_name"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.middle_name ??
+                                                                                ''
+                                                                            }
+                                                                            name="middle_name"
+                                                                            autoComplete="additional-name"
+                                                                            placeholder="Middle name"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.middle_name
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="nickname">
+                                                                            Nickname
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="nickname"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.nickname ??
+                                                                                ''
+                                                                            }
+                                                                            name="nickname"
+                                                                            autoComplete="nickname"
+                                                                            placeholder="Nickname"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.nickname
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="birthdate">
+                                                                            Birthdate
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="birthdate"
+                                                                            type="date"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.birthdate ??
+                                                                                ''
+                                                                            }
+                                                                            name="birthdate"
+                                                                            required
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.birthdate
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="birthplace">
+                                                                            Birthplace
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="birthplace"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.birthplace ??
+                                                                                ''
+                                                                            }
+                                                                            name="birthplace"
+                                                                            required
+                                                                            placeholder="Birthplace"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.birthplace
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="age">
+                                                                            Age
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="age"
+                                                                            type="number"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.age ??
+                                                                                ''
+                                                                            }
+                                                                            name="age"
+                                                                            inputMode="numeric"
+                                                                            min={0}
+                                                                            placeholder="Age"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.age
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="address">
+                                                                            Address
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="address"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.address ??
+                                                                                ''
+                                                                            }
+                                                                            name="address"
+                                                                            required
+                                                                            autoComplete="street-address"
+                                                                            placeholder="Complete address"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.address
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="length_of_stay">
+                                                                            Length
+                                                                            of
+                                                                            stay
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="length_of_stay"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.length_of_stay ??
+                                                                                ''
+                                                                            }
+                                                                            name="length_of_stay"
+                                                                            placeholder="e.g. 3 years"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.length_of_stay
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="housing_status">
+                                                                            Housing
+                                                                            status
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="housing_status"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.housing_status ??
+                                                                                ''
+                                                                            }
+                                                                            name="housing_status"
+                                                                            placeholder="Owned, rented, or family"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.housing_status
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="civil_status">
+                                                                            Civil
+                                                                            status
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="civil_status"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.civil_status ??
+                                                                                ''
+                                                                            }
+                                                                            name="civil_status"
+                                                                            required
+                                                                            placeholder="Single, married, etc."
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.civil_status
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="educational_attainment">
+                                                                            Educational
+                                                                            attainment
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="educational_attainment"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.educational_attainment ??
+                                                                                ''
+                                                                            }
+                                                                            name="educational_attainment"
+                                                                            placeholder="Highest level attained"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.educational_attainment
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="number_of_children">
+                                                                            Number
+                                                                            of
+                                                                            children
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="number_of_children"
+                                                                            type="number"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.number_of_children ??
+                                                                                ''
+                                                                            }
+                                                                            name="number_of_children"
+                                                                            inputMode="numeric"
+                                                                            min={0}
+                                                                            placeholder="0"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.number_of_children
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="spouse_name">
+                                                                            Spouse
+                                                                            name
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="spouse_name"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.spouse_name ??
+                                                                                ''
+                                                                            }
+                                                                            name="spouse_name"
+                                                                            placeholder="Spouse name"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.spouse_name
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="spouse_age">
+                                                                            Spouse
+                                                                            age
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="spouse_age"
+                                                                            type="number"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.spouse_age ??
+                                                                                ''
+                                                                            }
+                                                                            name="spouse_age"
+                                                                            inputMode="numeric"
+                                                                            min={0}
+                                                                            placeholder="Age"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.spouse_age
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="spouse_cell_no">
+                                                                            Spouse
+                                                                            cell
+                                                                            number
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="spouse_cell_no"
+                                                                            type="tel"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.spouse_cell_no ??
+                                                                                ''
+                                                                            }
+                                                                            name="spouse_cell_no"
+                                                                            inputMode="numeric"
+                                                                            maxLength={11}
+                                                                            placeholder="09XXXXXXXXX"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.spouse_cell_no
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <Separator />
+
+                                                            <div className="space-y-6">
+                                                                <div className="space-y-1">
+                                                                    <h3 className="text-base font-semibold">
+                                                                        Work
+                                                                        &amp;
+                                                                        Finances
+                                                                    </h3>
+                                                                    <p className="text-sm text-muted-foreground">
+                                                                        Keep
+                                                                        your
+                                                                        employment
+                                                                        and
+                                                                        income
+                                                                        details
+                                                                        up to
+                                                                        date.
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className="grid gap-4 md:grid-cols-2">
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="employment_type">
+                                                                            Employment
+                                                                            type
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="employment_type"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.employment_type ??
+                                                                                ''
+                                                                            }
+                                                                            name="employment_type"
+                                                                            required
+                                                                            placeholder="Regular, contract, or self-employed"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.employment_type
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="employer_business_name">
+                                                                            Employer
+                                                                            or
+                                                                            business
+                                                                            name
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="employer_business_name"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.employer_business_name ??
+                                                                                ''
+                                                                            }
+                                                                            name="employer_business_name"
+                                                                            required
+                                                                            placeholder="Employer or business name"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.employer_business_name
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="employer_business_address">
+                                                                            Employer
+                                                                            or
+                                                                            business
+                                                                            address
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="employer_business_address"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.employer_business_address ??
+                                                                                ''
+                                                                            }
+                                                                            name="employer_business_address"
+                                                                            placeholder="Business address"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.employer_business_address
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="telephone_no">
+                                                                            Telephone
+                                                                            number
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="telephone_no"
+                                                                            type="tel"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.telephone_no ??
+                                                                                ''
+                                                                            }
+                                                                            name="telephone_no"
+                                                                            placeholder="Telephone number"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.telephone_no
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="current_position">
+                                                                            Current
+                                                                            position
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="current_position"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.current_position ??
+                                                                                ''
+                                                                            }
+                                                                            name="current_position"
+                                                                            required
+                                                                            placeholder="Current position"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.current_position
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="nature_of_business">
+                                                                            Nature
+                                                                            of
+                                                                            business
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="nature_of_business"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.nature_of_business ??
+                                                                                ''
+                                                                            }
+                                                                            name="nature_of_business"
+                                                                            placeholder="Industry or business type"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.nature_of_business
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="years_in_work_business">
+                                                                            Years
+                                                                            in
+                                                                            work
+                                                                            or
+                                                                            business
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="years_in_work_business"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.years_in_work_business ??
+                                                                                ''
+                                                                            }
+                                                                            name="years_in_work_business"
+                                                                            placeholder="e.g. 5 years"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.years_in_work_business
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="gross_monthly_income">
+                                                                            Gross
+                                                                            monthly
+                                                                            income
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="gross_monthly_income"
+                                                                            type="number"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.gross_monthly_income ??
+                                                                                ''
+                                                                            }
+                                                                            name="gross_monthly_income"
+                                                                            required
+                                                                            inputMode="decimal"
+                                                                            min={0}
+                                                                            step="0.01"
+                                                                            placeholder="0.00"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.gross_monthly_income
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="payday">
+                                                                            Payday
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="payday"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.payday ??
+                                                                                ''
+                                                                            }
+                                                                            name="payday"
+                                                                            required
+                                                                            placeholder="15 / 30 / 15 & 30"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.payday
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
 
                                                     <div className="flex items-center gap-4">
                                                         <Button

@@ -2,6 +2,7 @@
 
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
+use App\Models\MemberApplicationProfile;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
@@ -84,6 +85,9 @@ test('approved client can view the dashboard profile page', function () {
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -104,6 +108,9 @@ test('client dashboard summary uses latest savings ledger balance', function () 
         'acctno' => '000704',
     ]);
     UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
 
@@ -147,6 +154,9 @@ test('approved client can view the loans page', function () {
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     $this->actingAs($user);
 
@@ -165,6 +175,9 @@ test('approved client can view the savings page', function () {
         'acctno' => '000701',
     ]);
     UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
 
@@ -215,6 +228,9 @@ test('approved client can view the loan schedule page', function () {
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
 
     DB::table('wlnmaster')->insert([
         'acctno' => $user->acctno,
@@ -243,6 +259,9 @@ test('approved client can view the loan payments page', function () {
         'acctno' => '000703',
     ]);
     UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
 

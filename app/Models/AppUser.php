@@ -64,6 +64,11 @@ class AppUser extends Authenticatable
         return $this->hasOne(UserProfile::class, 'user_id', 'user_id');
     }
 
+    public function memberApplicationProfile(): HasOne
+    {
+        return $this->hasOne(MemberApplicationProfile::class, 'user_id', 'user_id');
+    }
+
     public function wmaster(): BelongsTo
     {
         return $this->belongsTo(Wmaster::class, 'acctno', 'acctno');

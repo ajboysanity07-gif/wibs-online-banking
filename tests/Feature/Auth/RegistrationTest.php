@@ -30,6 +30,7 @@ test('new users can register after verification', function () {
     expect($user->acctno)->toBe('000123');
     expect($user->userProfile)->not->toBeNull();
     expect($user->userProfile->status)->toBe('pending');
+    expect($user->memberApplicationProfile)->toBeNull();
 });
 
 test('registration requires member verification', function () {

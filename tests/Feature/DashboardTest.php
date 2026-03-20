@@ -2,6 +2,7 @@
 
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
+use App\Models\MemberApplicationProfile;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,9 @@ test('approved users can visit the dashboard', function () {
         'acctno' => '000701',
     ]);
     UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
     $this->actingAs($user);
@@ -44,6 +48,18 @@ test('approved users can visit the dashboard', function () {
             ->where('recentAccountActions.meta.page', 1));
 });
 
+test('approved users without a completed profile are redirected to onboarding', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $this->actingAs($user);
+
+    $response = $this->get(route('client.dashboard'));
+    $response->assertRedirect(route('profile.edit', ['onboarding' => 1]));
+});
+
 test('client dashboard sanitizes legacy member payloads', function () {
     if (! Schema::hasTable('wmaster')) {
         Schema::create('wmaster', function (Blueprint $table) {
@@ -56,6 +72,9 @@ test('client dashboard sanitizes legacy member payloads', function () {
         'acctno' => '000701',
     ]);
     UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
 

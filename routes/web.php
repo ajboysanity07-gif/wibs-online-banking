@@ -260,22 +260,22 @@ Route::get('client/dashboard', function (
         'recentAccountActions' => $recentAccountActionsPayload,
         'recentAccountActionsError' => $recentAccountActionsError,
     ]);
-})->middleware(['auth', 'approved', 'verified'])->name('client.dashboard');
+})->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])->name('client.dashboard');
 
 Route::get('client/loans', ClientMemberLoansController::class)
-    ->middleware(['auth', 'approved', 'verified'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loans');
 
 Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
-    ->middleware(['auth', 'approved', 'verified'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-schedule');
 
 Route::get('client/loans/{loanNumber}/payments', ClientMemberLoanPaymentsController::class)
-    ->middleware(['auth', 'approved', 'verified'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments');
 
 Route::get('client/savings', ClientMemberSavingsController::class)
-    ->middleware(['auth', 'approved', 'verified'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.savings');
 
 Route::get('dashboard', function () {

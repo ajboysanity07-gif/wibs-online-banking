@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureMemberProfileComplete;
 use App\Http\Middleware\EnsureMemberVerified;
 use App\Http\Middleware\EnsureUserApproved;
 use App\Http\Middleware\HandleAppearance;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureAdmin::class,
             'approved' => EnsureUserApproved::class,
+            'member-profile-complete' => EnsureMemberProfileComplete::class,
             'member-verified' => EnsureMemberVerified::class,
         ]);
 
