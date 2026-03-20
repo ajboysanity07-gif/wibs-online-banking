@@ -1,6 +1,7 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 import axios from 'axios';
+import { NumericFormat } from 'react-number-format';
 import { Camera, ShieldBan, ShieldCheck } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -21,6 +22,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useInitials } from '@/hooks/use-initials';
@@ -30,6 +38,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { createCroppedImageFile } from '@/lib/image-crop';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
+import { birthplaces } from '@/routes/api/locations';
 import { edit } from '@/routes/profile';
 import { disable, enable } from '@/routes/two-factor';
 import { send } from '@/routes/verification';
@@ -83,7 +92,7 @@ type MemberApplicationProfileData = {
     profile_completed_at: string | null;
 };
 
-type BirthplaceSuggestion = {
+type LocationSuggestion = {
     code: string;
     name: string;
     type: 'city' | 'municipality';
@@ -91,6 +100,19 @@ type BirthplaceSuggestion = {
     region: string | null;
     label: string;
     value: string;
+};
+
+type LocationSearchState = {
+    query: string;
+    setQuery: (value: string) => void;
+    suggestions: LocationSuggestion[];
+    open: boolean;
+    status: 'idle' | 'loading' | 'error';
+    error: string | null;
+    handleFocus: () => void;
+    handleBlur: () => void;
+    handleSelect: (suggestion: LocationSuggestion) => void;
+    openResults: () => void;
 };
 
 type ProfileCompletion = {
@@ -123,9 +145,185 @@ const PROFILE_PHOTO_ALLOWED_TYPES = new Set([
 ]);
 const PROFILE_PHOTO_OUTPUT_SIZE = 512;
 const PROFILE_PHOTO_OUTPUT_QUALITY = 0.92;
-const BIRTHPLACE_QUERY_MIN = 2;
-const BIRTHPLACE_DEBOUNCE_MS = 300;
-const BIRTHPLACE_RESULT_LIMIT = 15;
+const LOCATION_QUERY_MIN = 2;
+const LOCATION_DEBOUNCE_MS = 300;
+const LOCATION_RESULT_LIMIT = 15;
+const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
+const NATURE_OF_BUSINESS_OPTIONS = [
+    'Retail',
+    'Wholesale',
+    'Manufacturing',
+    'Transportation',
+    'Construction',
+    'Food & Beverage',
+    'Agriculture',
+    'Education',
+    'Healthcare',
+    'Finance',
+    'Government',
+    'Technology',
+    'Services',
+    NATURE_OF_BUSINESS_OTHER_VALUE,
+];
+
+// Heuristic: treat the first comma as the split between street and locality.
+const splitEmployerBusinessAddress = (
+    address: string,
+): { street: string; city: string } => {
+    const trimmed = address.trim();
+
+    if (trimmed === '') {
+        return { street: '', city: '' };
+    }
+
+    const separatorIndex = trimmed.indexOf(',');
+
+    if (separatorIndex === -1) {
+        return { street: trimmed, city: '' };
+    }
+
+    return {
+        street: trimmed.slice(0, separatorIndex).trim(),
+        city: trimmed.slice(separatorIndex + 1).trim(),
+    };
+};
+
+const composeEmployerBusinessAddress = (
+    street: string,
+    city: string,
+): string => {
+    return [street, city]
+        .map((value) => value.trim())
+        .filter((value) => value !== '')
+        .join(', ');
+};
+
+const useLocationSearch = ({
+    initialQuery,
+    searchUrl,
+    minLength = LOCATION_QUERY_MIN,
+    limit = LOCATION_RESULT_LIMIT,
+    debounceMs = LOCATION_DEBOUNCE_MS,
+}: {
+    initialQuery: string;
+    searchUrl: string;
+    minLength?: number;
+    limit?: number;
+    debounceMs?: number;
+}): LocationSearchState => {
+    const [query, setQuery] = useState<string>(initialQuery);
+    const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
+    const [open, setOpen] = useState<boolean>(false);
+    const [status, setStatus] = useState<'idle' | 'loading' | 'error'>(
+        'idle',
+    );
+    const [error, setError] = useState<string | null>(null);
+    const blurTimeoutRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        const trimmedQuery = query.trim();
+
+        if (trimmedQuery.length < minLength) {
+            setSuggestions([]);
+            setStatus('idle');
+            setError(null);
+            return;
+        }
+
+        setStatus('loading');
+        setError(null);
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(async () => {
+            try {
+                const response = await api.get(searchUrl, {
+                    params: {
+                        search: trimmedQuery,
+                        limit,
+                    },
+                    signal: controller.signal,
+                });
+                const payload = response.data as {
+                    available?: boolean;
+                    data?: LocationSuggestion[];
+                    message?: string;
+                };
+
+                if (payload?.available === false) {
+                    setStatus('error');
+                    setError(
+                        payload.message ??
+                            'Location suggestions are temporarily unavailable.',
+                    );
+                    setSuggestions([]);
+                    return;
+                }
+
+                setSuggestions(
+                    Array.isArray(payload?.data) ? payload.data : [],
+                );
+                setStatus('idle');
+            } catch (fetchError) {
+                if (axios.isCancel(fetchError)) {
+                    return;
+                }
+
+                setStatus('error');
+                setError(
+                    getApiErrorMessage(
+                        fetchError,
+                        'Unable to load location suggestions.',
+                    ),
+                );
+                setSuggestions([]);
+            }
+        }, debounceMs);
+
+        return () => {
+            window.clearTimeout(timeout);
+            controller.abort();
+        };
+    }, [open, query, minLength, limit, debounceMs, searchUrl]);
+
+    const handleFocus = () => {
+        if (blurTimeoutRef.current !== null) {
+            window.clearTimeout(blurTimeoutRef.current);
+        }
+
+        setOpen(true);
+    };
+
+    const handleBlur = () => {
+        blurTimeoutRef.current = window.setTimeout(() => {
+            setOpen(false);
+        }, 120);
+    };
+
+    const handleSelect = (suggestion: LocationSuggestion) => {
+        setQuery(suggestion.value);
+        setOpen(false);
+        setSuggestions([]);
+        setStatus('idle');
+        setError(null);
+    };
+
+    return {
+        query,
+        setQuery,
+        suggestions,
+        open,
+        status,
+        error,
+        handleFocus,
+        handleBlur,
+        handleSelect,
+        openResults: () => setOpen(true),
+    };
+};
 
 export default function Profile({
     mustVerifyEmail,
@@ -187,18 +385,49 @@ export default function Profile({
     const memberLastName = memberRecord?.lname?.trim() ?? '';
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const showOnboardingAlert = onboarding && adminProfile === null && !isProfileComplete;
-    const [birthplaceQuery, setBirthplaceQuery] = useState<string>(
-        memberApplicationProfile?.birthplace ?? '',
+    const initialEmployerAddress = splitEmployerBusinessAddress(
+        memberApplicationProfile?.employer_business_address ?? '',
     );
-    const [birthplaceSuggestions, setBirthplaceSuggestions] = useState<
-        BirthplaceSuggestion[]
-    >([]);
-    const [birthplaceOpen, setBirthplaceOpen] = useState<boolean>(false);
-    const [birthplaceStatus, setBirthplaceStatus] = useState<
-        'idle' | 'loading' | 'error'
-    >('idle');
-    const [birthplaceError, setBirthplaceError] = useState<string | null>(null);
-    const birthplaceBlurTimeoutRef = useRef<number | null>(null);
+    const [employerBusinessStreetAddress, setEmployerBusinessStreetAddress] =
+        useState<string>(initialEmployerAddress.street);
+    const employerBusinessCitySearch = useLocationSearch({
+        initialQuery: initialEmployerAddress.city,
+        searchUrl: birthplaces.url(),
+    });
+    const birthplaceSearch = useLocationSearch({
+        initialQuery: memberApplicationProfile?.birthplace ?? '',
+        searchUrl: birthplaces.url(),
+    });
+    const initialNatureOfBusiness =
+        memberApplicationProfile?.nature_of_business?.trim() ?? '';
+    const hasPresetNatureOfBusiness =
+        initialNatureOfBusiness !== '' &&
+        initialNatureOfBusiness !== NATURE_OF_BUSINESS_OTHER_VALUE &&
+        NATURE_OF_BUSINESS_OPTIONS.includes(initialNatureOfBusiness);
+    const [natureOfBusinessSelection, setNatureOfBusinessSelection] =
+        useState<string>(
+            initialNatureOfBusiness === ''
+                ? ''
+                : hasPresetNatureOfBusiness
+                  ? initialNatureOfBusiness
+                  : NATURE_OF_BUSINESS_OTHER_VALUE,
+        );
+    const [natureOfBusinessOther, setNatureOfBusinessOther] = useState<string>(
+        !hasPresetNatureOfBusiness && initialNatureOfBusiness !== ''
+            ? initialNatureOfBusiness
+            : '',
+    );
+    const [grossMonthlyIncome, setGrossMonthlyIncome] = useState<string>(
+        memberApplicationProfile?.gross_monthly_income ?? '',
+    );
+    const resolvedNatureOfBusiness =
+        natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
+            ? natureOfBusinessOther.trim()
+            : natureOfBusinessSelection;
+    const employerBusinessAddress = composeEmployerBusinessAddress(
+        employerBusinessStreetAddress,
+        employerBusinessCitySearch.query,
+    );
 
     useEffect(() => {
         setActiveTab(initialTab);
@@ -223,75 +452,6 @@ export default function Profile({
             URL.revokeObjectURL(profilePhotoDraftPreview);
         };
     }, [profilePhotoDraftPreview]);
-
-    useEffect(() => {
-        if (!birthplaceOpen) {
-            return;
-        }
-
-        const query = birthplaceQuery.trim();
-
-        if (query.length < BIRTHPLACE_QUERY_MIN) {
-            setBirthplaceSuggestions([]);
-            setBirthplaceStatus('idle');
-            setBirthplaceError(null);
-            return;
-        }
-
-        setBirthplaceStatus('loading');
-        setBirthplaceError(null);
-
-        const controller = new AbortController();
-        const timeout = window.setTimeout(async () => {
-            try {
-                const response = await api.get('/api/locations/birthplaces', {
-                    params: {
-                        search: query,
-                        limit: BIRTHPLACE_RESULT_LIMIT,
-                    },
-                    signal: controller.signal,
-                });
-                const payload = response.data as {
-                    available?: boolean;
-                    data?: BirthplaceSuggestion[];
-                    message?: string;
-                };
-
-                if (payload?.available === false) {
-                    setBirthplaceStatus('error');
-                    setBirthplaceError(
-                        payload.message ??
-                            'Birthplace suggestions are temporarily unavailable.',
-                    );
-                    setBirthplaceSuggestions([]);
-                    return;
-                }
-
-                setBirthplaceSuggestions(
-                    Array.isArray(payload?.data) ? payload.data : [],
-                );
-                setBirthplaceStatus('idle');
-            } catch (error) {
-                if (axios.isCancel(error)) {
-                    return;
-                }
-
-                setBirthplaceStatus('error');
-                setBirthplaceError(
-                    getApiErrorMessage(
-                        error,
-                        'Unable to load birthplace suggestions.',
-                    ),
-                );
-                setBirthplaceSuggestions([]);
-            }
-        }, BIRTHPLACE_DEBOUNCE_MS);
-
-        return () => {
-            window.clearTimeout(timeout);
-            controller.abort();
-        };
-    }, [birthplaceOpen, birthplaceQuery]);
 
     const settingsTabs = [
         { value: 'profile', label: 'Profile' },
@@ -336,28 +496,6 @@ export default function Profile({
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         input.files = dataTransfer.files;
-    };
-
-    const handleBirthplaceFocus = () => {
-        if (birthplaceBlurTimeoutRef.current !== null) {
-            window.clearTimeout(birthplaceBlurTimeoutRef.current);
-        }
-
-        setBirthplaceOpen(true);
-    };
-
-    const handleBirthplaceBlur = () => {
-        birthplaceBlurTimeoutRef.current = window.setTimeout(() => {
-            setBirthplaceOpen(false);
-        }, 120);
-    };
-
-    const handleBirthplaceSelect = (suggestion: BirthplaceSuggestion) => {
-        setBirthplaceQuery(suggestion.value);
-        setBirthplaceOpen(false);
-        setBirthplaceSuggestions([]);
-        setBirthplaceStatus('idle');
-        setBirthplaceError(null);
     };
 
     const handleProfilePhotoCropClose = () => {
@@ -1116,7 +1254,7 @@ export default function Profile({
                                                                                 id="birthplace"
                                                                                 className="mt-1 block w-full"
                                                                                 value={
-                                                                                    birthplaceQuery
+                                                                                    birthplaceSearch.query
                                                                                 }
                                                                                 name="birthplace"
                                                                                 required
@@ -1125,26 +1263,24 @@ export default function Profile({
                                                                                 onChange={(
                                                                                     event,
                                                                                 ) => {
-                                                                                    setBirthplaceQuery(
+                                                                                    birthplaceSearch.setQuery(
                                                                                         event
                                                                                             .target
                                                                                             .value,
                                                                                     );
-                                                                                    setBirthplaceOpen(
-                                                                                        true,
-                                                                                    );
+                                                                                    birthplaceSearch.openResults();
                                                                                 }}
                                                                                 onFocus={
-                                                                                    handleBirthplaceFocus
+                                                                                    birthplaceSearch.handleFocus
                                                                                 }
                                                                                 onBlur={
-                                                                                    handleBirthplaceBlur
+                                                                                    birthplaceSearch.handleBlur
                                                                                 }
                                                                             />
 
-                                                                            {birthplaceOpen && (
+                                                                            {birthplaceSearch.open && (
                                                                                 <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
-                                                                                    {birthplaceStatus ===
+                                                                                    {birthplaceSearch.status ===
                                                                                         'loading' && (
                                                                                         <p className="px-2 py-1 text-muted-foreground">
                                                                                             Searching
@@ -1153,25 +1289,28 @@ export default function Profile({
                                                                                         </p>
                                                                                     )}
 
-                                                                                    {birthplaceStatus ===
+                                                                                    {birthplaceSearch.status ===
                                                                                         'error' && (
                                                                                         <p className="px-2 py-1 text-amber-600">
-                                                                                            {birthplaceError ??
+                                                                                            {birthplaceSearch.error ??
                                                                                                 'Birthplace suggestions are temporarily unavailable.'}
                                                                                         </p>
                                                                                     )}
 
-                                                                                    {birthplaceStatus ===
+                                                                                    {birthplaceSearch.status ===
                                                                                         'idle' &&
-                                                                                        birthplaceQuery
+                                                                                        birthplaceSearch.query
                                                                                             .trim()
                                                                                             .length <
-                                                                                            BIRTHPLACE_QUERY_MIN && (
+                                                                                            LOCATION_QUERY_MIN && (
                                                                                             <p className="px-2 py-1 text-muted-foreground">
                                                                                                 Type
                                                                                                 at
                                                                                                 least
-                                                                                                two
+                                                                                                {' '}
+                                                                                                {
+                                                                                                    LOCATION_QUERY_MIN
+                                                                                                }{' '}
                                                                                                 characters
                                                                                                 to
                                                                                                 search
@@ -1181,13 +1320,13 @@ export default function Profile({
                                                                                             </p>
                                                                                         )}
 
-                                                                                    {birthplaceStatus ===
+                                                                                    {birthplaceSearch.status ===
                                                                                         'idle' &&
-                                                                                        birthplaceQuery
+                                                                                        birthplaceSearch.query
                                                                                             .trim()
                                                                                             .length >=
-                                                                                            BIRTHPLACE_QUERY_MIN &&
-                                                                                        birthplaceSuggestions.length ===
+                                                                                            LOCATION_QUERY_MIN &&
+                                                                                        birthplaceSearch.suggestions.length ===
                                                                                             0 && (
                                                                                             <p className="px-2 py-1 text-muted-foreground">
                                                                                                 No
@@ -1197,10 +1336,10 @@ export default function Profile({
                                                                                             </p>
                                                                                         )}
 
-                                                                                    {birthplaceSuggestions.length >
+                                                                                    {birthplaceSearch.suggestions.length >
                                                                                         0 && (
                                                                                         <div className="max-h-60 space-y-1 overflow-auto">
-                                                                                            {birthplaceSuggestions.map(
+                                                                                            {birthplaceSearch.suggestions.map(
                                                                                                 (
                                                                                                     suggestion,
                                                                                                 ) => (
@@ -1216,7 +1355,7 @@ export default function Profile({
                                                                                                             event.preventDefault();
                                                                                                         }}
                                                                                                         onClick={() =>
-                                                                                                            handleBirthplaceSelect(
+                                                                                                            birthplaceSearch.handleSelect(
                                                                                                                 suggestion,
                                                                                                             )
                                                                                                         }
@@ -1438,23 +1577,172 @@ export default function Profile({
                                                                     </div>
 
                                                                     <div className="grid gap-2 md:col-span-2">
-                                                                        <Label htmlFor="employer_business_address">
+                                                                        <Label htmlFor="employer_business_street_address">
                                                                             Employer
                                                                             or
                                                                             business
+                                                                            street
                                                                             address
                                                                         </Label>
 
                                                                         <Input
-                                                                            id="employer_business_address"
+                                                                            id="employer_business_street_address"
                                                                             className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.employer_business_address ??
-                                                                                ''
+                                                                            value={
+                                                                                employerBusinessStreetAddress
                                                                             }
-                                                                            name="employer_business_address"
-                                                                            placeholder="Business address"
+                                                                            name="employer_business_street_address"
+                                                                            placeholder="Street, building, or unit"
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setEmployerBusinessStreetAddress(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                            }}
                                                                         />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="employer_business_city">
+                                                                            Employer
+                                                                            or
+                                                                            business
+                                                                            city
+                                                                            /
+                                                                            municipality
+                                                                        </Label>
+
+                                                                        <div className="relative">
+                                                                            <Input
+                                                                                id="employer_business_city"
+                                                                                className="mt-1 block w-full"
+                                                                                value={
+                                                                                    employerBusinessCitySearch.query
+                                                                                }
+                                                                                name="employer_business_city"
+                                                                                placeholder="City or municipality"
+                                                                                autoComplete="off"
+                                                                                onChange={(
+                                                                                    event,
+                                                                                ) => {
+                                                                                    employerBusinessCitySearch.setQuery(
+                                                                                        event
+                                                                                            .target
+                                                                                            .value,
+                                                                                    );
+                                                                                    employerBusinessCitySearch.openResults();
+                                                                                }}
+                                                                                onFocus={
+                                                                                    employerBusinessCitySearch.handleFocus
+                                                                                }
+                                                                                onBlur={
+                                                                                    employerBusinessCitySearch.handleBlur
+                                                                                }
+                                                                            />
+
+                                                                            {employerBusinessCitySearch.open && (
+                                                                                <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
+                                                                                    {employerBusinessCitySearch.status ===
+                                                                                        'loading' && (
+                                                                                        <p className="px-2 py-1 text-muted-foreground">
+                                                                                            Searching
+                                                                                            location
+                                                                                            suggestions...
+                                                                                        </p>
+                                                                                    )}
+
+                                                                                    {employerBusinessCitySearch.status ===
+                                                                                        'error' && (
+                                                                                        <p className="px-2 py-1 text-amber-600">
+                                                                                            {employerBusinessCitySearch.error ??
+                                                                                                'Location suggestions are temporarily unavailable.'}
+                                                                                        </p>
+                                                                                    )}
+
+                                                                                    {employerBusinessCitySearch.status ===
+                                                                                        'idle' &&
+                                                                                        employerBusinessCitySearch.query
+                                                                                            .trim()
+                                                                                            .length <
+                                                                                            LOCATION_QUERY_MIN && (
+                                                                                            <p className="px-2 py-1 text-muted-foreground">
+                                                                                                Type
+                                                                                                at
+                                                                                                least{' '}
+                                                                                                {
+                                                                                                    LOCATION_QUERY_MIN
+                                                                                                }{' '}
+                                                                                                characters
+                                                                                                to
+                                                                                                search
+                                                                                                cities
+                                                                                                and
+                                                                                                municipalities.
+                                                                                            </p>
+                                                                                        )}
+
+                                                                                    {employerBusinessCitySearch.status ===
+                                                                                        'idle' &&
+                                                                                        employerBusinessCitySearch.query
+                                                                                            .trim()
+                                                                                            .length >=
+                                                                                            LOCATION_QUERY_MIN &&
+                                                                                        employerBusinessCitySearch.suggestions.length ===
+                                                                                            0 && (
+                                                                                            <p className="px-2 py-1 text-muted-foreground">
+                                                                                                No
+                                                                                                matching
+                                                                                                places
+                                                                                                found.
+                                                                                            </p>
+                                                                                        )}
+
+                                                                                    {employerBusinessCitySearch.suggestions.length >
+                                                                                        0 && (
+                                                                                        <div className="max-h-60 space-y-1 overflow-auto">
+                                                                                            {employerBusinessCitySearch.suggestions.map(
+                                                                                                (
+                                                                                                    suggestion,
+                                                                                                ) => (
+                                                                                                    <button
+                                                                                                        key={
+                                                                                                            suggestion.code
+                                                                                                        }
+                                                                                                        type="button"
+                                                                                                        className="flex w-full flex-col gap-1 rounded-md px-2 py-2 text-left transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
+                                                                                                        onMouseDown={(
+                                                                                                            event,
+                                                                                                        ) => {
+                                                                                                            event.preventDefault();
+                                                                                                        }}
+                                                                                                        onClick={() =>
+                                                                                                            employerBusinessCitySearch.handleSelect(
+                                                                                                                suggestion,
+                                                                                                            )
+                                                                                                        }
+                                                                                                    >
+                                                                                                        <span className="text-sm font-medium">
+                                                                                                            {
+                                                                                                                suggestion.label
+                                                                                                            }
+                                                                                                        </span>
+                                                                                                        <span className="text-xs text-muted-foreground">
+                                                                                                            {suggestion.type ===
+                                                                                                            'city'
+                                                                                                                ? 'City'
+                                                                                                                : 'Municipality'}
+                                                                                                        </span>
+                                                                                                    </button>
+                                                                                                ),
+                                                                                            )}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
 
                                                                         <InputError
                                                                             className="mt-2"
@@ -1463,6 +1751,14 @@ export default function Profile({
                                                                             }
                                                                         />
                                                                     </div>
+
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="employer_business_address"
+                                                                        value={
+                                                                            employerBusinessAddress
+                                                                        }
+                                                                    />
 
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="telephone_no">
@@ -1523,15 +1819,91 @@ export default function Profile({
                                                                             business
                                                                         </Label>
 
-                                                                        <Input
-                                                                            id="nature_of_business"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.nature_of_business ??
-                                                                                ''
+                                                                        <Select
+                                                                            value={
+                                                                                natureOfBusinessSelection ||
+                                                                                undefined
                                                                             }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setNatureOfBusinessSelection(
+                                                                                    value,
+                                                                                );
+
+                                                                                if (
+                                                                                    value !==
+                                                                                    NATURE_OF_BUSINESS_OTHER_VALUE
+                                                                                ) {
+                                                                                    setNatureOfBusinessOther(
+                                                                                        '',
+                                                                                    );
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger
+                                                                                id="nature_of_business"
+                                                                                className="mt-1 w-full"
+                                                                            >
+                                                                                <SelectValue placeholder="Select an industry" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {NATURE_OF_BUSINESS_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option
+                                                                                            }
+                                                                                            value={
+                                                                                                option
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+
+                                                                        {natureOfBusinessSelection ===
+                                                                            NATURE_OF_BUSINESS_OTHER_VALUE && (
+                                                                            <div className="grid gap-2 pt-2">
+                                                                                <Label htmlFor="nature_of_business_other">
+                                                                                    Specify
+                                                                                    industry
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="nature_of_business_other"
+                                                                                    className="mt-1 block w-full"
+                                                                                    value={
+                                                                                        natureOfBusinessOther
+                                                                                    }
+                                                                                    name="nature_of_business_other"
+                                                                                    placeholder="Describe your industry"
+                                                                                    onChange={(
+                                                                                        event,
+                                                                                    ) => {
+                                                                                        setNatureOfBusinessOther(
+                                                                                            event
+                                                                                                .target
+                                                                                                .value,
+                                                                                        );
+                                                                                    }}
+                                                                                />
+                                                                            </div>
+                                                                        )}
+
+                                                                        <input
+                                                                            type="hidden"
                                                                             name="nature_of_business"
-                                                                            placeholder="Industry or business type"
+                                                                            value={
+                                                                                resolvedNatureOfBusiness
+                                                                            }
                                                                         />
 
                                                                         <InputError
@@ -1577,20 +1949,43 @@ export default function Profile({
                                                                             income
                                                                         </Label>
 
-                                                                        <Input
+                                                                        <NumericFormat
                                                                             id="gross_monthly_income"
-                                                                            type="number"
                                                                             className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.gross_monthly_income ??
-                                                                                ''
+                                                                            value={
+                                                                                grossMonthlyIncome
                                                                             }
-                                                                            name="gross_monthly_income"
-                                                                            required
-                                                                            inputMode="decimal"
-                                                                            min={0}
-                                                                            step="0.01"
+                                                                            onValueChange={(
+                                                                                values,
+                                                                            ) => {
+                                                                                setGrossMonthlyIncome(
+                                                                                    values.value,
+                                                                                );
+                                                                            }}
+                                                                            thousandSeparator
+                                                                            decimalScale={
+                                                                                2
+                                                                            }
+                                                                            fixedDecimalScale
+                                                                            allowNegative={
+                                                                                false
+                                                                            }
+                                                                            prefix="PHP "
                                                                             placeholder="0.00"
+                                                                            inputMode="decimal"
+                                                                            required
+                                                                            valueIsNumericString
+                                                                            customInput={
+                                                                                Input
+                                                                            }
+                                                                        />
+
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="gross_monthly_income"
+                                                                            value={
+                                                                                grossMonthlyIncome
+                                                                            }
                                                                         />
 
                                                                         <InputError

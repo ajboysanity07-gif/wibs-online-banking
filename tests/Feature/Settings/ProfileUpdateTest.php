@@ -230,11 +230,12 @@ test('profile information can be updated', function () {
             'spouse_age' => 32,
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
-            'employer_business_address' => 'Acme Plaza',
+            'employer_business_street_address' => 'Acme Plaza',
+            'employer_business_city' => 'Tagum City, Davao del Norte',
             'telephone_no' => '02-123-4567',
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
-            'gross_monthly_income' => '35000.50',
+            'gross_monthly_income' => 'PHP 35,000.50',
             'payday' => '15',
             'years_in_work_business' => '5 years',
             'spouse_cell_no' => '09123456780',
@@ -262,7 +263,9 @@ test('profile information can be updated', function () {
     expect($memberProfile->spouse_cell_no)->toBe('09123456780');
     expect($memberProfile->employment_type)->toBe('Regular');
     expect($memberProfile->employer_business_name)->toBe('Acme Corp');
-    expect($memberProfile->employer_business_address)->toBe('Acme Plaza');
+    expect($memberProfile->employer_business_address)->toBe(
+        'Acme Plaza, Tagum City, Davao del Norte',
+    );
     expect($memberProfile->telephone_no)->toBe('02-123-4567');
     expect($memberProfile->current_position)->toBe('Analyst');
     expect($memberProfile->nature_of_business)->toBe('Finance');
@@ -270,6 +273,53 @@ test('profile information can be updated', function () {
     expect($memberProfile->gross_monthly_income)->toBe('35000.50');
     expect($memberProfile->payday)->toBe('15');
     expect($memberProfile->profile_completed_at)->not->toBeNull();
+});
+
+test('profile information can be updated with other nature of business', function () {
+    $user = User::factory()->create([
+        'acctno' => '000904',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Santos, Ella',
+        'fname' => 'Ella',
+        'lname' => 'Santos',
+        'birthday' => '1994-02-10',
+        'address' => '901 Mabini Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'OtherUser',
+            'email' => 'other@example.com',
+            'phoneno' => '09123456700',
+            'birthplace' => 'Cebu City',
+            'educational_attainment' => 'College',
+            'length_of_stay' => '3 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '45000.00',
+            'payday' => '15',
+            'nature_of_business' => 'Other',
+            'nature_of_business_other' => 'Logistics',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->nature_of_business)->toBe('Logistics');
 });
 
 test('admin profile information can be updated with a profile photo', function () {

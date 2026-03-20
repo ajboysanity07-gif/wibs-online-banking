@@ -12,6 +12,40 @@ class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;
 
+    protected function prepareForValidation(): void
+    {
+        $streetAddress = trim((string) $this->input('employer_business_street_address', ''));
+        $cityAddress = trim((string) $this->input('employer_business_city', ''));
+
+        if ($streetAddress !== '' || $cityAddress !== '') {
+            $address = trim(implode(', ', array_filter([$streetAddress, $cityAddress])));
+
+            $this->merge([
+                'employer_business_address' => $address !== '' ? $address : null,
+            ]);
+        }
+
+        $natureOfBusiness = trim((string) $this->input('nature_of_business', ''));
+        $natureOfBusinessOther = trim((string) $this->input('nature_of_business_other', ''));
+
+        if (($natureOfBusiness === '' || $natureOfBusiness === 'Other') && $natureOfBusinessOther !== '') {
+            $this->merge([
+                'nature_of_business' => $natureOfBusinessOther,
+            ]);
+        }
+
+        $grossMonthlyIncome = $this->input('gross_monthly_income');
+
+        if (is_string($grossMonthlyIncome)) {
+            $normalizedIncome = preg_replace('/[^0-9.]/', '', $grossMonthlyIncome) ?? '';
+            $normalizedIncome = trim($normalizedIncome);
+
+            $this->merge([
+                'gross_monthly_income' => $normalizedIncome !== '' ? $normalizedIncome : null,
+            ]);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
