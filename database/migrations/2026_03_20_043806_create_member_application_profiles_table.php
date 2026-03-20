@@ -16,11 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->unique();
             $table->string('nickname')->nullable();
             $table->string('birthplace')->nullable();
-            $table->string('length_of_stay')->nullable();
-            $table->string('housing_status')->nullable();
             $table->string('educational_attainment')->nullable();
-            $table->unsignedTinyInteger('number_of_children')->nullable();
-            $table->string('spouse_name')->nullable();
+            $table->string('length_of_stay')->nullable();
             $table->unsignedTinyInteger('spouse_age')->nullable();
             $table->string('spouse_cell_no', 11)->nullable();
             $table->string('employment_type')->nullable();

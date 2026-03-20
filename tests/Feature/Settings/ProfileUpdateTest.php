@@ -2,6 +2,7 @@
 
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
+use App\Models\MemberApplicationProfile;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
@@ -19,9 +20,13 @@ beforeEach(function () {
             $table->string('mname')->nullable();
             $table->string('bname')->nullable();
             $table->date('birthday')->nullable();
+            $table->string('birthplace')->nullable();
             $table->string('address')->nullable();
             $table->string('civilstat')->nullable();
             $table->string('occupation')->nullable();
+            $table->string('spouse')->nullable();
+            $table->string('restype')->nullable();
+            $table->string('dependent')->nullable();
         });
     }
 });
@@ -60,9 +65,13 @@ test('profile page loads member record information from wmaster', function () {
         'lname' => 'Santos',
         'mname' => 'L',
         'birthday' => '1991-04-12',
+        'birthplace' => 'Legacy 0917-555-1212',
         'address' => '123 Mabini Street',
         'civilstat' => 'Single',
         'occupation' => 'Analyst',
+        'spouse' => 'Miguel Santos',
+        'restype' => 'Owned',
+        'dependent' => '2',
     ]);
 
     $response = $this
@@ -81,7 +90,51 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.address', '123 Mabini Street')
             ->where('memberRecord.civilstat', 'Single')
             ->where('memberRecord.occupation', 'Analyst')
+            ->where('memberRecord.spouse_name', 'Miguel Santos')
+            ->where('memberRecord.housing_status', 'Owned')
+            ->where('memberRecord.number_of_children', '2')
             ->where('memberRecord.hasStructuredName', true)
+        );
+});
+
+test('profile page ignores legacy wmaster birthplace data', function () {
+    $user = User::factory()->create([
+        'acctno' => '000903',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Lopez, Jana',
+        'fname' => 'Jana',
+        'lname' => 'Lopez',
+        'birthday' => '1993-09-14',
+        'birthplace' => 'Legacy 0900-000-0000',
+        'address' => '789 Mabini Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Clerk',
+        'spouse' => null,
+        'restype' => null,
+        'dependent' => null,
+    ]);
+
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'birthplace' => 'Davao City',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberApplicationProfile.birthplace', 'Davao City')
+            ->missing('memberRecord.birthplace')
         );
 });
 
@@ -170,18 +223,21 @@ test('profile information can be updated', function () {
             'username' => 'TestUser',
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
+            'nickname' => 'Renee',
             'birthplace' => 'Cebu City',
-            'length_of_stay' => '2 years',
-            'housing_status' => 'Owned',
             'educational_attainment' => 'College',
+            'length_of_stay' => '2 years',
+            'spouse_age' => 32,
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address' => 'Acme Plaza',
+            'telephone_no' => '02-123-4567',
             'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
             'gross_monthly_income' => '35000.50',
             'payday' => '15',
             'years_in_work_business' => '5 years',
             'spouse_cell_no' => '09123456780',
-            'nickname' => 'Renee',
         ]);
 
     $response
@@ -200,11 +256,19 @@ test('profile information can be updated', function () {
     expect($memberProfile)->not->toBeNull();
     expect($memberProfile->nickname)->toBe('Renee');
     expect($memberProfile->birthplace)->toBe('Cebu City');
-    expect($memberProfile->length_of_stay)->toBe('2 years');
-    expect($memberProfile->housing_status)->toBe('Owned');
     expect($memberProfile->educational_attainment)->toBe('College');
+    expect($memberProfile->length_of_stay)->toBe('2 years');
+    expect($memberProfile->spouse_age)->toBe(32);
+    expect($memberProfile->spouse_cell_no)->toBe('09123456780');
     expect($memberProfile->employment_type)->toBe('Regular');
+    expect($memberProfile->employer_business_name)->toBe('Acme Corp');
+    expect($memberProfile->employer_business_address)->toBe('Acme Plaza');
+    expect($memberProfile->telephone_no)->toBe('02-123-4567');
+    expect($memberProfile->current_position)->toBe('Analyst');
+    expect($memberProfile->nature_of_business)->toBe('Finance');
+    expect($memberProfile->years_in_work_business)->toBe('5 years');
     expect($memberProfile->gross_monthly_income)->toBe('35000.50');
+    expect($memberProfile->payday)->toBe('15');
     expect($memberProfile->profile_completed_at)->not->toBeNull();
 });
 
@@ -267,9 +331,8 @@ test('email verification status is unchanged when the email address is unchanged
             'email' => $user->email,
             'phoneno' => '09123456788',
             'birthplace' => 'Cebu City',
-            'length_of_stay' => '2 years',
-            'housing_status' => 'Owned',
             'educational_attainment' => 'College',
+            'length_of_stay' => '2 years',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
@@ -292,6 +355,10 @@ test('member application profile table excludes canonical member fields', functi
     expect(Schema::hasColumn('member_application_profiles', 'age'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'address'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'civil_status'))->toBeFalse();
+    expect(Schema::hasColumn('member_application_profiles', 'occupation'))->toBeFalse();
+    expect(Schema::hasColumn('member_application_profiles', 'spouse_name'))->toBeFalse();
+    expect(Schema::hasColumn('member_application_profiles', 'housing_status'))->toBeFalse();
+    expect(Schema::hasColumn('member_application_profiles', 'number_of_children'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'bname'))->toBeFalse();
 });
 

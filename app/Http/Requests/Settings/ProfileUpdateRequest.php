@@ -50,24 +50,8 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:100',
             ],
-            'housing_status' => [
-                $memberRequirement('housing_status'),
-                'string',
-                'max:100',
-            ],
             'educational_attainment' => [
                 $memberRequirement('educational_attainment'),
-                'string',
-                'max:150',
-            ],
-            'number_of_children' => [
-                $memberRequirement('number_of_children'),
-                'integer',
-                'min:0',
-                'max:30',
-            ],
-            'spouse_name' => [
-                $memberRequirement('spouse_name'),
                 'string',
                 'max:150',
             ],
@@ -137,7 +121,6 @@ class ProfileUpdateRequest extends FormRequest
         return [
             'birthplace.required' => 'Birthplace is required to complete your profile.',
             'length_of_stay.required' => 'Length of stay is required to complete your profile.',
-            'housing_status.required' => 'Housing status is required to complete your profile.',
             'educational_attainment.required' => 'Educational attainment is required to complete your profile.',
             'employment_type.required' => 'Employment type is required to complete your profile.',
             'employer_business_name.required' => 'Employer or business name is required to complete your profile.',

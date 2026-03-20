@@ -96,6 +96,32 @@ test('approved users without a completed profile are redirected to onboarding', 
     $response->assertRedirect(route('profile.edit', ['onboarding' => 1]));
 });
 
+test('approved users with incomplete member profiles are redirected to onboarding', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Delos Reyes, Anna',
+        'fname' => 'Anna',
+        'lname' => 'Delos Reyes',
+        'birthday' => '1991-03-10',
+        'address' => '789 Mabini Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Clerk',
+    ]);
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'birthplace' => 'Cebu City',
+    ]);
+
+    $this->actingAs($user);
+
+    $response = $this->get(route('client.dashboard'));
+    $response->assertRedirect(route('profile.edit', ['onboarding' => 1]));
+});
+
 test('client dashboard sanitizes legacy member payloads', function () {
     $user = User::factory()->create([
         'acctno' => '000701',

@@ -22,11 +22,8 @@ class MemberApplicationProfileFactory extends Factory
             'user_id' => AppUser::factory(),
             'nickname' => null,
             'birthplace' => null,
-            'length_of_stay' => null,
-            'housing_status' => null,
             'educational_attainment' => null,
-            'number_of_children' => null,
-            'spouse_name' => null,
+            'length_of_stay' => null,
             'spouse_age' => null,
             'spouse_cell_no' => null,
             'employment_type' => null,
@@ -46,9 +43,8 @@ class MemberApplicationProfileFactory extends Factory
     {
         return $this->state(fn () => [
             'birthplace' => fake()->city(),
-            'length_of_stay' => fake()->randomElement(['1 year', '2 years', '5 years']),
-            'housing_status' => fake()->randomElement(['Owned', 'Rented', 'Living with family']),
             'educational_attainment' => fake()->randomElement(['High School', 'College', 'Vocational']),
+            'length_of_stay' => fake()->randomElement(['1 year', '2 years', '5 years']),
             'employment_type' => fake()->randomElement(['Regular', 'Contract', 'Self-Employed']),
             'employer_business_name' => fake()->company(),
             'current_position' => fake()->jobTitle(),

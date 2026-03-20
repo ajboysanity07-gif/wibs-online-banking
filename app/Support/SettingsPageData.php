@@ -36,6 +36,9 @@ class SettingsPageData
                     $user->wmaster->lname,
                 );
 
+                /**
+                 * Note: wmaster.birthplace is intentionally ignored because legacy data is unreliable.
+                 */
                 $memberRecord = [
                     'bname' => $user->wmaster->bname,
                     'fname' => $user->wmaster->fname,
@@ -45,6 +48,13 @@ class SettingsPageData
                     'address' => $user->wmaster->address,
                     'civilstat' => $user->wmaster->civilstat,
                     'occupation' => $user->wmaster->occupation,
+                    'spouse_name' => $user->wmaster->spouse,
+                    'housing_status' => $user->wmaster->restype !== null
+                        ? (string) $user->wmaster->restype
+                        : null,
+                    'number_of_children' => $user->wmaster->dependent !== null
+                        ? (string) $user->wmaster->dependent
+                        : null,
                     'hasStructuredName' => $hasStructuredName,
                 ];
             }
@@ -54,11 +64,8 @@ class SettingsPageData
             ? [
                 'nickname' => $memberApplicationProfile->nickname,
                 'birthplace' => $memberApplicationProfile->birthplace,
-                'length_of_stay' => $memberApplicationProfile->length_of_stay,
-                'housing_status' => $memberApplicationProfile->housing_status,
                 'educational_attainment' => $memberApplicationProfile->educational_attainment,
-                'number_of_children' => $memberApplicationProfile->number_of_children,
-                'spouse_name' => $memberApplicationProfile->spouse_name,
+                'length_of_stay' => $memberApplicationProfile->length_of_stay,
                 'spouse_age' => $memberApplicationProfile->spouse_age,
                 'spouse_cell_no' => $memberApplicationProfile->spouse_cell_no,
                 'employment_type' => $memberApplicationProfile->employment_type,

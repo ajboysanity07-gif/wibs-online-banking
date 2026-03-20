@@ -56,6 +56,9 @@ type MemberRecord = {
     address: string | null;
     civilstat: string | null;
     occupation: string | null;
+    spouse_name: string | null;
+    housing_status: string | null;
+    number_of_children: string | null;
     hasStructuredName: boolean;
 };
 
@@ -63,10 +66,7 @@ type MemberApplicationProfileData = {
     nickname: string | null;
     birthplace: string | null;
     length_of_stay: string | null;
-    housing_status: string | null;
     educational_attainment: string | null;
-    number_of_children: number | null;
-    spouse_name: string | null;
     spouse_age: number | null;
     spouse_cell_no: string | null;
     employment_type: string | null;
@@ -868,6 +868,62 @@ export default function Profile({
                                                                                 disabled
                                                                             />
                                                                         </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="member_spouse_name">
+                                                                                Spouse
+                                                                                name
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_spouse_name"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberRecord.spouse_name ??
+                                                                                    ''
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="member_housing_status">
+                                                                                Housing
+                                                                                status
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_housing_status"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberRecord.housing_status ??
+                                                                                    ''
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="member_number_of_children">
+                                                                                Number
+                                                                                of
+                                                                                children
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_number_of_children"
+                                                                                type="number"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberRecord.number_of_children ??
+                                                                                    ''
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 ) : (
                                                                     <p className="text-sm text-muted-foreground">
@@ -985,32 +1041,6 @@ export default function Profile({
                                                                     </div>
 
                                                                     <div className="grid gap-2">
-                                                                        <Label htmlFor="housing_status">
-                                                                            Housing
-                                                                            status
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="housing_status"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.housing_status ??
-                                                                                ''
-                                                                            }
-                                                                            name="housing_status"
-                                                                            required
-                                                                            placeholder="Owned, rented, etc."
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.housing_status
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
                                                                         <Label htmlFor="educational_attainment">
                                                                             Educational
                                                                             attainment
@@ -1032,60 +1062,6 @@ export default function Profile({
                                                                             className="mt-2"
                                                                             message={
                                                                                 formErrors.educational_attainment
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="number_of_children">
-                                                                            Number
-                                                                            of
-                                                                            children
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="number_of_children"
-                                                                            type="number"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.number_of_children ??
-                                                                                ''
-                                                                            }
-                                                                            name="number_of_children"
-                                                                            inputMode="numeric"
-                                                                            min={0}
-                                                                            placeholder="0"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.number_of_children
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="spouse_name">
-                                                                            Spouse
-                                                                            name
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="spouse_name"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.spouse_name ??
-                                                                                ''
-                                                                            }
-                                                                            name="spouse_name"
-                                                                            placeholder="Spouse name"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.spouse_name
                                                                             }
                                                                         />
                                                                     </div>
