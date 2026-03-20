@@ -30,6 +30,12 @@ class SettingsPageData
             $user->loadMissing('wmaster');
 
             if ($user->wmaster !== null) {
+                $hasStructuredName = self::hasStructuredName(
+                    $user->wmaster->fname,
+                    $user->wmaster->mname,
+                    $user->wmaster->lname,
+                );
+
                 $memberRecord = [
                     'bname' => $user->wmaster->bname,
                     'fname' => $user->wmaster->fname,
@@ -39,6 +45,7 @@ class SettingsPageData
                     'address' => $user->wmaster->address,
                     'civilstat' => $user->wmaster->civilstat,
                     'occupation' => $user->wmaster->occupation,
+                    'hasStructuredName' => $hasStructuredName,
                 ];
             }
         }
@@ -97,5 +104,28 @@ class SettingsPageData
                 'confirm',
             ),
         ];
+    }
+
+    private static function hasStructuredName(
+        ?string $firstName,
+        ?string $middleName,
+        ?string $lastName,
+    ): bool {
+        return self::hasValue($firstName)
+            || self::hasValue($middleName)
+            || self::hasValue($lastName);
+    }
+
+    private static function hasValue(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        if (is_string($value)) {
+            return trim($value) !== '';
+        }
+
+        return true;
     }
 }

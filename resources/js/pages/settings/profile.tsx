@@ -56,6 +56,7 @@ type MemberRecord = {
     address: string | null;
     civilstat: string | null;
     occupation: string | null;
+    hasStructuredName: boolean;
 };
 
 type MemberApplicationProfileData = {
@@ -165,6 +166,10 @@ export default function Profile({
                     Boolean(value && value.trim()),
             )
             .join(' ');
+    const hasStructuredName = Boolean(memberRecord?.hasStructuredName);
+    const memberFirstName = memberRecord?.fname?.trim() ?? '';
+    const memberMiddleName = memberRecord?.mname?.trim() ?? '';
+    const memberLastName = memberRecord?.lname?.trim() ?? '';
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const showOnboardingAlert = onboarding && adminProfile === null && !isProfileComplete;
 
@@ -737,59 +742,63 @@ export default function Profile({
                                                                             />
                                                                         </div>
 
-                                                                        <div className="grid gap-2">
-                                                                            <Label htmlFor="member_first_name">
-                                                                                First
-                                                                                name
-                                                                            </Label>
+                                                                        {hasStructuredName && (
+                                                                            <>
+                                                                                {memberFirstName !== '' && (
+                                                                                    <div className="grid gap-2">
+                                                                                        <Label htmlFor="member_first_name">
+                                                                                            First
+                                                                                            name
+                                                                                        </Label>
 
-                                                                            <Input
-                                                                                id="member_first_name"
-                                                                                className="mt-1 block w-full"
-                                                                                defaultValue={
-                                                                                    memberRecord.fname ??
-                                                                                    ''
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
+                                                                                        <Input
+                                                                                            id="member_first_name"
+                                                                                            className="mt-1 block w-full"
+                                                                                            defaultValue={
+                                                                                                memberFirstName
+                                                                                            }
+                                                                                            disabled
+                                                                                        />
+                                                                                    </div>
+                                                                                )}
 
-                                                                        <div className="grid gap-2">
-                                                                            <Label htmlFor="member_last_name">
-                                                                                Last
-                                                                                name
-                                                                            </Label>
+                                                                                {memberMiddleName !== '' && (
+                                                                                    <div className="grid gap-2">
+                                                                                        <Label htmlFor="member_middle_name">
+                                                                                            Middle
+                                                                                            name
+                                                                                        </Label>
 
-                                                                            <Input
-                                                                                id="member_last_name"
-                                                                                className="mt-1 block w-full"
-                                                                                defaultValue={
-                                                                                    memberRecord.lname ??
-                                                                                    ''
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
+                                                                                        <Input
+                                                                                            id="member_middle_name"
+                                                                                            className="mt-1 block w-full"
+                                                                                            defaultValue={
+                                                                                                memberMiddleName
+                                                                                            }
+                                                                                            disabled
+                                                                                        />
+                                                                                    </div>
+                                                                                )}
 
-                                                                        <div className="grid gap-2">
-                                                                            <Label htmlFor="member_middle_name">
-                                                                                Middle
-                                                                                name
-                                                                            </Label>
+                                                                                {memberLastName !== '' && (
+                                                                                    <div className="grid gap-2">
+                                                                                        <Label htmlFor="member_last_name">
+                                                                                            Last
+                                                                                            name
+                                                                                        </Label>
 
-                                                                            <Input
-                                                                                id="member_middle_name"
-                                                                                className="mt-1 block w-full"
-                                                                                defaultValue={
-                                                                                    memberRecord.mname ??
-                                                                                    ''
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
+                                                                                        <Input
+                                                                                            id="member_last_name"
+                                                                                            className="mt-1 block w-full"
+                                                                                            defaultValue={
+                                                                                                memberLastName
+                                                                                            }
+                                                                                            disabled
+                                                                                        />
+                                                                                    </div>
+                                                                                )}
+                                                                            </>
+                                                                        )}
 
                                                                         <div className="grid gap-2">
                                                                             <Label htmlFor="member_birthday">

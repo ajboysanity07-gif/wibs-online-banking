@@ -81,6 +81,43 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.address', '123 Mabini Street')
             ->where('memberRecord.civilstat', 'Single')
             ->where('memberRecord.occupation', 'Analyst')
+            ->where('memberRecord.hasStructuredName', true)
+        );
+});
+
+test('profile page hides structured member name fields when only full name is available', function () {
+    $user = User::factory()->create([
+        'acctno' => '000902',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Garcia, Liza',
+        'fname' => null,
+        'lname' => null,
+        'mname' => null,
+        'birthday' => '1992-07-08',
+        'address' => '456 Mabini Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Clerk',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberRecord.bname', 'Garcia, Liza')
+            ->where('memberRecord.fname', null)
+            ->where('memberRecord.mname', null)
+            ->where('memberRecord.lname', null)
+            ->where('memberRecord.hasStructuredName', false)
         );
 });
 
