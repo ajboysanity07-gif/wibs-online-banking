@@ -1575,181 +1575,163 @@ export default function Profile({
                                                                             }
                                                                         />
                                                                     </div>
+                                                                    <div className="grid gap-4 md:col-span-2 md:grid-cols-3">
+                                                                        <div className="grid gap-2 md:col-span-2">
+                                                                            <Label htmlFor="employer_business_street_address">
+                                                                                Employer
+                                                                                or
+                                                                                business
+                                                                                street
+                                                                                address
+                                                                            </Label>
 
-                                                                    <div className="grid gap-2 md:col-span-2">
-                                                                        <Label htmlFor="employer_business_street_address">
-                                                                            Employer
-                                                                            or
-                                                                            business
-                                                                            street
-                                                                            address
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="employer_business_street_address"
-                                                                            className="mt-1 block w-full"
-                                                                            value={
-                                                                                employerBusinessStreetAddress
-                                                                            }
-                                                                            name="employer_business_street_address"
-                                                                            placeholder="Street, building, or unit"
-                                                                            onChange={(
-                                                                                event,
-                                                                            ) => {
-                                                                                setEmployerBusinessStreetAddress(
-                                                                                    event
-                                                                                        .target
-                                                                                        .value,
-                                                                                );
-                                                                            }}
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="employer_business_city">
-                                                                            Employer
-                                                                            or
-                                                                            business
-                                                                            city
-                                                                            /
-                                                                            municipality
-                                                                        </Label>
-
-                                                                        <div className="relative">
                                                                             <Input
-                                                                                id="employer_business_city"
+                                                                                id="employer_business_street_address"
                                                                                 className="mt-1 block w-full"
                                                                                 value={
-                                                                                    employerBusinessCitySearch.query
+                                                                                    employerBusinessStreetAddress
                                                                                 }
-                                                                                name="employer_business_city"
-                                                                                placeholder="City or municipality"
-                                                                                autoComplete="off"
-                                                                                onChange={(
-                                                                                    event,
-                                                                                ) => {
-                                                                                    employerBusinessCitySearch.setQuery(
-                                                                                        event
-                                                                                            .target
-                                                                                            .value,
+                                                                                name="employer_business_street_address"
+                                                                                placeholder="Building, street, office, or site"
+                                                                                onChange={(event) => {
+                                                                                    setEmployerBusinessStreetAddress(
+                                                                                        event.target.value,
                                                                                     );
-                                                                                    employerBusinessCitySearch.openResults();
                                                                                 }}
-                                                                                onFocus={
-                                                                                    employerBusinessCitySearch.handleFocus
-                                                                                }
-                                                                                onBlur={
-                                                                                    employerBusinessCitySearch.handleBlur
-                                                                                }
                                                                             />
-
-                                                                            {employerBusinessCitySearch.open && (
-                                                                                <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
-                                                                                    {employerBusinessCitySearch.status ===
-                                                                                        'loading' && (
-                                                                                        <p className="px-2 py-1 text-muted-foreground">
-                                                                                            Searching
-                                                                                            location
-                                                                                            suggestions...
-                                                                                        </p>
-                                                                                    )}
-
-                                                                                    {employerBusinessCitySearch.status ===
-                                                                                        'error' && (
-                                                                                        <p className="px-2 py-1 text-amber-600">
-                                                                                            {employerBusinessCitySearch.error ??
-                                                                                                'Location suggestions are temporarily unavailable.'}
-                                                                                        </p>
-                                                                                    )}
-
-                                                                                    {employerBusinessCitySearch.status ===
-                                                                                        'idle' &&
-                                                                                        employerBusinessCitySearch.query
-                                                                                            .trim()
-                                                                                            .length <
-                                                                                            LOCATION_QUERY_MIN && (
-                                                                                            <p className="px-2 py-1 text-muted-foreground">
-                                                                                                Type
-                                                                                                at
-                                                                                                least{' '}
-                                                                                                {
-                                                                                                    LOCATION_QUERY_MIN
-                                                                                                }{' '}
-                                                                                                characters
-                                                                                                to
-                                                                                                search
-                                                                                                cities
-                                                                                                and
-                                                                                                municipalities.
-                                                                                            </p>
-                                                                                        )}
-
-                                                                                    {employerBusinessCitySearch.status ===
-                                                                                        'idle' &&
-                                                                                        employerBusinessCitySearch.query
-                                                                                            .trim()
-                                                                                            .length >=
-                                                                                            LOCATION_QUERY_MIN &&
-                                                                                        employerBusinessCitySearch.suggestions.length ===
-                                                                                            0 && (
-                                                                                            <p className="px-2 py-1 text-muted-foreground">
-                                                                                                No
-                                                                                                matching
-                                                                                                places
-                                                                                                found.
-                                                                                            </p>
-                                                                                        )}
-
-                                                                                    {employerBusinessCitySearch.suggestions.length >
-                                                                                        0 && (
-                                                                                        <div className="max-h-60 space-y-1 overflow-auto">
-                                                                                            {employerBusinessCitySearch.suggestions.map(
-                                                                                                (
-                                                                                                    suggestion,
-                                                                                                ) => (
-                                                                                                    <button
-                                                                                                        key={
-                                                                                                            suggestion.code
-                                                                                                        }
-                                                                                                        type="button"
-                                                                                                        className="flex w-full flex-col gap-1 rounded-md px-2 py-2 text-left transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
-                                                                                                        onMouseDown={(
-                                                                                                            event,
-                                                                                                        ) => {
-                                                                                                            event.preventDefault();
-                                                                                                        }}
-                                                                                                        onClick={() =>
-                                                                                                            employerBusinessCitySearch.handleSelect(
-                                                                                                                suggestion,
-                                                                                                            )
-                                                                                                        }
-                                                                                                    >
-                                                                                                        <span className="text-sm font-medium">
-                                                                                                            {
-                                                                                                                suggestion.label
-                                                                                                            }
-                                                                                                        </span>
-                                                                                                        <span className="text-xs text-muted-foreground">
-                                                                                                            {suggestion.type ===
-                                                                                                            'city'
-                                                                                                                ? 'City'
-                                                                                                                : 'Municipality'}
-                                                                                                        </span>
-                                                                                                    </button>
-                                                                                                ),
-                                                                                            )}
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
                                                                         </div>
 
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.employer_business_address
-                                                                            }
-                                                                        />
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="employer_business_city">
+                                                                                Employer
+                                                                                or
+                                                                                business
+                                                                                city
+                                                                                /
+                                                                                municipality
+                                                                            </Label>
+
+                                                                            <div className="relative">
+                                                                                <Input
+                                                                                    id="employer_business_city"
+                                                                                    className="mt-1 block w-full"
+                                                                                    value={
+                                                                                        employerBusinessCitySearch.query
+                                                                                    }
+                                                                                    name="employer_business_city"
+                                                                                    placeholder="City or municipality"
+                                                                                    autoComplete="off"
+                                                                                    onChange={(event) => {
+                                                                                        employerBusinessCitySearch.setQuery(
+                                                                                            event.target.value,
+                                                                                        );
+                                                                                        employerBusinessCitySearch.openResults();
+                                                                                    }}
+                                                                                    onFocus={
+                                                                                        employerBusinessCitySearch.handleFocus
+                                                                                    }
+                                                                                    onBlur={
+                                                                                        employerBusinessCitySearch.handleBlur
+                                                                                    }
+                                                                                />
+
+                                                                                {employerBusinessCitySearch.open && (
+                                                                                    <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
+                                                                                        {employerBusinessCitySearch.status ===
+                                                                                            'loading' && (
+                                                                                            <p className="px-2 py-1 text-muted-foreground">
+                                                                                                Searching
+                                                                                                location
+                                                                                                suggestions...
+                                                                                            </p>
+                                                                                        )}
+
+                                                                                        {employerBusinessCitySearch.status ===
+                                                                                            'error' && (
+                                                                                            <p className="px-2 py-1 text-amber-600">
+                                                                                                {employerBusinessCitySearch.error ??
+                                                                                                    'Location suggestions are temporarily unavailable.'}
+                                                                                            </p>
+                                                                                        )}
+
+                                                                                        {employerBusinessCitySearch.status ===
+                                                                                            'idle' &&
+                                                                                            employerBusinessCitySearch.query
+                                                                                                .trim()
+                                                                                                .length <
+                                                                                                LOCATION_QUERY_MIN && (
+                                                                                                <p className="px-2 py-1 text-muted-foreground">
+                                                                                                    Type
+                                                                                                    at
+                                                                                                    least{' '}
+                                                                                                    {
+                                                                                                        LOCATION_QUERY_MIN
+                                                                                                    }{' '}
+                                                                                                    characters
+                                                                                                    to
+                                                                                                    search
+                                                                                                    cities
+                                                                                                    and
+                                                                                                    municipalities.
+                                                                                                </p>
+                                                                                            )}
+
+                                                                                        {employerBusinessCitySearch.status ===
+                                                                                            'idle' &&
+                                                                                            employerBusinessCitySearch.query
+                                                                                                .trim()
+                                                                                                .length >=
+                                                                                                LOCATION_QUERY_MIN &&
+                                                                                            employerBusinessCitySearch.suggestions.length ===
+                                                                                                0 && (
+                                                                                                <p className="px-2 py-1 text-muted-foreground">
+                                                                                                    No
+                                                                                                    matching
+                                                                                                    places
+                                                                                                    found.
+                                                                                                </p>
+                                                                                            )}
+
+                                                                                        {employerBusinessCitySearch.suggestions.length >
+                                                                                            0 && (
+                                                                                            <div className="max-h-60 space-y-1 overflow-auto">
+                                                                                                {employerBusinessCitySearch.suggestions.map(
+                                                                                                    (suggestion) => (
+                                                                                                        <button
+                                                                                                            key={
+                                                                                                                suggestion.code
+                                                                                                            }
+                                                                                                            type="button"
+                                                                                                            className="flex w-full flex-col gap-1 rounded-md px-2 py-2 text-left transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
+                                                                                                            onMouseDown={(event) => {
+                                                                                                                event.preventDefault();
+                                                                                                            }}
+                                                                                                            onClick={() =>
+                                                                                                                employerBusinessCitySearch.handleSelect(
+                                                                                                                    suggestion,
+                                                                                                                )
+                                                                                                            }
+                                                                                                        >
+                                                                                                            <span className="text-sm font-medium">
+                                                                                                                {
+                                                                                                                    suggestion.label
+                                                                                                                }
+                                                                                                            </span>
+                                                                                                            <span className="text-xs text-muted-foreground">
+                                                                                                                {suggestion.type ===
+                                                                                                                'city'
+                                                                                                                    ? 'City'
+                                                                                                                    : 'Municipality'}
+                                                                                                            </span>
+                                                                                                        </button>
+                                                                                                    ),
+                                                                                                )}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
 
                                                                     <input
@@ -1757,6 +1739,13 @@ export default function Profile({
                                                                         name="employer_business_address"
                                                                         value={
                                                                             employerBusinessAddress
+                                                                        }
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2 md:col-span-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address
                                                                         }
                                                                     />
 
@@ -1949,36 +1938,40 @@ export default function Profile({
                                                                             income
                                                                         </Label>
 
-                                                                        <NumericFormat
-                                                                            id="gross_monthly_income"
-                                                                            className="mt-1 block w-full"
-                                                                            value={
-                                                                                grossMonthlyIncome
-                                                                            }
-                                                                            onValueChange={(
-                                                                                values,
-                                                                            ) => {
-                                                                                setGrossMonthlyIncome(
-                                                                                    values.value,
-                                                                                );
-                                                                            }}
-                                                                            thousandSeparator
-                                                                            decimalScale={
-                                                                                2
-                                                                            }
-                                                                            fixedDecimalScale
-                                                                            allowNegative={
-                                                                                false
-                                                                            }
-                                                                            prefix="PHP "
-                                                                            placeholder="0.00"
-                                                                            inputMode="decimal"
-                                                                            required
-                                                                            valueIsNumericString
-                                                                            customInput={
-                                                                                Input
-                                                                            }
-                                                                        />
+                                                                        <div className="relative">
+                                                                            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
+                                                                                PHP
+                                                                            </span>
+                                                                            <NumericFormat
+                                                                                id="gross_monthly_income"
+                                                                                className="mt-1 block w-full pl-12"
+                                                                                value={
+                                                                                    grossMonthlyIncome
+                                                                                }
+                                                                                onValueChange={(
+                                                                                    values,
+                                                                                ) => {
+                                                                                    setGrossMonthlyIncome(
+                                                                                        values.value,
+                                                                                    );
+                                                                                }}
+                                                                                thousandSeparator
+                                                                                decimalScale={
+                                                                                    2
+                                                                                }
+                                                                                fixedDecimalScale
+                                                                                allowNegative={
+                                                                                    false
+                                                                                }
+                                                                                placeholder="0.00"
+                                                                                inputMode="decimal"
+                                                                                required
+                                                                                valueIsNumericString
+                                                                                customInput={
+                                                                                    Input
+                                                                                }
+                                                                            />
+                                                                        </div>
 
                                                                         <input
                                                                             type="hidden"
@@ -2419,3 +2412,4 @@ export default function Profile({
         </AppLayout>
     );
 }
+
