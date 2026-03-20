@@ -1,5 +1,6 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import axios from 'axios';
 import { Camera, ShieldBan, ShieldCheck } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -26,6 +27,7 @@ import { useInitials } from '@/hooks/use-initials';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { createCroppedImageFile } from '@/lib/image-crop';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { edit } from '@/routes/profile';
@@ -81,6 +83,16 @@ type MemberApplicationProfileData = {
     profile_completed_at: string | null;
 };
 
+type BirthplaceSuggestion = {
+    code: string;
+    name: string;
+    type: 'city' | 'municipality';
+    province: string | null;
+    region: string | null;
+    label: string;
+    value: string;
+};
+
 type ProfileCompletion = {
     isComplete: boolean;
     completedAt: string | null;
@@ -111,6 +123,9 @@ const PROFILE_PHOTO_ALLOWED_TYPES = new Set([
 ]);
 const PROFILE_PHOTO_OUTPUT_SIZE = 512;
 const PROFILE_PHOTO_OUTPUT_QUALITY = 0.92;
+const BIRTHPLACE_QUERY_MIN = 2;
+const BIRTHPLACE_DEBOUNCE_MS = 300;
+const BIRTHPLACE_RESULT_LIMIT = 15;
 
 export default function Profile({
     mustVerifyEmail,
@@ -172,6 +187,18 @@ export default function Profile({
     const memberLastName = memberRecord?.lname?.trim() ?? '';
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const showOnboardingAlert = onboarding && adminProfile === null && !isProfileComplete;
+    const [birthplaceQuery, setBirthplaceQuery] = useState<string>(
+        memberApplicationProfile?.birthplace ?? '',
+    );
+    const [birthplaceSuggestions, setBirthplaceSuggestions] = useState<
+        BirthplaceSuggestion[]
+    >([]);
+    const [birthplaceOpen, setBirthplaceOpen] = useState<boolean>(false);
+    const [birthplaceStatus, setBirthplaceStatus] = useState<
+        'idle' | 'loading' | 'error'
+    >('idle');
+    const [birthplaceError, setBirthplaceError] = useState<string | null>(null);
+    const birthplaceBlurTimeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
         setActiveTab(initialTab);
@@ -196,6 +223,75 @@ export default function Profile({
             URL.revokeObjectURL(profilePhotoDraftPreview);
         };
     }, [profilePhotoDraftPreview]);
+
+    useEffect(() => {
+        if (!birthplaceOpen) {
+            return;
+        }
+
+        const query = birthplaceQuery.trim();
+
+        if (query.length < BIRTHPLACE_QUERY_MIN) {
+            setBirthplaceSuggestions([]);
+            setBirthplaceStatus('idle');
+            setBirthplaceError(null);
+            return;
+        }
+
+        setBirthplaceStatus('loading');
+        setBirthplaceError(null);
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(async () => {
+            try {
+                const response = await api.get('/api/locations/birthplaces', {
+                    params: {
+                        search: query,
+                        limit: BIRTHPLACE_RESULT_LIMIT,
+                    },
+                    signal: controller.signal,
+                });
+                const payload = response.data as {
+                    available?: boolean;
+                    data?: BirthplaceSuggestion[];
+                    message?: string;
+                };
+
+                if (payload?.available === false) {
+                    setBirthplaceStatus('error');
+                    setBirthplaceError(
+                        payload.message ??
+                            'Birthplace suggestions are temporarily unavailable.',
+                    );
+                    setBirthplaceSuggestions([]);
+                    return;
+                }
+
+                setBirthplaceSuggestions(
+                    Array.isArray(payload?.data) ? payload.data : [],
+                );
+                setBirthplaceStatus('idle');
+            } catch (error) {
+                if (axios.isCancel(error)) {
+                    return;
+                }
+
+                setBirthplaceStatus('error');
+                setBirthplaceError(
+                    getApiErrorMessage(
+                        error,
+                        'Unable to load birthplace suggestions.',
+                    ),
+                );
+                setBirthplaceSuggestions([]);
+            }
+        }, BIRTHPLACE_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeout);
+            controller.abort();
+        };
+    }, [birthplaceOpen, birthplaceQuery]);
 
     const settingsTabs = [
         { value: 'profile', label: 'Profile' },
@@ -240,6 +336,28 @@ export default function Profile({
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         input.files = dataTransfer.files;
+    };
+
+    const handleBirthplaceFocus = () => {
+        if (birthplaceBlurTimeoutRef.current !== null) {
+            window.clearTimeout(birthplaceBlurTimeoutRef.current);
+        }
+
+        setBirthplaceOpen(true);
+    };
+
+    const handleBirthplaceBlur = () => {
+        birthplaceBlurTimeoutRef.current = window.setTimeout(() => {
+            setBirthplaceOpen(false);
+        }, 120);
+    };
+
+    const handleBirthplaceSelect = (suggestion: BirthplaceSuggestion) => {
+        setBirthplaceQuery(suggestion.value);
+        setBirthplaceOpen(false);
+        setBirthplaceSuggestions([]);
+        setBirthplaceStatus('idle');
+        setBirthplaceError(null);
     };
 
     const handleProfilePhotoCropClose = () => {
@@ -993,17 +1111,135 @@ export default function Profile({
                                                                             Birthplace
                                                                         </Label>
 
-                                                                        <Input
-                                                                            id="birthplace"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.birthplace ??
-                                                                                ''
-                                                                            }
-                                                                            name="birthplace"
-                                                                            required
-                                                                            placeholder="City or municipality"
-                                                                        />
+                                                                        <div className="relative">
+                                                                            <Input
+                                                                                id="birthplace"
+                                                                                className="mt-1 block w-full"
+                                                                                value={
+                                                                                    birthplaceQuery
+                                                                                }
+                                                                                name="birthplace"
+                                                                                required
+                                                                                placeholder="City or municipality"
+                                                                                autoComplete="off"
+                                                                                onChange={(
+                                                                                    event,
+                                                                                ) => {
+                                                                                    setBirthplaceQuery(
+                                                                                        event
+                                                                                            .target
+                                                                                            .value,
+                                                                                    );
+                                                                                    setBirthplaceOpen(
+                                                                                        true,
+                                                                                    );
+                                                                                }}
+                                                                                onFocus={
+                                                                                    handleBirthplaceFocus
+                                                                                }
+                                                                                onBlur={
+                                                                                    handleBirthplaceBlur
+                                                                                }
+                                                                            />
+
+                                                                            {birthplaceOpen && (
+                                                                                <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
+                                                                                    {birthplaceStatus ===
+                                                                                        'loading' && (
+                                                                                        <p className="px-2 py-1 text-muted-foreground">
+                                                                                            Searching
+                                                                                            birthplace
+                                                                                            suggestions...
+                                                                                        </p>
+                                                                                    )}
+
+                                                                                    {birthplaceStatus ===
+                                                                                        'error' && (
+                                                                                        <p className="px-2 py-1 text-amber-600">
+                                                                                            {birthplaceError ??
+                                                                                                'Birthplace suggestions are temporarily unavailable.'}
+                                                                                        </p>
+                                                                                    )}
+
+                                                                                    {birthplaceStatus ===
+                                                                                        'idle' &&
+                                                                                        birthplaceQuery
+                                                                                            .trim()
+                                                                                            .length <
+                                                                                            BIRTHPLACE_QUERY_MIN && (
+                                                                                            <p className="px-2 py-1 text-muted-foreground">
+                                                                                                Type
+                                                                                                at
+                                                                                                least
+                                                                                                two
+                                                                                                characters
+                                                                                                to
+                                                                                                search
+                                                                                                cities
+                                                                                                and
+                                                                                                municipalities.
+                                                                                            </p>
+                                                                                        )}
+
+                                                                                    {birthplaceStatus ===
+                                                                                        'idle' &&
+                                                                                        birthplaceQuery
+                                                                                            .trim()
+                                                                                            .length >=
+                                                                                            BIRTHPLACE_QUERY_MIN &&
+                                                                                        birthplaceSuggestions.length ===
+                                                                                            0 && (
+                                                                                            <p className="px-2 py-1 text-muted-foreground">
+                                                                                                No
+                                                                                                matching
+                                                                                                places
+                                                                                                found.
+                                                                                            </p>
+                                                                                        )}
+
+                                                                                    {birthplaceSuggestions.length >
+                                                                                        0 && (
+                                                                                        <div className="max-h-60 space-y-1 overflow-auto">
+                                                                                            {birthplaceSuggestions.map(
+                                                                                                (
+                                                                                                    suggestion,
+                                                                                                ) => (
+                                                                                                    <button
+                                                                                                        key={
+                                                                                                            suggestion.code
+                                                                                                        }
+                                                                                                        type="button"
+                                                                                                        className="flex w-full flex-col gap-1 rounded-md px-2 py-2 text-left transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
+                                                                                                        onMouseDown={(
+                                                                                                            event,
+                                                                                                        ) => {
+                                                                                                            event.preventDefault();
+                                                                                                        }}
+                                                                                                        onClick={() =>
+                                                                                                            handleBirthplaceSelect(
+                                                                                                                suggestion,
+                                                                                                            )
+                                                                                                        }
+                                                                                                    >
+                                                                                                        <span className="text-sm font-medium">
+                                                                                                            {
+                                                                                                                suggestion.label
+                                                                                                            }
+                                                                                                        </span>
+                                                                                                        <span className="text-xs text-muted-foreground">
+                                                                                                            {suggestion.type ===
+                                                                                                            'city'
+                                                                                                                ? 'City'
+                                                                                                                : 'Municipality'}
+                                                                                                        </span>
+                                                                                                    </button>
+                                                                                                ),
+                                                                                            )}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
 
                                                                         <InputError
                                                                             className="mt-2"

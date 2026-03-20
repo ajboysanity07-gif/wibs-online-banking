@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\OrganizationSettingsController;
 use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\WatchlistController;
+use App\Http\Controllers\Api\BirthplaceSearchController;
 use App\Http\Controllers\Auth\MemberVerificationController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
@@ -105,6 +106,11 @@ Route::prefix('admin/api')->middleware(['auth', 'admin', 'verified'])->group(fun
     Route::get('members/{user}/accounts/savings', SpaMemberSavingsController::class);
     Route::get('members/{user}/loans/{loanNumber}/schedule', SpaMemberLoanScheduleController::class);
     Route::get('members/{user}/loans/{loanNumber}/payments', SpaMemberLoanPaymentsController::class);
+});
+
+Route::prefix('api/locations')->middleware(['auth', 'approved'])->group(function () {
+    Route::get('birthplaces', BirthplaceSearchController::class)
+        ->name('api.locations.birthplaces');
 });
 
 Route::get('client/dashboard', function (
