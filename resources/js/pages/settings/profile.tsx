@@ -1602,12 +1602,12 @@ export default function Profile({
                                                                         </div>
 
                                                                         <div className="grid gap-2">
-                                                                            <Label htmlFor="employer_business_city">
-                                                                                Employer
+                                                                            <Label
+                                                                                htmlFor="employer_business_city"
+                                                                                className="sr-only"
+                                                                            >
+                                                                                City
                                                                                 or
-                                                                                business
-                                                                                city
-                                                                                /
                                                                                 municipality
                                                                             </Label>
 
@@ -2412,4 +2412,3 @@ export default function Profile({
         </AppLayout>
     );
 }
-
