@@ -30,6 +30,9 @@ export type RequestPreview = {
     status: string | null;
     created_at: string | null;
     summary: string | null;
+    loan_type: string | null;
+    requested_amount: number | string | null;
+    submitted_at: string | null;
 };
 
 export type DashboardSummary = {

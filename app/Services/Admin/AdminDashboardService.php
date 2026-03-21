@@ -2,8 +2,11 @@
 
 namespace App\Services\Admin;
 
+use App\LoanRequestStatus;
 use App\Models\AppUser;
+use App\Models\LoanRequest;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class AdminDashboardService
 {
@@ -27,12 +30,13 @@ class AdminDashboardService
             ->count();
 
         $totalCount = (clone $countsBase)->count();
+        $requestsCount = $this->getPendingRequestsCount();
 
         return [
             'pendingCount' => $pendingCount,
             'activeCount' => $activeCount,
             'totalCount' => $totalCount,
-            'requestsCount' => null,
+            'requestsCount' => $requestsCount,
             'lastSync' => 'Manual WIBS Desktop processing',
         ];
     }
@@ -67,7 +71,39 @@ class AdminDashboardService
      */
     public function getRecentRequestsPreview(int $limit = 5): Collection
     {
-        return collect();
+        if (! Schema::hasTable('loan_requests')) {
+            return collect();
+        }
+
+        return LoanRequest::query()
+            ->with('applicant')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get()
+            ->map(function (LoanRequest $request): array {
+                $status = $request->status instanceof LoanRequestStatus
+                    ? $request->status->value
+                    : $request->status;
+                $submittedAt = $request->submitted_at?->toDateTimeString()
+                    ?? $request->created_at?->toDateTimeString();
+                $applicant = $request->applicant;
+                $memberName = $applicant
+                    ? trim(sprintf('%s %s', $applicant->first_name, $applicant->last_name))
+                    : null;
+                $memberName = $memberName !== '' ? $memberName : null;
+
+                return [
+                    'id' => $request->id,
+                    'member_name' => $memberName,
+                    'status' => $status,
+                    'created_at' => $submittedAt,
+                    'summary' => $request->loan_type_label_snapshot,
+                    'loan_type' => $request->loan_type_label_snapshot,
+                    'requested_amount' => $request->requested_amount,
+                    'submitted_at' => $submittedAt,
+                ];
+            });
     }
 
     /**
@@ -76,5 +112,19 @@ class AdminDashboardService
     public function getWatchlistPreview(string $type, int $limit = 5): Collection
     {
         return collect();
+    }
+
+    private function getPendingRequestsCount(): ?int
+    {
+        if (! Schema::hasTable('loan_requests')) {
+            return null;
+        }
+
+        return LoanRequest::query()
+            ->whereIn('status', [
+                LoanRequestStatus::Submitted->value,
+                LoanRequestStatus::UnderReview->value,
+            ])
+            ->count();
     }
 }

@@ -16,8 +16,8 @@ const emptyResponse: RequestsResponse = {
         total: 0,
         lastPage: 1,
         query: null,
-        available: false,
-        message: 'Requests module coming soon.',
+        available: true,
+        message: null,
     },
 };
 

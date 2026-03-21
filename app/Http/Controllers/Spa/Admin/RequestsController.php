@@ -16,8 +16,11 @@ class RequestsController extends Controller
         $perPage = (int) $request->query('perPage', 10);
         $page = (int) $request->query('page', 1);
 
-        $result = $service->getPaginated($search, $perPage);
+        $result = $service->getPaginated($search, $perPage, $page);
         $items = RequestPreviewResource::collection($result['items'])->resolve();
+        $paginator = $result['paginator'];
+        $total = $paginator?->total() ?? 0;
+        $lastPage = $paginator?->lastPage() ?? 1;
 
         return response()->json([
             'ok' => true,
@@ -29,8 +32,8 @@ class RequestsController extends Controller
                     'message' => $result['message'],
                     'page' => max(1, $page),
                     'perPage' => max(1, min($perPage, 50)),
-                    'total' => 0,
-                    'lastPage' => 1,
+                    'total' => $total,
+                    'lastPage' => $lastPage,
                 ],
             ],
         ]);

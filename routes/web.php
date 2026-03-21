@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\BirthplaceSearchController;
 use App\Http\Controllers\Auth\MemberVerificationController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
+use App\Http\Controllers\Client\LoanRequestController;
 use App\Http\Controllers\Client\MemberLoanPaymentsController as ClientMemberLoanPaymentsController;
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
 use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
@@ -271,6 +272,22 @@ Route::get('client/dashboard', function (
 Route::get('client/loans', ClientMemberLoansController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loans');
+
+Route::get('client/loans/request', [LoanRequestController::class, 'create'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.create');
+
+Route::post('client/loans/request', [LoanRequestController::class, 'store'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.store');
+
+Route::get('client/loans/requests/{loanRequest}', [LoanRequestController::class, 'show'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.show');
+
+Route::get('client/loans/requests/{loanRequest}/pdf', [LoanRequestController::class, 'pdf'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.pdf');
 
 Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])

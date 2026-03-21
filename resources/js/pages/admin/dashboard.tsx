@@ -349,7 +349,7 @@ export default function AdminDashboard({ summary }: Props) {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground">
-                                Read-only for now
+                                Loan requests awaiting review
                             </p>
                         </CardContent>
                     </Card>
@@ -578,7 +578,7 @@ export default function AdminDashboard({ summary }: Props) {
                                 </div>
                             ) : requestsPreview.length === 0 ? (
                                 <div className="px-6 py-6 text-center text-sm text-muted-foreground">
-                                    Requests module coming soon.
+                                    No requests yet.
                                 </div>
                             ) : (
                                 <Table>

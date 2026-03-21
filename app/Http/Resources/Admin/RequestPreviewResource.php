@@ -20,6 +20,9 @@ class RequestPreviewResource extends JsonResource
             'status' => $resource['status'] ?? null,
             'created_at' => $resource['created_at'] ?? null,
             'summary' => $resource['summary'] ?? null,
+            'loan_type' => $resource['loan_type'] ?? null,
+            'requested_amount' => $resource['requested_amount'] ?? null,
+            'submitted_at' => $resource['submitted_at'] ?? null,
         ];
     }
 }
