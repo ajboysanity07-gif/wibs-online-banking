@@ -1,7 +1,9 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import Heading from '@/components/heading';
+import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
+import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestStepIndicator } from '@/components/loan-request/loan-request-step-indicator';
 import {
     LoanRequestApplicantPersonalStep,
@@ -13,6 +15,7 @@ import {
 import { LoanRequestWizardFooter } from '@/components/loan-request/loan-request-wizard-footer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
 import { loans as clientLoans } from '@/routes/client';
@@ -250,6 +253,9 @@ export default function LoanRequestPage({
     draft,
 }: Props) {
     const [currentStep, setCurrentStep] = useState(0);
+    const [stepDirection, setStepDirection] = useState<
+        'forward' | 'backward'
+    >('forward');
     const [activeAction, setActiveAction] = useState<
         'draft' | 'submit' | null
     >(null);
@@ -281,6 +287,10 @@ export default function LoanRequestPage({
     const isSavingDraft = form.processing && activeAction === 'draft';
     const isSubmitting = form.processing && activeAction === 'submit';
     const hasLoanTypes = loanTypes.length > 0;
+    const progressPercentage = Math.round(
+        ((currentStep + 1) / steps.length) * 100,
+    );
+    const stepMeta = steps[currentStep];
 
     const updatePersonField =
         (section: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
@@ -296,6 +306,36 @@ export default function LoanRequestPage({
 
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
         form.setData(field, value);
+    };
+
+    const handleStepChange = (nextStep: number) => {
+        setCurrentStep((current) => {
+            if (nextStep === current) {
+                return current;
+            }
+
+            setStepDirection(nextStep > current ? 'forward' : 'backward');
+
+            return nextStep;
+        });
+    };
+
+    const handleNextStep = () => {
+        setCurrentStep((current) => {
+            const nextStep = Math.min(steps.length - 1, current + 1);
+            setStepDirection('forward');
+
+            return nextStep;
+        });
+    };
+
+    const handlePreviousStep = () => {
+        setCurrentStep((current) => {
+            const nextStep = Math.max(0, current - 1);
+            setStepDirection('backward');
+
+            return nextStep;
+        });
     };
 
     const handleSaveDraft = () => {
@@ -315,7 +355,7 @@ export default function LoanRequestPage({
                 const step = resolveStepFromErrors(errors);
 
                 if (step !== null) {
-                    setCurrentStep(step);
+                    handleStepChange(step);
                 }
             },
             onFinish: () => setActiveAction(null),
@@ -329,145 +369,219 @@ export default function LoanRequestPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <div className="flex flex-col gap-6 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                        <Heading
-                            title="Loan request"
-                            description="Complete the application form to request a new loan."
-                        />
-                        <p className="text-sm text-muted-foreground">
-                            Account No: {member.acctno ?? '--'}
-                        </p>
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-24 pt-6">
+                <div className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-sm">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                                Loan request
+                            </p>
+                            <h1 className="text-3xl font-semibold tracking-tight">
+                                Apply for a loan
+                            </h1>
+                            <p className="max-w-2xl text-sm text-muted-foreground">
+                                Complete the application form to request a new
+                                loan. You can save a draft at any time and
+                                resume later.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <span className="rounded-full bg-muted/40 px-2 py-1">
+                                    Account No: {member.acctno ?? '--'}
+                                </span>
+                                {draft ? (
+                                    <>
+                                        <LoanRequestStatusBadge
+                                            status={draft.status}
+                                        />
+                                        {draftUpdatedAt ? (
+                                            <span>
+                                                Last saved {draftUpdatedAt}
+                                            </span>
+                                        ) : null}
+                                    </>
+                                ) : (
+                                    <span>No draft saved yet</span>
+                                )}
+                                {form.recentlySuccessful &&
+                                lastAction === 'draft' ? (
+                                    <span className="text-emerald-600">
+                                        Draft saved.
+                                    </span>
+                                ) : null}
+                            </div>
+                        </div>
+                        <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2 self-start"
+                        >
+                            <Link href={clientLoans().url}>
+                                <ArrowLeft className="h-4 w-4" />
+                                Back to loans
+                            </Link>
+                        </Button>
                     </div>
-                    <Button asChild variant="ghost" size="sm">
-                        <Link href={clientLoans().url}>Back to loans</Link>
-                    </Button>
-                </div>
 
-                <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                        <span className="text-xs font-semibold uppercase">
-                            Step {currentStep + 1} of {steps.length}
-                        </span>
-                        <span>{steps[currentStep]?.title}</span>
+                    <Separator className="my-6" />
+
+                    <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                            <span>
+                                Step {currentStep + 1} of {steps.length}
+                            </span>
+                            <span>{progressPercentage}% complete</span>
+                        </div>
+                        <div
+                            className="h-2 w-full rounded-full bg-muted/40"
+                            role="progressbar"
+                            aria-valuenow={progressPercentage}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                        >
+                            <div
+                                className="h-full rounded-full bg-primary transition-all motion-reduce:transition-none"
+                                style={{
+                                    width: `${progressPercentage}%`,
+                                }}
+                            />
+                        </div>
+                        <div className="text-sm font-medium text-foreground">
+                            {stepMeta?.title}
+                            {stepMeta?.description ? (
+                                <span className="text-muted-foreground">
+                                    {' '}
+                                    - {stepMeta.description}
+                                </span>
+                            ) : null}
+                        </div>
                     </div>
+
                     <LoanRequestStepIndicator
                         steps={steps}
                         currentStep={currentStep}
-                        onStepChange={(index) => setCurrentStep(index)}
+                        onStepChange={handleStepChange}
+                        className="mt-5 hidden lg:grid"
                     />
                 </div>
 
-                {draft ? (
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                        <LoanRequestStatusBadge status={draft.status} />
-                        {draftUpdatedAt ? (
-                            <span>Last saved {draftUpdatedAt}</span>
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                    <div className="space-y-6">
+                        {loanTypes.length === 0 ? (
+                            <Alert variant="destructive">
+                                <AlertTitle>
+                                    Loan types unavailable
+                                </AlertTitle>
+                                <AlertDescription>
+                                    Please contact support to load available
+                                    loan options before submitting a request.
+                                </AlertDescription>
+                            </Alert>
                         ) : null}
-                        {form.recentlySuccessful && lastAction === 'draft' ? (
-                            <span className="text-xs text-emerald-600">
-                                Draft saved.
-                            </span>
-                        ) : null}
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 0}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestLoanDetailsStep
+                                data={form.data}
+                                errors={form.errors}
+                                loanTypes={loanTypes}
+                                onChange={handleLoanDetailChange}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 1}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestApplicantPersonalStep
+                                values={form.data.applicant}
+                                errors={form.errors}
+                                readOnly={applicantReadOnly}
+                                onChange={updatePersonField('applicant')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 2}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestApplicantWorkStep
+                                values={form.data.applicant}
+                                errors={form.errors}
+                                onChange={updatePersonField('applicant')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 3}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 1"
+                                description="Provide details for your first co-maker."
+                                prefix="co_maker_1"
+                                values={form.data.co_maker_1}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_1')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 4}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestCoMakerStep
+                                title="Co-maker 2"
+                                description="Provide details for your second co-maker."
+                                prefix="co_maker_2"
+                                values={form.data.co_maker_2}
+                                errors={form.errors}
+                                onChange={updatePersonField('co_maker_2')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 5}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestReviewStep
+                                data={form.data}
+                                loanTypes={loanTypes}
+                                member={member}
+                                errors={form.errors}
+                                onUndertakingChange={(value) =>
+                                    form.setData(
+                                        'undertaking_accepted',
+                                        value,
+                                    )
+                                }
+                            />
+                        </LoanRequestAnimatedStep>
                     </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        You can save this request as a draft at any time and
-                        resume later.
-                    </p>
-                )}
 
-                {loanTypes.length === 0 ? (
-                    <Alert variant="destructive">
-                        <AlertTitle>Loan types unavailable</AlertTitle>
-                        <AlertDescription>
-                            Please contact support to load available loan
-                            options before submitting a request.
-                        </AlertDescription>
-                    </Alert>
-                ) : null}
-
-                <div className="space-y-6">
-                    {currentStep === 0 ? (
-                        <LoanRequestLoanDetailsStep
-                            data={form.data}
-                            errors={form.errors}
-                            loanTypes={loanTypes}
-                            onChange={handleLoanDetailChange}
-                        />
-                    ) : null}
-
-                    {currentStep === 1 ? (
-                        <LoanRequestApplicantPersonalStep
-                            values={form.data.applicant}
-                            errors={form.errors}
-                            readOnly={applicantReadOnly}
-                            onChange={updatePersonField('applicant')}
-                        />
-                    ) : null}
-
-                    {currentStep === 2 ? (
-                        <LoanRequestApplicantWorkStep
-                            values={form.data.applicant}
-                            errors={form.errors}
-                            onChange={updatePersonField('applicant')}
-                        />
-                    ) : null}
-
-                    {currentStep === 3 ? (
-                        <LoanRequestCoMakerStep
-                            title="Co-maker 1"
-                            description="Provide details for your first co-maker."
-                            prefix="co_maker_1"
-                            values={form.data.co_maker_1}
-                            errors={form.errors}
-                            onChange={updatePersonField('co_maker_1')}
-                        />
-                    ) : null}
-
-                    {currentStep === 4 ? (
-                        <LoanRequestCoMakerStep
-                            title="Co-maker 2"
-                            description="Provide details for your second co-maker."
-                            prefix="co_maker_2"
-                            values={form.data.co_maker_2}
-                            errors={form.errors}
-                            onChange={updatePersonField('co_maker_2')}
-                        />
-                    ) : null}
-
-                    {currentStep === 5 ? (
-                        <LoanRequestReviewStep
-                            data={form.data}
-                            loanTypes={loanTypes}
-                            member={member}
-                            errors={form.errors}
-                            onUndertakingChange={(value) =>
-                                form.setData('undertaking_accepted', value)
-                            }
-                        />
-                    ) : null}
+                    <LoanRequestSummaryPanel
+                        data={form.data}
+                        loanTypes={loanTypes}
+                        member={member}
+                        draft={draft}
+                        draftUpdatedAt={draftUpdatedAt}
+                    />
                 </div>
-
-                <LoanRequestWizardFooter
-                    isFirstStep={isFirstStep}
-                    isLastStep={isLastStep}
-                    onBack={() =>
-                        setCurrentStep((step) => Math.max(0, step - 1))
-                    }
-                    onNext={() =>
-                        setCurrentStep((step) =>
-                            Math.min(steps.length - 1, step + 1),
-                        )
-                    }
-                    onSaveDraft={handleSaveDraft}
-                    onSubmit={handleSubmit}
-                    isSavingDraft={isSavingDraft}
-                    isSubmitting={isSubmitting}
-                    disablePrimary={!hasLoanTypes}
-                />
             </div>
+
+            <LoanRequestWizardFooter
+                isFirstStep={isFirstStep}
+                isLastStep={isLastStep}
+                onBack={handlePreviousStep}
+                onNext={handleNextStep}
+                onSaveDraft={handleSaveDraft}
+                onSubmit={handleSubmit}
+                isSavingDraft={isSavingDraft}
+                isSubmitting={isSubmitting}
+                disablePrimary={!hasLoanTypes}
+            />
         </AppLayout>
     );
 }

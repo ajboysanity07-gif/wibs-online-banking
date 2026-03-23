@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type {
     LoanRequestPersonFormData,
@@ -134,292 +135,350 @@ export function LoanRequestPersonalFields({
         };
 
     return (
-        <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_first_name`}>First name</Label>
-                <Input
-                    id={`${prefix}_first_name`}
-                    name={fieldName(prefix, 'first_name')}
-                    value={values.first_name}
-                    readOnly={isReadOnly('first_name')}
-                    required
-                    className={cn(
-                        'mt-1 block w-full',
-                        isReadOnly('first_name') && readOnlyInputClass,
-                    )}
-                    onChange={updateField('first_name')}
-                />
-                <InputError message={fieldError(errors, prefix, 'first_name')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_last_name`}>Last name</Label>
-                <Input
-                    id={`${prefix}_last_name`}
-                    name={fieldName(prefix, 'last_name')}
-                    value={values.last_name}
-                    readOnly={isReadOnly('last_name')}
-                    required
-                    className={cn(
-                        'mt-1 block w-full',
-                        isReadOnly('last_name') && readOnlyInputClass,
-                    )}
-                    onChange={updateField('last_name')}
-                />
-                <InputError message={fieldError(errors, prefix, 'last_name')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_middle_name`}>Middle name</Label>
-                <Input
-                    id={`${prefix}_middle_name`}
-                    name={fieldName(prefix, 'middle_name')}
-                    value={values.middle_name}
-                    readOnly={isReadOnly('middle_name')}
-                    className={cn(
-                        'mt-1 block w-full',
-                        isReadOnly('middle_name') && readOnlyInputClass,
-                    )}
-                    onChange={updateField('middle_name')}
-                />
-                <InputError message={fieldError(errors, prefix, 'middle_name')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_nickname`}>Nickname</Label>
-                <Input
-                    id={`${prefix}_nickname`}
-                    name={fieldName(prefix, 'nickname')}
-                    value={values.nickname}
-                    className="mt-1 block w-full"
-                    onChange={updateField('nickname')}
-                />
-                <InputError message={fieldError(errors, prefix, 'nickname')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_birthdate`}>Birthdate</Label>
-                <Input
-                    id={`${prefix}_birthdate`}
-                    type="date"
-                    name={fieldName(prefix, 'birthdate')}
-                    value={values.birthdate}
-                    readOnly={isReadOnly('birthdate')}
-                    required
-                    className={cn(
-                        'mt-1 block w-full',
-                        isReadOnly('birthdate') && readOnlyInputClass,
-                    )}
-                    onChange={updateField('birthdate')}
-                />
-                <InputError message={fieldError(errors, prefix, 'birthdate')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_birthplace`}>Birthplace</Label>
-                <Input
-                    id={`${prefix}_birthplace`}
-                    name={fieldName(prefix, 'birthplace')}
-                    value={values.birthplace}
-                    className="mt-1 block w-full"
-                    required
-                    onChange={updateField('birthplace')}
-                />
-                <InputError message={fieldError(errors, prefix, 'birthplace')} />
-            </div>
-
-            <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor={`${prefix}_address`}>Address</Label>
-                <Input
-                    id={`${prefix}_address`}
-                    name={fieldName(prefix, 'address')}
-                    value={values.address}
-                    readOnly={isReadOnly('address')}
-                    required
-                    className={cn(
-                        'mt-1 block w-full',
-                        isReadOnly('address') && readOnlyInputClass,
-                    )}
-                    onChange={updateField('address')}
-                />
-                <InputError message={fieldError(errors, prefix, 'address')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_length_of_stay`}>
-                    Length of stay
-                </Label>
-                <Input
-                    id={`${prefix}_length_of_stay`}
-                    name={fieldName(prefix, 'length_of_stay')}
-                    value={values.length_of_stay}
-                    className="mt-1 block w-full"
-                    placeholder="e.g. 2 years"
-                    required
-                    onChange={updateField('length_of_stay')}
-                />
-                <InputError message={fieldError(errors, prefix, 'length_of_stay')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_housing_status`}>Housing status</Label>
-                <Input
-                    id={`${prefix}_housing_status`}
-                    name={fieldName(prefix, 'housing_status')}
-                    value={values.housing_status}
-                    readOnly={isReadOnly('housing_status')}
-                    required
-                    className={cn(
-                        'mt-1 block w-full',
-                        isReadOnly('housing_status') && readOnlyInputClass,
-                    )}
-                    onChange={updateField('housing_status')}
-                />
-                <InputError message={fieldError(errors, prefix, 'housing_status')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_cell_no`}>Cell no.</Label>
-                <Input
-                    id={`${prefix}_cell_no`}
-                    name={fieldName(prefix, 'cell_no')}
-                    value={values.cell_no}
-                    className="mt-1 block w-full"
-                    inputMode="numeric"
-                    required
-                    onChange={updateField('cell_no')}
-                />
-                <InputError message={fieldError(errors, prefix, 'cell_no')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_civil_status`}>Civil status</Label>
-                <Input
-                    id={`${prefix}_civil_status`}
-                    name={fieldName(prefix, 'civil_status')}
-                    value={values.civil_status}
-                    readOnly={isReadOnly('civil_status')}
-                    required
-                    className={cn(
-                        'mt-1 block w-full',
-                        isReadOnly('civil_status') && readOnlyInputClass,
-                    )}
-                    onChange={updateField('civil_status')}
-                />
-                <InputError message={fieldError(errors, prefix, 'civil_status')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_educational_attainment`}>
-                    Educational attainment
-                </Label>
-                <Select
-                    value={educationalAttainment || undefined}
-                    onValueChange={(value) => {
-                        setEducationalAttainment(value);
-                        onChange('educational_attainment', value);
-                    }}
-                >
-                    <SelectTrigger
-                        id={`${prefix}_educational_attainment`}
-                        className="mt-1 w-full"
-                    >
-                        <SelectValue placeholder="Select attainment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {educationalAttainmentOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                                {option}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <InputError
-                    message={fieldError(errors, prefix, 'educational_attainment')}
-                />
-            </div>
-
-            {includeChildren ? (
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_number_of_children`}>
-                        No. of children
-                    </Label>
+                    <Label htmlFor={`${prefix}_first_name`}>First name</Label>
                     <Input
-                        id={`${prefix}_number_of_children`}
-                        type="number"
-                        name={fieldName(prefix, 'number_of_children')}
-                        value={values.number_of_children}
-                        readOnly={isReadOnly('number_of_children')}
+                        id={`${prefix}_first_name`}
+                        name={fieldName(prefix, 'first_name')}
+                        value={values.first_name}
+                        readOnly={isReadOnly('first_name')}
                         required
                         className={cn(
                             'mt-1 block w-full',
-                            isReadOnly('number_of_children') &&
-                                readOnlyInputClass,
+                            isReadOnly('first_name') && readOnlyInputClass,
                         )}
-                        onChange={updateField('number_of_children')}
+                        onChange={updateField('first_name')}
                     />
                     <InputError
-                        message={fieldError(errors, prefix, 'number_of_children')}
+                        message={fieldError(errors, prefix, 'first_name')}
                     />
                 </div>
-            ) : null}
 
-            {includeSpouse ? (
-                <>
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_last_name`}>Last name</Label>
+                    <Input
+                        id={`${prefix}_last_name`}
+                        name={fieldName(prefix, 'last_name')}
+                        value={values.last_name}
+                        readOnly={isReadOnly('last_name')}
+                        required
+                        className={cn(
+                            'mt-1 block w-full',
+                            isReadOnly('last_name') && readOnlyInputClass,
+                        )}
+                        onChange={updateField('last_name')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'last_name')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_middle_name`}>Middle name</Label>
+                    <Input
+                        id={`${prefix}_middle_name`}
+                        name={fieldName(prefix, 'middle_name')}
+                        value={values.middle_name}
+                        readOnly={isReadOnly('middle_name')}
+                        className={cn(
+                            'mt-1 block w-full',
+                            isReadOnly('middle_name') && readOnlyInputClass,
+                        )}
+                        onChange={updateField('middle_name')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'middle_name')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_nickname`}>Nickname</Label>
+                    <Input
+                        id={`${prefix}_nickname`}
+                        name={fieldName(prefix, 'nickname')}
+                        value={values.nickname}
+                        className="mt-1 block w-full"
+                        onChange={updateField('nickname')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'nickname')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_birthdate`}>Birthdate</Label>
+                    <Input
+                        id={`${prefix}_birthdate`}
+                        type="date"
+                        name={fieldName(prefix, 'birthdate')}
+                        value={values.birthdate}
+                        readOnly={isReadOnly('birthdate')}
+                        required
+                        className={cn(
+                            'mt-1 block w-full',
+                            isReadOnly('birthdate') && readOnlyInputClass,
+                        )}
+                        onChange={updateField('birthdate')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'birthdate')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_birthplace`}>Birthplace</Label>
+                    <Input
+                        id={`${prefix}_birthplace`}
+                        name={fieldName(prefix, 'birthplace')}
+                        value={values.birthplace}
+                        className="mt-1 block w-full"
+                        required
+                        onChange={updateField('birthplace')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'birthplace')}
+                    />
+                </div>
+            </div>
+
+            <Separator />
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2 md:col-span-2">
+                    <Label htmlFor={`${prefix}_address`}>Address</Label>
+                    <Input
+                        id={`${prefix}_address`}
+                        name={fieldName(prefix, 'address')}
+                        value={values.address}
+                        readOnly={isReadOnly('address')}
+                        required
+                        className={cn(
+                            'mt-1 block w-full',
+                            isReadOnly('address') && readOnlyInputClass,
+                        )}
+                        onChange={updateField('address')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'address')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_length_of_stay`}>
+                        Length of stay
+                    </Label>
+                    <Input
+                        id={`${prefix}_length_of_stay`}
+                        name={fieldName(prefix, 'length_of_stay')}
+                        value={values.length_of_stay}
+                        className="mt-1 block w-full"
+                        placeholder="e.g. 2 years"
+                        required
+                        onChange={updateField('length_of_stay')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'length_of_stay')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_housing_status`}>
+                        Housing status
+                    </Label>
+                    <Input
+                        id={`${prefix}_housing_status`}
+                        name={fieldName(prefix, 'housing_status')}
+                        value={values.housing_status}
+                        readOnly={isReadOnly('housing_status')}
+                        required
+                        className={cn(
+                            'mt-1 block w-full',
+                            isReadOnly('housing_status') && readOnlyInputClass,
+                        )}
+                        onChange={updateField('housing_status')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'housing_status')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_cell_no`}>Cell no.</Label>
+                    <Input
+                        id={`${prefix}_cell_no`}
+                        name={fieldName(prefix, 'cell_no')}
+                        value={values.cell_no}
+                        className="mt-1 block w-full"
+                        inputMode="numeric"
+                        required
+                        onChange={updateField('cell_no')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'cell_no')}
+                    />
+                </div>
+            </div>
+
+            <Separator />
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_civil_status`}>
+                        Civil status
+                    </Label>
+                    <Input
+                        id={`${prefix}_civil_status`}
+                        name={fieldName(prefix, 'civil_status')}
+                        value={values.civil_status}
+                        readOnly={isReadOnly('civil_status')}
+                        required
+                        className={cn(
+                            'mt-1 block w-full',
+                            isReadOnly('civil_status') && readOnlyInputClass,
+                        )}
+                        onChange={updateField('civil_status')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'civil_status')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_educational_attainment`}>
+                        Educational attainment
+                    </Label>
+                    <Select
+                        value={educationalAttainment || undefined}
+                        onValueChange={(value) => {
+                            setEducationalAttainment(value);
+                            onChange('educational_attainment', value);
+                        }}
+                    >
+                        <SelectTrigger
+                            id={`${prefix}_educational_attainment`}
+                            className="mt-1 w-full"
+                        >
+                            <SelectValue placeholder="Select attainment" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {educationalAttainmentOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'educational_attainment',
+                        )}
+                    />
+                </div>
+
+                {includeChildren ? (
                     <div className="grid gap-2">
-                        <Label htmlFor={`${prefix}_spouse_name`}>
-                            Spouse name
+                        <Label htmlFor={`${prefix}_number_of_children`}>
+                            No. of children
                         </Label>
                         <Input
-                            id={`${prefix}_spouse_name`}
-                            name={fieldName(prefix, 'spouse_name')}
-                            value={values.spouse_name}
-                            readOnly={isReadOnly('spouse_name')}
+                            id={`${prefix}_number_of_children`}
+                            type="number"
+                            name={fieldName(prefix, 'number_of_children')}
+                            value={values.number_of_children}
+                            readOnly={isReadOnly('number_of_children')}
+                            required
                             className={cn(
                                 'mt-1 block w-full',
-                                isReadOnly('spouse_name') &&
+                                isReadOnly('number_of_children') &&
                                     readOnlyInputClass,
                             )}
-                            onChange={updateField('spouse_name')}
+                            onChange={updateField('number_of_children')}
                         />
                         <InputError
-                            message={fieldError(errors, prefix, 'spouse_name')}
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'number_of_children',
+                            )}
                         />
                     </div>
+                ) : null}
 
-                    <div className="grid gap-2">
-                        <Label htmlFor={`${prefix}_spouse_age`}>Spouse age</Label>
-                        <Input
-                            id={`${prefix}_spouse_age`}
-                            type="number"
-                            name={fieldName(prefix, 'spouse_age')}
-                            value={values.spouse_age}
-                            className="mt-1 block w-full"
-                            onChange={updateField('spouse_age')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'spouse_age')}
-                        />
-                    </div>
+                {includeSpouse ? (
+                    <>
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_spouse_name`}>
+                                Spouse name
+                            </Label>
+                            <Input
+                                id={`${prefix}_spouse_name`}
+                                name={fieldName(prefix, 'spouse_name')}
+                                value={values.spouse_name}
+                                readOnly={isReadOnly('spouse_name')}
+                                className={cn(
+                                    'mt-1 block w-full',
+                                    isReadOnly('spouse_name') &&
+                                        readOnlyInputClass,
+                                )}
+                                onChange={updateField('spouse_name')}
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'spouse_name',
+                                )}
+                            />
+                        </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor={`${prefix}_spouse_cell_no`}>
-                            Spouse cell no.
-                        </Label>
-                        <Input
-                            id={`${prefix}_spouse_cell_no`}
-                            name={fieldName(prefix, 'spouse_cell_no')}
-                            value={values.spouse_cell_no}
-                            className="mt-1 block w-full"
-                            inputMode="numeric"
-                            onChange={updateField('spouse_cell_no')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'spouse_cell_no')}
-                        />
-                    </div>
-                </>
-            ) : null}
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_spouse_age`}>
+                                Spouse age
+                            </Label>
+                            <Input
+                                id={`${prefix}_spouse_age`}
+                                type="number"
+                                name={fieldName(prefix, 'spouse_age')}
+                                value={values.spouse_age}
+                                className="mt-1 block w-full"
+                                onChange={updateField('spouse_age')}
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'spouse_age',
+                                )}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_spouse_cell_no`}>
+                                Spouse cell no.
+                            </Label>
+                            <Input
+                                id={`${prefix}_spouse_cell_no`}
+                                name={fieldName(prefix, 'spouse_cell_no')}
+                                value={values.spouse_cell_no}
+                                className="mt-1 block w-full"
+                                inputMode="numeric"
+                                onChange={updateField('spouse_cell_no')}
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'spouse_cell_no',
+                                )}
+                            />
+                        </div>
+                    </>
+                ) : null}
+            </div>
         </div>
     );
 }
@@ -523,235 +582,286 @@ export function LoanRequestWorkFields({
     ]);
 
     return (
-        <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_employment_type`}>Employment</Label>
-                <Select
-                    value={employmentType || undefined}
-                    onValueChange={(value) => {
-                        setEmploymentType(value);
-                        onChange('employment_type', value);
-                    }}
-                >
-                    <SelectTrigger
-                        id={`${prefix}_employment_type`}
-                        className="mt-1 w-full"
-                    >
-                        <SelectValue placeholder="Select employment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {employmentTypeOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                                {option}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <InputError message={fieldError(errors, prefix, 'employment_type')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_employer_business_name`}>
-                    Employer/Business name
-                </Label>
-                <Input
-                    id={`${prefix}_employer_business_name`}
-                    name={fieldName(prefix, 'employer_business_name')}
-                    value={values.employer_business_name}
-                    className="mt-1 block w-full"
-                    required
-                    onChange={(event) =>
-                        onChange('employer_business_name', event.target.value)
-                    }
-                />
-                <InputError
-                    message={fieldError(errors, prefix, 'employer_business_name')}
-                />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_employer_business_street`}>
-                    Business address (street)
-                </Label>
-                <Input
-                    id={`${prefix}_employer_business_street`}
-                    value={employerBusinessStreet}
-                    className="mt-1 block w-full"
-                    required
-                    onChange={(event) => {
-                        setEmployerBusinessStreet(event.target.value);
-                        onChange(
-                            'employer_business_address',
-                            composeEmployerBusinessAddress(
-                                event.target.value,
-                                employerBusinessCity,
-                            ),
-                        );
-                    }}
-                />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_employer_business_city`}>
-                    Business address (city/municipality)
-                </Label>
-                <Input
-                    id={`${prefix}_employer_business_city`}
-                    value={employerBusinessCity}
-                    className="mt-1 block w-full"
-                    required
-                    onChange={(event) => {
-                        setEmployerBusinessCity(event.target.value);
-                        onChange(
-                            'employer_business_address',
-                            composeEmployerBusinessAddress(
-                                employerBusinessStreet,
-                                event.target.value,
-                            ),
-                        );
-                    }}
-                />
-                <InputError
-                    message={fieldError(errors, prefix, 'employer_business_address')}
-                />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_telephone_no`}>Tel. no.</Label>
-                <Input
-                    id={`${prefix}_telephone_no`}
-                    name={fieldName(prefix, 'telephone_no')}
-                    value={values.telephone_no}
-                    className="mt-1 block w-full"
-                    onChange={(event) =>
-                        onChange('telephone_no', event.target.value)
-                    }
-                />
-                <InputError message={fieldError(errors, prefix, 'telephone_no')} />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_current_position`}>
-                    Current position
-                </Label>
-                <Input
-                    id={`${prefix}_current_position`}
-                    name={fieldName(prefix, 'current_position')}
-                    value={values.current_position}
-                    className="mt-1 block w-full"
-                    required
-                    onChange={(event) =>
-                        onChange('current_position', event.target.value)
-                    }
-                />
-                <InputError
-                    message={fieldError(errors, prefix, 'current_position')}
-                />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_nature_of_business`}>
-                    Nature of business
-                </Label>
-                <Select
-                    value={natureOfBusinessSelection || undefined}
-                    onValueChange={(value) =>
-                        setNatureOfBusinessSelection(value)
-                    }
-                >
-                    <SelectTrigger
-                        id={`${prefix}_nature_of_business`}
-                        className="mt-1 w-full"
-                    >
-                        <SelectValue placeholder="Select nature of business" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {NATURE_OF_BUSINESS_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                                {option}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                {natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE ? (
-                    <Input
-                        className="mt-2 w-full"
-                        value={natureOfBusinessOther}
-                        placeholder="Specify industry"
-                        onChange={(event) =>
-                            setNatureOfBusinessOther(event.target.value)
-                        }
-                    />
-                ) : null}
-                <InputError
-                    message={fieldError(errors, prefix, 'nature_of_business')}
-                />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_years_in_work_business`}>
-                    Total years in work/business
-                </Label>
-                <Input
-                    id={`${prefix}_years_in_work_business`}
-                    name={fieldName(prefix, 'years_in_work_business')}
-                    value={values.years_in_work_business}
-                    className="mt-1 block w-full"
-                    placeholder="e.g. 5 years"
-                    required
-                    onChange={(event) =>
-                        onChange('years_in_work_business', event.target.value)
-                    }
-                />
-                <InputError
-                    message={fieldError(errors, prefix, 'years_in_work_business')}
-                />
-            </div>
-
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_gross_monthly_income`}>
-                    Gross monthly income
-                </Label>
-                <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
-                        PHP
-                    </span>
-                    <NumericFormat
-                        id={`${prefix}_gross_monthly_income`}
-                        className="mt-1 block w-full pl-12"
-                        value={values.gross_monthly_income}
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_employment_type`}>
+                        Employment
+                    </Label>
+                    <Select
+                        value={employmentType || undefined}
                         onValueChange={(value) => {
-                            onChange('gross_monthly_income', value.value);
+                            setEmploymentType(value);
+                            onChange('employment_type', value);
                         }}
-                        thousandSeparator
-                        decimalScale={2}
-                        fixedDecimalScale
-                        allowNegative={false}
-                        placeholder="0.00"
-                        inputMode="decimal"
-                        valueIsNumericString
-                        customInput={Input}
-                        required
+                    >
+                        <SelectTrigger
+                            id={`${prefix}_employment_type`}
+                            className="mt-1 w-full"
+                        >
+                            <SelectValue placeholder="Select employment" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {employmentTypeOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError
+                        message={fieldError(errors, prefix, 'employment_type')}
                     />
                 </div>
-                <InputError
-                    message={fieldError(errors, prefix, 'gross_monthly_income')}
-                />
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_employer_business_name`}>
+                        Employer/Business name
+                    </Label>
+                    <Input
+                        id={`${prefix}_employer_business_name`}
+                        name={fieldName(prefix, 'employer_business_name')}
+                        value={values.employer_business_name}
+                        className="mt-1 block w-full"
+                        required
+                        onChange={(event) =>
+                            onChange(
+                                'employer_business_name',
+                                event.target.value,
+                            )
+                        }
+                    />
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'employer_business_name',
+                        )}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_employer_business_street`}>
+                        Business address (street)
+                    </Label>
+                    <Input
+                        id={`${prefix}_employer_business_street`}
+                        value={employerBusinessStreet}
+                        className="mt-1 block w-full"
+                        required
+                        onChange={(event) => {
+                            setEmployerBusinessStreet(event.target.value);
+                            onChange(
+                                'employer_business_address',
+                                composeEmployerBusinessAddress(
+                                    event.target.value,
+                                    employerBusinessCity,
+                                ),
+                            );
+                        }}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_employer_business_city`}>
+                        Business address (city/municipality)
+                    </Label>
+                    <Input
+                        id={`${prefix}_employer_business_city`}
+                        value={employerBusinessCity}
+                        className="mt-1 block w-full"
+                        required
+                        onChange={(event) => {
+                            setEmployerBusinessCity(event.target.value);
+                            onChange(
+                                'employer_business_address',
+                                composeEmployerBusinessAddress(
+                                    employerBusinessStreet,
+                                    event.target.value,
+                                ),
+                            );
+                        }}
+                    />
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'employer_business_address',
+                        )}
+                    />
+                </div>
             </div>
 
-            <div className="grid gap-2">
-                <Label htmlFor={`${prefix}_payday`}>Payday</Label>
-                <Input
-                    id={`${prefix}_payday`}
-                    name={fieldName(prefix, 'payday')}
-                    value={values.payday}
-                    className="mt-1 block w-full"
-                    placeholder="15 / 30 / 15 & 30"
-                    required
-                    onChange={(event) => onChange('payday', event.target.value)}
-                />
-                <InputError message={fieldError(errors, prefix, 'payday')} />
+            <Separator />
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_telephone_no`}>Tel. no.</Label>
+                    <Input
+                        id={`${prefix}_telephone_no`}
+                        name={fieldName(prefix, 'telephone_no')}
+                        value={values.telephone_no}
+                        className="mt-1 block w-full"
+                        onChange={(event) =>
+                            onChange('telephone_no', event.target.value)
+                        }
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'telephone_no')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_current_position`}>
+                        Current position
+                    </Label>
+                    <Input
+                        id={`${prefix}_current_position`}
+                        name={fieldName(prefix, 'current_position')}
+                        value={values.current_position}
+                        className="mt-1 block w-full"
+                        required
+                        onChange={(event) =>
+                            onChange('current_position', event.target.value)
+                        }
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'current_position')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_nature_of_business`}>
+                        Nature of business
+                    </Label>
+                    <Select
+                        value={natureOfBusinessSelection || undefined}
+                        onValueChange={(value) =>
+                            setNatureOfBusinessSelection(value)
+                        }
+                    >
+                        <SelectTrigger
+                            id={`${prefix}_nature_of_business`}
+                            className="mt-1 w-full"
+                        >
+                            <SelectValue placeholder="Select nature of business" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {NATURE_OF_BUSINESS_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {natureOfBusinessSelection ===
+                    NATURE_OF_BUSINESS_OTHER_VALUE ? (
+                        <Input
+                            className="mt-2 w-full"
+                            value={natureOfBusinessOther}
+                            placeholder="Specify industry"
+                            onChange={(event) =>
+                                setNatureOfBusinessOther(event.target.value)
+                            }
+                        />
+                    ) : null}
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'nature_of_business',
+                        )}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_years_in_work_business`}>
+                        Total years in work/business
+                    </Label>
+                    <Input
+                        id={`${prefix}_years_in_work_business`}
+                        name={fieldName(prefix, 'years_in_work_business')}
+                        value={values.years_in_work_business}
+                        className="mt-1 block w-full"
+                        placeholder="e.g. 5 years"
+                        required
+                        onChange={(event) =>
+                            onChange(
+                                'years_in_work_business',
+                                event.target.value,
+                            )
+                        }
+                    />
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'years_in_work_business',
+                        )}
+                    />
+                </div>
+            </div>
+
+            <Separator />
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_gross_monthly_income`}>
+                        Gross monthly income
+                    </Label>
+                    <div className="relative">
+                        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
+                            PHP
+                        </span>
+                        <NumericFormat
+                            id={`${prefix}_gross_monthly_income`}
+                            className="mt-1 block w-full pl-12"
+                            value={values.gross_monthly_income}
+                            onValueChange={(value) => {
+                                onChange(
+                                    'gross_monthly_income',
+                                    value.value,
+                                );
+                            }}
+                            thousandSeparator
+                            decimalScale={2}
+                            fixedDecimalScale
+                            allowNegative={false}
+                            placeholder="0.00"
+                            inputMode="decimal"
+                            valueIsNumericString
+                            customInput={Input}
+                            required
+                        />
+                    </div>
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'gross_monthly_income',
+                        )}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_payday`}>Payday</Label>
+                    <Input
+                        id={`${prefix}_payday`}
+                        name={fieldName(prefix, 'payday')}
+                        value={values.payday}
+                        className="mt-1 block w-full"
+                        placeholder="15 / 30 / 15 & 30"
+                        required
+                        onChange={(event) =>
+                            onChange('payday', event.target.value)
+                        }
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'payday')}
+                    />
+                </div>
             </div>
         </div>
     );
 }
+

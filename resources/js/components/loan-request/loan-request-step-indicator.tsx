@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Step = {
@@ -10,54 +11,69 @@ type Props = {
     steps: Step[];
     currentStep: number;
     onStepChange?: (index: number) => void;
+    className?: string;
 };
 
 export function LoanRequestStepIndicator({
     steps,
     currentStep,
     onStepChange,
+    className,
 }: Props) {
     return (
-        <div className="flex flex-wrap gap-2">
+        <ol
+            className={cn(
+                'grid gap-4 sm:grid-cols-3 lg:grid-cols-6',
+                className,
+            )}
+            aria-label="Loan request steps"
+        >
             {steps.map((step, index) => {
                 const isActive = index === currentStep;
                 const isComplete = index < currentStep;
                 const canNavigate = Boolean(onStepChange);
 
                 return (
-                    <button
-                        key={step.id}
-                        type="button"
-                        className={cn(
-                            'flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition',
-                            isActive
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : isComplete
-                                  ? 'border-primary/40 text-primary'
-                                  : 'border-muted-foreground/20 text-muted-foreground',
-                            !canNavigate && 'cursor-default',
-                        )}
-                        onClick={() => onStepChange?.(index)}
-                        aria-current={isActive ? 'step' : undefined}
-                        disabled={!canNavigate}
-                        title={step.description ?? step.title}
-                    >
-                        <span
+                    <li key={step.id} className="h-full">
+                        <button
+                            type="button"
                             className={cn(
-                                'flex h-5 w-5 items-center justify-center rounded-full text-[10px]',
+                                'group flex h-full w-full flex-col items-center gap-2 rounded-xl border border-transparent px-3 py-3 text-center text-xs font-medium transition',
                                 isActive
-                                    ? 'bg-primary-foreground/20 text-primary-foreground'
-                                    : 'bg-muted text-foreground',
+                                    ? 'border-primary/40 bg-primary/10 text-primary'
+                                    : isComplete
+                                      ? 'text-foreground'
+                                      : 'text-muted-foreground',
+                                canNavigate
+                                    ? 'hover:border-muted-foreground/40 hover:bg-muted/30'
+                                    : 'cursor-default',
                             )}
+                            onClick={() => onStepChange?.(index)}
+                            aria-current={isActive ? 'step' : undefined}
+                            disabled={!canNavigate}
+                            title={step.description ?? step.title}
                         >
-                            {index + 1}
-                        </span>
-                        <span className="whitespace-nowrap">
-                            {step.title}
-                        </span>
-                    </button>
+                            <span
+                                className={cn(
+                                    'flex h-9 w-9 items-center justify-center rounded-full border text-xs font-semibold transition',
+                                    isActive
+                                        ? 'border-primary bg-primary text-primary-foreground'
+                                        : isComplete
+                                          ? 'border-emerald-400/60 bg-emerald-500/10 text-emerald-600'
+                                          : 'border-border/60 bg-muted/40 text-muted-foreground',
+                                )}
+                            >
+                                {isComplete ? (
+                                    <Check className="h-4 w-4" />
+                                ) : (
+                                    index + 1
+                                )}
+                            </span>
+                            <span className="leading-tight">{step.title}</span>
+                        </button>
+                    </li>
                 );
             })}
-        </div>
+        </ol>
     );
 }

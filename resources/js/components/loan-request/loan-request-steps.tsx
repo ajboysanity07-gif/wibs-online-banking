@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { NumericFormat } from 'react-number-format';
 import InputError from '@/components/input-error';
 import {
@@ -291,6 +292,26 @@ const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (
     </div>
 );
 
+type SummaryCardProps = {
+    title: string;
+    description?: string;
+    children: ReactNode;
+};
+
+const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
+    <div className="rounded-lg border border-border/60 bg-background/80 p-4">
+        <div className="space-y-1">
+            <h3 className="text-sm font-semibold">{title}</h3>
+            {description ? (
+                <p className="text-xs text-muted-foreground">
+                    {description}
+                </p>
+            ) : null}
+        </div>
+        <div className="mt-4">{children}</div>
+    </div>
+);
+
 export function LoanRequestReviewStep({
     data,
     loanTypes,
@@ -428,131 +449,114 @@ export function LoanRequestReviewStep({
     ];
 
     return (
-        <div className="space-y-6">
-            <LoanRequestSectionCard
-                title="Review & undertaking"
-                description="Review your application before submitting."
+        <LoanRequestSectionCard
+            title="Review & undertaking"
+            description="Review your application before submitting."
+            contentClassName="space-y-5"
+        >
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm">
+                <p className="text-xs uppercase text-muted-foreground">
+                    Member
+                </p>
+                <p className="mt-2 font-medium">{member.name}</p>
+                <p className="text-xs text-muted-foreground">
+                    Account No: {member.acctno ?? '--'}
+                </p>
+            </div>
+
+            <SummaryCard
+                title="Loan details"
+                description="Review the requested loan information."
             >
-                <div className="space-y-6">
-                    <div className="rounded-md border border-border/60 bg-muted/30 p-4 text-sm">
-                        <p className="text-xs uppercase text-muted-foreground">
-                            Member
-                        </p>
-                        <p className="mt-2 font-medium">
-                            {member.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            Account No: {member.acctno ?? '--'}
-                        </p>
-                    </div>
+                <SummaryGrid items={loanSummary} />
+            </SummaryCard>
 
-                    <div className="space-y-3">
-                        <div>
-                            <h3 className="text-sm font-semibold">
-                                Loan details
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                Review the requested loan information.
-                            </p>
-                        </div>
-                        <SummaryGrid items={loanSummary} />
-                    </div>
+            <SummaryCard
+                title="Applicant personal data"
+                description="Confirm personal information."
+            >
+                <SummaryGrid items={applicantPersonal} />
+            </SummaryCard>
 
-                    <div className="space-y-3">
-                        <div>
-                            <h3 className="text-sm font-semibold">
-                                Applicant personal data
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                Confirm personal information.
-                            </p>
-                        </div>
-                        <SummaryGrid items={applicantPersonal} />
-                    </div>
+            <SummaryCard
+                title="Applicant work & finances"
+                description="Verify employment and income details."
+            >
+                <SummaryGrid items={applicantWork} />
+            </SummaryCard>
 
-                    <div className="space-y-3">
-                        <div>
-                            <h3 className="text-sm font-semibold">
-                                Applicant work & finances
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                Verify employment and income details.
-                            </p>
-                        </div>
-                        <SummaryGrid items={applicantWork} />
-                    </div>
+            <SummaryCard
+                title="Co-maker 1"
+                description="Summary for your first co-maker."
+            >
+                <SummaryGrid
+                    items={buildCoMakerSummary('Co-maker 1', data.co_maker_1)}
+                />
+            </SummaryCard>
 
-                    <div className="space-y-3">
-                        <div>
-                            <h3 className="text-sm font-semibold">
-                                Co-maker 1
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                Summary for your first co-maker.
-                            </p>
-                        </div>
-                        <SummaryGrid
-                            items={buildCoMakerSummary('Co-maker 1', data.co_maker_1)}
-                        />
-                    </div>
+            <SummaryCard
+                title="Co-maker 2"
+                description="Summary for your second co-maker."
+            >
+                <SummaryGrid
+                    items={buildCoMakerSummary('Co-maker 2', data.co_maker_2)}
+                />
+            </SummaryCard>
 
-                    <div className="space-y-3">
-                        <div>
-                            <h3 className="text-sm font-semibold">
-                                Co-maker 2
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                Summary for your second co-maker.
-                            </p>
-                        </div>
-                        <SummaryGrid
-                            items={buildCoMakerSummary('Co-maker 2', data.co_maker_2)}
-                        />
-                    </div>
+            <SummaryCard
+                title="Undertaking"
+                description="Please read and confirm before submission."
+            >
+                <div className="space-y-4 text-sm text-muted-foreground">
+                    <p>
+                        I/We hereby undertake that all information provided here
+                        in this application form and in all supporting document
+                        are true and correct. I/We hereby authorized MRDINC to
+                        verify any and all information furnished by me/us
+                        including previous credit transactions with other
+                        institution. In this connection, I/We hereby expressly
+                        waive any and all statutory or regulatory provisions
+                        governing confidentiality of such information. I fully
+                        understand that any misrepresentation or failure to
+                        disclose information on my/our part as required herein,
+                        may cause the disapproval of my application.
+                    </p>
+                    <p>
+                        Upon acceptance of my application, I/We legally and
+                        validly bind to the terms and conditions of MRDINC
+                        including, but not limited to, join and several
+                        liability for all charges, fees and other obligations
+                        incurred through the use of my loan. In case of
+                        disapproval of this application, I understand that
+                        MRDINC is not obligated to disclose the reasons for such
+                        disapproval.
+                    </p>
+                    <p>
+                        In the event of future delinquency, I hereby authorized
+                        MRDINC to report and or include my name in the negative
+                        listing of any bureau or institution.
+                    </p>
+                </div>
 
-                    <Separator />
+                <Separator className="my-4" />
 
-                    <div className="space-y-4 text-sm text-muted-foreground">
-                        <p>
-                            I/We hereby undertake that all information provided here in this
-                            application form and in all supporting document are true and correct. I/We
-                            hereby authorized MRDINC to verify any and all information furnished by
-                            me/us including previous credit transactions with other institution. In this
-                            connection, I/We hereby expressly waive any and all statutory or regulatory
-                            provisions governing confidentiality of such information. I fully understand
-                            that any misrepresentation or failure to disclose information on my/our part
-                            as required herein, may cause the disapproval of my application.
-                        </p>
-                        <p>
-                            Upon acceptance of my application, I/We legally and validly bind to the terms
-                            and conditions of MRDINC including, but not limited to, join and several
-                            liability for all charges, fees and other obligations incurred through the
-                            use of my loan. In case of disapproval of this application, I understand that
-                            MRDINC is not obligated to disclose the reasons for such disapproval.
-                        </p>
-                        <p>
-                            In the event of future delinquency, I hereby authorized MRDINC to report and
-                            or include my name in the negative listing of any bureau or institution.
-                        </p>
-                    </div>
-
-                    <div className="mt-4 flex items-start gap-3">
-                        <Checkbox
-                            id="undertaking_accepted"
-                            checked={data.undertaking_accepted}
-                            onCheckedChange={(checked) =>
-                                onUndertakingChange(checked === true)
-                            }
-                        />
-                        <div className="space-y-2">
-                            <Label htmlFor="undertaking_accepted">
-                                I confirm that I have read and agree to the undertaking above.
-                            </Label>
-                            <InputError message={errors.undertaking_accepted} />
-                        </div>
+                <div className="flex items-start gap-3">
+                    <Checkbox
+                        id="undertaking_accepted"
+                        checked={data.undertaking_accepted}
+                        onCheckedChange={(checked) =>
+                            onUndertakingChange(checked === true)
+                        }
+                    />
+                    <div className="space-y-2">
+                        <Label htmlFor="undertaking_accepted">
+                            I confirm that I have read and agree to the
+                            undertaking above.
+                        </Label>
+                        <InputError message={errors.undertaking_accepted} />
                     </div>
                 </div>
-            </LoanRequestSectionCard>
-        </div>
+            </SummaryCard>
+        </LoanRequestSectionCard>
     );
 }
