@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useState } from 'react';
+import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { DataTable } from '@/components/ui/data-table';
 import {
@@ -54,7 +55,9 @@ const columns: ColumnDef<RequestPreview>[] = [
     {
         accessorKey: 'status',
         header: 'Status',
-        cell: ({ row }) => row.original.status ?? '--',
+        cell: ({ row }) => (
+            <LoanRequestStatusBadge status={row.original.status} />
+        ),
     },
     {
         accessorKey: 'submitted_at',

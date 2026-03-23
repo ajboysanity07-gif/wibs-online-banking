@@ -281,6 +281,10 @@ Route::post('client/loans/request', [LoanRequestController::class, 'store'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.store');
 
+Route::patch('client/loans/request', [LoanRequestController::class, 'draft'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.draft');
+
 Route::get('client/loans/requests/{loanRequest}', [LoanRequestController::class, 'show'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.show');

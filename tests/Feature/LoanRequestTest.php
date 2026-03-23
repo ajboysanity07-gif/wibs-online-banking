@@ -74,6 +74,9 @@ test('approved client can view the loan request form', function () {
             ->component('client/loan-request')
             ->has('loanTypes', 1)
             ->has('applicant')
+            ->has('coMakerOne')
+            ->has('coMakerTwo')
+            ->has('draft')
             ->has('member'));
 });
 
@@ -98,6 +101,126 @@ test('clients without completed profiles are redirected away from loan request f
         ->get(route('client.loan-requests.create'));
 
     $response->assertRedirect(route('profile.edit', ['onboarding' => 1]));
+});
+
+test('clients can save a loan request draft', function () {
+    $user = User::factory()->create([
+        'acctno' => '000712',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-003',
+        'lntype' => 'Personal',
+    ]);
+
+    $payload = [
+        'typecode' => 'LN-003',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'birthdate' => '1990-04-10',
+            'birthplace' => 'Manila',
+            'address' => 'Loan Street',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'Owned',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address' => 'Loan City',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '3 years',
+            'gross_monthly_income' => 25000,
+            'payday' => '15/30',
+        ],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $payload);
+
+    $response->assertRedirect(route('client.loan-requests.create'));
+
+    $draft = LoanRequest::query()->first();
+
+    expect($draft)->not->toBeNull();
+    expect($draft->status)->toBe(LoanRequestStatus::Draft);
+    expect($draft->submitted_at)->toBeNull();
+
+    $payload['loan_purpose'] = 'Tuition';
+
+    $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $payload);
+
+    expect(LoanRequest::query()->count())->toBe(1);
+});
+
+test('loan request form resumes existing draft', function () {
+    $user = User::factory()->create([
+        'acctno' => '000713',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Draft,
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Draft',
+            'last_name' => 'Member',
+        ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('draft.id', $loanRequest->id)
+            ->where('applicant.first_name', 'Draft'));
 });
 
 test('loan request submissions persist snapshots', function () {
@@ -215,6 +338,8 @@ test('loan request submissions persist snapshots', function () {
 
     $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
     expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->submitted_at)->not->toBeNull();
     expect(LoanRequestPerson::query()->where('loan_request_id', $loanRequest->id)->count())
         ->toBe(3);
 });
@@ -241,7 +366,7 @@ test('loan request pdf endpoint responds with a pdf', function () {
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => LoanRequestStatus::Submitted,
+            'status' => LoanRequestStatus::UnderReview,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
@@ -270,8 +395,12 @@ test('admin requests api returns loan request data', function () {
         'user_id' => $admin->user_id,
     ]);
 
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Draft,
+    ]);
+
     $loanRequest = LoanRequest::factory()->create([
-        'status' => LoanRequestStatus::Submitted,
+        'status' => LoanRequestStatus::UnderReview,
     ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
@@ -288,6 +417,7 @@ test('admin requests api returns loan request data', function () {
     $response
         ->assertOk()
         ->assertJsonPath('ok', true)
+        ->assertJsonCount(1, 'data.items')
         ->assertJsonPath('data.items.0.id', $loanRequest->id);
 });
 
@@ -297,8 +427,11 @@ test('admin dashboard reports loan requests count', function () {
         'user_id' => $admin->user_id,
     ]);
 
-    LoanRequest::factory()->count(2)->create([
-        'status' => LoanRequestStatus::Submitted,
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Draft,
+    ]);
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
     ]);
     LoanRequest::factory()->create([
         'status' => LoanRequestStatus::Approved,
@@ -310,5 +443,5 @@ test('admin dashboard reports loan requests count', function () {
 
     $response->assertInertia(fn (Assert $page) => $page
         ->component('admin/dashboard')
-        ->where('summary.metrics.requestsCount', 2));
+        ->where('summary.metrics.requestsCount', 1));
 });

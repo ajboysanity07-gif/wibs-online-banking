@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Calendar, Download, Printer } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -28,46 +28,6 @@ type Props = {
     coMakerTwo: LoanRequestPersonData | null;
 };
 
-const statusLabel = (status?: string | null): string => {
-    if (status === 'submitted') {
-        return 'Submitted';
-    }
-
-    if (status === 'under_review') {
-        return 'Under review';
-    }
-
-    if (status === 'approved') {
-        return 'Approved';
-    }
-
-    if (status === 'declined') {
-        return 'Declined';
-    }
-
-    if (status === 'cancelled') {
-        return 'Cancelled';
-    }
-
-    return status ?? 'Unknown';
-};
-
-const statusVariant = (status?: string | null) => {
-    if (status === 'approved') {
-        return 'default';
-    }
-
-    if (status === 'declined') {
-        return 'destructive';
-    }
-
-    if (status === 'under_review') {
-        return 'secondary';
-    }
-
-    return 'outline';
-};
-
 const personName = (person?: LoanRequestPersonData | null): string => {
     if (!person) {
         return '--';
@@ -93,6 +53,14 @@ export default function LoanRequestShow({
     ];
 
     const submittedAt = formatDate(loanRequest.submitted_at);
+    const normalizedStatus =
+        loanRequest.status === 'submitted'
+            ? 'under_review'
+            : loanRequest.status;
+    const canDownloadPdf =
+        normalizedStatus === 'under_review' ||
+        normalizedStatus === 'approved' ||
+        normalizedStatus === 'declined';
     const amount = formatCurrency(
         loanRequest.requested_amount !== null &&
             loanRequest.requested_amount !== undefined
@@ -107,39 +75,41 @@ export default function LoanRequestShow({
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="space-y-1">
                         <h1 className="text-2xl font-semibold">
-                            Loan request submitted
+                            Loan request
                         </h1>
                         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             <span>Submitted {submittedAt}</span>
-                            <Badge variant={statusVariant(loanRequest.status)}>
-                                {statusLabel(loanRequest.status)}
-                            </Badge>
+                            <LoanRequestStatusBadge status={loanRequest.status} />
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <Button asChild variant="outline" size="sm">
-                            <a
-                                href={loanRequestPdf(loanRequest.id).url}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                <Printer />
-                                Print application
-                            </a>
-                        </Button>
-                        <Button asChild size="sm">
-                            <a
-                                href={
-                                    loanRequestPdf(loanRequest.id, {
-                                        query: { download: 1 },
-                                    }).url
-                                }
-                            >
-                                <Download />
-                                Download PDF
-                            </a>
-                        </Button>
+                        {canDownloadPdf ? (
+                            <>
+                                <Button asChild variant="outline" size="sm">
+                                    <a
+                                        href={loanRequestPdf(loanRequest.id).url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <Printer />
+                                        Print application
+                                    </a>
+                                </Button>
+                                <Button asChild size="sm">
+                                    <a
+                                        href={
+                                            loanRequestPdf(loanRequest.id, {
+                                                query: { download: 1 },
+                                            }).url
+                                        }
+                                    >
+                                        <Download />
+                                        Download PDF
+                                    </a>
+                                </Button>
+                            </>
+                        ) : null}
                         <Button asChild variant="ghost" size="sm">
                             <Link href={clientLoans().url}>
                                 Back to loans

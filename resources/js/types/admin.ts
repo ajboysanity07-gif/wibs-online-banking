@@ -1,3 +1,5 @@
+import type { LoanRequestStatusValue } from './loan-requests';
+
 export type AdminMetrics = {
     pendingCount: number;
     activeCount: number;
@@ -27,7 +29,7 @@ export type PendingApprovalPreview = PendingApprovalRow;
 export type RequestPreview = {
     id: number | null;
     member_name: string | null;
-    status: string | null;
+    status: LoanRequestStatusValue | null;
     created_at: string | null;
     summary: string | null;
     loan_type: string | null;

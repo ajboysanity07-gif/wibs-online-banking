@@ -42,12 +42,6 @@ return new class extends Migration
             $table->string('payday')->nullable();
             $table->timestamps();
 
-            $table->foreign('loan_request_id')
-                ->references('id')
-                ->on('loan_requests')
-                ->cascadeOnUpdate()
-                ->cascadeOnDelete();
-
             $table->unique(['loan_request_id', 'role']);
         });
     }

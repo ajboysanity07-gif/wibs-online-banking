@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { MemberListCardSkeleton } from '@/components/member-list-card-skeleton';
+import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -609,8 +610,9 @@ export default function AdminDashboard({ summary }: Props) {
                                                             '--'}
                                                     </TableCell>
                                                     <TableCell className="px-6">
-                                                        {request.status ??
-                                                            '--'}
+                                                        <LoanRequestStatusBadge
+                                                            status={request.status}
+                                                        />
                                                     </TableCell>
                                                     <TableCell className="px-6">
                                                         {formatDate(

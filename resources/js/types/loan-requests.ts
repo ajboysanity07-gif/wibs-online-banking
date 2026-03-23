@@ -38,9 +38,17 @@ export type LoanRequestPersonData = {
 
 export type LoanRequestReadOnlyMap = Record<string, boolean>;
 
+export type LoanRequestStatusValue =
+    | 'draft'
+    | 'submitted'
+    | 'under_review'
+    | 'approved'
+    | 'declined'
+    | 'cancelled';
+
 export type LoanRequestDetail = {
     id: number;
-    status: string | null;
+    status: LoanRequestStatusValue | null;
     typecode: string | null;
     loan_type_label_snapshot: string | null;
     requested_amount: number | string | null;
@@ -48,4 +56,57 @@ export type LoanRequestDetail = {
     loan_purpose: string | null;
     availment_status: string | null;
     submitted_at: string | null;
+};
+
+export type LoanRequestDraft = {
+    id: number;
+    status: LoanRequestStatusValue | null;
+    typecode: string | null;
+    loan_type_label_snapshot: string | null;
+    requested_amount: number | string | null;
+    requested_term: number | string | null;
+    loan_purpose: string | null;
+    availment_status: string | null;
+    submitted_at: string | null;
+    updated_at: string | null;
+};
+
+export type LoanRequestPersonFormData = {
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    nickname: string;
+    birthdate: string;
+    birthplace: string;
+    address: string;
+    length_of_stay: string;
+    housing_status: string;
+    cell_no: string;
+    civil_status: string;
+    educational_attainment: string;
+    number_of_children: string;
+    spouse_name: string;
+    spouse_age: string;
+    spouse_cell_no: string;
+    employment_type: string;
+    employer_business_name: string;
+    employer_business_address: string;
+    telephone_no: string;
+    current_position: string;
+    nature_of_business: string;
+    years_in_work_business: string;
+    gross_monthly_income: string;
+    payday: string;
+};
+
+export type LoanRequestFormData = {
+    typecode: string;
+    requested_amount: string;
+    requested_term: string;
+    loan_purpose: string;
+    availment_status: string;
+    undertaking_accepted: boolean;
+    applicant: LoanRequestPersonFormData;
+    co_maker_1: LoanRequestPersonFormData;
+    co_maker_2: LoanRequestPersonFormData;
 };

@@ -36,7 +36,7 @@ class LoanRequestFactory extends Factory
                 'Re-Loan',
                 'Restructured',
             ]),
-            'status' => LoanRequestStatus::Submitted,
+            'status' => LoanRequestStatus::UnderReview,
             'submitted_at' => now(),
             'reviewed_by' => null,
             'reviewed_at' => null,

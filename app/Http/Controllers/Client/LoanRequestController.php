@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Client\LoanRequestDraftRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
@@ -48,9 +49,24 @@ class LoanRequestController extends Controller
             return redirect()->route('login');
         }
 
-        $loanRequest = $service->create($user, $request->validated());
+        $loanRequest = $service->submit($user, $request->validated());
 
         return redirect()->route('client.loan-requests.show', $loanRequest);
+    }
+
+    public function draft(
+        LoanRequestDraftRequest $request,
+        LoanRequestService $service,
+    ): RedirectResponse {
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->route('login');
+        }
+
+        $service->saveDraft($user, $request->validated());
+
+        return redirect()->route('client.loan-requests.create');
     }
 
     public function show(
@@ -73,14 +89,16 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
+        if ($this->isDraft($loanRequest)) {
+            return redirect()->route('client.loan-requests.create');
+        }
+
         $loanRequest->loadMissing('people');
 
         $payload = $this->sanitizePayload([
             'loanRequest' => [
                 'id' => $loanRequest->id,
-                'status' => $loanRequest->status instanceof LoanRequestStatus
-                    ? $loanRequest->status->value
-                    : $loanRequest->status,
+                'status' => $this->normalizeStatus($loanRequest),
                 'typecode' => $loanRequest->typecode,
                 'loan_type_label_snapshot' => $loanRequest->loan_type_label_snapshot,
                 'requested_amount' => $loanRequest->requested_amount,
@@ -127,6 +145,10 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
+        if (! $this->canViewPdf($loanRequest)) {
+            abort(404);
+        }
+
         return $pdfService->render(
             $loanRequest,
             $request->boolean('download'),
@@ -148,6 +170,45 @@ class LoanRequestController extends Controller
         }
 
         return $person->toArray();
+    }
+
+    private function normalizeStatus(LoanRequest $loanRequest): string
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        if ($status === LoanRequestStatus::Submitted->value) {
+            return LoanRequestStatus::UnderReview->value;
+        }
+
+        return $status;
+    }
+
+    private function isDraft(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return $status === LoanRequestStatus::Draft->value;
+    }
+
+    private function canViewPdf(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        if ($status === LoanRequestStatus::Submitted->value) {
+            $status = LoanRequestStatus::UnderReview->value;
+        }
+
+        return in_array($status, [
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::Declined->value,
+        ], true);
     }
 
     private function sanitizePayload(mixed $value): mixed

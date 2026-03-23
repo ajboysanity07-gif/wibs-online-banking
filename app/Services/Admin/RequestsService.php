@@ -80,6 +80,7 @@ class RequestsService
     private function baseQuery()
     {
         return LoanRequest::query()
+            ->where('status', '!=', LoanRequestStatus::Draft->value)
             ->with(['applicant', 'user'])
             ->orderByDesc('submitted_at')
             ->orderByDesc('created_at');
@@ -92,7 +93,11 @@ class RequestsService
     {
         $status = $request->status instanceof LoanRequestStatus
             ? $request->status->value
-            : $request->status;
+            : (string) $request->status;
+
+        if ($status === LoanRequestStatus::Submitted->value) {
+            $status = LoanRequestStatus::UnderReview->value;
+        }
         $submittedAt = $request->submitted_at?->toDateTimeString()
             ?? $request->created_at?->toDateTimeString();
         $applicant = $request->applicant;

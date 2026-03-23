@@ -1,30 +1,29 @@
-import { Form, Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
-import { NumericFormat } from 'react-number-format';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
-import { LoanRequestPersonalFields, LoanRequestWorkFields } from '@/components/loan-request/loan-request-fields';
-import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import InputError from '@/components/input-error';
+import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
+import { LoanRequestStepIndicator } from '@/components/loan-request/loan-request-step-indicator';
+import {
+    LoanRequestApplicantPersonalStep,
+    LoanRequestApplicantWorkStep,
+    LoanRequestCoMakerStep,
+    LoanRequestLoanDetailsStep,
+    LoanRequestReviewStep,
+} from '@/components/loan-request/loan-request-steps';
+import { LoanRequestWizardFooter } from '@/components/loan-request/loan-request-wizard-footer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
+import { formatDateTime } from '@/lib/formatters';
 import { loans as clientLoans } from '@/routes/client';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    LoanRequestDraft,
+    LoanRequestFormData,
     LoanRequestMemberSummary,
     LoanRequestPersonData,
+    LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
     LoanTypeOption,
 } from '@/types/loan-requests';
@@ -32,8 +31,11 @@ import type {
 type Props = {
     loanTypes: LoanTypeOption[];
     applicant: LoanRequestPersonData | null;
+    coMakerOne: LoanRequestPersonData | null;
+    coMakerTwo: LoanRequestPersonData | null;
     applicantReadOnly: LoanRequestReadOnlyMap | null;
     member: LoanRequestMemberSummary;
+    draft: LoanRequestDraft | null;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -41,20 +43,288 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Loan request', href: LoanRequestController.create().url },
 ];
 
-const AVAILMENT_OPTIONS = ['New', 'Re-Loan', 'Restructured'] as const;
+const steps = [
+    {
+        id: 'loan-details',
+        title: 'Loan details',
+        description: 'Set the loan type, amount, term, and purpose.',
+    },
+    {
+        id: 'personal',
+        title: 'Personal data',
+        description: 'Confirm your personal information.',
+    },
+    {
+        id: 'work-finances',
+        title: 'Work & finances',
+        description: 'Share your employment and income details.',
+    },
+    {
+        id: 'co-maker-1',
+        title: 'Co-maker 1',
+        description: 'Add details for your first co-maker.',
+    },
+    {
+        id: 'co-maker-2',
+        title: 'Co-maker 2',
+        description: 'Add details for your second co-maker.',
+    },
+    {
+        id: 'review',
+        title: 'Review',
+        description: 'Review and confirm the undertaking.',
+    },
+];
+
+type LoanDetailField =
+    | 'typecode'
+    | 'requested_amount'
+    | 'requested_term'
+    | 'loan_purpose'
+    | 'availment_status';
+
+const applicantPersonalFields = new Set([
+    'first_name',
+    'last_name',
+    'middle_name',
+    'nickname',
+    'birthdate',
+    'birthplace',
+    'address',
+    'length_of_stay',
+    'housing_status',
+    'cell_no',
+    'civil_status',
+    'educational_attainment',
+    'number_of_children',
+    'spouse_name',
+    'spouse_age',
+    'spouse_cell_no',
+]);
+
+const applicantWorkFields = new Set([
+    'employment_type',
+    'employer_business_name',
+    'employer_business_address',
+    'telephone_no',
+    'current_position',
+    'nature_of_business',
+    'years_in_work_business',
+    'gross_monthly_income',
+    'payday',
+]);
+
+const toStringValue = (value?: string | number | null): string => {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    const stringValue = `${value}`.trim();
+
+    return stringValue === '0' || stringValue === '0.00' ? '' : stringValue;
+};
+
+const emptyPerson: LoanRequestPersonFormData = {
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    nickname: '',
+    birthdate: '',
+    birthplace: '',
+    address: '',
+    length_of_stay: '',
+    housing_status: '',
+    cell_no: '',
+    civil_status: '',
+    educational_attainment: '',
+    number_of_children: '',
+    spouse_name: '',
+    spouse_age: '',
+    spouse_cell_no: '',
+    employment_type: '',
+    employer_business_name: '',
+    employer_business_address: '',
+    telephone_no: '',
+    current_position: '',
+    nature_of_business: '',
+    years_in_work_business: '',
+    gross_monthly_income: '',
+    payday: '',
+};
+
+const toPersonForm = (
+    person: LoanRequestPersonData | null,
+): LoanRequestPersonFormData => {
+    if (!person) {
+        return { ...emptyPerson };
+    }
+
+    return {
+        ...emptyPerson,
+        first_name: person.first_name ?? '',
+        middle_name: person.middle_name ?? '',
+        last_name: person.last_name ?? '',
+        nickname: person.nickname ?? '',
+        birthdate: person.birthdate ?? '',
+        birthplace: person.birthplace ?? '',
+        address: person.address ?? '',
+        length_of_stay: person.length_of_stay ?? '',
+        housing_status: person.housing_status ?? '',
+        cell_no: person.cell_no ?? '',
+        civil_status: person.civil_status ?? '',
+        educational_attainment: person.educational_attainment ?? '',
+        number_of_children: toStringValue(person.number_of_children),
+        spouse_name: person.spouse_name ?? '',
+        spouse_age: toStringValue(person.spouse_age),
+        spouse_cell_no: person.spouse_cell_no ?? '',
+        employment_type: person.employment_type ?? '',
+        employer_business_name: person.employer_business_name ?? '',
+        employer_business_address: person.employer_business_address ?? '',
+        telephone_no: person.telephone_no ?? '',
+        current_position: person.current_position ?? '',
+        nature_of_business: person.nature_of_business ?? '',
+        years_in_work_business: person.years_in_work_business ?? '',
+        gross_monthly_income: toStringValue(person.gross_monthly_income),
+        payday: person.payday ?? '',
+    };
+};
+
+const resolveStepFromErrors = (
+    errors: Record<string, string | undefined>,
+): number | null => {
+    const stepMatches: number[] = [];
+
+    Object.keys(errors).forEach((key) => {
+        if (!errors[key]) {
+            return;
+        }
+
+        if (
+            key === 'typecode' ||
+            key === 'requested_amount' ||
+            key === 'requested_term' ||
+            key === 'loan_purpose' ||
+            key === 'availment_status'
+        ) {
+            stepMatches.push(0);
+            return;
+        }
+
+        if (key.startsWith('co_maker_1.')) {
+            stepMatches.push(3);
+            return;
+        }
+
+        if (key.startsWith('co_maker_2.')) {
+            stepMatches.push(4);
+            return;
+        }
+
+        if (key.startsWith('applicant.')) {
+            const field = key.replace('applicant.', '');
+            stepMatches.push(
+                applicantWorkFields.has(field)
+                    ? 2
+                    : applicantPersonalFields.has(field)
+                      ? 1
+                      : 1,
+            );
+            return;
+        }
+
+        if (key === 'undertaking_accepted') {
+            stepMatches.push(5);
+        }
+    });
+
+    return stepMatches.length > 0 ? Math.min(...stepMatches) : null;
+};
 
 export default function LoanRequestPage({
     loanTypes,
     applicant,
+    coMakerOne,
+    coMakerTwo,
     applicantReadOnly,
     member,
+    draft,
 }: Props) {
-    const [loanType, setLoanType] = useState(
-        loanTypes[0]?.typecode ?? '',
+    const [currentStep, setCurrentStep] = useState(0);
+    const [activeAction, setActiveAction] = useState<
+        'draft' | 'submit' | null
+    >(null);
+    const [lastAction, setLastAction] = useState<'draft' | 'submit' | null>(
+        null,
     );
-    const [availmentStatus, setAvailmentStatus] = useState('');
-    const [requestedAmount, setRequestedAmount] = useState('');
-    const [undertakingAccepted, setUndertakingAccepted] = useState(false);
+
+    const initialFormData = useMemo<LoanRequestFormData>(
+        () => ({
+            typecode:
+                draft?.typecode ??
+                loanTypes[0]?.typecode ??
+                '',
+            requested_amount: toStringValue(draft?.requested_amount),
+            requested_term: toStringValue(draft?.requested_term),
+            loan_purpose: draft?.loan_purpose ?? '',
+            availment_status: draft?.availment_status ?? '',
+            undertaking_accepted: false,
+            applicant: toPersonForm(applicant),
+            co_maker_1: toPersonForm(coMakerOne),
+            co_maker_2: toPersonForm(coMakerTwo),
+        }),
+        [applicant, coMakerOne, coMakerTwo, draft, loanTypes],
+    );
+
+    const form = useForm<LoanRequestFormData>(initialFormData);
+    const isFirstStep = currentStep === 0;
+    const isLastStep = currentStep === steps.length - 1;
+    const isSavingDraft = form.processing && activeAction === 'draft';
+    const isSubmitting = form.processing && activeAction === 'submit';
+    const hasLoanTypes = loanTypes.length > 0;
+
+    const updatePersonField =
+        (section: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
+        (field: keyof LoanRequestPersonFormData, value: string) => {
+            form.setData((current) => ({
+                ...current,
+                [section]: {
+                    ...current[section],
+                    [field]: value,
+                },
+            }));
+        };
+
+    const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
+        form.setData(field, value);
+    };
+
+    const handleSaveDraft = () => {
+        setActiveAction('draft');
+        form.patch(LoanRequestController.draft().url, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => setLastAction('draft'),
+            onFinish: () => setActiveAction(null),
+        });
+    };
+
+    const handleSubmit = () => {
+        setActiveAction('submit');
+        form.post(LoanRequestController.store().url, {
+            onError: (errors) => {
+                const step = resolveStepFromErrors(errors);
+
+                if (step !== null) {
+                    setCurrentStep(step);
+                }
+            },
+            onFinish: () => setActiveAction(null),
+        });
+    };
+
+    const draftUpdatedAt = draft?.updated_at
+        ? formatDateTime(draft.updated_at)
+        : null;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -75,6 +345,39 @@ export default function LoanRequestPage({
                     </Button>
                 </div>
 
+                <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <span className="text-xs font-semibold uppercase">
+                            Step {currentStep + 1} of {steps.length}
+                        </span>
+                        <span>{steps[currentStep]?.title}</span>
+                    </div>
+                    <LoanRequestStepIndicator
+                        steps={steps}
+                        currentStep={currentStep}
+                        onStepChange={(index) => setCurrentStep(index)}
+                    />
+                </div>
+
+                {draft ? (
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <LoanRequestStatusBadge status={draft.status} />
+                        {draftUpdatedAt ? (
+                            <span>Last saved {draftUpdatedAt}</span>
+                        ) : null}
+                        {form.recentlySuccessful && lastAction === 'draft' ? (
+                            <span className="text-xs text-emerald-600">
+                                Draft saved.
+                            </span>
+                        ) : null}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        You can save this request as a draft at any time and
+                        resume later.
+                    </p>
+                )}
+
                 {loanTypes.length === 0 ? (
                     <Alert variant="destructive">
                         <AlertTitle>Loan types unavailable</AlertTitle>
@@ -85,305 +388,85 @@ export default function LoanRequestPage({
                     </Alert>
                 ) : null}
 
-                <Form
-                    {...LoanRequestController.store.form()}
-                    className="space-y-6"
-                >
-                    {({ errors, processing }) => (
-                        <>
-                            <LoanRequestSectionCard
-                                title="Application details"
-                                description="Select your preferred loan type and request details."
-                            >
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="loan_type">
-                                            Loan type
-                                        </Label>
-                                        <Select
-                                            value={loanType || undefined}
-                                            onValueChange={(value) =>
-                                                setLoanType(value)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="loan_type"
-                                                className="mt-1 w-full"
-                                            >
-                                                <SelectValue placeholder="Select loan type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {loanTypes.map((option) => (
-                                                    <SelectItem
-                                                        key={option.typecode}
-                                                        value={option.typecode}
-                                                    >
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <input
-                                            type="hidden"
-                                            name="typecode"
-                                            value={loanType}
-                                        />
-                                        <InputError
-                                            message={errors.typecode}
-                                        />
-                                    </div>
+                <div className="space-y-6">
+                    {currentStep === 0 ? (
+                        <LoanRequestLoanDetailsStep
+                            data={form.data}
+                            errors={form.errors}
+                            loanTypes={loanTypes}
+                            onChange={handleLoanDetailChange}
+                        />
+                    ) : null}
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="requested_amount">
-                                            Requested amount
-                                        </Label>
-                                        <div className="relative">
-                                            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
-                                                PHP
-                                            </span>
-                                            <NumericFormat
-                                                id="requested_amount"
-                                                className="mt-1 block w-full pl-12"
-                                                value={requestedAmount}
-                                                onValueChange={(values) => {
-                                                    setRequestedAmount(
-                                                        values.value,
-                                                    );
-                                                }}
-                                                thousandSeparator
-                                                decimalScale={2}
-                                                fixedDecimalScale
-                                                allowNegative={false}
-                                                placeholder="0.00"
-                                                inputMode="decimal"
-                                                valueIsNumericString
-                                                customInput={Input}
-                                            />
-                                        </div>
-                                        <input
-                                            type="hidden"
-                                            name="requested_amount"
-                                            value={requestedAmount}
-                                        />
-                                        <InputError
-                                            message={errors.requested_amount}
-                                        />
-                                    </div>
+                    {currentStep === 1 ? (
+                        <LoanRequestApplicantPersonalStep
+                            values={form.data.applicant}
+                            errors={form.errors}
+                            readOnly={applicantReadOnly}
+                            onChange={updatePersonField('applicant')}
+                        />
+                    ) : null}
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="requested_term">
-                                            Loan term (months)
-                                        </Label>
-                                        <Input
-                                            id="requested_term"
-                                            type="number"
-                                            name="requested_term"
-                                            className="mt-1 block w-full"
-                                            placeholder="e.g. 12"
-                                            required
-                                        />
-                                        <InputError
-                                            message={errors.requested_term}
-                                        />
-                                    </div>
+                    {currentStep === 2 ? (
+                        <LoanRequestApplicantWorkStep
+                            values={form.data.applicant}
+                            errors={form.errors}
+                            onChange={updatePersonField('applicant')}
+                        />
+                    ) : null}
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="availment_status">
-                                            Availment status
-                                        </Label>
-                                        <Select
-                                            value={
-                                                availmentStatus || undefined
-                                            }
-                                            onValueChange={(value) =>
-                                                setAvailmentStatus(value)
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="availment_status"
-                                                className="mt-1 w-full"
-                                            >
-                                                <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {AVAILMENT_OPTIONS.map(
-                                                    (option) => (
-                                                        <SelectItem
-                                                            key={option}
-                                                            value={option}
-                                                        >
-                                                            {option}
-                                                        </SelectItem>
-                                                    ),
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <input
-                                            type="hidden"
-                                            name="availment_status"
-                                            value={availmentStatus}
-                                        />
-                                        <InputError
-                                            message={errors.availment_status}
-                                        />
-                                    </div>
+                    {currentStep === 3 ? (
+                        <LoanRequestCoMakerStep
+                            title="Co-maker 1"
+                            description="Provide details for your first co-maker."
+                            prefix="co_maker_1"
+                            values={form.data.co_maker_1}
+                            errors={form.errors}
+                            onChange={updatePersonField('co_maker_1')}
+                        />
+                    ) : null}
 
-                                    <div className="grid gap-2 md:col-span-2">
-                                        <Label htmlFor="loan_purpose">
-                                            Loan purpose
-                                        </Label>
-                                        <Input
-                                            id="loan_purpose"
-                                            name="loan_purpose"
-                                            className="mt-1 block w-full"
-                                            placeholder="Describe your loan purpose"
-                                            required
-                                        />
-                                        <InputError
-                                            message={errors.loan_purpose}
-                                        />
-                                    </div>
-                                </div>
-                            </LoanRequestSectionCard>
+                    {currentStep === 4 ? (
+                        <LoanRequestCoMakerStep
+                            title="Co-maker 2"
+                            description="Provide details for your second co-maker."
+                            prefix="co_maker_2"
+                            values={form.data.co_maker_2}
+                            errors={form.errors}
+                            onChange={updatePersonField('co_maker_2')}
+                        />
+                    ) : null}
 
-                            <LoanRequestSectionCard
-                                title="My personal data"
-                                description="Confirm your personal details."
-                            >
-                                <LoanRequestPersonalFields
-                                    prefix="applicant"
-                                    values={applicant}
-                                    errors={errors}
-                                    readOnly={applicantReadOnly}
-                                    includeSpouse
-                                    includeChildren
-                                />
-                            </LoanRequestSectionCard>
+                    {currentStep === 5 ? (
+                        <LoanRequestReviewStep
+                            data={form.data}
+                            loanTypes={loanTypes}
+                            member={member}
+                            errors={form.errors}
+                            onUndertakingChange={(value) =>
+                                form.setData('undertaking_accepted', value)
+                            }
+                        />
+                    ) : null}
+                </div>
 
-                            <LoanRequestSectionCard
-                                title="My work & finances"
-                                description="Share your current employment and income details."
-                            >
-                                <LoanRequestWorkFields
-                                    prefix="applicant"
-                                    values={applicant}
-                                    errors={errors}
-                                />
-                            </LoanRequestSectionCard>
-
-                            <LoanRequestSectionCard
-                                title="My co maker 1"
-                                description="Provide details for your first co-maker."
-                            >
-                                <LoanRequestPersonalFields
-                                    prefix="co_maker_1"
-                                    errors={errors}
-                                />
-                                <Separator />
-                                <LoanRequestWorkFields
-                                    prefix="co_maker_1"
-                                    errors={errors}
-                                />
-                            </LoanRequestSectionCard>
-
-                            <LoanRequestSectionCard
-                                title="My co maker 2"
-                                description="Provide details for your second co-maker."
-                            >
-                                <LoanRequestPersonalFields
-                                    prefix="co_maker_2"
-                                    errors={errors}
-                                />
-                                <Separator />
-                                <LoanRequestWorkFields
-                                    prefix="co_maker_2"
-                                    errors={errors}
-                                />
-                            </LoanRequestSectionCard>
-
-                            <LoanRequestSectionCard title="Undertaking">
-                                <div className="space-y-4 text-sm text-muted-foreground">
-                                    <p>
-                                        I/We hereby undertake that all
-                                        information provided here in this
-                                        application form and in all supporting
-                                        document are true and correct. I/We
-                                        hereby authorized MRDINC to verify any
-                                        and all information furnished by me/us
-                                        including previous credit transactions
-                                        with other institution. In this
-                                        connection, I/We hereby expressly waive
-                                        any and all statutory or regulatory
-                                        provisions governing confidentiality of
-                                        such information. I fully understand
-                                        that any misrepresentation or failure
-                                        to disclose information on my/our part
-                                        as required herein, may cause the
-                                        disapproval of my application.
-                                    </p>
-                                    <p>
-                                        Upon acceptance of my application, I/We
-                                        legally and validly bind to the terms
-                                        and conditions of MRDINC including, but
-                                        not limited to, join and several
-                                        liability for all charges, fees and
-                                        other obligations incurred through the
-                                        use of my loan. In case of disapproval
-                                        of this application, I understand that
-                                        MRDINC is not obligated to disclose the
-                                        reasons for such disapproval.
-                                    </p>
-                                    <p>
-                                        In the event of future delinquency, I
-                                        hereby authorized MRDINC to report and
-                                        or include my name in the negative
-                                        listing of any bureau or institution.
-                                    </p>
-                                </div>
-
-                                <div className="mt-6 flex items-start gap-3">
-                                    <Checkbox
-                                        id="undertaking_accepted"
-                                        checked={undertakingAccepted}
-                                        onCheckedChange={(checked) =>
-                                            setUndertakingAccepted(
-                                                checked === true,
-                                            )
-                                        }
-                                    />
-                                    <div className="space-y-2">
-                                        <Label htmlFor="undertaking_accepted">
-                                            I confirm that I have read and
-                                            agree to the undertaking above.
-                                        </Label>
-                                        <InputError
-                                            message={errors.undertaking_accepted}
-                                        />
-                                    </div>
-                                </div>
-
-                                <input
-                                    type="hidden"
-                                    name="undertaking_accepted"
-                                    value={undertakingAccepted ? '1' : '0'}
-                                />
-                            </LoanRequestSectionCard>
-
-                            <div className="flex flex-wrap items-center gap-3">
-                                <Button
-                                    type="submit"
-                                    disabled={processing || loanTypes.length === 0}
-                                >
-                                    Submit loan request
-                                </Button>
-                                <p className="text-xs text-muted-foreground">
-                                    Reviewing details before submission helps
-                                    avoid delays.
-                                </p>
-                            </div>
-                        </>
-                    )}
-                </Form>
+                <LoanRequestWizardFooter
+                    isFirstStep={isFirstStep}
+                    isLastStep={isLastStep}
+                    onBack={() =>
+                        setCurrentStep((step) => Math.max(0, step - 1))
+                    }
+                    onNext={() =>
+                        setCurrentStep((step) =>
+                            Math.min(steps.length - 1, step + 1),
+                        )
+                    }
+                    onSaveDraft={handleSaveDraft}
+                    onSubmit={handleSubmit}
+                    isSavingDraft={isSavingDraft}
+                    isSubmitting={isSubmitting}
+                    disablePrimary={!hasLoanTypes}
+                />
             </div>
         </AppLayout>
     );

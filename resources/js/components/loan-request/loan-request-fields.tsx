@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { NumericFormat } from 'react-number-format';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type {
-    LoanRequestPersonData,
+    LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
 } from '@/types/loan-requests';
 
@@ -90,24 +90,31 @@ const composeEmployerBusinessAddress = (
 
 type PersonalFieldsProps = {
     prefix: string;
-    values?: LoanRequestPersonData | null;
+    values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
     readOnly?: LoanRequestReadOnlyMap | null;
     includeSpouse?: boolean;
     includeChildren?: boolean;
+    onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
 
 export function LoanRequestPersonalFields({
     prefix,
-    values = null,
+    values,
     errors,
     readOnly = null,
     includeSpouse = false,
     includeChildren = false,
+    onChange,
 }: PersonalFieldsProps) {
     const [educationalAttainment, setEducationalAttainment] = useState(
-        values?.educational_attainment?.trim() ?? '',
+        values.educational_attainment,
     );
+
+    useEffect(() => {
+        setEducationalAttainment(values.educational_attainment);
+    }, [values.educational_attainment]);
+
     const educationalAttainmentOptions = useMemo(() => {
         if (
             educationalAttainment !== '' &&
@@ -120,6 +127,11 @@ export function LoanRequestPersonalFields({
     }, [educationalAttainment]);
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
+    const updateField =
+        (field: keyof LoanRequestPersonFormData) =>
+        (event: ChangeEvent<HTMLInputElement>) => {
+            onChange(field, event.target.value);
+        };
 
     return (
         <div className="grid gap-4 md:grid-cols-2">
@@ -128,13 +140,14 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_first_name`}
                     name={fieldName(prefix, 'first_name')}
-                    defaultValue={values?.first_name ?? ''}
+                    value={values.first_name}
                     readOnly={isReadOnly('first_name')}
                     required
                     className={cn(
                         'mt-1 block w-full',
                         isReadOnly('first_name') && readOnlyInputClass,
                     )}
+                    onChange={updateField('first_name')}
                 />
                 <InputError message={fieldError(errors, prefix, 'first_name')} />
             </div>
@@ -144,13 +157,14 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_last_name`}
                     name={fieldName(prefix, 'last_name')}
-                    defaultValue={values?.last_name ?? ''}
+                    value={values.last_name}
                     readOnly={isReadOnly('last_name')}
                     required
                     className={cn(
                         'mt-1 block w-full',
                         isReadOnly('last_name') && readOnlyInputClass,
                     )}
+                    onChange={updateField('last_name')}
                 />
                 <InputError message={fieldError(errors, prefix, 'last_name')} />
             </div>
@@ -160,12 +174,13 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_middle_name`}
                     name={fieldName(prefix, 'middle_name')}
-                    defaultValue={values?.middle_name ?? ''}
+                    value={values.middle_name}
                     readOnly={isReadOnly('middle_name')}
                     className={cn(
                         'mt-1 block w-full',
                         isReadOnly('middle_name') && readOnlyInputClass,
                     )}
+                    onChange={updateField('middle_name')}
                 />
                 <InputError message={fieldError(errors, prefix, 'middle_name')} />
             </div>
@@ -175,8 +190,9 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_nickname`}
                     name={fieldName(prefix, 'nickname')}
-                    defaultValue={values?.nickname ?? ''}
+                    value={values.nickname}
                     className="mt-1 block w-full"
+                    onChange={updateField('nickname')}
                 />
                 <InputError message={fieldError(errors, prefix, 'nickname')} />
             </div>
@@ -187,13 +203,14 @@ export function LoanRequestPersonalFields({
                     id={`${prefix}_birthdate`}
                     type="date"
                     name={fieldName(prefix, 'birthdate')}
-                    defaultValue={values?.birthdate ?? ''}
+                    value={values.birthdate}
                     readOnly={isReadOnly('birthdate')}
                     required
                     className={cn(
                         'mt-1 block w-full',
                         isReadOnly('birthdate') && readOnlyInputClass,
                     )}
+                    onChange={updateField('birthdate')}
                 />
                 <InputError message={fieldError(errors, prefix, 'birthdate')} />
             </div>
@@ -203,9 +220,10 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_birthplace`}
                     name={fieldName(prefix, 'birthplace')}
-                    defaultValue={values?.birthplace ?? ''}
+                    value={values.birthplace}
                     className="mt-1 block w-full"
                     required
+                    onChange={updateField('birthplace')}
                 />
                 <InputError message={fieldError(errors, prefix, 'birthplace')} />
             </div>
@@ -215,13 +233,14 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_address`}
                     name={fieldName(prefix, 'address')}
-                    defaultValue={values?.address ?? ''}
+                    value={values.address}
                     readOnly={isReadOnly('address')}
                     required
                     className={cn(
                         'mt-1 block w-full',
                         isReadOnly('address') && readOnlyInputClass,
                     )}
+                    onChange={updateField('address')}
                 />
                 <InputError message={fieldError(errors, prefix, 'address')} />
             </div>
@@ -233,10 +252,11 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_length_of_stay`}
                     name={fieldName(prefix, 'length_of_stay')}
-                    defaultValue={values?.length_of_stay ?? ''}
+                    value={values.length_of_stay}
                     className="mt-1 block w-full"
                     placeholder="e.g. 2 years"
                     required
+                    onChange={updateField('length_of_stay')}
                 />
                 <InputError message={fieldError(errors, prefix, 'length_of_stay')} />
             </div>
@@ -246,13 +266,14 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_housing_status`}
                     name={fieldName(prefix, 'housing_status')}
-                    defaultValue={values?.housing_status ?? ''}
+                    value={values.housing_status}
                     readOnly={isReadOnly('housing_status')}
                     required
                     className={cn(
                         'mt-1 block w-full',
                         isReadOnly('housing_status') && readOnlyInputClass,
                     )}
+                    onChange={updateField('housing_status')}
                 />
                 <InputError message={fieldError(errors, prefix, 'housing_status')} />
             </div>
@@ -262,10 +283,11 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_cell_no`}
                     name={fieldName(prefix, 'cell_no')}
-                    defaultValue={values?.cell_no ?? ''}
+                    value={values.cell_no}
                     className="mt-1 block w-full"
                     inputMode="numeric"
                     required
+                    onChange={updateField('cell_no')}
                 />
                 <InputError message={fieldError(errors, prefix, 'cell_no')} />
             </div>
@@ -275,13 +297,14 @@ export function LoanRequestPersonalFields({
                 <Input
                     id={`${prefix}_civil_status`}
                     name={fieldName(prefix, 'civil_status')}
-                    defaultValue={values?.civil_status ?? ''}
+                    value={values.civil_status}
                     readOnly={isReadOnly('civil_status')}
                     required
                     className={cn(
                         'mt-1 block w-full',
                         isReadOnly('civil_status') && readOnlyInputClass,
                     )}
+                    onChange={updateField('civil_status')}
                 />
                 <InputError message={fieldError(errors, prefix, 'civil_status')} />
             </div>
@@ -292,7 +315,10 @@ export function LoanRequestPersonalFields({
                 </Label>
                 <Select
                     value={educationalAttainment || undefined}
-                    onValueChange={(value) => setEducationalAttainment(value)}
+                    onValueChange={(value) => {
+                        setEducationalAttainment(value);
+                        onChange('educational_attainment', value);
+                    }}
                 >
                     <SelectTrigger
                         id={`${prefix}_educational_attainment`}
@@ -308,11 +334,6 @@ export function LoanRequestPersonalFields({
                         ))}
                     </SelectContent>
                 </Select>
-                <input
-                    type="hidden"
-                    name={fieldName(prefix, 'educational_attainment')}
-                    value={educationalAttainment}
-                />
                 <InputError
                     message={fieldError(errors, prefix, 'educational_attainment')}
                 />
@@ -327,7 +348,7 @@ export function LoanRequestPersonalFields({
                         id={`${prefix}_number_of_children`}
                         type="number"
                         name={fieldName(prefix, 'number_of_children')}
-                        defaultValue={values?.number_of_children ?? ''}
+                        value={values.number_of_children}
                         readOnly={isReadOnly('number_of_children')}
                         required
                         className={cn(
@@ -335,6 +356,7 @@ export function LoanRequestPersonalFields({
                             isReadOnly('number_of_children') &&
                                 readOnlyInputClass,
                         )}
+                        onChange={updateField('number_of_children')}
                     />
                     <InputError
                         message={fieldError(errors, prefix, 'number_of_children')}
@@ -351,13 +373,14 @@ export function LoanRequestPersonalFields({
                         <Input
                             id={`${prefix}_spouse_name`}
                             name={fieldName(prefix, 'spouse_name')}
-                            defaultValue={values?.spouse_name ?? ''}
+                            value={values.spouse_name}
                             readOnly={isReadOnly('spouse_name')}
                             className={cn(
                                 'mt-1 block w-full',
                                 isReadOnly('spouse_name') &&
                                     readOnlyInputClass,
                             )}
+                            onChange={updateField('spouse_name')}
                         />
                         <InputError
                             message={fieldError(errors, prefix, 'spouse_name')}
@@ -370,8 +393,9 @@ export function LoanRequestPersonalFields({
                             id={`${prefix}_spouse_age`}
                             type="number"
                             name={fieldName(prefix, 'spouse_age')}
-                            defaultValue={values?.spouse_age ?? ''}
+                            value={values.spouse_age}
                             className="mt-1 block w-full"
+                            onChange={updateField('spouse_age')}
                         />
                         <InputError
                             message={fieldError(errors, prefix, 'spouse_age')}
@@ -385,9 +409,10 @@ export function LoanRequestPersonalFields({
                         <Input
                             id={`${prefix}_spouse_cell_no`}
                             name={fieldName(prefix, 'spouse_cell_no')}
-                            defaultValue={values?.spouse_cell_no ?? ''}
+                            value={values.spouse_cell_no}
                             className="mt-1 block w-full"
                             inputMode="numeric"
+                            onChange={updateField('spouse_cell_no')}
                         />
                         <InputError
                             message={fieldError(errors, prefix, 'spouse_cell_no')}
@@ -401,18 +426,23 @@ export function LoanRequestPersonalFields({
 
 type WorkFieldsProps = {
     prefix: string;
-    values?: LoanRequestPersonData | null;
+    values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
+    onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
 
 export function LoanRequestWorkFields({
     prefix,
-    values = null,
+    values,
     errors,
+    onChange,
 }: WorkFieldsProps) {
-    const [employmentType, setEmploymentType] = useState(
-        values?.employment_type?.trim() ?? '',
-    );
+    const [employmentType, setEmploymentType] = useState(values.employment_type);
+
+    useEffect(() => {
+        setEmploymentType(values.employment_type);
+    }, [values.employment_type]);
+
     const employmentTypeOptions = useMemo(() => {
         if (
             employmentType !== '' &&
@@ -423,44 +453,74 @@ export function LoanRequestWorkFields({
 
         return EMPLOYMENT_TYPE_OPTIONS;
     }, [employmentType]);
-    const initialNatureOfBusiness = values?.nature_of_business?.trim() ?? '';
-    const hasPresetNatureOfBusiness =
-        initialNatureOfBusiness !== '' &&
-        initialNatureOfBusiness !== NATURE_OF_BUSINESS_OTHER_VALUE &&
-        NATURE_OF_BUSINESS_OPTIONS.includes(initialNatureOfBusiness);
+
     const [natureOfBusinessSelection, setNatureOfBusinessSelection] =
-        useState<string>(
-            initialNatureOfBusiness === ''
+        useState<string>('');
+    const [natureOfBusinessOther, setNatureOfBusinessOther] = useState<string>(
+        '',
+    );
+
+    useEffect(() => {
+        const initialNature = values.nature_of_business.trim();
+        const hasPresetNatureOfBusiness =
+            initialNature !== '' &&
+            initialNature !== NATURE_OF_BUSINESS_OTHER_VALUE &&
+            NATURE_OF_BUSINESS_OPTIONS.includes(initialNature);
+
+        setNatureOfBusinessSelection(
+            initialNature === ''
                 ? ''
                 : hasPresetNatureOfBusiness
-                  ? initialNatureOfBusiness
+                  ? initialNature
                   : NATURE_OF_BUSINESS_OTHER_VALUE,
         );
-    const [natureOfBusinessOther, setNatureOfBusinessOther] = useState<string>(
-        !hasPresetNatureOfBusiness && initialNatureOfBusiness !== ''
-            ? initialNatureOfBusiness
-            : '',
-    );
+        setNatureOfBusinessOther(
+            !hasPresetNatureOfBusiness && initialNature !== ''
+                ? initialNature
+                : '',
+        );
+    }, [values.nature_of_business]);
+
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
             ? natureOfBusinessOther.trim()
             : natureOfBusinessSelection;
-    const [grossMonthlyIncome, setGrossMonthlyIncome] = useState<string>(
-        values?.gross_monthly_income ?? '',
-    );
-    const initialEmployerAddress = splitEmployerBusinessAddress(
-        values?.employer_business_address ?? '',
-    );
-    const [employerBusinessStreet, setEmployerBusinessStreet] = useState(
-        initialEmployerAddress.street,
-    );
-    const [employerBusinessCity, setEmployerBusinessCity] = useState(
-        initialEmployerAddress.city,
-    );
+
+    useEffect(() => {
+        if (resolvedNatureOfBusiness === values.nature_of_business) {
+            return;
+        }
+
+        onChange('nature_of_business', resolvedNatureOfBusiness);
+    }, [onChange, resolvedNatureOfBusiness, values.nature_of_business]);
+
+    const [employerBusinessStreet, setEmployerBusinessStreet] = useState('');
+    const [employerBusinessCity, setEmployerBusinessCity] = useState('');
+
+    useEffect(() => {
+        const initialEmployerAddress = splitEmployerBusinessAddress(
+            values.employer_business_address,
+        );
+        setEmployerBusinessStreet(initialEmployerAddress.street);
+        setEmployerBusinessCity(initialEmployerAddress.city);
+    }, [values.employer_business_address]);
+
     const employerBusinessAddress = composeEmployerBusinessAddress(
         employerBusinessStreet,
         employerBusinessCity,
     );
+
+    useEffect(() => {
+        if (employerBusinessAddress === values.employer_business_address) {
+            return;
+        }
+
+        onChange('employer_business_address', employerBusinessAddress);
+    }, [
+        onChange,
+        employerBusinessAddress,
+        values.employer_business_address,
+    ]);
 
     return (
         <div className="grid gap-4 md:grid-cols-2">
@@ -468,7 +528,10 @@ export function LoanRequestWorkFields({
                 <Label htmlFor={`${prefix}_employment_type`}>Employment</Label>
                 <Select
                     value={employmentType || undefined}
-                    onValueChange={(value) => setEmploymentType(value)}
+                    onValueChange={(value) => {
+                        setEmploymentType(value);
+                        onChange('employment_type', value);
+                    }}
                 >
                     <SelectTrigger
                         id={`${prefix}_employment_type`}
@@ -484,11 +547,6 @@ export function LoanRequestWorkFields({
                         ))}
                     </SelectContent>
                 </Select>
-                <input
-                    type="hidden"
-                    name={fieldName(prefix, 'employment_type')}
-                    value={employmentType}
-                />
                 <InputError message={fieldError(errors, prefix, 'employment_type')} />
             </div>
 
@@ -499,9 +557,12 @@ export function LoanRequestWorkFields({
                 <Input
                     id={`${prefix}_employer_business_name`}
                     name={fieldName(prefix, 'employer_business_name')}
-                    defaultValue={values?.employer_business_name ?? ''}
+                    value={values.employer_business_name}
                     className="mt-1 block w-full"
                     required
+                    onChange={(event) =>
+                        onChange('employer_business_name', event.target.value)
+                    }
                 />
                 <InputError
                     message={fieldError(errors, prefix, 'employer_business_name')}
@@ -517,9 +578,16 @@ export function LoanRequestWorkFields({
                     value={employerBusinessStreet}
                     className="mt-1 block w-full"
                     required
-                    onChange={(event) =>
-                        setEmployerBusinessStreet(event.target.value)
-                    }
+                    onChange={(event) => {
+                        setEmployerBusinessStreet(event.target.value);
+                        onChange(
+                            'employer_business_address',
+                            composeEmployerBusinessAddress(
+                                event.target.value,
+                                employerBusinessCity,
+                            ),
+                        );
+                    }}
                 />
             </div>
 
@@ -532,14 +600,16 @@ export function LoanRequestWorkFields({
                     value={employerBusinessCity}
                     className="mt-1 block w-full"
                     required
-                    onChange={(event) =>
-                        setEmployerBusinessCity(event.target.value)
-                    }
-                />
-                <input
-                    type="hidden"
-                    name={fieldName(prefix, 'employer_business_address')}
-                    value={employerBusinessAddress}
+                    onChange={(event) => {
+                        setEmployerBusinessCity(event.target.value);
+                        onChange(
+                            'employer_business_address',
+                            composeEmployerBusinessAddress(
+                                employerBusinessStreet,
+                                event.target.value,
+                            ),
+                        );
+                    }}
                 />
                 <InputError
                     message={fieldError(errors, prefix, 'employer_business_address')}
@@ -551,8 +621,11 @@ export function LoanRequestWorkFields({
                 <Input
                     id={`${prefix}_telephone_no`}
                     name={fieldName(prefix, 'telephone_no')}
-                    defaultValue={values?.telephone_no ?? ''}
+                    value={values.telephone_no}
                     className="mt-1 block w-full"
+                    onChange={(event) =>
+                        onChange('telephone_no', event.target.value)
+                    }
                 />
                 <InputError message={fieldError(errors, prefix, 'telephone_no')} />
             </div>
@@ -564,9 +637,12 @@ export function LoanRequestWorkFields({
                 <Input
                     id={`${prefix}_current_position`}
                     name={fieldName(prefix, 'current_position')}
-                    defaultValue={values?.current_position ?? ''}
+                    value={values.current_position}
                     className="mt-1 block w-full"
                     required
+                    onChange={(event) =>
+                        onChange('current_position', event.target.value)
+                    }
                 />
                 <InputError
                     message={fieldError(errors, prefix, 'current_position')}
@@ -607,11 +683,6 @@ export function LoanRequestWorkFields({
                         }
                     />
                 ) : null}
-                <input
-                    type="hidden"
-                    name={fieldName(prefix, 'nature_of_business')}
-                    value={resolvedNatureOfBusiness}
-                />
                 <InputError
                     message={fieldError(errors, prefix, 'nature_of_business')}
                 />
@@ -624,10 +695,13 @@ export function LoanRequestWorkFields({
                 <Input
                     id={`${prefix}_years_in_work_business`}
                     name={fieldName(prefix, 'years_in_work_business')}
-                    defaultValue={values?.years_in_work_business ?? ''}
+                    value={values.years_in_work_business}
                     className="mt-1 block w-full"
                     placeholder="e.g. 5 years"
                     required
+                    onChange={(event) =>
+                        onChange('years_in_work_business', event.target.value)
+                    }
                 />
                 <InputError
                     message={fieldError(errors, prefix, 'years_in_work_business')}
@@ -642,29 +716,24 @@ export function LoanRequestWorkFields({
                     <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
                         PHP
                     </span>
-                <NumericFormat
-                    id={`${prefix}_gross_monthly_income`}
-                    className="mt-1 block w-full pl-12"
-                    value={grossMonthlyIncome}
-                    onValueChange={(values) => {
-                            setGrossMonthlyIncome(values.value);
+                    <NumericFormat
+                        id={`${prefix}_gross_monthly_income`}
+                        className="mt-1 block w-full pl-12"
+                        value={values.gross_monthly_income}
+                        onValueChange={(value) => {
+                            onChange('gross_monthly_income', value.value);
                         }}
                         thousandSeparator
                         decimalScale={2}
                         fixedDecimalScale
                         allowNegative={false}
-                    placeholder="0.00"
-                    inputMode="decimal"
-                    valueIsNumericString
-                    customInput={Input}
-                    required
-                />
+                        placeholder="0.00"
+                        inputMode="decimal"
+                        valueIsNumericString
+                        customInput={Input}
+                        required
+                    />
                 </div>
-                <input
-                    type="hidden"
-                    name={fieldName(prefix, 'gross_monthly_income')}
-                    value={grossMonthlyIncome}
-                />
                 <InputError
                     message={fieldError(errors, prefix, 'gross_monthly_income')}
                 />
@@ -675,10 +744,11 @@ export function LoanRequestWorkFields({
                 <Input
                     id={`${prefix}_payday`}
                     name={fieldName(prefix, 'payday')}
-                    defaultValue={values?.payday ?? ''}
+                    value={values.payday}
                     className="mt-1 block w-full"
                     placeholder="15 / 30 / 15 & 30"
                     required
+                    onChange={(event) => onChange('payday', event.target.value)}
                 />
                 <InputError message={fieldError(errors, prefix, 'payday')} />
             </div>

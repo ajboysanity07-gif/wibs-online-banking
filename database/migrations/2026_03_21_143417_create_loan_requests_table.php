@@ -36,11 +36,17 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
-            $table->foreign('reviewed_by')
+            $reviewedByForeignKey = $table->foreign('reviewed_by')
                 ->references('user_id')
-                ->on('appusers')
-                ->cascadeOnUpdate()
-                ->nullOnDelete();
+                ->on('appusers');
+
+            if (Schema::getConnection()->getDriverName() === 'sqlsrv') {
+                $reviewedByForeignKey->onDelete('no action');
+            } else {
+                $reviewedByForeignKey
+                    ->cascadeOnUpdate()
+                    ->nullOnDelete();
+            }
 
             $table->index('user_id');
             $table->index('acctno');
