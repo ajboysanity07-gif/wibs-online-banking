@@ -266,6 +266,26 @@ type SummaryItem = {
 const displayValue = (value: string): string =>
     value.trim() !== '' ? value : '--';
 
+const formatHousingStatus = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '--';
+    }
+
+    const upper = trimmed.toUpperCase();
+
+    if (upper === 'OWNED') {
+        return 'Owned';
+    }
+
+    if (upper === 'RENT' || upper === 'RENTAL') {
+        return 'Rent';
+    }
+
+    return trimmed;
+};
+
 const displayName = (person: LoanRequestPersonFormData): string => {
     const name = [
         person.first_name,
@@ -348,7 +368,7 @@ export function LoanRequestReviewStep({
         { label: 'Birthplace', value: displayValue(data.applicant.birthplace) },
         { label: 'Address', value: displayValue(data.applicant.address) },
         { label: 'Length of stay', value: displayValue(data.applicant.length_of_stay) },
-        { label: 'Housing status', value: displayValue(data.applicant.housing_status) },
+        { label: 'Housing status', value: formatHousingStatus(data.applicant.housing_status) },
         { label: 'Cell no.', value: displayValue(data.applicant.cell_no) },
         { label: 'Civil status', value: displayValue(data.applicant.civil_status) },
         {
@@ -410,7 +430,7 @@ export function LoanRequestReviewStep({
         { label: 'Birthplace', value: displayValue(person.birthplace) },
         { label: 'Address', value: displayValue(person.address) },
         { label: 'Length of stay', value: displayValue(person.length_of_stay) },
-        { label: 'Housing status', value: displayValue(person.housing_status) },
+        { label: 'Housing status', value: formatHousingStatus(person.housing_status) },
         { label: 'Cell no.', value: displayValue(person.cell_no) },
         {
             label: 'Educational attainment',

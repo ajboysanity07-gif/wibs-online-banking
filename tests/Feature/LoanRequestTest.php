@@ -127,6 +127,54 @@ test('loan request form preserves member number of children values', function (
     'non-zero dependents' => [3, '3', true],
 ]);
 
+test('loan request form normalizes housing status values', function (
+    ?string $restype,
+    ?string $expected,
+    bool $readOnly,
+) {
+    $user = User::factory()->create([
+        'acctno' => '000722',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+        'restype' => $restype,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-006',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.housing_status', $expected)
+            ->where('applicantReadOnly.housing_status', $readOnly));
+})->with([
+    'owned value' => ['OWNED', 'OWNED', true],
+    'owned label' => ['Owned', 'OWNED', true],
+    'rent value' => ['RENT', 'RENT', true],
+    'rental value' => ['RENTAL', 'RENT', true],
+    'missing value' => [null, null, false],
+]);
+
 test('clients without completed profiles are redirected away from loan request form', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
@@ -188,7 +236,7 @@ test('clients can save a loan request draft', function () {
             'birthplace' => 'Manila',
             'address' => 'Loan Street',
             'length_of_stay' => '5 years',
-            'housing_status' => 'Owned',
+            'housing_status' => 'OWNED',
             'cell_no' => '09123456789',
             'civil_status' => 'Single',
             'educational_attainment' => 'College',
@@ -225,7 +273,7 @@ test('clients can save a loan request draft', function () {
             ->where('loan_request_id', $draft->id)
             ->where('role', LoanRequestPersonRole::Applicant)
             ->value('housing_status'),
-    )->toBe('Owned');
+    )->toBe('OWNED');
 
     $payload['loan_purpose'] = 'Tuition';
 
@@ -325,7 +373,7 @@ test('loan request submissions persist snapshots', function () {
             'birthplace' => 'Manila',
             'address' => 'Loan Street',
             'length_of_stay' => '5 years',
-            'housing_status' => 'Owned',
+            'housing_status' => 'OWNED',
             'cell_no' => '09123456789',
             'civil_status' => 'Single',
             'educational_attainment' => 'College',
@@ -352,7 +400,7 @@ test('loan request submissions persist snapshots', function () {
             'birthplace' => 'Cebu',
             'address' => 'Co Maker Street',
             'length_of_stay' => '4 years',
-            'housing_status' => 'Rent',
+            'housing_status' => 'RENT',
             'cell_no' => '09998887777',
             'civil_status' => 'Married',
             'educational_attainment' => 'College',
@@ -375,7 +423,7 @@ test('loan request submissions persist snapshots', function () {
             'birthplace' => 'Davao',
             'address' => 'Second Street',
             'length_of_stay' => '2 years',
-            'housing_status' => 'Owned',
+            'housing_status' => 'OWNED',
             'cell_no' => '09111112222',
             'civil_status' => 'Single',
             'educational_attainment' => 'High School',
@@ -408,11 +456,11 @@ test('loan request submissions persist snapshots', function () {
         ->get()
         ->keyBy('role');
     expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila');
-    expect($people[LoanRequestPersonRole::Applicant->value]->housing_status)->toBe('Owned');
+    expect($people[LoanRequestPersonRole::Applicant->value]->housing_status)->toBe('OWNED');
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('Cebu');
-    expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('Rent');
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('RENT');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao');
-    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('Owned');
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
 });
 
 test('loan request submission validates housing status values', function () {
@@ -456,7 +504,7 @@ test('loan request submission validates housing status values', function () {
             'birthplace' => 'Manila',
             'address' => 'Loan Street',
             'length_of_stay' => '5 years',
-            'housing_status' => 'Other',
+            'housing_status' => 'Owned',
             'cell_no' => '09123456789',
             'civil_status' => 'Single',
             'educational_attainment' => 'College',
@@ -483,7 +531,7 @@ test('loan request submission validates housing status values', function () {
             'birthplace' => 'Cebu',
             'address' => 'Co Maker Street',
             'length_of_stay' => '4 years',
-            'housing_status' => 'Rent',
+            'housing_status' => 'RENT',
             'cell_no' => '09998887777',
             'civil_status' => 'Married',
             'educational_attainment' => 'College',
@@ -506,7 +554,7 @@ test('loan request submission validates housing status values', function () {
             'birthplace' => 'Davao',
             'address' => 'Second Street',
             'length_of_stay' => '2 years',
-            'housing_status' => 'Owned',
+            'housing_status' => 'OWNED',
             'cell_no' => '09111112222',
             'civil_status' => 'Single',
             'educational_attainment' => 'High School',

@@ -64,6 +64,14 @@ class LoanRequestService
             ? $this->serializePerson($draft, LoanRequestPersonRole::CoMakerTwo)
             : null;
 
+        $applicant = $this->normalizeHousingStatus($applicant);
+        $coMakerOne = $coMakerOne !== null
+            ? $this->normalizeHousingStatus($coMakerOne)
+            : null;
+        $coMakerTwo = $coMakerTwo !== null
+            ? $this->normalizeHousingStatus($coMakerTwo)
+            : null;
+
         return [
             'loanTypes' => $this->getLoanTypes()->values()->all(),
             'applicant' => $applicant,
@@ -511,6 +519,48 @@ class LoanRequestService
         }
 
         return (string) $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $person
+     * @return array<string, mixed>
+     */
+    private function normalizeHousingStatus(array $person): array
+    {
+        if (! array_key_exists('housing_status', $person)) {
+            return $person;
+        }
+
+        $person['housing_status'] = $this->normalizeHousingStatusValue(
+            $person['housing_status'] ?? null,
+        );
+
+        return $person;
+    }
+
+    private function normalizeHousingStatusValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $upper = strtoupper($trimmed);
+
+        if ($upper === 'RENTAL') {
+            return 'RENT';
+        }
+
+        if ($upper === 'OWNED' || $upper === 'RENT') {
+            return $upper;
+        }
+
+        return $upper;
     }
 
     /**

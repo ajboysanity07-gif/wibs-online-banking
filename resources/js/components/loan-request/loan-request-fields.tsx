@@ -34,7 +34,10 @@ const EMPLOYMENT_TYPE_OPTIONS = [
     'Self Employed',
     'Retired',
 ];
-const HOUSING_STATUS_OPTIONS = ['Owned', 'Rent'] as const;
+const HOUSING_STATUS_OPTIONS = [
+    { value: 'OWNED', label: 'Owned' },
+    { value: 'RENT', label: 'Rent' },
+] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -442,8 +445,11 @@ export function LoanRequestPersonalFields({
                         </SelectTrigger>
                         <SelectContent>
                             {HOUSING_STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>
