@@ -116,14 +116,22 @@ const applicantWorkFields = new Set([
     'payday',
 ]);
 
-const toStringValue = (value?: string | number | null): string => {
+const toStringValue = (
+    value?: string | number | null,
+    options?: { emptyIfZero?: boolean },
+): string => {
     if (value === null || value === undefined) {
         return '';
     }
 
     const stringValue = `${value}`.trim();
+    const emptyIfZero = options?.emptyIfZero ?? true;
 
-    return stringValue === '0' || stringValue === '0.00' ? '' : stringValue;
+    if (emptyIfZero && (stringValue === '0' || stringValue === '0.00')) {
+        return '';
+    }
+
+    return stringValue;
 };
 
 const emptyPerson: LoanRequestPersonFormData = {
@@ -175,7 +183,9 @@ const toPersonForm = (
         cell_no: person.cell_no ?? '',
         civil_status: person.civil_status ?? '',
         educational_attainment: person.educational_attainment ?? '',
-        number_of_children: toStringValue(person.number_of_children),
+        number_of_children: toStringValue(person.number_of_children, {
+            emptyIfZero: false,
+        }),
         spouse_name: person.spouse_name ?? '',
         spouse_age: toStringValue(person.spouse_age),
         spouse_cell_no: person.spouse_cell_no ?? '',

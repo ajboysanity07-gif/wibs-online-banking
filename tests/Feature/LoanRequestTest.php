@@ -81,6 +81,52 @@ test('approved client can view the loan request form', function () {
             ->has('member'));
 });
 
+test('loan request form preserves member number of children values', function (
+    $dependent,
+    $expected,
+    bool $readOnly,
+) {
+    $user = User::factory()->create([
+        'acctno' => '000721',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+        'dependent' => $dependent,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-004',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.number_of_children', $expected)
+            ->where('applicantReadOnly.number_of_children', $readOnly));
+})->with([
+    'zero dependents' => [0, '0', true],
+    'missing dependents' => [null, null, false],
+    'non-zero dependents' => [3, '3', true],
+]);
+
 test('clients without completed profiles are redirected away from loan request form', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
