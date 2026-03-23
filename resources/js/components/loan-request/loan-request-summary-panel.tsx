@@ -72,7 +72,7 @@ export function LoanRequestSummaryPanel({
 
     return (
         <div className="space-y-4 lg:sticky lg:top-28">
-            <Card className="border-border/40 bg-card/60">
+            <Card className="border-border/30 bg-card/50">
                 <CardHeader className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                         <CardTitle className="text-base">
@@ -89,7 +89,7 @@ export function LoanRequestSummaryPanel({
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
-                    <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
+                    <div className="rounded-lg border border-border/30 bg-muted/15 p-3">
                         <p className="text-xs uppercase text-muted-foreground">
                             Member
                         </p>
@@ -154,7 +154,7 @@ export function LoanRequestSummaryPanel({
                 </CardContent>
             </Card>
 
-            <Card className="border-border/40 bg-card/50">
+            <Card className="border-border/30 bg-card/40">
                 <CardHeader>
                     <CardTitle className="text-base">
                         Tips for faster approval

@@ -28,7 +28,7 @@ export function LoanRequestStepIndicator({
         <div className={cn('overflow-x-auto pb-1', className)}>
             <div className="relative min-w-[600px] px-3 sm:min-w-[640px]">
                 <div
-                    className="absolute inset-x-3 top-3.5 h-px bg-muted-foreground/25"
+                    className="absolute inset-x-3 top-3.5 h-px bg-border/40"
                     aria-hidden="true"
                 />
                 <div
@@ -36,7 +36,7 @@ export function LoanRequestStepIndicator({
                     aria-hidden="true"
                 >
                     <span
-                        className="block h-full bg-primary/60 transition-all motion-reduce:transition-none"
+                        className="block h-full bg-primary/50 transition-all motion-reduce:transition-none"
                         style={{ width: `${progressPercentage}%` }}
                     />
                 </div>
@@ -75,10 +75,10 @@ export function LoanRequestStepIndicator({
                                         className={cn(
                                             'flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors duration-200 sm:h-8 sm:w-8',
                                             isComplete
-                                                ? 'border-primary bg-primary text-primary-foreground'
+                                                ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25'
                                                 : isActive
-                                                  ? 'border-primary bg-background text-primary ring-3 ring-primary/15'
-                                                  : 'border-border/50 bg-muted/30 text-muted-foreground',
+                                                  ? 'border-primary/70 bg-card text-primary ring-2 ring-primary/15'
+                                                  : 'border-border/40 bg-muted/20 text-muted-foreground',
                                         )}
                                     >
                                         {isComplete ? (

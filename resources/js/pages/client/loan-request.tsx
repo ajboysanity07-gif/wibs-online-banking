@@ -16,7 +16,6 @@ import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-
 import { LoanRequestWizardFooter } from '@/components/loan-request/loan-request-wizard-footer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
 import { loans as clientLoans } from '@/routes/client';
@@ -372,7 +371,7 @@ export default function LoanRequestPage({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-28 pt-8">
-                <div className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-sm sm:p-8">
+                <div className="rounded-2xl border border-border/50 bg-card/60 p-6 shadow-sm sm:p-8">
                     <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
@@ -425,46 +424,47 @@ export default function LoanRequestPage({
                         </Button>
                     </div>
 
-                    <Separator className="my-8" />
-
-                    <div className="space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                            <span>
-                                Step {currentStep + 1} of {steps.length}
-                            </span>
-                            <span>{progressPercentage}% complete</span>
-                        </div>
-                        <div
-                            className="h-1.5 w-full rounded-full bg-muted/40"
-                            role="progressbar"
-                            aria-valuenow={progressPercentage}
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                        >
-                            <div
-                                className="h-full rounded-full bg-primary/70 transition-all motion-reduce:transition-none"
-                                style={{
-                                    width: `${progressPercentage}%`,
-                                }}
-                            />
-                        </div>
-                        <div className="text-sm font-medium text-foreground">
-                            {stepMeta?.title}
-                            {stepMeta?.description ? (
-                                <span className="text-muted-foreground">
-                                    {' '}
-                                    - {stepMeta.description}
+                    <div className="mt-6 rounded-xl border border-border/40 bg-muted/20 p-4 sm:p-5">
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                                <span>
+                                    Step {currentStep + 1} of {steps.length}
                                 </span>
-                            ) : null}
+                                <span>{progressPercentage}% complete</span>
+                            </div>
+                            <div
+                                className="h-1.5 w-full rounded-full bg-border/40"
+                                role="progressbar"
+                                aria-valuenow={progressPercentage}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                            >
+                                <div
+                                    className="h-full rounded-full bg-primary/60 transition-all motion-reduce:transition-none"
+                                    style={{
+                                        width: `${progressPercentage}%`,
+                                    }}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground">
+                                    {stepMeta?.title}
+                                </p>
+                                {stepMeta?.description ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        {stepMeta.description}
+                                    </p>
+                                ) : null}
+                            </div>
                         </div>
-                    </div>
 
-                    <LoanRequestStepIndicator
-                        steps={steps}
-                        currentStep={currentStep}
-                        onStepChange={handleStepChange}
-                        className="mt-4"
-                    />
+                        <LoanRequestStepIndicator
+                            steps={steps}
+                            currentStep={currentStep}
+                            onStepChange={handleStepChange}
+                            className="mt-4"
+                        />
+                    </div>
                 </div>
 
                 <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12 xl:grid-cols-[minmax(0,1fr)_24rem]">
