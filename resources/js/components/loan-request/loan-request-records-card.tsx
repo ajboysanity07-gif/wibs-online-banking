@@ -1,12 +1,12 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo } from 'react';
+import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
     MemberMobileCard,
     MemberMobileCardSkeleton,
 } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
-import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import {

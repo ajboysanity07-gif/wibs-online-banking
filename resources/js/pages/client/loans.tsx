@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Banknote, Clock } from 'lucide-react';
 import { useState } from 'react';
+import { LoanRequestRecordsCard } from '@/components/loan-request/loan-request-records-card';
 import { MemberAccountAlert } from '@/components/member-account-alert';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
@@ -8,7 +9,6 @@ import {
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanRecordsCard } from '@/components/member-loan-records-card';
-import { LoanRequestRecordsCard } from '@/components/loan-request/loan-request-records-card';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';

@@ -1,9 +1,9 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
-import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestStepIndicator } from '@/components/loan-request/loan-request-step-indicator';
 import {
     LoanRequestApplicantPersonalStep,
@@ -12,6 +12,7 @@ import {
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
 } from '@/components/loan-request/loan-request-steps';
+import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardFooter } from '@/components/loan-request/loan-request-wizard-footer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,6 @@ import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
 import { loans as clientLoans } from '@/routes/client';
-import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestDraft,

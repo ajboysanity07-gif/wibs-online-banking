@@ -74,6 +74,7 @@ test('approved client can view the loan request form', function () {
             ->component('client/loan-request')
             ->has('loanTypes', 1)
             ->has('applicant')
+            ->has('applicant.employer_business_address')
             ->has('coMakerOne')
             ->has('coMakerTwo')
             ->has('draft')

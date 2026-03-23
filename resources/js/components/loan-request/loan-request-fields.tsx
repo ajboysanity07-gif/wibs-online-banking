@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useMemo, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { NumericFormat } from 'react-number-format';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
@@ -89,6 +90,39 @@ const composeEmployerBusinessAddress = (
         .join(', ');
 };
 
+const isPresetNatureOfBusiness = (value: string): boolean =>
+    value !== '' &&
+    value !== NATURE_OF_BUSINESS_OTHER_VALUE &&
+    NATURE_OF_BUSINESS_OPTIONS.includes(value);
+
+const resolveNatureOfBusinessSelection = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '';
+    }
+
+    if (isPresetNatureOfBusiness(trimmed)) {
+        return trimmed;
+    }
+
+    return NATURE_OF_BUSINESS_OTHER_VALUE;
+};
+
+const resolveNatureOfBusinessOther = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (
+        trimmed === '' ||
+        isPresetNatureOfBusiness(trimmed) ||
+        trimmed === NATURE_OF_BUSINESS_OTHER_VALUE
+    ) {
+        return '';
+    }
+
+    return trimmed;
+};
+
 type PersonalFieldsProps = {
     prefix: string;
     values: LoanRequestPersonFormData;
@@ -108,13 +142,7 @@ export function LoanRequestPersonalFields({
     includeChildren = false,
     onChange,
 }: PersonalFieldsProps) {
-    const [educationalAttainment, setEducationalAttainment] = useState(
-        values.educational_attainment,
-    );
-
-    useEffect(() => {
-        setEducationalAttainment(values.educational_attainment);
-    }, [values.educational_attainment]);
+    const educationalAttainment = values.educational_attainment;
 
     const educationalAttainmentOptions = useMemo(() => {
         if (
@@ -351,10 +379,9 @@ export function LoanRequestPersonalFields({
                     </Label>
                     <Select
                         value={educationalAttainment || undefined}
-                        onValueChange={(value) => {
-                            setEducationalAttainment(value);
-                            onChange('educational_attainment', value);
-                        }}
+                        onValueChange={(value) =>
+                            onChange('educational_attainment', value)
+                        }
                     >
                         <SelectTrigger
                             id={`${prefix}_educational_attainment`}
@@ -496,11 +523,7 @@ export function LoanRequestWorkFields({
     errors,
     onChange,
 }: WorkFieldsProps) {
-    const [employmentType, setEmploymentType] = useState(values.employment_type);
-
-    useEffect(() => {
-        setEmploymentType(values.employment_type);
-    }, [values.employment_type]);
+    const employmentType = values.employment_type;
 
     const employmentTypeOptions = useMemo(() => {
         if (
@@ -514,72 +537,42 @@ export function LoanRequestWorkFields({
     }, [employmentType]);
 
     const [natureOfBusinessSelection, setNatureOfBusinessSelection] =
-        useState<string>('');
+        useState<string>(() =>
+            resolveNatureOfBusinessSelection(values.nature_of_business),
+        );
     const [natureOfBusinessOther, setNatureOfBusinessOther] = useState<string>(
-        '',
+        () => resolveNatureOfBusinessOther(values.nature_of_business),
     );
 
-    useEffect(() => {
-        const initialNature = values.nature_of_business.trim();
-        const hasPresetNatureOfBusiness =
-            initialNature !== '' &&
-            initialNature !== NATURE_OF_BUSINESS_OTHER_VALUE &&
-            NATURE_OF_BUSINESS_OPTIONS.includes(initialNature);
-
-        setNatureOfBusinessSelection(
-            initialNature === ''
-                ? ''
-                : hasPresetNatureOfBusiness
-                  ? initialNature
-                  : NATURE_OF_BUSINESS_OTHER_VALUE,
+    const { street: employerBusinessStreet, city: employerBusinessCity } =
+        useMemo(
+            () =>
+                splitEmployerBusinessAddress(values.employer_business_address),
+            [values.employer_business_address],
         );
-        setNatureOfBusinessOther(
-            !hasPresetNatureOfBusiness && initialNature !== ''
-                ? initialNature
-                : '',
-        );
-    }, [values.nature_of_business]);
 
-    const resolvedNatureOfBusiness =
-        natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
-            ? natureOfBusinessOther.trim()
-            : natureOfBusinessSelection;
+    const handleNatureOfBusinessSelection = (value: string) => {
+        setNatureOfBusinessSelection(value);
 
-    useEffect(() => {
-        if (resolvedNatureOfBusiness === values.nature_of_business) {
+        if (value === NATURE_OF_BUSINESS_OTHER_VALUE) {
+            onChange('nature_of_business', natureOfBusinessOther.trim());
             return;
         }
 
-        onChange('nature_of_business', resolvedNatureOfBusiness);
-    }, [onChange, resolvedNatureOfBusiness, values.nature_of_business]);
+        onChange('nature_of_business', value);
+    };
 
-    const [employerBusinessStreet, setEmployerBusinessStreet] = useState('');
-    const [employerBusinessCity, setEmployerBusinessCity] = useState('');
+    const handleNatureOfBusinessOtherChange = (
+        event: ChangeEvent<HTMLInputElement>,
+    ) => {
+        const nextValue = event.target.value;
 
-    useEffect(() => {
-        const initialEmployerAddress = splitEmployerBusinessAddress(
-            values.employer_business_address,
-        );
-        setEmployerBusinessStreet(initialEmployerAddress.street);
-        setEmployerBusinessCity(initialEmployerAddress.city);
-    }, [values.employer_business_address]);
+        setNatureOfBusinessOther(nextValue);
 
-    const employerBusinessAddress = composeEmployerBusinessAddress(
-        employerBusinessStreet,
-        employerBusinessCity,
-    );
-
-    useEffect(() => {
-        if (employerBusinessAddress === values.employer_business_address) {
-            return;
+        if (natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE) {
+            onChange('nature_of_business', nextValue);
         }
-
-        onChange('employer_business_address', employerBusinessAddress);
-    }, [
-        onChange,
-        employerBusinessAddress,
-        values.employer_business_address,
-    ]);
+    };
 
     return (
         <div className="space-y-6">
@@ -590,10 +583,9 @@ export function LoanRequestWorkFields({
                     </Label>
                     <Select
                         value={employmentType || undefined}
-                        onValueChange={(value) => {
-                            setEmploymentType(value);
-                            onChange('employment_type', value);
-                        }}
+                        onValueChange={(value) =>
+                            onChange('employment_type', value)
+                        }
                     >
                         <SelectTrigger
                             id={`${prefix}_employment_type`}
@@ -650,7 +642,6 @@ export function LoanRequestWorkFields({
                         className="mt-1 block w-full"
                         required
                         onChange={(event) => {
-                            setEmployerBusinessStreet(event.target.value);
                             onChange(
                                 'employer_business_address',
                                 composeEmployerBusinessAddress(
@@ -672,7 +663,6 @@ export function LoanRequestWorkFields({
                         className="mt-1 block w-full"
                         required
                         onChange={(event) => {
-                            setEmployerBusinessCity(event.target.value);
                             onChange(
                                 'employer_business_address',
                                 composeEmployerBusinessAddress(
@@ -736,9 +726,7 @@ export function LoanRequestWorkFields({
                     </Label>
                     <Select
                         value={natureOfBusinessSelection || undefined}
-                        onValueChange={(value) =>
-                            setNatureOfBusinessSelection(value)
-                        }
+                        onValueChange={handleNatureOfBusinessSelection}
                     >
                         <SelectTrigger
                             id={`${prefix}_nature_of_business`}
@@ -760,9 +748,7 @@ export function LoanRequestWorkFields({
                             className="mt-2 w-full"
                             value={natureOfBusinessOther}
                             placeholder="Specify industry"
-                            onChange={(event) =>
-                                setNatureOfBusinessOther(event.target.value)
-                            }
+                            onChange={handleNatureOfBusinessOtherChange}
                         />
                     ) : null}
                     <InputError
