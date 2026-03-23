@@ -425,7 +425,7 @@ export default function LoanRequestPage({
 
                     <Separator className="my-8" />
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                             <span>
                                 Step {currentStep + 1} of {steps.length}
@@ -433,7 +433,7 @@ export default function LoanRequestPage({
                             <span>{progressPercentage}% complete</span>
                         </div>
                         <div
-                            className="h-2 w-full rounded-full bg-muted/40"
+                            className="h-1.5 w-full rounded-full bg-muted/40"
                             role="progressbar"
                             aria-valuenow={progressPercentage}
                             aria-valuemin={0}
@@ -461,7 +461,7 @@ export default function LoanRequestPage({
                         steps={steps}
                         currentStep={currentStep}
                         onStepChange={handleStepChange}
-                        className="mt-6"
+                        className="mt-4"
                     />
                 </div>
 

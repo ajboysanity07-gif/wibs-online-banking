@@ -71,8 +71,8 @@ export function LoanRequestSummaryPanel({
             : '--';
 
     return (
-        <div className="space-y-5 lg:sticky lg:top-28">
-            <Card className="border-border/60 bg-card/80">
+        <div className="space-y-4 lg:sticky lg:top-28">
+            <Card className="border-border/40 bg-card/60">
                 <CardHeader className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                         <CardTitle className="text-base">
@@ -88,8 +88,8 @@ export function LoanRequestSummaryPanel({
                         Keep your details in sync before submitting.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-5 text-sm">
-                    <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
+                <CardContent className="space-y-4 text-sm">
+                    <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
                         <p className="text-xs uppercase text-muted-foreground">
                             Member
                         </p>
@@ -154,13 +154,13 @@ export function LoanRequestSummaryPanel({
                 </CardContent>
             </Card>
 
-            <Card className="border-border/60 bg-card/70">
+            <Card className="border-border/40 bg-card/50">
                 <CardHeader>
                     <CardTitle className="text-base">
                         Tips for faster approval
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <p>Double-check your employment and income details.</p>
                     <p>
                         Save a draft if you need to gather information from

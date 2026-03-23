@@ -25,18 +25,18 @@ export function LoanRequestStepIndicator({
         totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 0;
 
     return (
-        <div className={cn('overflow-x-auto pb-2', className)}>
-            <div className="relative min-w-[640px] px-4">
+        <div className={cn('overflow-x-auto pb-1', className)}>
+            <div className="relative min-w-[600px] px-3 sm:min-w-[640px]">
                 <div
-                    className="absolute inset-x-4 top-4 h-px bg-muted-foreground/30"
+                    className="absolute inset-x-3 top-3.5 h-px bg-muted-foreground/25"
                     aria-hidden="true"
                 />
                 <div
-                    className="absolute inset-x-4 top-4 h-px"
+                    className="absolute inset-x-3 top-3.5 h-px"
                     aria-hidden="true"
                 >
                     <span
-                        className="block h-full bg-primary transition-all motion-reduce:transition-none"
+                        className="block h-full bg-primary/70 transition-all motion-reduce:transition-none"
                         style={{ width: `${progressPercentage}%` }}
                     />
                 </div>
@@ -53,12 +53,12 @@ export function LoanRequestStepIndicator({
                         return (
                             <li
                                 key={step.id}
-                                className="flex min-w-[104px] flex-col items-center text-center sm:min-w-[120px]"
+                                className="flex min-w-[96px] flex-col items-center text-center sm:min-w-[112px]"
                             >
                                 <button
                                     type="button"
                                     className={cn(
-                                        'group relative z-10 flex flex-col items-center gap-2 text-[11px] font-medium sm:text-xs',
+                                        'group relative z-10 flex flex-col items-center gap-2 text-[10px] font-medium sm:text-xs',
                                         canNavigate
                                             ? 'cursor-pointer'
                                             : 'cursor-default',
@@ -73,27 +73,27 @@ export function LoanRequestStepIndicator({
                                 >
                                     <span
                                         className={cn(
-                                            'flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors duration-200',
+                                            'flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors duration-200 sm:h-8 sm:w-8',
                                             isActive
-                                                ? 'border-primary bg-primary text-primary-foreground ring-4 ring-primary/15'
+                                                ? 'border-primary bg-primary text-primary-foreground ring-3 ring-primary/15'
                                                 : isComplete
-                                                  ? 'border-primary/60 bg-primary/10 text-primary'
-                                                  : 'border-border/60 bg-muted/40 text-muted-foreground',
+                                                  ? 'border-primary/50 bg-primary/10 text-primary'
+                                                  : 'border-border/50 bg-muted/30 text-muted-foreground',
                                         )}
                                     >
                                         {isComplete ? (
-                                            <Check className="h-4 w-4" />
+                                            <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                         ) : (
                                             index + 1
                                         )}
                                     </span>
                                     <span
                                         className={cn(
-                                            'max-w-[7rem] truncate leading-tight',
+                                            'max-w-[6.5rem] truncate leading-tight',
                                             isActive
                                                 ? 'text-foreground'
                                                 : isComplete
-                                                  ? 'text-foreground/80'
+                                                  ? 'text-foreground/70'
                                                   : 'text-muted-foreground',
                                         )}
                                     >

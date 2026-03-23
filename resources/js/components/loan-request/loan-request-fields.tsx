@@ -62,6 +62,19 @@ const fieldError = (
     field: string,
 ) => errors[`${prefix}.${field}`];
 
+const STREET_CUE_PATTERN =
+    /\b(street|st\.?|ave\.?|avenue|rd\.?|road|blvd\.?|boulevard|drive|dr\.?|lane|ln\.?|highway|hiway|bldg\.?|building|unit|floor|lot|blk\.?|block|phase|purok|sitio|subd\.?|subdivision|village|compound|plaza|tower|mall|center|centre|brgy\.?|barangay)\b/i;
+const LOCALITY_CUE_PATTERN =
+    /\b(city|municipality|province|town)\b/i;
+
+const looksLikeStreet = (segment: string): boolean =>
+    STREET_CUE_PATTERN.test(segment) ||
+    /\d/.test(segment) ||
+    segment.includes('#');
+
+const looksLikeLocality = (segment: string): boolean =>
+    LOCALITY_CUE_PATTERN.test(segment);
+
 const splitEmployerBusinessAddress = (
     address: string,
 ): { street: string; city: string } => {
@@ -71,15 +84,33 @@ const splitEmployerBusinessAddress = (
         return { street: '', city: '' };
     }
 
-    const separatorIndex = trimmed.indexOf(',');
+    const segments = trimmed
+        .split(',')
+        .map((segment) => segment.trim())
+        .filter((segment) => segment !== '');
 
-    if (separatorIndex === -1) {
-        return { street: trimmed, city: '' };
+    if (segments.length === 1) {
+        const [segment] = segments;
+
+        if (looksLikeStreet(segment) && !looksLikeLocality(segment)) {
+            return { street: segment, city: '' };
+        }
+
+        return { street: '', city: segment };
+    }
+
+    const [firstSegment, ...restSegments] = segments;
+
+    if (
+        looksLikeLocality(firstSegment) &&
+        !looksLikeStreet(firstSegment)
+    ) {
+        return { street: '', city: segments.join(', ') };
     }
 
     return {
-        street: trimmed.slice(0, separatorIndex).trim(),
-        city: trimmed.slice(separatorIndex + 1).trim(),
+        street: firstSegment,
+        city: restSegments.join(', '),
     };
 };
 
