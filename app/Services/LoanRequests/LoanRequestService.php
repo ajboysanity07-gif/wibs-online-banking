@@ -175,6 +175,45 @@ class LoanRequestService
             });
     }
 
+    /**
+     * @return list<array{
+     *     id: int,
+     *     status: string,
+     *     typecode: string|null,
+     *     loan_type_label_snapshot: string|null,
+     *     requested_amount: string|float|int|null,
+     *     requested_term: int|string|null,
+     *     submitted_at: string|null,
+     *     updated_at: string|null
+     * }>
+     */
+    public function getMemberRequestSummaries(AppUser $user, int $limit = 10): array
+    {
+        if (! Schema::hasTable('loan_requests')) {
+            return [];
+        }
+
+        $limit = max(1, min($limit, 50));
+
+        return LoanRequest::query()
+            ->where('user_id', $user->user_id)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get([
+                'id',
+                'typecode',
+                'loan_type_label_snapshot',
+                'requested_amount',
+                'requested_term',
+                'status',
+                'submitted_at',
+                'updated_at',
+            ])
+            ->map(fn (LoanRequest $request): array => $this->serializeRequestSummary($request))
+            ->all();
+    }
+
     private function resolveLoanTypeLabel(string $typecode): string
     {
         if (! Schema::hasTable('wlntype')) {
@@ -200,6 +239,36 @@ class LoanRequestService
         }
 
         return $typecode;
+    }
+
+    /**
+     * @return array{
+     *     id: int,
+     *     status: string,
+     *     typecode: string|null,
+     *     loan_type_label_snapshot: string|null,
+     *     requested_amount: string|float|int|null,
+     *     requested_term: int|string|null,
+     *     submitted_at: string|null,
+     *     updated_at: string|null
+     * }
+     */
+    private function serializeRequestSummary(LoanRequest $loanRequest): array
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return [
+            'id' => $loanRequest->id,
+            'status' => $status,
+            'typecode' => $loanRequest->typecode,
+            'loan_type_label_snapshot' => $loanRequest->loan_type_label_snapshot,
+            'requested_amount' => $loanRequest->requested_amount,
+            'requested_term' => $loanRequest->requested_term,
+            'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
+            'updated_at' => $loanRequest->updated_at?->toDateTimeString(),
+        ];
     }
 
     private function getActiveDraft(AppUser $user): ?LoanRequest

@@ -225,7 +225,7 @@ test('profile information can be updated', function () {
             'phoneno' => '09123456789',
             'nickname' => 'Renee',
             'birthplace' => 'Cebu City',
-            'educational_attainment' => 'College',
+            'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
             'spouse_age' => 32,
             'employment_type' => 'Regular',
@@ -257,7 +257,7 @@ test('profile information can be updated', function () {
     expect($memberProfile)->not->toBeNull();
     expect($memberProfile->nickname)->toBe('Renee');
     expect($memberProfile->birthplace)->toBe('Cebu City');
-    expect($memberProfile->educational_attainment)->toBe('College');
+    expect($memberProfile->educational_attainment)->toBe('High School');
     expect($memberProfile->length_of_stay)->toBe('2 years');
     expect($memberProfile->spouse_age)->toBe(32);
     expect($memberProfile->spouse_cell_no)->toBe('09123456780');

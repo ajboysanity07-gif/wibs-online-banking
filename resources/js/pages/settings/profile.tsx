@@ -1,10 +1,10 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { NumericFormat } from 'react-number-format';
 import { Camera, ShieldBan, ShieldCheck } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { NumericFormat } from 'react-number-format';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import AppearanceTabs from '@/components/appearance-tabs';
@@ -38,6 +38,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { createCroppedImageFile } from '@/lib/image-crop';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import { birthplaces } from '@/routes/api/locations';
 import { edit } from '@/routes/profile';
 import { disable, enable } from '@/routes/two-factor';
@@ -136,6 +137,7 @@ type Props = {
 
 const tabContentClasses =
     'data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-2 data-[state=active]:duration-300';
+const WMASTER_VALUE_CLASS = 'border-ring/40 ring-1 ring-ring/20';
 
 const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 const PROFILE_PHOTO_ALLOWED_TYPES = new Set([
@@ -148,6 +150,14 @@ const PROFILE_PHOTO_OUTPUT_QUALITY = 0.92;
 const LOCATION_QUERY_MIN = 2;
 const LOCATION_DEBOUNCE_MS = 300;
 const LOCATION_RESULT_LIMIT = 15;
+const EDUCATIONAL_ATTAINMENT_OPTIONS = [
+    'Elementary',
+    'High School',
+    'Vocational',
+    'College',
+    'Postgraduate',
+];
+const EMPLOYMENT_TYPE_OPTIONS = ['Regular', 'Contract', 'Self-Employed'];
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -222,6 +232,24 @@ const calculateAge = (birthday: string | null): number | null => {
     return age < 0 ? null : age;
 };
 
+const hasWmasterValue = (
+    value: string | number | null | undefined,
+): boolean => {
+    if (value === null || value === undefined) {
+        return false;
+    }
+
+    if (typeof value === 'number') {
+        return !Number.isNaN(value);
+    }
+
+    if (typeof value === 'string') {
+        return value.trim() !== '';
+    }
+
+    return false;
+};
+
 const useLocationSearch = ({
     initialQuery,
     searchUrl,
@@ -235,7 +263,7 @@ const useLocationSearch = ({
     limit?: number;
     debounceMs?: number;
 }): LocationSearchState => {
-    const [query, setQuery] = useState<string>(initialQuery);
+    const [query, setQueryState] = useState<string>(initialQuery);
     const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
     const [open, setOpen] = useState<boolean>(false);
     const [status, setStatus] = useState<'idle' | 'loading' | 'error'>(
@@ -243,6 +271,27 @@ const useLocationSearch = ({
     );
     const [error, setError] = useState<string | null>(null);
     const blurTimeoutRef = useRef<number | null>(null);
+
+    const resetSearchState = () => {
+        setSuggestions([]);
+        setStatus('idle');
+        setError(null);
+    };
+
+    const setQuery = (value: string) => {
+        setQueryState(value);
+
+        const trimmedValue = value.trim();
+
+        if (trimmedValue.length < minLength) {
+            resetSearchState();
+            return;
+        }
+
+        setSuggestions([]);
+        setStatus('loading');
+        setError(null);
+    };
 
     useEffect(() => {
         if (!open) {
@@ -252,14 +301,8 @@ const useLocationSearch = ({
         const trimmedQuery = query.trim();
 
         if (trimmedQuery.length < minLength) {
-            setSuggestions([]);
-            setStatus('idle');
-            setError(null);
             return;
         }
-
-        setStatus('loading');
-        setError(null);
 
         const controller = new AbortController();
         const timeout = window.setTimeout(async () => {
@@ -319,6 +362,17 @@ const useLocationSearch = ({
         }
 
         setOpen(true);
+
+        const trimmedQuery = query.trim();
+
+        if (trimmedQuery.length < minLength) {
+            resetSearchState();
+            return;
+        }
+
+        setSuggestions([]);
+        setStatus('loading');
+        setError(null);
     };
 
     const handleBlur = () => {
@@ -328,11 +382,9 @@ const useLocationSearch = ({
     };
 
     const handleSelect = (suggestion: LocationSuggestion) => {
-        setQuery(suggestion.value);
+        setQueryState(suggestion.value);
         setOpen(false);
-        setSuggestions([]);
-        setStatus('idle');
-        setError(null);
+        resetSearchState();
     };
 
     return {
@@ -423,6 +475,22 @@ export default function Profile({
         initialQuery: memberApplicationProfile?.birthplace ?? '',
         searchUrl: birthplaces.url(),
     });
+    const [educationalAttainment, setEducationalAttainment] = useState<string>(
+        memberApplicationProfile?.educational_attainment?.trim() ?? '',
+    );
+    const educationalAttainmentOptions =
+        educationalAttainment !== '' &&
+        !EDUCATIONAL_ATTAINMENT_OPTIONS.includes(educationalAttainment)
+            ? [educationalAttainment, ...EDUCATIONAL_ATTAINMENT_OPTIONS]
+            : EDUCATIONAL_ATTAINMENT_OPTIONS;
+    const [employmentType, setEmploymentType] = useState<string>(
+        memberApplicationProfile?.employment_type?.trim() ?? '',
+    );
+    const employmentTypeOptions =
+        employmentType !== '' &&
+        !EMPLOYMENT_TYPE_OPTIONS.includes(employmentType)
+            ? [employmentType, ...EMPLOYMENT_TYPE_OPTIONS]
+            : EMPLOYMENT_TYPE_OPTIONS;
     const initialNatureOfBusiness =
         memberApplicationProfile?.nature_of_business?.trim() ?? '';
     const hasPresetNatureOfBusiness =
@@ -1007,7 +1075,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="member_full_name"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberDisplayName,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberDisplayName
                                                                             }
@@ -1026,7 +1100,13 @@ export default function Profile({
 
                                                                                     <Input
                                                                                         id="member_first_name"
-                                                                                        className="mt-1 block w-full"
+                                                                                        className={cn(
+                                                                                            'mt-1 block w-full',
+                                                                                            hasWmasterValue(
+                                                                                                memberFirstName,
+                                                                                            ) &&
+                                                                                                WMASTER_VALUE_CLASS,
+                                                                                        )}
                                                                                         defaultValue={
                                                                                             memberFirstName
                                                                                         }
@@ -1044,7 +1124,13 @@ export default function Profile({
 
                                                                                     <Input
                                                                                         id="member_last_name"
-                                                                                        className="mt-1 block w-full"
+                                                                                        className={cn(
+                                                                                            'mt-1 block w-full',
+                                                                                            hasWmasterValue(
+                                                                                                memberLastName,
+                                                                                            ) &&
+                                                                                                WMASTER_VALUE_CLASS,
+                                                                                        )}
                                                                                         defaultValue={
                                                                                             memberLastName
                                                                                         }
@@ -1062,7 +1148,13 @@ export default function Profile({
 
                                                                                     <Input
                                                                                         id="member_middle_name"
-                                                                                        className="mt-1 block w-full"
+                                                                                        className={cn(
+                                                                                            'mt-1 block w-full',
+                                                                                            hasWmasterValue(
+                                                                                                memberMiddleName,
+                                                                                            ) &&
+                                                                                                WMASTER_VALUE_CLASS,
+                                                                                        )}
                                                                                         defaultValue={
                                                                                             memberMiddleName
                                                                                         }
@@ -1105,7 +1197,13 @@ export default function Profile({
                                                                         <Input
                                                                             id="member_birthday"
                                                                             type="date"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.birthday,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberRecord?.birthday ??
                                                                                 ''
@@ -1266,7 +1364,13 @@ export default function Profile({
                                                                         <Input
                                                                             id="member_age"
                                                                             type="number"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberAge,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberAge ?? ''
                                                                             }
@@ -1282,7 +1386,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="member_record_address"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.address,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberRecord?.address ??
                                                                                 ''
@@ -1327,7 +1437,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="member_housing_status"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.housing_status,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberRecord?.housing_status ??
                                                                                 ''
@@ -1376,7 +1492,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="member_civil_status"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.civilstat,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberRecord?.civilstat ??
                                                                                 ''
@@ -1392,16 +1514,53 @@ export default function Profile({
                                                                             attainment
                                                                         </Label>
 
-                                                                        <Input
-                                                                            id="educational_attainment"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.educational_attainment ??
-                                                                                ''
+                                                                        <Select
+                                                                            value={
+                                                                                educationalAttainment ||
+                                                                                undefined
                                                                             }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setEducationalAttainment(
+                                                                                    value,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger
+                                                                                id="educational_attainment"
+                                                                                className="mt-1 w-full"
+                                                                            >
+                                                                                <SelectValue placeholder="Select educational attainment" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {educationalAttainmentOptions.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option
+                                                                                            }
+                                                                                            value={
+                                                                                                option
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+
+                                                                        <input
+                                                                            type="hidden"
                                                                             name="educational_attainment"
-                                                                            required
-                                                                            placeholder="Highest level attained"
+                                                                            value={
+                                                                                educationalAttainment
+                                                                            }
                                                                         />
 
                                                                         <InputError
@@ -1422,7 +1581,13 @@ export default function Profile({
                                                                         <Input
                                                                             id="member_record_number_of_children"
                                                                             type="number"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.number_of_children,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberRecord?.number_of_children ??
                                                                                 ''
@@ -1440,7 +1605,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="member_record_spouse_name"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.spouse_name,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberRecord?.spouse_name ??
                                                                                 ''
@@ -1514,7 +1685,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="member_occupation"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.occupation,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 memberRecord?.occupation ??
                                                                                 ''
@@ -1554,16 +1731,51 @@ export default function Profile({
                                                                             type
                                                                         </Label>
 
-                                                                        <Input
-                                                                            id="employment_type"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.employment_type ??
-                                                                                ''
+                                                                        <Select
+                                                                            value={
+                                                                                employmentType ||
+                                                                                undefined
                                                                             }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setEmploymentType(
+                                                                                    value,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger
+                                                                                id="employment_type"
+                                                                                className="mt-1 w-full"
+                                                                            >
+                                                                                <SelectValue placeholder="Select employment type" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {employmentTypeOptions.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option
+                                                                                            }
+                                                                                            value={
+                                                                                                option
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+
+                                                                        <input
+                                                                            type="hidden"
                                                                             name="employment_type"
-                                                                            required
-                                                                            placeholder="Regular, contract, or self-employed"
+                                                                            value={employmentType}
                                                                         />
 
                                                                         <InputError
@@ -1827,66 +2039,83 @@ export default function Profile({
                                                                         />
                                                                     </div>
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="nature_of_business">
-                                                                            Nature
-                                                                            of
-                                                                            business
-                                                                        </Label>
+                                                                    <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="nature_of_business">
+                                                                                Nature
+                                                                                of
+                                                                                business
+                                                                            </Label>
 
-                                                                        <Select
-                                                                            value={
-                                                                                natureOfBusinessSelection ||
-                                                                                undefined
-                                                                            }
-                                                                            onValueChange={(
-                                                                                value,
-                                                                            ) => {
-                                                                                setNatureOfBusinessSelection(
-                                                                                    value,
-                                                                                );
-
-                                                                                if (
-                                                                                    value !==
-                                                                                    NATURE_OF_BUSINESS_OTHER_VALUE
-                                                                                ) {
-                                                                                    setNatureOfBusinessOther(
-                                                                                        '',
-                                                                                    );
+                                                                            <Select
+                                                                                value={
+                                                                                    natureOfBusinessSelection ||
+                                                                                    undefined
                                                                                 }
-                                                                            }}
-                                                                        >
-                                                                            <SelectTrigger
-                                                                                id="nature_of_business"
-                                                                                className="mt-1 w-full"
+                                                                                onValueChange={(
+                                                                                    value,
+                                                                                ) => {
+                                                                                    setNatureOfBusinessSelection(
+                                                                                        value,
+                                                                                    );
+
+                                                                                    if (
+                                                                                        value !==
+                                                                                        NATURE_OF_BUSINESS_OTHER_VALUE
+                                                                                    ) {
+                                                                                        setNatureOfBusinessOther(
+                                                                                            '',
+                                                                                        );
+                                                                                    }
+                                                                                }}
                                                                             >
-                                                                                <SelectValue placeholder="Select an industry" />
-                                                                            </SelectTrigger>
-                                                                            <SelectContent>
-                                                                                {NATURE_OF_BUSINESS_OPTIONS.map(
-                                                                                    (
-                                                                                        option,
-                                                                                    ) => (
-                                                                                        <SelectItem
-                                                                                            key={
-                                                                                                option
-                                                                                            }
-                                                                                            value={
-                                                                                                option
-                                                                                            }
-                                                                                        >
-                                                                                            {
-                                                                                                option
-                                                                                            }
-                                                                                        </SelectItem>
-                                                                                    ),
-                                                                                )}
-                                                                            </SelectContent>
-                                                                        </Select>
+                                                                                <SelectTrigger
+                                                                                    id="nature_of_business"
+                                                                                    className="mt-1 w-full"
+                                                                                >
+                                                                                    <SelectValue placeholder="Select an industry" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {NATURE_OF_BUSINESS_OPTIONS.map(
+                                                                                        (
+                                                                                            option,
+                                                                                        ) => (
+                                                                                            <SelectItem
+                                                                                                key={
+                                                                                                    option
+                                                                                                }
+                                                                                                value={
+                                                                                                    option
+                                                                                                }
+                                                                                            >
+                                                                                                {
+                                                                                                    option
+                                                                                                }
+                                                                                            </SelectItem>
+                                                                                        ),
+                                                                                    )}
+                                                                                </SelectContent>
+                                                                            </Select>
+
+                                                                            <input
+                                                                                type="hidden"
+                                                                                name="nature_of_business"
+                                                                                value={
+                                                                                    resolvedNatureOfBusiness
+                                                                                }
+                                                                            />
+
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.nature_of_business
+                                                                                }
+                                                                            />
+                                                                        </div>
 
                                                                         {natureOfBusinessSelection ===
                                                                             NATURE_OF_BUSINESS_OTHER_VALUE && (
-                                                                            <div className="grid gap-2 pt-2">
+                                                                            <div className="grid gap-2">
                                                                                 <Label htmlFor="nature_of_business_other">
                                                                                     Specify
                                                                                     industry
@@ -1913,48 +2142,33 @@ export default function Profile({
                                                                             </div>
                                                                         )}
 
-                                                                        <input
-                                                                            type="hidden"
-                                                                            name="nature_of_business"
-                                                                            value={
-                                                                                resolvedNatureOfBusiness
-                                                                            }
-                                                                        />
+                                                                        <div className="grid gap-2 md:col-span-2">
+                                                                            <Label htmlFor="years_in_work_business">
+                                                                                Years
+                                                                                in
+                                                                                work
+                                                                                or
+                                                                                business
+                                                                            </Label>
 
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.nature_of_business
-                                                                            }
-                                                                        />
-                                                                    </div>
+                                                                            <Input
+                                                                                id="years_in_work_business"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberApplicationProfile?.years_in_work_business ??
+                                                                                    ''
+                                                                                }
+                                                                                name="years_in_work_business"
+                                                                                placeholder="e.g. 5 years"
+                                                                            />
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="years_in_work_business">
-                                                                            Years
-                                                                            in
-                                                                            work
-                                                                            or
-                                                                            business
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="years_in_work_business"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.years_in_work_business ??
-                                                                                ''
-                                                                            }
-                                                                            name="years_in_work_business"
-                                                                            placeholder="e.g. 5 years"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.years_in_work_business
-                                                                            }
-                                                                        />
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.years_in_work_business
+                                                                                }
+                                                                            />
+                                                                        </div>
                                                                     </div>
 
                                                                     <div className="grid gap-2">

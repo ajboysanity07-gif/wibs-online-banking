@@ -445,3 +445,133 @@ test('admin dashboard reports loan requests count', function () {
         ->component('admin/dashboard')
         ->where('summary.metrics.requestsCount', 1));
 });
+
+test('client loans page lists member loan requests', function () {
+    $user = User::factory()->create([
+        'acctno' => '000720',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $draft = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Draft,
+            'requested_amount' => 12000,
+            'requested_term' => 12,
+            'updated_at' => now(),
+        ]);
+
+    $submitted = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::UnderReview,
+            'requested_amount' => 18000,
+            'requested_term' => 18,
+            'submitted_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loans'));
+
+    $response
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loans')
+            ->has('summary')
+            ->has('loans')
+            ->has('loanRequests.items', 2)
+            ->where('loanRequests.items.0.id', $draft->id)
+            ->where('loanRequests.items.0.status', LoanRequestStatus::Draft->value)
+            ->where('loanRequests.items.1.id', $submitted->id)
+            ->where('loanRequests.items.1.status', LoanRequestStatus::UnderReview->value));
+});
+
+test('draft loan request details redirect to the request form', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Draft,
+        ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.show', $loanRequest));
+
+    $response->assertRedirect(route('client.loan-requests.create'));
+});
+
+test('client can view submitted loan request details', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::UnderReview,
+            'submitted_at' => now(),
+        ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.show', $loanRequest));
+
+    $response
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request-show')
+            ->where('loanRequest.id', $loanRequest->id));
+});

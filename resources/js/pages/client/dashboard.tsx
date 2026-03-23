@@ -1,9 +1,9 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
-import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
+import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';

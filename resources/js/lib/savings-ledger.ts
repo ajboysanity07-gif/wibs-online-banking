@@ -1,5 +1,5 @@
 import type { VariantProps } from 'class-variance-authority';
-import { badgeVariants } from '@/components/ui/badge';
+import type { badgeVariants } from '@/components/ui/badge';
 import type { MemberSavingsLedgerEntry } from '@/types/admin';
 
 export type SavingsMovement = 'Deposit' | 'Withdrawal' | 'Unknown';

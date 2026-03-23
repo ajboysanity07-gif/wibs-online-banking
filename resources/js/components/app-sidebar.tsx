@@ -32,7 +32,6 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
-import { create as loanRequestCreate } from '@/routes/client/loan-requests';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
@@ -46,11 +45,6 @@ const baseNavItems: NavItem[] = [
         title: 'Loans',
         href: clientLoans(),
         icon: Banknote,
-    },
-    {
-        title: 'Loan request',
-        href: loanRequestCreate(),
-        icon: FileText,
     },
     {
         title: 'Savings',

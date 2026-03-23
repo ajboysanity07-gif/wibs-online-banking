@@ -47,7 +47,7 @@ export default function MemberSavings({
     savingsError = null,
 }: Props) {
     const [loading, setLoading] = useState(false);
-    const items = savings?.items ?? [];
+    const items = useMemo(() => savings?.items ?? [], [savings]);
     const meta = savings?.meta ?? fallbackMeta;
     const summaryValue = summary ?? null;
     const isLoading = loading || (savings === null && !savingsError);

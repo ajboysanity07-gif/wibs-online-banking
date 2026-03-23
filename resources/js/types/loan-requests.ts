@@ -58,6 +58,21 @@ export type LoanRequestDetail = {
     submitted_at: string | null;
 };
 
+export type LoanRequestListItem = {
+    id: number;
+    status: LoanRequestStatusValue | null;
+    typecode: string | null;
+    loan_type_label_snapshot: string | null;
+    requested_amount: number | string | null;
+    requested_term: number | string | null;
+    submitted_at: string | null;
+    updated_at: string | null;
+};
+
+export type LoanRequestListResponse = {
+    items: LoanRequestListItem[];
+};
+
 export type LoanRequestDraft = {
     id: number;
     status: LoanRequestStatusValue | null;

@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import { Link } from '@inertiajs/react';
+import type { ReactNode } from 'react';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
