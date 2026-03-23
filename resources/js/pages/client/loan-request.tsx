@@ -286,13 +286,6 @@ export default function LoanRequestPage({
     const isSavingDraft = form.processing && activeAction === 'draft';
     const isSubmitting = form.processing && activeAction === 'submit';
     const hasLoanTypes = loanTypes.length > 0;
-    const progressPercentage = Math.round(
-        steps.length > 1
-            ? (currentStep / (steps.length - 1)) * 100
-            : 0,
-    );
-    const progressInsetPercent =
-        steps.length > 1 ? 100 / (steps.length * 2) : 0;
     const stepMeta = steps[currentStep];
 
     const updatePersonField =
@@ -428,30 +421,6 @@ export default function LoanRequestPage({
 
                     <div className="mt-6 rounded-xl border border-border/40 bg-muted/20 p-4 sm:p-5">
                         <div className="space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                                <span>
-                                    Step {currentStep + 1} of {steps.length}
-                                </span>
-                                <span>{progressPercentage}% complete</span>
-                            </div>
-                            <div
-                                className="h-1.5 w-full rounded-full bg-border/40"
-                                style={{
-                                    marginLeft: `${progressInsetPercent}%`,
-                                    marginRight: `${progressInsetPercent}%`,
-                                }}
-                                role="progressbar"
-                                aria-valuenow={progressPercentage}
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                            >
-                                <div
-                                    className="h-full rounded-full bg-primary/60 transition-all motion-reduce:transition-none"
-                                    style={{
-                                        width: `${progressPercentage}%`,
-                                    }}
-                                />
-                            </div>
                             <div className="space-y-1">
                                 <p className="text-sm font-semibold text-foreground">
                                     {stepMeta?.title}
@@ -462,14 +431,12 @@ export default function LoanRequestPage({
                                     </p>
                                 ) : null}
                             </div>
+                            <LoanRequestStepIndicator
+                                steps={steps}
+                                currentStep={currentStep}
+                                onStepChange={handleStepChange}
+                            />
                         </div>
-
-                        <LoanRequestStepIndicator
-                            steps={steps}
-                            currentStep={currentStep}
-                            onStepChange={handleStepChange}
-                            className="mt-4"
-                        />
                     </div>
                 </div>
 
