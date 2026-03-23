@@ -288,7 +288,9 @@ export default function LoanRequestPage({
     const isSubmitting = form.processing && activeAction === 'submit';
     const hasLoanTypes = loanTypes.length > 0;
     const progressPercentage = Math.round(
-        ((currentStep + 1) / steps.length) * 100,
+        steps.length > 1
+            ? (currentStep / (steps.length - 1)) * 100
+            : 0,
     );
     const stepMeta = steps[currentStep];
 
@@ -440,7 +442,7 @@ export default function LoanRequestPage({
                             aria-valuemax={100}
                         >
                             <div
-                                className="h-full rounded-full bg-primary transition-all motion-reduce:transition-none"
+                                className="h-full rounded-full bg-primary/70 transition-all motion-reduce:transition-none"
                                 style={{
                                     width: `${progressPercentage}%`,
                                 }}

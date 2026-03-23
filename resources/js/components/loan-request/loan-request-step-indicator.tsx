@@ -36,7 +36,7 @@ export function LoanRequestStepIndicator({
                     aria-hidden="true"
                 >
                     <span
-                        className="block h-full bg-primary/70 transition-all motion-reduce:transition-none"
+                        className="block h-full bg-primary/60 transition-all motion-reduce:transition-none"
                         style={{ width: `${progressPercentage}%` }}
                     />
                 </div>
@@ -74,10 +74,10 @@ export function LoanRequestStepIndicator({
                                     <span
                                         className={cn(
                                             'flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors duration-200 sm:h-8 sm:w-8',
-                                            isActive
-                                                ? 'border-primary bg-primary text-primary-foreground ring-3 ring-primary/15'
-                                                : isComplete
-                                                  ? 'border-primary/50 bg-primary/10 text-primary'
+                                            isComplete
+                                                ? 'border-primary bg-primary text-primary-foreground'
+                                                : isActive
+                                                  ? 'border-primary bg-background text-primary ring-3 ring-primary/15'
                                                   : 'border-border/50 bg-muted/30 text-muted-foreground',
                                         )}
                                     >
@@ -93,7 +93,7 @@ export function LoanRequestStepIndicator({
                                             isActive
                                                 ? 'text-foreground'
                                                 : isComplete
-                                                  ? 'text-foreground/70'
+                                                  ? 'text-foreground/80'
                                                   : 'text-muted-foreground',
                                         )}
                                     >
