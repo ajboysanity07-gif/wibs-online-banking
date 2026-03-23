@@ -51,7 +51,8 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
-const readOnlyInputClass = 'bg-muted/40 text-muted-foreground';
+const readOnlyInputClass =
+    'bg-muted/30 text-muted-foreground/80 border-border/40';
 
 const fieldName = (prefix: string, field: string) =>
     `${prefix}[${field}]`;
@@ -61,6 +62,27 @@ const fieldError = (
     prefix: string,
     field: string,
 ) => errors[`${prefix}.${field}`];
+
+type FieldLabelProps = {
+    htmlFor: string;
+    label: string;
+    isReadOnly?: boolean;
+};
+
+const FieldLabel = ({
+    htmlFor,
+    label,
+    isReadOnly = false,
+}: FieldLabelProps) => (
+    <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={htmlFor}>{label}</Label>
+        {isReadOnly ? (
+            <span className="rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Verified
+            </span>
+        ) : null}
+    </div>
+);
 
 const STREET_CUE_PATTERN =
     /\b(street|st\.?|ave\.?|avenue|rd\.?|road|blvd\.?|boulevard|drive|dr\.?|lane|ln\.?|highway|hiway|bldg\.?|building|unit|floor|lot|blk\.?|block|phase|purok|sitio|subd\.?|subdivision|village|compound|plaza|tower|mall|center|centre|brgy\.?|barangay)\b/i;
@@ -190,6 +212,7 @@ export function LoanRequestPersonalFields({
     }, [educationalAttainment]);
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
+    const hasReadOnlyFields = Object.values(readOnly ?? {}).some(Boolean);
     const birthplaceSearch = useLocationSearch({
         initialQuery: values.birthplace,
         searchUrl: birthplaces.url(),
@@ -205,10 +228,20 @@ export function LoanRequestPersonalFields({
         };
 
     return (
-        <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-7">
+            {hasReadOnlyFields ? (
+                <div className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                    Verified profile fields are locked. Update your profile if
+                    you need changes.
+                </div>
+            ) : null}
+            <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_first_name`}>First name</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_first_name`}
+                        label="First name"
+                        isReadOnly={isReadOnly('first_name')}
+                    />
                     <Input
                         id={`${prefix}_first_name`}
                         name={fieldName(prefix, 'first_name')}
@@ -227,7 +260,11 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_last_name`}>Last name</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_last_name`}
+                        label="Last name"
+                        isReadOnly={isReadOnly('last_name')}
+                    />
                     <Input
                         id={`${prefix}_last_name`}
                         name={fieldName(prefix, 'last_name')}
@@ -246,7 +283,11 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_middle_name`}>Middle name</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_middle_name`}
+                        label="Middle name"
+                        isReadOnly={isReadOnly('middle_name')}
+                    />
                     <Input
                         id={`${prefix}_middle_name`}
                         name={fieldName(prefix, 'middle_name')}
@@ -264,7 +305,10 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_nickname`}>Nickname</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_nickname`}
+                        label="Nickname"
+                    />
                     <Input
                         id={`${prefix}_nickname`}
                         name={fieldName(prefix, 'nickname')}
@@ -278,7 +322,11 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_birthdate`}>Birthdate</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_birthdate`}
+                        label="Birthdate"
+                        isReadOnly={isReadOnly('birthdate')}
+                    />
                     <Input
                         id={`${prefix}_birthdate`}
                         type="date"
@@ -298,7 +346,11 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_birthplace`}>Birthplace</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_birthplace`}
+                        label="Birthplace"
+                        isReadOnly={isReadOnly('birthplace')}
+                    />
                     <LocationAutocompleteInput
                         id={`${prefix}_birthplace`}
                         name={fieldName(prefix, 'birthplace')}
@@ -319,11 +371,15 @@ export function LoanRequestPersonalFields({
                 </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-border/40" />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2 md:col-span-2">
-                    <Label htmlFor={`${prefix}_address`}>Address</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_address`}
+                        label="Address"
+                        isReadOnly={isReadOnly('address')}
+                    />
                     <Input
                         id={`${prefix}_address`}
                         name={fieldName(prefix, 'address')}
@@ -342,9 +398,10 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_length_of_stay`}>
-                        Length of stay
-                    </Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_length_of_stay`}
+                        label="Length of stay"
+                    />
                     <Input
                         id={`${prefix}_length_of_stay`}
                         name={fieldName(prefix, 'length_of_stay')}
@@ -360,9 +417,11 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_housing_status`}>
-                        Housing status
-                    </Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_housing_status`}
+                        label="Housing status"
+                        isReadOnly={isReadOnly('housing_status')}
+                    />
                     <Input
                         id={`${prefix}_housing_status`}
                         name={fieldName(prefix, 'housing_status')}
@@ -381,7 +440,10 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_cell_no`}>Cell no.</Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_cell_no`}
+                        label="Cell no."
+                    />
                     <Input
                         id={`${prefix}_cell_no`}
                         name={fieldName(prefix, 'cell_no')}
@@ -397,13 +459,15 @@ export function LoanRequestPersonalFields({
                 </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-border/40" />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_civil_status`}>
-                        Civil status
-                    </Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_civil_status`}
+                        label="Civil status"
+                        isReadOnly={isReadOnly('civil_status')}
+                    />
                     <Input
                         id={`${prefix}_civil_status`}
                         name={fieldName(prefix, 'civil_status')}
@@ -422,9 +486,10 @@ export function LoanRequestPersonalFields({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_educational_attainment`}>
-                        Educational attainment
-                    </Label>
+                    <FieldLabel
+                        htmlFor={`${prefix}_educational_attainment`}
+                        label="Educational attainment"
+                    />
                     <Select
                         value={educationalAttainment || undefined}
                         onValueChange={(value) =>
@@ -456,9 +521,11 @@ export function LoanRequestPersonalFields({
 
                 {includeChildren ? (
                     <div className="grid gap-2">
-                        <Label htmlFor={`${prefix}_number_of_children`}>
-                            No. of children
-                        </Label>
+                        <FieldLabel
+                            htmlFor={`${prefix}_number_of_children`}
+                            label="No. of children"
+                            isReadOnly={isReadOnly('number_of_children')}
+                        />
                         <Input
                             id={`${prefix}_number_of_children`}
                             type="number"
@@ -486,9 +553,11 @@ export function LoanRequestPersonalFields({
                 {includeSpouse ? (
                     <>
                         <div className="grid gap-2">
-                            <Label htmlFor={`${prefix}_spouse_name`}>
-                                Spouse name
-                            </Label>
+                            <FieldLabel
+                                htmlFor={`${prefix}_spouse_name`}
+                                label="Spouse name"
+                                isReadOnly={isReadOnly('spouse_name')}
+                            />
                             <Input
                                 id={`${prefix}_spouse_name`}
                                 name={fieldName(prefix, 'spouse_name')}
@@ -511,9 +580,10 @@ export function LoanRequestPersonalFields({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor={`${prefix}_spouse_age`}>
-                                Spouse age
-                            </Label>
+                            <FieldLabel
+                                htmlFor={`${prefix}_spouse_age`}
+                                label="Spouse age"
+                            />
                             <Input
                                 id={`${prefix}_spouse_age`}
                                 type="number"
@@ -532,9 +602,10 @@ export function LoanRequestPersonalFields({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor={`${prefix}_spouse_cell_no`}>
-                                Spouse cell no.
-                            </Label>
+                            <FieldLabel
+                                htmlFor={`${prefix}_spouse_cell_no`}
+                                label="Spouse cell no."
+                            />
                             <Input
                                 id={`${prefix}_spouse_cell_no`}
                                 name={fieldName(prefix, 'spouse_cell_no')}
@@ -627,8 +698,8 @@ export function LoanRequestWorkFields({
     };
 
     return (
-        <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-7">
+            <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                     <Label htmlFor={`${prefix}_employment_type`}>
                         Employment
@@ -736,9 +807,9 @@ export function LoanRequestWorkFields({
                 </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-border/40" />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                     <Label htmlFor={`${prefix}_telephone_no`}>Tel. no.</Label>
                     <Input
@@ -842,9 +913,9 @@ export function LoanRequestWorkFields({
                 </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-border/40" />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                     <Label htmlFor={`${prefix}_gross_monthly_income`}>
                         Gross monthly income

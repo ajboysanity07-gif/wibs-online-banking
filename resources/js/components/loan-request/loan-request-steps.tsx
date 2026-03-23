@@ -239,7 +239,7 @@ export function LoanRequestCoMakerStep({
                 errors={errors}
                 onChange={onChange}
             />
-            <Separator />
+            <Separator className="bg-border/40" />
             <LoanRequestWorkFields
                 prefix={prefix}
                 values={values}
@@ -299,7 +299,7 @@ type SummaryCardProps = {
 };
 
 const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
-    <div className="rounded-lg border border-border/60 bg-background/80 p-4">
+    <div className="rounded-lg border border-border/50 bg-card/60 p-4">
         <div className="space-y-1">
             <h3 className="text-sm font-semibold">{title}</h3>
             {description ? (
@@ -454,7 +454,7 @@ export function LoanRequestReviewStep({
             description="Review your application before submitting."
             contentClassName="space-y-5"
         >
-            <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm">
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-sm">
                 <p className="text-xs uppercase text-muted-foreground">
                     Member
                 </p>
@@ -538,7 +538,7 @@ export function LoanRequestReviewStep({
                     </p>
                 </div>
 
-                <Separator className="my-4" />
+                <Separator className="my-4 bg-border/40" />
 
                 <div className="flex items-start gap-3">
                     <Checkbox

@@ -71,9 +71,9 @@ export function LoanRequestSummaryPanel({
             : '--';
 
     return (
-        <div className="space-y-4 lg:sticky lg:top-28">
-            <Card className="border-border/30 bg-card/50">
-                <CardHeader className="space-y-3">
+        <div className="space-y-3 lg:sticky lg:top-28">
+            <Card className="border-border/20 bg-card/40">
+                <CardHeader className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                         <CardTitle className="text-base">
                             Application summary
@@ -88,15 +88,12 @@ export function LoanRequestSummaryPanel({
                         Keep your details in sync before submitting.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                    <div className="rounded-lg border border-border/30 bg-muted/15 p-3">
+                <CardContent className="space-y-3 text-sm">
+                    <div className="rounded-lg border border-border/20 bg-muted/10 p-3">
                         <p className="text-xs uppercase text-muted-foreground">
                             Member
                         </p>
                         <p className="mt-2 font-medium">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                            Account No: {member.acctno ?? '--'}
-                        </p>
                     </div>
 
                     <div className="space-y-2">
@@ -126,7 +123,7 @@ export function LoanRequestSummaryPanel({
                         />
                     </div>
 
-                    <Separator />
+                    <Separator className="bg-border/30" />
 
                     <div className="space-y-2">
                         <SummaryRow
@@ -145,7 +142,7 @@ export function LoanRequestSummaryPanel({
 
                     {draftUpdatedAt ? (
                         <>
-                            <Separator />
+                            <Separator className="bg-border/30" />
                             <p className="text-xs text-muted-foreground">
                                 Last saved {draftUpdatedAt}
                             </p>
@@ -154,7 +151,7 @@ export function LoanRequestSummaryPanel({
                 </CardContent>
             </Card>
 
-            <Card className="border-border/30 bg-card/40">
+            <Card className="border-border/20 bg-card/30">
                 <CardHeader>
                     <CardTitle className="text-base">
                         Tips for faster approval

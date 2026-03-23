@@ -24,14 +24,14 @@ export function LoanRequestSectionCard({
     contentClassName,
 }: Props) {
     return (
-        <Card className={cn('border-border/60 bg-card/80', className)}>
-            <CardHeader className="space-y-1.5 pb-4">
+        <Card className={cn('border-border/50 bg-card/70', className)}>
+            <CardHeader className="space-y-2 pb-5">
                 <CardTitle className="text-lg">{title}</CardTitle>
                 {description ? (
                     <CardDescription>{description}</CardDescription>
                 ) : null}
             </CardHeader>
-            <CardContent className={cn('space-y-6', contentClassName)}>
+            <CardContent className={cn('space-y-7', contentClassName)}>
                 {children}
             </CardContent>
         </Card>

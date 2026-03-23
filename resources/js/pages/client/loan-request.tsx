@@ -365,10 +365,10 @@ export default function LoanRequestPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-28 pt-8">
-                <div className="rounded-2xl border border-border/50 bg-card/60 p-6 shadow-sm sm:p-8">
-                    <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="space-y-3">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 pb-28 pt-8">
+                <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-2">
                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                                 Loan request
                             </p>
@@ -381,7 +381,7 @@ export default function LoanRequestPage({
                                 resume later.
                             </p>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                <span className="rounded-full bg-muted/40 px-2 py-1">
+                                <span className="rounded-full bg-muted/30 px-2 py-1">
                                     Account No: {member.acctno ?? '--'}
                                 </span>
                                 {draft ? (
@@ -419,8 +419,8 @@ export default function LoanRequestPage({
                         </Button>
                     </div>
 
-                    <div className="mt-6 rounded-xl border border-border/40 bg-muted/20 p-4 sm:p-5">
-                        <div className="space-y-3">
+                    <div className="mt-5 rounded-xl border border-border/30 bg-muted/15 p-4 sm:p-5">
+                        <div className="space-y-2">
                             <div className="space-y-1">
                                 <p className="text-sm font-semibold text-foreground">
                                     {stepMeta?.title}
@@ -440,7 +440,7 @@ export default function LoanRequestPage({
                     </div>
                 </div>
 
-                <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12 xl:grid-cols-[minmax(0,1fr)_24rem]">
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]">
                     <div className="space-y-8">
                         {loanTypes.length === 0 ? (
                             <Alert variant="destructive">
