@@ -220,6 +220,12 @@ test('clients can save a loan request draft', function () {
             ->where('role', LoanRequestPersonRole::Applicant)
             ->value('birthplace'),
     )->toBe('Manila');
+    expect(
+        LoanRequestPerson::query()
+            ->where('loan_request_id', $draft->id)
+            ->where('role', LoanRequestPersonRole::Applicant)
+            ->value('housing_status'),
+    )->toBe('Owned');
 
     $payload['loan_purpose'] = 'Tuition';
 
@@ -402,8 +408,125 @@ test('loan request submissions persist snapshots', function () {
         ->get()
         ->keyBy('role');
     expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila');
+    expect($people[LoanRequestPersonRole::Applicant->value]->housing_status)->toBe('Owned');
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('Cebu');
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('Rent');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao');
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('Owned');
+});
+
+test('loan request submission validates housing status values', function () {
+    $user = User::factory()->create([
+        'acctno' => '000722',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-005',
+        'lntype' => 'Personal',
+    ]);
+
+    $payload = [
+        'typecode' => 'LN-005',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Medical expenses',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'middle_name' => 'Q',
+            'nickname' => 'LM',
+            'birthdate' => '1990-04-10',
+            'birthplace' => 'Manila',
+            'address' => 'Loan Street',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'Other',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'number_of_children' => 0,
+            'spouse_name' => null,
+            'spouse_age' => null,
+            'spouse_cell_no' => null,
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address' => 'Loan City',
+            'telephone_no' => '021234567',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '3 years',
+            'gross_monthly_income' => 25000,
+            'payday' => '15/30',
+        ],
+        'co_maker_1' => [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'middle_name' => 'One',
+            'nickname' => null,
+            'birthdate' => '1989-03-12',
+            'birthplace' => 'Cebu',
+            'address' => 'Co Maker Street',
+            'length_of_stay' => '4 years',
+            'housing_status' => 'Rent',
+            'cell_no' => '09998887777',
+            'civil_status' => 'Married',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Government',
+            'employer_business_name' => 'Co Maker Office',
+            'employer_business_address' => 'Cebu City',
+            'telephone_no' => '021234567',
+            'current_position' => 'Clerk',
+            'nature_of_business' => 'Government',
+            'years_in_work_business' => '6 years',
+            'gross_monthly_income' => 18000,
+            'payday' => '30',
+        ],
+        'co_maker_2' => [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'middle_name' => 'Two',
+            'nickname' => null,
+            'birthdate' => '1987-02-12',
+            'birthplace' => 'Davao',
+            'address' => 'Second Street',
+            'length_of_stay' => '2 years',
+            'housing_status' => 'Owned',
+            'cell_no' => '09111112222',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'High School',
+            'employment_type' => 'Self Employed',
+            'employer_business_name' => 'Second Store',
+            'employer_business_address' => 'Davao City',
+            'telephone_no' => '021234567',
+            'current_position' => 'Owner',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '8 years',
+            'gross_monthly_income' => 22000,
+            'payday' => '15',
+        ],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionHasErrors(['applicant.housing_status']);
 });
 
 test('loan request pdf endpoint responds with a pdf', function () {

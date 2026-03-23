@@ -34,6 +34,7 @@ const EMPLOYMENT_TYPE_OPTIONS = [
     'Self Employed',
     'Retired',
 ];
+const HOUSING_STATUS_OPTIONS = ['Owned', 'Rent'] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -422,18 +423,31 @@ export function LoanRequestPersonalFields({
                         label="Housing status"
                         isReadOnly={isReadOnly('housing_status')}
                     />
-                    <Input
-                        id={`${prefix}_housing_status`}
-                        name={fieldName(prefix, 'housing_status')}
-                        value={values.housing_status}
-                        readOnly={isReadOnly('housing_status')}
-                        required
-                        className={cn(
-                            'mt-1 block w-full',
-                            isReadOnly('housing_status') && readOnlyInputClass,
-                        )}
-                        onChange={updateField('housing_status')}
-                    />
+                    <Select
+                        value={values.housing_status || undefined}
+                        onValueChange={(value) =>
+                            onChange('housing_status', value)
+                        }
+                        disabled={isReadOnly('housing_status')}
+                    >
+                        <SelectTrigger
+                            id={`${prefix}_housing_status`}
+                            className={cn(
+                                'mt-1 w-full',
+                                isReadOnly('housing_status') &&
+                                    readOnlyInputClass,
+                            )}
+                        >
+                            <SelectValue placeholder="Select housing status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {HOUSING_STATUS_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <InputError
                         message={fieldError(errors, prefix, 'housing_status')}
                     />

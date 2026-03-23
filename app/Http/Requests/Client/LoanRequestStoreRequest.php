@@ -9,6 +9,8 @@ use Illuminate\Validation\Rule;
 
 class LoanRequestStoreRequest extends FormRequest
 {
+    private const HOUSING_STATUS_OPTIONS = ['Owned', 'Rent'];
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -80,7 +82,11 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.birthplace" => ['required', 'string', 'max:255'],
             "{$prefix}.address" => ['required', 'string', 'max:500'],
             "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
-            "{$prefix}.housing_status" => ['required', 'string', 'max:255'],
+            "{$prefix}.housing_status" => [
+                'required',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ],
             "{$prefix}.cell_no" => ['required', 'string', 'max:20'],
             "{$prefix}.civil_status" => ['required', 'string', 'max:255'],
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],

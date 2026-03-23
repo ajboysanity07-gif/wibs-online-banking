@@ -9,6 +9,8 @@ use Illuminate\Validation\Rule;
 
 class LoanRequestDraftRequest extends FormRequest
 {
+    private const HOUSING_STATUS_OPTIONS = ['Owned', 'Rent'];
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -70,7 +72,12 @@ class LoanRequestDraftRequest extends FormRequest
             "{$prefix}.birthplace" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.address" => ['sometimes', 'nullable', 'string', 'max:500'],
             "{$prefix}.length_of_stay" => ['sometimes', 'nullable', 'string', 'max:255'],
-            "{$prefix}.housing_status" => ['sometimes', 'nullable', 'string', 'max:255'],
+            "{$prefix}.housing_status" => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ],
             "{$prefix}.cell_no" => ['sometimes', 'nullable', 'string', 'max:20'],
             "{$prefix}.civil_status" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.educational_attainment" => ['sometimes', 'nullable', 'string', 'max:255'],
