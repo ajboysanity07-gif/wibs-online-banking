@@ -369,9 +369,9 @@ export default function LoanRequestPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-24 pt-6">
-                <div className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-sm">
-                    <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-28 pt-8">
+                <div className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-sm sm:p-8">
+                    <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                                 Loan request
@@ -423,9 +423,9 @@ export default function LoanRequestPage({
                         </Button>
                     </div>
 
-                    <Separator className="my-6" />
+                    <Separator className="my-8" />
 
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                             <span>
                                 Step {currentStep + 1} of {steps.length}
@@ -461,12 +461,12 @@ export default function LoanRequestPage({
                         steps={steps}
                         currentStep={currentStep}
                         onStepChange={handleStepChange}
-                        className="mt-5 hidden lg:grid"
+                        className="mt-6 hidden lg:grid"
                     />
                 </div>
 
-                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                    <div className="space-y-6">
+                <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-12 xl:grid-cols-[minmax(0,1fr)_24rem]">
+                    <div className="space-y-8">
                         {loanTypes.length === 0 ? (
                             <Alert variant="destructive">
                                 <AlertTitle>

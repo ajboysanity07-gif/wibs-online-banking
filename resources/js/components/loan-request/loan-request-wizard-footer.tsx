@@ -24,9 +24,9 @@ export function LoanRequestWizardFooter({
     disablePrimary = false,
 }: Props) {
     return (
-        <div className="sticky bottom-0 z-20 border-t border-border/60 bg-background/90 px-4 py-4 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:bg-background/70">
-            <div className="mx-auto w-full max-w-4xl">
-                <div className="grid gap-3 sm:grid-cols-3 sm:items-center">
+        <div className="sticky bottom-0 z-20 border-t border-border/60 bg-background/90 px-4 py-4 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-6 sm:py-5">
+            <div className="mx-auto w-full max-w-5xl">
+                <div className="grid gap-4 sm:grid-cols-3 sm:items-center">
                     <div className="flex justify-start">
                         <Button
                             type="button"
