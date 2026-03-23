@@ -461,7 +461,7 @@ export default function LoanRequestPage({
                         steps={steps}
                         currentStep={currentStep}
                         onStepChange={handleStepChange}
-                        className="mt-6 hidden lg:grid"
+                        className="mt-6"
                     />
                 </div>
 
