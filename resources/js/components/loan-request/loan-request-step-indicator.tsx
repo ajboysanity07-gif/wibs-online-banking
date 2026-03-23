@@ -23,16 +23,25 @@ export function LoanRequestStepIndicator({
     const totalSteps = steps.length;
     const progressPercentage =
         totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 0;
+    const lineInsetPercent = totalSteps > 1 ? 100 / (totalSteps * 2) : 0;
 
     return (
         <div className={cn('overflow-x-auto pb-1', className)}>
             <div className="relative min-w-[600px] px-3 sm:min-w-[640px]">
                 <div
-                    className="absolute inset-x-3 top-3.5 h-px bg-border/40"
+                    className="absolute top-3.5 h-px bg-border/40"
+                    style={{
+                        left: `${lineInsetPercent}%`,
+                        right: `${lineInsetPercent}%`,
+                    }}
                     aria-hidden="true"
                 />
                 <div
-                    className="absolute inset-x-3 top-3.5 h-px"
+                    className="absolute top-3.5 h-px"
+                    style={{
+                        left: `${lineInsetPercent}%`,
+                        right: `${lineInsetPercent}%`,
+                    }}
                     aria-hidden="true"
                 >
                     <span

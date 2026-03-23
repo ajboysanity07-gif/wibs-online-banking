@@ -291,6 +291,8 @@ export default function LoanRequestPage({
             ? (currentStep / (steps.length - 1)) * 100
             : 0,
     );
+    const progressInsetPercent =
+        steps.length > 1 ? 100 / (steps.length * 2) : 0;
     const stepMeta = steps[currentStep];
 
     const updatePersonField =
@@ -434,6 +436,10 @@ export default function LoanRequestPage({
                             </div>
                             <div
                                 className="h-1.5 w-full rounded-full bg-border/40"
+                                style={{
+                                    marginLeft: `${progressInsetPercent}%`,
+                                    marginRight: `${progressInsetPercent}%`,
+                                }}
                                 role="progressbar"
                                 aria-valuenow={progressPercentage}
                                 aria-valuemin={0}
