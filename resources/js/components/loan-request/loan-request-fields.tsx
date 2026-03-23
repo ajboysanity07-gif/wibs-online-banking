@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import InputError from '@/components/input-error';
+import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,7 +13,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { useLocationSearch } from '@/hooks/use-location-search';
 import { cn } from '@/lib/utils';
+import { birthplaces } from '@/routes/api/locations';
 import type {
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
@@ -156,6 +159,14 @@ export function LoanRequestPersonalFields({
     }, [educationalAttainment]);
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
+    const birthplaceSearch = useLocationSearch({
+        initialQuery: values.birthplace,
+        searchUrl: birthplaces.url(),
+    });
+    const birthplaceInputClass = cn(
+        'mt-1 block w-full',
+        isReadOnly('birthplace') && readOnlyInputClass,
+    );
     const updateField =
         (field: keyof LoanRequestPersonFormData) =>
         (event: ChangeEvent<HTMLInputElement>) => {
@@ -257,13 +268,19 @@ export function LoanRequestPersonalFields({
 
                 <div className="grid gap-2">
                     <Label htmlFor={`${prefix}_birthplace`}>Birthplace</Label>
-                    <Input
+                    <LocationAutocompleteInput
                         id={`${prefix}_birthplace`}
                         name={fieldName(prefix, 'birthplace')}
-                        value={values.birthplace}
-                        className="mt-1 block w-full"
+                        search={birthplaceSearch}
+                        placeholder="City or municipality"
                         required
-                        onChange={updateField('birthplace')}
+                        readOnly={isReadOnly('birthplace')}
+                        inputClassName={birthplaceInputClass}
+                        loadingMessage="Searching birthplace suggestions..."
+                        errorMessage="Birthplace suggestions are temporarily unavailable."
+                        onValueChange={(value) =>
+                            onChange('birthplace', value)
+                        }
                     />
                     <InputError
                         message={fieldError(errors, prefix, 'birthplace')}
@@ -550,6 +567,10 @@ export function LoanRequestWorkFields({
                 splitEmployerBusinessAddress(values.employer_business_address),
             [values.employer_business_address],
         );
+    const employerBusinessCitySearch = useLocationSearch({
+        initialQuery: employerBusinessCity,
+        searchUrl: birthplaces.url(),
+    });
 
     const handleNatureOfBusinessSelection = (value: string) => {
         setNatureOfBusinessSelection(value);
@@ -657,20 +678,22 @@ export function LoanRequestWorkFields({
                     <Label htmlFor={`${prefix}_employer_business_city`}>
                         Business address (city/municipality)
                     </Label>
-                    <Input
+                    <LocationAutocompleteInput
                         id={`${prefix}_employer_business_city`}
-                        value={employerBusinessCity}
-                        className="mt-1 block w-full"
+                        search={employerBusinessCitySearch}
+                        placeholder="City or municipality"
+                        ariaLabel="City or municipality"
+                        inputClassName="mt-1 block w-full"
                         required
-                        onChange={(event) => {
+                        onValueChange={(value) =>
                             onChange(
                                 'employer_business_address',
                                 composeEmployerBusinessAddress(
                                     employerBusinessStreet,
-                                    event.target.value,
+                                    value,
                                 ),
-                            );
-                        }}
+                            )
+                        }
                     />
                     <InputError
                         message={fieldError(

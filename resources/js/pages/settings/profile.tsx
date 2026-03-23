@@ -1,6 +1,5 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import axios from 'axios';
 import { Camera, ShieldBan, ShieldCheck } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -11,6 +10,7 @@ import AppearanceTabs from '@/components/appearance-tabs';
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
 } from '@/components/profile/profile-image-crop-modal';
@@ -32,10 +32,10 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useInitials } from '@/hooks/use-initials';
+import { useLocationSearch } from '@/hooks/use-location-search';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import api, { getApiErrorMessage } from '@/lib/api';
 import { createCroppedImageFile } from '@/lib/image-crop';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -93,29 +93,6 @@ type MemberApplicationProfileData = {
     profile_completed_at: string | null;
 };
 
-type LocationSuggestion = {
-    code: string;
-    name: string;
-    type: 'city' | 'municipality';
-    province: string | null;
-    region: string | null;
-    label: string;
-    value: string;
-};
-
-type LocationSearchState = {
-    query: string;
-    setQuery: (value: string) => void;
-    suggestions: LocationSuggestion[];
-    open: boolean;
-    status: 'idle' | 'loading' | 'error';
-    error: string | null;
-    handleFocus: () => void;
-    handleBlur: () => void;
-    handleSelect: (suggestion: LocationSuggestion) => void;
-    openResults: () => void;
-};
-
 type ProfileCompletion = {
     isComplete: boolean;
     completedAt: string | null;
@@ -147,9 +124,6 @@ const PROFILE_PHOTO_ALLOWED_TYPES = new Set([
 ]);
 const PROFILE_PHOTO_OUTPUT_SIZE = 512;
 const PROFILE_PHOTO_OUTPUT_QUALITY = 0.92;
-const LOCATION_QUERY_MIN = 2;
-const LOCATION_DEBOUNCE_MS = 300;
-const LOCATION_RESULT_LIMIT = 15;
 const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'Elementary',
     'High School',
@@ -248,157 +222,6 @@ const hasWmasterValue = (
     }
 
     return false;
-};
-
-const useLocationSearch = ({
-    initialQuery,
-    searchUrl,
-    minLength = LOCATION_QUERY_MIN,
-    limit = LOCATION_RESULT_LIMIT,
-    debounceMs = LOCATION_DEBOUNCE_MS,
-}: {
-    initialQuery: string;
-    searchUrl: string;
-    minLength?: number;
-    limit?: number;
-    debounceMs?: number;
-}): LocationSearchState => {
-    const [query, setQueryState] = useState<string>(initialQuery);
-    const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
-    const [open, setOpen] = useState<boolean>(false);
-    const [status, setStatus] = useState<'idle' | 'loading' | 'error'>(
-        'idle',
-    );
-    const [error, setError] = useState<string | null>(null);
-    const blurTimeoutRef = useRef<number | null>(null);
-
-    const resetSearchState = () => {
-        setSuggestions([]);
-        setStatus('idle');
-        setError(null);
-    };
-
-    const setQuery = (value: string) => {
-        setQueryState(value);
-
-        const trimmedValue = value.trim();
-
-        if (trimmedValue.length < minLength) {
-            resetSearchState();
-            return;
-        }
-
-        setSuggestions([]);
-        setStatus('loading');
-        setError(null);
-    };
-
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        const trimmedQuery = query.trim();
-
-        if (trimmedQuery.length < minLength) {
-            return;
-        }
-
-        const controller = new AbortController();
-        const timeout = window.setTimeout(async () => {
-            try {
-                const response = await api.get(searchUrl, {
-                    params: {
-                        search: trimmedQuery,
-                        limit,
-                    },
-                    signal: controller.signal,
-                });
-                const payload = response.data as {
-                    available?: boolean;
-                    data?: LocationSuggestion[];
-                    message?: string;
-                };
-
-                if (payload?.available === false) {
-                    setStatus('error');
-                    setError(
-                        payload.message ??
-                            'Location suggestions are temporarily unavailable.',
-                    );
-                    setSuggestions([]);
-                    return;
-                }
-
-                setSuggestions(
-                    Array.isArray(payload?.data) ? payload.data : [],
-                );
-                setStatus('idle');
-            } catch (fetchError) {
-                if (axios.isCancel(fetchError)) {
-                    return;
-                }
-
-                setStatus('error');
-                setError(
-                    getApiErrorMessage(
-                        fetchError,
-                        'Unable to load location suggestions.',
-                    ),
-                );
-                setSuggestions([]);
-            }
-        }, debounceMs);
-
-        return () => {
-            window.clearTimeout(timeout);
-            controller.abort();
-        };
-    }, [open, query, minLength, limit, debounceMs, searchUrl]);
-
-    const handleFocus = () => {
-        if (blurTimeoutRef.current !== null) {
-            window.clearTimeout(blurTimeoutRef.current);
-        }
-
-        setOpen(true);
-
-        const trimmedQuery = query.trim();
-
-        if (trimmedQuery.length < minLength) {
-            resetSearchState();
-            return;
-        }
-
-        setSuggestions([]);
-        setStatus('loading');
-        setError(null);
-    };
-
-    const handleBlur = () => {
-        blurTimeoutRef.current = window.setTimeout(() => {
-            setOpen(false);
-        }, 120);
-    };
-
-    const handleSelect = (suggestion: LocationSuggestion) => {
-        setQueryState(suggestion.value);
-        setOpen(false);
-        resetSearchState();
-    };
-
-    return {
-        query,
-        setQuery,
-        suggestions,
-        open,
-        status,
-        error,
-        handleFocus,
-        handleBlur,
-        handleSelect,
-        openResults: () => setOpen(true),
-    };
 };
 
 export default function Profile({
@@ -1216,137 +1039,16 @@ export default function Profile({
                                                                         <Label htmlFor="birthplace">
                                                                             Birthplace
                                                                         </Label>
-
-                                                                        <div className="relative">
-                                                                            <Input
-                                                                                id="birthplace"
-                                                                                className="mt-1 block w-full"
-                                                                                value={
-                                                                                    birthplaceSearch.query
-                                                                                }
-                                                                                name="birthplace"
-                                                                                required
-                                                                                placeholder="City or municipality"
-                                                                                autoComplete="off"
-                                                                                onChange={(
-                                                                                    event,
-                                                                                ) => {
-                                                                                    birthplaceSearch.setQuery(
-                                                                                        event
-                                                                                            .target
-                                                                                            .value,
-                                                                                    );
-                                                                                    birthplaceSearch.openResults();
-                                                                                }}
-                                                                                onFocus={
-                                                                                    birthplaceSearch.handleFocus
-                                                                                }
-                                                                                onBlur={
-                                                                                    birthplaceSearch.handleBlur
-                                                                                }
-                                                                            />
-
-                                                                            {birthplaceSearch.open && (
-                                                                                <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
-                                                                                    {birthplaceSearch.status ===
-                                                                                        'loading' && (
-                                                                                        <p className="px-2 py-1 text-muted-foreground">
-                                                                                            Searching
-                                                                                            birthplace
-                                                                                            suggestions...
-                                                                                        </p>
-                                                                                    )}
-
-                                                                                    {birthplaceSearch.status ===
-                                                                                        'error' && (
-                                                                                        <p className="px-2 py-1 text-amber-600">
-                                                                                            {birthplaceSearch.error ??
-                                                                                                'Birthplace suggestions are temporarily unavailable.'}
-                                                                                        </p>
-                                                                                    )}
-
-                                                                                    {birthplaceSearch.status ===
-                                                                                        'idle' &&
-                                                                                        birthplaceSearch.query
-                                                                                            .trim()
-                                                                                            .length <
-                                                                                            LOCATION_QUERY_MIN && (
-                                                                                            <p className="px-2 py-1 text-muted-foreground">
-                                                                                                Type
-                                                                                                at
-                                                                                                least
-                                                                                                {' '}
-                                                                                                {
-                                                                                                    LOCATION_QUERY_MIN
-                                                                                                }{' '}
-                                                                                                characters
-                                                                                                to
-                                                                                                search
-                                                                                                cities
-                                                                                                and
-                                                                                                municipalities.
-                                                                                            </p>
-                                                                                        )}
-
-                                                                                    {birthplaceSearch.status ===
-                                                                                        'idle' &&
-                                                                                        birthplaceSearch.query
-                                                                                            .trim()
-                                                                                            .length >=
-                                                                                            LOCATION_QUERY_MIN &&
-                                                                                        birthplaceSearch.suggestions.length ===
-                                                                                            0 && (
-                                                                                            <p className="px-2 py-1 text-muted-foreground">
-                                                                                                No
-                                                                                                matching
-                                                                                                places
-                                                                                                found.
-                                                                                            </p>
-                                                                                        )}
-
-                                                                                    {birthplaceSearch.suggestions.length >
-                                                                                        0 && (
-                                                                                        <div className="max-h-60 space-y-1 overflow-auto">
-                                                                                            {birthplaceSearch.suggestions.map(
-                                                                                                (
-                                                                                                    suggestion,
-                                                                                                ) => (
-                                                                                                    <button
-                                                                                                        key={
-                                                                                                            suggestion.code
-                                                                                                        }
-                                                                                                        type="button"
-                                                                                                        className="flex w-full flex-col gap-1 rounded-md px-2 py-2 text-left transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
-                                                                                                        onMouseDown={(
-                                                                                                            event,
-                                                                                                        ) => {
-                                                                                                            event.preventDefault();
-                                                                                                        }}
-                                                                                                        onClick={() =>
-                                                                                                            birthplaceSearch.handleSelect(
-                                                                                                                suggestion,
-                                                                                                            )
-                                                                                                        }
-                                                                                                    >
-                                                                                                        <span className="text-sm font-medium">
-                                                                                                            {
-                                                                                                                suggestion.label
-                                                                                                            }
-                                                                                                        </span>
-                                                                                                        <span className="text-xs text-muted-foreground">
-                                                                                                            {suggestion.type ===
-                                                                                                            'city'
-                                                                                                                ? 'City'
-                                                                                                                : 'Municipality'}
-                                                                                                        </span>
-                                                                                                    </button>
-                                                                                                ),
-                                                                                            )}
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
+                                                                        <LocationAutocompleteInput
+                                                                            id="birthplace"
+                                                                            name="birthplace"
+                                                                            search={birthplaceSearch}
+                                                                            placeholder="City or municipality"
+                                                                            required
+                                                                            inputClassName="mt-1 block w-full"
+                                                                            loadingMessage="Searching birthplace suggestions..."
+                                                                            errorMessage="Birthplace suggestions are temporarily unavailable."
+                                                                        />
 
                                                                         <InputError
                                                                             className="mt-2"
@@ -1847,128 +1549,14 @@ export default function Profile({
                                                                             >
                                                                                 City
                                                                             </Label>
-
-                                                                            <div className="relative">
-                                                                                <Input
-                                                                                    id="employer_business_city"
-                                                                                    className="mt-1 block w-full"
-                                                                                    value={
-                                                                                        employerBusinessCitySearch.query
-                                                                                    }
-                                                                                    name="employer_business_city"
-                                                                                    placeholder="City or municipality"
-                                                                                    aria-label="City or municipality"
-                                                                                    autoComplete="off"
-                                                                                    onChange={(event) => {
-                                                                                        employerBusinessCitySearch.setQuery(
-                                                                                            event.target.value,
-                                                                                        );
-                                                                                        employerBusinessCitySearch.openResults();
-                                                                                    }}
-                                                                                    onFocus={
-                                                                                        employerBusinessCitySearch.handleFocus
-                                                                                    }
-                                                                                    onBlur={
-                                                                                        employerBusinessCitySearch.handleBlur
-                                                                                    }
-                                                                                />
-
-                                                                                {employerBusinessCitySearch.open && (
-                                                                                    <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
-                                                                                        {employerBusinessCitySearch.status ===
-                                                                                            'loading' && (
-                                                                                            <p className="px-2 py-1 text-muted-foreground">
-                                                                                                Searching
-                                                                                                location
-                                                                                                suggestions...
-                                                                                            </p>
-                                                                                        )}
-
-                                                                                        {employerBusinessCitySearch.status ===
-                                                                                            'error' && (
-                                                                                            <p className="px-2 py-1 text-amber-600">
-                                                                                                {employerBusinessCitySearch.error ??
-                                                                                                    'Location suggestions are temporarily unavailable.'}
-                                                                                            </p>
-                                                                                        )}
-
-                                                                                        {employerBusinessCitySearch.status ===
-                                                                                            'idle' &&
-                                                                                            employerBusinessCitySearch.query
-                                                                                                .trim()
-                                                                                                .length <
-                                                                                                LOCATION_QUERY_MIN && (
-                                                                                                <p className="px-2 py-1 text-muted-foreground">
-                                                                                                    Type
-                                                                                                    at
-                                                                                                    least{' '}
-                                                                                                    {
-                                                                                                        LOCATION_QUERY_MIN
-                                                                                                    }{' '}
-                                                                                                    characters
-                                                                                                    to
-                                                                                                    search
-                                                                                                    cities
-                                                                                                    and
-                                                                                                    municipalities.
-                                                                                                </p>
-                                                                                            )}
-
-                                                                                        {employerBusinessCitySearch.status ===
-                                                                                            'idle' &&
-                                                                                            employerBusinessCitySearch.query
-                                                                                                .trim()
-                                                                                                .length >=
-                                                                                                LOCATION_QUERY_MIN &&
-                                                                                            employerBusinessCitySearch.suggestions.length ===
-                                                                                                0 && (
-                                                                                                <p className="px-2 py-1 text-muted-foreground">
-                                                                                                    No
-                                                                                                    matching
-                                                                                                    places
-                                                                                                    found.
-                                                                                                </p>
-                                                                                            )}
-
-                                                                                        {employerBusinessCitySearch.suggestions.length >
-                                                                                            0 && (
-                                                                                            <div className="max-h-60 space-y-1 overflow-auto">
-                                                                                                {employerBusinessCitySearch.suggestions.map(
-                                                                                                    (suggestion) => (
-                                                                                                        <button
-                                                                                                            key={
-                                                                                                                suggestion.code
-                                                                                                            }
-                                                                                                            type="button"
-                                                                                                            className="flex w-full flex-col gap-1 rounded-md px-2 py-2 text-left transition hover:bg-muted/70 focus-visible:bg-muted/70 focus-visible:outline-hidden"
-                                                                                                            onMouseDown={(event) => {
-                                                                                                                event.preventDefault();
-                                                                                                            }}
-                                                                                                            onClick={() =>
-                                                                                                                employerBusinessCitySearch.handleSelect(
-                                                                                                                    suggestion,
-                                                                                                                )
-                                                                                                            }
-                                                                                                        >
-                                                                                                            <span className="text-sm font-medium">
-                                                                                                                {
-                                                                                                                    suggestion.label
-                                                                                                                }
-                                                                                                            </span>
-                                                                                                            <span className="text-xs text-muted-foreground">
-                                                                                                                {suggestion.type ===
-                                                                                                                'city'
-                                                                                                                    ? 'City'
-                                                                                                                    : 'Municipality'}
-                                                                                                            </span>
-                                                                                                        </button>
-                                                                                                    ),
-                                                                                                )}
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
+                                                                            <LocationAutocompleteInput
+                                                                                id="employer_business_city"
+                                                                                name="employer_business_city"
+                                                                                search={employerBusinessCitySearch}
+                                                                                placeholder="City or municipality"
+                                                                                ariaLabel="City or municipality"
+                                                                                inputClassName="mt-1 block w-full"
+                                                                            />
                                                                         </div>
                                                                     </div>
 

@@ -168,6 +168,12 @@ test('clients can save a loan request draft', function () {
     expect($draft)->not->toBeNull();
     expect($draft->status)->toBe(LoanRequestStatus::Draft);
     expect($draft->submitted_at)->toBeNull();
+    expect(
+        LoanRequestPerson::query()
+            ->where('loan_request_id', $draft->id)
+            ->where('role', LoanRequestPersonRole::Applicant)
+            ->value('birthplace'),
+    )->toBe('Manila');
 
     $payload['loan_purpose'] = 'Tuition';
 
@@ -210,6 +216,7 @@ test('loan request form resumes existing draft', function () {
         ->create([
             'first_name' => 'Draft',
             'last_name' => 'Member',
+            'birthplace' => 'Quezon City',
         ]);
 
     $response = $this
@@ -221,7 +228,8 @@ test('loan request form resumes existing draft', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-request')
             ->where('draft.id', $loanRequest->id)
-            ->where('applicant.first_name', 'Draft'));
+            ->where('applicant.first_name', 'Draft')
+            ->where('applicant.birthplace', 'Quezon City'));
 });
 
 test('loan request submissions persist snapshots', function () {
@@ -343,6 +351,13 @@ test('loan request submissions persist snapshots', function () {
     expect($loanRequest->submitted_at)->not->toBeNull();
     expect(LoanRequestPerson::query()->where('loan_request_id', $loanRequest->id)->count())
         ->toBe(3);
+    $people = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->get()
+        ->keyBy('role');
+    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila');
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('Cebu');
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao');
 });
 
 test('loan request pdf endpoint responds with a pdf', function () {
