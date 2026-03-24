@@ -7,11 +7,13 @@ use App\Http\Requests\Client\LoanRequestDraftRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -71,7 +73,7 @@ class LoanRequestController extends Controller
 
     public function show(
         Request $request,
-        LoanRequest $loanRequest,
+        int $loanRequest,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -85,38 +87,44 @@ class LoanRequestController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        if ($loanRequest->user_id !== $user->user_id) {
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'show',
+        );
+
+        if ($loanRequestRecord === null) {
             abort(404);
         }
 
-        if ($this->isDraft($loanRequest)) {
+        if ($this->isDraft($loanRequestRecord)) {
             return redirect()->route('client.loan-requests.create');
         }
 
-        $loanRequest->loadMissing('people');
+        $loanRequestRecord->loadMissing('people');
 
         $payload = $this->sanitizePayload([
             'loanRequest' => [
-                'id' => $loanRequest->id,
-                'status' => $this->normalizeStatus($loanRequest),
-                'typecode' => $loanRequest->typecode,
-                'loan_type_label_snapshot' => $loanRequest->loan_type_label_snapshot,
-                'requested_amount' => $loanRequest->requested_amount,
-                'requested_term' => $loanRequest->requested_term,
-                'loan_purpose' => $loanRequest->loan_purpose,
-                'availment_status' => $loanRequest->availment_status,
-                'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
+                'id' => $loanRequestRecord->id,
+                'status' => $this->normalizeStatus($loanRequestRecord),
+                'typecode' => $loanRequestRecord->typecode,
+                'loan_type_label_snapshot' => $loanRequestRecord->loan_type_label_snapshot,
+                'requested_amount' => $loanRequestRecord->requested_amount,
+                'requested_term' => $loanRequestRecord->requested_term,
+                'loan_purpose' => $loanRequestRecord->loan_purpose,
+                'availment_status' => $loanRequestRecord->availment_status,
+                'submitted_at' => $loanRequestRecord->submitted_at?->toDateTimeString(),
             ],
             'applicant' => $this->serializePerson(
-                $loanRequest,
+                $loanRequestRecord,
                 LoanRequestPersonRole::Applicant,
             ),
             'coMakerOne' => $this->serializePerson(
-                $loanRequest,
+                $loanRequestRecord,
                 LoanRequestPersonRole::CoMakerOne,
             ),
             'coMakerTwo' => $this->serializePerson(
-                $loanRequest,
+                $loanRequestRecord,
                 LoanRequestPersonRole::CoMakerTwo,
             ),
         ]);
@@ -126,7 +134,7 @@ class LoanRequestController extends Controller
 
     public function pdf(
         Request $request,
-        LoanRequest $loanRequest,
+        int $loanRequest,
         LoanRequestPdfService $pdfService,
     ): HttpResponse {
         $user = $request->user();
@@ -141,16 +149,22 @@ class LoanRequestController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        if ($loanRequest->user_id !== $user->user_id) {
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'pdf',
+        );
+
+        if ($loanRequestRecord === null) {
             abort(404);
         }
 
-        if (! $this->canViewPdf($loanRequest)) {
+        if (! $this->canViewPdf($loanRequestRecord)) {
             abort(404);
         }
 
         return $pdfService->render(
-            $loanRequest,
+            $loanRequestRecord,
             $request->boolean('download'),
         );
     }
@@ -170,6 +184,46 @@ class LoanRequestController extends Controller
         }
 
         return $person->toArray();
+    }
+
+    private function findLoanRequestForUser(
+        AppUser $user,
+        int $loanRequestId,
+        string $context,
+    ): ?LoanRequest {
+        $loanRequest = LoanRequest::query()
+            ->whereKey($loanRequestId)
+            ->where('user_id', $user->user_id)
+            ->first();
+
+        if ($loanRequest !== null) {
+            return $loanRequest;
+        }
+
+        $existing = LoanRequest::query()
+            ->select(['id', 'user_id', 'acctno', 'status'])
+            ->whereKey($loanRequestId)
+            ->first();
+
+        $status = null;
+
+        if ($existing !== null) {
+            $status = $existing->status instanceof LoanRequestStatus
+                ? $existing->status->value
+                : (string) $existing->status;
+        }
+
+        Log::warning('Loan request ownership mismatch or missing record.', [
+            'context' => $context,
+            'loan_request_id' => $loanRequestId,
+            'auth_user_id' => $user->user_id,
+            'auth_acctno' => $user->acctno,
+            'record_user_id' => $existing?->user_id,
+            'record_acctno' => $existing?->acctno,
+            'record_status' => $status,
+        ]);
+
+        return null;
     }
 
     private function normalizeStatus(LoanRequest $loanRequest): string

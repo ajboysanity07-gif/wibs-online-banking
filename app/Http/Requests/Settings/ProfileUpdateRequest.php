@@ -12,6 +12,15 @@ class ProfileUpdateRequest extends FormRequest
 {
     use ProfileValidationRules;
 
+    private const PAYDAY_OPTIONS = [
+        'Weekly',
+        '15th',
+        '30th',
+        '15th & 30th',
+        'Bi-Weekly',
+        'Monthly',
+    ];
+
     protected function prepareForValidation(): void
     {
         $streetAddress = trim((string) $this->input('employer_business_street_address', ''));
@@ -142,7 +151,7 @@ class ProfileUpdateRequest extends FormRequest
             'payday' => [
                 $memberRequirement('payday'),
                 'string',
-                'max:50',
+                Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
     }

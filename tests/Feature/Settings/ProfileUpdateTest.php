@@ -236,7 +236,7 @@ test('profile information can be updated', function () {
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
             'gross_monthly_income' => 'PHP 35,000.50',
-            'payday' => '15',
+            'payday' => '15th',
             'years_in_work_business' => '5 years',
             'spouse_cell_no' => '09123456780',
         ]);
@@ -271,7 +271,7 @@ test('profile information can be updated', function () {
     expect($memberProfile->nature_of_business)->toBe('Finance');
     expect($memberProfile->years_in_work_business)->toBe('5 years');
     expect($memberProfile->gross_monthly_income)->toBe('35000.50');
-    expect($memberProfile->payday)->toBe('15');
+    expect($memberProfile->payday)->toBe('15th');
     expect($memberProfile->profile_completed_at)->not->toBeNull();
 });
 
@@ -307,7 +307,7 @@ test('profile information can be updated with other nature of business', functio
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '45000.00',
-            'payday' => '15',
+            'payday' => '15th',
             'nature_of_business' => 'Other',
             'nature_of_business_other' => 'Logistics',
         ]);
@@ -387,7 +387,7 @@ test('email verification status is unchanged when the email address is unchanged
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.50',
-            'payday' => '15',
+            'payday' => '15th',
         ]);
 
     $response

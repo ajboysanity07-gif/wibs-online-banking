@@ -132,6 +132,20 @@ const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'Postgraduate',
 ];
 const EMPLOYMENT_TYPE_OPTIONS = ['Regular', 'Contract', 'Self-Employed'];
+const CIVIL_STATUS_OPTIONS = [
+    'Single',
+    'Married',
+    'Separated',
+    'Widowed',
+] as const;
+const PAYDAY_OPTIONS = [
+    'Weekly',
+    '15th',
+    '30th',
+    '15th & 30th',
+    'Bi-Weekly',
+    'Monthly',
+] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -224,6 +238,75 @@ const hasWmasterValue = (
     return false;
 };
 
+const normalizeCivilStatusValue = (value?: string | null): string => {
+    const trimmed = value?.trim() ?? '';
+
+    if (trimmed === '') {
+        return '';
+    }
+
+    const upper = trimmed.toUpperCase();
+
+    if (upper === 'SINGLE') {
+        return 'Single';
+    }
+
+    if (upper === 'MARRIED') {
+        return 'Married';
+    }
+
+    if (upper === 'SEPARATED') {
+        return 'Separated';
+    }
+
+    if (upper === 'WIDOWED') {
+        return 'Widowed';
+    }
+
+    return '';
+};
+
+const normalizePaydayValue = (value?: string | null): string => {
+    const trimmed = value?.trim() ?? '';
+
+    if (trimmed === '') {
+        return '';
+    }
+
+    if (PAYDAY_OPTIONS.includes(trimmed as (typeof PAYDAY_OPTIONS)[number])) {
+        return trimmed;
+    }
+
+    const upper = trimmed.toUpperCase();
+    const compact = upper.replace(/[^0-9A-Z]/g, '');
+
+    if (upper === 'WEEKLY') {
+        return 'Weekly';
+    }
+
+    if (upper === 'MONTHLY') {
+        return 'Monthly';
+    }
+
+    if (compact === 'BIWEEKLY') {
+        return 'Bi-Weekly';
+    }
+
+    if (compact === '15') {
+        return '15th';
+    }
+
+    if (compact === '30') {
+        return '30th';
+    }
+
+    if (upper.includes('15') && upper.includes('30')) {
+        return '15th & 30th';
+    }
+
+    return '';
+};
+
 export default function Profile({
     mustVerifyEmail,
     status,
@@ -283,6 +366,9 @@ export default function Profile({
     const memberMiddleName = memberRecord?.mname?.trim() ?? '';
     const memberLastName = memberRecord?.lname?.trim() ?? '';
     const memberAge = calculateAge(memberRecord?.birthday ?? null);
+    const memberCivilStatus = normalizeCivilStatusValue(
+        memberRecord?.civilstat ?? '',
+    );
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const showOnboardingAlert = onboarding && adminProfile === null && !isProfileComplete;
     const initialEmployerAddress = splitEmployerBusinessAddress(
@@ -335,6 +421,9 @@ export default function Profile({
     );
     const [grossMonthlyIncome, setGrossMonthlyIncome] = useState<string>(
         memberApplicationProfile?.gross_monthly_income ?? '',
+    );
+    const [paydaySelection, setPaydaySelection] = useState<string>(
+        normalizePaydayValue(memberApplicationProfile?.payday ?? ''),
     );
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
@@ -1192,22 +1281,46 @@ export default function Profile({
                                                                             status
                                                                         </Label>
 
-                                                                        <Input
-                                                                            id="member_civil_status"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.civilstat,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberRecord?.civilstat ??
-                                                                                ''
+                                                                        <Select
+                                                                            value={
+                                                                                memberCivilStatus ||
+                                                                                undefined
                                                                             }
-                                                                            placeholder="Not available"
                                                                             disabled
-                                                                        />
+                                                                        >
+                                                                            <SelectTrigger
+                                                                                id="member_civil_status"
+                                                                                className={cn(
+                                                                                    'mt-1 w-full',
+                                                                                    hasWmasterValue(
+                                                                                        memberCivilStatus,
+                                                                                    ) &&
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                            >
+                                                                                <SelectValue placeholder="Not available" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {CIVIL_STATUS_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option
+                                                                                            }
+                                                                                            value={
+                                                                                                option
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
                                                                     </div>
 
                                                                     <div className="grid gap-2">
@@ -1822,16 +1935,53 @@ export default function Profile({
                                                                             Payday
                                                                         </Label>
 
-                                                                        <Input
-                                                                            id="payday"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.payday ??
-                                                                                ''
+                                                                        <Select
+                                                                            value={
+                                                                                paydaySelection ||
+                                                                                undefined
                                                                             }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setPaydaySelection(
+                                                                                    value,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger
+                                                                                id="payday"
+                                                                                className="mt-1 w-full"
+                                                                            >
+                                                                                <SelectValue placeholder="Select payday" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {PAYDAY_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option
+                                                                                            }
+                                                                                            value={
+                                                                                                option
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+
+                                                                        <input
+                                                                            type="hidden"
                                                                             name="payday"
-                                                                            required
-                                                                            placeholder="15 / 30 / 15 & 30"
+                                                                            value={
+                                                                                paydaySelection
+                                                                            }
                                                                         />
 
                                                                         <InputError

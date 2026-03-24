@@ -34,9 +34,23 @@ const EMPLOYMENT_TYPE_OPTIONS = [
     'Self Employed',
     'Retired',
 ];
+const CIVIL_STATUS_OPTIONS = [
+    'Single',
+    'Married',
+    'Separated',
+    'Widowed',
+] as const;
 const HOUSING_STATUS_OPTIONS = [
     { value: 'OWNED', label: 'Owned' },
     { value: 'RENT', label: 'Rent' },
+] as const;
+const PAYDAY_OPTIONS = [
+    'Weekly',
+    '15th',
+    '30th',
+    '15th & 30th',
+    'Bi-Weekly',
+    'Monthly',
 ] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
@@ -488,18 +502,31 @@ export function LoanRequestPersonalFields({
                         label="Civil status"
                         isReadOnly={isReadOnly('civil_status')}
                     />
-                    <Input
-                        id={`${prefix}_civil_status`}
-                        name={fieldName(prefix, 'civil_status')}
-                        value={values.civil_status}
-                        readOnly={isReadOnly('civil_status')}
-                        required
-                        className={cn(
-                            'mt-1 block w-full',
-                            isReadOnly('civil_status') && readOnlyInputClass,
-                        )}
-                        onChange={updateField('civil_status')}
-                    />
+                    <Select
+                        value={values.civil_status || undefined}
+                        onValueChange={(value) =>
+                            onChange('civil_status', value)
+                        }
+                        disabled={isReadOnly('civil_status')}
+                    >
+                        <SelectTrigger
+                            id={`${prefix}_civil_status`}
+                            className={cn(
+                                'mt-1 w-full',
+                                isReadOnly('civil_status') &&
+                                    readOnlyInputClass,
+                            )}
+                        >
+                            <SelectValue placeholder="Select civil status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {CIVIL_STATUS_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <InputError
                         message={fieldError(errors, prefix, 'civil_status')}
                     />
@@ -976,17 +1003,24 @@ export function LoanRequestWorkFields({
 
                 <div className="grid gap-2">
                     <Label htmlFor={`${prefix}_payday`}>Payday</Label>
-                    <Input
-                        id={`${prefix}_payday`}
-                        name={fieldName(prefix, 'payday')}
-                        value={values.payday}
-                        className="mt-1 block w-full"
-                        placeholder="15 / 30 / 15 & 30"
-                        required
-                        onChange={(event) =>
-                            onChange('payday', event.target.value)
-                        }
-                    />
+                    <Select
+                        value={values.payday || undefined}
+                        onValueChange={(value) => onChange('payday', value)}
+                    >
+                        <SelectTrigger
+                            id={`${prefix}_payday`}
+                            className="mt-1 w-full"
+                        >
+                            <SelectValue placeholder="Select payday" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PAYDAY_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <InputError
                         message={fieldError(errors, prefix, 'payday')}
                     />

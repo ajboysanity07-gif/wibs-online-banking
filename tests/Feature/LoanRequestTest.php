@@ -247,7 +247,7 @@ test('clients can save a loan request draft', function () {
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
             'gross_monthly_income' => 25000,
-            'payday' => '15/30',
+            'payday' => '15th & 30th',
         ],
     ];
 
@@ -389,7 +389,7 @@ test('loan request submissions persist snapshots', function () {
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
             'gross_monthly_income' => 25000,
-            'payday' => '15/30',
+            'payday' => '15th & 30th',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -412,7 +412,7 @@ test('loan request submissions persist snapshots', function () {
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30',
+            'payday' => '30th',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -435,7 +435,7 @@ test('loan request submissions persist snapshots', function () {
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15',
+            'payday' => '15th',
         ],
     ];
 
@@ -520,7 +520,7 @@ test('loan request submission validates housing status values', function () {
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
             'gross_monthly_income' => 25000,
-            'payday' => '15/30',
+            'payday' => '15th & 30th',
         ],
         'co_maker_1' => [
             'first_name' => 'Co',
@@ -543,7 +543,7 @@ test('loan request submission validates housing status values', function () {
             'nature_of_business' => 'Government',
             'years_in_work_business' => '6 years',
             'gross_monthly_income' => 18000,
-            'payday' => '30',
+            'payday' => '30th',
         ],
         'co_maker_2' => [
             'first_name' => 'Second',
@@ -566,7 +566,7 @@ test('loan request submission validates housing status values', function () {
             'nature_of_business' => 'Retail',
             'years_in_work_business' => '8 years',
             'gross_monthly_income' => 22000,
-            'payday' => '15',
+            'payday' => '15th',
         ],
     ];
 
@@ -807,4 +807,42 @@ test('client can view submitted loan request details', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-request-show')
             ->where('loanRequest.id', $loanRequest->id));
+});
+
+test('client cannot view another member loan request details', function () {
+    $owner = User::factory()->create([
+        'acctno' => '000731',
+    ]);
+    $viewer = User::factory()->create([
+        'acctno' => '000732',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $viewer->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $viewer->acctno,
+        'bname' => 'Viewer, Loan',
+        'fname' => 'Viewer',
+        'lname' => 'Loan',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $viewer->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($owner)
+        ->create([
+            'status' => LoanRequestStatus::UnderReview,
+            'submitted_at' => now(),
+        ]);
+
+    $response = $this
+        ->actingAs($viewer)
+        ->get(route('client.loan-requests.show', $loanRequest));
+
+    $response->assertNotFound();
 });

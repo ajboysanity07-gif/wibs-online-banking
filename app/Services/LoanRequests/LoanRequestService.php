@@ -14,6 +14,22 @@ use Illuminate\Support\Facades\Schema;
 
 class LoanRequestService
 {
+    private const CIVIL_STATUS_OPTIONS = [
+        'Single',
+        'Married',
+        'Separated',
+        'Widowed',
+    ];
+
+    private const PAYDAY_OPTIONS = [
+        'Weekly',
+        '15th',
+        '30th',
+        '15th & 30th',
+        'Bi-Weekly',
+        'Monthly',
+    ];
+
     /**
      * @return array{
      *     loanTypes: list<array{typecode: string, label: string}>,
@@ -64,12 +80,12 @@ class LoanRequestService
             ? $this->serializePerson($draft, LoanRequestPersonRole::CoMakerTwo)
             : null;
 
-        $applicant = $this->normalizeHousingStatus($applicant);
+        $applicant = $this->normalizePersonSelectValues($applicant);
         $coMakerOne = $coMakerOne !== null
-            ? $this->normalizeHousingStatus($coMakerOne)
+            ? $this->normalizePersonSelectValues($coMakerOne)
             : null;
         $coMakerTwo = $coMakerTwo !== null
-            ? $this->normalizeHousingStatus($coMakerTwo)
+            ? $this->normalizePersonSelectValues($coMakerTwo)
             : null;
 
         return [
@@ -525,14 +541,30 @@ class LoanRequestService
      * @param  array<string, mixed>  $person
      * @return array<string, mixed>
      */
-    private function normalizeHousingStatus(array $person): array
+    private function normalizePersonSelectValues(array $person): array
     {
         if (! array_key_exists('housing_status', $person)) {
-            return $person;
+            $person['housing_status'] = null;
         }
 
         $person['housing_status'] = $this->normalizeHousingStatusValue(
             $person['housing_status'] ?? null,
+        );
+
+        if (! array_key_exists('civil_status', $person)) {
+            $person['civil_status'] = null;
+        }
+
+        $person['civil_status'] = $this->normalizeCivilStatusValue(
+            $person['civil_status'] ?? null,
+        );
+
+        if (! array_key_exists('payday', $person)) {
+            $person['payday'] = null;
+        }
+
+        $person['payday'] = $this->normalizePaydayValue(
+            $person['payday'] ?? null,
         );
 
         return $person;
@@ -561,6 +593,84 @@ class LoanRequestService
         }
 
         return $upper;
+    }
+
+    private function normalizeCivilStatusValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $upper = strtoupper($trimmed);
+
+        $resolved = match ($upper) {
+            'SINGLE' => 'Single',
+            'MARRIED' => 'Married',
+            'SEPARATED' => 'Separated',
+            'WIDOWED' => 'Widowed',
+            'ANNULLED' => null,
+            default => $trimmed,
+        };
+
+        if ($resolved === null) {
+            return null;
+        }
+
+        return in_array($resolved, self::CIVIL_STATUS_OPTIONS, true)
+            ? $resolved
+            : null;
+    }
+
+    private function normalizePaydayValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (in_array($trimmed, self::PAYDAY_OPTIONS, true)) {
+            return $trimmed;
+        }
+
+        $upper = strtoupper($trimmed);
+        $compact = preg_replace('/[^0-9A-Z]/', '', $upper) ?? '';
+
+        if ($upper === 'WEEKLY') {
+            return 'Weekly';
+        }
+
+        if ($upper === 'MONTHLY') {
+            return 'Monthly';
+        }
+
+        if ($compact === 'BIWEEKLY') {
+            return 'Bi-Weekly';
+        }
+
+        if ($compact === '15') {
+            return '15th';
+        }
+
+        if ($compact === '30') {
+            return '30th';
+        }
+
+        if (str_contains($upper, '15') && str_contains($upper, '30')) {
+            return '15th & 30th';
+        }
+
+        return null;
     }
 
     /**
@@ -634,7 +744,7 @@ class LoanRequestService
             'birthdate' => $this->hasValue($wmaster?->birthday),
             'address' => $this->hasValue($wmaster?->address),
             'housing_status' => $this->hasValue($wmaster?->restype),
-            'civil_status' => $this->hasValue($wmaster?->civilstat),
+            'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat) !== null,
             'number_of_children' => $this->hasValue($wmaster?->dependent),
             'spouse_name' => $this->hasValue($wmaster?->spouse),
         ];

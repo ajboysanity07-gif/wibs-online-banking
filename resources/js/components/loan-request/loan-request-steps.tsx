@@ -286,6 +286,71 @@ const formatHousingStatus = (value: string): string => {
     return trimmed;
 };
 
+const formatCivilStatus = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '--';
+    }
+
+    const upper = trimmed.toUpperCase();
+
+    if (upper === 'SINGLE') {
+        return 'Single';
+    }
+
+    if (upper === 'MARRIED') {
+        return 'Married';
+    }
+
+    if (upper === 'SEPARATED') {
+        return 'Separated';
+    }
+
+    if (upper === 'WIDOWED') {
+        return 'Widowed';
+    }
+
+    return trimmed;
+};
+
+const formatPayday = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '--';
+    }
+
+    const upper = trimmed.toUpperCase();
+    const compact = upper.replace(/[^0-9A-Z]/g, '');
+
+    if (upper === 'WEEKLY') {
+        return 'Weekly';
+    }
+
+    if (upper === 'MONTHLY') {
+        return 'Monthly';
+    }
+
+    if (compact === 'BIWEEKLY') {
+        return 'Bi-Weekly';
+    }
+
+    if (compact === '15') {
+        return '15th';
+    }
+
+    if (compact === '30') {
+        return '30th';
+    }
+
+    if (upper.includes('15') && upper.includes('30')) {
+        return '15th & 30th';
+    }
+
+    return trimmed;
+};
+
 const displayName = (person: LoanRequestPersonFormData): string => {
     const name = [
         person.first_name,
@@ -370,7 +435,7 @@ export function LoanRequestReviewStep({
         { label: 'Length of stay', value: displayValue(data.applicant.length_of_stay) },
         { label: 'Housing status', value: formatHousingStatus(data.applicant.housing_status) },
         { label: 'Cell no.', value: displayValue(data.applicant.cell_no) },
-        { label: 'Civil status', value: displayValue(data.applicant.civil_status) },
+        { label: 'Civil status', value: formatCivilStatus(data.applicant.civil_status) },
         {
             label: 'Educational attainment',
             value: displayValue(data.applicant.educational_attainment),
@@ -417,7 +482,7 @@ export function LoanRequestReviewStep({
                     ? formatCurrency(Number(data.applicant.gross_monthly_income))
                     : '--',
         },
-        { label: 'Payday', value: displayValue(data.applicant.payday) },
+        { label: 'Payday', value: formatPayday(data.applicant.payday) },
     ];
 
     const buildCoMakerSummary = (
@@ -432,6 +497,7 @@ export function LoanRequestReviewStep({
         { label: 'Length of stay', value: displayValue(person.length_of_stay) },
         { label: 'Housing status', value: formatHousingStatus(person.housing_status) },
         { label: 'Cell no.', value: displayValue(person.cell_no) },
+        { label: 'Civil status', value: formatCivilStatus(person.civil_status) },
         {
             label: 'Educational attainment',
             value: displayValue(person.educational_attainment),
@@ -465,7 +531,7 @@ export function LoanRequestReviewStep({
                     ? formatCurrency(Number(person.gross_monthly_income))
                     : '--',
         },
-        { label: 'Payday', value: displayValue(person.payday) },
+        { label: 'Payday', value: formatPayday(person.payday) },
     ];
 
     return (

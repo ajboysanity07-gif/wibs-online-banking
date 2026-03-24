@@ -11,6 +11,22 @@ class LoanRequestDraftRequest extends FormRequest
 {
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
+    private const CIVIL_STATUS_OPTIONS = [
+        'Single',
+        'Married',
+        'Separated',
+        'Widowed',
+    ];
+
+    private const PAYDAY_OPTIONS = [
+        'Weekly',
+        '15th',
+        '30th',
+        '15th & 30th',
+        'Bi-Weekly',
+        'Monthly',
+    ];
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -79,7 +95,12 @@ class LoanRequestDraftRequest extends FormRequest
                 Rule::in(self::HOUSING_STATUS_OPTIONS),
             ],
             "{$prefix}.cell_no" => ['sometimes', 'nullable', 'string', 'max:20'],
-            "{$prefix}.civil_status" => ['sometimes', 'nullable', 'string', 'max:255'],
+            "{$prefix}.civil_status" => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ],
             "{$prefix}.educational_attainment" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -89,7 +110,12 @@ class LoanRequestDraftRequest extends FormRequest
             "{$prefix}.nature_of_business" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.years_in_work_business" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.gross_monthly_income" => ['sometimes', 'nullable', 'numeric', 'min:0'],
-            "{$prefix}.payday" => ['sometimes', 'nullable', 'string', 'max:255'],
+            "{$prefix}.payday" => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::PAYDAY_OPTIONS),
+            ],
         ];
 
         if ($includeChildren) {

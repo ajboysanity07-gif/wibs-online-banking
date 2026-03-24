@@ -11,6 +11,22 @@ class LoanRequestStoreRequest extends FormRequest
 {
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
+    private const CIVIL_STATUS_OPTIONS = [
+        'Single',
+        'Married',
+        'Separated',
+        'Widowed',
+    ];
+
+    private const PAYDAY_OPTIONS = [
+        'Weekly',
+        '15th',
+        '30th',
+        '15th & 30th',
+        'Bi-Weekly',
+        'Monthly',
+    ];
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -88,7 +104,11 @@ class LoanRequestStoreRequest extends FormRequest
                 Rule::in(self::HOUSING_STATUS_OPTIONS),
             ],
             "{$prefix}.cell_no" => ['required', 'string', 'max:20'],
-            "{$prefix}.civil_status" => ['required', 'string', 'max:255'],
+            "{$prefix}.civil_status" => [
+                'required',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ],
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['required', 'string', 'max:255'],
@@ -98,7 +118,11 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.nature_of_business" => ['required', 'string', 'max:255'],
             "{$prefix}.years_in_work_business" => ['required', 'string', 'max:255'],
             "{$prefix}.gross_monthly_income" => ['required', 'numeric', 'min:0'],
-            "{$prefix}.payday" => ['required', 'string', 'max:255'],
+            "{$prefix}.payday" => [
+                'required',
+                'string',
+                Rule::in(self::PAYDAY_OPTIONS),
+            ],
         ];
 
         if ($includeChildren) {
