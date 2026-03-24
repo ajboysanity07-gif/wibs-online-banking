@@ -20,6 +20,9 @@ class OrganizationSettingFactory extends Factory
         return [
             'company_name' => fake()->company(),
             'company_logo_path' => null,
+            'logo_preset' => null,
+            'logo_mark_path' => null,
+            'logo_full_path' => null,
             'portal_label' => fake()->words(2, true),
             'favicon_path' => null,
             'brand_primary_color' => null,

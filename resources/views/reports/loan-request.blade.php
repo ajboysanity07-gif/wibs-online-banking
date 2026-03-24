@@ -19,8 +19,14 @@
                 align-items: center;
                 gap: 12px;
             }
+            .header--wordmark {
+                gap: 0;
+            }
             .logo {
                 height: 42px;
+            }
+            .header--wordmark .logo {
+                height: 48px;
             }
             .company-name {
                 font-size: 14px;
@@ -105,14 +111,19 @@
                 ? $loanRequest->status->value
                 : (string) $loanRequest->status;
             $check = fn (bool $value) => $value ? 'X' : '';
+            $showCompanyName = $showCompanyName ?? true;
+            $shouldShowCompanyName = $showCompanyName || ! $logoData;
+            $headerClass = $showCompanyName ? 'header' : 'header header--wordmark';
         @endphp
 
         <div class="page">
-            <div class="header">
+            <div class="{{ $headerClass }}">
                 @if ($logoData)
                     <img src="{{ $logoData }}" alt="Company logo" class="logo" />
                 @endif
-                <div class="company-name">{{ $companyName }}</div>
+                @if ($shouldShowCompanyName)
+                    <div class="company-name">{{ $companyName }}</div>
+                @endif
             </div>
 
             <div class="form-title">APPLICATION FORM</div>

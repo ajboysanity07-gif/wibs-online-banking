@@ -82,6 +82,7 @@ export default function Welcome() {
     const { auth, canRegister } = usePage<PageProps>().props;
     const branding = useBranding();
     const isAuthenticated = Boolean(auth?.user);
+    const showCompanyName = !branding.logoIsWordmark;
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -99,9 +100,11 @@ export default function Welcome() {
                             className="h-10 w-auto object-contain md:h-12"
                         />
                         <div>
-                            <p className="text-sm font-semibold">
-                                {branding.companyName}
-                            </p>
+                            {showCompanyName ? (
+                                <p className="text-sm font-semibold">
+                                    {branding.companyName}
+                                </p>
+                            ) : null}
                             <p className="text-xs text-muted-foreground">
                                 {branding.portalLabel}
                             </p>
@@ -302,9 +305,11 @@ export default function Welcome() {
                                 className="h-9 w-auto object-contain"
                             />
                             <div>
-                                <p className="text-sm font-semibold text-foreground">
-                                    {branding.companyName}
-                                </p>
+                                {showCompanyName ? (
+                                    <p className="text-sm font-semibold text-foreground">
+                                        {branding.companyName}
+                                    </p>
+                                ) : null}
                                 <p className="text-xs">
                                     Integrated with WIBS Desktop
                                 </p>

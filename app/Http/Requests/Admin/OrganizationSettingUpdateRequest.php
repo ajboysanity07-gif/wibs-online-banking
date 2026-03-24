@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Services\OrganizationSettingsService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class OrganizationSettingUpdateRequest extends FormRequest
 {
@@ -25,18 +27,32 @@ class OrganizationSettingUpdateRequest extends FormRequest
         return [
             'company_name' => ['required', 'string', 'max:255'],
             'portal_label' => ['nullable', 'string', 'max:255'],
-            'company_logo' => [
+            'logo_preset' => [
                 'nullable',
-                'image',
+                'string',
+                Rule::in(app(OrganizationSettingsService::class)->logoPresets()),
+            ],
+            'logo_mark' => [
+                'nullable',
+                'file',
                 'max:2048',
                 'mimes:jpg,jpeg,png,webp',
             ],
+            'logo_full' => [
+                'nullable',
+                'file',
+                'max:2048',
+                'mimes:jpg,jpeg,png,webp',
+            ],
+            'logo_mark_reset' => ['nullable', 'boolean'],
+            'logo_full_reset' => ['nullable', 'boolean'],
             'favicon' => [
                 'nullable',
                 'file',
                 'max:1024',
                 'mimes:jpg,jpeg,png,webp,ico',
             ],
+            'favicon_reset' => ['nullable', 'boolean'],
             'support_email' => ['nullable', 'email', 'max:255'],
             'support_phone' => ['nullable', 'string', 'max:32'],
             'support_contact_name' => ['nullable', 'string', 'max:255'],
@@ -107,9 +123,10 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'company_name.required' => 'Company name is required.',
             'company_name.max' => 'Company name may not be greater than 255 characters.',
             'portal_label.max' => 'Portal label may not be greater than 255 characters.',
-            'company_logo.image' => 'Logo must be an image file.',
-            'company_logo.max' => 'Logo must be 2MB or smaller.',
-            'company_logo.mimes' => 'Logo must be a JPG, PNG, or WebP image.',
+            'logo_mark.max' => 'Logo mark must be 2MB or smaller.',
+            'logo_mark.mimes' => 'Logo mark must be a JPG, PNG, or WebP image.',
+            'logo_full.max' => 'Logo full must be 2MB or smaller.',
+            'logo_full.mimes' => 'Logo full must be a JPG, PNG, or WebP image.',
             'favicon.max' => 'Favicon must be 1MB or smaller.',
             'favicon.mimes' => 'Favicon must be a JPG, PNG, WebP, or ICO image.',
             'support_email.email' => 'Support email must be a valid email address.',

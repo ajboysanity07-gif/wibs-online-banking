@@ -22,6 +22,10 @@
                 display: flex;
                 align-items: center;
             }
+            .brand--wordmark .logo {
+                height: 46px;
+                margin-right: 0;
+            }
             .logo {
                 height: 38px;
                 margin-right: 10px;
@@ -139,14 +143,19 @@
             $formatDate = fn ($value) => $value ? \Illuminate\Support\Carbon::parse($value)->format('Y/m/d') : '--';
             $formatDateTime = fn ($value) => $value ? \Illuminate\Support\Carbon::parse($value)->format('Y/m/d H:i:s') : '--';
             $formatBalance = fn ($value) => $value === null ? 'Not available' : number_format((float) $value, 2);
+            $showCompanyName = $showCompanyName ?? true;
+            $shouldShowCompanyName = $showCompanyName || ! $logoData;
+            $brandClass = $showCompanyName ? 'brand' : 'brand brand--wordmark';
         @endphp
 
         <div class="header">
-            <div class="brand">
+            <div class="{{ $brandClass }}">
                 @if ($logoData)
                     <img src="{{ $logoData }}" alt="Company logo" class="logo" />
                 @endif
-                <div class="company-name">{{ $companyName }}</div>
+                @if ($shouldShowCompanyName)
+                    <div class="company-name">{{ $companyName }}</div>
+                @endif
             </div>
             <div class="header-meta">
                 <div class="label">Report Period</div>

@@ -10,7 +10,15 @@ class OrganizationSettingsService
 {
     private const DEFAULT_PORTAL_LABEL = 'Member Portal';
 
-    private const DEFAULT_LOGO_ASSET = 'mrdinc-logo-mark.png';
+    public const LOGO_PRESET_MARK = 'mark';
+
+    public const LOGO_PRESET_FULL = 'full';
+
+    private const DEFAULT_LOGO_PRESET = self::LOGO_PRESET_MARK;
+
+    private const LOGO_MARK_ASSET = 'mrdinc-logo-mark.png';
+
+    private const LOGO_FULL_ASSET = 'mrdinc-logo.png';
 
     private const DEFAULT_FAVICON_ASSET = 'favicon.ico';
 
@@ -19,10 +27,19 @@ class OrganizationSettingsService
      *     companyName: string,
      *     portalLabel: string,
      *     appTitle: string,
+     *     logoPreset: string,
+     *     logoIsWordmark: bool,
      *     logoPath: ?string,
      *     logoUrl: string,
+     *     logoMarkUrl: string,
+     *     logoFullUrl: string,
+     *     logoMarkDefaultUrl: string,
+     *     logoFullDefaultUrl: string,
+     *     logoMarkIsDefault: bool,
+     *     logoFullIsDefault: bool,
      *     faviconPath: ?string,
      *     faviconUrl: string,
+     *     faviconDefaultUrl: string,
      *     brandPrimaryColor: ?string,
      *     brandAccentColor: ?string,
      *     supportEmail: ?string,
@@ -45,6 +62,9 @@ class OrganizationSettingsService
         return [
             'company_name' => $this->defaultCompanyName(),
             'company_logo_path' => null,
+            'logo_preset' => self::DEFAULT_LOGO_PRESET,
+            'logo_mark_path' => null,
+            'logo_full_path' => null,
             'portal_label' => self::DEFAULT_PORTAL_LABEL,
             'favicon_path' => null,
             'brand_primary_color' => null,
@@ -60,10 +80,19 @@ class OrganizationSettingsService
      *     companyName: string,
      *     portalLabel: string,
      *     appTitle: string,
+     *     logoPreset: string,
+     *     logoIsWordmark: bool,
      *     logoPath: ?string,
      *     logoUrl: string,
+     *     logoMarkUrl: string,
+     *     logoFullUrl: string,
+     *     logoMarkDefaultUrl: string,
+     *     logoFullDefaultUrl: string,
+     *     logoMarkIsDefault: bool,
+     *     logoFullIsDefault: bool,
      *     faviconPath: ?string,
      *     faviconUrl: string,
+     *     faviconDefaultUrl: string,
      *     brandPrimaryColor: ?string,
      *     brandAccentColor: ?string,
      *     supportEmail: ?string,
@@ -75,17 +104,37 @@ class OrganizationSettingsService
     {
         $companyName = $this->resolveCompanyName($setting?->company_name);
         $portalLabel = $this->resolvePortalLabel($setting?->portal_label);
-        $logoPath = $this->normalizeValue($setting?->company_logo_path);
+        $logoPreset = $this->resolveLogoPreset($setting?->logo_preset);
         $faviconPath = $this->normalizeValue($setting?->favicon_path);
+        $markLogo = $this->resolveLogoVariant(
+            $setting?->logo_mark_path,
+            self::LOGO_MARK_ASSET,
+        );
+        $fullLogo = $this->resolveLogoVariant(
+            $setting?->logo_full_path,
+            self::LOGO_FULL_ASSET,
+        );
+        $activeLogo = $logoPreset === self::LOGO_PRESET_FULL
+            ? $fullLogo
+            : $markLogo;
 
         return [
             'companyName' => $companyName,
             'portalLabel' => $portalLabel,
             'appTitle' => $this->resolveAppTitle($companyName, $portalLabel),
-            'logoPath' => $logoPath,
-            'logoUrl' => $this->resolveLogoUrl($logoPath),
+            'logoPreset' => $logoPreset,
+            'logoIsWordmark' => $logoPreset === self::LOGO_PRESET_FULL,
+            'logoPath' => $activeLogo['path'],
+            'logoUrl' => $activeLogo['url'],
+            'logoMarkUrl' => $markLogo['url'],
+            'logoFullUrl' => $fullLogo['url'],
+            'logoMarkDefaultUrl' => asset(self::LOGO_MARK_ASSET),
+            'logoFullDefaultUrl' => asset(self::LOGO_FULL_ASSET),
+            'logoMarkIsDefault' => $markLogo['isDefault'],
+            'logoFullIsDefault' => $fullLogo['isDefault'],
             'faviconPath' => $faviconPath,
             'faviconUrl' => $this->resolveFaviconUrl($faviconPath),
+            'faviconDefaultUrl' => asset(self::DEFAULT_FAVICON_ASSET),
             'brandPrimaryColor' => $this->normalizeValue(
                 $setting?->brand_primary_color,
             ),
@@ -102,27 +151,28 @@ class OrganizationSettingsService
 
     public function logoDataUri(): ?string
     {
-        $logoPath = OrganizationSetting::query()
-            ->value('company_logo_path');
-        $logoPath = $this->normalizeValue($logoPath);
-        $logoFilePath = $this->resolveLogoFilePath($logoPath);
+        $setting = OrganizationSetting::query()->first();
+        $logoPreset = $this->resolveLogoPreset($setting?->logo_preset);
+        $logoPath = $logoPreset === self::LOGO_PRESET_FULL
+            ? $setting?->logo_full_path
+            : $setting?->logo_mark_path;
+        $fallbackAsset = $logoPreset === self::LOGO_PRESET_FULL
+            ? self::LOGO_FULL_ASSET
+            : self::LOGO_MARK_ASSET;
+        $logoSource = $this->resolveLogoContents($logoPath, $fallbackAsset);
 
-        if ($logoFilePath === null) {
+        if ($logoSource['contents'] === null) {
             return null;
         }
 
-        $contents = file_get_contents($logoFilePath);
-
-        if ($contents === false) {
-            return null;
-        }
-
-        $mimeType = $this->resolveLogoMimeType($logoFilePath);
+        $mimeType = $this->resolveLogoMimeType(
+            $logoSource['path'] ?? $fallbackAsset,
+        );
 
         return sprintf(
             'data:%s;base64,%s',
             $mimeType,
-            base64_encode($contents),
+            base64_encode($logoSource['contents']),
         );
     }
 
@@ -163,28 +213,102 @@ class OrganizationSettingsService
         return trim(sprintf('%s - %s', $portalLabel, $companyName));
     }
 
-    private function resolveLogoUrl(?string $logoPath): string
+    private function resolveLogoPreset(?string $logoPreset): string
     {
-        if ($logoPath !== null) {
-            return Storage::disk('public')->url($logoPath);
+        $preset = $this->normalizeValue($logoPreset);
+
+        if ($preset === self::LOGO_PRESET_MARK) {
+            return self::LOGO_PRESET_MARK;
         }
 
-        return asset(self::DEFAULT_LOGO_ASSET);
+        if ($preset === self::LOGO_PRESET_FULL) {
+            return self::LOGO_PRESET_FULL;
+        }
+
+        if ($preset === 'mrdinc_mark') {
+            return self::LOGO_PRESET_MARK;
+        }
+
+        if ($preset === 'mrdinc_full') {
+            return self::LOGO_PRESET_FULL;
+        }
+
+        return self::DEFAULT_LOGO_PRESET;
     }
 
-    private function resolveLogoFilePath(?string $logoPath): ?string
+    /**
+     * @return list<string>
+     */
+    public function logoPresets(): array
     {
-        if ($logoPath !== null) {
-            if (! Storage::disk('public')->exists($logoPath)) {
-                return null;
-            }
+        return [
+            self::LOGO_PRESET_MARK,
+            self::LOGO_PRESET_FULL,
+        ];
+    }
 
-            return Storage::disk('public')->path($logoPath);
+    /**
+     * @return array{url: string, path: ?string, isDefault: bool}
+     */
+    private function resolveLogoVariant(
+        ?string $storedPath,
+        string $fallbackAsset,
+    ): array {
+        if ($storedPath !== null && Storage::disk('public')->exists($storedPath)) {
+            return [
+                'url' => Storage::disk('public')->url($storedPath),
+                'path' => $storedPath,
+                'isDefault' => false,
+            ];
         }
 
-        $fallbackPath = public_path(self::DEFAULT_LOGO_ASSET);
+        return [
+            'url' => asset($fallbackAsset),
+            'path' => null,
+            'isDefault' => true,
+        ];
+    }
 
-        return is_file($fallbackPath) ? $fallbackPath : null;
+    /**
+     * @return array{contents: ?string, path: ?string, isDefault: bool}
+     */
+    private function resolveLogoContents(
+        ?string $storedPath,
+        string $fallbackAsset,
+    ): array {
+        if ($storedPath !== null && Storage::disk('public')->exists($storedPath)) {
+            return [
+                'contents' => Storage::disk('public')->get($storedPath),
+                'path' => $storedPath,
+                'isDefault' => false,
+            ];
+        }
+
+        $fallbackPath = public_path($fallbackAsset);
+
+        if (! is_file($fallbackPath)) {
+            return [
+                'contents' => null,
+                'path' => null,
+                'isDefault' => true,
+            ];
+        }
+
+        $contents = file_get_contents($fallbackPath);
+
+        if ($contents === false) {
+            return [
+                'contents' => null,
+                'path' => null,
+                'isDefault' => true,
+            ];
+        }
+
+        return [
+            'contents' => $contents,
+            'path' => $fallbackAsset,
+            'isDefault' => true,
+        ];
     }
 
     private function resolveLogoMimeType(string $path): string

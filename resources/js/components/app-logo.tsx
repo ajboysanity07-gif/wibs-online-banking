@@ -19,6 +19,8 @@ export default function AppLogo({
 }: AppLogoProps) {
     const branding = useBranding();
     const isStacked = variant === 'stacked';
+    const showCompanyName = !branding.logoIsWordmark;
+    const showPortalLabel = branding.portalLabel.trim() !== '';
 
     return (
         <span
@@ -42,17 +44,23 @@ export default function AppLogo({
                     isStacked ? 'items-center' : '',
                 )}
             >
-                <span className={cn('text-sm font-semibold', titleClassName)}>
-                    {branding.companyName}
-                </span>
-                <span
-                    className={cn(
-                        'text-xs text-muted-foreground',
-                        subtitleClassName,
-                    )}
-                >
-                    {branding.portalLabel}
-                </span>
+                {showCompanyName ? (
+                    <span
+                        className={cn('text-sm font-semibold', titleClassName)}
+                    >
+                        {branding.companyName}
+                    </span>
+                ) : null}
+                {showPortalLabel ? (
+                    <span
+                        className={cn(
+                            'text-xs text-muted-foreground',
+                            subtitleClassName,
+                        )}
+                    >
+                        {branding.portalLabel}
+                    </span>
+                ) : null}
             </span>
         </span>
     );

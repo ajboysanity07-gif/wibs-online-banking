@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import OrganizationSettingsController from '@/actions/App/Http/Controllers/Admin/OrganizationSettingsController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -22,7 +23,7 @@ import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { dashboard } from '@/routes/admin';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { mrdincTheme } from '@/theme/clients/mrdinc';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, LogoPreset } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -35,12 +36,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const LOGO_MAX_BYTES = 2 * 1024 * 1024;
-const LOGO_ALLOWED_TYPES = new Set([
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-]);
 const FAVICON_MAX_BYTES = 1024 * 1024;
 const FAVICON_ALLOWED_TYPES = new Set([
     'image/jpeg',
@@ -49,12 +44,35 @@ const FAVICON_ALLOWED_TYPES = new Set([
     'image/x-icon',
     'image/vnd.microsoft.icon',
 ]);
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+const LOGO_ALLOWED_TYPES = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+]);
 const DEFAULT_BRAND_PRIMARY = mrdincTheme.hex.primary.toLowerCase();
 const DEFAULT_BRAND_ACCENT = mrdincTheme.hex.accent.toLowerCase();
 const PRIMARY_COLOR_ERROR =
     'Primary color must be a valid hex value (e.g., #1a2b3c).';
 const ACCENT_COLOR_ERROR =
     'Accent color must be a valid hex value (e.g., #1a2b3c).';
+const LOGO_PRESET_OPTIONS: Array<{
+    value: LogoPreset;
+    label: string;
+    description: string;
+}> = [
+    {
+        value: 'mark',
+        label: 'Logo mark',
+        description: 'Compact icon-only logo.',
+    },
+    {
+        value: 'full',
+        label: 'Logo full',
+        description: 'Full wordmark logo.',
+    },
+];
+const ICON_PREVIEW_SIZES = [16, 24, 32];
 
 const normalizeHexValue = (value: string): string | null => {
     const trimmed = value.trim();
@@ -97,10 +115,25 @@ const normalizeHexInputValue = (
 
 export default function OrganizationSettings() {
     const branding = useBranding();
-    const logoInputRef = useRef<HTMLInputElement>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [logoPreset, setLogoPreset] = useState<LogoPreset>(
+        branding.logoPreset,
+    );
+    const [companyNameValue, setCompanyNameValue] = useState(
+        branding.companyName,
+    );
+    const [portalLabelValue, setPortalLabelValue] = useState(
+        branding.portalLabel,
+    );
+    const logoMarkInputRef = useRef<HTMLInputElement>(null);
+    const logoFullInputRef = useRef<HTMLInputElement>(null);
+    const [logoMarkPreview, setLogoMarkPreview] = useState<string | null>(null);
+    const [logoFullPreview, setLogoFullPreview] = useState<string | null>(null);
+    const [logoMarkReset, setLogoMarkReset] = useState(false);
+    const [logoFullReset, setLogoFullReset] = useState(false);
     const faviconInputRef = useRef<HTMLInputElement>(null);
     const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+    const [faviconReset, setFaviconReset] = useState(false);
+    const [hasChanges, setHasChanges] = useState(false);
     const [brandPrimaryValue, setBrandPrimaryValue] = useState(() =>
         normalizeHexInputValue(branding.brandPrimaryColor),
     );
@@ -121,16 +154,31 @@ export default function OrganizationSettings() {
     const accentSwatch = normalizedAccent ?? DEFAULT_BRAND_ACCENT;
     const brandPrimaryHelpId = 'brand_primary_color_help';
     const brandAccentHelpId = 'brand_accent_color_help';
-
-    useEffect(() => {
-        if (!logoPreview) {
-            return;
-        }
-
-        return () => {
-            URL.revokeObjectURL(logoPreview);
-        };
-    }, [logoPreview]);
+    const logoMarkPreviewUrl =
+        logoMarkPreview ??
+        (logoMarkReset ? branding.logoMarkDefaultUrl : branding.logoMarkUrl);
+    const logoFullPreviewUrl =
+        logoFullPreview ??
+        (logoFullReset ? branding.logoFullDefaultUrl : branding.logoFullUrl);
+    const logoPreviewUrl =
+        logoPreset === 'full' ? logoFullPreviewUrl : logoMarkPreviewUrl;
+    const showCompanyNamePreview = logoPreset !== 'full';
+    const companyNamePreview =
+        companyNameValue.trim() !== ''
+            ? companyNameValue.trim()
+            : branding.companyName;
+    const portalLabelPreview =
+        portalLabelValue.trim() !== ''
+            ? portalLabelValue.trim()
+            : branding.portalLabel;
+    const faviconPreviewUrl =
+        faviconPreview ??
+        (faviconReset ? branding.faviconDefaultUrl : branding.faviconUrl);
+    const logoMarkIsDefault =
+        logoMarkReset || (!logoMarkPreview && branding.logoMarkIsDefault);
+    const logoFullIsDefault =
+        logoFullReset || (!logoFullPreview && branding.logoFullIsDefault);
+    const hasStoredFavicon = branding.faviconPath !== null;
 
     useEffect(() => {
         if (!faviconPreview) {
@@ -142,7 +190,38 @@ export default function OrganizationSettings() {
         };
     }, [faviconPreview]);
 
-    const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => {
+        if (!logoMarkPreview) {
+            return;
+        }
+
+        return () => {
+            URL.revokeObjectURL(logoMarkPreview);
+        };
+    }, [logoMarkPreview]);
+
+    useEffect(() => {
+        if (!logoFullPreview) {
+            return;
+        }
+
+        return () => {
+            URL.revokeObjectURL(logoFullPreview);
+        };
+    }, [logoFullPreview]);
+
+    useEffect(() => {
+        setLogoPreset(branding.logoPreset);
+        setCompanyNameValue(branding.companyName);
+        setPortalLabelValue(branding.portalLabel);
+        setLogoMarkPreview(null);
+        setLogoFullPreview(null);
+        setLogoMarkReset(false);
+        setLogoFullReset(false);
+        setFaviconReset(false);
+    }, [branding.companyName, branding.logoPreset, branding.portalLabel]);
+
+    const handleLogoMarkChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
 
         if (!file) {
@@ -152,9 +231,9 @@ export default function OrganizationSettings() {
         if (!LOGO_ALLOWED_TYPES.has(file.type)) {
             showErrorToast(
                 null,
-                'Please select a JPG, PNG, or WebP image.',
+                'Please select a JPG, PNG, or WebP image for the logo mark.',
                 {
-                    id: 'organization-logo-type',
+                    id: 'organization-logo-mark-type',
                 },
             );
             event.target.value = '';
@@ -162,21 +241,105 @@ export default function OrganizationSettings() {
         }
 
         if (file.size > LOGO_MAX_BYTES) {
-            showErrorToast(null, 'Image must be 2MB or smaller.', {
-                id: 'organization-logo-size',
+            showErrorToast(null, 'Logo mark must be 2MB or smaller.', {
+                id: 'organization-logo-mark-size',
             });
             event.target.value = '';
             return;
         }
 
-        setLogoPreview(URL.createObjectURL(file));
+        setLogoMarkReset(false);
+        setLogoMarkPreview(URL.createObjectURL(file));
+        setHasChanges(true);
     };
 
-    const clearLogoPreview = () => {
-        setLogoPreview(null);
+    const handleLogoFullChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
 
-        if (logoInputRef.current) {
-            logoInputRef.current.value = '';
+        if (!file) {
+            return;
+        }
+
+        if (!LOGO_ALLOWED_TYPES.has(file.type)) {
+            showErrorToast(
+                null,
+                'Please select a JPG, PNG, or WebP image for the full logo.',
+                {
+                    id: 'organization-logo-full-type',
+                },
+            );
+            event.target.value = '';
+            return;
+        }
+
+        if (file.size > LOGO_MAX_BYTES) {
+            showErrorToast(null, 'Logo full must be 2MB or smaller.', {
+                id: 'organization-logo-full-size',
+            });
+            event.target.value = '';
+            return;
+        }
+
+        setLogoFullReset(false);
+        setLogoFullPreview(URL.createObjectURL(file));
+        setHasChanges(true);
+    };
+
+    const clearLogoMarkPreview = () => {
+        setLogoMarkPreview(null);
+        setHasChanges(true);
+
+        if (logoMarkInputRef.current) {
+            logoMarkInputRef.current.value = '';
+        }
+    };
+
+    const clearLogoFullPreview = () => {
+        setLogoFullPreview(null);
+        setHasChanges(true);
+
+        if (logoFullInputRef.current) {
+            logoFullInputRef.current.value = '';
+        }
+    };
+
+    const resetLogoMarkToDefault = () => {
+        setLogoMarkReset(true);
+        setLogoMarkPreview(null);
+        setHasChanges(true);
+
+        if (logoMarkInputRef.current) {
+            logoMarkInputRef.current.value = '';
+        }
+    };
+
+    const resetLogoFullToDefault = () => {
+        setLogoFullReset(true);
+        setLogoFullPreview(null);
+        setHasChanges(true);
+
+        if (logoFullInputRef.current) {
+            logoFullInputRef.current.value = '';
+        }
+    };
+
+    const keepCurrentLogoMark = () => {
+        setLogoMarkReset(false);
+        setLogoMarkPreview(null);
+        setHasChanges(true);
+
+        if (logoMarkInputRef.current) {
+            logoMarkInputRef.current.value = '';
+        }
+    };
+
+    const keepCurrentLogoFull = () => {
+        setLogoFullReset(false);
+        setLogoFullPreview(null);
+        setHasChanges(true);
+
+        if (logoFullInputRef.current) {
+            logoFullInputRef.current.value = '';
         }
     };
 
@@ -207,11 +370,34 @@ export default function OrganizationSettings() {
             return;
         }
 
+        setFaviconReset(false);
         setFaviconPreview(URL.createObjectURL(file));
+        setHasChanges(true);
     };
 
     const clearFaviconPreview = () => {
         setFaviconPreview(null);
+        setHasChanges(true);
+
+        if (faviconInputRef.current) {
+            faviconInputRef.current.value = '';
+        }
+    };
+
+    const resetFaviconToDefault = () => {
+        setFaviconReset(true);
+        setFaviconPreview(null);
+        setHasChanges(true);
+
+        if (faviconInputRef.current) {
+            faviconInputRef.current.value = '';
+        }
+    };
+
+    const keepCurrentFavicon = () => {
+        setFaviconReset(false);
+        setFaviconPreview(null);
+        setHasChanges(true);
 
         if (faviconInputRef.current) {
             faviconInputRef.current.value = '';
@@ -228,13 +414,14 @@ export default function OrganizationSettings() {
                     description="Manage organization identity, portal labeling, and support details shown to members."
                 />
 
-                <Card>
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+                    <Card>
                     <CardHeader>
-                        <CardTitle>Branding settings</CardTitle>
+                        <CardTitle>Brand settings</CardTitle>
                         <CardDescription>
-                            These settings control branding, portal labeling,
-                            and support contact details across the member
-                            experience.
+                            Configure identity, portal labeling, and support
+                            details shown across member experiences and
+                            reports.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -242,6 +429,7 @@ export default function OrganizationSettings() {
                             {...OrganizationSettingsController.update.form()}
                             options={{ preserveScroll: true }}
                             encType="multipart/form-data"
+                            onChange={() => setHasChanges(true)}
                             onSuccess={() => {
                                 showSuccessToast(
                                     adminToastCopy.success.updated('Branding'),
@@ -249,10 +437,21 @@ export default function OrganizationSettings() {
                                         id: 'organization-branding-update',
                                     },
                                 );
-                                clearLogoPreview();
+                                setLogoMarkPreview(null);
+                                setLogoFullPreview(null);
+                                setLogoMarkReset(false);
+                                setLogoFullReset(false);
+                                if (logoMarkInputRef.current) {
+                                    logoMarkInputRef.current.value = '';
+                                }
+                                if (logoFullInputRef.current) {
+                                    logoFullInputRef.current.value = '';
+                                }
                                 clearFaviconPreview();
+                                setFaviconReset(false);
                                 setBrandPrimaryTouched(false);
                                 setBrandAccentTouched(false);
+                                setHasChanges(false);
                             }}
                             onError={(formErrors) => {
                                 showErrorToast(
@@ -293,13 +492,13 @@ export default function OrganizationSettings() {
                                 return (
                                     <>
                                         <div className="space-y-6">
-                                        <div className="space-y-1">
+                                            <div className="space-y-1">
                                             <h3 className="text-base font-semibold">
                                                 Organization identity
                                             </h3>
                                             <p className="text-sm text-muted-foreground">
-                                                Company name and logo shown
-                                                across the portal.
+                                                Company name used across the
+                                                portal and reports.
                                             </p>
                                         </div>
 
@@ -311,79 +510,18 @@ export default function OrganizationSettings() {
                                                 <Input
                                                     id="company_name"
                                                     name="company_name"
-                                                    defaultValue={
-                                                        branding.companyName
-                                                    }
+                                                    value={companyNameValue}
+                                                    onChange={(event) => {
+                                                        setCompanyNameValue(
+                                                            event.target.value,
+                                                        );
+                                                        setHasChanges(true);
+                                                    }}
                                                     placeholder="Company name"
                                                 />
                                                 <InputError
                                                     message={
                                                         formErrors.company_name
-                                                    }
-                                                />
-                                            </div>
-
-                                            <div className="grid gap-3">
-                                                <Label htmlFor="company_logo">
-                                                    Company logo
-                                                </Label>
-                                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                                                    <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-border bg-muted/40">
-                                                        <img
-                                                            src={
-                                                                logoPreview ??
-                                                                branding.logoUrl
-                                                            }
-                                                            alt={
-                                                                branding.appTitle
-                                                            }
-                                                            className="h-14 w-auto object-contain"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2 text-sm text-muted-foreground">
-                                                        <p>
-                                                            Upload a JPG, PNG,
-                                                            or WebP image (max
-                                                            2MB).
-                                                        </p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    logoInputRef.current?.click()
-                                                                }
-                                                            >
-                                                                Change logo
-                                                            </Button>
-                                                            {logoPreview ? (
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={
-                                                                        clearLogoPreview
-                                                                    }
-                                                                >
-                                                                    Reset preview
-                                                                </Button>
-                                                            ) : null}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <input
-                                                    id="company_logo"
-                                                    ref={logoInputRef}
-                                                    name="company_logo"
-                                                    type="file"
-                                                    accept="image/png,image/jpeg,image/webp"
-                                                    className="sr-only"
-                                                    onChange={handleLogoChange}
-                                                />
-                                                <InputError
-                                                    message={
-                                                        formErrors.company_logo
                                                     }
                                                 />
                                             </div>
@@ -395,55 +533,362 @@ export default function OrganizationSettings() {
                                     <div className="space-y-6">
                                         <div className="space-y-1">
                                             <h3 className="text-base font-semibold">
-                                                Portal branding
+                                                Brand assets
                                             </h3>
                                             <p className="text-sm text-muted-foreground">
-                                                Set the portal label and
-                                                favicon shown in the browser.
+                                                Choose the primary logo and
+                                                portal icon used throughout the
+                                                member experience.
                                             </p>
                                         </div>
 
-                                        <div className="grid gap-6 md:grid-cols-2">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="portal_label">
-                                                    Portal label
-                                                </Label>
-                                                <Input
-                                                    id="portal_label"
-                                                    name="portal_label"
-                                                    defaultValue={
-                                                        branding.portalLabel
-                                                    }
-                                                    placeholder="Member Portal"
+                                        <div className="grid gap-6">
+                                            <div className="grid gap-3">
+                                                <Label>Primary logo</Label>
+                                                <div
+                                                    role="radiogroup"
+                                                    aria-label="Primary logo selection"
+                                                    className="grid gap-4 md:grid-cols-2"
+                                                >
+                                                    {LOGO_PRESET_OPTIONS.map(
+                                                        (option) => {
+                                                            const isSelected =
+                                                                logoPreset ===
+                                                                option.value;
+                                                            const isMark =
+                                                                option.value ===
+                                                                'mark';
+                                                            const previewUrl =
+                                                                isMark
+                                                                    ? logoMarkPreviewUrl
+                                                                    : logoFullPreviewUrl;
+                                                            const isDefault =
+                                                                isMark
+                                                                    ? logoMarkIsDefault
+                                                                    : logoFullIsDefault;
+                                                            const isReset =
+                                                                isMark
+                                                                    ? logoMarkReset
+                                                                    : logoFullReset;
+                                                            const hasPreview =
+                                                                isMark
+                                                                    ? Boolean(
+                                                                          logoMarkPreview,
+                                                                      )
+                                                                    : Boolean(
+                                                                          logoFullPreview,
+                                                                      );
+
+                                                            return (
+                                                                <div
+                                                                    key={
+                                                                        option.value
+                                                                    }
+                                                                    role="radio"
+                                                                    aria-checked={
+                                                                        isSelected
+                                                                    }
+                                                                    tabIndex={
+                                                                        0
+                                                                    }
+                                                                    onClick={() => {
+                                                                        setLogoPreset(
+                                                                            option.value,
+                                                                        );
+                                                                        setHasChanges(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                    onKeyDown={(
+                                                                        event,
+                                                                    ) => {
+                                                                        if (
+                                                                            event.key ===
+                                                                                'Enter' ||
+                                                                            event.key ===
+                                                                                ' '
+                                                                        ) {
+                                                                            event.preventDefault();
+                                                                            setLogoPreset(
+                                                                                option.value,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                        }
+                                                                    }}
+                                                                    className={`flex cursor-pointer flex-col gap-4 rounded-xl border p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                                                                        isSelected
+                                                                            ? 'border-primary/70 bg-primary/5 ring-1 ring-primary/30'
+                                                                            : 'border-border hover:border-primary/40'
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-sm font-semibold">
+                                                                                {
+                                                                                    option.label
+                                                                                }
+                                                                            </p>
+                                                                            <p className="text-xs text-muted-foreground">
+                                                                                {
+                                                                                    option.description
+                                                                                }
+                                                                            </p>
+                                                                        </div>
+                                                                        {isSelected ? (
+                                                                            <Badge
+                                                                                variant="secondary"
+                                                                                className="text-[10px] uppercase"
+                                                                            >
+                                                                                Selected
+                                                                            </Badge>
+                                                                        ) : (
+                                                                            <span className="text-[10px] uppercase text-muted-foreground">
+                                                                                Choose
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex h-20 items-center justify-center rounded-lg border border-border/70 bg-muted/40">
+                                                                        <img
+                                                                            src={
+                                                                                previewUrl
+                                                                            }
+                                                                            alt={`${branding.appTitle} ${option.label}`}
+                                                                            className={`w-auto object-contain ${
+                                                                                option.value ===
+                                                                                'full'
+                                                                                    ? 'h-14'
+                                                                                    : 'h-12'
+                                                                            }`}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                                                        <span>
+                                                                            {isDefault
+                                                                                ? 'Default asset'
+                                                                                : 'Custom asset'}
+                                                                        </span>
+                                                                        {isReset ? (
+                                                                            <span className="text-primary">
+                                                                                Reset after save
+                                                                            </span>
+                                                                        ) : null}
+                                                                    </div>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={(
+                                                                                event,
+                                                                            ) => {
+                                                                                event.preventDefault();
+                                                                                event.stopPropagation();
+                                                                                if (
+                                                                                    isMark
+                                                                                ) {
+                                                                                    logoMarkInputRef.current?.click();
+                                                                                } else {
+                                                                                    logoFullInputRef.current?.click();
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            {isMark
+                                                                                ? 'Change logo mark'
+                                                                                : 'Change logo full'}
+                                                                        </Button>
+                                                                        {hasPreview ? (
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={(
+                                                                                    event,
+                                                                                ) => {
+                                                                                    event.preventDefault();
+                                                                                    event.stopPropagation();
+                                                                                    if (
+                                                                                        isMark
+                                                                                    ) {
+                                                                                        clearLogoMarkPreview();
+                                                                                    } else {
+                                                                                        clearLogoFullPreview();
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                Remove selection
+                                                                            </Button>
+                                                                        ) : null}
+                                                                        {!isDefault ||
+                                                                        isReset ? (
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={(
+                                                                                    event,
+                                                                                ) => {
+                                                                                    event.preventDefault();
+                                                                                    event.stopPropagation();
+                                                                                    if (
+                                                                                        isMark
+                                                                                    ) {
+                                                                                        if (
+                                                                                            isReset
+                                                                                        ) {
+                                                                                            keepCurrentLogoMark();
+                                                                                        } else {
+                                                                                            resetLogoMarkToDefault();
+                                                                                        }
+                                                                                    } else if (
+                                                                                        isReset
+                                                                                    ) {
+                                                                                        keepCurrentLogoFull();
+                                                                                    } else {
+                                                                                        resetLogoFullToDefault();
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                {isReset
+                                                                                    ? 'Keep current asset'
+                                                                                    : 'Reset to default'}
+                                                                            </Button>
+                                                                        ) : null}
+                                                                    </div>
+                                                                    <input
+                                                                        ref={
+                                                                            isMark
+                                                                                ? logoMarkInputRef
+                                                                                : logoFullInputRef
+                                                                        }
+                                                                        type="file"
+                                                                        name={
+                                                                            isMark
+                                                                                ? 'logo_mark'
+                                                                                : 'logo_full'
+                                                                        }
+                                                                        accept="image/png,image/jpeg,image/webp"
+                                                                        className="sr-only"
+                                                                        onChange={
+                                                                            isMark
+                                                                                ? handleLogoMarkChange
+                                                                                : handleLogoFullChange
+                                                                        }
+                                                                    />
+                                                                    {isMark &&
+                                                                    logoMarkReset ? (
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="logo_mark_reset"
+                                                                            value="1"
+                                                                        />
+                                                                    ) : null}
+                                                                    {!isMark &&
+                                                                    logoFullReset ? (
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="logo_full_reset"
+                                                                            value="1"
+                                                                        />
+                                                                    ) : null}
+                                                                    <InputError
+                                                                        message={
+                                                                            isMark
+                                                                                ? formErrors.logo_mark
+                                                                                : formErrors.logo_full
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        },
+                                                    )}
+                                                </div>
+                                                <input
+                                                    type="hidden"
+                                                    name="logo_preset"
+                                                    value={logoPreset}
                                                 />
+                                                <p className="text-sm text-muted-foreground">
+                                                    The selected logo appears
+                                                    on member forms, navigation,
+                                                    and reports.
+                                                </p>
                                                 <InputError
                                                     message={
-                                                        formErrors.portal_label
+                                                        formErrors.logo_preset
                                                     }
                                                 />
                                             </div>
 
-                                            <div className="grid gap-3 md:col-span-2">
-                                                <Label htmlFor="favicon">
-                                                    Portal favicon
-                                                </Label>
-                                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                                                    <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-muted/40">
-                                                        <img
-                                                            src={
-                                                                faviconPreview ??
-                                                                branding.faviconUrl
-                                                            }
-                                                            alt={`${branding.appTitle} favicon`}
-                                                            className="h-8 w-8 object-contain"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2 text-sm text-muted-foreground">
-                                                        <p>
-                                                            Upload a JPG, PNG,
-                                                            WebP, or ICO image
-                                                            (max 1MB).
+                                            <div className="grid gap-3">
+                                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="favicon">
+                                                            Portal icon
+                                                        </Label>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Used in browser tabs
+                                                            and compact app
+                                                            surfaces.
                                                         </p>
+                                                    </div>
+                                                    {faviconReset ? (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="text-[10px] uppercase"
+                                                        >
+                                                            Default
+                                                        </Badge>
+                                                    ) : hasStoredFavicon ||
+                                                      faviconPreview ? (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="text-[10px] uppercase"
+                                                        >
+                                                            Custom
+                                                        </Badge>
+                                                    ) : null}
+                                                </div>
+                                                <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                                                    <div className="flex flex-wrap items-center justify-between gap-4">
+                                                        <div className="flex flex-wrap items-center gap-4">
+                                                            <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/70 bg-background">
+                                                                <img
+                                                                    src={
+                                                                        faviconPreviewUrl
+                                                                    }
+                                                                    alt={`${branding.appTitle} icon`}
+                                                                    className="h-7 w-7 object-contain"
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {ICON_PREVIEW_SIZES.map(
+                                                                    (size) => (
+                                                                        <div
+                                                                            key={
+                                                                                size
+                                                                            }
+                                                                            className="flex h-9 w-9 items-center justify-center rounded-md border border-border/70 bg-background"
+                                                                        >
+                                                                            <img
+                                                                                src={
+                                                                                    faviconPreviewUrl
+                                                                                }
+                                                                                alt={`${branding.appTitle} ${size}px`}
+                                                                                className="object-contain"
+                                                                                style={{
+                                                                                    width:
+                                                                                        size,
+                                                                                    height:
+                                                                                        size,
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                         <div className="flex flex-wrap gap-2">
                                                             <Button
                                                                 type="button"
@@ -453,7 +898,7 @@ export default function OrganizationSettings() {
                                                                     faviconInputRef.current?.click()
                                                                 }
                                                             >
-                                                                Change favicon
+                                                                Upload icon
                                                             </Button>
                                                             {faviconPreview ? (
                                                                 <Button
@@ -464,12 +909,40 @@ export default function OrganizationSettings() {
                                                                         clearFaviconPreview
                                                                     }
                                                                 >
-                                                                    Reset preview
+                                                                    Remove selection
+                                                                </Button>
+                                                            ) : null}
+                                                            {hasStoredFavicon ||
+                                                            faviconReset ? (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={
+                                                                        faviconReset
+                                                                            ? keepCurrentFavicon
+                                                                            : resetFaviconToDefault
+                                                                    }
+                                                                >
+                                                                    {faviconReset
+                                                                        ? 'Keep current icon'
+                                                                        : 'Reset to default'}
                                                                 </Button>
                                                             ) : null}
                                                         </div>
                                                     </div>
+                                                    <p className="mt-3 text-xs text-muted-foreground">
+                                                        Upload a JPG, PNG,
+                                                        WebP, or ICO image (max
+                                                        1MB).
+                                                    </p>
                                                 </div>
+                                                {faviconReset ? (
+                                                    <p className="text-xs text-primary">
+                                                        Default icon will be
+                                                        used after saving.
+                                                    </p>
+                                                ) : null}
                                                 <input
                                                     id="favicon"
                                                     ref={faviconInputRef}
@@ -481,8 +954,55 @@ export default function OrganizationSettings() {
                                                         handleFaviconChange
                                                     }
                                                 />
+                                                {faviconReset ? (
+                                                    <input
+                                                        type="hidden"
+                                                        name="favicon_reset"
+                                                        value="1"
+                                                    />
+                                                ) : null}
                                                 <InputError
                                                     message={formErrors.favicon}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator />
+
+                                    <div className="space-y-6">
+                                        <div className="space-y-1">
+                                            <h3 className="text-base font-semibold">
+                                                Portal appearance
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Customize how the portal label
+                                                appears in navigation and
+                                                headers.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid gap-6 md:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="portal_label">
+                                                    Portal label
+                                                </Label>
+                                                <Input
+                                                    id="portal_label"
+                                                    name="portal_label"
+                                                    value={portalLabelValue}
+                                                    onChange={(event) => {
+                                                        setPortalLabelValue(
+                                                            event.target.value,
+                                                        );
+                                                        setHasChanges(true);
+                                                    }}
+                                                    placeholder="Member Portal"
+                                                />
+                                                <InputError
+                                                    message={
+                                                        formErrors.portal_label
+                                                    }
                                                 />
                                             </div>
                                         </div>
@@ -572,7 +1092,7 @@ export default function OrganizationSettings() {
                                     <div className="space-y-6">
                                         <div className="space-y-1">
                                             <h3 className="text-base font-semibold">
-                                                Future theme settings
+                                                Theme colors
                                             </h3>
                                             <p className="text-sm text-muted-foreground">
                                                 Stored for future dynamic
@@ -668,6 +1188,7 @@ export default function OrganizationSettings() {
                                                             setBrandPrimaryTouched(
                                                                 true,
                                                             );
+                                                            setHasChanges(true);
                                                             setBrandPrimaryValue(
                                                                 DEFAULT_BRAND_PRIMARY,
                                                             );
@@ -767,6 +1288,7 @@ export default function OrganizationSettings() {
                                                             setBrandAccentTouched(
                                                                 true,
                                                             );
+                                                            setHasChanges(true);
                                                             setBrandAccentValue(
                                                                 DEFAULT_BRAND_ACCENT,
                                                             );
@@ -782,21 +1304,38 @@ export default function OrganizationSettings() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4">
-                                        <Button disabled={processing}>
-                                            Save changes
-                                        </Button>
-                                        <Transition
-                                            show={recentlySuccessful}
-                                            enter="transition ease-in-out"
-                                            enterFrom="opacity-0"
-                                            leave="transition ease-in-out"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <p className="text-sm text-muted-foreground">
-                                                Saved
-                                            </p>
-                                        </Transition>
+                                    <div className="sticky bottom-4 z-10 rounded-xl border border-border/60 bg-background/90 p-4 backdrop-blur">
+                                        <div className="flex flex-wrap items-center justify-between gap-4">
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                {hasChanges ? (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-[10px] uppercase"
+                                                    >
+                                                        Unsaved changes
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-[10px] uppercase"
+                                                    >
+                                                        Up to date
+                                                    </Badge>
+                                                )}
+                                                <Transition
+                                                    show={recentlySuccessful}
+                                                    enter="transition ease-in-out"
+                                                    enterFrom="opacity-0"
+                                                    leave="transition ease-in-out"
+                                                    leaveTo="opacity-0"
+                                                >
+                                                    <span>Saved</span>
+                                                </Transition>
+                                            </div>
+                                            <Button disabled={processing}>
+                                                Save changes
+                                            </Button>
+                                        </div>
                                     </div>
                                     </>
                                 );
@@ -804,6 +1343,106 @@ export default function OrganizationSettings() {
                         </Form>
                     </CardContent>
                 </Card>
+
+                <div className="space-y-6 lg:sticky lg:top-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Live preview</CardTitle>
+                            <CardDescription>
+                                Review how the portal and reports will look
+                                before saving changes.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                                    Portal header
+                                </p>
+                                <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/60 bg-background">
+                                            <img
+                                                src={logoPreviewUrl}
+                                                alt={`${companyNamePreview} logo`}
+                                                className={`w-auto object-contain ${
+                                                    logoPreset === 'full'
+                                                        ? 'h-8'
+                                                        : 'h-7'
+                                                }`}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            {showCompanyNamePreview ? (
+                                                <p className="text-sm font-semibold">
+                                                    {companyNamePreview}
+                                                </p>
+                                            ) : null}
+                                            <p className="text-xs text-muted-foreground">
+                                                {portalLabelPreview}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                                    Portal icon
+                                </p>
+                                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4">
+                                    {ICON_PREVIEW_SIZES.map((size) => (
+                                        <div
+                                            key={size}
+                                            className="flex h-10 w-10 items-center justify-center rounded-md border border-border/70 bg-background"
+                                        >
+                                            <img
+                                                src={faviconPreviewUrl}
+                                                alt={`${branding.appTitle} ${size}px icon`}
+                                                className="object-contain"
+                                                style={{
+                                                    width: size,
+                                                    height: size,
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                    <span className="text-xs text-muted-foreground">
+                                        Browser tab + app sizes
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                                    Report header
+                                </p>
+                                <div className="rounded-xl border border-border/60 bg-background p-4">
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src={logoPreviewUrl}
+                                            alt={`${companyNamePreview} report logo`}
+                                            className={`w-auto object-contain ${
+                                                logoPreset === 'full'
+                                                    ? 'h-10'
+                                                    : 'h-8'
+                                            }`}
+                                        />
+                                        {showCompanyNamePreview ? (
+                                            <p className="text-sm font-semibold">
+                                                {companyNamePreview}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                    <div className="mt-3 h-px bg-border/60" />
+                                    <p className="mt-3 text-xs text-muted-foreground">
+                                        Loan request PDF preview
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
             </div>
         </AppLayout>
     );

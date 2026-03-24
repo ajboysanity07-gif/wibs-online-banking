@@ -44,20 +44,45 @@ class OrganizationSettingsController extends Controller
         $payload = Arr::only($validated, [
             'company_name',
             'portal_label',
+            'logo_preset',
             'support_email',
             'support_phone',
             'support_contact_name',
             'brand_primary_color',
             'brand_accent_color',
         ]);
+        $shouldResetLogoMark = $request->boolean('logo_mark_reset');
+        $shouldResetLogoFull = $request->boolean('logo_full_reset');
+        $shouldResetFavicon = $request->boolean('favicon_reset');
 
-        if ($request->hasFile('company_logo')) {
-            if ($setting->company_logo_path) {
-                Storage::disk('public')->delete($setting->company_logo_path);
+        if ($request->hasFile('logo_mark')) {
+            if ($setting->logo_mark_path) {
+                Storage::disk('public')->delete($setting->logo_mark_path);
             }
 
-            $payload['company_logo_path'] = $request->file('company_logo')
-                ->store('branding', 'public');
+            $payload['logo_mark_path'] = $request->file('logo_mark')
+                ->store('branding/logos/mark', 'public');
+        } elseif ($shouldResetLogoMark) {
+            if ($setting->logo_mark_path) {
+                Storage::disk('public')->delete($setting->logo_mark_path);
+            }
+
+            $payload['logo_mark_path'] = null;
+        }
+
+        if ($request->hasFile('logo_full')) {
+            if ($setting->logo_full_path) {
+                Storage::disk('public')->delete($setting->logo_full_path);
+            }
+
+            $payload['logo_full_path'] = $request->file('logo_full')
+                ->store('branding/logos/full', 'public');
+        } elseif ($shouldResetLogoFull) {
+            if ($setting->logo_full_path) {
+                Storage::disk('public')->delete($setting->logo_full_path);
+            }
+
+            $payload['logo_full_path'] = null;
         }
 
         if ($request->hasFile('favicon')) {
@@ -67,6 +92,12 @@ class OrganizationSettingsController extends Controller
 
             $payload['favicon_path'] = $request->file('favicon')
                 ->store('branding/favicons', 'public');
+        } elseif ($shouldResetFavicon) {
+            if ($setting->favicon_path) {
+                Storage::disk('public')->delete($setting->favicon_path);
+            }
+
+            $payload['favicon_path'] = null;
         }
 
         if ($payload !== []) {

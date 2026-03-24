@@ -25,6 +25,7 @@ class LoanRequestPdfService
         $coMakerTwo = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerTwo);
         $logoData = $this->brandingService->logoDataUri();
         $branding = $this->brandingService->branding();
+        $showCompanyName = ! ($branding['logoIsWordmark'] ?? false);
 
         $pdf = Pdf::setOption('isPhpEnabled', true)
             ->loadView('reports/loan-request', [
@@ -34,6 +35,7 @@ class LoanRequestPdfService
                 'coMakerTwo' => $coMakerTwo,
                 'companyName' => $branding['companyName'],
                 'logoData' => $logoData,
+                'showCompanyName' => $showCompanyName,
                 'generatedAt' => Carbon::now(),
             ]);
 

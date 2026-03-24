@@ -16,6 +16,9 @@ class OrganizationSetting extends Model
     protected $fillable = [
         'company_name',
         'company_logo_path',
+        'logo_preset',
+        'logo_mark_path',
+        'logo_full_path',
         'portal_label',
         'favicon_path',
         'brand_primary_color',

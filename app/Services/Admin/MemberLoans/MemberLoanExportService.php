@@ -103,11 +103,13 @@ class MemberLoanExportService
         $logoData = $this->brandingService->logoDataUri();
         $branding = $this->brandingService->branding();
         $generatedBy = auth()->user()?->name ?? auth()->user()?->username;
+        $showCompanyName = ! ($branding['logoIsWordmark'] ?? false);
 
         $pdf = Pdf::setOption('isPhpEnabled', true)
             ->loadView('reports.loan-payments', [
                 'logoData' => $logoData,
                 'companyName' => $branding['companyName'],
+                'showCompanyName' => $showCompanyName,
                 'memberName' => $memberName,
                 'memberAccountNo' => $payload['loan']->acctno ?? null,
                 'loanNumber' => $payload['loan']->lnnumber,
