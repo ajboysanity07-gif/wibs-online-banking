@@ -11,10 +11,10 @@ import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
-import { SurfaceCard } from '@/components/surface-card';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
 } from '@/components/profile/profile-image-crop-modal';
+import { SurfaceCard } from '@/components/surface-card';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

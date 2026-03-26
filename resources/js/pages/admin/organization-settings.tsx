@@ -2891,10 +2891,9 @@ export default function OrganizationSettings() {
                                                         Theme colors
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
-                                                        Stored for future
-                                                        dynamic theming. The
-                                                        current theme remains
-                                                        unchanged.
+                                                        Applied to primary and
+                                                        accent UI colors across
+                                                        the portal after save.
                                                     </p>
                                                 </div>
 

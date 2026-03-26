@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/sonner';
 import type { Branding } from '@/types';
 import { initializeTheme } from './hooks/use-appearance';
 import { mrdincTheme } from './theme/clients/mrdinc';
+import { resolveBrandingTheme } from './theme/branding-theme';
 import { injectClientTheme } from './theme/inject-theme';
 
 type SharedProps = {
@@ -25,10 +26,9 @@ const resolveAppTitle = (props?: SharedProps): string => {
     );
 };
 
-let appTitle = import.meta.env.VITE_APP_NAME ?? '';
-
-injectClientTheme(mrdincTheme);
 initializeTheme();
+
+let appTitle = import.meta.env.VITE_APP_NAME ?? '';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appTitle}` : appTitle),
@@ -39,14 +39,23 @@ createInertiaApp({
         ),
     setup({ el, App, props }) {
         const root = createRoot(el);
+        const updateClientTheme = (page: Page) => {
+            const sharedProps = page.props as SharedProps;
+            injectClientTheme(
+                resolveBrandingTheme(mrdincTheme, sharedProps.branding),
+            );
+        };
         const updateAppTitle = (page: Page) => {
             appTitle = resolveAppTitle(page.props as SharedProps);
         };
 
         updateAppTitle(props.initialPage);
+        updateClientTheme(props.initialPage);
 
         document.addEventListener('inertia:navigate', (event) => {
-            updateAppTitle((event as CustomEvent<{ page: Page }>).detail.page);
+            const page = (event as CustomEvent<{ page: Page }>).detail.page;
+            updateAppTitle(page);
+            updateClientTheme(page);
         });
 
         root.render(
