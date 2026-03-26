@@ -1,22 +1,28 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-bookworm-slim AS frontend
+FROM php:8.3-cli-bookworm AS vendor
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    git unzip zip curl gnupg2 ca-certificates apt-transport-https \
+    libzip-dev libicu-dev libpng-dev libonig-dev libxml2-dev \
+    libjpeg62-turbo-dev libfreetype6-dev libwebp-dev \
+    nodejs npm \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+ && docker-php-ext-install bcmath gd intl mbstring zip \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
 
 COPY package*.json ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY . .
-RUN npm run build
-
-FROM composer:2 AS vendor
-WORKDIR /app
-
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
-
-COPY . .
 RUN composer dump-autoload --optimize --no-dev
+RUN npm run build
 
 FROM php:8.3-apache-bookworm
 
@@ -53,7 +59,6 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
     /etc/apache2/conf-available/*.conf
 
 COPY --from=vendor /app /var/www/html
-COPY --from=frontend /app/public/build /var/www/html/public/build
 
 COPY docker/entrypoint.sh /usr/local/bin/app-entrypoint
 RUN chmod +x /usr/local/bin/app-entrypoint \
