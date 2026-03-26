@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { SurfaceCard } from '@/components/surface-card';
 import { cn } from '@/lib/utils';
 
 export type DetailAccent = 'primary' | 'accent';
@@ -50,8 +50,12 @@ export function MemberDetailPrimaryCard({
     const styles = accentStyles[accent];
 
     return (
-        <Card className={cn('border', styles.border, styles.bg)}>
-            <CardContent className="flex flex-col gap-3 p-6">
+        <SurfaceCard
+            variant="default"
+            padding="md"
+            className={cn(styles.border, styles.bg)}
+        >
+            <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         {title}
@@ -67,8 +71,8 @@ export function MemberDetailPrimaryCard({
                 {helper ? (
                     <p className="text-xs text-muted-foreground">{helper}</p>
                 ) : null}
-            </CardContent>
-        </Card>
+            </div>
+        </SurfaceCard>
     );
 }
 
@@ -82,8 +86,12 @@ export function MemberDetailSupportingCard({
     const styles = accentStyles[accent];
 
     return (
-        <Card className="border-border/60 bg-card">
-            <CardContent className="flex h-full flex-col gap-3 p-6">
+        <SurfaceCard
+            variant="default"
+            padding="md"
+            className="border-border/40 bg-card/60"
+        >
+            <div className="flex h-full flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         {title}
@@ -99,7 +107,7 @@ export function MemberDetailSupportingCard({
                         {description}
                     </p>
                 ) : null}
-            </CardContent>
-        </Card>
+            </div>
+        </SurfaceCard>
     );
 }

@@ -32,7 +32,7 @@ const paymentTableSkeletonColumns = [
 ];
 
 const MobilePaymentCardSkeleton = () => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-2">
                 <Skeleton className="h-4 w-28" />
@@ -43,7 +43,7 @@ const MobilePaymentCardSkeleton = () => (
                 <Skeleton className="ml-auto h-6 w-20" />
             </div>
         </div>
-        <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/40 p-3">
+        <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3">
             {Array.from({ length: 2 }).map((_, index) => (
                 <div
                     key={`payment-card-meta-${index}`}
@@ -66,7 +66,7 @@ const MobilePaymentCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
 );
 
 const MobilePaymentCard = ({ payment }: { payment: MemberLoanPayment }) => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">
@@ -83,7 +83,7 @@ const MobilePaymentCard = ({ payment }: { payment: MemberLoanPayment }) => (
                 </p>
             </div>
         </div>
-        <div className="mt-3 rounded-md border border-border/60 bg-muted/40 p-3">
+        <div className="mt-3 rounded-xl border border-border/30 bg-muted/30 p-3">
             <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Balance</span>
                 <span className="text-sm font-medium tabular-nums">
@@ -169,14 +169,14 @@ export function MemberLoanPaymentsRecordsCard({
                 <TableSkeleton
                     columns={paymentTableSkeletonColumns}
                     rows={meta.perPage}
-                    className="rounded-md border"
+                    className="rounded-xl border border-border/40 bg-card/60"
                     tableClassName="min-w-[840px]"
                 />
             }
             mobileWrapperClassName="space-y-3"
             mobileContent={
                 items.length === 0 ? (
-                    <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                         {paymentsEmptyMessage}
                     </div>
                 ) : (

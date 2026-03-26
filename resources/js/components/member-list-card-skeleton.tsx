@@ -17,7 +17,7 @@ export function MemberListCardSkeleton({
     return (
         <div
             className={cn(
-                'rounded-lg border border-border bg-card p-4',
+                'rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm',
                 className,
             )}
         >
@@ -28,7 +28,7 @@ export function MemberListCardSkeleton({
                 </div>
                 <Skeleton className="h-5 w-16" />
             </div>
-            <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/40 p-3">
+            <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3">
                 {Array.from({ length: metaRows }).map((_, index) => (
                     <div
                         key={`member-card-meta-${index}`}

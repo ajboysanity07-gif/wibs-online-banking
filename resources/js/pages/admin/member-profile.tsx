@@ -5,6 +5,7 @@ import { MemberProfileHeader } from '@/components/member-profile-header';
 import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageShell } from '@/components/page-shell';
 import {
@@ -146,6 +147,8 @@ export default function MemberProfile({
         currentMember.status === 'pending' || currentMember.status === null;
     const canSuspend = currentMember.status === 'active';
     const canReactivate = currentMember.status === 'suspended';
+    const statusLabel = getMemberStatusLabel(currentMember.status);
+    const statusVariant = getMemberStatusVariant(currentMember.status);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -167,6 +170,24 @@ export default function MemberProfile({
                     subtitle="Account status and profile details."
                     avatarUrl={currentMember.avatar_url}
                     avatarFallback={getInitials(memberName) || 'U'}
+                    statusBadge={
+                        <Badge
+                            variant={statusVariant}
+                            className="text-[0.65rem] uppercase tracking-[0.2em]"
+                        >
+                            {statusLabel}
+                        </Badge>
+                    }
+                    meta={
+                        <>
+                            <Badge variant="outline" className="bg-background/60">
+                                Account No: {currentMember.acctno ?? '--'}
+                            </Badge>
+                            <Badge variant="outline" className="bg-background/60">
+                                Username: {currentMember.username}
+                            </Badge>
+                        </>
+                    }
                     accessory={
                         <>
                             <Button asChild variant="outline" size="sm">
@@ -229,10 +250,8 @@ export default function MemberProfile({
                         />
                     </div>
                     <MemberStatusCard
-                        statusLabel={getMemberStatusLabel(currentMember.status)}
-                        statusVariant={getMemberStatusVariant(
-                            currentMember.status,
-                        )}
+                        statusLabel={statusLabel}
+                        statusVariant={statusVariant}
                         actions={
                             <>
                                 {canApprove ? (

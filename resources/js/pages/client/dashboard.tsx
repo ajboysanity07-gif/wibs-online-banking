@@ -6,6 +6,9 @@ import { MemberProfileHeader } from '@/components/member-profile-header';
 import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
 import { PageShell } from '@/components/page-shell';
+import { SectionHeader } from '@/components/section-header';
+import { SurfaceCard } from '@/components/surface-card';
+import { Badge } from '@/components/ui/badge';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/formatters';
@@ -117,6 +120,8 @@ export default function MemberProfile({
         reloadWithActionsPage(actionsMeta.page);
     };
     const canNavigate = Boolean(currentMember.acctno);
+    const statusLabel = getMemberStatusLabel(currentMember.status);
+    const statusVariant = getMemberStatusVariant(currentMember.status);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -127,13 +132,38 @@ export default function MemberProfile({
                     subtitle="Account status and profile details."
                     avatarUrl={currentMember.avatar_url}
                     avatarFallback={getInitials(currentMember.name) || 'U'}
+                    statusBadge={
+                        <Badge
+                            variant={statusVariant}
+                            className="text-[0.65rem] uppercase tracking-[0.2em]"
+                        >
+                            {statusLabel}
+                        </Badge>
+                    }
+                    meta={
+                        <>
+                            <Badge variant="outline" className="bg-background/60">
+                                Account No: {currentMember.acctno ?? '--'}
+                            </Badge>
+                            <Badge variant="outline" className="bg-background/60">
+                                Username: {currentMember.username}
+                            </Badge>
+                        </>
+                    }
                 />
 
-                <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
+                <SurfaceCard variant="default" padding="lg" className="space-y-6">
+                    <SectionHeader
+                        title="Profile summary"
+                        description="Key account details and access status."
+                        titleClassName="text-lg"
+                    />
+                    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                         <MemberProfileDetailsCard
                             title="Member details"
                             description="Portal profile information and contact details."
+                            className="border-border/30 bg-background/60 shadow-none"
+                            itemClassName="border-border/20 bg-muted/15"
                             items={[
                                 {
                                     label: 'Member name',
@@ -172,14 +202,13 @@ export default function MemberProfile({
                                 },
                             ]}
                         />
+                        <MemberStatusCard
+                            className="border-border/30 bg-background/60 shadow-none"
+                            statusLabel={statusLabel}
+                            statusVariant={statusVariant}
+                        />
                     </div>
-                    <MemberStatusCard
-                        statusLabel={getMemberStatusLabel(currentMember.status)}
-                        statusVariant={getMemberStatusVariant(
-                            currentMember.status,
-                        )}
-                    />
-                </div>
+                </SurfaceCard>
 
                 <MemberAccountsSummarySection
                     acctno={currentMember.acctno}

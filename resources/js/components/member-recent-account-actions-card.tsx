@@ -1,13 +1,8 @@
+import { SectionHeader } from '@/components/section-header';
+import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     DataTablePagination,
     DataTablePaginationSkeleton,
@@ -62,7 +57,7 @@ const sourceVariant = (source?: MemberRecentAccountActionSource | null) => {
 };
 
 const MobileAccountActionSkeleton = () => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-2">
                 <Skeleton className="h-4 w-24" />
@@ -70,7 +65,7 @@ const MobileAccountActionSkeleton = () => (
             </div>
             <Skeleton className="h-5 w-12" />
         </div>
-        <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/40 p-3">
+        <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3">
             {Array.from({ length: 3 }).map((_, index) => (
                 <div
                     key={`action-meta-${index}`}
@@ -84,7 +79,7 @@ const MobileAccountActionSkeleton = () => (
         <div className="mt-3">
             <Skeleton className="h-3 w-24" />
         </div>
-    </div>
+    </SurfaceCard>
 );
 
 const MobileAccountActionSkeletonList = ({ rows = 3 }: { rows?: number }) => (
@@ -102,7 +97,7 @@ const MobileAccountActionCard = ({
 }: {
     action: MemberRecentAccountAction;
 }) => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">
@@ -116,7 +111,7 @@ const MobileAccountActionCard = ({
                 {action.source ?? '--'}
             </Badge>
         </div>
-        <div className="mt-3 rounded-md border border-border/60 bg-muted/40 p-3">
+        <div className="mt-3 rounded-xl border border-border/30 bg-muted/30 p-3">
             <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Amount</span>
                 <span className="text-sm font-medium tabular-nums">
@@ -139,7 +134,7 @@ const MobileAccountActionCard = ({
         <p className="mt-3 text-xs text-muted-foreground">
             Date: {formatDate(action.date_in)}
         </p>
-    </div>
+    </SurfaceCard>
 );
 
 export function MemberRecentAccountActionsCard({
@@ -158,21 +153,23 @@ export function MemberRecentAccountActionsCard({
     };
 
     return (
-        <Card>
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <CardTitle>Recent account actions</CardTitle>
-                    <CardDescription>
-                        Latest loan and savings movements.
-                    </CardDescription>
-                </div>
-                {loading ? (
-                    <span className="text-xs text-muted-foreground">
-                        Updating...
-                    </span>
-                ) : null}
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <SurfaceCard variant="default" padding="lg" className="space-y-5">
+            <SectionHeader
+                title="Recent account actions"
+                description="Latest loan and savings movements."
+                actions={
+                    loading ? (
+                        <Badge
+                            variant="outline"
+                            className="text-[0.65rem] uppercase tracking-[0.2em]"
+                        >
+                            Updating
+                        </Badge>
+                    ) : null
+                }
+                titleClassName="text-base font-semibold"
+            />
+            <div className="space-y-4">
                 {!acctno ? (
                     <Alert>
                         <AlertTitle>Account number missing</AlertTitle>
@@ -209,7 +206,7 @@ export function MemberRecentAccountActionsCard({
                             <TableSkeleton
                                 columns={accountActionsSkeletonColumns}
                                 rows={meta.perPage}
-                                className="rounded-md border"
+                                className="rounded-xl border border-border/40 bg-card/60"
                                 tableClassName="min-w-215"
                             />
                         </div>
@@ -218,7 +215,7 @@ export function MemberRecentAccountActionsCard({
                     <>
                         <div className="md:hidden">
                             {actionsEmpty ? (
-                                <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                                <div className="rounded-xl border border-border/40 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                     No account activity available yet.
                                 </div>
                             ) : (
@@ -235,9 +232,9 @@ export function MemberRecentAccountActionsCard({
                                 </div>
                             )}
                         </div>
-                        <div className="hidden rounded-md border md:block">
+                        <div className="hidden rounded-xl border border-border/40 bg-card/60 md:block">
                             <Table className="min-w-215">
-                                <TableHeader className="text-muted-foreground">
+                                <TableHeader className="border-b border-border/40 text-muted-foreground">
                                     <TableRow>
                                         <TableHead>Number</TableHead>
                                         <TableHead>Date</TableHead>
@@ -266,6 +263,7 @@ export function MemberRecentAccountActionsCard({
                                                     action.ln_sv_number ??
                                                     `action-${index}`
                                                 }
+                                                className="transition-colors hover:bg-muted/20"
                                             >
                                                 <TableCell className="font-medium">
                                                     {action.ln_sv_number ??
@@ -322,7 +320,7 @@ export function MemberRecentAccountActionsCard({
                         />
                     )
                 ) : null}
-            </CardContent>
-        </Card>
+            </div>
+        </SurfaceCard>
     );
 }

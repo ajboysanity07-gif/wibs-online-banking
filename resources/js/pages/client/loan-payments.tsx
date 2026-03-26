@@ -9,8 +9,8 @@ import {
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
 import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments-filters-card';
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
+import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { PageShell } from '@/components/page-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
@@ -224,16 +224,17 @@ export default function LoanPayments({
                 {showSkeleton ? (
                     <div className="grid gap-4 md:grid-cols-3">
                         {Array.from({ length: 3 }).map((_, index) => (
-                            <Card
+                            <SurfaceCard
                                 key={`summary-skeleton-${index}`}
-                                className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
+                                variant="default"
+                                padding="md"
                             >
-                                <CardContent className="space-y-3 p-6">
+                                <div className="space-y-3">
                                     <Skeleton className="h-3 w-24" />
                                     <Skeleton className="h-8 w-32" />
                                     <Skeleton className="h-3 w-28" />
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </SurfaceCard>
                         ))}
                     </div>
                 ) : (

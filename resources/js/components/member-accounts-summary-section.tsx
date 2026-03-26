@@ -36,7 +36,7 @@ export function MemberAccountsSummarySection({
     };
 
     return (
-        <section className="space-y-4">
+        <section className="space-y-5">
             <SectionHeader
                 title="Loans and Savings"
                 description="Quick snapshot of loan and personal savings activity."
@@ -68,7 +68,7 @@ export function MemberAccountsSummarySection({
                     </AlertDescription>
                 </Alert>
             ) : null}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
                 <MemberAccountSummaryCard
                     title="Loans"
                     subtitle="Loan portfolio snapshot"

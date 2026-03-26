@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +31,7 @@ export default function Password() {
             <h1 className="sr-only">Password Settings</h1>
 
             <SettingsLayout>
-                <div className="space-y-6">
+                <SurfaceCard variant="default" padding="lg" className="space-y-6">
                     <Heading
                         variant="small"
                         title="Update password"
@@ -141,7 +142,7 @@ export default function Password() {
                             </>
                         )}
                     </Form>
-                </div>
+                </SurfaceCard>
             </SettingsLayout>
         </AppLayout>
     );

@@ -244,14 +244,14 @@ export function MemberLoanRecordsCard({
                 <TableSkeleton
                     columns={loanTableSkeletonColumns}
                     rows={meta.perPage}
-                    className="rounded-md border"
+                    className="rounded-xl border border-border/40 bg-card/60"
                     tableClassName="min-w-[980px]"
                 />
             }
             mobileWrapperClassName="space-y-3"
             mobileContent={
                 items.length === 0 ? (
-                    <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                         {loanEmptyMessage}
                     </div>
                 ) : (

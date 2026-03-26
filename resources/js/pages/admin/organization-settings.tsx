@@ -8,15 +8,10 @@ import OrganizationSettingsController from '@/actions/App/Http/Controllers/Admin
 import InputError from '@/components/input-error';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
+import { SectionHeader } from '@/components/section-header';
+import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +22,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { useBranding } from '@/hooks/use-branding';
 import AppLayout from '@/layouts/app-layout';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
@@ -359,6 +353,9 @@ export default function OrganizationSettings() {
         (logoFullReset ? branding.logoFullDefaultUrl : branding.logoFullUrl);
     const logoPreviewUrl =
         logoPreset === 'full' ? logoFullPreviewUrl : logoMarkPreviewUrl;
+    const logoPresetLabel =
+        LOGO_PRESET_OPTIONS.find((option) => option.value === logoPreset)
+            ?.label ?? 'Logo preset';
     const showCompanyNamePreview = logoPreset !== 'full';
     const companyNamePreview =
         companyNameValue.trim() !== ''
@@ -706,24 +703,52 @@ export default function OrganizationSettings() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Organization settings" />
 
-            <PageShell size="wide">
+            <PageShell size="wide" className="gap-8 pb-16">
                 <PageHero
                     kicker="Settings"
                     title="Organization branding"
                     description="Manage organization identity, portal labeling, and support details shown to members."
+                    badges={
+                        <>
+                            <Badge
+                                variant="outline"
+                                className="text-[10px] uppercase tracking-[0.2em]"
+                            >
+                                Preset: {logoPresetLabel}
+                            </Badge>
+                            <Badge
+                                variant="outline"
+                                className="text-[10px] uppercase tracking-[0.2em]"
+                            >
+                                Live preview
+                            </Badge>
+                            {hasChanges ? (
+                                <Badge
+                                    variant="outline"
+                                    className="border-primary/40 text-[10px] uppercase tracking-[0.2em] text-primary"
+                                >
+                                    Unsaved changes
+                                </Badge>
+                            ) : (
+                                <Badge
+                                    variant="secondary"
+                                    className="text-[10px] uppercase tracking-[0.2em]"
+                                >
+                                    Up to date
+                                </Badge>
+                            )}
+                        </>
+                    }
                 />
 
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Brand settings</CardTitle>
-                            <CardDescription>
-                                Configure identity, portal labeling, and support
-                                details shown across member experiences and
-                                reports.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start xl:grid-cols-[minmax(0,1fr)_420px]">
+                    <SurfaceCard variant="default" padding="lg" className="space-y-8">
+                        <SectionHeader
+                            title="Brand settings"
+                            description="Configure identity, portal labeling, and support details shown across member experiences and reports."
+                            titleClassName="text-base font-semibold"
+                        />
+                        <div>
                             <Form
                                 {...OrganizationSettingsController.update.form()}
                                 options={{ preserveScroll: true }}
@@ -767,7 +792,7 @@ export default function OrganizationSettings() {
                                         { id: 'organization-branding-update' },
                                     );
                                 }}
-                                className="space-y-10"
+                                className="space-y-8"
                             >
                                 {({
                                     processing,
@@ -849,9 +874,13 @@ export default function OrganizationSettings() {
 
                                     return (
                                         <>
-                                            <div className="space-y-6">
+                                            <SurfaceCard
+                                                variant="muted"
+                                                padding="md"
+                                                className="space-y-6"
+                                            >
                                                 <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold">
+                                                    <h3 className="text-base font-semibold tracking-tight">
                                                         Organization identity
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
@@ -922,13 +951,15 @@ export default function OrganizationSettings() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </SurfaceCard>
 
-                                            <Separator />
-
-                                            <div className="space-y-6">
+                                            <SurfaceCard
+                                                variant="muted"
+                                                padding="md"
+                                                className="space-y-6"
+                                            >
                                                 <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold">
+                                                    <h3 className="text-base font-semibold tracking-tight">
                                                         Brand assets
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
@@ -940,8 +971,8 @@ export default function OrganizationSettings() {
                                                 </div>
 
                                                 <div className="grid gap-6">
-                                                    <div className="grid gap-3">
-                                                        <Label>
+                                                    <div className="space-y-4 rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                        <Label className="text-sm font-semibold">
                                                             Primary logo
                                                         </Label>
                                                         <div
@@ -977,20 +1008,32 @@ export default function OrganizationSettings() {
                                                                             : Boolean(
                                                                                   logoFullPreview,
                                                                               );
+                                                                    const optionId = `logo-preset-${option.value}`;
 
-                                                                    return (
-                                                                        <div
-                                                                            key={
+                                                                return (
+                                                                    <div
+                                                                        key={
+                                                                            option.value
+                                                                        }
+                                                                        className={`group flex flex-col gap-4 rounded-2xl border p-5 transition-colors focus-within:ring-2 focus-within:ring-primary/40 focus-within:outline-none ${
+                                                                            isSelected
+                                                                                ? 'border-primary/60 bg-primary/5 shadow-sm shadow-primary/10'
+                                                                                : 'border-border/40 bg-card/50 hover:border-primary/40 hover:bg-muted/30'
+                                                                        }`}
+                                                                    >
+                                                                        <input
+                                                                            id={
+                                                                                optionId
+                                                                            }
+                                                                            type="radio"
+                                                                            name="logo_preset"
+                                                                            value={
                                                                                 option.value
                                                                             }
-                                                                            role="radio"
-                                                                            aria-checked={
+                                                                            checked={
                                                                                 isSelected
                                                                             }
-                                                                            tabIndex={
-                                                                                0
-                                                                            }
-                                                                            onClick={() => {
+                                                                            onChange={() => {
                                                                                 setLogoPreset(
                                                                                     option.value,
                                                                                 );
@@ -998,29 +1041,13 @@ export default function OrganizationSettings() {
                                                                                     true,
                                                                                 );
                                                                             }}
-                                                                            onKeyDown={(
-                                                                                event,
-                                                                            ) => {
-                                                                                if (
-                                                                                    event.key ===
-                                                                                        'Enter' ||
-                                                                                    event.key ===
-                                                                                        ' '
-                                                                                ) {
-                                                                                    event.preventDefault();
-                                                                                    setLogoPreset(
-                                                                                        option.value,
-                                                                                    );
-                                                                                    setHasChanges(
-                                                                                        true,
-                                                                                    );
-                                                                                }
-                                                                            }}
-                                                                            className={`flex cursor-pointer flex-col gap-4 rounded-xl border p-4 transition focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none ${
-                                                                                isSelected
-                                                                                    ? 'border-primary/70 bg-primary/5 ring-1 ring-primary/30'
-                                                                                    : 'border-border hover:border-primary/40'
-                                                                            }`}
+                                                                            className="sr-only"
+                                                                        />
+                                                                        <label
+                                                                            htmlFor={
+                                                                                optionId
+                                                                            }
+                                                                            className="grid cursor-pointer gap-4"
                                                                         >
                                                                             <div className="flex items-start justify-between gap-3">
                                                                                 <div className="space-y-1">
@@ -1038,17 +1065,20 @@ export default function OrganizationSettings() {
                                                                                 {isSelected ? (
                                                                                     <Badge
                                                                                         variant="secondary"
-                                                                                        className="text-[10px] uppercase"
+                                                                                        className="text-[10px] uppercase tracking-[0.2em]"
                                                                                     >
                                                                                         Selected
                                                                                     </Badge>
                                                                                 ) : (
-                                                                                    <span className="text-[10px] text-muted-foreground uppercase">
-                                                                                        Choose
-                                                                                    </span>
+                                                                                    <Badge
+                                                                                        variant="outline"
+                                                                                        className="text-[10px] uppercase tracking-[0.2em]"
+                                                                                    >
+                                                                                        Select
+                                                                                    </Badge>
                                                                                 )}
                                                                             </div>
-                                                                            <div className="flex h-20 items-center justify-center rounded-lg border border-border/70 bg-muted/40">
+                                                                            <div className="flex h-20 items-center justify-center rounded-xl border border-border/40 bg-muted/30">
                                                                                 <img
                                                                                     src={
                                                                                         previewUrl
@@ -1062,23 +1092,32 @@ export default function OrganizationSettings() {
                                                                                     }`}
                                                                                 />
                                                                             </div>
-                                                                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                                                                                <span>
+                                                                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                                                                <Badge
+                                                                                    variant={
+                                                                                        isDefault
+                                                                                            ? 'secondary'
+                                                                                            : 'outline'
+                                                                                    }
+                                                                                    className="text-[10px] uppercase tracking-[0.2em]"
+                                                                                >
                                                                                     {isDefault
                                                                                         ? 'Default asset'
                                                                                         : 'Custom asset'}
-                                                                                </span>
+                                                                                </Badge>
                                                                                 {isReset ? (
-                                                                                    <span className="text-primary">
-                                                                                        Reset
-                                                                                        after
-                                                                                        save
-                                                                                    </span>
+                                                                                    <Badge
+                                                                                        variant="outline"
+                                                                                        className="border-primary/40 text-[10px] uppercase tracking-[0.2em] text-primary"
+                                                                                    >
+                                                                                        Reset after save
+                                                                                    </Badge>
                                                                                 ) : null}
                                                                             </div>
-                                                                            <div className="flex flex-wrap gap-2">
-                                                                                <Button
-                                                                                    type="button"
+                                                                        </label>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            <Button
+                                                                                type="button"
                                                                                     variant="outline"
                                                                                     size="sm"
                                                                                     onClick={(
@@ -1171,6 +1210,11 @@ export default function OrganizationSettings() {
                                                                                         : 'logo_full'
                                                                                 }
                                                                                 accept="image/png,image/jpeg,image/webp"
+                                                                                aria-label={
+                                                                                    isMark
+                                                                                        ? 'Upload logo mark'
+                                                                                        : 'Upload full logo'
+                                                                                }
                                                                                 className="sr-only"
                                                                                 onChange={
                                                                                     isMark
@@ -1206,11 +1250,6 @@ export default function OrganizationSettings() {
                                                                 },
                                                             )}
                                                         </div>
-                                                        <input
-                                                            type="hidden"
-                                                            name="logo_preset"
-                                                            value={logoPreset}
-                                                        />
                                                         <p className="text-sm text-muted-foreground">
                                                             The selected logo
                                                             appears on member
@@ -1224,7 +1263,7 @@ export default function OrganizationSettings() {
                                                         />
                                                     </div>
 
-                                                    <div className="grid gap-3">
+                                                    <div className="space-y-4 rounded-2xl border border-border/30 bg-background/60 p-4">
                                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                                             <div className="space-y-1">
                                                                 <Label htmlFor="favicon">
@@ -1241,7 +1280,7 @@ export default function OrganizationSettings() {
                                                             {faviconReset ? (
                                                                 <Badge
                                                                     variant="secondary"
-                                                                    className="text-[10px] uppercase"
+                                                                    className="text-[10px] uppercase tracking-[0.2em]"
                                                                 >
                                                                     Default
                                                                 </Badge>
@@ -1249,16 +1288,16 @@ export default function OrganizationSettings() {
                                                               faviconPreview ? (
                                                                 <Badge
                                                                     variant="secondary"
-                                                                    className="text-[10px] uppercase"
+                                                                    className="text-[10px] uppercase tracking-[0.2em]"
                                                                 >
                                                                     Custom
                                                                 </Badge>
                                                             ) : null}
                                                         </div>
-                                                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4">
                                                             <div className="flex flex-wrap items-center justify-between gap-4">
                                                                 <div className="flex flex-wrap items-center gap-4">
-                                                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/70 bg-background">
+                                                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/60 bg-background">
                                                                         <img
                                                                             src={
                                                                                 faviconPreviewUrl
@@ -1276,7 +1315,7 @@ export default function OrganizationSettings() {
                                                                                     key={
                                                                                         size
                                                                                     }
-                                                                                    className="flex h-9 w-9 items-center justify-center rounded-md border border-border/70 bg-background"
+                                                                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background"
                                                                                 >
                                                                                     <img
                                                                                         src={
@@ -1360,6 +1399,7 @@ export default function OrganizationSettings() {
                                                             name="favicon"
                                                             type="file"
                                                             accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon"
+                                                            aria-label="Upload portal icon"
                                                             className="sr-only"
                                                             onChange={
                                                                 handleFaviconChange
@@ -1379,13 +1419,15 @@ export default function OrganizationSettings() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </SurfaceCard>
 
-                                            <Separator />
-
-                                            <div className="space-y-6">
+                                            <SurfaceCard
+                                                variant="muted"
+                                                padding="md"
+                                                className="space-y-6"
+                                            >
                                                 <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold">
+                                                    <h3 className="text-base font-semibold tracking-tight">
                                                         Report typography
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
@@ -1396,7 +1438,7 @@ export default function OrganizationSettings() {
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                                    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                         Header content
                                                     </p>
                                                 </div>
@@ -1464,134 +1506,136 @@ export default function OrganizationSettings() {
                                                         />
                                                     </div>
 
-                                                      <div className="flex flex-wrap items-center gap-6">
-                                                          <div className="flex items-center gap-2">
-                                                              <Checkbox
-                                                                  id="report_header_show_logo_toggle"
-                                                                checked={
-                                                                    reportHeaderShowLogo
+                                                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                        <div className="flex flex-wrap items-center gap-6">
+                                                            <div className="flex items-center gap-2">
+                                                                <Checkbox
+                                                                    id="report_header_show_logo_toggle"
+                                                                    checked={
+                                                                        reportHeaderShowLogo
+                                                                    }
+                                                                    onCheckedChange={(
+                                                                        checked,
+                                                                    ) => {
+                                                                        setReportHeaderShowLogo(
+                                                                            Boolean(
+                                                                                checked,
+                                                                            ),
+                                                                        );
+                                                                        setHasChanges(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                <Label htmlFor="report_header_show_logo_toggle">
+                                                                    Show logo
+                                                                </Label>
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_header_show_logo"
+                                                                    value={
+                                                                        reportHeaderShowLogo
+                                                                            ? '1'
+                                                                            : '0'
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Checkbox
+                                                                    id="report_header_show_company_name_toggle"
+                                                                    checked={
+                                                                        reportHeaderShowCompanyName
+                                                                    }
+                                                                    onCheckedChange={(
+                                                                        checked,
+                                                                    ) => {
+                                                                        setReportHeaderShowCompanyName(
+                                                                            Boolean(
+                                                                                checked,
+                                                                            ),
+                                                                        );
+                                                                        setHasChanges(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                <Label htmlFor="report_header_show_company_name_toggle">
+                                                                    Show company
+                                                                    name
+                                                                </Label>
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_header_show_company_name"
+                                                                    value={
+                                                                        reportHeaderShowCompanyName
+                                                                            ? '1'
+                                                                            : '0'
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-4 grid gap-2 max-w-55">
+                                                            <Label htmlFor="report_header_alignment">
+                                                                Header alignment
+                                                            </Label>
+                                                            <Select
+                                                                value={
+                                                                    reportHeaderAlignment
                                                                 }
-                                                                onCheckedChange={(
-                                                                    checked,
+                                                                onValueChange={(
+                                                                    value,
                                                                 ) => {
-                                                                    setReportHeaderShowLogo(
-                                                                        Boolean(
-                                                                            checked,
-                                                                        ),
+                                                                    setReportHeaderAlignment(
+                                                                        value as ReportHeaderAlignment,
                                                                     );
                                                                     setHasChanges(
                                                                         true,
                                                                     );
                                                                 }}
-                                                            />
-                                                            <Label htmlFor="report_header_show_logo_toggle">
-                                                                Show logo
-                                                            </Label>
+                                                            >
+                                                                <SelectTrigger id="report_header_alignment">
+                                                                    <SelectValue placeholder="Select alignment" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {REPORT_HEADER_ALIGNMENT_OPTIONS.map(
+                                                                        (
+                                                                            option,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    option.value
+                                                                                }
+                                                                                value={
+                                                                                    option.value
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    option.label
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectContent>
+                                                            </Select>
                                                             <input
                                                                 type="hidden"
-                                                                name="report_header_show_logo"
+                                                                name="report_header_alignment"
                                                                 value={
-                                                                    reportHeaderShowLogo
-                                                                        ? '1'
-                                                                        : '0'
+                                                                    reportHeaderAlignment
+                                                                }
+                                                            />
+                                                            <InputError
+                                                                message={
+                                                                    formErrors.report_header_alignment
                                                                 }
                                                             />
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <Checkbox
-                                                                id="report_header_show_company_name_toggle"
-                                                                checked={
-                                                                    reportHeaderShowCompanyName
-                                                                }
-                                                                onCheckedChange={(
-                                                                    checked,
-                                                                ) => {
-                                                                    setReportHeaderShowCompanyName(
-                                                                        Boolean(
-                                                                            checked,
-                                                                        ),
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            />
-                                                            <Label htmlFor="report_header_show_company_name_toggle">
-                                                                Show company
-                                                                name
-                                                            </Label>
-                                                            <input
-                                                                type="hidden"
-                                                                name="report_header_show_company_name"
-                                                                value={
-                                                                    reportHeaderShowCompanyName
-                                                                        ? '1'
-                                                                        : '0'
-                                                                }
-                                                            />
-                                                          </div>
-                                                      </div>
-
-                                                      <div className="grid gap-2 max-w-[220px]">
-                                                          <Label htmlFor="report_header_alignment">
-                                                              Header alignment
-                                                          </Label>
-                                                          <Select
-                                                              value={
-                                                                  reportHeaderAlignment
-                                                              }
-                                                              onValueChange={(
-                                                                  value,
-                                                              ) => {
-                                                                  setReportHeaderAlignment(
-                                                                      value as ReportHeaderAlignment,
-                                                                  );
-                                                                  setHasChanges(
-                                                                      true,
-                                                                  );
-                                                              }}
-                                                          >
-                                                              <SelectTrigger id="report_header_alignment">
-                                                                  <SelectValue placeholder="Select alignment" />
-                                                              </SelectTrigger>
-                                                              <SelectContent>
-                                                                  {REPORT_HEADER_ALIGNMENT_OPTIONS.map(
-                                                                      (
-                                                                          option,
-                                                                      ) => (
-                                                                          <SelectItem
-                                                                              key={
-                                                                                  option.value
-                                                                              }
-                                                                              value={
-                                                                                  option.value
-                                                                              }
-                                                                          >
-                                                                              {
-                                                                                  option.label
-                                                                              }
-                                                                          </SelectItem>
-                                                                      ),
-                                                                  )}
-                                                              </SelectContent>
-                                                          </Select>
-                                                          <input
-                                                              type="hidden"
-                                                              name="report_header_alignment"
-                                                              value={
-                                                                  reportHeaderAlignment
-                                                              }
-                                                          />
-                                                          <InputError
-                                                              message={
-                                                                  formErrors.report_header_alignment
-                                                              }
-                                                          />
-                                                      </div>
+                                                    </div>
                                                   </div>
 
                                                 <div className="space-y-1">
-                                                    <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                                    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                         Header typography
                                                     </p>
                                                 </div>
@@ -1965,10 +2009,9 @@ export default function OrganizationSettings() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </div>
 
                                             <div className="space-y-1">
-                                                <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                     Report body typography
                                                 </p>
                                             </div>
@@ -2330,7 +2373,7 @@ export default function OrganizationSettings() {
                                             </div>
 
                                             <div className="space-y-1">
-                                                <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                                     Colors
                                                 </p>
                                             </div>
@@ -2836,12 +2879,15 @@ export default function OrganizationSettings() {
                                                     />
                                                 </div>
                                             </div>
+                                            </SurfaceCard>
 
-                                            <Separator />
-
-                                            <div className="space-y-6">
+                                            <SurfaceCard
+                                                variant="muted"
+                                                padding="md"
+                                                className="space-y-6"
+                                            >
                                                 <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold">
+                                                    <h3 className="text-base font-semibold tracking-tight">
                                                         Theme colors
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
@@ -3101,13 +3147,15 @@ export default function OrganizationSettings() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </SurfaceCard>
 
-                                            <Separator />
-
-                                            <div className="space-y-6">
+                                            <SurfaceCard
+                                                variant="muted"
+                                                padding="md"
+                                                className="space-y-6"
+                                            >
                                                 <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold">
+                                                    <h3 className="text-base font-semibold tracking-tight">
                                                         Support contact
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
@@ -3180,22 +3228,22 @@ export default function OrganizationSettings() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </SurfaceCard>
 
-                                            <div className="sticky bottom-4 z-10 rounded-xl border border-border/60 bg-background/90 p-4 backdrop-blur">
-                                                <div className="flex flex-wrap items-center justify-between gap-4">
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <div className="sticky bottom-4 z-10 rounded-2xl border border-border/40 bg-background/95 p-4 shadow-[0_12px_24px_-24px_rgba(0,0,0,0.45)] backdrop-blur">
+                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                                                         {hasChanges ? (
                                                             <Badge
                                                                 variant="outline"
-                                                                className="text-[10px] uppercase"
+                                                                className="border-primary/40 text-[10px] uppercase tracking-[0.2em] text-primary"
                                                             >
                                                                 Unsaved changes
                                                             </Badge>
                                                         ) : (
                                                             <Badge
                                                                 variant="secondary"
-                                                                className="text-[10px] uppercase"
+                                                                className="text-[10px] uppercase tracking-[0.2em]"
                                                             >
                                                                 Up to date
                                                             </Badge>
@@ -3223,27 +3271,29 @@ export default function OrganizationSettings() {
                                     );
                                 }}
                             </Form>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </SurfaceCard>
 
-                    <div className="space-y-6 lg:relative">
-                        <div className="space-y-6 lg:fixed lg:top-24 lg:right-6 lg:max-h-[calc(100vh-7rem)] lg:w-[360px]">
-                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm lg:max-h-[calc(100vh-7rem)] lg:overflow-hidden">
-                                <CardHeader>
-                                    <CardTitle>Live preview</CardTitle>
-                                    <CardDescription>
-                                        Review how the portal and reports will
-                                        look before saving changes.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-5 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-2">
+                    <div className="space-y-6">
+                        <div className="space-y-6 lg:sticky lg:top-24">
+                            <SurfaceCard
+                                variant="default"
+                                padding="lg"
+                                className="space-y-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-hidden"
+                            >
+                                <SectionHeader
+                                    title="Live preview"
+                                    description="Review how the portal and reports will look before saving changes."
+                                    titleClassName="text-base font-semibold"
+                                />
+                                <div className="space-y-6 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-2">
                                     <div className="space-y-2">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                             Portal header
                                         </p>
-                                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/60 bg-background">
+                                                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/40 bg-background">
                                                     <img
                                                         src={logoPreviewUrl}
                                                         alt={`${companyNamePreview} logo`}
@@ -3266,18 +3316,19 @@ export default function OrganizationSettings() {
                                                     </p>
                                                 </div>
                                             </div>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                             Portal icon
                                         </p>
-                                        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-4">
+                                        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/30 bg-muted/20 p-4">
                                             {ICON_PREVIEW_SIZES.map((size) => (
                                                 <div
                                                     key={size}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-md border border-border/70 bg-background"
+                                                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-background"
                                                 >
                                                     <img
                                                         src={faviconPreviewUrl}
@@ -3297,49 +3348,50 @@ export default function OrganizationSettings() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
                                             Report header
                                         </p>
-                                        <div className="rounded-xl border border-slate-200 bg-white p-4 text-slate-900">
-                                            <div
-                                                className={`flex ${reportHeaderAlignmentClass}`}
-                                            >
+                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4">
+                                            <div className="rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
                                                 <div
-                                                    className={`inline-flex items-center gap-3 ${reportHeaderTextAlignClass}`}
+                                                    className={`flex ${reportHeaderAlignmentClass}`}
                                                 >
-                                                    {reportHeaderShowLogo ||
-                                                    reportShowCompanyNamePreview ? (
-                                                        <div className="flex items-center gap-2">
-                                                            {reportHeaderShowLogo ? (
-                                                                <img
-                                                                    src={
-                                                                        logoPreviewUrl
-                                                                    }
-                                                                    alt={`${companyNamePreview} report logo`}
-                                                                    className={`w-auto object-contain ${
-                                                                        logoPreset ===
-                                                                        'full'
-                                                                            ? 'h-10'
-                                                                            : 'h-8'
-                                                                    }`}
-                                                                />
-                                                            ) : null}
-                                                            {reportShowCompanyNamePreview ? (
-                                                                <p
-                                                                    className="apply-font-report-title text-xs font-semibold"
-                                                                    style={{
-                                                                        ...reportCompanyNameStyle,
-                                                                        fontSize:
-                                                                            '12px',
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        companyNamePreview
-                                                                    }
-                                                                </p>
-                                                            ) : null}
-                                                        </div>
-                                                    ) : null}
+                                                    <div
+                                                        className={`inline-flex items-center gap-3 ${reportHeaderTextAlignClass}`}
+                                                    >
+                                                        {reportHeaderShowLogo ||
+                                                        reportShowCompanyNamePreview ? (
+                                                            <div className="flex items-center gap-2">
+                                                                {reportHeaderShowLogo ? (
+                                                                    <img
+                                                                        src={
+                                                                            logoPreviewUrl
+                                                                        }
+                                                                        alt={`${companyNamePreview} report logo`}
+                                                                        className={`w-auto object-contain ${
+                                                                            logoPreset ===
+                                                                            'full'
+                                                                                ? 'h-10'
+                                                                                : 'h-8'
+                                                                        }`}
+                                                                    />
+                                                                ) : null}
+                                                                {reportShowCompanyNamePreview ? (
+                                                                    <p
+                                                                        className="apply-font-report-title text-xs font-semibold"
+                                                                        style={{
+                                                                            ...reportCompanyNameStyle,
+                                                                            fontSize:
+                                                                                '12px',
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            companyNamePreview
+                                                                        }
+                                                                    </p>
+                                                                ) : null}
+                                                            </div>
+                                                        ) : null}
                                                     <div>
                                                         <p
                                                             className="apply-font-report-title text-sm font-semibold"
@@ -3371,7 +3423,7 @@ export default function OrganizationSettings() {
                                                 <p className="text-xs text-slate-500">
                                                     Report body preview
                                                 </p>
-                                                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                                                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                                                     <div className="flex items-center justify-between text-xs">
                                                         <span
                                                             className="apply-font-report-label"
@@ -3412,8 +3464,8 @@ export default function OrganizationSettings() {
                                             </div>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </SurfaceCard>
                         </div>
                     </div>
                 </div>

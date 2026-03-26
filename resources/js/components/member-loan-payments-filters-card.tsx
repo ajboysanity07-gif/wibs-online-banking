@@ -1,13 +1,8 @@
 import { Filter } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { SectionHeader } from '@/components/section-header';
+import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatters';
 import type { MemberLoanPaymentsFilters } from '@/types/admin';
@@ -47,19 +42,20 @@ export function MemberLoanPaymentsFiltersCard({
         (Boolean(filters.start) && Boolean(filters.end));
 
     return (
-        <Card>
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <CardTitle>Payment Filters</CardTitle>
-                    <CardDescription>{description}</CardDescription>
-                </div>
-                {isUpdating ? (
-                    <span className="text-xs text-muted-foreground">
-                        Updating...
-                    </span>
-                ) : null}
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <SurfaceCard variant="default" padding="md" className="space-y-5">
+            <SectionHeader
+                title="Payment Filters"
+                description={description}
+                actions={
+                    isUpdating ? (
+                        <span className="text-xs text-muted-foreground">
+                            Updating...
+                        </span>
+                    ) : null
+                }
+                titleClassName="text-base font-semibold"
+            />
+            <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                     <Filter className="h-4 w-4 text-muted-foreground" />
                     {presets.map((preset) => (
@@ -105,11 +101,11 @@ export function MemberLoanPaymentsFiltersCard({
                             disabled={filters.range !== 'custom'}
                         />
                     </div>
-                    <div className="rounded-md border border-border/60 bg-muted/40 p-3">
+                    <div className="rounded-xl border border-border/30 bg-muted/30 p-3">
                         <p className="text-xs text-muted-foreground">
                             Opening / Closing
                         </p>
-                        <p className="text-sm font-medium tabular-nums">
+                        <p className="text-sm font-semibold tabular-nums">
                             {formatCurrency(openingBalance)} /{' '}
                             {formatCurrency(closingBalance)}
                         </p>
@@ -125,7 +121,7 @@ export function MemberLoanPaymentsFiltersCard({
                         {footer}
                     </div>
                 ) : null}
-            </CardContent>
-        </Card>
+            </div>
+        </SurfaceCard>
     );
 }

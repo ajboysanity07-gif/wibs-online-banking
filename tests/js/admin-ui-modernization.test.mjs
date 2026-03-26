@@ -74,6 +74,8 @@ test('organization settings uses the shared page hero', async () => {
     );
 
     assert.match(file, /<PageHero/);
+    assert.match(file, /<SurfaceCard/);
+    assert.match(file, /<SectionHeader/);
 });
 
 test('settings layout uses the shared shell and hero', async () => {
@@ -93,4 +95,50 @@ test('auth layout uses the shared surface card', async () => {
     );
 
     assert.match(file, /<SurfaceCard/);
+});
+
+test('client dashboard profile summary uses the premium layout', async () => {
+    const file = await readFile(
+        resolve('resources', 'js', 'pages', 'client', 'dashboard.tsx'),
+        'utf8',
+    );
+
+    assert.match(file, /statusBadge/);
+    assert.match(file, /Profile summary/);
+});
+
+test('member records card uses shared surface and section header', async () => {
+    const file = await readFile(
+        resolve('resources', 'js', 'components', 'member-records-card.tsx'),
+        'utf8',
+    );
+
+    assert.match(file, /<SurfaceCard/);
+    assert.match(file, /<SectionHeader/);
+});
+
+test('settings pages wrap content in the shared surface card', async () => {
+    const pages = [
+        resolve('resources', 'js', 'pages', 'settings', 'appearance.tsx'),
+        resolve('resources', 'js', 'pages', 'settings', 'password.tsx'),
+        resolve('resources', 'js', 'pages', 'settings', 'profile.tsx'),
+        resolve('resources', 'js', 'pages', 'settings', 'two-factor.tsx'),
+    ];
+
+    await Promise.all(
+        pages.map(async (page) => {
+            const file = await readFile(page, 'utf8');
+            assert.match(file, /<SurfaceCard/);
+        }),
+    );
+});
+
+test('data table uses the modern rounded shell', async () => {
+    const file = await readFile(
+        resolve('resources', 'js', 'components', 'ui', 'data-table.tsx'),
+        'utf8',
+    );
+
+    assert.match(file, /rounded-2xl/);
+    assert.match(file, /bg-card\/60/);
 });

@@ -34,7 +34,7 @@ export function MemberMobileCard({
     footer,
 }: MemberMobileCardProps) {
     return (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                     <p className="text-sm font-semibold">{title}</p>
@@ -58,7 +58,7 @@ export function MemberMobileCard({
                 ) : null}
             </div>
             {meta.length > 0 ? (
-                <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/40 p-3">
+                <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3">
                     {meta.map((item, index) => (
                         <div
                             key={`mobile-card-meta-${index}`}
@@ -88,7 +88,7 @@ export function MemberMobileCardSkeleton({
     valueClassName,
 }: MemberMobileCardSkeletonProps) {
     return (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-2">
                     <Skeleton className={cn('h-4 w-24', titleClassName)} />
@@ -103,7 +103,7 @@ export function MemberMobileCardSkeleton({
                     />
                 </div>
             </div>
-            <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/40 p-3">
+            <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3">
                 {Array.from({ length: metaRows }).map((_, index) => (
                     <div
                         key={`mobile-card-meta-${index}`}

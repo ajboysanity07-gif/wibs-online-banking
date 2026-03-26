@@ -232,13 +232,13 @@ export function LoanRequestRecordsCard({
                 <TableSkeleton
                     columns={requestTableSkeletonColumns}
                     rows={4}
-                    className="rounded-md border"
+                    className="rounded-xl border border-border/40 bg-card/60"
                     tableClassName="min-w-[920px]"
                 />
             }
             body={
                 showEmptyState ? (
-                    <div className="rounded-lg border border-dashed border-border/70 bg-muted/40 px-6 py-8 text-center">
+                    <div className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-6 py-8 text-center">
                         <p className="text-sm font-medium">
                             No loan requests yet.
                         </p>

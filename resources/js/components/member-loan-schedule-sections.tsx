@@ -13,8 +13,8 @@ import {
     MemberMobileCardSkeleton,
 } from '@/components/member-mobile-card';
 import { MemberRecordsCard } from '@/components/member-records-card';
+import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
@@ -48,13 +48,17 @@ const scheduleTableSkeletonColumns = [
 const SummarySkeleton = () => (
     <div className="grid gap-4 md:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
-            <Card key={`loan-summary-skeleton-${index}`}>
-                <CardContent className="space-y-3 p-6">
+            <SurfaceCard
+                key={`loan-summary-skeleton-${index}`}
+                variant="default"
+                padding="md"
+            >
+                <div className="space-y-3">
                     <Skeleton className="h-3 w-24" />
                     <Skeleton className="h-8 w-32" />
                     <Skeleton className="h-3 w-28" />
-                </CardContent>
-            </Card>
+                </div>
+            </SurfaceCard>
         ))}
     </div>
 );
@@ -184,7 +188,7 @@ export function MemberLoanScheduleSections({
                 body={
                     <>
                         {items.length === 0 ? (
-                            <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                            <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                                 No schedule entries found for this loan.
                             </div>
                         ) : (
@@ -231,7 +235,7 @@ export function MemberLoanScheduleSections({
                             />
                         )}
                         {selectedEntry ? (
-                            <div className="rounded-lg border border-border bg-card p-4">
+                            <div className="rounded-2xl border border-border/40 bg-card/70 p-4 shadow-sm">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="space-y-1">
                                         <p className="text-sm font-semibold">
@@ -252,7 +256,7 @@ export function MemberLoanScheduleSections({
                                     </Button>
                                 </div>
                                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                    <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2">
+                                    <div className="rounded-xl border border-border/30 bg-muted/30 px-3 py-2">
                                         <p className="text-xs text-muted-foreground">
                                             Amortization
                                         </p>
@@ -262,7 +266,7 @@ export function MemberLoanScheduleSections({
                                             )}
                                         </p>
                                     </div>
-                                    <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2">
+                                    <div className="rounded-xl border border-border/30 bg-muted/30 px-3 py-2">
                                         <p className="text-xs text-muted-foreground">
                                             Interest
                                         </p>
@@ -272,7 +276,7 @@ export function MemberLoanScheduleSections({
                                             )}
                                         </p>
                                     </div>
-                                    <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2">
+                                    <div className="rounded-xl border border-border/30 bg-muted/30 px-3 py-2">
                                         <p className="text-xs text-muted-foreground">
                                             Balance
                                         </p>
@@ -304,15 +308,15 @@ export function MemberLoanScheduleSections({
                     <TableSkeleton
                         columns={scheduleTableSkeletonColumns}
                         rows={6}
-                        className="rounded-md border"
+                        className="rounded-xl border border-border/40 bg-card/60"
                         tableClassName="min-w-[720px]"
                     />
                 }
                 mobileWrapperClassName="space-y-3"
-                desktopWrapperClassName="rounded-md border"
+                desktopWrapperClassName="rounded-xl border border-border/40 bg-card/60"
                 mobileContent={
                     items.length === 0 ? (
-                        <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                        <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                             No schedule entries available yet.
                         </div>
                     ) : (

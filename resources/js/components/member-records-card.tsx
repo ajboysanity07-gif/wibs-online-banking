@@ -1,13 +1,8 @@
 import type { ReactNode } from 'react';
+import { SectionHeader } from '@/components/section-header';
+import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 type MemberRecordsCardProps = {
@@ -58,17 +53,14 @@ export function MemberRecordsCard({
         ) : null);
 
     return (
-        <Card>
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <CardTitle>{title}</CardTitle>
-                    {description ? (
-                        <CardDescription>{description}</CardDescription>
-                    ) : null}
-                </div>
-                {headerRight}
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <SurfaceCard variant="default" padding="md" className="space-y-5">
+            <SectionHeader
+                title={title}
+                description={description}
+                actions={headerRight}
+                titleClassName="text-base font-semibold"
+            />
+            <div className="space-y-4">
                 {error ? (
                     <Alert variant="destructive">
                         <AlertTitle>{errorTitle}</AlertTitle>
@@ -141,7 +133,7 @@ export function MemberRecordsCard({
                     </>
                 )}
                 {footer && (showFooterWhenError || !error) ? footer : null}
-            </CardContent>
-        </Card>
+            </div>
+        </SurfaceCard>
     );
 }

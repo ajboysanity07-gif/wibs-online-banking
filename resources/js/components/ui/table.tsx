@@ -24,7 +24,7 @@ const TableHeader = React.forwardRef<
   <thead
     ref={ref}
     data-slot="table-header"
-    className={cn("[&_tr]:border-b", className)}
+    className={cn("bg-muted/30 [&_tr]:border-b", className)}
     {...props}
   />
 ))
@@ -67,7 +67,7 @@ const TableRow = React.forwardRef<
     ref={ref}
     data-slot="table-row"
     className={cn(
-      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      "border-b transition-colors hover:bg-muted/40 data-[state=selected]:bg-muted/50",
       className
     )}
     {...props}

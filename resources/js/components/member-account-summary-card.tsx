@@ -62,18 +62,18 @@ export function MemberAccountSummaryCard({
     const hasAction = Boolean(actionLabel);
 
     return (
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden rounded-2xl border-border/40 bg-card/70 shadow-sm">
             <div
                 className={cn(
-                    'absolute inset-x-0 top-0 h-0.5',
+                    'absolute inset-x-0 top-0 h-1',
                     accentClasses.stripe,
                 )}
             />
-            <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
+            <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
                 <div className="flex items-start gap-3">
                     <div
                         className={cn(
-                            'flex h-10 w-10 items-center justify-center rounded-full border',
+                            'flex h-11 w-11 items-center justify-center rounded-2xl border',
                             accentClasses.iconWrap,
                         )}
                     >
@@ -95,17 +95,17 @@ export function MemberAccountSummaryCard({
                     actionHref && !actionDisabled ? (
                         <Button
                             asChild
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            className="h-8 px-3 text-xs"
                         >
                             <Link href={actionHref}>{actionLabel}</Link>
                         </Button>
                     ) : (
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className="h-8 px-2 text-xs text-muted-foreground"
+                            className="h-8 px-3 text-xs"
                             disabled
                         >
                             {actionLabel}
@@ -113,7 +113,7 @@ export function MemberAccountSummaryCard({
                     )
                 ) : null}
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
                 <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">
                         {primaryLabel}
@@ -126,14 +126,14 @@ export function MemberAccountSummaryCard({
                         </p>
                     )}
                 </div>
-                <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2">
-                    <p className="text-xs text-muted-foreground">
+                <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         {secondaryLabel}
                     </p>
                     {loading ? (
                         <Skeleton className="mt-2 h-4 w-32" />
                     ) : (
-                        <p className="text-sm font-medium tabular-nums">
+                        <p className="mt-1 text-sm font-semibold tabular-nums">
                             {secondaryValue}
                         </p>
                     )}

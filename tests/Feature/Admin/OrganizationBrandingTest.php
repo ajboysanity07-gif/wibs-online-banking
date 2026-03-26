@@ -21,6 +21,7 @@ test('admin can view organization branding settings page', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/organization-settings')
+            ->where('branding.logoPreset', OrganizationSettingsService::LOGO_PRESET_MARK)
             ->where('branding.logoMarkUrl', asset('mrdinc-logo-mark.png'))
             ->where('branding.logoFullUrl', asset('mrdinc-logo.png')));
 });

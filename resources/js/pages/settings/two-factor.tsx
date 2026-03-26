@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { ShieldBan, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import { SurfaceCard } from '@/components/surface-card';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +48,7 @@ export default function TwoFactor({
             <h1 className="sr-only">Two-Factor Authentication Settings</h1>
 
             <SettingsLayout>
-                <div className="space-y-6">
+                <SurfaceCard variant="default" padding="lg" className="space-y-6">
                     <Heading
                         variant="small"
                         title="Two-Factor Authentication"
@@ -134,7 +135,7 @@ export default function TwoFactor({
                         fetchSetupData={fetchSetupData}
                         errors={errors}
                     />
-                </div>
+                </SurfaceCard>
             </SettingsLayout>
         </AppLayout>
     );
