@@ -10,7 +10,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
-    const { isCurrentUrl, isWithinSection } = useCurrentUrl();
+    const { isMatch } = useCurrentUrl();
 
     return (
         <SidebarGroup className="px-2 py-0">
@@ -21,9 +21,11 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                         <SidebarMenuButton
                             asChild
                             isActive={
-                                item.match === 'section'
-                                    ? isWithinSection(item.href)
-                                    : isCurrentUrl(item.href)
+                                isMatch({
+                                    href: item.href,
+                                    match: item.match,
+                                    matchPaths: item.matchPaths,
+                                })
                             }
                             tooltip={{ children: item.title }}
                         >

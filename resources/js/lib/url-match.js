@@ -42,3 +42,27 @@ export function isWithinSectionPath(basePath, currentPath) {
 
     return current.startsWith(`${base}/`);
 }
+
+/**
+ * Determine if the current path matches any exact paths.
+ *
+ * @param {string[]} paths
+ * @param {string} currentPath
+ * @returns {boolean}
+ */
+export function matchesExactPaths(paths, currentPath) {
+    const current = normalizePath(currentPath);
+
+    return paths.some((path) => normalizePath(path) === current);
+}
+
+/**
+ * Determine if the current path is within any section base paths.
+ *
+ * @param {string[]} basePaths
+ * @param {string} currentPath
+ * @returns {boolean}
+ */
+export function matchesSectionPaths(basePaths, currentPath) {
+    return basePaths.some((path) => isWithinSectionPath(path, currentPath));
+}

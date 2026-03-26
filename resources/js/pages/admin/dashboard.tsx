@@ -2,6 +2,9 @@ import { Head, Link } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { MemberListCardSkeleton } from '@/components/member-list-card-skeleton';
+import { PageHero } from '@/components/page-hero';
+import { PageShell } from '@/components/page-shell';
+import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -123,7 +126,7 @@ const MobilePendingApprovalCard = ({
     isProcessing: boolean;
     onApprove: (userId: number) => void;
 }) => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">{user.member_name}</p>
@@ -166,11 +169,11 @@ const MobilePendingApprovalCard = ({
                 Approve
             </Button>
         </div>
-    </div>
+    </SurfaceCard>
 );
 
 const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">{member.member_name}</p>
@@ -202,7 +205,7 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
                 <Link href={showMember(member.user_id).url}>Open profile</Link>
             </Button>
         </div>
-    </div>
+    </SurfaceCard>
 );
 
 export default function AdminDashboard({ summary }: Props) {
@@ -268,31 +271,35 @@ export default function AdminDashboard({ summary }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Admin Dashboard" />
-            <div className="flex flex-col gap-6 p-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold">
-                            Admin Dashboard
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Member approvals, requests, and account overview.
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button asChild size="sm">
-                            <a href="#pending-approvals">Pending approvals</a>
-                        </Button>
-                        <Button asChild size="sm" variant="secondary">
-                            <a href="#member-lookup">Member lookup</a>
-                        </Button>
-                        <Button asChild size="sm" variant="outline">
-                            <a href="#requests">Recent requests</a>
-                        </Button>
-                        <Button asChild size="sm" variant="ghost">
-                            <Link href={membersIndex().url}>All members</Link>
-                        </Button>
-                    </div>
-                </div>
+            <PageShell size="wide" className="gap-8">
+                <PageHero
+                    kicker="Admin"
+                    title="Dashboard"
+                    description="Member approvals, requests, and account overview."
+                    rightSlot={
+                        <>
+                            <Button asChild size="sm">
+                                <a href="#pending-approvals">
+                                    Pending approvals
+                                </a>
+                            </Button>
+                            <Button asChild size="sm" variant="secondary">
+                                <a href="#member-lookup">Member lookup</a>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                                <a href="#requests">Recent requests</a>
+                            </Button>
+                            <Button asChild size="sm" variant="ghost">
+                                <Link href={membersIndex().url}>
+                                    All members
+                                </Link>
+                            </Button>
+                            {loading ? (
+                                <Badge variant="outline">Refreshing</Badge>
+                            ) : null}
+                        </>
+                    }
+                />
 
                 {error ? (
                     <Alert variant="destructive">
@@ -302,7 +309,7 @@ export default function AdminDashboard({ summary }: Props) {
                 ) : null}
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <Card>
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>
                                 Pending member approvals
@@ -317,7 +324,7 @@ export default function AdminDashboard({ summary }: Props) {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>Active members</CardDescription>
                             <CardTitle className="text-3xl">
@@ -330,7 +337,7 @@ export default function AdminDashboard({ summary }: Props) {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>
                                 Total portal users
@@ -345,7 +352,7 @@ export default function AdminDashboard({ summary }: Props) {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>
                                 Requests awaiting review
@@ -360,7 +367,7 @@ export default function AdminDashboard({ summary }: Props) {
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>WIBS Desktop sync</CardDescription>
                             <CardTitle className="text-2xl">
@@ -375,7 +382,10 @@ export default function AdminDashboard({ summary }: Props) {
                     </Card>
                 </div>
 
-                <Card id="pending-approvals">
+                <Card
+                    id="pending-approvals"
+                    className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
+                >
                     <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <CardTitle>Pending member approvals</CardTitle>
@@ -561,7 +571,10 @@ export default function AdminDashboard({ summary }: Props) {
                 </Card>
 
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Card id="requests">
+                    <Card
+                        id="requests"
+                        className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
+                    >
                         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <CardTitle>Recent requests</CardTitle>
@@ -635,7 +648,10 @@ export default function AdminDashboard({ summary }: Props) {
                         </CardContent>
                     </Card>
 
-                    <Card id="member-lookup">
+                    <Card
+                        id="member-lookup"
+                        className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
+                    >
                         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <CardTitle>Member lookup</CardTitle>
@@ -810,7 +826,7 @@ export default function AdminDashboard({ summary }: Props) {
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

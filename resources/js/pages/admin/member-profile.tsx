@@ -6,6 +6,7 @@ import { MemberRecentAccountActionsCard } from '@/components/member-recent-accou
 import { MemberStatusCard } from '@/components/member-status-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { PageShell } from '@/components/page-shell';
 import {
     MemberAccountsProvider,
     useMemberAccounts,
@@ -160,7 +161,7 @@ export default function MemberProfile({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Member profile" />
-            <div className="flex flex-col gap-6 p-4">
+            <PageShell size="wide">
                 <MemberProfileHeader
                     name={memberName}
                     subtitle="Account status and profile details."
@@ -298,7 +299,7 @@ export default function MemberProfile({
                     <LoansAndSavingsSummarySection />
                     <RecentAccountActionsCard />
                 </MemberAccountsProvider>
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

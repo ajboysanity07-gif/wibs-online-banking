@@ -821,6 +821,168 @@ test('admin requests api returns loan request data', function () {
         ->assertJsonPath('data.items.0.id', $loanRequest->id);
 });
 
+test('admin requests api filters by loan type', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'loan_type_label_snapshot' => 'Salary/Pension',
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'loan_type_label_snapshot' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?loanType=Personal');
+
+    $response
+        ->assertOk()
+        ->assertJsonCount(1, 'data.items')
+        ->assertJsonPath('data.items.0.loan_type', 'Personal');
+});
+
+test('admin requests api filters by status and normalizes submitted requests', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Submitted,
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?status=under_review');
+
+    $response->assertOk()->assertJsonCount(2, 'data.items');
+
+    $statuses = collect($response->json('data.items'))
+        ->pluck('status')
+        ->unique()
+        ->values()
+        ->all();
+
+    expect($statuses)->toBe(['under_review']);
+});
+
+test('admin requests api filters by amount range', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'requested_amount' => 500,
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'requested_amount' => 1500,
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'requested_amount' => 9500,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?minAmount=1000&maxAmount=2000');
+
+    $response->assertOk()->assertJsonCount(1, 'data.items');
+
+    $amount = (float) $response->json('data.items.0.requested_amount');
+
+    expect($amount)->toBe(1500.0);
+});
+
+test('admin requests api supports combined filters and search', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $first = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'loan_type_label_snapshot' => 'Personal',
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($first)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Loan',
+            'last_name' => 'Smith',
+        ]);
+
+    $second = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'loan_type_label_snapshot' => 'Personal',
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($second)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Loan',
+            'last_name' => 'Jones',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?search=Smith&loanType=Personal&status=approved');
+
+    $response
+        ->assertOk()
+        ->assertJsonCount(1, 'data.items')
+        ->assertJsonPath('data.items.0.id', $first->id);
+});
+
+test('admin requests api paginates filtered results', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    LoanRequest::factory()->count(3)->create([
+        'status' => LoanRequestStatus::Approved,
+        'loan_type_label_snapshot' => 'Salary/Pension',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?loanType=Salary/Pension&perPage=1&page=2');
+
+    $response
+        ->assertOk()
+        ->assertJsonCount(1, 'data.items')
+        ->assertJsonPath('data.meta.page', 2)
+        ->assertJsonPath('data.meta.perPage', 1)
+        ->assertJsonPath('data.meta.total', 3);
+});
+
+test('non-admin users cannot access filtered requests api', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/spa/admin/requests?status=approved')
+        ->assertForbidden();
+});
+
 test('admin can view loan request details page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([

@@ -5,6 +5,7 @@ import { MemberProfileDetailsCard } from '@/components/member-profile-details-ca
 import { MemberProfileHeader } from '@/components/member-profile-header';
 import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
+import { PageShell } from '@/components/page-shell';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime } from '@/lib/formatters';
@@ -120,7 +121,7 @@ export default function MemberProfile({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Member profile" />
-            <div className="flex flex-col gap-6 p-4">
+            <PageShell>
                 <MemberProfileHeader
                     name={currentMember.name}
                     subtitle="Account status and profile details."
@@ -207,7 +208,7 @@ export default function MemberProfile({
                     onRetry={handleRetry}
                     onPageChange={handleActionsPageChange}
                 />
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

@@ -217,6 +217,7 @@ export type RequestsResponse = {
         query: string | null;
         available: boolean;
         message: string | null;
+        loanTypes: string[];
     };
 };
 

@@ -14,6 +14,7 @@ import {
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardFooter } from '@/components/loan-request/loan-request-wizard-footer';
+import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -372,7 +373,7 @@ export default function LoanRequestPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 pt-8 pb-28">
+            <PageShell size="wide" className="gap-9 pb-28 pt-8">
                 <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-2">
@@ -546,7 +547,7 @@ export default function LoanRequestPage({
                         draftUpdatedAt={draftUpdatedAt}
                     />
                 </div>
-            </div>
+            </PageShell>
 
             <LoanRequestWizardFooter
                 isFirstStep={isFirstStep}

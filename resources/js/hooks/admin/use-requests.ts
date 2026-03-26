@@ -6,6 +6,10 @@ type RequestsParams = {
     search: string;
     page: number;
     perPage: number;
+    loanType?: string | null;
+    status?: string | null;
+    minAmount?: number;
+    maxAmount?: number;
 };
 
 const emptyResponse: RequestsResponse = {
@@ -18,6 +22,7 @@ const emptyResponse: RequestsResponse = {
         query: null,
         available: true,
         message: null,
+        loanTypes: [],
     },
 };
 
@@ -43,6 +48,10 @@ export function useRequests(params: RequestsParams) {
                     {
                         search:
                             trimmedSearch !== '' ? trimmedSearch : undefined,
+                        loanType: params.loanType ?? undefined,
+                        status: params.status ?? undefined,
+                        minAmount: params.minAmount ?? undefined,
+                        maxAmount: params.maxAmount ?? undefined,
                         page: params.page,
                         perPage: params.perPage,
                     },
@@ -65,7 +74,15 @@ export function useRequests(params: RequestsParams) {
             controller.abort();
             clearTimeout(timeout);
         };
-    }, [params.page, params.perPage, params.search]);
+    }, [
+        params.loanType,
+        params.maxAmount,
+        params.minAmount,
+        params.page,
+        params.perPage,
+        params.search,
+        params.status,
+    ]);
 
     return {
         items: state.data.items,

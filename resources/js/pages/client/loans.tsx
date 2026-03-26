@@ -10,6 +10,7 @@ import {
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanRecordsCard } from '@/components/member-loan-records-card';
 import { Button } from '@/components/ui/button';
+import { PageShell } from '@/components/page-shell';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
@@ -107,7 +108,7 @@ export default function MemberLoans({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loans" />
-            <div className="flex flex-col gap-6 p-4">
+            <PageShell>
                 <MemberDetailPageHeader
                     title="Loans"
                     subtitle="Manage active loans and track new requests."
@@ -174,7 +175,7 @@ export default function MemberLoans({
                         loanNumber ? loanPayments(loanNumber).url : null
                     }
                 />
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

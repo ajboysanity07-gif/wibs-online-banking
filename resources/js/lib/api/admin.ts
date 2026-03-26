@@ -45,6 +45,10 @@ type PendingApprovalsQueryParams = {
 
 type RequestsQueryParams = {
     search?: string;
+    loanType?: string;
+    status?: string;
+    minAmount?: number;
+    maxAmount?: number;
     page?: number;
     perPage?: number;
 };

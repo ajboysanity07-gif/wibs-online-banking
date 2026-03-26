@@ -11,6 +11,7 @@ import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { PageShell } from '@/components/page-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemberLoanPayments } from '@/hooks/admin/use-member-loan-payments';
 import AppLayout from '@/layouts/app-layout';
@@ -182,7 +183,7 @@ export default function MemberLoanPayments({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan Payments" />
-            <div className="flex flex-col gap-6 p-4">
+            <PageShell size="wide">
                 <MemberLoanDetailHeader
                     title="Loan Payments"
                     subtitle={`${member.member_name ?? 'Member'} - Loan ${loan.lnnumber ?? '--'}`}
@@ -205,7 +206,10 @@ export default function MemberLoanPayments({
                 {showSkeleton ? (
                     <div className="grid gap-4 md:grid-cols-3">
                         {Array.from({ length: 3 }).map((_, index) => (
-                            <Card key={`summary-skeleton-${index}`}>
+                            <Card
+                                key={`summary-skeleton-${index}`}
+                                className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
+                            >
                                 <CardContent className="space-y-3 p-6">
                                     <Skeleton className="h-3 w-24" />
                                     <Skeleton className="h-8 w-32" />
@@ -290,7 +294,7 @@ export default function MemberLoanPayments({
                     onPageChange={setPage}
                     showSkeleton={showSkeleton}
                 />
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

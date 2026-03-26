@@ -70,6 +70,7 @@ const adminNavItems: NavItem[] = [
         href: membersIndex(),
         icon: Users,
         match: 'section',
+        matchPaths: [membersIndex(), '/admin/members'],
     },
     {
         title: 'Pending approvals',
@@ -80,6 +81,7 @@ const adminNavItems: NavItem[] = [
         title: 'Requests',
         href: requestsIndex(),
         icon: FileText,
+        match: 'section',
     },
     {
         title: 'Organization settings',

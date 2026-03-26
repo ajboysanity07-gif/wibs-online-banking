@@ -2,6 +2,10 @@ import { Head } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useState } from 'react';
 import { MemberListCardSkeleton } from '@/components/member-list-card-skeleton';
+import { PageHero } from '@/components/page-hero';
+import { PageShell } from '@/components/page-shell';
+import { SectionHeader } from '@/components/section-header';
+import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -154,7 +158,7 @@ const MobilePendingApprovalCard = ({
     isProcessing: boolean;
     onApprove: (userId: number) => void;
 }) => (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">{row.member_name}</p>
@@ -197,7 +201,7 @@ const MobilePendingApprovalCard = ({
                 Approve
             </Button>
         </div>
-    </div>
+    </SurfaceCard>
 );
 
 export default function PendingUsers() {
@@ -225,48 +229,128 @@ export default function PendingUsers() {
         updateStatus(userId, 'approve'),
     );
     const showSkeleton = loading && rows.length === 0;
+    const searchValue = search.trim();
+    const hasSearch = searchValue !== '';
+    const hasSortOverride = sort !== 'newest';
+    const filterCount = [hasSearch, hasSortOverride].filter(Boolean).length;
+    const hasFilters = filterCount > 0;
+    const totalResults = meta.total;
+    const pageStart =
+        totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
+    const pageEnd =
+        totalResults > 0
+            ? Math.min(meta.page * meta.perPage, totalResults)
+            : 0;
+    const resultsLabel =
+        totalResults > 0
+            ? `Showing ${pageStart}-${pageEnd} of ${totalResults} approvals`
+            : 'No pending approvals.';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Pending approvals" />
-            <div className="flex flex-col gap-4 p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <Input
-                        value={search}
-                        placeholder="Search by account no, username, or email"
-                        className="sm:w-72"
-                        onChange={(event) => {
-                            setSearch(event.target.value);
-                            setPage(1);
-                        }}
-                    />
-                    <div className="flex items-center gap-2">
-                        <Select
-                            value={sort}
-                            onValueChange={(value) => {
-                                setSort(value as PendingSort);
-                                setPage(1);
-                            }}
-                        >
-                            <SelectTrigger className="w-40">
-                                <SelectValue placeholder="Sort" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="newest">
-                                    Newest first
-                                </SelectItem>
-                                <SelectItem value="oldest">
-                                    Oldest first
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {loading ? (
-                            <span className="text-xs text-muted-foreground">
-                                Updating...
-                            </span>
-                        ) : null}
+            <PageShell size="wide">
+                <PageHero
+                    kicker="Approvals"
+                    title="Pending approvals"
+                    description="Review member registrations awaiting activation."
+                    badges={
+                        <>
+                            <Badge variant="secondary">
+                                {totalResults} pending
+                            </Badge>
+                            {filterCount > 0 ? (
+                                <Badge variant="outline">
+                                    {filterCount} filter
+                                    {filterCount === 1 ? '' : 's'}
+                                </Badge>
+                            ) : null}
+                            {hasSearch ? (
+                                <Badge variant="outline">Search active</Badge>
+                            ) : null}
+                        </>
+                    }
+                    rightSlot={
+                        loading ? (
+                            <Badge variant="outline">Updating</Badge>
+                        ) : null
+                    }
+                />
+
+                <SurfaceCard variant="default" padding="md">
+                    <div className="flex flex-col gap-4">
+                        <SectionHeader
+                            title="Filters"
+                            description="Search pending approvals or adjust the sort order."
+                            actions={
+                                <>
+                                    {filterCount > 0 ? (
+                                        <span className="text-xs text-muted-foreground">
+                                            {filterCount} filter
+                                            {filterCount === 1 ? '' : 's'}{' '}
+                                            active
+                                        </span>
+                                    ) : null}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={!hasFilters}
+                                        onClick={() => {
+                                            setSearch('');
+                                            setSort('newest');
+                                            setPage(1);
+                                        }}
+                                    >
+                                        Clear filters
+                                    </Button>
+                                </>
+                            }
+                        />
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,0.6fr)]">
+                            <div className="space-y-1">
+                                <label
+                                    className="text-xs font-medium text-muted-foreground"
+                                    htmlFor="pending-search"
+                                >
+                                    Search
+                                </label>
+                                <Input
+                                    id="pending-search"
+                                    value={search}
+                                    placeholder="Search by account no, username, or email"
+                                    onChange={(event) => {
+                                        setSearch(event.target.value);
+                                        setPage(1);
+                                    }}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                    Sort
+                                </span>
+                                <Select
+                                    value={sort}
+                                    onValueChange={(value) => {
+                                        setSort(value as PendingSort);
+                                        setPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger aria-label="Sort pending approvals">
+                                        <SelectValue placeholder="Sort" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">
+                                            Newest first
+                                        </SelectItem>
+                                        <SelectItem value="oldest">
+                                            Oldest first
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </SurfaceCard>
 
                 {error ? (
                     <Alert variant="destructive">
@@ -275,54 +359,91 @@ export default function PendingUsers() {
                     </Alert>
                 ) : null}
 
-                {showSkeleton ? (
-                    <>
-                        <div className="space-y-3 md:hidden" aria-busy="true">
-                            {Array.from({ length: 4 }).map((_, index) => (
-                                <MemberListCardSkeleton
-                                    key={`pending-skeleton-${index}`}
-                                />
-                            ))}
-                        </div>
-                        <div className="hidden md:block" aria-busy="true">
-                            <TableSkeleton
-                                columns={pendingTableSkeletonColumns}
-                                rows={perPage}
-                                className="rounded-md border"
-                            />
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="space-y-3 md:hidden">
-                            {rows.length === 0 ? (
-                                <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
-                                    No pending approvals.
+                <SurfaceCard
+                    variant="default"
+                    padding="none"
+                    className="overflow-hidden"
+                >
+                    <div className="border-b border-border/40 bg-card/70 px-6 py-4">
+                        <SectionHeader
+                            title="Results"
+                            description={resultsLabel}
+                            titleClassName="text-lg"
+                            actions={
+                                loading ? (
+                                    <span className="text-xs text-muted-foreground">
+                                        Updating...
+                                    </span>
+                                ) : null
+                            }
+                        />
+                    </div>
+                    <div className="px-2 pb-2 sm:px-4 sm:pb-4">
+                        {showSkeleton ? (
+                            <>
+                                <div
+                                    className="space-y-3 px-2 pb-3 pt-4 md:hidden"
+                                    aria-busy="true"
+                                >
+                                    {Array.from({ length: 4 }).map(
+                                        (_, index) => (
+                                            <MemberListCardSkeleton
+                                                key={`pending-skeleton-${index}`}
+                                            />
+                                        ),
+                                    )}
                                 </div>
-                            ) : (
-                                rows.map((row) => (
-                                    <MobilePendingApprovalCard
-                                        key={row.user_id}
-                                        row={row}
-                                        isProcessing={
-                                            processingIds[row.user_id] ?? false
-                                        }
-                                        onApprove={(userId) =>
-                                            updateStatus(userId, 'approve')
-                                        }
+                                <div
+                                    className="hidden md:block"
+                                    aria-busy="true"
+                                >
+                                    <TableSkeleton
+                                        columns={pendingTableSkeletonColumns}
+                                        rows={perPage}
+                                        className="pt-4"
+                                        tableClassName="bg-transparent"
                                     />
-                                ))
-                            )}
-                        </div>
-                        <div className="hidden md:block">
-                            <DataTable
-                                columns={tableColumns}
-                                data={rows}
-                                emptyMessage="No pending approvals."
-                            />
-                        </div>
-                    </>
-                )}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="space-y-3 px-2 pb-3 pt-4 md:hidden">
+                                    {rows.length === 0 ? (
+                                        <div className="rounded-md border border-border/60 bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                                            No pending approvals.
+                                        </div>
+                                    ) : (
+                                        rows.map((row) => (
+                                            <MobilePendingApprovalCard
+                                                key={row.user_id}
+                                                row={row}
+                                                isProcessing={
+                                                    processingIds[
+                                                        row.user_id
+                                                    ] ?? false
+                                                }
+                                                onApprove={(userId) =>
+                                                    updateStatus(
+                                                        userId,
+                                                        'approve',
+                                                    )
+                                                }
+                                            />
+                                        ))
+                                    )}
+                                </div>
+                                <div className="hidden md:block">
+                                    <DataTable
+                                        columns={tableColumns}
+                                        data={rows}
+                                        emptyMessage="No pending approvals."
+                                        className="border-0 bg-transparent"
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </SurfaceCard>
 
                 {showSkeleton ? (
                     <DataTablePaginationSkeleton />
@@ -334,7 +455,7 @@ export default function PendingUsers() {
                         onPageChange={(nextPage) => setPage(nextPage)}
                     />
                 )}
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

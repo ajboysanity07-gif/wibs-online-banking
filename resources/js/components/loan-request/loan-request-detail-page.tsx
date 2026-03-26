@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Calendar, Download, Printer } from 'lucide-react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
+import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -187,7 +188,7 @@ export function LoanRequestDetailPage({
         : 'Not submitted yet';
 
     return (
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-6 pb-10">
+        <PageShell size="wide" className="gap-8">
             <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-3">
@@ -548,6 +549,6 @@ export function LoanRequestDetailPage({
                     </Card>
                 </div>
             </div>
-        </div>
+        </PageShell>
     );
 }

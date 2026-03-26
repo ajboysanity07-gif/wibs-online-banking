@@ -1,6 +1,11 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { usePage } from '@inertiajs/react';
-import { normalizePath, isWithinSectionPath } from '@/lib/url-match';
+import {
+    isWithinSectionPath,
+    matchesExactPaths,
+    matchesSectionPaths,
+    normalizePath,
+} from '@/lib/url-match';
 import { toUrl } from '@/lib/utils';
 
 export type IsCurrentUrlFn = (
@@ -14,10 +19,24 @@ export type WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(
     ifFalse?: TIfFalse,
 ) => TIfTrue | TIfFalse;
 
+export type MatchStrategy = 'exact' | 'section';
+
+export type UrlMatchOptions = {
+    href: NonNullable<InertiaLinkProps['href']>;
+    match?: MatchStrategy;
+    matchPaths?: Array<NonNullable<InertiaLinkProps['href']>>;
+};
+
+export type IsMatchFn = (
+    options: UrlMatchOptions,
+    currentUrl?: string,
+) => boolean;
+
 export type UseCurrentUrlReturn = {
     currentUrl: string;
     isCurrentUrl: IsCurrentUrlFn;
     isWithinSection: IsCurrentUrlFn;
+    isMatch: IsMatchFn;
     whenCurrentUrl: WhenCurrentUrlFn;
 };
 
@@ -64,6 +83,25 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
         return isWithinSectionPath(urlPath, urlToCompare);
     };
 
+    const isMatch: IsMatchFn = (
+        options: UrlMatchOptions,
+        currentUrl?: string,
+    ) => {
+        const urlToCompare = normalizePath(currentUrl ?? currentUrlPath);
+        const targets =
+            options.matchPaths && options.matchPaths.length > 0
+                ? options.matchPaths
+                : [options.href];
+        const resolvedTargets = targets.map(resolvePathname);
+        const matchStrategy = options.match ?? 'exact';
+
+        if (matchStrategy === 'section') {
+            return matchesSectionPaths(resolvedTargets, urlToCompare);
+        }
+
+        return matchesExactPaths(resolvedTargets, urlToCompare);
+    };
+
     const whenCurrentUrl: WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(
         urlToCheck: NonNullable<InertiaLinkProps['href']>,
         ifTrue: TIfTrue,
@@ -76,6 +114,7 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
         currentUrl: currentUrlPath,
         isCurrentUrl,
         isWithinSection,
+        isMatch,
         whenCurrentUrl,
     };
 }

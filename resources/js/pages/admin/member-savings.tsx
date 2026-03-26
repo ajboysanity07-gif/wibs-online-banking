@@ -10,6 +10,7 @@ import {
 import { MemberSavingsLedgerCard } from '@/components/member-savings-ledger-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageShell } from '@/components/page-shell';
 import { useMemberSavings } from '@/hooks/admin/use-member-savings';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -101,7 +102,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Member Savings" />
-            <div className="flex flex-col gap-6 p-4">
+            <PageShell size="wide">
                 <MemberDetailPageHeader
                     title="Member Savings"
                     subtitle={`Savings overview for ${member.member_name ?? 'this member'}.`}
@@ -157,7 +158,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                     onPageChange={setPage}
                     emptyMessage={savingsEmptyMessage}
                 />
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

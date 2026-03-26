@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import FontPicker from 'react-fontpicker-ts';
 import 'react-fontpicker-ts/dist/index.css';
 import OrganizationSettingsController from '@/actions/App/Http/Controllers/Admin/OrganizationSettingsController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageHero } from '@/components/page-hero';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -705,14 +706,15 @@ export default function OrganizationSettings() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Organization settings" />
 
-            <div className="flex flex-col gap-6 p-4">
-                <Heading
+            <PageShell size="wide">
+                <PageHero
+                    kicker="Settings"
                     title="Organization branding"
                     description="Manage organization identity, portal labeling, and support details shown to members."
                 />
 
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-                    <Card>
+                    <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardTitle>Brand settings</CardTitle>
                             <CardDescription>
@@ -3226,7 +3228,7 @@ export default function OrganizationSettings() {
 
                     <div className="space-y-6 lg:relative">
                         <div className="space-y-6 lg:fixed lg:top-24 lg:right-6 lg:max-h-[calc(100vh-7rem)] lg:w-[360px]">
-                            <Card className="lg:max-h-[calc(100vh-7rem)] lg:overflow-hidden">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm lg:max-h-[calc(100vh-7rem)] lg:overflow-hidden">
                                 <CardHeader>
                                     <CardTitle>Live preview</CardTitle>
                                     <CardDescription>
@@ -3415,7 +3417,7 @@ export default function OrganizationSettings() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

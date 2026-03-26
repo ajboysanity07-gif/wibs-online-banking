@@ -9,6 +9,7 @@ import {
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanRecordsCard } from '@/components/member-loan-records-card';
 import { Button } from '@/components/ui/button';
+import { PageShell } from '@/components/page-shell';
 import { useMemberLoans } from '@/hooks/admin/use-member-loans';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -71,7 +72,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Member Loans" />
-            <div className="flex flex-col gap-6 p-4">
+            <PageShell size="wide">
                 <MemberDetailPageHeader
                     title="Member Loans"
                     subtitle={`Loan portfolio for ${member.member_name ?? 'this member'}.`}
@@ -135,7 +136,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                             : null
                     }
                 />
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }

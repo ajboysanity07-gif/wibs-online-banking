@@ -12,4 +12,5 @@ export type NavItem = {
     icon?: LucideIcon | null;
     isActive?: boolean;
     match?: 'exact' | 'section';
+    matchPaths?: Array<NonNullable<InertiaLinkProps['href']>>;
 };

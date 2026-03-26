@@ -1,5 +1,6 @@
 import { Banknote, PiggyBank } from 'lucide-react';
 import { MemberAccountSummaryCard } from '@/components/member-account-summary-card';
+import { SectionHeader } from '@/components/section-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -36,12 +37,11 @@ export function MemberAccountsSummarySection({
 
     return (
         <section className="space-y-4">
-            <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Loans and Savings</h2>
-                <p className="text-sm text-muted-foreground">
-                    Quick snapshot of loan and personal savings activity.
-                </p>
-            </div>
+            <SectionHeader
+                title="Loans and Savings"
+                description="Quick snapshot of loan and personal savings activity."
+                titleClassName="text-lg"
+            />
             {!acctno ? (
                 <Alert>
                     <AlertTitle>Account number missing</AlertTitle>

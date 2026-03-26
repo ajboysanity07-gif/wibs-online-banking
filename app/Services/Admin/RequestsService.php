@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\LoanRequestStatus;
 use App\Models\LoanRequest;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class RequestsService
@@ -30,17 +31,26 @@ class RequestsService
      *     items:\Illuminate\Support\Collection<int, array<string, mixed>>,
      *     available:bool,
      *     message:?string,
-     *     paginator:?\Illuminate\Pagination\LengthAwarePaginator
+     *     paginator:?\Illuminate\Pagination\LengthAwarePaginator,
+     *     loanTypes:array<int, string>
      * }
      */
-    public function getPaginated(string $search, int $perPage, int $page): array
-    {
+    public function getPaginated(
+        string $search,
+        int $perPage,
+        int $page,
+        ?string $loanType = null,
+        ?string $status = null,
+        ?float $minAmount = null,
+        ?float $maxAmount = null,
+    ): array {
         if (! $this->hasRequestsTable()) {
             return [
                 'items' => collect(),
                 'available' => false,
                 'message' => self::UNAVAILABLE_MESSAGE,
                 'paginator' => null,
+                'loanTypes' => [],
             ];
         }
 
@@ -61,6 +71,29 @@ class RequestsService
             });
         }
 
+        if ($loanType !== null && $loanType !== '') {
+            $query->where('loan_type_label_snapshot', $loanType);
+        }
+
+        if ($status !== null && $status !== '') {
+            if ($status === LoanRequestStatus::UnderReview->value) {
+                $query->whereIn('status', [
+                    LoanRequestStatus::UnderReview->value,
+                    LoanRequestStatus::Submitted->value,
+                ]);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        if ($minAmount !== null) {
+            $query->where('requested_amount', '>=', $minAmount);
+        }
+
+        if ($maxAmount !== null) {
+            $query->where('requested_amount', '<=', $maxAmount);
+        }
+
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
         return [
@@ -69,6 +102,7 @@ class RequestsService
             'available' => true,
             'message' => null,
             'paginator' => $paginator,
+            'loanTypes' => $this->getLoanTypeOptions(),
         ];
     }
 
@@ -77,13 +111,34 @@ class RequestsService
         return LoanRequest::query()->getConnection()->getSchemaBuilder()->hasTable('loan_requests');
     }
 
-    private function baseQuery()
+    private function baseQuery(): Builder
     {
         return LoanRequest::query()
             ->where('status', '!=', LoanRequestStatus::Draft->value)
             ->with(['applicant', 'user'])
             ->orderByDesc('submitted_at')
             ->orderByDesc('created_at');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getLoanTypeOptions(): array
+    {
+        if (! $this->hasRequestsTable()) {
+            return [];
+        }
+
+        return LoanRequest::query()
+            ->where('status', '!=', LoanRequestStatus::Draft->value)
+            ->whereNotNull('loan_type_label_snapshot')
+            ->where('loan_type_label_snapshot', '!=', '')
+            ->select('loan_type_label_snapshot')
+            ->distinct()
+            ->orderBy('loan_type_label_snapshot')
+            ->pluck('loan_type_label_snapshot')
+            ->values()
+            ->all();
     }
 
     /**

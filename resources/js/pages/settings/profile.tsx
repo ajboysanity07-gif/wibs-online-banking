@@ -583,7 +583,7 @@ export default function Profile({
             <h1 className="sr-only">Profile Settings</h1>
 
             <SettingsLayout>
-                <div className="mt-6">
+                <div className="mt-2">
                     <Tabs
                         value={activeTab}
                         onValueChange={(value) =>

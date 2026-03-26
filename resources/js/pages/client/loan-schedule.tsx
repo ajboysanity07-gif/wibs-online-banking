@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { MemberAccountAlert } from '@/components/member-account-alert';
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
 import { MemberLoanScheduleSections } from '@/components/member-loan-schedule-sections';
+import { PageShell } from '@/components/page-shell';
 import AppLayout from '@/layouts/app-layout';
 import {
     dashboard as clientDashboard,
@@ -51,7 +52,7 @@ export default function LoanSchedule({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan Schedule" />
-            <div className="flex flex-col gap-6 p-4">
+            <PageShell>
                 <MemberLoanDetailHeader
                     title="Loan Schedule"
                     subtitle={`${member.member_name ?? 'Member'} - Loan ${loan.lnnumber ?? '--'}`}
@@ -72,7 +73,7 @@ export default function LoanSchedule({
                 ) : null}
 
                 <MemberLoanScheduleSections items={items} summary={summary} />
-            </div>
+            </PageShell>
         </AppLayout>
     );
 }
