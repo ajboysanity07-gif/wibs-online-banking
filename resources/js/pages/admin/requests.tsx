@@ -1,8 +1,9 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useState } from 'react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import {
     DataTablePagination,
@@ -13,7 +14,7 @@ import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { useRequests } from '@/hooks/admin/use-requests';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/formatters';
-import { index as requestsIndex } from '@/routes/admin/requests';
+import { index as requestsIndex, show as requestsShow } from '@/routes/admin/requests';
 import type { BreadcrumbItem } from '@/types';
 import type { RequestPreview } from '@/types/admin';
 
@@ -65,6 +66,27 @@ const columns: ColumnDef<RequestPreview>[] = [
         cell: ({ row }) =>
             formatDate(row.original.submitted_at ?? row.original.created_at),
     },
+    {
+        id: 'action',
+        header: () => <div className="flex justify-end">Action</div>,
+        cell: ({ row }) => {
+            const requestId = row.original.id;
+
+            if (!requestId) {
+                return <div className="flex justify-end">--</div>;
+            }
+
+            return (
+                <div className="flex justify-end">
+                    <Button asChild size="sm" variant="outline">
+                        <Link href={requestsShow(requestId).url}>
+                            View request
+                        </Link>
+                    </Button>
+                </div>
+            );
+        },
+    },
 ];
 
 const requestsTableSkeletonColumns = [
@@ -73,6 +95,7 @@ const requestsTableSkeletonColumns = [
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-16', cellClassName: 'w-20' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
+    { headerClassName: 'w-24', cellClassName: 'w-24' },
 ];
 
 export default function RequestsPage() {
