@@ -50,6 +50,26 @@ test('profile page is displayed', function () {
         );
 });
 
+test('admin profile page is displayed', function () {
+    $user = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'fullname' => 'Admin Account',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('initialTab', 'profile')
+            ->where('adminProfile.fullname', 'Admin Account')
+        );
+});
+
 test('profile page loads member record information from wmaster', function () {
     $user = User::factory()->create([
         'acctno' => '000901',
@@ -347,18 +367,21 @@ test('profile information can be updated with other nature of business', functio
 test('admin profile information can be updated with a profile photo', function () {
     Storage::fake('public');
 
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'phoneno' => '09123456789',
+    ]);
     AdminProfile::factory()->create([
         'user_id' => $user->user_id,
         'fullname' => 'Old Name',
     ]);
+    $updatedPhoneNumber = '09123456780';
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'username' => $user->username,
             'email' => $user->email,
-            'phoneno' => $user->phoneno,
+            'phoneno' => $updatedPhoneNumber,
             'fullname' => 'Updated Admin Name',
             'profile_photo' => UploadedFile::fake()->image('avatar.jpg'),
         ]);
@@ -367,7 +390,8 @@ test('admin profile information can be updated with a profile photo', function (
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('profile.edit'));
 
-    $adminProfile = $user->refresh()->adminProfile;
+    $user->refresh();
+    $adminProfile = $user->adminProfile;
 
     expect($adminProfile)->not->toBeNull();
     expect($adminProfile->fullname)->toBe('Updated Admin Name');
@@ -375,6 +399,7 @@ test('admin profile information can be updated with a profile photo', function (
     expect($adminProfile->profile_pic_path)->toContain(
         "profile-photos/admin/{$user->user_id}/",
     );
+    expect($user->phoneno)->toBe($updatedPhoneNumber);
 
     Storage::disk('public')->assertExists($adminProfile->profile_pic_path);
 });

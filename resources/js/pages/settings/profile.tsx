@@ -865,6 +865,38 @@ export default function Profile({
                                                                     }
                                                                 />
                                                             </div>
+
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="phoneno">
+                                                                    Cell number
+                                                                </Label>
+
+                                                                <Input
+                                                                    id="phoneno"
+                                                                    type="tel"
+                                                                    className="mt-1 block w-full"
+                                                                    defaultValue={
+                                                                        auth.user
+                                                                            .phoneno ??
+                                                                        ''
+                                                                    }
+                                                                    name="phoneno"
+                                                                    required
+                                                                    autoComplete="tel"
+                                                                    inputMode="numeric"
+                                                                    maxLength={
+                                                                        11
+                                                                    }
+                                                                    placeholder="09XXXXXXXXX"
+                                                                />
+
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        formErrors.phoneno
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
 
                                                         {mustVerifyEmail &&
@@ -1231,39 +1263,6 @@ export default function Profile({
                                                                             }
                                                                             placeholder="Not available"
                                                                             disabled
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="phoneno">
-                                                                            Cell
-                                                                            number
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="phoneno"
-                                                                            type="tel"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                auth
-                                                                                    .user
-                                                                                    .phoneno
-                                                                            }
-                                                                            name="phoneno"
-                                                                            required
-                                                                            autoComplete="tel"
-                                                                            inputMode="numeric"
-                                                                            maxLength={
-                                                                                11
-                                                                            }
-                                                                            placeholder="09XXXXXXXXX"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.phoneno
-                                                                            }
                                                                         />
                                                                     </div>
 
