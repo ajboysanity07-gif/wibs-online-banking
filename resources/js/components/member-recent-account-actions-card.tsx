@@ -272,9 +272,7 @@ export function MemberRecentAccountActionsCard({
                                                         '--'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatDate(
-                                                        action.date_in,
-                                                    )}
+                                                    {formatDate(action.date_in)}
                                                 </TableCell>
                                                 <TableCell>
                                                     {action.transaction_type ??

@@ -74,7 +74,8 @@ export default function MemberProfile({
     const getInitials = useInitials();
     const [actionsLoading, setActionsLoading] = useState(false);
     const currentMember: MemberProfile = member ?? {
-        name: auth.user.name ?? auth.user.username ?? auth.user.email ?? 'Member',
+        name:
+            auth.user.name ?? auth.user.username ?? auth.user.email ?? 'Member',
         username: auth.user.username ?? auth.user.email ?? '',
         email: auth.user.email,
         phone: auth.user.phoneno ?? null,
@@ -159,7 +160,8 @@ export default function MemberProfile({
                                 },
                                 {
                                     label: 'Reviewed by',
-                                    value: currentMember.reviewed_by?.name ?? '--',
+                                    value:
+                                        currentMember.reviewed_by?.name ?? '--',
                                 },
                                 {
                                     label: 'Reviewed at',
@@ -171,9 +173,7 @@ export default function MemberProfile({
                         />
                     </div>
                     <MemberStatusCard
-                        statusLabel={getMemberStatusLabel(
-                            currentMember.status,
-                        )}
+                        statusLabel={getMemberStatusLabel(currentMember.status)}
                         statusVariant={getMemberStatusVariant(
                             currentMember.status,
                         )}

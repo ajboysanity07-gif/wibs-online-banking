@@ -72,8 +72,7 @@ const NATURE_OF_BUSINESS_OPTIONS = [
 const readOnlyInputClass =
     'bg-muted/30 text-muted-foreground/80 border-border/40';
 
-const fieldName = (prefix: string, field: string) =>
-    `${prefix}[${field}]`;
+const fieldName = (prefix: string, field: string) => `${prefix}[${field}]`;
 
 const fieldError = (
     errors: Record<string, string | undefined>,
@@ -95,7 +94,7 @@ const FieldLabel = ({
     <div className="flex items-center justify-between gap-2">
         <Label htmlFor={htmlFor}>{label}</Label>
         {isReadOnly ? (
-            <span className="rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                 Verified
             </span>
         ) : null}
@@ -104,8 +103,7 @@ const FieldLabel = ({
 
 const STREET_CUE_PATTERN =
     /\b(street|st\.?|ave\.?|avenue|rd\.?|road|blvd\.?|boulevard|drive|dr\.?|lane|ln\.?|highway|hiway|bldg\.?|building|unit|floor|lot|blk\.?|block|phase|purok|sitio|subd\.?|subdivision|village|compound|plaza|tower|mall|center|centre|brgy\.?|barangay)\b/i;
-const LOCALITY_CUE_PATTERN =
-    /\b(city|municipality|province|town)\b/i;
+const LOCALITY_CUE_PATTERN = /\b(city|municipality|province|town)\b/i;
 
 const looksLikeStreet = (segment: string): boolean =>
     STREET_CUE_PATTERN.test(segment) ||
@@ -141,10 +139,7 @@ const splitEmployerBusinessAddress = (
 
     const [firstSegment, ...restSegments] = segments;
 
-    if (
-        looksLikeLocality(firstSegment) &&
-        !looksLikeStreet(firstSegment)
-    ) {
+    if (looksLikeLocality(firstSegment) && !looksLikeStreet(firstSegment)) {
         return { street: '', city: segments.join(', ') };
     }
 
@@ -379,9 +374,7 @@ export function LoanRequestPersonalFields({
                         inputClassName={birthplaceInputClass}
                         loadingMessage="Searching birthplace suggestions..."
                         errorMessage="Birthplace suggestions are temporarily unavailable."
-                        onValueChange={(value) =>
-                            onChange('birthplace', value)
-                        }
+                        onValueChange={(value) => onChange('birthplace', value)}
                     />
                     <InputError
                         message={fieldError(errors, prefix, 'birthplace')}
@@ -976,10 +969,7 @@ export function LoanRequestWorkFields({
                             className="mt-1 block w-full pl-12"
                             value={values.gross_monthly_income}
                             onValueChange={(value) => {
-                                onChange(
-                                    'gross_monthly_income',
-                                    value.value,
-                                );
+                                onChange('gross_monthly_income', value.value);
                             }}
                             thousandSeparator
                             decimalScale={2}
@@ -1029,4 +1019,3 @@ export function LoanRequestWorkFields({
         </div>
     );
 }
-

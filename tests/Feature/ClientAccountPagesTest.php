@@ -361,6 +361,269 @@ test('approved client can view the loan payments page', function () {
             ->where('loan.lnnumber', 'LN-703'));
 });
 
+test('client can export loan payments as csv', function () {
+    $user = User::factory()->create([
+        'acctno' => '000705',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Glen',
+        'fname' => 'Glen',
+        'lname' => 'Member',
+        'birthday' => '1990-02-04',
+        'address' => '222 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-705',
+        'lntype' => 'Regular',
+        'principal' => 2500,
+        'balance' => 2000,
+    ]);
+    DB::table('wlnled')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-705',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::parse('2025-03-15 00:00:00')->toDateTimeString(),
+        'principal' => 100,
+        'payments' => 100,
+        'balance' => 1900,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-payments.export', [
+            'loanNumber' => 'LN-705',
+            'format' => 'csv',
+        ]));
+
+    $response->assertOk();
+    expect($response->headers->get('content-disposition'))
+        ->toStartWith('attachment;');
+});
+
+test('client can preview loan payments pdf inline', function () {
+    $user = User::factory()->create([
+        'acctno' => '000708',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Quinn',
+        'fname' => 'Quinn',
+        'lname' => 'Member',
+        'birthday' => '1992-05-12',
+        'address' => '444 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-708',
+        'lntype' => 'Regular',
+        'principal' => 1800,
+        'balance' => 1300,
+    ]);
+    DB::table('wlnled')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-708',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::parse('2025-03-20 00:00:00')->toDateTimeString(),
+        'principal' => 120,
+        'payments' => 120,
+        'balance' => 1180,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-payments.export', [
+            'loanNumber' => 'LN-708',
+            'format' => 'pdf',
+        ]));
+
+    $response->assertOk();
+    $response->assertHeader('content-type', 'application/pdf');
+    expect($response->headers->get('content-disposition'))
+        ->toStartWith('inline;');
+});
+
+test('client can download loan payments pdf when flagged', function () {
+    $user = User::factory()->create([
+        'acctno' => '000709',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Riley',
+        'fname' => 'Riley',
+        'lname' => 'Member',
+        'birthday' => '1991-04-18',
+        'address' => '555 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Coordinator',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-709',
+        'lntype' => 'Regular',
+        'principal' => 2200,
+        'balance' => 1700,
+    ]);
+    DB::table('wlnled')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-709',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::parse('2025-03-22 00:00:00')->toDateTimeString(),
+        'principal' => 150,
+        'payments' => 150,
+        'balance' => 1550,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-payments.export', [
+            'loanNumber' => 'LN-709',
+            'format' => 'pdf',
+            'download' => 1,
+        ]));
+
+    $response->assertOk();
+    $response->assertHeader('content-type', 'application/pdf');
+    expect($response->headers->get('content-disposition'))
+        ->toStartWith('attachment;');
+});
+
+test('client can open loan payments print preview', function () {
+    $user = User::factory()->create([
+        'acctno' => '000710',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Taylor',
+        'fname' => 'Taylor',
+        'lname' => 'Member',
+        'birthday' => '1993-02-10',
+        'address' => '666 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-710',
+        'lntype' => 'Regular',
+        'principal' => 2400,
+        'balance' => 1800,
+    ]);
+    DB::table('wlnled')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-710',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::now()->toDateTimeString(),
+        'principal' => 200,
+        'payments' => 200,
+        'balance' => 1600,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-payments.print', [
+            'loanNumber' => 'LN-710',
+            'range' => 'all',
+        ]));
+
+    $response->assertOk();
+    $response->assertViewIs('reports.loan-payments');
+    $response->assertSee('Loan Payment Transaction Report');
+    $response->assertSee('window.print', false);
+});
+
+test('client cannot export loan payments for another member', function () {
+    $owner = User::factory()->create([
+        'acctno' => '000706',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $owner->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $owner->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $owner->acctno,
+        'bname' => 'Member, Harper',
+        'fname' => 'Harper',
+        'lname' => 'Member',
+        'birthday' => '1990-06-07',
+        'address' => '111 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Clerk',
+    ]);
+
+    $viewer = User::factory()->create([
+        'acctno' => '000707',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $viewer->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $viewer->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $viewer->acctno,
+        'bname' => 'Member, Indigo',
+        'fname' => 'Indigo',
+        'lname' => 'Member',
+        'birthday' => '1991-08-11',
+        'address' => '333 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Staff',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $owner->acctno,
+        'lnnumber' => 'LN-706',
+        'lntype' => 'Regular',
+        'principal' => 1800,
+        'balance' => 1400,
+    ]);
+
+    $response = $this
+        ->actingAs($viewer)
+        ->get(route('client.loan-payments.export', [
+            'loanNumber' => 'LN-706',
+            'format' => 'csv',
+        ]));
+
+    $response->assertNotFound();
+});
+
 test('admins are redirected away from client account pages', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([

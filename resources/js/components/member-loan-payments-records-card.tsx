@@ -10,10 +10,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import type {
-    MemberLoanPayment,
-    PaginationMeta,
-} from '@/types/admin';
+import type { MemberLoanPayment, PaginationMeta } from '@/types/admin';
 
 type MemberLoanPaymentsRecordsCardProps = {
     items: MemberLoanPayment[];

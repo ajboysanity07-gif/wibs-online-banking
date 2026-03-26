@@ -22,6 +22,46 @@ class OrganizationSettingsService
 
     private const DEFAULT_FAVICON_ASSET = 'favicon.ico';
 
+    private const REPORT_FONT_DEFAULT_FAMILY = 'DejaVu Sans';
+
+    private const REPORT_FONT_WEIGHT_OPTIONS = [
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900,
+    ];
+
+    private const REPORT_HEADER_TITLE_DEFAULT_WEIGHT = 700;
+
+    private const REPORT_HEADER_TAGLINE_DEFAULT_WEIGHT = 500;
+
+    private const REPORT_LABEL_DEFAULT_WEIGHT = 400;
+
+    private const REPORT_VALUE_DEFAULT_WEIGHT = 600;
+
+    private const REPORT_HEADER_TITLE_DEFAULT_SIZE = 14;
+
+    private const REPORT_HEADER_TAGLINE_DEFAULT_SIZE = 9;
+
+    private const REPORT_LABEL_DEFAULT_SIZE = 8;
+
+    private const REPORT_VALUE_DEFAULT_SIZE = 10;
+
+    private const REPORT_FONT_MIN_SIZE = 6;
+
+    private const REPORT_FONT_MAX_SIZE = 24;
+
+    private const REPORT_HEADER_ALIGNMENT_DEFAULT = 'center';
+
+    private const REPORT_HEADER_ALIGNMENT_OPTIONS = [
+        'left',
+        'center',
+        'right',
+    ];
+
     /**
      * @return array{
      *     companyName: string,
@@ -44,7 +84,48 @@ class OrganizationSettingsService
      *     brandAccentColor: ?string,
      *     supportEmail: ?string,
      *     supportPhone: ?string,
-     *     supportContactName: ?string
+     *     supportContactName: ?string,
+     *     reportHeader: array{
+     *         title: ?string,
+     *         tagline: ?string,
+     *         alignment: string,
+     *         showLogo: bool,
+     *         showCompanyName: bool
+     *     },
+     *     reportTypography: array{
+     *         headerTitle: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         headerTagline: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         label: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         value: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         }
+     *     }
      * }
      */
     public function branding(): array
@@ -72,6 +153,31 @@ class OrganizationSettingsService
             'support_email' => null,
             'support_phone' => null,
             'support_contact_name' => null,
+            'report_header_title' => null,
+            'report_header_tagline' => null,
+            'report_header_show_logo' => true,
+            'report_header_show_company_name' => true,
+            'report_header_alignment' => self::REPORT_HEADER_ALIGNMENT_DEFAULT,
+            'report_header_font_color' => null,
+            'report_header_tagline_color' => null,
+            'report_label_font_color' => null,
+            'report_value_font_color' => null,
+            'report_header_title_font_family' => null,
+            'report_header_title_font_variant' => null,
+            'report_header_title_font_weight' => null,
+            'report_header_title_font_size' => null,
+            'report_header_tagline_font_family' => null,
+            'report_header_tagline_font_variant' => null,
+            'report_header_tagline_font_weight' => null,
+            'report_header_tagline_font_size' => null,
+            'report_label_font_family' => null,
+            'report_label_font_variant' => null,
+            'report_label_font_weight' => null,
+            'report_label_font_size' => null,
+            'report_value_font_family' => null,
+            'report_value_font_variant' => null,
+            'report_value_font_weight' => null,
+            'report_value_font_size' => null,
         ];
     }
 
@@ -97,7 +203,52 @@ class OrganizationSettingsService
      *     brandAccentColor: ?string,
      *     supportEmail: ?string,
      *     supportPhone: ?string,
-     *     supportContactName: ?string
+     *     supportContactName: ?string,
+     *     reportHeader: array{
+     *         title: ?string,
+     *         tagline: ?string,
+     *         alignment: string,
+     *         showLogo: bool,
+     *         showCompanyName: bool
+     *     },
+     *     reportTypography: array{
+     *         headerTitle: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         headerTagline: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         label: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         value: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         }
+     *     }
      * }
      */
     private function mapBranding(?OrganizationSetting $setting): array
@@ -117,6 +268,8 @@ class OrganizationSettingsService
         $activeLogo = $logoPreset === self::LOGO_PRESET_FULL
             ? $fullLogo
             : $markLogo;
+        $reportHeader = $this->resolveReportHeader($setting);
+        $reportTypography = $this->resolveReportTypography($setting);
 
         return [
             'companyName' => $companyName,
@@ -146,6 +299,8 @@ class OrganizationSettingsService
             'supportContactName' => $this->normalizeValue(
                 $setting?->support_contact_name,
             ),
+            'reportHeader' => $reportHeader,
+            'reportTypography' => $reportTypography,
         ];
     }
 
@@ -174,6 +329,14 @@ class OrganizationSettingsService
             $mimeType,
             base64_encode($logoSource['contents']),
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function reportHeaderAlignments(): array
+    {
+        return self::REPORT_HEADER_ALIGNMENT_OPTIONS;
     }
 
     private function resolveCompanyName(?string $companyName): string
@@ -343,6 +506,352 @@ class OrganizationSettingsService
         $baseName = trim(Str::before($appName, ' Portal'));
 
         return $baseName !== '' ? $baseName : $appName;
+    }
+
+    /**
+     * @return array{
+     *     title: ?string,
+     *     tagline: ?string,
+     *     showLogo: bool,
+     *     showCompanyName: bool
+     * }
+     */
+    private function resolveReportHeader(?OrganizationSetting $setting): array
+    {
+        return [
+            'title' => $this->normalizeValue($setting?->report_header_title),
+            'tagline' => $this->normalizeValue($setting?->report_header_tagline),
+            'alignment' => $this->resolveReportHeaderAlignment(
+                $setting?->report_header_alignment,
+            ),
+            'showLogo' => $this->normalizeBoolean(
+                $setting?->report_header_show_logo,
+                true,
+            ),
+            'showCompanyName' => $this->normalizeBoolean(
+                $setting?->report_header_show_company_name,
+                true,
+            ),
+        ];
+    }
+
+    private function resolveReportHeaderAlignment(?string $alignment): string
+    {
+        $normalized = $this->normalizeValue($alignment);
+
+        if ($normalized === null) {
+            return self::REPORT_HEADER_ALIGNMENT_DEFAULT;
+        }
+
+        $value = strtolower($normalized);
+
+        return in_array($value, self::REPORT_HEADER_ALIGNMENT_OPTIONS, true)
+            ? $value
+            : self::REPORT_HEADER_ALIGNMENT_DEFAULT;
+    }
+
+    /**
+     * @return array{
+     *     headerTitle: array{
+     *         family: string,
+     *         variant: string,
+     *         weight: int,
+     *         size: int,
+     *         color: ?string,
+     *         cssFamily: string,
+     *         cssStyle: string
+     *     },
+     *     headerTagline: array{
+     *         family: string,
+     *         variant: string,
+     *         weight: int,
+     *         size: int,
+     *         color: ?string,
+     *         cssFamily: string,
+     *         cssStyle: string
+     *     },
+     *     googleFontUrl: ?string,
+     *     label: array{
+     *         family: string,
+     *         variant: string,
+     *         weight: int,
+     *         size: int,
+     *         color: ?string,
+     *         cssFamily: string,
+     *         cssStyle: string
+     *     },
+     *     value: array{
+     *         family: string,
+     *         variant: string,
+     *         weight: int,
+     *         size: int,
+     *         color: ?string,
+     *         cssFamily: string,
+     *         cssStyle: string
+     *     }
+     * }
+     */
+    private function resolveReportTypography(
+        ?OrganizationSetting $setting,
+    ): array {
+        $headerColor = $this->normalizeHexColor(
+            $setting?->report_header_font_color,
+        );
+        $taglineColor = $this->normalizeHexColor(
+            $setting?->report_header_tagline_color,
+        );
+        $labelColor = $this->normalizeHexColor(
+            $setting?->report_label_font_color,
+        );
+        $valueColor = $this->normalizeHexColor(
+            $setting?->report_value_font_color,
+        );
+
+        $reportTypography = [
+            'headerTitle' => array_merge(
+                $this->resolveReportFont(
+                    $setting?->report_header_title_font_family,
+                    $setting?->report_header_title_font_variant,
+                    $setting?->report_header_title_font_weight,
+                    $setting?->report_header_title_font_size,
+                    self::REPORT_HEADER_TITLE_DEFAULT_SIZE,
+                    self::REPORT_HEADER_TITLE_DEFAULT_WEIGHT,
+                ),
+                ['color' => $headerColor],
+            ),
+            'headerTagline' => array_merge(
+                $this->resolveReportFont(
+                    $setting?->report_header_tagline_font_family,
+                    $setting?->report_header_tagline_font_variant,
+                    $setting?->report_header_tagline_font_weight,
+                    $setting?->report_header_tagline_font_size,
+                    self::REPORT_HEADER_TAGLINE_DEFAULT_SIZE,
+                    self::REPORT_HEADER_TAGLINE_DEFAULT_WEIGHT,
+                ),
+                ['color' => $taglineColor ?? $headerColor],
+            ),
+            'label' => array_merge(
+                $this->resolveReportFont(
+                    $setting?->report_label_font_family,
+                    $setting?->report_label_font_variant,
+                    $setting?->report_label_font_weight,
+                    $setting?->report_label_font_size,
+                    self::REPORT_LABEL_DEFAULT_SIZE,
+                    self::REPORT_LABEL_DEFAULT_WEIGHT,
+                ),
+                ['color' => $labelColor],
+            ),
+            'value' => array_merge(
+                $this->resolveReportFont(
+                    $setting?->report_value_font_family,
+                    $setting?->report_value_font_variant,
+                    $setting?->report_value_font_weight,
+                    $setting?->report_value_font_size,
+                    self::REPORT_VALUE_DEFAULT_SIZE,
+                    self::REPORT_VALUE_DEFAULT_WEIGHT,
+                ),
+                ['color' => $valueColor],
+            ),
+        ];
+
+        $reportTypography['googleFontUrl'] = $this->buildGoogleFontUrl([
+            $reportTypography['headerTitle'],
+            $reportTypography['headerTagline'],
+            $reportTypography['label'],
+            $reportTypography['value'],
+        ]);
+
+        return $reportTypography;
+    }
+
+    /**
+     * @return array{
+     *     family: string,
+     *     variant: string,
+     *     weight: int,
+     *     size: int,
+     *     color: ?string,
+     *     cssFamily: string,
+     *     cssStyle: string
+     * }
+     */
+    private function resolveReportFont(
+        ?string $family,
+        ?string $variant,
+        ?string $weight,
+        ?int $size,
+        int $defaultSize,
+        int $defaultWeight,
+    ): array {
+        $resolvedFamily = $this->normalizeFontFamily($family)
+            ?? self::REPORT_FONT_DEFAULT_FAMILY;
+        $resolvedVariant = $this->normalizeFontVariant($variant);
+        $resolvedWeight = $this->normalizeFontWeight($weight, $defaultWeight);
+        $resolvedSize = $this->normalizeFontSize($size, $defaultSize);
+
+        return [
+            'family' => $resolvedFamily,
+            'variant' => $resolvedVariant,
+            'weight' => $resolvedWeight,
+            'size' => $resolvedSize,
+            'cssFamily' => $this->buildFontStack($resolvedFamily),
+            'cssStyle' => $resolvedVariant === 'italic' ? 'italic' : 'normal',
+        ];
+    }
+
+    private function normalizeHexColor(?string $value): ?string
+    {
+        $normalized = $this->normalizeValue($value);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        $lower = strtolower($normalized);
+
+        if (! str_starts_with($lower, '#')) {
+            $lower = '#'.$lower;
+        }
+
+        if (preg_match('/^#([0-9a-f]{3})$/', $lower, $matches) === 1) {
+            $expanded = '';
+
+            foreach (str_split($matches[1]) as $char) {
+                $expanded .= $char.$char;
+            }
+
+            return '#'.$expanded;
+        }
+
+        if (preg_match('/^#[0-9a-f]{6}$/', $lower) !== 1) {
+            return null;
+        }
+
+        return $lower;
+    }
+
+    private function normalizeFontFamily(?string $value): ?string
+    {
+        $normalized = $this->normalizeValue($value);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        $sanitized = preg_replace('/[^A-Za-z0-9\\s\\-+&.]/', '', $normalized);
+
+        if ($sanitized === null) {
+            return null;
+        }
+
+        $sanitized = trim($sanitized);
+
+        return $sanitized === '' ? null : mb_substr($sanitized, 0, 100);
+    }
+
+    private function normalizeFontWeight(?string $weight, int $default): int
+    {
+        if ($weight === null || trim($weight) === '') {
+            return $default;
+        }
+
+        $value = (int) $weight;
+
+        return in_array($value, self::REPORT_FONT_WEIGHT_OPTIONS, true)
+            ? $value
+            : $default;
+    }
+
+    private function normalizeFontVariant(?string $variant): string
+    {
+        $value = strtolower(trim((string) $variant));
+
+        if ($value === '' || $value === 'regular' || $value === 'normal') {
+            return 'regular';
+        }
+
+        if ($value === 'italic' || str_ends_with($value, 'italic')) {
+            return 'italic';
+        }
+
+        return 'regular';
+    }
+
+    private function normalizeFontSize(?int $size, int $default): int
+    {
+        if ($size === null) {
+            return $default;
+        }
+
+        if ($size < self::REPORT_FONT_MIN_SIZE) {
+            return self::REPORT_FONT_MIN_SIZE;
+        }
+
+        if ($size > self::REPORT_FONT_MAX_SIZE) {
+            return self::REPORT_FONT_MAX_SIZE;
+        }
+
+        return $size;
+    }
+
+    private function buildFontStack(string $family): string
+    {
+        $sanitized = str_replace('"', '', $family);
+        $fallback = self::REPORT_FONT_DEFAULT_FAMILY;
+
+        if (strcasecmp($sanitized, $fallback) === 0) {
+            return sprintf('"%s", sans-serif', $fallback);
+        }
+
+        return sprintf('"%s", "%s", sans-serif', $sanitized, $fallback);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $fonts
+     */
+    private function buildGoogleFontUrl(array $fonts): ?string
+    {
+        $googleFontFamilies = [];
+
+        foreach ($fonts as $font) {
+            $family = trim((string) ($font['family'] ?? ''));
+
+            if ($family === '' || strcasecmp($family, self::REPORT_FONT_DEFAULT_FAMILY) === 0) {
+                continue;
+            }
+
+            if (! preg_match('/^[A-Za-z0-9\\s\\-+&.]+$/', $family)) {
+                continue;
+            }
+
+            $googleFontFamilies[$family] = true;
+        }
+
+        if ($googleFontFamilies === []) {
+            return null;
+        }
+
+        $googleFontParams = [];
+
+        foreach (array_keys($googleFontFamilies) as $family) {
+            $encodedFamily = rawurlencode($family);
+            $encodedFamily = str_replace('%20', '+', $encodedFamily);
+            $googleFontParams[] = sprintf('family=%s', $encodedFamily);
+        }
+
+        return sprintf(
+            'https://fonts.googleapis.com/css2?%s&display=swap',
+            implode('&', $googleFontParams),
+        );
+    }
+
+    private function normalizeBoolean(?bool $value, bool $default): bool
+    {
+        if ($value === null) {
+            return $default;
+        }
+
+        return (bool) $value;
     }
 
     private function normalizeValue(?string $value): ?string

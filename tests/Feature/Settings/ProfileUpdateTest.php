@@ -197,6 +197,28 @@ test('profile page exposes admin profile photo url for preview', function () {
                 'adminProfile.profilePicUrl',
                 Storage::disk('public')->url($adminProfile->profile_pic_path),
             )
+            ->where(
+                'auth.user.avatar',
+                Storage::disk('public')->url($adminProfile->profile_pic_path),
+            )
+        );
+});
+
+test('profile page exposes null avatar when no profile photo is set', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('auth.user.avatar', null)
         );
 });
 
@@ -355,6 +377,120 @@ test('admin profile information can be updated with a profile photo', function (
     );
 
     Storage::disk('public')->assertExists($adminProfile->profile_pic_path);
+});
+
+test('profile page exposes client profile photo url for preview', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    $path = "profile-photos/client/{$user->user_id}/avatar.jpg";
+
+    Storage::disk('public')->put($path, 'avatar');
+
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+        'profile_pic_path' => $path,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('auth.user.avatar', Storage::disk('public')->url($path))
+        );
+});
+
+test('member profile information can be updated with a profile photo', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => $user->username,
+            'email' => $user->email,
+            'phoneno' => $user->phoneno,
+            'birthplace' => 'Cebu City',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'profile_photo' => UploadedFile::fake()->image('member-avatar.jpg'),
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $userProfile = $user->refresh()->userProfile;
+
+    expect($userProfile)->not->toBeNull();
+    expect($userProfile->profile_pic_path)->not->toBeNull();
+    expect($userProfile->profile_pic_path)->toContain(
+        "profile-photos/client/{$user->user_id}/",
+    );
+    expect($user->avatar)->toBe(
+        Storage::disk('public')->url($userProfile->profile_pic_path),
+    );
+
+    Storage::disk('public')->assertExists($userProfile->profile_pic_path);
+});
+
+test('member profile photo replacements remove the old file', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    $existingPath = "profile-photos/client/{$user->user_id}/old-avatar.jpg";
+
+    Storage::disk('public')->put($existingPath, 'old-avatar');
+
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+        'profile_pic_path' => $existingPath,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => $user->username,
+            'email' => $user->email,
+            'phoneno' => $user->phoneno,
+            'birthplace' => 'Davao City',
+            'educational_attainment' => 'College',
+            'length_of_stay' => '3 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '45000.00',
+            'payday' => '30th',
+            'profile_photo' => UploadedFile::fake()->image('member-avatar.jpg'),
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $userProfile = $user->refresh()->userProfile;
+
+    expect($userProfile)->not->toBeNull();
+    expect($userProfile->profile_pic_path)->not->toBe($existingPath);
+    expect($userProfile->profile_pic_path)->toContain(
+        "profile-photos/client/{$user->user_id}/",
+    );
+
+    Storage::disk('public')->assertMissing($existingPath);
+    Storage::disk('public')->assertExists($userProfile->profile_pic_path);
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {

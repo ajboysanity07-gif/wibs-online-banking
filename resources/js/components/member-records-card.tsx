@@ -88,7 +88,7 @@ export function MemberRecordsCard({
                     </Alert>
                 ) : null}
                 {showSkeleton ? (
-                    skeletonBody ?? (
+                    (skeletonBody ?? (
                         <>
                             {skeletonMobile ? (
                                 <div
@@ -113,7 +113,7 @@ export function MemberRecordsCard({
                                 </div>
                             ) : null}
                         </>
-                    )
+                    ))
                 ) : body ? (
                     body
                 ) : (

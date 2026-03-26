@@ -6,6 +6,7 @@ use App\Models\AppUser;
 use App\Services\Admin\MemberLoans\Exports\LoanPaymentsExport;
 use App\Services\OrganizationSettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -28,21 +29,18 @@ class MemberLoanExportService
         ?string $range,
         ?string $start,
         ?string $end,
+        bool $download = false,
     ): Response {
-        $payload = $this->loanService->getPaymentsExportData(
+        $context = $this->buildPaymentsReportContext(
             $member,
             $loanNumber,
             $range,
             $start,
             $end,
         );
-
-        $memberName = $this->resolveMemberName($member);
-        $reportPeriod = $this->resolveReportPeriod(
-            $payload['filters']['start'],
-            $payload['filters']['end'],
-            $payload['payments'],
-        );
+        $payload = $context['payload'];
+        $memberName = $context['memberName'];
+        $reportPeriod = $context['reportPeriod'];
 
         $filename = $this->buildFilename(
             $memberName,
@@ -57,6 +55,7 @@ class MemberLoanExportService
                 $memberName,
                 $reportPeriod,
                 $filename,
+                $download,
             );
         }
 
@@ -79,6 +78,78 @@ class MemberLoanExportService
         );
     }
 
+    public function renderPaymentsPrintView(
+        AppUser $member,
+        string $loanNumber,
+        ?string $range,
+        ?string $start,
+        ?string $end,
+    ): View {
+        $context = $this->buildPaymentsReportContext(
+            $member,
+            $loanNumber,
+            $range,
+            $start,
+            $end,
+        );
+
+        return view('reports.loan-payments', [
+            ...$this->buildViewData(
+                $context['payload'],
+                $context['memberName'],
+                $context['reportPeriod'],
+            ),
+            'autoPrint' => true,
+        ]);
+    }
+
+    /**
+     * @return array{
+     *     payload: array{
+     *         loan: \App\Models\Wlnmaster,
+     *         summary: array{
+     *             balance: float,
+     *             nextPaymentDate: ?string,
+     *             lastPaymentDate: ?string
+     *         },
+     *         payments: \Illuminate\Support\Collection<int, \App\Models\Wlnled>,
+     *         filters: array{range: string, start: ?string, end: ?string},
+     *         openingBalance: ?float,
+     *         closingBalance: ?float
+     *     },
+     *     memberName: string,
+     *     reportPeriod: array{start: \Illuminate\Support\Carbon, end: \Illuminate\Support\Carbon}
+     * }
+     */
+    private function buildPaymentsReportContext(
+        AppUser $member,
+        string $loanNumber,
+        ?string $range,
+        ?string $start,
+        ?string $end,
+    ): array {
+        $payload = $this->loanService->getPaymentsExportData(
+            $member,
+            $loanNumber,
+            $range,
+            $start,
+            $end,
+        );
+
+        $memberName = $this->resolveMemberName($member);
+        $reportPeriod = $this->resolveReportPeriod(
+            $payload['filters']['start'],
+            $payload['filters']['end'],
+            $payload['payments'],
+        );
+
+        return [
+            'payload' => $payload,
+            'memberName' => $memberName,
+            'reportPeriod' => $reportPeriod,
+        ];
+    }
+
     /**
      * @param  array{
      *     loan: \App\Models\Wlnmaster,
@@ -99,30 +170,89 @@ class MemberLoanExportService
         string $memberName,
         array $reportPeriod,
         string $filename,
+        bool $download,
     ): Response {
+        $pdf = Pdf::setOption('isPhpEnabled', true)
+            ->loadView('reports.loan-payments', $this->buildViewData(
+                $payload,
+                $memberName,
+                $reportPeriod,
+            ));
+
+        if ($download) {
+            return $pdf->download($filename);
+        }
+
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * @param  array{
+     *     loan: \App\Models\Wlnmaster,
+     *     summary: array{
+     *         balance: float,
+     *         nextPaymentDate: ?string,
+     *         lastPaymentDate: ?string
+     *     },
+     *     payments: \Illuminate\Support\Collection<int, \App\Models\Wlnled>,
+     *     filters: array{range: string, start: ?string, end: ?string},
+     *     openingBalance: ?float,
+     *     closingBalance: ?float
+     * }  $payload
+     * @param  array{start: \Illuminate\Support\Carbon, end: \Illuminate\Support\Carbon}  $reportPeriod
+     * @return array{
+     *     logoData: ?string,
+     *     companyName: string,
+     *     showCompanyName: bool,
+     *     memberName: string,
+     *     memberAccountNo: ?string,
+     *     loanNumber: string,
+     *     reportStart: \Illuminate\Support\Carbon,
+     *     reportEnd: \Illuminate\Support\Carbon,
+     *     generatedAt: \Illuminate\Support\Carbon,
+     *     generatedBy: ?string,
+     *     payments: \Illuminate\Support\Collection<int, \App\Models\Wlnled>,
+     *     openingBalance: ?float,
+     *     closingBalance: ?float
+     * }
+     */
+    private function buildViewData(
+        array $payload,
+        string $memberName,
+        array $reportPeriod,
+    ): array {
         $logoData = $this->brandingService->logoDataUri();
         $branding = $this->brandingService->branding();
         $generatedBy = auth()->user()?->name ?? auth()->user()?->username;
-        $showCompanyName = ! ($branding['logoIsWordmark'] ?? false);
+        $reportHeader = $branding['reportHeader'] ?? [];
+        $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
+            && ! ($branding['logoIsWordmark'] ?? false);
+        $reportHeader['showLogo'] = $reportHeader['showLogo'] ?? true;
+        $reportHeader['alignment'] = $reportHeader['alignment'] ?? 'center';
+        $reportHeader['companyName'] = $branding['companyName'] ?? '';
+        $reportHeader['logoData'] = $logoData;
+        $reportHeader['titleColor'] = $branding['reportTypography']['headerTitle']['color']
+            ?? null;
+        $reportHeader['taglineColor'] = $branding['reportTypography']['headerTagline']['color']
+            ?? null;
 
-        $pdf = Pdf::setOption('isPhpEnabled', true)
-            ->loadView('reports.loan-payments', [
-                'logoData' => $logoData,
-                'companyName' => $branding['companyName'],
-                'showCompanyName' => $showCompanyName,
-                'memberName' => $memberName,
-                'memberAccountNo' => $payload['loan']->acctno ?? null,
-                'loanNumber' => $payload['loan']->lnnumber,
-                'reportStart' => $reportPeriod['start'],
-                'reportEnd' => $reportPeriod['end'],
-                'generatedAt' => Carbon::now(),
-                'generatedBy' => $generatedBy,
-                'payments' => $payload['payments'],
-                'openingBalance' => $payload['openingBalance'],
-                'closingBalance' => $payload['closingBalance'],
-            ]);
-
-        return $pdf->download($filename);
+        return [
+            'logoData' => $logoData,
+            'companyName' => $branding['companyName'],
+            'showCompanyName' => $reportHeader['showCompanyName'],
+            'memberName' => $memberName,
+            'memberAccountNo' => $payload['loan']->acctno ?? null,
+            'loanNumber' => $payload['loan']->lnnumber,
+            'reportStart' => $reportPeriod['start'],
+            'reportEnd' => $reportPeriod['end'],
+            'generatedAt' => Carbon::now(),
+            'generatedBy' => $generatedBy,
+            'payments' => $payload['payments'],
+            'openingBalance' => $payload['openingBalance'],
+            'closingBalance' => $payload['closingBalance'],
+            'reportHeader' => $reportHeader,
+            'reportTypography' => $branding['reportTypography'] ?? [],
+        ];
     }
 
     private function resolveMemberName(AppUser $member): string

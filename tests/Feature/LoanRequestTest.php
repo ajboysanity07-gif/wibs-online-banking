@@ -622,6 +622,173 @@ test('loan request pdf endpoint responds with a pdf', function () {
     $response->assertHeader('content-type', 'application/pdf');
 });
 
+test('loan request pdf download responds with an attachment', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::UnderReview,
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.pdf', [
+            'loanRequest' => $loanRequest->id,
+            'download' => 1,
+        ]));
+
+    $response->assertOk();
+    expect($response->headers->get('content-disposition'))
+        ->toStartWith('attachment;');
+});
+
+test('loan request print preview renders for the owner', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Approved,
+            'submitted_at' => now(),
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.print', $loanRequest));
+
+    $response->assertOk();
+    $response->assertViewIs('reports.loan-request-print');
+    $response->assertSee('APPLICATION FORM');
+    $response->assertSee('&#10003;', false);
+});
+
+test('loan request print preview is not available for draft requests', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Draft,
+        ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.print', $loanRequest));
+
+    $response->assertNotFound();
+});
+
+test('loan request print preview rejects non-owners', function () {
+    $owner = User::factory()->create([
+        'acctno' => '000745',
+    ]);
+    $viewer = User::factory()->create([
+        'acctno' => '000746',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $viewer->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $viewer->acctno,
+        'bname' => 'Viewer, Loan',
+        'fname' => 'Viewer',
+        'lname' => 'Loan',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $viewer->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($owner)
+        ->create([
+            'status' => LoanRequestStatus::UnderReview,
+            'submitted_at' => now(),
+        ]);
+
+    $response = $this
+        ->actingAs($viewer)
+        ->get(route('client.loan-requests.print', $loanRequest));
+
+    $response->assertNotFound();
+});
+
 test('admin requests api returns loan request data', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
@@ -797,6 +964,12 @@ test('client can view submitted loan request details', function () {
             'status' => LoanRequestStatus::UnderReview,
             'submitted_at' => now(),
         ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Sample',
+        ]);
 
     $response = $this
         ->actingAs($user)
@@ -806,7 +979,9 @@ test('client can view submitted loan request details', function () {
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-request-show')
-            ->where('loanRequest.id', $loanRequest->id));
+            ->where('loanRequest.id', $loanRequest->id)
+            ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
+            ->where('applicant.first_name', 'Sample'));
 });
 
 test('client cannot view another member loan request details', function () {

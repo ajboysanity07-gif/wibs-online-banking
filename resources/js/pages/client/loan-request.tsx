@@ -262,22 +262,19 @@ export default function LoanRequestPage({
     draft,
 }: Props) {
     const [currentStep, setCurrentStep] = useState(0);
-    const [stepDirection, setStepDirection] = useState<
-        'forward' | 'backward'
-    >('forward');
-    const [activeAction, setActiveAction] = useState<
-        'draft' | 'submit' | null
-    >(null);
+    const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
+        'forward',
+    );
+    const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
+        null,
+    );
     const [lastAction, setLastAction] = useState<'draft' | 'submit' | null>(
         null,
     );
 
     const initialFormData = useMemo<LoanRequestFormData>(
         () => ({
-            typecode:
-                draft?.typecode ??
-                loanTypes[0]?.typecode ??
-                '',
+            typecode: draft?.typecode ?? loanTypes[0]?.typecode ?? '',
             requested_amount: toStringValue(draft?.requested_amount),
             requested_term: toStringValue(draft?.requested_term),
             loan_purpose: draft?.loan_purpose ?? '',
@@ -375,11 +372,11 @@ export default function LoanRequestPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 pb-28 pt-8">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 pt-8 pb-28">
                 <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-2">
-                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                            <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
                                 Loan request
                             </p>
                             <h1 className="text-3xl font-semibold tracking-tight">
@@ -454,9 +451,7 @@ export default function LoanRequestPage({
                     <div className="space-y-8">
                         {loanTypes.length === 0 ? (
                             <Alert variant="destructive">
-                                <AlertTitle>
-                                    Loan types unavailable
-                                </AlertTitle>
+                                <AlertTitle>Loan types unavailable</AlertTitle>
                                 <AlertDescription>
                                     Please contact support to load available
                                     loan options before submitting a request.
@@ -537,10 +532,7 @@ export default function LoanRequestPage({
                                 member={member}
                                 errors={form.errors}
                                 onUndertakingChange={(value) =>
-                                    form.setData(
-                                        'undertaking_accepted',
-                                        value,
-                                    )
+                                    form.setData('undertaking_accepted', value)
                                 }
                             />
                         </LoanRequestAnimatedStep>

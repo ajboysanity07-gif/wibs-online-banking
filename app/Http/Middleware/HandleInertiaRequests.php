@@ -39,6 +39,8 @@ class HandleInertiaRequests extends Middleware
         $branding = app(OrganizationSettingsService::class)->branding();
 
         $user = $request->user();
+        $user?->loadMissing('adminProfile', 'userProfile');
+        $isAdmin = $user?->isAdmin() ?? false;
 
         return [
             ...parent::share($request),
@@ -46,6 +48,7 @@ class HandleInertiaRequests extends Middleware
             'branding' => $branding,
             'auth' => [
                 'user' => $user?->withoutRelations(),
+                'isAdmin' => $isAdmin,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

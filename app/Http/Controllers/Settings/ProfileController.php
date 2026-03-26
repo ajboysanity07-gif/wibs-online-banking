@@ -75,6 +75,21 @@ class ProfileController extends Controller
 
             $memberProfile = $user->memberApplicationProfile()->firstOrNew();
             $memberProfile->fill($memberProfileData);
+
+            if ($request->hasFile('profile_photo')) {
+                $userProfile = $user->userProfile()->firstOrNew([
+                    'user_id' => $user->user_id,
+                ]);
+
+                if ($userProfile->profile_pic_path) {
+                    Storage::disk('public')->delete($userProfile->profile_pic_path);
+                }
+
+                $userProfile->profile_pic_path = $request->file('profile_photo')
+                    ->store("profile-photos/client/{$user->user_id}", 'public');
+                $userProfile->save();
+            }
+
             $user->syncMemberApplicationProfileCompletion($memberProfile);
         }
 

@@ -16,7 +16,8 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
-        "maatwebsite/excel": "4.x-dev"
+        "maatwebsite/excel": "4.x-dev",
+        "spatie/browsershot": "^5.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

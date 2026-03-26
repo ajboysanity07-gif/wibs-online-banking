@@ -100,7 +100,9 @@ export default function MemberLoans({
         { title: 'Loans', href: clientLoans().url },
     ];
     const loanBalance = formatCurrency(summaryValue?.loanBalanceLeft);
-    const lastLoanTransaction = formatDate(summaryValue?.lastLoanTransactionDate);
+    const lastLoanTransaction = formatDate(
+        summaryValue?.lastLoanTransactionDate,
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

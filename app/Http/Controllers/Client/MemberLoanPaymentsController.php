@@ -7,7 +7,9 @@ use App\Http\Requests\Client\MemberLoanPaymentsRequest;
 use App\Http\Resources\Admin\MemberLoanPaymentResource;
 use App\Http\Resources\Admin\MemberLoanResource;
 use App\Http\Resources\Admin\MemberLoanSummaryResource;
+use App\Services\Admin\MemberLoans\MemberLoanExportService;
 use App\Services\Admin\MemberLoans\MemberLoanService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -96,6 +98,32 @@ class MemberLoanPaymentsController extends Controller
             'summary' => $summaryPayload,
             'payments' => $paymentsPayload,
         ]);
+    }
+
+    public function print(
+        MemberLoanPaymentsRequest $request,
+        string $loanNumber,
+        MemberLoanExportService $service,
+    ): View|RedirectResponse {
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->route('login');
+        }
+
+        $user->loadMissing('userProfile', 'adminProfile');
+
+        if ($user->adminProfile !== null) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return $service->renderPaymentsPrintView(
+            $user,
+            $loanNumber,
+            $request->query('range'),
+            $request->query('start'),
+            $request->query('end'),
+        );
     }
 
     private function sanitizePayload(mixed $value): mixed

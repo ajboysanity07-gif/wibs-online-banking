@@ -19,9 +19,7 @@ export default function SupportContact({
 }: SupportContactProps) {
     const { supportContactName, supportEmail, supportPhone } = useBranding();
     const items = [
-        supportContactName
-            ? { label: supportContactName }
-            : null,
+        supportContactName ? { label: supportContactName } : null,
         supportEmail
             ? { label: supportEmail, href: `mailto:${supportEmail}` }
             : null,
@@ -48,7 +46,10 @@ export default function SupportContact({
 
         if (variant === 'inline') {
             return (
-                <span key={`${item.label}-${index}`} className="flex items-center gap-2">
+                <span
+                    key={`${item.label}-${index}`}
+                    className="flex items-center gap-2"
+                >
                     {index > 0 ? (
                         <span aria-hidden className="text-muted-foreground/70">
                             |
@@ -59,11 +60,7 @@ export default function SupportContact({
             );
         }
 
-        return (
-            <span key={`${item.label}-${index}`}>
-                {body}
-            </span>
-        );
+        return <span key={`${item.label}-${index}`}>{body}</span>;
     });
 
     const baseClassName =

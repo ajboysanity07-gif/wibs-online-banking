@@ -1,5 +1,5 @@
 import { Minus, Plus } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { type Area, type Point } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.1;
+const CROP_AREA_INSET = 16;
 
 export type ProfileImageCropResult = {
     crop: Point;
@@ -39,6 +40,8 @@ export default function ProfileImageCropModal({
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
         null,
     );
+    const [cropAreaSize, setCropAreaSize] = useState<number | null>(null);
+    const cropContainerRef = useRef<HTMLDivElement | null>(null);
     const hasPreview = Boolean(imagePreviewUrl);
 
     const resetCropState = useCallback(() => {
@@ -47,12 +50,46 @@ export default function ProfileImageCropModal({
         setCroppedAreaPixels(null);
     }, []);
 
-    const handleCropComplete = useCallback(
-        (_: Area, croppedPixels: Area) => {
-            setCroppedAreaPixels(croppedPixels);
-        },
-        [],
-    );
+    const handleCropComplete = useCallback((_: Area, croppedPixels: Area) => {
+        setCroppedAreaPixels(croppedPixels);
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        const container = cropContainerRef.current;
+
+        if (!container) {
+            return;
+        }
+
+        const updateSize = () => {
+            const { width, height } = container.getBoundingClientRect();
+            const size = Math.max(
+                0,
+                Math.floor(Math.min(width, height) - CROP_AREA_INSET * 2),
+            );
+
+            setCropAreaSize(size > 0 ? size : null);
+        };
+
+        updateSize();
+        requestAnimationFrame(updateSize);
+        setTimeout(updateSize, 60);
+
+        if (typeof ResizeObserver === 'undefined') {
+            return;
+        }
+
+        const observer = new ResizeObserver(updateSize);
+        observer.observe(container);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [isOpen]);
 
     const clampZoom = (value: number) =>
         Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
@@ -76,17 +113,9 @@ export default function ProfileImageCropModal({
         } catch {
             return;
         }
-    }, [
-        crop,
-        croppedAreaPixels,
-        imagePreviewUrl,
-        onClose,
-        onSave,
-        zoom,
-    ]);
+    }, [crop, croppedAreaPixels, imagePreviewUrl, onClose, onSave, zoom]);
 
     const canSave = hasPreview && Boolean(croppedAreaPixels);
-
     return (
         <Dialog
             open={isOpen}
@@ -106,7 +135,10 @@ export default function ProfileImageCropModal({
 
                 <div className="space-y-6">
                     <div className="mx-auto w-full max-w-[520px]">
-                        <div className="relative h-[clamp(240px,50vh,520px)] w-full overflow-hidden rounded-xl border border-border bg-muted">
+                        <div
+                            ref={cropContainerRef}
+                            className="relative aspect-square w-full max-w-[520px] overflow-hidden rounded-xl border border-border bg-muted"
+                        >
                             {hasPreview ? (
                                 <Cropper
                                     image={imagePreviewUrl ?? undefined}
@@ -114,6 +146,14 @@ export default function ProfileImageCropModal({
                                     zoom={zoom}
                                     rotation={0}
                                     aspect={1}
+                                    cropSize={
+                                        cropAreaSize
+                                            ? {
+                                                  width: cropAreaSize,
+                                                  height: cropAreaSize,
+                                              }
+                                            : undefined
+                                    }
                                     minZoom={MIN_ZOOM}
                                     maxZoom={MAX_ZOOM}
                                     cropShape="round"
@@ -125,9 +165,9 @@ export default function ProfileImageCropModal({
                                     onCropComplete={handleCropComplete}
                                     classes={{
                                         containerClassName:
-                                            'bg-muted/80 dark:bg-muted/60',
+                                            'bg-muted/70 dark:bg-muted/60',
                                         cropAreaClassName:
-                                            '!border-white/70 !shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] dark:!border-white/50 dark:!shadow-[0_0_0_9999px_rgba(0,0,0,0.7)]',
+                                            '!border-0 !shadow-none',
                                     }}
                                     style={{}}
                                     mediaProps={{
@@ -146,6 +186,22 @@ export default function ProfileImageCropModal({
                                     No image selected.
                                 </div>
                             )}
+                            {hasPreview ? (
+                                <div className="pointer-events-none absolute inset-0 z-20">
+                                    <div
+                                        className="absolute rounded-full border-[4px] border-white/95 shadow-[0_0_0_9999px_rgba(0,0,0,0.72),0_0_0_2px_rgba(0,0,0,0.85),0_0_18px_rgba(0,0,0,0.7)] dark:border-white/85 dark:shadow-[0_0_0_9999px_rgba(0,0,0,0.84),0_0_0_2px_rgba(0,0,0,0.92),0_0_18px_rgba(0,0,0,0.85)]"
+                                        style={{
+                                            inset: CROP_AREA_INSET,
+                                        }}
+                                    />
+                                    <div
+                                        className="absolute rounded-full border border-white/45 dark:border-white/35"
+                                        style={{
+                                            inset: CROP_AREA_INSET + 12,
+                                        }}
+                                    />
+                                </div>
+                            ) : null}
                         </div>
                     </div>
 
@@ -174,9 +230,7 @@ export default function ProfileImageCropModal({
                                 step={0.01}
                                 value={zoom}
                                 onChange={(event) =>
-                                    handleZoomChange(
-                                        Number(event.target.value),
-                                    )
+                                    handleZoomChange(Number(event.target.value))
                                 }
                                 disabled={!hasPreview}
                                 className="h-2 w-full min-w-0 cursor-pointer appearance-none rounded-full bg-muted accent-primary focus-visible:ring-2 focus-visible:ring-ring/50"

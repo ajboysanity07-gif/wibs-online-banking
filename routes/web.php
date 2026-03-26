@@ -17,6 +17,7 @@ use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
 use App\Http\Controllers\Client\LoanRequestController;
 use App\Http\Controllers\Client\MemberLoanPaymentsController as ClientMemberLoanPaymentsController;
+use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemberLoanPaymentsExportController;
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
 use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
@@ -293,6 +294,10 @@ Route::get('client/loans/requests/{loanRequest}/pdf', [LoanRequestController::cl
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.pdf');
 
+Route::get('client/loans/requests/{loanRequest}/print', [LoanRequestController::class, 'print'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.print');
+
 Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-schedule');
@@ -300,6 +305,20 @@ Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleControl
 Route::get('client/loans/{loanNumber}/payments', ClientMemberLoanPaymentsController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments');
+
+Route::get(
+    'client/loans/{loanNumber}/payments/print',
+    [ClientMemberLoanPaymentsController::class, 'print'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.print');
+
+Route::get(
+    'client/loans/{loanNumber}/payments/export',
+    ClientMemberLoanPaymentsExportController::class,
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.export');
 
 Route::get('client/savings', ClientMemberSavingsController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
@@ -353,6 +372,11 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
         'members/{user}/loans/{loanNumber}/payments/export',
         MemberLoanPaymentsExportController::class,
     )->name('admin.members.loan-payments-export');
+
+    Route::get(
+        'members/{user}/loans/{loanNumber}/payments/print',
+        [MemberLoanPaymentsController::class, 'print'],
+    )->name('admin.members.loan-payments-print');
 
     Route::get('members/{user}/savings', [MemberSavingsController::class, 'show'])
         ->name('admin.members.savings');

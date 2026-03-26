@@ -20,10 +20,7 @@ import {
 } from '@/routes/admin/members';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
-import type {
-    MemberAccountsSummary,
-    MemberLoansResponse,
-} from '@/types/admin';
+import type { MemberAccountsSummary, MemberLoansResponse } from '@/types/admin';
 
 type MemberSummary = {
     user_id: number;
@@ -50,16 +47,15 @@ export default function MemberLoans({ member, summary, loans }: Props) {
         setPageState({ memberKey, page: nextPage });
     };
 
-    const {
-        items,
-        meta,
-        loading,
-        error,
-        refresh,
-    } = useMemberLoans(member.user_id, page, perPage, {
-        initial: loans,
-        enabled: true,
-    });
+    const { items, meta, loading, error, refresh } = useMemberLoans(
+        member.user_id,
+        page,
+        perPage,
+        {
+            initial: loans,
+            enabled: true,
+        },
+    );
 
     const canNavigate = Boolean(member.acctno);
 
@@ -70,9 +66,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
     ];
     const loanBalance = formatCurrency(summary.loanBalanceLeft);
     const lastLoanTransaction = formatDate(summary.lastLoanTransactionDate);
-    const loanEmptyMessage = loading
-        ? 'Loading loans...'
-        : 'No loans found.';
+    const loanEmptyMessage = loading ? 'Loading loans...' : 'No loans found.';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

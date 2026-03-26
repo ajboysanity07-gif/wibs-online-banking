@@ -160,9 +160,7 @@ function TwoFactorVerificationStep({
             {...confirm.form()}
             onSuccess={() => {
                 showSuccessToast(
-                    adminToastCopy.success.enabled(
-                        'Two-factor authentication',
-                    ),
+                    adminToastCopy.success.enabled('Two-factor authentication'),
                     { id: 'two-factor-confirm' },
                 );
                 onClose();

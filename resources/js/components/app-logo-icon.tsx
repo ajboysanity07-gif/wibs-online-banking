@@ -10,7 +10,5 @@ export default function AppLogoIcon({
     const resolvedSrc = src ?? branding.logoUrl;
     const resolvedAlt = alt ?? branding.appTitle;
 
-    return (
-        <img {...props} src={resolvedSrc} alt={resolvedAlt} />
-    );
+    return <img {...props} src={resolvedSrc} alt={resolvedAlt} />;
 }

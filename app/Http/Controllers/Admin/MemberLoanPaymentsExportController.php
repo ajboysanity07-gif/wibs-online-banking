@@ -17,6 +17,7 @@ class MemberLoanPaymentsExportController extends Controller
         MemberLoanExportService $service,
     ): Response {
         $format = (string) $request->query('format', 'pdf');
+        $download = $request->boolean('download');
 
         return $service->exportPayments(
             $user,
@@ -25,6 +26,7 @@ class MemberLoanPaymentsExportController extends Controller
             $request->query('range'),
             $request->query('start'),
             $request->query('end'),
+            $download,
         );
     }
 }

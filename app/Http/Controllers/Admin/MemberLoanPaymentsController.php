@@ -8,7 +8,9 @@ use App\Http\Resources\Admin\MemberLoanPaymentResource;
 use App\Http\Resources\Admin\MemberLoanResource;
 use App\Http\Resources\Admin\MemberLoanSummaryResource;
 use App\Models\AppUser;
+use App\Services\Admin\MemberLoans\MemberLoanExportService;
 use App\Services\Admin\MemberLoans\MemberLoanService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -69,5 +71,20 @@ class MemberLoanPaymentsController extends Controller
                 'closingBalance' => $payload['closingBalance'],
             ],
         ]);
+    }
+
+    public function print(
+        MemberLoanPaymentsRequest $request,
+        AppUser $user,
+        string $loanNumber,
+        MemberLoanExportService $service,
+    ): View {
+        return $service->renderPaymentsPrintView(
+            $user,
+            $loanNumber,
+            $request->query('range'),
+            $request->query('start'),
+            $request->query('end'),
+        );
     }
 }

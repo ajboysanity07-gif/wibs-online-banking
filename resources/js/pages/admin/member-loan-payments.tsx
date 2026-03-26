@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Banknote, CalendarCheck, Clock, Download } from 'lucide-react';
+import { Banknote, CalendarCheck, Clock, Download, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { MemberAccountAlert } from '@/components/member-account-alert';
 import {
@@ -18,6 +18,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
     loanPayments,
     loanPaymentsExport,
+    loanPaymentsPrint,
     loanSchedule,
     loans as memberLoans,
     show as showMember,
@@ -44,7 +45,10 @@ type Props = {
     payments: MemberLoanPaymentsResponse;
 };
 
-const presetRanges: Array<{ value: MemberLoanPaymentsFilters['range']; label: string }> = [
+const presetRanges: Array<{
+    value: MemberLoanPaymentsFilters['range'];
+    label: string;
+}> = [
     { value: 'current_month', label: 'Current Month' },
     { value: 'current_year', label: 'Current Year' },
     { value: 'last_30_days', label: 'Last 30 Days' },
@@ -149,12 +153,25 @@ export default function MemberLoanPayments({
         setPage(1);
     };
 
-    const buildExportUrl = (format: 'pdf' | 'csv' | 'xlsx') =>
+    const buildExportUrl = (download?: boolean) =>
         loanPaymentsExport(
             { user: member.user_id, loanNumber: loanNumber ?? '' },
             {
                 query: {
-                    format,
+                    format: 'pdf',
+                    range: filters.range,
+                    start: filters.start ?? undefined,
+                    end: filters.end ?? undefined,
+                    download: download ? 1 : undefined,
+                },
+            },
+        ).url;
+
+    const buildPrintUrl = () =>
+        loanPaymentsPrint(
+            { user: member.user_id, loanNumber: loanNumber ?? '' },
+            {
+                query: {
                     range: filters.range,
                     start: filters.start ?? undefined,
                     end: filters.end ?? undefined,
@@ -235,14 +252,15 @@ export default function MemberLoanPayments({
                     onEndChange={updateEnd}
                     footer={
                         <>
-                            <Download className="h-4 w-4 text-muted-foreground" />
                             <Button
                                 asChild
                                 size="sm"
-                                variant="outline"
                                 disabled={!filtersReady || !loanNumber}
                             >
-                                <a href={buildExportUrl('pdf')}>Export PDF</a>
+                                <a href={buildExportUrl(true)}>
+                                    <Download />
+                                    Download Pdf
+                                </a>
                             </Button>
                             <Button
                                 asChild
@@ -250,15 +268,14 @@ export default function MemberLoanPayments({
                                 variant="outline"
                                 disabled={!filtersReady || !loanNumber}
                             >
-                                <a href={buildExportUrl('csv')}>Export CSV</a>
-                            </Button>
-                            <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                disabled={!filtersReady || !loanNumber}
-                            >
-                                <a href={buildExportUrl('xlsx')}>Export Excel</a>
+                                <a
+                                    href={buildPrintUrl()}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    <Printer />
+                                    Print
+                                </a>
                             </Button>
                         </>
                     }

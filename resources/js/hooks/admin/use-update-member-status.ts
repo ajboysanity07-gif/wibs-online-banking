@@ -30,7 +30,10 @@ export function useUpdateMemberStatus(options?: StatusOptions) {
             const toastId = `member-status-${action}-${userId}`;
 
             try {
-                const member = await adminApi.updateMemberStatus(userId, action);
+                const member = await adminApi.updateMemberStatus(
+                    userId,
+                    action,
+                );
                 showSuccessToast(successCopy[action], { id: toastId });
                 options?.onUpdated?.(member, action);
                 return member;

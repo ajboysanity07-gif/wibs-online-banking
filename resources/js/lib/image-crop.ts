@@ -36,7 +36,7 @@ const getOutputFileName = (
     const baseName =
         fileName && fileName.includes('.')
             ? fileName.slice(0, Math.max(0, fileName.lastIndexOf('.')))
-            : fileName ?? 'profile-photo';
+            : (fileName ?? 'profile-photo');
     const extension = MIME_EXTENSION[mimeType] ?? 'jpg';
 
     return `${baseName}-cropped.${extension}`;

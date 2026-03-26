@@ -88,7 +88,9 @@ const getFirstErrorMessage = (errors: unknown): string | null => {
     return null;
 };
 
-const extractErrorMessage = (error: AxiosError | Error | unknown): string | null => {
+const extractErrorMessage = (
+    error: AxiosError | Error | unknown,
+): string | null => {
     if (typeof error === 'string' && error.trim() !== '') {
         return error.trim();
     }
@@ -119,9 +121,7 @@ const extractErrorMessage = (error: AxiosError | Error | unknown): string | null
             }
 
             const errorMessage =
-                typeof payload.error === 'string'
-                    ? payload.error.trim()
-                    : null;
+                typeof payload.error === 'string' ? payload.error.trim() : null;
 
             if (errorMessage) {
                 return errorMessage;
@@ -182,7 +182,9 @@ export const showSuccessToast = (
         id: options?.id,
         duration: options?.duration ?? DEFAULT_DURATION,
         description: options?.description,
-        icon: <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />,
+        icon: (
+            <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
+        ),
         className: cn('border-l-4 border-l-primary'),
     });
 };
@@ -198,7 +200,9 @@ export const showErrorToast = (
         id: options?.id,
         duration: options?.duration ?? DEFAULT_DURATION,
         description: options?.description,
-        icon: <XCircle className="h-4 w-4 text-destructive" aria-hidden="true" />,
+        icon: (
+            <XCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
+        ),
         className: cn('border-l-4 border-l-destructive'),
     });
 };

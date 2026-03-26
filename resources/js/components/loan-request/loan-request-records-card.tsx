@@ -49,7 +49,10 @@ const resolveLoanTypeLabel = (request: LoanRequestListItem): string => {
 };
 
 const resolveTerm = (request: LoanRequestListItem): string => {
-    if (request.requested_term === null || request.requested_term === undefined) {
+    if (
+        request.requested_term === null ||
+        request.requested_term === undefined
+    ) {
         return '--';
     }
 
@@ -63,7 +66,10 @@ const resolveTerm = (request: LoanRequestListItem): string => {
 };
 
 const resolveAmount = (request: LoanRequestListItem): string => {
-    if (request.requested_amount === null || request.requested_amount === undefined) {
+    if (
+        request.requested_amount === null ||
+        request.requested_amount === undefined
+    ) {
         return '--';
     }
 
@@ -128,7 +134,12 @@ const LoanRequestMobileCard = ({
                     value: resolveTimestamp(request),
                 },
             ]}
-            footer={<LoanRequestActionButton href={actionHref} label={actionLabel} />}
+            footer={
+                <LoanRequestActionButton
+                    href={actionHref}
+                    label={actionLabel}
+                />
+            }
         />
     );
 };

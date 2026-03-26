@@ -352,11 +352,7 @@ const formatPayday = (value: string): string => {
 };
 
 const displayName = (person: LoanRequestPersonFormData): string => {
-    const name = [
-        person.first_name,
-        person.middle_name,
-        person.last_name,
-    ]
+    const name = [person.first_name, person.middle_name, person.last_name]
         .map((value) => value.trim())
         .filter(Boolean)
         .join(' ');
@@ -369,9 +365,7 @@ const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (
         {items.map((item) => (
             <div key={item.label} className="space-y-1">
                 <p className="text-xs text-muted-foreground">{item.label}</p>
-                <p className="text-sm font-medium break-words">
-                    {item.value}
-                </p>
+                <p className="text-sm font-medium break-words">{item.value}</p>
             </div>
         ))}
     </div>
@@ -388,9 +382,7 @@ const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
         <div className="space-y-1">
             <h3 className="text-sm font-semibold">{title}</h3>
             {description ? (
-                <p className="text-xs text-muted-foreground">
-                    {description}
-                </p>
+                <p className="text-xs text-muted-foreground">{description}</p>
             ) : null}
         </div>
         <div className="mt-4">{children}</div>
@@ -422,7 +414,10 @@ export function LoanRequestReviewStep({
                     ? `${data.requested_term} months`
                     : '--',
         },
-        { label: 'Availment status', value: displayValue(data.availment_status) },
+        {
+            label: 'Availment status',
+            value: displayValue(data.availment_status),
+        },
         { label: 'Loan purpose', value: displayValue(data.loan_purpose) },
     ];
 
@@ -432,10 +427,19 @@ export function LoanRequestReviewStep({
         { label: 'Birthdate', value: displayValue(data.applicant.birthdate) },
         { label: 'Birthplace', value: displayValue(data.applicant.birthplace) },
         { label: 'Address', value: displayValue(data.applicant.address) },
-        { label: 'Length of stay', value: displayValue(data.applicant.length_of_stay) },
-        { label: 'Housing status', value: formatHousingStatus(data.applicant.housing_status) },
+        {
+            label: 'Length of stay',
+            value: displayValue(data.applicant.length_of_stay),
+        },
+        {
+            label: 'Housing status',
+            value: formatHousingStatus(data.applicant.housing_status),
+        },
         { label: 'Cell no.', value: displayValue(data.applicant.cell_no) },
-        { label: 'Civil status', value: formatCivilStatus(data.applicant.civil_status) },
+        {
+            label: 'Civil status',
+            value: formatCivilStatus(data.applicant.civil_status),
+        },
         {
             label: 'Educational attainment',
             value: displayValue(data.applicant.educational_attainment),
@@ -444,7 +448,10 @@ export function LoanRequestReviewStep({
             label: 'No. of children',
             value: displayValue(data.applicant.number_of_children),
         },
-        { label: 'Spouse name', value: displayValue(data.applicant.spouse_name) },
+        {
+            label: 'Spouse name',
+            value: displayValue(data.applicant.spouse_name),
+        },
         { label: 'Spouse age', value: displayValue(data.applicant.spouse_age) },
         {
             label: 'Spouse cell no.',
@@ -465,8 +472,14 @@ export function LoanRequestReviewStep({
             label: 'Employer/Business address',
             value: displayValue(data.applicant.employer_business_address),
         },
-        { label: 'Telephone no.', value: displayValue(data.applicant.telephone_no) },
-        { label: 'Current position', value: displayValue(data.applicant.current_position) },
+        {
+            label: 'Telephone no.',
+            value: displayValue(data.applicant.telephone_no),
+        },
+        {
+            label: 'Current position',
+            value: displayValue(data.applicant.current_position),
+        },
         {
             label: 'Nature of business',
             value: displayValue(data.applicant.nature_of_business),
@@ -479,7 +492,9 @@ export function LoanRequestReviewStep({
             label: 'Gross monthly income',
             value:
                 data.applicant.gross_monthly_income.trim() !== ''
-                    ? formatCurrency(Number(data.applicant.gross_monthly_income))
+                    ? formatCurrency(
+                          Number(data.applicant.gross_monthly_income),
+                      )
                     : '--',
         },
         { label: 'Payday', value: formatPayday(data.applicant.payday) },
@@ -495,9 +510,15 @@ export function LoanRequestReviewStep({
         { label: 'Birthplace', value: displayValue(person.birthplace) },
         { label: 'Address', value: displayValue(person.address) },
         { label: 'Length of stay', value: displayValue(person.length_of_stay) },
-        { label: 'Housing status', value: formatHousingStatus(person.housing_status) },
+        {
+            label: 'Housing status',
+            value: formatHousingStatus(person.housing_status),
+        },
         { label: 'Cell no.', value: displayValue(person.cell_no) },
-        { label: 'Civil status', value: formatCivilStatus(person.civil_status) },
+        {
+            label: 'Civil status',
+            value: formatCivilStatus(person.civil_status),
+        },
         {
             label: 'Educational attainment',
             value: displayValue(person.educational_attainment),
@@ -515,7 +536,10 @@ export function LoanRequestReviewStep({
             value: displayValue(person.employer_business_address),
         },
         { label: 'Telephone no.', value: displayValue(person.telephone_no) },
-        { label: 'Current position', value: displayValue(person.current_position) },
+        {
+            label: 'Current position',
+            value: displayValue(person.current_position),
+        },
         {
             label: 'Nature of business',
             value: displayValue(person.nature_of_business),
@@ -541,7 +565,7 @@ export function LoanRequestReviewStep({
             contentClassName="space-y-5"
         >
             <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-sm">
-                <p className="text-xs uppercase text-muted-foreground">
+                <p className="text-xs text-muted-foreground uppercase">
                     Member
                 </p>
                 <p className="mt-2 font-medium">{member.name}</p>

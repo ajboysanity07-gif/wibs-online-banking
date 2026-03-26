@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Banknote, CalendarCheck, Clock } from 'lucide-react';
+import { Banknote, CalendarCheck, Clock, Download, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { MemberAccountAlert } from '@/components/member-account-alert';
 import {
@@ -9,6 +9,7 @@ import {
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
 import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments-filters-card';
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
@@ -19,6 +20,7 @@ import {
     loanSchedule,
     loans as clientLoans,
 } from '@/routes/client';
+import loanPaymentsRoutes from '@/routes/client/loan-payments';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberLoan,
@@ -39,7 +41,10 @@ type Props = {
     payments: MemberLoanPaymentsResponse;
 };
 
-const presetRanges: Array<{ value: MemberLoanPaymentsFilters['range']; label: string }> = [
+const presetRanges: Array<{
+    value: MemberLoanPaymentsFilters['range'];
+    label: string;
+}> = [
     { value: 'current_month', label: 'Current Month' },
     { value: 'current_year', label: 'Current Year' },
     { value: 'last_30_days', label: 'Last 30 Days' },
@@ -131,7 +136,10 @@ export default function LoanPayments({
 
         setFilters(nextFilters);
 
-        if (filters.range !== 'custom' || (nextFilters.start && nextFilters.end)) {
+        if (
+            filters.range !== 'custom' ||
+            (nextFilters.start && nextFilters.end)
+        ) {
             reloadPayments(1, nextFilters);
         }
     };
@@ -141,10 +149,39 @@ export default function LoanPayments({
 
         setFilters(nextFilters);
 
-        if (filters.range !== 'custom' || (nextFilters.start && nextFilters.end)) {
+        if (
+            filters.range !== 'custom' ||
+            (nextFilters.start && nextFilters.end)
+        ) {
             reloadPayments(1, nextFilters);
         }
     };
+
+    const buildExportUrl = (download?: boolean) =>
+        loanPaymentsRoutes.export(
+            { loanNumber: loanNumber ?? '' },
+            {
+                query: {
+                    format: 'pdf',
+                    range: filters.range,
+                    start: filters.start ?? undefined,
+                    end: filters.end ?? undefined,
+                    download: download ? 1 : undefined,
+                },
+            },
+        ).url;
+
+    const buildPrintUrl = () =>
+        loanPaymentsRoutes.print(
+            { loanNumber: loanNumber ?? '' },
+            {
+                query: {
+                    range: filters.range,
+                    start: filters.start ?? undefined,
+                    end: filters.end ?? undefined,
+                },
+            },
+        ).url;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Member profile', href: clientDashboard().url },
@@ -225,12 +262,41 @@ export default function LoanPayments({
                     filters={filters}
                     presets={presetRanges}
                     isUpdating={loading}
-                    description="Filter loan payments."
+                    description="Filter and export loan payments."
                     openingBalance={openingBalance}
                     closingBalance={closingBalance}
                     onRangeChange={updateRange}
                     onStartChange={updateStart}
                     onEndChange={updateEnd}
+                    footer={
+                        <>
+                            <Button
+                                asChild
+                                size="sm"
+                                disabled={!filtersReady || !loanNumber}
+                            >
+                                <a href={buildExportUrl(true)}>
+                                    <Download />
+                                    Download Pdf
+                                </a>
+                            </Button>
+                            <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                disabled={!filtersReady || !loanNumber}
+                            >
+                                <a
+                                    href={buildPrintUrl()}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    <Printer />
+                                    Print
+                                </a>
+                            </Button>
+                        </>
+                    }
                 />
 
                 <MemberLoanPaymentsRecordsCard

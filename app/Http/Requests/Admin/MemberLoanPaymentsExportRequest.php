@@ -24,6 +24,7 @@ class MemberLoanPaymentsExportRequest extends FormRequest
     {
         return [
             'format' => ['required', 'string', Rule::in(['pdf', 'csv', 'xlsx'])],
+            'download' => ['nullable', 'boolean'],
             'range' => [
                 'nullable',
                 'string',

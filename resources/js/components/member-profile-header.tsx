@@ -25,9 +25,7 @@ export function MemberProfileHeader({
                 </Avatar>
                 <div className="space-y-1">
                     <h1 className="text-2xl font-semibold">{name}</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {subtitle}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{subtitle}</p>
                 </div>
             </div>
             {accessory ? (

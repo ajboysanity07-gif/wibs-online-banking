@@ -48,9 +48,7 @@ export const useLocationSearch = ({
     const [query, setQueryState] = useState<string>(initialQuery);
     const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
     const [open, setOpen] = useState<boolean>(false);
-    const [status, setStatus] = useState<'idle' | 'loading' | 'error'>(
-        'idle',
-    );
+    const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
     const [error, setError] = useState<string | null>(null);
     const blurTimeoutRef = useRef<number | null>(null);
 

@@ -40,10 +40,7 @@ export default function AuthCardLayout({
                             {children}
                         </CardContent>
                     </Card>
-                    <SupportContact
-                        variant="stacked"
-                        className="text-center"
-                    />
+                    <SupportContact variant="stacked" className="text-center" />
                 </div>
             </div>
         </div>

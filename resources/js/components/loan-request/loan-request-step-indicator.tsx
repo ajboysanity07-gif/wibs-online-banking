@@ -71,12 +71,10 @@ export function LoanRequestStepIndicator({
                                         canNavigate
                                             ? 'cursor-pointer'
                                             : 'cursor-default',
-                                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                                        'focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none',
                                     )}
                                     onClick={() => onStepChange?.(index)}
-                                    aria-current={
-                                        isActive ? 'step' : undefined
-                                    }
+                                    aria-current={isActive ? 'step' : undefined}
                                     disabled={!canNavigate}
                                     title={step.description ?? step.title}
                                 >

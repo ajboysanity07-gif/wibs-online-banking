@@ -7,11 +7,7 @@ type Props = {
     children: ReactNode;
 };
 
-export function LoanRequestAnimatedStep({
-    show,
-    direction,
-    children,
-}: Props) {
+export function LoanRequestAnimatedStep({ show, direction, children }: Props) {
     const enterFrom =
         direction === 'forward'
             ? 'opacity-0 translate-x-4'

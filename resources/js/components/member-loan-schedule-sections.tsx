@@ -27,10 +27,7 @@ import {
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import type {
-    MemberLoanScheduleEntry,
-    MemberLoanSummary,
-} from '@/types/admin';
+import type { MemberLoanScheduleEntry, MemberLoanSummary } from '@/types/admin';
 
 type MemberLoanScheduleSectionsProps = {
     items: MemberLoanScheduleEntry[];
@@ -212,11 +209,10 @@ export function MemberLoanScheduleSections({
                                 height="auto"
                                 events={events}
                                 eventClick={(info) => {
-                                    const scheduleEntry =
-                                        info.event.extendedProps
-                                            .schedule as
-                                            | MemberLoanScheduleEntry
-                                            | undefined;
+                                    const scheduleEntry = info.event
+                                        .extendedProps.schedule as
+                                        | MemberLoanScheduleEntry
+                                        | undefined;
                                     setSelectedEntry(scheduleEntry ?? null);
                                 }}
                                 eventDidMount={(info) => {
@@ -250,9 +246,7 @@ export function MemberLoanScheduleSections({
                                         type="button"
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() =>
-                                            setSelectedEntry(null)
-                                        }
+                                        onClick={() => setSelectedEntry(null)}
                                     >
                                         Clear
                                     </Button>
@@ -363,9 +357,7 @@ export function MemberLoanScheduleSections({
                                             {formatDate(entry.date_pay)}
                                         </TableCell>
                                         <TableCell>
-                                            {formatCurrency(
-                                                entry.amortization,
-                                            )}
+                                            {formatCurrency(entry.amortization)}
                                         </TableCell>
                                         <TableCell>
                                             {formatCurrency(entry.interest)}

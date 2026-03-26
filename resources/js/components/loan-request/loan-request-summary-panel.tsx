@@ -34,11 +34,7 @@ const displayValue = (value?: string | null): string =>
     value && value.trim() !== '' ? value : '--';
 
 const displayName = (person: LoanRequestPersonFormData): string => {
-    const fullName = [
-        person.first_name,
-        person.middle_name,
-        person.last_name,
-    ]
+    const fullName = [person.first_name, person.middle_name, person.last_name]
         .map((value) => value.trim())
         .filter(Boolean)
         .join(' ');
@@ -90,7 +86,7 @@ export function LoanRequestSummaryPanel({
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                     <div className="rounded-lg border border-border/20 bg-muted/10 p-3">
-                        <p className="text-xs uppercase text-muted-foreground">
+                        <p className="text-xs text-muted-foreground uppercase">
                             Member
                         </p>
                         <p className="mt-2 font-medium">{member.name}</p>

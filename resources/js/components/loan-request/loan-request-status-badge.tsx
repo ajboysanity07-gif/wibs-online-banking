@@ -65,7 +65,10 @@ export function LoanRequestStatusBadge({ status, className }: Props) {
     const resolvedStatus = normalizeStatus(status);
 
     return (
-        <Badge variant={statusVariant(resolvedStatus)} className={cn(className)}>
+        <Badge
+            variant={statusVariant(resolvedStatus)}
+            className={cn(className)}
+        >
             {statusLabel(resolvedStatus)}
         </Badge>
     );

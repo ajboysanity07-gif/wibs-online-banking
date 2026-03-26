@@ -14,8 +14,7 @@ export function injectClientTheme(theme: ClientTheme): void {
     }
 
     const style =
-        document.getElementById(STYLE_ID) ??
-        document.createElement('style');
+        document.getElementById(STYLE_ID) ?? document.createElement('style');
     style.id = STYLE_ID;
 
     style.textContent = `:root{${serializeTokens(theme.hsl.light)}}.dark{${serializeTokens(theme.hsl.dark)}}`;

@@ -114,6 +114,55 @@ test('admin can view loan payments page', function () {
             ->where('loan.lnnumber', 'LN-902'));
 });
 
+test('admin can view loan payments print preview', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $member = User::factory()->create(['acctno' => '000912']);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-912',
+        'lntype' => 'Regular',
+        'principal' => 1800,
+        'balance' => 1400,
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => 'LN-912',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::now()->toDateTimeString(),
+        'principal' => 150,
+        'payments' => 150,
+        'balance' => 1250,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.loan-payments-print', [
+            'user' => $member->user_id,
+            'loanNumber' => 'LN-912',
+            'range' => 'all',
+        ]));
+
+    $response->assertOk();
+    $response->assertViewIs('reports.loan-payments');
+    $response->assertSee('Loan Payment Transaction Report');
+    $response->assertSee('Loan Payment Report');
+    $response->assertSee('This document summarizes recorded loan payment transactions');
+    $response->assertSee('Balances shown are based on records available at the time this report was generated.');
+    $response->assertSee('Certification');
+    $response->assertSee('This is a system-generated report prepared from the loan payment records');
+    $response->assertSee('otherwise required by policy, this document is valid without handwritten signature.');
+    $response->assertSee('Prepared by');
+    $response->assertSee('Checked by');
+    $response->assertSee('Noted by');
+    $response->assertSee('Received by / Borrower');
+    $response->assertSee('Date');
+    $response->assertSee('window.print', false);
+});
+
 test('non-admin users cannot access loan detail pages', function () {
     $user = User::factory()->create();
     $member = User::factory()->create(['acctno' => '000903']);
@@ -486,6 +535,16 @@ test('loan payment report template uses simplified columns', function () {
     ])->render();
 
     expect($html)
+        ->toContain('Loan Payment Report')
+        ->toContain('This document summarizes recorded loan payment transactions')
+        ->toContain('Balances shown are based on records available at the time this report was generated.')
+        ->toContain('Certification')
+        ->toContain('This is a system-generated report prepared from the loan payment records')
+        ->toContain('Prepared by')
+        ->toContain('Checked by')
+        ->toContain('Noted by')
+        ->toContain('Received by / Borrower')
+        ->toContain('Date')
         ->toContain('Transaction Date')
         ->toContain('Reference No')
         ->toContain('Principal')

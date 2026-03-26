@@ -210,13 +210,17 @@ export function MemberLoanRecordsCard({
                                 href={scheduleHref}
                                 label="Schedule"
                                 icon={CalendarClock}
-                                disabled={!canNavigate || !row.original.lnnumber}
+                                disabled={
+                                    !canNavigate || !row.original.lnnumber
+                                }
                             />
                             <LoanActionButton
                                 href={paymentsHref}
                                 label="Payment"
                                 icon={CreditCard}
-                                disabled={!canNavigate || !row.original.lnnumber}
+                                disabled={
+                                    !canNavigate || !row.original.lnnumber
+                                }
                             />
                         </div>
                     );

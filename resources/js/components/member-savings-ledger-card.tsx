@@ -14,10 +14,7 @@ import {
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { getSavingsMovementMeta } from '@/lib/savings-ledger';
-import type {
-    MemberSavingsLedgerEntry,
-    PaginationMeta,
-} from '@/types/admin';
+import type { MemberSavingsLedgerEntry, PaginationMeta } from '@/types/admin';
 
 type MemberSavingsLedgerCardProps = {
     items: MemberSavingsLedgerEntry[];
@@ -104,9 +101,7 @@ export function MemberSavingsLedgerCard({
 }: MemberSavingsLedgerCardProps) {
     const savingsEmptyMessage =
         emptyMessage ??
-        (isUpdating
-            ? 'Loading savings...'
-            : 'No savings transactions found.');
+        (isUpdating ? 'Loading savings...' : 'No savings transactions found.');
     const showSkeletonState =
         showSkeleton ?? (isUpdating && items.length === 0);
 
@@ -121,9 +116,7 @@ export function MemberSavingsLedgerCard({
                 id: 'movement',
                 header: 'Movement',
                 cell: ({ row }) => {
-                    const movementMeta = getSavingsMovementMeta(
-                        row.original,
-                    );
+                    const movementMeta = getSavingsMovementMeta(row.original);
 
                     return (
                         <Badge variant={movementMeta.variant}>

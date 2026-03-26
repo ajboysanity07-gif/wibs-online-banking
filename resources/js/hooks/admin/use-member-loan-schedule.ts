@@ -95,7 +95,14 @@ export function useMemberLoanSchedule(
         return () => {
             controller.abort();
         };
-    }, [initialKey, loanNumber, memberId, options?.enabled, options?.initial, refresh]);
+    }, [
+        initialKey,
+        loanNumber,
+        memberId,
+        options?.enabled,
+        options?.initial,
+        refresh,
+    ]);
 
     return {
         items: state.data.items,

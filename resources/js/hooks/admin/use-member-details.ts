@@ -8,33 +8,39 @@ type MemberDetailsState = {
     error: string | null;
 };
 
-export function useMemberDetails(userId: number | null, initial?: MemberDetail) {
+export function useMemberDetails(
+    userId: number | null,
+    initial?: MemberDetail,
+) {
     const [state, setState] = useState<MemberDetailsState>({
         member: initial ?? null,
         loading: false,
         error: null,
     });
 
-    const refresh = useCallback(async (signal?: AbortSignal) => {
-        if (!userId) {
-            return null;
-        }
+    const refresh = useCallback(
+        async (signal?: AbortSignal) => {
+            if (!userId) {
+                return null;
+            }
 
-        setState((current) => ({ ...current, loading: true, error: null }));
+            setState((current) => ({ ...current, loading: true, error: null }));
 
-        try {
-            const member = await adminApi.getMemberDetail(userId, signal);
-            setState({ member, loading: false, error: null });
-            return member;
-        } catch {
-            setState((current) => ({
-                ...current,
-                loading: false,
-                error: 'Unable to load this member right now.',
-            }));
-            return null;
-        }
-    }, [userId]);
+            try {
+                const member = await adminApi.getMemberDetail(userId, signal);
+                setState({ member, loading: false, error: null });
+                return member;
+            } catch {
+                setState((current) => ({
+                    ...current,
+                    loading: false,
+                    error: 'Unable to load this member right now.',
+                }));
+                return null;
+            }
+        },
+        [userId],
+    );
 
     useEffect(() => {
         const controller = new AbortController();

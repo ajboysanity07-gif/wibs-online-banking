@@ -174,6 +174,64 @@ test('admin can select the built-in full logo preset', function () {
         ->toBe(OrganizationSettingsService::LOGO_PRESET_FULL);
 });
 
+test('admin can update report header typography settings', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $response = $this->actingAs($admin)->patch(
+        route('admin.settings.organization.update'),
+        [
+            'company_name' => 'Acme Cooperative',
+            'report_header_title' => 'Loan Request Summary',
+            'report_header_tagline' => 'Confidential',
+            'report_header_show_logo' => false,
+            'report_header_show_company_name' => true,
+            'report_header_alignment' => 'right',
+            'report_header_font_color' => '#112233',
+            'report_header_tagline_color' => '#221133',
+            'report_label_font_color' => '#223344',
+            'report_value_font_color' => '#334455',
+            'report_header_title_font_family' => 'Futura',
+            'report_header_title_font_variant' => 'italic',
+            'report_header_title_font_weight' => '700',
+            'report_header_title_font_size' => 16,
+            'report_header_tagline_font_family' => 'Mistral',
+            'report_header_tagline_font_variant' => 'regular',
+            'report_header_tagline_font_weight' => '500',
+            'report_header_tagline_font_size' => 10,
+            'report_label_font_family' => 'Futura',
+            'report_label_font_variant' => 'regular',
+            'report_label_font_weight' => '400',
+            'report_label_font_size' => 9,
+            'report_value_font_family' => 'Futura',
+            'report_value_font_variant' => 'regular',
+            'report_value_font_weight' => '600',
+            'report_value_font_size' => 11,
+        ],
+    );
+
+    $response->assertRedirect(route('admin.settings.organization'));
+
+    $setting = OrganizationSetting::query()->first();
+
+    expect($setting)->not->toBeNull();
+    expect($setting->report_header_title)->toBe('Loan Request Summary');
+    expect($setting->report_header_tagline)->toBe('Confidential');
+    expect((bool) $setting->report_header_show_logo)->toBeFalse();
+    expect((bool) $setting->report_header_show_company_name)->toBeTrue();
+    expect($setting->report_header_alignment)->toBe('right');
+    expect($setting->report_header_font_color)->toBe('#112233');
+    expect($setting->report_header_tagline_color)->toBe('#221133');
+    expect($setting->report_label_font_color)->toBe('#223344');
+    expect($setting->report_value_font_color)->toBe('#334455');
+    expect($setting->report_header_title_font_family)->toBe('Futura');
+    expect($setting->report_header_title_font_variant)->toBe('italic');
+    expect($setting->report_header_title_font_weight)->toBe('700');
+    expect($setting->report_header_title_font_size)->toBe(16);
+});
+
 test('admin can reset portal icon to the default', function () {
     Storage::fake('public');
 

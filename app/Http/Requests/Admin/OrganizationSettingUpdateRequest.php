@@ -68,6 +68,130 @@ class OrganizationSettingUpdateRequest extends FormRequest
                 'max:32',
                 'regex:/^#[0-9a-fA-F]{6}$/',
             ],
+            'report_header_title' => ['nullable', 'string', 'max:255'],
+            'report_header_tagline' => ['nullable', 'string', 'max:255'],
+            'report_header_show_logo' => ['nullable', 'boolean'],
+            'report_header_show_company_name' => ['nullable', 'boolean'],
+            'report_header_alignment' => [
+                'nullable',
+                'string',
+                Rule::in(
+                    app(OrganizationSettingsService::class)
+                        ->reportHeaderAlignments(),
+                ),
+            ],
+            'report_header_font_color' => [
+                'nullable',
+                'string',
+                'max:32',
+                'regex:/^#[0-9a-fA-F]{6}$/',
+            ],
+            'report_header_tagline_color' => [
+                'nullable',
+                'string',
+                'max:32',
+                'regex:/^#[0-9a-fA-F]{6}$/',
+            ],
+            'report_label_font_color' => [
+                'nullable',
+                'string',
+                'max:32',
+                'regex:/^#[0-9a-fA-F]{6}$/',
+            ],
+            'report_value_font_color' => [
+                'nullable',
+                'string',
+                'max:32',
+                'regex:/^#[0-9a-fA-F]{6}$/',
+            ],
+            'report_header_title_font_family' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[A-Za-z0-9\\s\\-+&.]+$/',
+            ],
+            'report_header_title_font_variant' => [
+                'nullable',
+                'string',
+                Rule::in(['regular', 'italic']),
+            ],
+            'report_header_title_font_weight' => [
+                'nullable',
+                'string',
+                Rule::in(['300', '400', '500', '600', '700', '800', '900']),
+            ],
+            'report_header_title_font_size' => [
+                'nullable',
+                'integer',
+                'min:6',
+                'max:24',
+            ],
+            'report_header_tagline_font_family' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[A-Za-z0-9\\s\\-+&.]+$/',
+            ],
+            'report_header_tagline_font_variant' => [
+                'nullable',
+                'string',
+                Rule::in(['regular', 'italic']),
+            ],
+            'report_header_tagline_font_weight' => [
+                'nullable',
+                'string',
+                Rule::in(['300', '400', '500', '600', '700', '800', '900']),
+            ],
+            'report_header_tagline_font_size' => [
+                'nullable',
+                'integer',
+                'min:6',
+                'max:24',
+            ],
+            'report_label_font_family' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[A-Za-z0-9\\s\\-+&.]+$/',
+            ],
+            'report_label_font_variant' => [
+                'nullable',
+                'string',
+                Rule::in(['regular', 'italic']),
+            ],
+            'report_label_font_weight' => [
+                'nullable',
+                'string',
+                Rule::in(['300', '400', '500', '600', '700', '800', '900']),
+            ],
+            'report_label_font_size' => [
+                'nullable',
+                'integer',
+                'min:6',
+                'max:24',
+            ],
+            'report_value_font_family' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[A-Za-z0-9\\s\\-+&.]+$/',
+            ],
+            'report_value_font_variant' => [
+                'nullable',
+                'string',
+                Rule::in(['regular', 'italic']),
+            ],
+            'report_value_font_weight' => [
+                'nullable',
+                'string',
+                Rule::in(['300', '400', '500', '600', '700', '800', '900']),
+            ],
+            'report_value_font_size' => [
+                'nullable',
+                'integer',
+                'min:6',
+                'max:24',
+            ],
         ];
     }
 
@@ -79,6 +203,18 @@ class OrganizationSettingUpdateRequest extends FormRequest
             ),
             'brand_accent_color' => $this->normalizeHexColor(
                 $this->input('brand_accent_color'),
+            ),
+            'report_header_font_color' => $this->normalizeHexColor(
+                $this->input('report_header_font_color'),
+            ),
+            'report_header_tagline_color' => $this->normalizeHexColor(
+                $this->input('report_header_tagline_color'),
+            ),
+            'report_label_font_color' => $this->normalizeHexColor(
+                $this->input('report_label_font_color'),
+            ),
+            'report_value_font_color' => $this->normalizeHexColor(
+                $this->input('report_value_font_color'),
             ),
         ]);
     }
@@ -135,6 +271,11 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'support_contact_name.max' => 'Support contact name may not be greater than 255 characters.',
             'brand_primary_color.regex' => 'Primary color must be a valid hex value (e.g., #1a2b3c).',
             'brand_accent_color.regex' => 'Accent color must be a valid hex value (e.g., #1a2b3c).',
+            'report_header_font_color.regex' => 'Header color must be a valid hex value (e.g., #1a2b3c).',
+            'report_header_tagline_color.regex' => 'Tagline color must be a valid hex value (e.g., #1a2b3c).',
+            'report_label_font_color.regex' => 'Label color must be a valid hex value (e.g., #1a2b3c).',
+            'report_value_font_color.regex' => 'Value color must be a valid hex value (e.g., #1a2b3c).',
+            'report_header_alignment.in' => 'Report header alignment must be left, center, or right.',
         ];
     }
 }

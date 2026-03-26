@@ -32,8 +32,12 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
-import type { NavItem } from '@/types';
+import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
+
+type PageProps = {
+    auth: Auth;
+};
 
 const baseNavItems: NavItem[] = [
     {
@@ -45,11 +49,13 @@ const baseNavItems: NavItem[] = [
         title: 'Loans',
         href: clientLoans(),
         icon: Banknote,
+        match: 'section',
     },
     {
         title: 'Savings',
         href: clientSavings(),
         icon: PiggyBank,
+        match: 'section',
     },
 ];
 
@@ -63,6 +69,7 @@ const adminNavItems: NavItem[] = [
         title: 'Members',
         href: membersIndex(),
         icon: Users,
+        match: 'section',
     },
     {
         title: 'Pending approvals',
@@ -95,10 +102,10 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { url } = usePage();
-    const isAdminSection = url.startsWith('/admin');
-    const mainNavItems = isAdminSection ? adminNavItems : baseNavItems;
-    const homeLink = isAdminSection ? adminDashboard() : clientDashboard();
+    const { auth } = usePage<PageProps>().props;
+    const isAdminUser = auth.isAdmin;
+    const mainNavItems = isAdminUser ? adminNavItems : baseNavItems;
+    const homeLink = isAdminUser ? adminDashboard() : clientDashboard();
 
     return (
         <Sidebar collapsible="icon" variant="inset">

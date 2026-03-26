@@ -126,12 +126,10 @@ export default function MemberProfile({
         reviewed_by: null,
         avatar_url: null,
     };
-    const {
-        member,
-        loading,
-        error,
-        setMember,
-    } = useMemberDetails(initialMember.user_id, seededMember);
+    const { member, loading, error, setMember } = useMemberDetails(
+        initialMember.user_id,
+        seededMember,
+    );
     const currentMember = member ?? seededMember;
     const memberName = currentMember.member_name ?? currentMember.username;
     const getInitials = useInitials();
@@ -230,9 +228,7 @@ export default function MemberProfile({
                         />
                     </div>
                     <MemberStatusCard
-                        statusLabel={getMemberStatusLabel(
-                            currentMember.status,
-                        )}
+                        statusLabel={getMemberStatusLabel(currentMember.status)}
                         statusVariant={getMemberStatusVariant(
                             currentMember.status,
                         )}
@@ -288,9 +284,7 @@ export default function MemberProfile({
                             </>
                         }
                         helper={
-                            loading
-                                ? 'Refreshing member status...'
-                                : undefined
+                            loading ? 'Refreshing member status...' : undefined
                         }
                     />
                 </div>

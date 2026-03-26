@@ -1,5 +1,6 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { usePage } from '@inertiajs/react';
+import { normalizePath, isWithinSectionPath } from '@/lib/url-match';
 import { toUrl } from '@/lib/utils';
 
 export type IsCurrentUrlFn = (
@@ -16,30 +17,51 @@ export type WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(
 export type UseCurrentUrlReturn = {
     currentUrl: string;
     isCurrentUrl: IsCurrentUrlFn;
+    isWithinSection: IsCurrentUrlFn;
     whenCurrentUrl: WhenCurrentUrlFn;
+};
+
+const resolvePathname = (
+    urlToCheck: NonNullable<InertiaLinkProps['href']>,
+): string => {
+    const urlString = toUrl(urlToCheck);
+
+    if (!urlString.startsWith('http')) {
+        return normalizePath(urlString);
+    }
+
+    try {
+        const absoluteUrl = new URL(urlString);
+        return normalizePath(absoluteUrl.pathname);
+    } catch {
+        return normalizePath(urlString);
+    }
 };
 
 export function useCurrentUrl(): UseCurrentUrlReturn {
     const page = usePage();
-    const currentUrlPath = new URL(page.url, window?.location.origin).pathname;
+    const currentUrlPath = normalizePath(
+        new URL(page.url, window?.location.origin).pathname,
+    );
 
     const isCurrentUrl: IsCurrentUrlFn = (
         urlToCheck: NonNullable<InertiaLinkProps['href']>,
         currentUrl?: string,
     ) => {
-        const urlToCompare = currentUrl ?? currentUrlPath;
-        const urlString = toUrl(urlToCheck);
+        const urlToCompare = normalizePath(currentUrl ?? currentUrlPath);
+        const urlPath = resolvePathname(urlToCheck);
 
-        if (!urlString.startsWith('http')) {
-            return urlString === urlToCompare;
-        }
+        return urlPath === urlToCompare;
+    };
 
-        try {
-            const absoluteUrl = new URL(urlString);
-            return absoluteUrl.pathname === urlToCompare;
-        } catch {
-            return false;
-        }
+    const isWithinSection: IsCurrentUrlFn = (
+        urlToCheck: NonNullable<InertiaLinkProps['href']>,
+        currentUrl?: string,
+    ) => {
+        const urlToCompare = normalizePath(currentUrl ?? currentUrlPath);
+        const urlPath = resolvePathname(urlToCheck);
+
+        return isWithinSectionPath(urlPath, urlToCompare);
     };
 
     const whenCurrentUrl: WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(
@@ -53,6 +75,7 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
     return {
         currentUrl: currentUrlPath,
         isCurrentUrl,
+        isWithinSection,
         whenCurrentUrl,
     };
 }

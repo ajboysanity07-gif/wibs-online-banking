@@ -13,7 +13,10 @@ import { Button } from '@/components/ui/button';
 import { useMemberSavings } from '@/hooks/admin/use-member-savings';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { savings as memberSavings, show as showMember } from '@/routes/admin/members';
+import {
+    savings as memberSavings,
+    show as showMember,
+} from '@/routes/admin/members';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type {
@@ -46,16 +49,15 @@ export default function MemberSavings({ member, summary, savings }: Props) {
         setPageState({ memberKey, page: nextPage });
     };
 
-    const {
-        items,
-        meta,
-        loading,
-        error,
-        refresh,
-    } = useMemberSavings(member.user_id, page, perPage, {
-        initial: savings,
-        enabled: true,
-    });
+    const { items, meta, loading, error, refresh } = useMemberSavings(
+        member.user_id,
+        page,
+        perPage,
+        {
+            initial: savings,
+            enabled: true,
+        },
+    );
 
     const savingsNumbers = useMemo(() => {
         const uniqueNumbers = new Set<string>();

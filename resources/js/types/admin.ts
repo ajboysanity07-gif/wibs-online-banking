@@ -151,11 +151,12 @@ export type MemberLoanPaymentsFilters = {
     end: string | null;
 };
 
-export type MemberLoanPaymentsResponse = PaginatedResponse<MemberLoanPayment> & {
-    filters: MemberLoanPaymentsFilters;
-    openingBalance?: number | null;
-    closingBalance?: number | null;
-};
+export type MemberLoanPaymentsResponse =
+    PaginatedResponse<MemberLoanPayment> & {
+        filters: MemberLoanPaymentsFilters;
+        openingBalance?: number | null;
+        closingBalance?: number | null;
+    };
 
 export type PendingApprovalsResponse = {
     rows: PendingApprovalRow[];

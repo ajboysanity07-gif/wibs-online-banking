@@ -76,9 +76,7 @@ export default function Login({
             <form onSubmit={submit} className="flex flex-col gap-6">
                 <div className="grid gap-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="email">
-                            Email address or username
-                        </Label>
+                        <Label htmlFor="email">Email address or username</Label>
                         <Input
                             id="email"
                             type="text"

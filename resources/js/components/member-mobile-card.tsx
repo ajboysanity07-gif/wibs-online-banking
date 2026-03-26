@@ -96,10 +96,7 @@ export function MemberMobileCardSkeleton({
                 </div>
                 <div className="space-y-2 text-right">
                     <Skeleton
-                        className={cn(
-                            'ml-auto h-3 w-16',
-                            valueLabelClassName,
-                        )}
+                        className={cn('ml-auto h-3 w-16', valueLabelClassName)}
                     />
                     <Skeleton
                         className={cn('ml-auto h-6 w-20', valueClassName)}

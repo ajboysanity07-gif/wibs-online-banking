@@ -334,9 +334,8 @@ export default function Profile({
     const [profilePhotoDraftPreview, setProfilePhotoDraftPreview] = useState<
         string | null
     >(null);
-    const [profilePhotoDraftFile, setProfilePhotoDraftFile] = useState<
-        File | null
-    >(null);
+    const [profilePhotoDraftFile, setProfilePhotoDraftFile] =
+        useState<File | null>(null);
     const [showProfilePhotoCropModal, setShowProfilePhotoCropModal] =
         useState<boolean>(false);
     const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
@@ -356,10 +355,7 @@ export default function Profile({
     const memberDisplayName =
         memberRecord?.bname?.trim() ||
         [memberRecord?.fname, memberRecord?.mname, memberRecord?.lname]
-            .filter(
-                (value): value is string =>
-                    Boolean(value && value.trim()),
-            )
+            .filter((value): value is string => Boolean(value && value.trim()))
             .join(' ');
     const hasStructuredName = Boolean(memberRecord?.hasStructuredName);
     const memberFirstName = memberRecord?.fname?.trim() ?? '';
@@ -370,7 +366,8 @@ export default function Profile({
         memberRecord?.civilstat ?? '',
     );
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
-    const showOnboardingAlert = onboarding && adminProfile === null && !isProfileComplete;
+    const showOnboardingAlert =
+        onboarding && adminProfile === null && !isProfileComplete;
     const initialEmployerAddress = splitEmployerBusinessAddress(
         memberApplicationProfile?.employer_business_address ?? '',
     );
@@ -548,9 +545,7 @@ export default function Profile({
         }
     };
 
-    const handleProfilePhotoChange = (
-        event: ChangeEvent<HTMLInputElement>,
-    ) => {
+    const handleProfilePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
 
         if (!file) {
@@ -558,13 +553,9 @@ export default function Profile({
         }
 
         if (!PROFILE_PHOTO_ALLOWED_TYPES.has(file.type)) {
-            showErrorToast(
-                null,
-                'Please select a JPG, PNG, or WebP image.',
-                {
-                    id: 'profile-photo-type',
-                },
-            );
+            showErrorToast(null, 'Please select a JPG, PNG, or WebP image.', {
+                id: 'profile-photo-type',
+            });
             event.target.value = '';
             clearProfilePhotoDraft();
             return;
@@ -657,8 +648,8 @@ export default function Profile({
                                                 </AlertTitle>
                                                 <AlertDescription>
                                                     Add the personal and work
-                                                    details below to unlock
-                                                    your client dashboard.
+                                                    details below to unlock your
+                                                    client dashboard.
                                                 </AlertDescription>
                                             </Alert>
                                         )}
@@ -694,89 +685,86 @@ export default function Profile({
                                                 errors: formErrors,
                                             }) => (
                                                 <>
-                                                    {adminProfile && (
-                                                        <div className="space-y-6">
-                                                            <div className="grid gap-3">
-                                                                <Label htmlFor="profile_photo">
-                                                                    Profile
-                                                                    picture
-                                                                </Label>
+                                                    <div className="space-y-6">
+                                                        <div className="grid gap-3">
+                                                            <Label htmlFor="profile_photo">
+                                                                Profile picture
+                                                            </Label>
 
-                                                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                                                                    <label
-                                                                        htmlFor="profile_photo"
-                                                                        className="group relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
-                                                                    >
-                                                                        <Avatar className="h-24 w-24 overflow-hidden rounded-full border border-border/70 shadow-sm">
-                                                                            <AvatarImage
-                                                                                src={
-                                                                                    profilePhotoUrl
-                                                                                }
-                                                                                alt={
-                                                                                    displayName
-                                                                                }
-                                                                                className="object-cover"
-                                                                            />
-                                                                            <AvatarFallback className="rounded-full bg-neutral-200 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
-                                                                                {getInitials(
-                                                                                    displayName,
-                                                                                )}
-                                                                            </AvatarFallback>
-                                                                        </Avatar>
-                                                                        <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                                                                        <span className="absolute bottom-1 right-1 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/90 text-neutral-900 shadow-sm transition-transform duration-200 group-hover:scale-105 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
-                                                                            <Camera className="h-4 w-4" />
-                                                                        </span>
-                                                                    </label>
-
-                                                                    <div className="space-y-2 text-sm text-muted-foreground">
-                                                                        <p>
-                                                                            Upload
-                                                                            a
-                                                                            JPG,
-                                                                            PNG,
-                                                                            or
-                                                                            WebP
-                                                                            image
-                                                                            (max
-                                                                            2MB).
-                                                                        </p>
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() =>
-                                                                                profilePhotoInputRef.current?.click()
+                                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+                                                                <label
+                                                                    htmlFor="profile_photo"
+                                                                    className="group relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
+                                                                >
+                                                                    <Avatar className="h-24 w-24 overflow-hidden rounded-full border border-border/70 shadow-sm">
+                                                                        <AvatarImage
+                                                                            src={
+                                                                                profilePhotoUrl
                                                                             }
-                                                                        >
-                                                                            Change
-                                                                            photo
-                                                                        </Button>
-                                                                    </div>
+                                                                            alt={
+                                                                                displayName
+                                                                            }
+                                                                            className="object-cover"
+                                                                        />
+                                                                        <AvatarFallback className="rounded-full bg-neutral-200 text-sm text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                                                                            {getInitials(
+                                                                                displayName,
+                                                                            )}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                                                                    <span className="absolute right-1 bottom-1 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/90 text-neutral-900 shadow-sm transition-transform duration-200 group-hover:scale-105 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
+                                                                        <Camera className="h-4 w-4" />
+                                                                    </span>
+                                                                </label>
+
+                                                                <div className="space-y-2 text-sm text-muted-foreground">
+                                                                    <p>
+                                                                        Upload a
+                                                                        JPG,
+                                                                        PNG, or
+                                                                        WebP
+                                                                        image
+                                                                        (max
+                                                                        2MB).
+                                                                    </p>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            profilePhotoInputRef.current?.click()
+                                                                        }
+                                                                    >
+                                                                        Change
+                                                                        photo
+                                                                    </Button>
                                                                 </div>
-
-                                                                <input
-                                                                    id="profile_photo"
-                                                                    ref={
-                                                                        profilePhotoInputRef
-                                                                    }
-                                                                    name="profile_photo"
-                                                                    type="file"
-                                                                    accept="image/png,image/jpeg,image/webp"
-                                                                    className="sr-only"
-                                                                    onChange={
-                                                                        handleProfilePhotoChange
-                                                                    }
-                                                                />
-
-                                                                <InputError
-                                                                    className="mt-2"
-                                                                    message={
-                                                                        formErrors.profile_photo
-                                                                    }
-                                                                />
                                                             </div>
 
+                                                            <input
+                                                                id="profile_photo"
+                                                                ref={
+                                                                    profilePhotoInputRef
+                                                                }
+                                                                name="profile_photo"
+                                                                type="file"
+                                                                accept="image/png,image/jpeg,image/webp"
+                                                                className="sr-only"
+                                                                onChange={
+                                                                    handleProfilePhotoChange
+                                                                }
+                                                            />
+
+                                                            <InputError
+                                                                className="mt-2"
+                                                                message={
+                                                                    formErrors.profile_photo
+                                                                }
+                                                            />
+                                                        </div>
+
+                                                        {adminProfile && (
                                                             <div className="grid gap-2">
                                                                 <Label htmlFor="fullname">
                                                                     Full name
@@ -801,8 +789,8 @@ export default function Profile({
                                                                     }
                                                                 />
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    </div>
 
                                                     <div className="space-y-6">
                                                         <div className="space-y-1">
@@ -813,8 +801,7 @@ export default function Profile({
                                                             <p className="text-sm text-muted-foreground">
                                                                 Update your
                                                                 login and
-                                                                contact
-                                                                details.
+                                                                contact details.
                                                             </p>
                                                         </div>
 
@@ -877,7 +864,6 @@ export default function Profile({
                                                                     }
                                                                 />
                                                             </div>
-
                                                         </div>
 
                                                         {mustVerifyEmail &&
@@ -930,7 +916,6 @@ export default function Profile({
                                                         <>
                                                             <Separator />
 
-
                                                             <div className="space-y-6">
                                                                 <div className="space-y-1">
                                                                     <h3 className="text-base font-semibold">
@@ -943,8 +928,7 @@ export default function Profile({
                                                                         verified
                                                                         member
                                                                         details
-                                                                        and
-                                                                        keep
+                                                                        and keep
                                                                         your
                                                                         application
                                                                         profile
@@ -971,8 +955,7 @@ export default function Profile({
                                                                         record
                                                                         was
                                                                         found
-                                                                        for
-                                                                        this
+                                                                        for this
                                                                         account.
                                                                     </p>
                                                                 )}
@@ -1003,7 +986,8 @@ export default function Profile({
                                                                     </div>
                                                                     {hasStructuredName && (
                                                                         <>
-                                                                            {memberFirstName !== '' && (
+                                                                            {memberFirstName !==
+                                                                                '' && (
                                                                                 <div className="grid gap-2">
                                                                                     <Label htmlFor="member_first_name">
                                                                                         First
@@ -1027,7 +1011,8 @@ export default function Profile({
                                                                                 </div>
                                                                             )}
 
-                                                                            {memberLastName !== '' && (
+                                                                            {memberLastName !==
+                                                                                '' && (
                                                                                 <div className="grid gap-2">
                                                                                     <Label htmlFor="member_last_name">
                                                                                         Last
@@ -1051,7 +1036,8 @@ export default function Profile({
                                                                                 </div>
                                                                             )}
 
-                                                                            {memberMiddleName !== '' && (
+                                                                            {memberMiddleName !==
+                                                                                '' && (
                                                                                 <div className="grid gap-2">
                                                                                     <Label htmlFor="member_middle_name">
                                                                                         Middle
@@ -1131,7 +1117,9 @@ export default function Profile({
                                                                         <LocationAutocompleteInput
                                                                             id="birthplace"
                                                                             name="birthplace"
-                                                                            search={birthplaceSearch}
+                                                                            search={
+                                                                                birthplaceSearch
+                                                                            }
                                                                             placeholder="City or municipality"
                                                                             required
                                                                             inputClassName="mt-1 block w-full"
@@ -1163,7 +1151,8 @@ export default function Profile({
                                                                                     WMASTER_VALUE_CLASS,
                                                                             )}
                                                                             defaultValue={
-                                                                                memberAge ?? ''
+                                                                                memberAge ??
+                                                                                ''
                                                                             }
                                                                             placeholder="Not available"
                                                                             disabled
@@ -1263,7 +1252,9 @@ export default function Profile({
                                                                             required
                                                                             autoComplete="tel"
                                                                             inputMode="numeric"
-                                                                            maxLength={11}
+                                                                            maxLength={
+                                                                                11
+                                                                            }
                                                                             placeholder="09XXXXXXXXX"
                                                                         />
 
@@ -1452,7 +1443,9 @@ export default function Profile({
                                                                             }
                                                                             name="spouse_age"
                                                                             inputMode="numeric"
-                                                                            min={0}
+                                                                            min={
+                                                                                0
+                                                                            }
                                                                             placeholder="Age"
                                                                         />
 
@@ -1481,7 +1474,9 @@ export default function Profile({
                                                                             }
                                                                             name="spouse_cell_no"
                                                                             inputMode="numeric"
-                                                                            maxLength={11}
+                                                                            maxLength={
+                                                                                11
+                                                                            }
                                                                             placeholder="09XXXXXXXXX"
                                                                         />
 
@@ -1590,7 +1585,9 @@ export default function Profile({
                                                                         <input
                                                                             type="hidden"
                                                                             name="employment_type"
-                                                                            value={employmentType}
+                                                                            value={
+                                                                                employmentType
+                                                                            }
                                                                         />
 
                                                                         <InputError
@@ -1646,9 +1643,13 @@ export default function Profile({
                                                                                 }
                                                                                 name="employer_business_street_address"
                                                                                 placeholder="Building, street, office, or site"
-                                                                                onChange={(event) => {
+                                                                                onChange={(
+                                                                                    event,
+                                                                                ) => {
                                                                                     setEmployerBusinessStreetAddress(
-                                                                                        event.target.value,
+                                                                                        event
+                                                                                            .target
+                                                                                            .value,
                                                                                     );
                                                                                 }}
                                                                             />
@@ -1665,7 +1666,9 @@ export default function Profile({
                                                                             <LocationAutocompleteInput
                                                                                 id="employer_business_city"
                                                                                 name="employer_business_city"
-                                                                                search={employerBusinessCitySearch}
+                                                                                search={
+                                                                                    employerBusinessCitySearch
+                                                                                }
                                                                                 placeholder="City or municipality"
                                                                                 ariaLabel="City or municipality"
                                                                                 inputClassName="mt-1 block w-full"
@@ -2244,9 +2247,7 @@ export default function Profile({
                                                             },
                                                         );
                                                     }}
-                                                    onError={(
-                                                        formErrors,
-                                                    ) => {
+                                                    onError={(formErrors) => {
                                                         showErrorToast(
                                                             formErrors,
                                                             adminToastCopy.error.disabled(
@@ -2266,8 +2267,8 @@ export default function Profile({
                                                                 processing
                                                             }
                                                         >
-                                                            <ShieldBan /> Disable
-                                                            2FA
+                                                            <ShieldBan />{' '}
+                                                            Disable 2FA
                                                         </Button>
                                                     )}
                                                 </Form>
@@ -2353,9 +2354,7 @@ export default function Profile({
 
                                     <TwoFactorSetupModal
                                         isOpen={showSetupModal}
-                                        onClose={() =>
-                                            setShowSetupModal(false)
-                                        }
+                                        onClose={() => setShowSetupModal(false)}
                                         requiresConfirmation={
                                             requiresConfirmation
                                         }

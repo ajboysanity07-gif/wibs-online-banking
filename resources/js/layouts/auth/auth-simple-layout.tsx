@@ -33,10 +33,7 @@ export default function AuthSimpleLayout({
                         </div>
                     </div>
                     {children}
-                    <SupportContact
-                        variant="stacked"
-                        className="text-center"
-                    />
+                    <SupportContact variant="stacked" className="text-center" />
                 </div>
             </div>
         </div>

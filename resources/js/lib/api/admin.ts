@@ -64,9 +64,10 @@ type MemberLoanPaymentsQueryParams = {
 
 export const adminApi = {
     async getDashboardSummary(): Promise<DashboardSummary> {
-        const response = await client.get<ApiResponse<DashboardSummary>>(
-            '/spa/admin/summary',
-        );
+        const response =
+            await client.get<ApiResponse<DashboardSummary>>(
+                '/spa/admin/summary',
+            );
 
         return unwrap(response);
     },
@@ -85,10 +86,9 @@ export const adminApi = {
         userId: number,
         signal?: AbortSignal,
     ): Promise<MemberDetail> {
-        const response = await client.get<ApiResponse<{ member: MemberDetail }>>(
-            `/spa/admin/members/${userId}`,
-            { signal },
-        );
+        const response = await client.get<
+            ApiResponse<{ member: MemberDetail }>
+        >(`/spa/admin/members/${userId}`, { signal });
 
         return unwrap(response).member;
     },
@@ -106,10 +106,9 @@ export const adminApi = {
         params: PendingApprovalsQueryParams,
         signal?: AbortSignal,
     ): Promise<PendingApprovalsResponse> {
-        const response = await client.get<ApiResponse<PendingApprovalsResponse>>(
-            '/spa/admin/pending-approvals',
-            { params, signal },
-        );
+        const response = await client.get<
+            ApiResponse<PendingApprovalsResponse>
+        >('/spa/admin/pending-approvals', { params, signal });
 
         return unwrap(response);
     },
@@ -162,10 +161,9 @@ export const adminApi = {
         params: MemberAccountQueryParams,
         signal?: AbortSignal,
     ): Promise<MemberSavingsLedgerResponse> {
-        const response = await client.get<ApiResponse<MemberSavingsLedgerResponse>>(
-            `/admin/api/members/${userId}/accounts/savings`,
-            { params, signal },
-        );
+        const response = await client.get<
+            ApiResponse<MemberSavingsLedgerResponse>
+        >(`/admin/api/members/${userId}/accounts/savings`, { params, signal });
 
         return unwrap(response);
     },
@@ -174,10 +172,11 @@ export const adminApi = {
         loanNumber: string | number,
         signal?: AbortSignal,
     ): Promise<MemberLoanScheduleResponse> {
-        const response = await client.get<ApiResponse<MemberLoanScheduleResponse>>(
-            `/admin/api/members/${userId}/loans/${loanNumber}/schedule`,
-            { signal },
-        );
+        const response = await client.get<
+            ApiResponse<MemberLoanScheduleResponse>
+        >(`/admin/api/members/${userId}/loans/${loanNumber}/schedule`, {
+            signal,
+        });
 
         return unwrap(response);
     },
@@ -187,10 +186,12 @@ export const adminApi = {
         params: MemberLoanPaymentsQueryParams,
         signal?: AbortSignal,
     ): Promise<MemberLoanPaymentsResponse> {
-        const response = await client.get<ApiResponse<MemberLoanPaymentsResponse>>(
-            `/admin/api/members/${userId}/loans/${loanNumber}/payments`,
-            { params, signal },
-        );
+        const response = await client.get<
+            ApiResponse<MemberLoanPaymentsResponse>
+        >(`/admin/api/members/${userId}/loans/${loanNumber}/payments`, {
+            params,
+            signal,
+        });
 
         return unwrap(response);
     },

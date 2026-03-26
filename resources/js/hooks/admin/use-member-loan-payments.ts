@@ -107,7 +107,15 @@ export function useMemberLoanPayments(
                 return null;
             }
         },
-        [filters.end, filters.range, filters.start, loanNumber, memberId, page, perPage],
+        [
+            filters.end,
+            filters.range,
+            filters.start,
+            loanNumber,
+            memberId,
+            page,
+            perPage,
+        ],
     );
 
     useEffect(() => {

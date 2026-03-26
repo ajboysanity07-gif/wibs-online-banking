@@ -12,7 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { dashboard as clientDashboard, savings as clientSavings } from '@/routes/client';
+import {
+    dashboard as clientDashboard,
+    savings as clientSavings,
+} from '@/routes/client';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,

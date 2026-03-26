@@ -210,189 +210,183 @@ export default function Register({ memberName }: Props) {
                         className="text-sm"
                     />
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="username">Username</Label>
-                                <Input
-                                    id="username"
-                                    type="text"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="username"
-                                    name="username"
-                                    placeholder="Choose a username"
-                                    value={usernameValue}
-                                    onChange={(event) => {
-                                        setUsernameValue(event.target.value);
-                                        clearError('username');
-                                    }}
-                                    onFocus={() => setHasFocused(true)}
-                                />
-                                <FieldMessage
-                                    error={errors.username}
-                                    hint={availabilityLabel ?? undefined}
-                                    reserveSpace
-                                    className={
-                                        errors.username
-                                            ? undefined
-                                            : availabilityClassName
-                                    }
-                                />
-                                {shouldShowSuggestions && (
-                                    <div className="space-y-2">
-                                        <p className="text-xs text-muted-foreground">
-                                            Suggestions
-                                        </p>
-                                        <div
-                                            className="flex flex-wrap gap-2"
-                                            aria-label="Username suggestions"
+                    <div className="grid gap-2">
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                            id="username"
+                            type="text"
+                            required
+                            autoFocus
+                            tabIndex={1}
+                            autoComplete="username"
+                            name="username"
+                            placeholder="Choose a username"
+                            value={usernameValue}
+                            onChange={(event) => {
+                                setUsernameValue(event.target.value);
+                                clearError('username');
+                            }}
+                            onFocus={() => setHasFocused(true)}
+                        />
+                        <FieldMessage
+                            error={errors.username}
+                            hint={availabilityLabel ?? undefined}
+                            reserveSpace
+                            className={
+                                errors.username
+                                    ? undefined
+                                    : availabilityClassName
+                            }
+                        />
+                        {shouldShowSuggestions && (
+                            <div className="space-y-2">
+                                <p className="text-xs text-muted-foreground">
+                                    Suggestions
+                                </p>
+                                <div
+                                    className="flex flex-wrap gap-2"
+                                    aria-label="Username suggestions"
+                                >
+                                    {shownSuggestions.map((suggestion) => (
+                                        <Button
+                                            key={suggestion}
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 px-2 text-xs"
+                                            onClick={() => {
+                                                setUsernameValue(suggestion);
+                                                setAvailability('checking');
+                                                clearError('username');
+                                            }}
                                         >
-                                            {shownSuggestions.map((suggestion) => (
-                                                <Button
-                                                    key={suggestion}
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 px-2 text-xs"
-                                                    onClick={() => {
-                                                        setUsernameValue(
-                                                            suggestion,
-                                                        );
-                                                        setAvailability(
-                                                            'checking',
-                                                        );
-                                                        clearError('username');
-                                                    }}
-                                                >
-                                                    {suggestion}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                            {suggestion}
+                                        </Button>
+                                    ))}
+                                </div>
                             </div>
+                        )}
+                    </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="email"
-                                    name="email"
-                                    placeholder="email@example.com"
-                                    value={emailValue}
-                                    onChange={(event) => {
-                                        setEmailValue(event.target.value);
-                                        clearError('email');
-                                    }}
-                                />
-                                <FieldMessage
-                                    error={errors.email}
-                                    reserveSpace={false}
-                                />
-                            </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">Email address</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            required
+                            tabIndex={2}
+                            autoComplete="email"
+                            name="email"
+                            placeholder="email@example.com"
+                            value={emailValue}
+                            onChange={(event) => {
+                                setEmailValue(event.target.value);
+                                clearError('email');
+                            }}
+                        />
+                        <FieldMessage
+                            error={errors.email}
+                            reserveSpace={false}
+                        />
+                    </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="phoneno">
-                                    Phone number (optional)
-                                </Label>
-                                <Input
-                                    id="phoneno"
-                                    type="tel"
-                                    tabIndex={3}
-                                    autoComplete="tel"
-                                    inputMode="numeric"
-                                    name="phoneno"
-                                    placeholder="09XXXXXXXXX"
-                                    maxLength={11}
-                                    value={phoneValue}
-                                    onChange={(event) => {
-                                        setPhoneValue(event.target.value);
-                                        clearError('phoneno');
-                                    }}
-                                />
-                                <FieldMessage
-                                    error={errors.phoneno}
-                                    reserveSpace={false}
-                                />
-                            </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="phoneno">Phone number (optional)</Label>
+                        <Input
+                            id="phoneno"
+                            type="tel"
+                            tabIndex={3}
+                            autoComplete="tel"
+                            inputMode="numeric"
+                            name="phoneno"
+                            placeholder="09XXXXXXXXX"
+                            maxLength={11}
+                            value={phoneValue}
+                            onChange={(event) => {
+                                setPhoneValue(event.target.value);
+                                clearError('phoneno');
+                            }}
+                        />
+                        <FieldMessage
+                            error={errors.phoneno}
+                            reserveSpace={false}
+                        />
+                    </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
-                                <PasswordInput
-                                    id="password"
-                                    required
-                                    tabIndex={4}
-                                    autoComplete="new-password"
-                                    name="password"
-                                    placeholder="Password"
-                                    value={passwordValue}
-                                    onChange={(event) => {
-                                        setPasswordValue(event.target.value);
-                                        clearError('password');
-                                    }}
-                                />
-                                <FieldMessage
-                                    error={errors.password}
-                                    reserveSpace={false}
-                                />
-                            </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="password">Password</Label>
+                        <PasswordInput
+                            id="password"
+                            required
+                            tabIndex={4}
+                            autoComplete="new-password"
+                            name="password"
+                            placeholder="Password"
+                            value={passwordValue}
+                            onChange={(event) => {
+                                setPasswordValue(event.target.value);
+                                clearError('password');
+                            }}
+                        />
+                        <FieldMessage
+                            error={errors.password}
+                            reserveSpace={false}
+                        />
+                    </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
-                                    Confirm password
-                                </Label>
-                                <PasswordInput
-                                    id="password_confirmation"
-                                    required
-                                    tabIndex={5}
-                                    autoComplete="new-password"
-                                    name="password_confirmation"
-                                    placeholder="Confirm password"
-                                    value={passwordConfirmationValue}
-                                    onChange={(event) => {
-                                        const value = event.target.value;
-                                        setPasswordConfirmationValue(value);
-                                        clearError('password_confirmation');
-                                    }}
-                                />
-                                <FieldMessage
-                                    error={errors.password_confirmation}
-                                    hint={
-                                        passwordConfirmationValue.length > 0
-                                            ? passwordValue ===
-                                                  passwordConfirmationValue
-                                                ? 'Passwords match'
-                                                : 'Passwords do not match'
-                                            : undefined
-                                    }
-                                    reserveSpace
-                                    className={
-                                        errors.password_confirmation
-                                            ? undefined
-                                            : passwordConfirmationValue.length > 0
-                                            ? passwordValue ===
-                                              passwordConfirmationValue
-                                                ? 'text-xs text-emerald-600'
-                                                : 'text-xs text-red-600'
-                                            : undefined
-                                    }
-                                />
-                            </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="password_confirmation">
+                            Confirm password
+                        </Label>
+                        <PasswordInput
+                            id="password_confirmation"
+                            required
+                            tabIndex={5}
+                            autoComplete="new-password"
+                            name="password_confirmation"
+                            placeholder="Confirm password"
+                            value={passwordConfirmationValue}
+                            onChange={(event) => {
+                                const value = event.target.value;
+                                setPasswordConfirmationValue(value);
+                                clearError('password_confirmation');
+                            }}
+                        />
+                        <FieldMessage
+                            error={errors.password_confirmation}
+                            hint={
+                                passwordConfirmationValue.length > 0
+                                    ? passwordValue ===
+                                      passwordConfirmationValue
+                                        ? 'Passwords match'
+                                        : 'Passwords do not match'
+                                    : undefined
+                            }
+                            reserveSpace
+                            className={
+                                errors.password_confirmation
+                                    ? undefined
+                                    : passwordConfirmationValue.length > 0
+                                      ? passwordValue ===
+                                        passwordConfirmationValue
+                                          ? 'text-xs text-emerald-600'
+                                          : 'text-xs text-red-600'
+                                      : undefined
+                            }
+                        />
+                    </div>
 
-                            <Button
-                                type="submit"
-                                className="mt-2 w-full"
-                                tabIndex={6}
-                                data-test="register-user-button"
-                                disabled={processing}
-                            >
-                                {processing && <Spinner />}
-                                Create login
-                            </Button>
-                        </div>
+                    <Button
+                        type="submit"
+                        className="mt-2 w-full"
+                        tabIndex={6}
+                        data-test="register-user-button"
+                        disabled={processing}
+                    >
+                        {processing && <Spinner />}
+                        Create login
+                    </Button>
+                </div>
 
                 <div className="text-center text-sm text-muted-foreground">
                     Already have an account?{' '}

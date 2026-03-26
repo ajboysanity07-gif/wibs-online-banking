@@ -18,7 +18,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { TableSkeleton, type TableSkeletonColumn } from '@/components/ui/table-skeleton';
+import {
+    TableSkeleton,
+    type TableSkeletonColumn,
+} from '@/components/ui/table-skeleton';
 import { usePendingApprovals } from '@/hooks/admin/use-pending-approvals';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
 import AppLayout from '@/layouts/app-layout';
@@ -302,8 +305,7 @@ export default function PendingUsers() {
                                         key={row.user_id}
                                         row={row}
                                         isProcessing={
-                                            processingIds[row.user_id] ??
-                                            false
+                                            processingIds[row.user_id] ?? false
                                         }
                                         onApprove={(userId) =>
                                             updateStatus(userId, 'approve')

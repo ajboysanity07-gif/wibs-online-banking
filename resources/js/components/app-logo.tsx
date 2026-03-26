@@ -26,7 +26,9 @@ export default function AppLogo({
         <span
             className={cn(
                 'flex gap-2',
-                isStacked ? 'flex-col items-center text-center' : 'items-center',
+                isStacked
+                    ? 'flex-col items-center text-center'
+                    : 'items-center',
                 className,
             )}
         >

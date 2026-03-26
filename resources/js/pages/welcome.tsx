@@ -89,9 +89,9 @@ export default function Welcome() {
             <Head title="Welcome" />
 
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,hsl(var(--primary)/0.14),transparent_35%),radial-gradient(circle_at_85%_10%,hsl(var(--accent)/0.18),transparent_40%)]" />
-            <div className="absolute inset-x-0 top-0 h-56 bg-linear-to-b from-primary/10 via-transparent to-transparent blur-3xl opacity-80" />
+            <div className="absolute inset-x-0 top-0 h-56 bg-linear-to-b from-primary/10 via-transparent to-transparent opacity-80 blur-3xl" />
 
-            <div className="relative mx-auto flex max-w-6xl flex-col px-6 pb-16 pt-8 lg:px-10 lg:pb-24 lg:pt-12">
+            <div className="relative mx-auto flex max-w-6xl flex-col px-6 pt-8 pb-16 lg:px-10 lg:pt-12 lg:pb-24">
                 <header className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <img
@@ -136,15 +136,15 @@ export default function Welcome() {
                 <main className="mt-8 space-y-16 lg:mt-20">
                     <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                         <div className="space-y-6">
-                            <p className="hidden text-xs font-semibold uppercase tracking-[0.3em] text-primary sm:flex">
+                            <p className="hidden text-xs font-semibold tracking-[0.3em] text-primary uppercase sm:flex">
                                 {branding.appTitle}
                             </p>
-                            <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+                            <h1 className="text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
                                 Member portal built for cooperative services.
                             </h1>
                             <p className="text-lg text-muted-foreground sm:text-xl">
-                                View loan history, payments, and submit
-                                requests processed in WIBS Desktop.
+                                View loan history, payments, and submit requests
+                                processed in WIBS Desktop.
                             </p>
 
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -185,7 +185,7 @@ export default function Welcome() {
                         </div>
 
                         <div className="relative">
-                            <div className="pointer-events-none absolute inset-0 rounded-3xl bg-linear-to-br from-primary/15 via-transparent to-[hsl(var(--accent)/0.18)] blur-3xl opacity-80" />
+                            <div className="pointer-events-none absolute inset-0 rounded-3xl bg-linear-to-br from-primary/15 via-transparent to-[hsl(var(--accent)/0.18)] opacity-80 blur-3xl" />
                             <div className="relative rounded-3xl border border-border bg-card/90 p-8 shadow-xl backdrop-blur-md">
                                 <div className="space-y-4">
                                     <div className="rounded-2xl border border-border bg-muted/60 p-4">

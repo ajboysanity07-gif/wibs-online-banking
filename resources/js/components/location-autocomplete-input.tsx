@@ -94,7 +94,7 @@ export function LocationAutocompleteInput({
             />
 
             {isInteractive && search.open && (
-                <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-lg backdrop-blur">
+                <div className="absolute z-20 mt-2 w-full rounded-md border border-border/70 bg-background/95 p-2 text-sm shadow-[0_10px_20px_rgba(0,0,0,0.12)] backdrop-blur dark:shadow-[0_12px_24px_rgba(0,0,0,0.32)]">
                     {search.status === 'loading' && (
                         <p className="px-2 py-1 text-muted-foreground">
                             {loadingMessage ?? DEFAULT_LOADING_MESSAGE}

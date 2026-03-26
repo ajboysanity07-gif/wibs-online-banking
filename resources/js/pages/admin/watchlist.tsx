@@ -18,7 +18,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { TableSkeleton, type TableSkeletonColumn } from '@/components/ui/table-skeleton';
+import {
+    TableSkeleton,
+    type TableSkeletonColumn,
+} from '@/components/ui/table-skeleton';
 import { useMembers } from '@/hooks/admin/use-members';
 import AppLayout from '@/layouts/app-layout';
 import { show as showMember } from '@/routes/admin/members';
@@ -181,9 +184,7 @@ const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
                 variant="outline"
                 className="w-full sm:w-auto"
             >
-                <Link href={showMember(member.user_id).url}>
-                    Open profile
-                </Link>
+                <Link href={showMember(member.user_id).url}>Open profile</Link>
             </Button>
         </div>
     </div>
@@ -232,9 +233,7 @@ export default function MembersPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All</SelectItem>
-                                <SelectItem value="pending">
-                                    Pending
-                                </SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
                                 <SelectItem value="active">Active</SelectItem>
                                 <SelectItem value="suspended">
                                     Suspended

@@ -127,8 +127,8 @@ export default function RequestsPage() {
                         emptyMessage={
                             meta.available
                                 ? 'No requests found.'
-                                : meta.message ??
-                                  'Requests module coming soon.'
+                                : (meta.message ??
+                                  'Requests module coming soon.')
                         }
                     />
                 )}

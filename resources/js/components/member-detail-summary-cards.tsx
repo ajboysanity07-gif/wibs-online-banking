@@ -53,7 +53,7 @@ export function MemberDetailPrimaryCard({
         <Card className={cn('border', styles.border, styles.bg)}>
             <CardContent className="flex flex-col gap-3 p-6">
                 <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         {title}
                     </p>
                     <Icon
@@ -85,7 +85,7 @@ export function MemberDetailSupportingCard({
         <Card className="border-border/60 bg-card">
             <CardContent className="flex h-full flex-col gap-3 p-6">
                 <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         {title}
                     </p>
                     <Icon

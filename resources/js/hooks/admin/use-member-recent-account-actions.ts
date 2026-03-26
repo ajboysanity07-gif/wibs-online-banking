@@ -34,10 +34,7 @@ export function useMemberRecentAccountActions(
     options?: MemberAccountActionsOptions,
 ) {
     const initialKey = `${memberId ?? 'unknown'}`;
-    const emptyResponse = useMemo(
-        () => buildEmptyResponse(perPage),
-        [perPage],
-    );
+    const emptyResponse = useMemo(() => buildEmptyResponse(perPage), [perPage]);
     const initialData = options?.initial ?? emptyResponse;
 
     const [state, setState] = useState<MemberAccountActionsState>({

@@ -11,6 +11,7 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -167,6 +168,40 @@ class LoanRequestController extends Controller
             $loanRequestRecord,
             $request->boolean('download'),
         );
+    }
+
+    public function print(
+        Request $request,
+        int $loanRequest,
+        LoanRequestPdfService $pdfService,
+    ): View|RedirectResponse {
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->route('login');
+        }
+
+        $user->loadMissing('adminProfile');
+
+        if ($user->adminProfile !== null) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'print',
+        );
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        if (! $this->canViewPdf($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $pdfService->renderPrintView($loanRequestRecord);
     }
 
     /**

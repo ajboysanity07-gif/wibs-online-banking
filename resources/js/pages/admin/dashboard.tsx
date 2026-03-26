@@ -21,7 +21,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { TableSkeleton, type TableSkeletonColumn } from '@/components/ui/table-skeleton';
+import {
+    TableSkeleton,
+    type TableSkeletonColumn,
+} from '@/components/ui/table-skeleton';
 import { useAdminDashboard } from '@/hooks/admin/use-admin-dashboard';
 import { useMembers } from '@/hooks/admin/use-members';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
@@ -196,9 +199,7 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
                 variant="outline"
                 className="w-full sm:w-auto"
             >
-                <Link href={showMember(member.user_id).url}>
-                    Open profile
-                </Link>
+                <Link href={showMember(member.user_id).url}>Open profile</Link>
             </Button>
         </div>
     </div>
@@ -242,14 +243,17 @@ export default function AdminDashboard({ summary }: Props) {
         },
     });
 
-    const { items: lookupRows, loading: lookupLoading, error: lookupError } =
-        useMembers({
-            search: memberSearch,
-            status: 'all',
-            sort: 'newest',
-            page: 1,
-            perPage: 5,
-        });
+    const {
+        items: lookupRows,
+        loading: lookupLoading,
+        error: lookupError,
+    } = useMembers({
+        search: memberSearch,
+        status: 'all',
+        sort: 'newest',
+        page: 1,
+        perPage: 5,
+    });
 
     const pendingRows = summaryState.pendingApprovals;
     const requestsPreview = summaryState.requests;
@@ -328,7 +332,9 @@ export default function AdminDashboard({ summary }: Props) {
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardDescription>Total portal users</CardDescription>
+                            <CardDescription>
+                                Total portal users
+                            </CardDescription>
                             <CardTitle className="text-3xl">
                                 {summaryState.metrics.totalCount}
                             </CardTitle>
@@ -522,7 +528,8 @@ export default function AdminDashboard({ summary }: Props) {
                                                                 size="sm"
                                                                 disabled={
                                                                     processingIds[
-                                                                        user.user_id
+                                                                        user
+                                                                            .user_id
                                                                     ] ||
                                                                     user.status !==
                                                                         'pending'
@@ -563,9 +570,7 @@ export default function AdminDashboard({ summary }: Props) {
                                 </CardDescription>
                             </div>
                             <Button asChild size="sm" variant="outline">
-                                <Link href={requestsIndex().url}>
-                                    See more
-                                </Link>
+                                <Link href={requestsIndex().url}>See more</Link>
                             </Button>
                         </CardHeader>
                         <CardContent className="px-0">
@@ -611,7 +616,9 @@ export default function AdminDashboard({ summary }: Props) {
                                                     </TableCell>
                                                     <TableCell className="px-6">
                                                         <LoanRequestStatusBadge
-                                                            status={request.status}
+                                                            status={
+                                                                request.status
+                                                            }
                                                         />
                                                     </TableCell>
                                                     <TableCell className="px-6">
@@ -679,7 +686,9 @@ export default function AdminDashboard({ summary }: Props) {
                                         aria-busy="true"
                                     >
                                         <TableSkeleton
-                                            columns={memberLookupSkeletonColumns}
+                                            columns={
+                                                memberLookupSkeletonColumns
+                                            }
                                             rows={5}
                                             className="rounded-md border"
                                         />
@@ -705,11 +714,15 @@ export default function AdminDashboard({ summary }: Props) {
                                         <Table>
                                             <TableHeader className="text-muted-foreground">
                                                 <TableRow>
-                                                    <TableHead>Member</TableHead>
+                                                    <TableHead>
+                                                        Member
+                                                    </TableHead>
                                                     <TableHead>
                                                         Account No
                                                     </TableHead>
-                                                    <TableHead>Status</TableHead>
+                                                    <TableHead>
+                                                        Status
+                                                    </TableHead>
                                                     <TableHead className="text-right">
                                                         Action
                                                     </TableHead>
@@ -728,9 +741,7 @@ export default function AdminDashboard({ summary }: Props) {
                                                 ) : (
                                                     lookupRows.map((member) => (
                                                         <TableRow
-                                                            key={
-                                                                member.user_id
-                                                            }
+                                                            key={member.user_id}
                                                         >
                                                             <TableCell>
                                                                 <div className="flex flex-col">
@@ -778,7 +789,8 @@ export default function AdminDashboard({ summary }: Props) {
                                                                                 .url
                                                                         }
                                                                     >
-                                                                        Open profile
+                                                                        Open
+                                                                        profile
                                                                     </Link>
                                                                 </Button>
                                                             </TableCell>
