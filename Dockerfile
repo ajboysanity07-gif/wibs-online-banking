@@ -7,7 +7,10 @@ RUN apt-get update && apt-get install -y \
     git unzip zip curl gnupg2 ca-certificates apt-transport-https \
     libzip-dev libicu-dev libpng-dev libonig-dev libxml2-dev \
     libjpeg62-turbo-dev libfreetype6-dev libwebp-dev \
-    nodejs npm \
+ && mkdir -p /etc/apt/keyrings \
+ && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+ && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
+ && apt-get update && apt-get install -y nodejs \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install bcmath gd intl mbstring zip \
  && rm -rf /var/lib/apt/lists/*
@@ -18,7 +21,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
 
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN npm install
 
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
@@ -38,12 +41,14 @@ RUN apt-get update && apt-get install -y \
     git unzip zip \
     libzip-dev libicu-dev libpng-dev libonig-dev libxml2-dev \
     libjpeg62-turbo-dev libfreetype6-dev libwebp-dev \
-    unixodbc-dev chromium nodejs npm \
- && mkdir -p /usr/share/keyrings \
+    unixodbc-dev chromium \
+ && mkdir -p /usr/share/keyrings /etc/apt/keyrings \
  && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list \
+ && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+ && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
  && apt-get update \
- && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
+ && ACCEPT_EULA=Y apt-get install -y msodbcsql18 nodejs \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install bcmath gd intl mbstring pdo zip \
  && pecl install sqlsrv pdo_sqlsrv \
