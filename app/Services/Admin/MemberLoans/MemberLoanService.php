@@ -98,10 +98,11 @@ class MemberLoanService
                 'start' => $dateRange['startDate'],
                 'end' => $dateRange['endDate'],
             ],
-            'openingBalance' => $this->repository->getOpeningBalance(
+            'openingBalance' => $this->resolveOpeningBalance(
                 $context['acctno'],
                 $loan->lnnumber,
                 $dateRange['start'],
+                $dateRange['end'],
             ),
             'closingBalance' => $this->repository->getClosingBalance(
                 $context['acctno'],
@@ -225,10 +226,11 @@ class MemberLoanService
                 'start' => $dateRange['startDate'],
                 'end' => $dateRange['endDate'],
             ],
-            'openingBalance' => $this->repository->getOpeningBalance(
+            'openingBalance' => $this->resolveOpeningBalance(
                 $context['acctno'],
                 $context['loan']->lnnumber,
                 $dateRange['start'],
+                $dateRange['end'],
             ),
             'closingBalance' => $this->repository->getClosingBalance(
                 $context['acctno'],
@@ -279,10 +281,11 @@ class MemberLoanService
                 'start' => $dateRange['startDate'],
                 'end' => $dateRange['endDate'],
             ],
-            'openingBalance' => $this->repository->getOpeningBalance(
+            'openingBalance' => $this->resolveOpeningBalance(
                 $context['acctno'],
                 $loan->lnnumber,
                 $dateRange['start'],
+                $dateRange['end'],
             ),
             'closingBalance' => $this->repository->getClosingBalance(
                 $context['acctno'],
@@ -361,6 +364,30 @@ class MemberLoanService
     private function normalizePage(int $page): int
     {
         return max(1, $page);
+    }
+
+    private function resolveOpeningBalance(
+        string $acctno,
+        string $loanNumber,
+        ?Carbon $startDate,
+        ?Carbon $endDate,
+    ): ?float {
+        $openingBalance = $this->repository->getOpeningBalance(
+            $acctno,
+            $loanNumber,
+            $startDate,
+        );
+
+        if ($openingBalance !== null) {
+            return $openingBalance;
+        }
+
+        return $this->repository->getDerivedOpeningBalance(
+            $acctno,
+            $loanNumber,
+            $startDate,
+            $endDate,
+        );
     }
 
     /**

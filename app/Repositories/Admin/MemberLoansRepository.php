@@ -155,6 +155,54 @@ class MemberLoansRepository
         return $this->castNumber($value);
     }
 
+    public function getDerivedOpeningBalance(
+        string $acctno,
+        string $loanNumber,
+        ?Carbon $startDate,
+        ?Carbon $endDate,
+    ): ?float {
+        if (
+            ! $this->hasTable('wlnled') ||
+            ! $this->hasColumn('wlnled', 'balance')
+        ) {
+            return null;
+        }
+
+        $query = Wlnled::query()
+            ->where('acctno', $acctno)
+            ->where('lnnumber', $loanNumber);
+
+        $this->applyPaymentAmountFilter($query);
+        $this->applyDateRange($query, $startDate, $endDate);
+
+        $select = ['date_in', 'balance'];
+
+        if ($this->hasColumn('wlnled', 'principal')) {
+            $select[] = 'principal';
+        }
+
+        if ($this->hasColumn('wlnled', 'payments')) {
+            $select[] = 'payments';
+        }
+
+        $row = $query->orderBy('date_in')->select($select)->first();
+
+        if ($row === null) {
+            return null;
+        }
+
+        $balance = $this->castNumber($row->balance ?? null);
+
+        if ($balance === null) {
+            return null;
+        }
+
+        $principal = $this->castNumber($row->principal ?? null) ?? 0.0;
+        $payments = $this->castNumber($row->payments ?? null) ?? 0.0;
+
+        return $balance - $principal + $payments;
+    }
+
     public function getClosingBalance(
         string $acctno,
         string $loanNumber,

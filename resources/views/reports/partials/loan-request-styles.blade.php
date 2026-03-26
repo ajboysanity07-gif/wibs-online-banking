@@ -8,19 +8,20 @@
     @include('reports.partials.report-typography')
     @page {
         size: 8.5in 13in;
-        margin: 0;
+        margin: 0.5in;
     }
     body {
         font-family: var(--report-font-value-family);
         font-size: 9.5px;
         color: #111;
-        margin: 12px;
+        margin: 0;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     .page {
         border: 1.5px solid #111;
         padding: 12px 12px 16px;
+        box-sizing: border-box;
     }
     .report-header {
         margin-bottom: 20px;

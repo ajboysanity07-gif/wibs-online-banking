@@ -1,12 +1,12 @@
 import { Head } from '@inertiajs/react';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import AppLayout from '@/layouts/app-layout';
-import { loans as clientLoans } from '@/routes/client';
 import {
-    pdf as loanRequestPdf,
-    print as loanRequestPrint,
-    show as loanRequestShow,
-} from '@/routes/client/loan-requests';
+    index as requestsIndex,
+    pdf as requestsPdf,
+    print as requestsPrint,
+    show as requestsShow,
+} from '@/routes/admin/requests';
 import type { BreadcrumbItem } from '@/types';
 import type { LoanRequestDetail, LoanRequestPersonData } from '@/types/loan-requests';
 
@@ -24,17 +24,13 @@ export default function LoanRequestShow({
     coMakerTwo,
 }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Loans', href: clientLoans().url },
-        {
-            title: 'Loan request',
-            href: loanRequestShow(loanRequest.id).url,
-        },
+        { title: 'Requests', href: requestsIndex().url },
+        { title: 'Loan request', href: requestsShow(loanRequest.id).url },
     ];
-
-    const pdfHref = loanRequestPdf(loanRequest.id, {
+    const pdfHref = requestsPdf(loanRequest.id, {
         query: { download: 1 },
     }).url;
-    const printHref = loanRequestPrint(loanRequest.id).url;
+    const printHref = requestsPrint(loanRequest.id).url;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -44,8 +40,8 @@ export default function LoanRequestShow({
                 applicant={applicant}
                 coMakerOne={coMakerOne}
                 coMakerTwo={coMakerTwo}
-                backHref={clientLoans().url}
-                backLabel="Back to loans"
+                backHref={requestsIndex().url}
+                backLabel="Back to requests"
                 pdfHref={pdfHref}
                 printHref={printHref}
             />

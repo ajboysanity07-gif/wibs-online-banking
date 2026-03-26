@@ -821,6 +821,151 @@ test('admin requests api returns loan request data', function () {
         ->assertJsonPath('data.items.0.id', $loanRequest->id);
 });
 
+test('admin can view loan request details page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Loan',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.show', $loanRequest));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/loan-request-show')
+            ->where('loanRequest.id', $loanRequest->id)
+            ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
+            ->where('applicant.first_name', 'Loan'));
+});
+
+test('admin loan request pdf endpoint responds with a pdf', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.pdf', $loanRequest));
+
+    $response->assertOk();
+    $response->assertHeader('content-type', 'application/pdf');
+});
+
+test('admin loan request pdf download responds with an attachment', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.pdf', [
+            'loanRequest' => $loanRequest->id,
+            'download' => 1,
+        ]));
+
+    $response->assertOk();
+    expect($response->headers->get('content-disposition'))
+        ->toStartWith('attachment;');
+});
+
+test('admin loan request print preview renders', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => now(),
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.print', $loanRequest));
+
+    $response->assertOk();
+    $response->assertViewIs('reports.loan-request-print');
+    $response->assertSee('APPLICATION FORM');
+});
+
+test('non-admin users cannot access admin loan request routes', function () {
+    $user = User::factory()->create();
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.requests.show', $loanRequest))
+        ->assertForbidden();
+
+    $this->actingAs($user)
+        ->get(route('admin.requests.pdf', $loanRequest))
+        ->assertForbidden();
+
+    $this->actingAs($user)
+        ->get(route('admin.requests.print', $loanRequest))
+        ->assertForbidden();
+});
+
 test('admin dashboard reports loan requests count', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([

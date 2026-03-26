@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\LoanRequestController as AdminLoanRequestController;
 use App\Http\Controllers\Admin\MemberLoanPaymentsController;
 use App\Http\Controllers\Admin\MemberLoanPaymentsExportController;
 use App\Http\Controllers\Admin\MemberLoanScheduleController;
@@ -383,6 +384,15 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
 
     Route::get('requests', [RequestsController::class, 'index'])
         ->name('admin.requests.index');
+
+    Route::get('requests/{loanRequest}', [AdminLoanRequestController::class, 'show'])
+        ->name('admin.requests.show');
+
+    Route::get('requests/{loanRequest}/pdf', [AdminLoanRequestController::class, 'pdf'])
+        ->name('admin.requests.pdf');
+
+    Route::get('requests/{loanRequest}/print', [AdminLoanRequestController::class, 'print'])
+        ->name('admin.requests.print');
 
     Route::get('users/pending', [UserApprovalController::class, 'index'])
         ->name('admin.users.pending');
