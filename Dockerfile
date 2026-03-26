@@ -9,18 +9,8 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 COPY . .
 RUN npm run build
 
-FROM php:8.3-cli-bookworm AS vendor
+FROM composer:2 AS vendor
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y \
-    git unzip zip curl \
-    libzip-dev libicu-dev libpng-dev libonig-dev libxml2-dev \
-    libjpeg62-turbo-dev libfreetype6-dev libwebp-dev \
- && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
- && docker-php-ext-install bcmath gd intl mbstring zip \
- && rm -rf /var/lib/apt/lists/*
-
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
