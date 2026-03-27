@@ -52,14 +52,14 @@ export default function PendingApproval() {
 
     return (
         <AuthLayout
-            title="Pending approval"
-            description="Your account is awaiting admin approval"
+            title="Account unavailable"
+            description="Your account is currently unavailable"
         >
-            <Head title="Pending approval" />
+            <Head title="Account unavailable" />
             <div className="flex flex-col gap-6">
                 <p className="text-sm text-muted-foreground">
-                    You'll be able to access your dashboard once your
-                    registration is approved.
+                    Your account access is on hold. Please contact your
+                    cooperative if you believe this is a mistake.
                 </p>
                 <div className="flex flex-col gap-3">
                     <Button

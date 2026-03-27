@@ -22,7 +22,11 @@ beforeEach(function () {
             $table->string('mname')->nullable();
             $table->string('bname')->nullable();
             $table->date('birthday')->nullable();
+            $table->string('birthplace')->nullable();
             $table->string('address')->nullable();
+            $table->string('address2')->nullable();
+            $table->string('address3')->nullable();
+            $table->string('address4')->nullable();
             $table->string('civilstat')->nullable();
             $table->string('occupation')->nullable();
             $table->string('spouse')->nullable();
@@ -79,6 +83,97 @@ test('approved client can view the loan request form', function () {
             ->has('coMakerTwo')
             ->has('draft')
             ->has('member'));
+});
+
+test('loan request form uses structured wmaster names and address parts', function () {
+    $user = User::factory()->create([
+        'acctno' => '000712',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'mname' => 'Q',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'birthplace' => 'Makati City',
+        'address' => 'Legacy Loan Street',
+        'address2' => '123 Main Street',
+        'address3' => 'Makati',
+        'address4' => 'Metro Manila',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'birthplace' => 'Davao City',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-003',
+        'lntype' => 'Salary/Pension',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.first_name', 'Loan')
+            ->where('applicant.middle_name', 'Q')
+            ->where('applicant.last_name', 'Member')
+            ->where('applicant.birthplace', 'Makati City')
+            ->where('applicant.address', '123 Main Street, Makati, Metro Manila')
+            ->where('applicantReadOnly.address', true));
+});
+
+test('loan request form falls back to legacy wmaster data when structured data is missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000714',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Legacy, Loan L.',
+        'fname' => null,
+        'mname' => null,
+        'lname' => null,
+        'birthday' => '1990-04-10',
+        'birthplace' => null,
+        'address' => 'Legacy Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'birthplace' => 'Cebu City',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-005',
+        'lntype' => 'Salary/Pension',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.first_name', 'Loan')
+            ->where('applicant.middle_name', 'L.')
+            ->where('applicant.last_name', 'Legacy')
+            ->where('applicant.birthplace', 'Cebu City')
+            ->where('applicant.address', 'Legacy Loan Street')
+            ->where('applicantReadOnly.address', true));
 });
 
 test('loan request form preserves member number of children values', function (

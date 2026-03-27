@@ -23,7 +23,7 @@ class MemberLoanScheduleController extends Controller
 
         if (Schema::hasTable('wmaster')) {
             $user->loadMissing('wmaster');
-            $memberName = $user->wmaster?->bname ?? $memberName;
+            $memberName = $user->wmaster?->displayName() ?: $memberName;
         }
 
         $payload = $service->getSchedulePageData($user, $loanNumber);

@@ -15,7 +15,7 @@ class MemberSummaryResource extends JsonResource
     public function toArray(Request $request): array
     {
         $memberName = $this->relationLoaded('wmaster')
-            ? ($this->wmaster?->bname ?? $this->username)
+            ? ($this->wmaster?->displayName() ?: $this->username)
             : $this->username;
 
         return [

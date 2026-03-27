@@ -27,7 +27,7 @@ class EnsureUserApproved
             return $next($request);
         }
 
-        if ($user->userProfile?->status === 'active') {
+        if ($user->userProfile?->status !== 'suspended') {
             return $next($request);
         }
 

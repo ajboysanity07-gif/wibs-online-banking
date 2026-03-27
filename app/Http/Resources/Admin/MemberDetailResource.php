@@ -16,7 +16,7 @@ class MemberDetailResource extends JsonResource
     {
         $reviewedBy = $this->userProfile?->reviewedBy;
         $memberName = $this->relationLoaded('wmaster')
-            ? ($this->wmaster?->bname ?? $this->username)
+            ? ($this->wmaster?->displayName() ?: $this->username)
             : $this->username;
 
         return [

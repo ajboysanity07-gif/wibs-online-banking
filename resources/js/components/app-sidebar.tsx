@@ -73,7 +73,7 @@ const adminNavItems: NavItem[] = [
         matchPaths: [membersIndex(), '/admin/members'],
     },
     {
-        title: 'Pending approvals',
+        title: 'Member reviews',
         href: pendingApprovals(),
         icon: UserCheck,
     },

@@ -27,7 +27,7 @@ class VerifyMemberRequest extends FormRequest
             'accntno' => ['required', 'string', 'max:30'],
             'last_name' => ['required', 'string', 'max:100'],
             'first_name' => ['required', 'string', 'max:100'],
-            'middle_initial' => ['nullable', 'string', 'max:5'],
+            'middle_initial' => ['nullable', 'string', 'max:100'],
         ];
     }
 

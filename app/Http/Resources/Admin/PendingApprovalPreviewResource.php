@@ -14,7 +14,7 @@ class PendingApprovalPreviewResource extends JsonResource
     {
         return [
             'user_id' => $this->user_id,
-            'member_name' => $this->wmaster?->bname ?? $this->username,
+            'member_name' => $this->wmaster?->displayName() ?: $this->username,
             'username' => $this->username,
             'email' => $this->email,
             'acctno' => $this->acctno,

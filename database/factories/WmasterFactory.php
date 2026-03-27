@@ -21,6 +21,9 @@ class WmasterFactory extends Factory
         $firstName = Str::upper(fake()->firstName());
         $middleInitial = fake()->optional()->randomLetter();
         $middleInitial = $middleInitial === null ? null : Str::upper($middleInitial);
+        $street = Str::upper(fake()->streetAddress());
+        $city = Str::upper(fake()->city());
+        $province = Str::upper(fake()->state());
 
         return [
             'acctno' => str_pad((string) fake()->numberBetween(1, 999999), 6, '0', STR_PAD_LEFT),
@@ -30,6 +33,11 @@ class WmasterFactory extends Factory
             'bname' => $middleInitial === null
                 ? sprintf('%s, %s', $lastName, $firstName)
                 : sprintf('%s, %s, %s.', $lastName, $firstName, $middleInitial),
+            'birthplace' => $city,
+            'address' => sprintf('%s, %s, %s', $street, $city, $province),
+            'address2' => $street,
+            'address3' => $city,
+            'address4' => $province,
             'phone' => fake()->optional()->numerify('09#########'),
         ];
     }

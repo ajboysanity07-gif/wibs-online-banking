@@ -27,7 +27,7 @@ class MemberLoanPaymentsController extends Controller
 
         if (Schema::hasTable('wmaster')) {
             $user->loadMissing('wmaster');
-            $memberName = $user->wmaster?->bname ?? $memberName;
+            $memberName = $user->wmaster?->displayName() ?: $memberName;
         }
 
         $page = (int) $request->query('page', 1);

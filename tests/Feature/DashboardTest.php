@@ -30,7 +30,7 @@ test('guests are redirected to the login page', function () {
     $response->assertRedirect(route('login'));
 });
 
-test('approved users can visit the dashboard', function () {
+test('active users can visit the dashboard', function () {
     $user = User::factory()->create([
         'acctno' => '000701',
     ]);
@@ -74,7 +74,7 @@ test('approved users can visit the dashboard', function () {
             ->where('recentAccountActions.meta.page', 1));
 });
 
-test('approved users without a completed profile are redirected to onboarding', function () {
+test('active users without a completed profile are redirected to onboarding', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
@@ -96,7 +96,7 @@ test('approved users without a completed profile are redirected to onboarding', 
     $response->assertRedirect(route('profile.edit', ['onboarding' => 1]));
 });
 
-test('approved users with incomplete member profiles are redirected to onboarding', function () {
+test('active users with incomplete member profiles are redirected to onboarding', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
@@ -172,11 +172,11 @@ test('admins are redirected away from client dashboard', function () {
     $response->assertRedirect(route('admin.dashboard'));
 });
 
-test('pending users are redirected to pending approval', function () {
+test('suspended users are redirected to account unavailable', function () {
     $user = User::factory()->create();
     UserProfile::factory()->create([
         'user_id' => $user->user_id,
-        'status' => 'pending',
+        'status' => 'suspended',
     ]);
 
     $this->actingAs($user);

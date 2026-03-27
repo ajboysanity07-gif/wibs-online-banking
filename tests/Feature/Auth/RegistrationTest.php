@@ -32,7 +32,7 @@ test('new users can register after verification', function () {
     expect($user)->not->toBeNull();
     expect($user->acctno)->toBe('000123');
     expect($user->userProfile)->not->toBeNull();
-    expect($user->userProfile->status)->toBe('pending');
+    expect($user->userProfile->status)->toBe('active');
     expect($user->memberApplicationProfile)->toBeNull();
 });
 
@@ -89,7 +89,7 @@ test('spa registration succeeds with matching passwords', function () {
     ]);
 
     $response->assertOk();
-    $response->assertJson(['redirect_to' => '/pending-approval']);
+    $response->assertJson(['redirect_to' => '/settings/profile?onboarding=1']);
     $this->assertAuthenticated();
 
     $user = AppUser::where('email', 'spauser@example.com')->first();
@@ -97,7 +97,7 @@ test('spa registration succeeds with matching passwords', function () {
     expect($user)->not->toBeNull();
     expect($user->acctno)->toBe('000321');
     expect($user->userProfile)->not->toBeNull();
-    expect($user->userProfile->status)->toBe('pending');
+    expect($user->userProfile->status)->toBe('active');
     expect($user->memberApplicationProfile)->toBeNull();
 });
 

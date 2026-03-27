@@ -119,7 +119,7 @@ export default function VerifyMember() {
 
                     <div className="grid gap-2">
                         <Label htmlFor="middle_initial">
-                            Middle initial (optional)
+                            Middle name or initial (optional)
                         </Label>
                         <Input
                             id="middle_initial"
@@ -127,8 +127,7 @@ export default function VerifyMember() {
                             tabIndex={4}
                             autoComplete="additional-name"
                             name="middle_initial"
-                            placeholder="M"
-                            maxLength={5}
+                            placeholder="A or ANNA"
                             value={formData.middle_initial}
                             onChange={(event) =>
                                 setFormData((current) => ({
@@ -138,8 +137,9 @@ export default function VerifyMember() {
                             }
                         />
                         <p className="text-xs text-muted-foreground">
-                            Enter your name as it appears on record (LASTNAME,
-                            FIRSTNAME, MIDDLE INITIAL).
+                            Enter your name exactly as it appears on your
+                            member record. You can use either a middle initial
+                            or the full middle name.
                         </p>
                     </div>
 

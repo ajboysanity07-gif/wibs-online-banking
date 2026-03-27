@@ -266,7 +266,7 @@ export default function MemberProfile({
                                             )
                                         }
                                     >
-                                        Approve
+                                        Activate
                                     </Button>
                                 ) : null}
                                 {canSuspend ? (

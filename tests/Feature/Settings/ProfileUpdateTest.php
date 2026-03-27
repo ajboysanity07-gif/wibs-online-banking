@@ -22,6 +22,9 @@ beforeEach(function () {
             $table->date('birthday')->nullable();
             $table->string('birthplace')->nullable();
             $table->string('address')->nullable();
+            $table->string('address2')->nullable();
+            $table->string('address3')->nullable();
+            $table->string('address4')->nullable();
             $table->string('civilstat')->nullable();
             $table->string('occupation')->nullable();
             $table->string('spouse')->nullable();
@@ -85,8 +88,11 @@ test('profile page loads member record information from wmaster', function () {
         'lname' => 'Santos',
         'mname' => 'L',
         'birthday' => '1991-04-12',
-        'birthplace' => 'Legacy 0917-555-1212',
-        'address' => '123 Mabini Street',
+        'birthplace' => 'Quezon City',
+        'address' => 'Legacy Address',
+        'address2' => '123 Mabini Street',
+        'address3' => 'Manila',
+        'address4' => 'Metro Manila',
         'civilstat' => 'Single',
         'occupation' => 'Analyst',
         'spouse' => 'Miguel Santos',
@@ -106,8 +112,12 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.fname', 'Maria')
             ->where('memberRecord.lname', 'Santos')
             ->where('memberRecord.mname', 'L')
+            ->where('memberRecord.birthplace', 'Quezon City')
             ->where('memberRecord.birthday', '1991-04-12')
-            ->where('memberRecord.address', '123 Mabini Street')
+            ->where('memberRecord.address', 'Legacy Address')
+            ->where('memberRecord.address2', '123 Mabini Street')
+            ->where('memberRecord.address3', 'Manila')
+            ->where('memberRecord.address4', 'Metro Manila')
             ->where('memberRecord.civilstat', 'Single')
             ->where('memberRecord.occupation', 'Analyst')
             ->where('memberRecord.spouse_name', 'Miguel Santos')
@@ -117,7 +127,7 @@ test('profile page loads member record information from wmaster', function () {
         );
 });
 
-test('profile page ignores legacy wmaster birthplace data', function () {
+test('profile page exposes wmaster birthplace data', function () {
     $user = User::factory()->create([
         'acctno' => '000903',
     ]);
@@ -131,7 +141,7 @@ test('profile page ignores legacy wmaster birthplace data', function () {
         'fname' => 'Jana',
         'lname' => 'Lopez',
         'birthday' => '1993-09-14',
-        'birthplace' => 'Legacy 0900-000-0000',
+        'birthplace' => 'Bacolod City',
         'address' => '789 Mabini Street',
         'civilstat' => 'Single',
         'occupation' => 'Clerk',
@@ -154,7 +164,7 @@ test('profile page ignores legacy wmaster birthplace data', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/profile')
             ->where('memberApplicationProfile.birthplace', 'Davao City')
-            ->missing('memberRecord.birthplace')
+            ->where('memberRecord.birthplace', 'Bacolod City')
         );
 });
 

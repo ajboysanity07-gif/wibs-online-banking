@@ -166,7 +166,7 @@ const MobilePendingApprovalCard = ({
                 disabled={isProcessing || user.status !== 'pending'}
                 onClick={() => onApprove(user.user_id)}
             >
-                Approve
+                Activate
             </Button>
         </div>
     </SurfaceCard>
@@ -275,12 +275,12 @@ export default function AdminDashboard({ summary }: Props) {
                 <PageHero
                     kicker="Admin"
                     title="Dashboard"
-                    description="Member approvals, requests, and account overview."
+                    description="Member status, requests, and account overview."
                     rightSlot={
                         <>
                             <Button asChild size="sm">
                                 <a href="#pending-approvals">
-                                    Pending approvals
+                                    Member reviews
                                 </a>
                             </Button>
                             <Button asChild size="sm" variant="secondary">
@@ -312,7 +312,7 @@ export default function AdminDashboard({ summary }: Props) {
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>
-                                Pending member approvals
+                                Member status reviews
                             </CardDescription>
                             <CardTitle className="text-3xl">
                                 {summaryState.metrics.pendingCount}
@@ -333,7 +333,7 @@ export default function AdminDashboard({ summary }: Props) {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground">
-                                Approved portal access
+                                Active portal access
                             </p>
                         </CardContent>
                     </Card>
@@ -388,9 +388,9 @@ export default function AdminDashboard({ summary }: Props) {
                 >
                     <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <CardTitle>Pending member approvals</CardTitle>
+                            <CardTitle>Member status reviews</CardTitle>
                             <CardDescription>
-                                Latest 5 registrations awaiting activation.
+                                Legacy accounts awaiting status review.
                             </CardDescription>
                         </div>
                         <Button asChild size="sm" variant="outline">
@@ -430,7 +430,7 @@ export default function AdminDashboard({ summary }: Props) {
                                 <div className="space-y-3 px-6 md:hidden">
                                     {pendingRows.length === 0 ? (
                                         <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                                            No pending approvals.
+                                            No accounts awaiting review.
                                         </div>
                                     ) : (
                                         pendingRows.map((user) => (
@@ -483,7 +483,7 @@ export default function AdminDashboard({ summary }: Props) {
                                                         className="px-6 py-6 text-center text-sm text-muted-foreground"
                                                         colSpan={6}
                                                     >
-                                                        No pending approvals.
+                                                        No accounts awaiting review.
                                                     </TableCell>
                                                 </TableRow>
                                             ) : (
@@ -551,7 +551,7 @@ export default function AdminDashboard({ summary }: Props) {
                                                                     )
                                                                 }
                                                             >
-                                                                Approve
+                                                                Activate
                                                             </Button>
                                                         </TableCell>
                                                     </TableRow>

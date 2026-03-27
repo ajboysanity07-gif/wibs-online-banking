@@ -681,21 +681,25 @@ class LoanRequestService
         $wmaster = $user->wmaster;
         $profile = $user->memberApplicationProfile;
 
-        $structuredName = $this->resolveStructuredName(
-            $wmaster?->fname,
-            $wmaster?->mname,
-            $wmaster?->lname,
-            $wmaster?->bname,
-        );
+        $nameParts = $wmaster?->resolvedNameParts() ?? [
+            'first_name' => '',
+            'middle_name' => '',
+            'last_name' => '',
+        ];
+        $birthplace = $this->normalizeOptionalString($wmaster?->birthplace)
+            ?? $profile?->birthplace;
+        $address = $wmaster !== null
+            ? $this->normalizeOptionalString($wmaster->displayAddress())
+            : null;
 
         return [
-            'first_name' => $structuredName['first_name'],
-            'middle_name' => $structuredName['middle_name'],
-            'last_name' => $structuredName['last_name'],
+            'first_name' => $this->normalizeOptionalString($nameParts['first_name']),
+            'middle_name' => $this->normalizeOptionalString($nameParts['middle_name']),
+            'last_name' => $this->normalizeOptionalString($nameParts['last_name']),
             'nickname' => $profile?->nickname,
             'birthdate' => $wmaster?->birthday?->toDateString(),
-            'birthplace' => $profile?->birthplace,
-            'address' => $wmaster?->address,
+            'birthplace' => $birthplace,
+            'address' => $address,
             'length_of_stay' => $profile?->length_of_stay,
             'housing_status' => $wmaster?->restype !== null
                 ? (string) $wmaster->restype
@@ -729,20 +733,23 @@ class LoanRequestService
     private function buildApplicantReadOnlyMap(AppUser $user): array
     {
         $wmaster = $user->wmaster;
-
-        $hasStructuredName = $this->hasStructuredName(
-            $wmaster?->fname,
-            $wmaster?->mname,
-            $wmaster?->lname,
-            $wmaster?->bname,
-        );
+        $nameParts = $wmaster?->resolvedNameParts() ?? [
+            'first_name' => '',
+            'middle_name' => '',
+            'last_name' => '',
+        ];
+        $hasName = $nameParts['first_name'] !== ''
+            || $nameParts['middle_name'] !== ''
+            || $nameParts['last_name'] !== '';
+        $hasAddress = $wmaster?->hasStructuredAddressParts() === true
+            || $this->hasValue($wmaster?->address);
 
         return [
-            'first_name' => $hasStructuredName,
-            'middle_name' => $hasStructuredName && $this->hasValue($wmaster?->mname),
-            'last_name' => $hasStructuredName,
+            'first_name' => $hasName,
+            'middle_name' => $nameParts['middle_name'] !== '',
+            'last_name' => $hasName,
             'birthdate' => $this->hasValue($wmaster?->birthday),
-            'address' => $this->hasValue($wmaster?->address),
+            'address' => $hasAddress,
             'housing_status' => $this->hasValue($wmaster?->restype),
             'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat) !== null,
             'number_of_children' => $this->hasValue($wmaster?->dependent),
@@ -750,87 +757,15 @@ class LoanRequestService
         ];
     }
 
-    /**
-     * @return array{first_name: string, middle_name: string, last_name: string}
-     */
-    private function resolveStructuredName(
-        ?string $firstName,
-        ?string $middleName,
-        ?string $lastName,
-        ?string $legacyName,
-    ): array {
-        $first = trim((string) $firstName);
-        $middle = trim((string) $middleName);
-        $last = trim((string) $lastName);
-
-        if ($first !== '' || $middle !== '' || $last !== '') {
-            return [
-                'first_name' => $first,
-                'middle_name' => $middle,
-                'last_name' => $last,
-            ];
-        }
-
-        return $this->parseLegacyName($legacyName);
-    }
-
-    /**
-     * @return array{first_name: string, middle_name: string, last_name: string}
-     */
-    private function parseLegacyName(?string $legacyName): array
-    {
-        $value = trim((string) $legacyName);
-
-        if ($value === '') {
-            return [
-                'first_name' => '',
-                'middle_name' => '',
-                'last_name' => '',
-            ];
-        }
-
-        if (str_contains($value, ',')) {
-            [$lastPart, $rest] = array_pad(explode(',', $value, 2), 2, '');
-            $last = trim($lastPart);
-            $rest = trim($rest);
-        } else {
-            $parts = preg_split('/\s+/', $value) ?: [];
-            $last = (string) array_pop($parts);
-            $rest = trim(implode(' ', $parts));
-        }
-
-        $restParts = $rest !== '' ? preg_split('/\s+/', $rest) ?: [] : [];
-        $first = $restParts !== [] ? (string) array_shift($restParts) : '';
-        $middle = $restParts !== [] ? trim(implode(' ', $restParts)) : '';
-
-        return [
-            'first_name' => $first,
-            'middle_name' => $middle,
-            'last_name' => $last,
-        ];
-    }
-
     private function resolveMemberName(AppUser $user): string
     {
-        $name = $user->wmaster?->bname;
+        $name = $user->wmaster?->displayName();
 
         if (is_string($name) && trim($name) !== '') {
             return $name;
         }
 
         return $user->username;
-    }
-
-    private function hasStructuredName(
-        ?string $firstName,
-        ?string $middleName,
-        ?string $lastName,
-        ?string $legacyName,
-    ): bool {
-        return $this->hasValue($firstName)
-            || $this->hasValue($middleName)
-            || $this->hasValue($lastName)
-            || $this->hasValue($legacyName);
     }
 
     private function hasValue(mixed $value): bool

@@ -108,7 +108,7 @@ class AuthController extends Controller
             return '/admin/dashboard';
         }
 
-        if ($user->userProfile?->status !== 'active') {
+        if ($user->userProfile?->status === 'suspended') {
             return '/pending-approval';
         }
 

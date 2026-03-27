@@ -19,7 +19,7 @@ class MemberSavingsController extends Controller
 
         if (Schema::hasTable('wmaster')) {
             $user->loadMissing('wmaster');
-            $memberName = $user->wmaster?->bname ?? $memberName;
+            $memberName = $user->wmaster?->displayName() ?: $memberName;
         }
 
         $summary = $service->getSummary($user);

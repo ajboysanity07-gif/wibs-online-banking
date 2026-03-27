@@ -20,7 +20,11 @@ class MembersService
 
         $query = AppUser::query()
             ->whereDoesntHave('adminProfile')
-            ->with($loadWmaster ? ['wmaster:acctno,bname', 'userProfile'] : ['userProfile']);
+            ->with(
+                $loadWmaster
+                    ? ['wmaster:acctno,fname,mname,lname,bname', 'userProfile']
+                    : ['userProfile'],
+            );
 
         if ($status !== null) {
             $query->whereHas('userProfile', function ($builder) use ($status) {
@@ -38,6 +42,9 @@ class MembersService
                         $builder->where('appusers.acctno', 'like', $searchLike)
                             ->orWhere('appusers.username', 'like', $searchLike)
                             ->orWhere('appusers.email', 'like', $searchLike)
+                            ->orWhere('wmaster.lname', 'like', $searchLike)
+                            ->orWhere('wmaster.fname', 'like', $searchLike)
+                            ->orWhere('wmaster.mname', 'like', $searchLike)
                             ->orWhere('wmaster.bname', 'like', $searchLike);
                     });
             } else {
@@ -59,7 +66,7 @@ class MembersService
         $relations = ['userProfile.reviewedBy'];
 
         if (Schema::hasTable('wmaster')) {
-            $relations[] = 'wmaster:acctno,bname';
+            $relations[] = 'wmaster:acctno,fname,mname,lname,bname';
         }
 
         return $user->loadMissing($relations);

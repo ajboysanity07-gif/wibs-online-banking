@@ -30,22 +30,19 @@ class SettingsPageData
             $user->loadMissing('wmaster');
 
             if ($user->wmaster !== null) {
-                $hasStructuredName = self::hasStructuredName(
-                    $user->wmaster->fname,
-                    $user->wmaster->mname,
-                    $user->wmaster->lname,
-                );
+                $hasStructuredName = $user->wmaster->hasStructuredNameParts();
 
-                /**
-                 * Note: wmaster.birthplace is intentionally ignored because legacy data is unreliable.
-                 */
                 $memberRecord = [
                     'bname' => $user->wmaster->bname,
                     'fname' => $user->wmaster->fname,
                     'lname' => $user->wmaster->lname,
                     'mname' => $user->wmaster->mname,
+                    'birthplace' => $user->wmaster->birthplace,
                     'birthday' => $user->wmaster->birthday?->toDateString(),
                     'address' => $user->wmaster->address,
+                    'address2' => $user->wmaster->address2,
+                    'address3' => $user->wmaster->address3,
+                    'address4' => $user->wmaster->address4,
                     'civilstat' => $user->wmaster->civilstat,
                     'occupation' => $user->wmaster->occupation,
                     'spouse_name' => $user->wmaster->spouse,
@@ -111,28 +108,5 @@ class SettingsPageData
                 'confirm',
             ),
         ];
-    }
-
-    private static function hasStructuredName(
-        ?string $firstName,
-        ?string $middleName,
-        ?string $lastName,
-    ): bool {
-        return self::hasValue($firstName)
-            || self::hasValue($middleName)
-            || self::hasValue($lastName);
-    }
-
-    private static function hasValue(mixed $value): bool
-    {
-        if ($value === null) {
-            return false;
-        }
-
-        if (is_string($value)) {
-            return trim($value) !== '';
-        }
-
-        return true;
     }
 }

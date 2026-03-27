@@ -261,7 +261,7 @@ class MemberLoanExportService
 
         if (Schema::hasTable('wmaster')) {
             $member->loadMissing('wmaster');
-            $name = $member->wmaster?->bname;
+            $name = $member->wmaster?->displayName();
         }
 
         if (! is_string($name) || trim($name) === '') {

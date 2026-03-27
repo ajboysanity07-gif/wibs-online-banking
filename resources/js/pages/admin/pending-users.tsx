@@ -37,7 +37,7 @@ type PendingSort = 'newest' | 'oldest';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Pending approvals',
+        title: 'Member reviews',
         href: pending().url,
     },
 ];
@@ -133,7 +133,7 @@ const columns = (
                     }
                     onClick={() => onApprove(row.original.user_id)}
                 >
-                    Approve
+                    Activate
                 </Button>
             </div>
         ),
@@ -198,7 +198,7 @@ const MobilePendingApprovalCard = ({
                 disabled={isProcessing || row.status !== 'pending'}
                 onClick={() => onApprove(row.user_id)}
             >
-                Approve
+                Activate
             </Button>
         </div>
     </SurfaceCard>
@@ -243,21 +243,21 @@ export default function PendingUsers() {
             : 0;
     const resultsLabel =
         totalResults > 0
-            ? `Showing ${pageStart}-${pageEnd} of ${totalResults} approvals`
-            : 'No pending approvals.';
+            ? `Showing ${pageStart}-${pageEnd} of ${totalResults} accounts`
+            : 'No accounts awaiting review.';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Pending approvals" />
+            <Head title="Member reviews" />
             <PageShell size="wide">
                 <PageHero
-                    kicker="Approvals"
-                    title="Pending approvals"
-                    description="Review member registrations awaiting activation."
+                    kicker="Member status"
+                    title="Member reviews"
+                    description="Review legacy member accounts awaiting status updates."
                     badges={
                         <>
                             <Badge variant="secondary">
-                                {totalResults} pending
+                                {totalResults} awaiting review
                             </Badge>
                             {filterCount > 0 ? (
                                 <Badge variant="outline">
@@ -281,7 +281,7 @@ export default function PendingUsers() {
                     <div className="flex flex-col gap-4">
                         <SectionHeader
                             title="Filters"
-                            description="Search pending approvals or adjust the sort order."
+                            description="Search accounts awaiting review or adjust the sort order."
                             actions={
                                 <>
                                     {filterCount > 0 ? (
@@ -335,7 +335,7 @@ export default function PendingUsers() {
                                         setPage(1);
                                     }}
                                 >
-                                    <SelectTrigger aria-label="Sort pending approvals">
+                                    <SelectTrigger aria-label="Sort member reviews">
                                         <SelectValue placeholder="Sort" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -354,7 +354,7 @@ export default function PendingUsers() {
 
                 {error ? (
                     <Alert variant="destructive">
-                        <AlertTitle>Unable to load approvals</AlertTitle>
+                        <AlertTitle>Unable to load member reviews</AlertTitle>
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 ) : null}
@@ -410,7 +410,7 @@ export default function PendingUsers() {
                                 <div className="space-y-3 px-2 pb-3 pt-4 md:hidden">
                                     {rows.length === 0 ? (
                                         <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                                            No pending approvals.
+                                            No accounts awaiting review.
                                         </div>
                                     ) : (
                                         rows.map((row) => (
@@ -436,7 +436,7 @@ export default function PendingUsers() {
                                     <DataTable
                                         columns={tableColumns}
                                         data={rows}
-                                        emptyMessage="No pending approvals."
+                                        emptyMessage="No accounts awaiting review."
                                         className="border-0 bg-transparent"
                                     />
                                 </div>

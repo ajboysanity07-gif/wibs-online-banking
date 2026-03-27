@@ -52,7 +52,7 @@ class AdminDashboardService
                 $query->where('status', 'pending');
             })
             ->with([
-                'wmaster:acctno,bname',
+                'wmaster:acctno,fname,mname,lname,bname',
                 'userProfile',
             ])
             ->orderByDesc('created_at')

@@ -388,7 +388,7 @@ export function LoanRequestPersonalFields({
                 <div className="grid gap-2 md:col-span-2">
                     <FieldLabel
                         htmlFor={`${prefix}_address`}
-                        label="Address"
+                        label="Address (street, city, province)"
                         isReadOnly={isReadOnly('address')}
                     />
                     <Input

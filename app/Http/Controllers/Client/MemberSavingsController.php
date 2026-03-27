@@ -37,7 +37,14 @@ class MemberSavingsController extends Controller
 
         try {
             if (Schema::hasTable('wmaster')) {
-                $wmasterName = $user->wmaster()->value('bname');
+                $wmaster = $user->wmaster()->first([
+                    'acctno',
+                    'fname',
+                    'mname',
+                    'lname',
+                    'bname',
+                ]);
+                $wmasterName = $wmaster?->displayName();
 
                 if (is_string($wmasterName) && trim($wmasterName) !== '') {
                     $memberName = $wmasterName;

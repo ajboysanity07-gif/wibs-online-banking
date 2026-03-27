@@ -29,6 +29,14 @@ type MemberName = {
     first_name: string;
     last_name: string;
     middle_initial?: string | null;
+    middle_name?: string | null;
+};
+
+type VerifiedMember = {
+    birthplace?: string | null;
+    address2?: string | null;
+    address3?: string | null;
+    address4?: string | null;
 };
 
 type SuggestionsResponse = {
@@ -38,6 +46,7 @@ type SuggestionsResponse = {
 
 type Props = {
     memberName?: MemberName | null;
+    verifiedMember?: VerifiedMember | null;
 };
 
 const fetchSuggestions = async (

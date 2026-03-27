@@ -99,7 +99,7 @@ class MemberStatusService
         $relations = ['userProfile.reviewedBy'];
 
         if (Schema::hasTable('wmaster')) {
-            $relations[] = 'wmaster:acctno,bname';
+            $relations[] = 'wmaster:acctno,fname,mname,lname,bname';
         }
 
         return $user->loadMissing($relations);

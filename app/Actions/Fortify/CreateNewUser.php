@@ -49,7 +49,7 @@ class CreateNewUser implements CreatesNewUsers
         UserProfile::create([
             'user_id' => $user->user_id,
             'role' => 'client',
-            'status' => 'pending',
+            'status' => 'active',
         ]);
 
         request()->session()->forget(self::VERIFICATION_SESSION_KEY);

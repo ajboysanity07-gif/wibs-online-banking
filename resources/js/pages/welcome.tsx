@@ -72,9 +72,9 @@ const steps = [
             'Set your login details to access requests, balances, and account updates.',
     },
     {
-        title: 'Admin approval',
+        title: 'Start onboarding',
         description:
-            'Your account stays pending until the cooperative reviews and activates it.',
+            'Complete your profile details so you can use every portal feature.',
     },
 ];
 
@@ -205,8 +205,8 @@ export default function Welcome() {
                                                 detail: 'Protects access before registration.',
                                             },
                                             {
-                                                label: 'Admin approval',
-                                                detail: 'Pending access until reviewed.',
+                                                label: 'Instant access',
+                                                detail: 'Log in right after registration.',
                                             },
                                         ].map((item) => (
                                             <div
@@ -269,8 +269,7 @@ export default function Welcome() {
                             </h2>
                             <p className="text-muted-foreground">
                                 We keep portal access safe by verifying members
-                                and requiring cooperative approval before
-                                dashboard access.
+                                before registration and onboarding.
                             </p>
                         </div>
                         <div className="grid gap-4">

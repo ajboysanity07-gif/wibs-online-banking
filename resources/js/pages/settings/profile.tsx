@@ -65,8 +65,12 @@ type MemberRecord = {
     fname: string | null;
     lname: string | null;
     mname: string | null;
+    birthplace: string | null;
     birthday: string | null;
     address: string | null;
+    address2: string | null;
+    address3: string | null;
+    address4: string | null;
     civilstat: string | null;
     occupation: string | null;
     spouse_name: string | null;
@@ -354,16 +358,30 @@ export default function Profile({
     const profilePhotoUrl =
         profilePhotoPreview ?? adminProfile?.profilePicUrl ?? auth.user.avatar;
     const displayName = adminProfile?.fullname ?? auth.user.name;
+    const structuredMemberName = [
+        memberRecord?.fname,
+        memberRecord?.mname,
+        memberRecord?.lname,
+    ]
+        .filter((value): value is string => Boolean(value && value.trim()))
+        .join(' ');
     const memberDisplayName =
+        structuredMemberName ||
         memberRecord?.bname?.trim() ||
-        [memberRecord?.fname, memberRecord?.mname, memberRecord?.lname]
-            .filter((value): value is string => Boolean(value && value.trim()))
-            .join(' ');
+        '';
     const hasStructuredName = Boolean(memberRecord?.hasStructuredName);
     const memberFirstName = memberRecord?.fname?.trim() ?? '';
     const memberMiddleName = memberRecord?.mname?.trim() ?? '';
     const memberLastName = memberRecord?.lname?.trim() ?? '';
     const memberAge = calculateAge(memberRecord?.birthday ?? null);
+    const memberBirthplace = memberRecord?.birthplace?.trim() ?? '';
+    const memberAddressStreet = memberRecord?.address2?.trim() ?? '';
+    const memberAddressCity = memberRecord?.address3?.trim() ?? '';
+    const memberAddressProvince = memberRecord?.address4?.trim() ?? '';
+    const hasStructuredAddress =
+        memberAddressStreet !== '' ||
+        memberAddressCity !== '' ||
+        memberAddressProvince !== '';
     const memberCivilStatus = normalizeCivilStatusValue(
         memberRecord?.civilstat ?? '',
     );
@@ -379,8 +397,11 @@ export default function Profile({
         initialQuery: initialEmployerAddress.city,
         searchUrl: birthplaces.url(),
     });
+    const initialBirthplaceQuery =
+        memberApplicationProfile?.birthplace?.trim() ||
+        memberBirthplace;
     const birthplaceSearch = useLocationSearch({
-        initialQuery: memberApplicationProfile?.birthplace ?? '',
+        initialQuery: initialBirthplaceQuery,
         searchUrl: birthplaces.url(),
     });
     const [educationalAttainment, setEducationalAttainment] = useState<string>(
@@ -1193,28 +1214,96 @@ export default function Profile({
                                                                         />
                                                                     </div>
 
-                                                                    <div className="grid gap-2 md:col-span-3">
-                                                                        <Label htmlFor="member_record_address">
-                                                                            Address
-                                                                        </Label>
+                                                                    {hasStructuredAddress ? (
+                                                                        <>
+                                                                            <div className="grid gap-2 md:col-span-3">
+                                                                                <Label htmlFor="member_record_street">
+                                                                                    Street
+                                                                                </Label>
 
-                                                                        <Input
-                                                                            id="member_record_address"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.address,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberRecord?.address ??
-                                                                                ''
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
-                                                                    </div>
+                                                                                <Input
+                                                                                    id="member_record_street"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberAddressStreet,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberAddressStreet
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+                                                                            <div className="grid gap-2 md:col-span-2">
+                                                                                <Label htmlFor="member_record_city">
+                                                                                    City/Municipality
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_record_city"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberAddressCity,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberAddressCity
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_record_province">
+                                                                                    Province
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_record_province"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberAddressProvince,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberAddressProvince
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+                                                                        </>
+                                                                    ) : (
+                                                                        <div className="grid gap-2 md:col-span-3">
+                                                                            <Label htmlFor="member_record_address">
+                                                                                Address
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_record_address"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    hasWmasterValue(
+                                                                                        memberRecord?.address,
+                                                                                    ) &&
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                                defaultValue={
+                                                                                    memberRecord?.address ??
+                                                                                    ''
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
+                                                                    )}
 
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="length_of_stay">

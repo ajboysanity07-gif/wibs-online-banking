@@ -19,7 +19,7 @@ class PendingApprovalsService
                 $builder->where('status', 'pending');
             })
             ->with([
-                'wmaster:acctno,bname',
+                'wmaster:acctno,fname,mname,lname,bname',
                 'userProfile',
             ]);
 
@@ -32,6 +32,9 @@ class PendingApprovalsService
                     $builder->where('appusers.acctno', 'like', $searchLike)
                         ->orWhere('appusers.username', 'like', $searchLike)
                         ->orWhere('appusers.email', 'like', $searchLike)
+                        ->orWhere('wmaster.lname', 'like', $searchLike)
+                        ->orWhere('wmaster.fname', 'like', $searchLike)
+                        ->orWhere('wmaster.mname', 'like', $searchLike)
                         ->orWhere('wmaster.bname', 'like', $searchLike);
                 });
         }

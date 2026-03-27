@@ -136,7 +136,14 @@ Route::get('client/dashboard', function (
 
     try {
         if (Schema::hasTable('wmaster')) {
-            $wmasterName = $user->wmaster()->value('bname');
+            $wmaster = $user->wmaster()->first([
+                'acctno',
+                'fname',
+                'mname',
+                'lname',
+                'bname',
+            ]);
+            $wmasterName = $wmaster?->displayName();
 
             if (is_string($wmasterName) && trim($wmasterName) !== '') {
                 $memberName = $wmasterName;
@@ -338,7 +345,7 @@ Route::get('dashboard', function () {
         return redirect()->route('admin.dashboard');
     }
 
-    if ($user->userProfile?->status !== 'active') {
+    if ($user->userProfile?->status === 'suspended') {
         return redirect()->route('pending-approval');
     }
 
