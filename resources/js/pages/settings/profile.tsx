@@ -140,6 +140,7 @@ const CIVIL_STATUS_OPTIONS = [
     'Widowed',
 ] as const;
 const PAYDAY_OPTIONS = [
+    'Daily',
     'Weekly',
     '15th',
     '30th',
