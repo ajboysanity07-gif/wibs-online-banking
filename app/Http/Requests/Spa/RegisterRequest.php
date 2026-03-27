@@ -28,6 +28,7 @@ class RegisterRequest extends FormRequest
         return [
             ...$this->profileRules(requirePhone: false),
             'password' => $this->passwordRules(),
+            'password_confirmation' => ['required', 'string'],
         ];
     }
 }

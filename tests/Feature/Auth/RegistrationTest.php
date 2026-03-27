@@ -1,6 +1,9 @@
 <?php
 
+use App\Actions\Fortify\CreateNewUser;
 use App\Models\AppUser;
+
+use function Pest\Laravel\mock;
 
 test('registration screen can be rendered', function () {
     $response = $this->get(route('register'));
@@ -43,4 +46,75 @@ test('registration requires member verification', function () {
 
     $this->assertGuest();
     $response->assertSessionHasErrors('verification');
+});
+
+test('spa registration keeps password confirmation when creating user', function () {
+    $user = AppUser::factory()->create();
+
+    mock(CreateNewUser::class)
+        ->shouldReceive('create')
+        ->once()
+        ->withArgs(function (array $input): bool {
+            return array_key_exists('password_confirmation', $input)
+                && $input['password'] === $input['password_confirmation'];
+        })
+        ->andReturn($user);
+
+    $response = $this->withSession([
+        'member_verification' => [
+            'acctno' => '000555',
+            'verified_at' => now()->getTimestamp(),
+        ],
+    ])->postJson('/spa/auth/register', [
+        'username' => 'spauser',
+        'email' => 'spauser@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $response->assertOk();
+});
+
+test('spa registration succeeds with matching passwords', function () {
+    $response = $this->withSession([
+        'member_verification' => [
+            'acctno' => '000321',
+            'verified_at' => now()->getTimestamp(),
+        ],
+    ])->postJson('/spa/auth/register', [
+        'username' => 'spauser',
+        'email' => 'spauser@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $response->assertOk();
+    $response->assertJson(['redirect_to' => '/pending-approval']);
+    $this->assertAuthenticated();
+
+    $user = AppUser::where('email', 'spauser@example.com')->first();
+
+    expect($user)->not->toBeNull();
+    expect($user->acctno)->toBe('000321');
+    expect($user->userProfile)->not->toBeNull();
+    expect($user->userProfile->status)->toBe('pending');
+    expect($user->memberApplicationProfile)->toBeNull();
+});
+
+test('spa registration rejects mismatched password confirmation', function () {
+    $response = $this->withSession([
+        'member_verification' => [
+            'acctno' => '000987',
+            'verified_at' => now()->getTimestamp(),
+        ],
+    ])->postJson('/spa/auth/register', [
+        'username' => 'spauser',
+        'email' => 'spauser@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'not-matching',
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['password']);
+    $this->assertGuest();
 });

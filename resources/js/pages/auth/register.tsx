@@ -18,6 +18,11 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import api, { mapValidationErrors } from '@/lib/api';
+import {
+    getPasswordConfirmationMismatchMessage,
+    normalizeRegistrationErrors,
+    PASSWORD_CONFIRMATION_MATCH_MESSAGE,
+} from '@/lib/registration-passwords';
 import { login } from '@/routes';
 
 type MemberName = {
@@ -65,6 +70,23 @@ export default function Register({ memberName }: Props) {
     const hasMemberName = Boolean(memberName);
     const shownSuggestions = hasMemberName ? suggestions : [];
     const shownAvailability = hasMemberName ? availability : 'unknown';
+    const hasPasswordConfirmationValue = passwordConfirmationValue.length > 0;
+    const confirmationMismatchMessage = getPasswordConfirmationMismatchMessage(
+        passwordValue,
+        passwordConfirmationValue,
+    );
+    const confirmationError = errors.password_confirmation;
+    // Avoid showing a match hint if the server reported a confirmation error.
+    const shouldShowConfirmationHint =
+        hasPasswordConfirmationValue && !confirmationError;
+    const confirmationHint = shouldShowConfirmationHint
+        ? confirmationMismatchMessage || PASSWORD_CONFIRMATION_MATCH_MESSAGE
+        : undefined;
+    const confirmationClassName = shouldShowConfirmationHint
+        ? confirmationMismatchMessage
+            ? 'text-xs text-red-600'
+            : 'text-xs text-emerald-600'
+        : undefined;
 
     const clearError = (key: string) => {
         setErrors((current) => {
@@ -172,6 +194,15 @@ export default function Register({ memberName }: Props) {
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (confirmationMismatchMessage) {
+            setErrors((current) => ({
+                ...current,
+                password_confirmation: confirmationMismatchMessage,
+            }));
+            return;
+        }
+
         setProcessing(true);
         setErrors({});
 
@@ -190,7 +221,11 @@ export default function Register({ memberName }: Props) {
             }
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 422) {
-                setErrors(mapValidationErrors(error.response.data?.errors));
+                setErrors(
+                    normalizeRegistrationErrors(
+                        mapValidationErrors(error.response.data?.errors),
+                    ),
+                );
             }
         } finally {
             setProcessing(false);
@@ -326,6 +361,7 @@ export default function Register({ memberName }: Props) {
                             onChange={(event) => {
                                 setPasswordValue(event.target.value);
                                 clearError('password');
+                                clearError('password_confirmation');
                             }}
                         />
                         <FieldMessage
@@ -354,25 +390,9 @@ export default function Register({ memberName }: Props) {
                         />
                         <FieldMessage
                             error={errors.password_confirmation}
-                            hint={
-                                passwordConfirmationValue.length > 0
-                                    ? passwordValue ===
-                                      passwordConfirmationValue
-                                        ? 'Passwords match'
-                                        : 'Passwords do not match'
-                                    : undefined
-                            }
+                            hint={confirmationHint}
                             reserveSpace
-                            className={
-                                errors.password_confirmation
-                                    ? undefined
-                                    : passwordConfirmationValue.length > 0
-                                      ? passwordValue ===
-                                        passwordConfirmationValue
-                                          ? 'text-xs text-emerald-600'
-                                          : 'text-xs text-red-600'
-                                      : undefined
-                            }
+                            className={confirmationClassName}
                         />
                     </div>
 
