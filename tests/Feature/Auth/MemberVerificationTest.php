@@ -55,42 +55,119 @@ test('member verification stores session when details match structured fields wi
     $response->assertSessionHas('member_verification.address4', 'Cebu');
 });
 
-test('member verification accepts a full middle name when the first letter matches', function () {
+test('member verification accepts case variations for structured names', function (
+    string $lastName,
+    string $firstName,
+    string $acctno,
+) {
     $member = Wmaster::query()->create([
-        'acctno' => '000322',
-        'lname' => 'Paray',
-        'fname' => 'Ludelio',
-        'mname' => 'Santos',
-        'bname' => 'PARAY, LUDELIO, S.',
+        'acctno' => $acctno,
+        'lname' => 'ARANAS',
+        'fname' => 'JOEL',
+        'mname' => 'LALA',
+        'bname' => null,
         'phone' => null,
     ]);
 
     $response = $this->post(route('register.verify'), [
         'accntno' => $member->acctno,
-        'last_name' => 'Paray',
-        'first_name' => 'Ludelio',
-        'middle_initial' => 'Samuel',
+        'last_name' => $lastName,
+        'first_name' => $firstName,
+        'middle_initial' => 'L',
     ]);
 
     $response->assertRedirect(route('register.create'));
-    $response->assertSessionHas('member_verification.middle_initial', 'S');
-});
+})->with([
+    'uppercase' => ['ARANAS', 'JOEL', '000901'],
+    'lowercase' => ['Aranas', 'Joel', '000902'],
+    'mixed case' => ['AraNas', 'JoEl', '000903'],
+]);
 
-test('member verification rejects a middle name when the first letter does not match', function () {
-    Wmaster::query()->create([
-        'acctno' => '000323',
-        'lname' => 'Paray',
-        'fname' => 'Ludelio',
-        'mname' => 'Santos',
-        'bname' => 'PARAY, LUDELIO, S.',
+test('member verification accepts middle name variations for structured mname', function (
+    string $middleInput,
+    string $acctno,
+) {
+    $member = Wmaster::query()->create([
+        'acctno' => $acctno,
+        'lname' => 'Aranas',
+        'fname' => 'Joel',
+        'mname' => 'LALA',
+        'bname' => null,
         'phone' => null,
     ]);
 
     $response = $this->post(route('register.verify'), [
-        'accntno' => '000323',
-        'last_name' => 'Paray',
-        'first_name' => 'Ludelio',
+        'accntno' => $member->acctno,
+        'last_name' => 'Aranas',
+        'first_name' => 'Joel',
+        'middle_initial' => $middleInput,
+    ]);
+
+    $response->assertRedirect(route('register.create'));
+    $response->assertSessionHas('member_verification.middle_initial', 'L');
+})->with([
+    'initial' => ['L', '000904'],
+    'initial with period' => ['L.', '000905'],
+    'full middle name' => ['LALA', '000906'],
+    'mixed case' => ['LaLa', '000907'],
+    'title case' => ['Lala', '000908'],
+]);
+
+test('member verification rejects middle input when the first letter does not match', function () {
+    Wmaster::query()->create([
+        'acctno' => '000909',
+        'lname' => 'Aranas',
+        'fname' => 'Joel',
+        'mname' => 'LALA',
+        'bname' => null,
+        'phone' => null,
+    ]);
+
+    $response = $this->post(route('register.verify'), [
+        'accntno' => '000909',
+        'last_name' => 'Aranas',
+        'first_name' => 'Joel',
         'middle_initial' => 'Maria',
+    ]);
+
+    $response->assertSessionHasErrors('verification');
+});
+
+test('member verification rejects when last name differs after normalization', function () {
+    Wmaster::query()->create([
+        'acctno' => '000910',
+        'lname' => 'ARANAS',
+        'fname' => 'JOEL',
+        'mname' => 'LALA',
+        'bname' => null,
+        'phone' => null,
+    ]);
+
+    $response = $this->post(route('register.verify'), [
+        'accntno' => '000910',
+        'last_name' => 'ARANASX',
+        'first_name' => 'JOEL',
+        'middle_initial' => 'L',
+    ]);
+
+    $response->assertSessionHasErrors('verification');
+});
+
+test('member verification rejects when first name differs after normalization', function () {
+    Wmaster::query()->create([
+        'acctno' => '000911',
+        'lname' => 'ARANAS',
+        'fname' => 'JOEL',
+        'mname' => 'LALA',
+        'bname' => null,
+        'phone' => null,
+    ]);
+
+    $response = $this->post(route('register.verify'), [
+        'accntno' => '000911',
+        'last_name' => 'ARANAS',
+        'first_name' => 'JOELX',
+        'middle_initial' => 'L',
     ]);
 
     $response->assertSessionHasErrors('verification');
@@ -154,43 +231,21 @@ test('member verification ignores middle initial when blank', function () {
     $response->assertRedirect(route('register.create'));
 });
 
-test('member verification falls back to bname when structured names are missing', function () {
-    $member = Wmaster::query()->create([
-        'acctno' => '000888',
+test('member verification rejects when structured names are missing even if bname exists', function () {
+    Wmaster::query()->create([
+        'acctno' => '000915',
         'lname' => '',
         'fname' => '',
         'mname' => null,
-        'bname' => 'PARAY, LUDELIO S.',
+        'bname' => 'ARANAS, JOEL L.',
         'phone' => null,
     ]);
 
     $response = $this->post(route('register.verify'), [
-        'accntno' => $member->acctno,
-        'last_name' => 'Paray',
-        'first_name' => 'Ludelio',
-        'middle_initial' => 'S',
-    ]);
-
-    $response->assertRedirect(route('register.create'));
-    $response->assertSessionHas('member_verification.first_name', 'LUDELIO');
-    $response->assertSessionHas('member_verification.last_name', 'PARAY');
-});
-
-test('member verification does not fall back to bname when structured names exist', function () {
-    Wmaster::query()->create([
-        'acctno' => '000777',
-        'lname' => 'Paray',
-        'fname' => 'Luis',
-        'mname' => 'Santos',
-        'bname' => 'PARAY, LUDELIO S.',
-        'phone' => null,
-    ]);
-
-    $response = $this->post(route('register.verify'), [
-        'accntno' => '000777',
-        'last_name' => 'Paray',
-        'first_name' => 'Ludelio',
-        'middle_initial' => 'S',
+        'accntno' => '000915',
+        'last_name' => 'Aranas',
+        'first_name' => 'Joel',
+        'middle_initial' => 'L',
     ]);
 
     $response->assertSessionHasErrors('verification');
@@ -198,20 +253,65 @@ test('member verification does not fall back to bname when structured names exis
 
 test('member verification returns a generic error on mismatch', function () {
     Wmaster::query()->create([
-        'acctno' => '000555',
+        'acctno' => '000912',
         'lname' => 'Paray',
         'fname' => 'Ludelio',
         'mname' => 'Santos',
-        'bname' => 'PARAY, LUDELIO, S.',
+        'bname' => null,
         'phone' => null,
     ]);
 
     $response = $this->post(route('register.verify'), [
-        'accntno' => '000555',
+        'accntno' => '000912',
         'last_name' => 'PARAY',
         'first_name' => 'NOTMATCH',
         'middle_initial' => 'S',
     ]);
 
     $response->assertSessionHasErrors('verification');
+});
+
+test('spa member verification matches structured names', function () {
+    $member = Wmaster::query()->create([
+        'acctno' => '000913',
+        'lname' => 'ARANAS',
+        'fname' => 'JOEL',
+        'mname' => 'LALA',
+        'bname' => null,
+        'phone' => null,
+    ]);
+
+    $response = $this->postJson('/spa/member/verify', [
+        'accntno' => $member->acctno,
+        'last_name' => 'Aranas',
+        'first_name' => 'Joel',
+        'middle_initial' => 'Lala',
+    ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('ok', true);
+    $response->assertSessionHas('member_verification.middle_initial', 'L');
+});
+
+test('spa member verification rejects middle mismatches', function () {
+    Wmaster::query()->create([
+        'acctno' => '000914',
+        'lname' => 'ARANAS',
+        'fname' => 'JOEL',
+        'mname' => 'LALA',
+        'bname' => null,
+        'phone' => null,
+    ]);
+
+    $response = $this->postJson('/spa/member/verify', [
+        'accntno' => '000914',
+        'last_name' => 'Aranas',
+        'first_name' => 'Joel',
+        'middle_initial' => 'Maria',
+    ]);
+
+    $response
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.verification.0', "Details don't match our records.");
 });
