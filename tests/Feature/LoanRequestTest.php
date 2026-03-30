@@ -43,6 +43,10 @@ beforeEach(function () {
     }
 });
 
+test('loan request people schema excludes spouse occupation', function () {
+    expect(Schema::hasColumn('loan_request_people', 'spouse_occupation'))->toBeFalse();
+});
+
 test('approved client can view the loan request form', function () {
     $user = User::factory()->create([
         'acctno' => '000710',
@@ -131,6 +135,51 @@ test('loan request form uses structured wmaster names and address parts', functi
             ->where('applicant.address', '123 Main Street, Makati, Metro Manila')
             ->where('applicantReadOnly.address', true)
             ->where('applicantReadOnly.birthplace', true));
+});
+
+test('loan request form uses member profile work fields for the applicant', function () {
+    $user = User::factory()->create([
+        'acctno' => '000716',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'employment_type' => 'Regular',
+        'employer_business_name' => 'Acme Corp',
+        'employer_business_address' => 'Acme Building',
+        'current_position' => 'Supervisor',
+        'nature_of_business' => 'Finance',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-010',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.employment_type', 'Regular')
+            ->where('applicant.employer_business_name', 'Acme Corp')
+            ->where('applicant.employer_business_address', 'Acme Building')
+            ->where('applicant.current_position', 'Supervisor')
+            ->where('applicant.nature_of_business', 'Finance'));
 });
 
 test('loan request form falls back to legacy wmaster data when structured data is missing', function () {

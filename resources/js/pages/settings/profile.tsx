@@ -1520,28 +1520,6 @@ export default function Profile({
                                                                         />
                                                                     </div>
 
-                                                                    <div className="grid gap-2 md:col-span-3">
-                                                                        <Label htmlFor="member_occupation">
-                                                                            Occupation
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="member_occupation"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.occupation,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberRecord?.occupation ??
-                                                                                ''
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
-                                                                    </div>
                                                                 </div>
                                                             </div>
 
@@ -1567,6 +1545,28 @@ export default function Profile({
                                                                 </div>
 
                                                                 <div className="grid gap-4 md:grid-cols-2">
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="member_occupation">
+                                                                            Occupation
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="member_occupation"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberRecord?.occupation,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
+                                                                            defaultValue={
+                                                                                memberRecord?.occupation ??
+                                                                                ''
+                                                                            }
+                                                                            placeholder="Not available"
+                                                                            disabled
+                                                                        />
+                                                                    </div>
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="employment_type">
                                                                             Employment

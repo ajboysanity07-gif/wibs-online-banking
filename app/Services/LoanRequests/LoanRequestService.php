@@ -8,7 +8,6 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
-use App\Support\DisplayText;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -705,15 +704,13 @@ class LoanRequestService
         }
 
         return [
-            'first_name' => $firstName !== null ? DisplayText::normalize($firstName) : null,
-            'middle_name' => $middleName !== null ? DisplayText::normalize($middleName) : null,
-            'last_name' => $lastName !== null ? DisplayText::normalize($lastName) : null,
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'last_name' => $lastName,
             'nickname' => $profile?->nickname,
             'birthdate' => $wmaster?->birthday?->toDateString(),
-            'birthplace' => $birthplace !== null
-                ? DisplayText::normalize($birthplace)
-                : $profile?->birthplace,
-            'address' => $address !== null ? DisplayText::normalize($address) : null,
+            'birthplace' => $birthplace ?? $profile?->birthplace,
+            'address' => $address,
             'length_of_stay' => $profile?->length_of_stay,
             'housing_status' => $wmaster?->restype !== null
                 ? (string) $wmaster->restype
@@ -722,9 +719,7 @@ class LoanRequestService
             'civil_status' => $wmaster?->civilstat,
             'educational_attainment' => $profile?->educational_attainment,
             'number_of_children' => $numberOfChildren,
-            'spouse_name' => $spouseName !== null
-                ? DisplayText::normalize($spouseName)
-                : $profile?->spouse_name,
+            'spouse_name' => $spouseName ?? $profile?->spouse_name,
             'spouse_age' => $profile?->spouse_age,
             'spouse_cell_no' => $profile?->spouse_cell_no,
             'employment_type' => $profile?->employment_type,
