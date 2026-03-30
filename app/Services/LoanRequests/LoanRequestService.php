@@ -680,6 +680,7 @@ class LoanRequestService
     {
         $wmaster = $user->wmaster;
         $profile = $user->memberApplicationProfile;
+        $hasDependentColumn = Schema::hasColumn('wmaster', 'dependent');
 
         $nameParts = $wmaster?->resolvedNameParts() ?? [
             'first_name' => '',
@@ -691,6 +692,13 @@ class LoanRequestService
         $address = $wmaster !== null
             ? $this->normalizeOptionalString($wmaster->displayAddress())
             : null;
+        $numberOfChildren = null;
+
+        if ($hasDependentColumn && $wmaster?->dependent !== null) {
+            $numberOfChildren = (string) $wmaster->dependent;
+        } elseif ($profile?->number_of_children !== null) {
+            $numberOfChildren = (string) $profile->number_of_children;
+        }
 
         return [
             'first_name' => $this->normalizeOptionalString($nameParts['first_name']),
@@ -707,9 +715,7 @@ class LoanRequestService
             'cell_no' => $user->phoneno,
             'civil_status' => $wmaster?->civilstat,
             'educational_attainment' => $profile?->educational_attainment,
-            'number_of_children' => $wmaster?->dependent !== null
-                ? (string) $wmaster->dependent
-                : null,
+            'number_of_children' => $numberOfChildren,
             'spouse_name' => $wmaster?->spouse,
             'spouse_age' => $profile?->spouse_age,
             'spouse_cell_no' => $profile?->spouse_cell_no,
@@ -733,6 +739,7 @@ class LoanRequestService
     private function buildApplicantReadOnlyMap(AppUser $user): array
     {
         $wmaster = $user->wmaster;
+        $hasDependentColumn = Schema::hasColumn('wmaster', 'dependent');
         $nameParts = $wmaster?->resolvedNameParts() ?? [
             'first_name' => '',
             'middle_name' => '',
@@ -752,7 +759,8 @@ class LoanRequestService
             'address' => $hasAddress,
             'housing_status' => $this->hasValue($wmaster?->restype),
             'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat) !== null,
-            'number_of_children' => $this->hasValue($wmaster?->dependent),
+            'number_of_children' => $hasDependentColumn
+                && $this->hasValue($wmaster?->dependent),
             'spouse_name' => $this->hasValue($wmaster?->spouse),
         ];
     }

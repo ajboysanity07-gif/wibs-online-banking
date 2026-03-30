@@ -23,17 +23,6 @@ class ProfileUpdateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $streetAddress = trim((string) $this->input('employer_business_street_address', ''));
-        $cityAddress = trim((string) $this->input('employer_business_city', ''));
-
-        if ($streetAddress !== '' || $cityAddress !== '') {
-            $address = trim(implode(', ', array_filter([$streetAddress, $cityAddress])));
-
-            $this->merge([
-                'employer_business_address' => $address !== '' ? $address : null,
-            ]);
-        }
-
         $natureOfBusiness = trim((string) $this->input('nature_of_business', ''));
         $natureOfBusinessOther = trim((string) $this->input('nature_of_business_other', ''));
 
@@ -92,6 +81,12 @@ class ProfileUpdateRequest extends FormRequest
                 $memberRequirement('length_of_stay'),
                 'string',
                 'max:100',
+            ],
+            'number_of_children' => [
+                'nullable',
+                'integer',
+                'min:0',
+                'max:255',
             ],
             'educational_attainment' => [
                 $memberRequirement('educational_attainment'),

@@ -118,6 +118,10 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.address2', '123 Mabini Street')
             ->where('memberRecord.address3', 'Manila')
             ->where('memberRecord.address4', 'Metro Manila')
+            ->where(
+                'memberRecord.display_address',
+                '123 Mabini Street, Manila, Metro Manila',
+            )
             ->where('memberRecord.civilstat', 'Single')
             ->where('memberRecord.occupation', 'Analyst')
             ->where('memberRecord.spouse_name', 'Miguel Santos')
@@ -279,11 +283,11 @@ test('profile information can be updated', function () {
             'birthplace' => 'Cebu City',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'number_of_children' => 2,
             'spouse_age' => 32,
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
-            'employer_business_street_address' => 'Acme Plaza',
-            'employer_business_city' => 'Tagum City, Davao del Norte',
+            'employer_business_address' => 'Acme Plaza, Tagum City, Davao del Norte',
             'telephone_no' => '02-123-4567',
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
@@ -311,6 +315,7 @@ test('profile information can be updated', function () {
     expect($memberProfile->birthplace)->toBe('Cebu City');
     expect($memberProfile->educational_attainment)->toBe('High School');
     expect($memberProfile->length_of_stay)->toBe('2 years');
+    expect($memberProfile->number_of_children)->toBe(2);
     expect($memberProfile->spouse_age)->toBe(32);
     expect($memberProfile->spouse_cell_no)->toBe('09123456780');
     expect($memberProfile->employment_type)->toBe('Regular');
@@ -579,7 +584,6 @@ test('member application profile table excludes canonical member fields', functi
     expect(Schema::hasColumn('member_application_profiles', 'occupation'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'spouse_name'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'housing_status'))->toBeFalse();
-    expect(Schema::hasColumn('member_application_profiles', 'number_of_children'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'bname'))->toBeFalse();
 });
 

@@ -101,64 +101,6 @@ const FieldLabel = ({
     </div>
 );
 
-const STREET_CUE_PATTERN =
-    /\b(street|st\.?|ave\.?|avenue|rd\.?|road|blvd\.?|boulevard|drive|dr\.?|lane|ln\.?|highway|hiway|bldg\.?|building|unit|floor|lot|blk\.?|block|phase|purok|sitio|subd\.?|subdivision|village|compound|plaza|tower|mall|center|centre|brgy\.?|barangay)\b/i;
-const LOCALITY_CUE_PATTERN = /\b(city|municipality|province|town)\b/i;
-
-const looksLikeStreet = (segment: string): boolean =>
-    STREET_CUE_PATTERN.test(segment) ||
-    /\d/.test(segment) ||
-    segment.includes('#');
-
-const looksLikeLocality = (segment: string): boolean =>
-    LOCALITY_CUE_PATTERN.test(segment);
-
-const splitEmployerBusinessAddress = (
-    address: string,
-): { street: string; city: string } => {
-    const trimmed = address.trim();
-
-    if (trimmed === '') {
-        return { street: '', city: '' };
-    }
-
-    const segments = trimmed
-        .split(',')
-        .map((segment) => segment.trim())
-        .filter((segment) => segment !== '');
-
-    if (segments.length === 1) {
-        const [segment] = segments;
-
-        if (looksLikeStreet(segment) && !looksLikeLocality(segment)) {
-            return { street: segment, city: '' };
-        }
-
-        return { street: '', city: segment };
-    }
-
-    const [firstSegment, ...restSegments] = segments;
-
-    if (looksLikeLocality(firstSegment) && !looksLikeStreet(firstSegment)) {
-        return { street: '', city: segments.join(', ') };
-    }
-
-    return {
-        street: firstSegment,
-        city: restSegments.join(', '),
-    };
-};
-
-const composeEmployerBusinessAddress = (
-    street: string,
-    city: string,
-): string => {
-    return [street, city]
-        .map((value) => value.trim())
-        .filter((value) => value !== '')
-        .join(', ');
-};
-
 const isPresetNatureOfBusiness = (value: string): boolean =>
     value !== '' &&
     value !== NATURE_OF_BUSINESS_OTHER_VALUE &&
@@ -703,17 +645,6 @@ export function LoanRequestWorkFields({
         () => resolveNatureOfBusinessOther(values.nature_of_business),
     );
 
-    const { street: employerBusinessStreet, city: employerBusinessCity } =
-        useMemo(
-            () =>
-                splitEmployerBusinessAddress(values.employer_business_address),
-            [values.employer_business_address],
-        );
-    const employerBusinessCitySearch = useLocationSearch({
-        initialQuery: employerBusinessCity,
-        searchUrl: birthplaces.url(),
-    });
-
     const handleNatureOfBusinessSelection = (value: string) => {
         setNatureOfBusinessSelection(value);
 
@@ -795,45 +726,20 @@ export function LoanRequestWorkFields({
                     />
                 </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_employer_business_street`}>
-                        Business address (street)
+                <div className="grid gap-2 md:col-span-2">
+                    <Label htmlFor={`${prefix}_employer_business_address`}>
+                        Employer/Business address
                     </Label>
                     <Input
-                        id={`${prefix}_employer_business_street`}
-                        value={employerBusinessStreet}
+                        id={`${prefix}_employer_business_address`}
+                        name={fieldName(prefix, 'employer_business_address')}
+                        value={values.employer_business_address}
                         className="mt-1 block w-full"
                         required
-                        onChange={(event) => {
+                        onChange={(event) =>
                             onChange(
                                 'employer_business_address',
-                                composeEmployerBusinessAddress(
-                                    event.target.value,
-                                    employerBusinessCity,
-                                ),
-                            );
-                        }}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_employer_business_city`}>
-                        Business address (city/municipality)
-                    </Label>
-                    <LocationAutocompleteInput
-                        id={`${prefix}_employer_business_city`}
-                        search={employerBusinessCitySearch}
-                        placeholder="City or municipality"
-                        ariaLabel="City or municipality"
-                        inputClassName="mt-1 block w-full"
-                        required
-                        onValueChange={(value) =>
-                            onChange(
-                                'employer_business_address',
-                                composeEmployerBusinessAddress(
-                                    employerBusinessStreet,
-                                    value,
-                                ),
+                                event.target.value,
                             )
                         }
                     />

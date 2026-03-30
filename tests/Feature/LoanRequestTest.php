@@ -178,6 +178,7 @@ test('loan request form falls back to legacy wmaster data when structured data i
 
 test('loan request form preserves member number of children values', function (
     $dependent,
+    $profileChildren,
     $expected,
     bool $readOnly,
 ) {
@@ -200,6 +201,7 @@ test('loan request form preserves member number of children values', function (
     ]);
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
+        'number_of_children' => $profileChildren,
     ]);
     DB::table('wlntype')->insert([
         'typecode' => 'LN-004',
@@ -217,10 +219,52 @@ test('loan request form preserves member number of children values', function (
             ->where('applicant.number_of_children', $expected)
             ->where('applicantReadOnly.number_of_children', $readOnly));
 })->with([
-    'zero dependents' => [0, '0', true],
-    'missing dependents' => [null, null, false],
-    'non-zero dependents' => [3, '3', true],
+    'zero dependents' => [0, 2, '0', true],
+    'missing dependents uses profile' => [null, 4, '4', false],
+    'non-zero dependents' => [3, 1, '3', true],
 ]);
+
+test('loan request form falls back to profile children when dependent column is missing', function () {
+    Schema::table('wmaster', function (Blueprint $table) {
+        $table->dropColumn('dependent');
+    });
+
+    $user = User::factory()->create([
+        'acctno' => '000723',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'number_of_children' => 5,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-007',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.number_of_children', '5')
+            ->where('applicantReadOnly.number_of_children', false));
+});
 
 test('loan request form normalizes housing status values', function (
     ?string $restype,

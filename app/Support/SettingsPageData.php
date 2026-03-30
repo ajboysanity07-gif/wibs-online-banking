@@ -31,6 +31,23 @@ class SettingsPageData
 
             if ($user->wmaster !== null) {
                 $hasStructuredName = $user->wmaster->hasStructuredNameParts();
+                $addressParts = array_filter([
+                    trim((string) $user->wmaster->address2),
+                    trim((string) $user->wmaster->address3),
+                    trim((string) $user->wmaster->address4),
+                ], static fn (string $value): bool => $value !== '');
+                $displayAddress = $addressParts !== []
+                    ? implode(', ', $addressParts)
+                    : trim((string) $user->wmaster->address);
+                $displayAddress = $displayAddress !== '' ? $displayAddress : null;
+                $numberOfChildren = null;
+
+                if (
+                    Schema::hasColumn('wmaster', 'dependent')
+                    && $user->wmaster->dependent !== null
+                ) {
+                    $numberOfChildren = (string) $user->wmaster->dependent;
+                }
 
                 $memberRecord = [
                     'bname' => $user->wmaster->bname,
@@ -43,15 +60,14 @@ class SettingsPageData
                     'address2' => $user->wmaster->address2,
                     'address3' => $user->wmaster->address3,
                     'address4' => $user->wmaster->address4,
+                    'display_address' => $displayAddress,
                     'civilstat' => $user->wmaster->civilstat,
                     'occupation' => $user->wmaster->occupation,
                     'spouse_name' => $user->wmaster->spouse,
                     'housing_status' => $user->wmaster->restype !== null
                         ? (string) $user->wmaster->restype
                         : null,
-                    'number_of_children' => $user->wmaster->dependent !== null
-                        ? (string) $user->wmaster->dependent
-                        : null,
+                    'number_of_children' => $numberOfChildren,
                     'hasStructuredName' => $hasStructuredName,
                 ];
             }
@@ -63,6 +79,7 @@ class SettingsPageData
                 'birthplace' => $memberApplicationProfile->birthplace,
                 'educational_attainment' => $memberApplicationProfile->educational_attainment,
                 'length_of_stay' => $memberApplicationProfile->length_of_stay,
+                'number_of_children' => $memberApplicationProfile->number_of_children,
                 'spouse_age' => $memberApplicationProfile->spouse_age,
                 'spouse_cell_no' => $memberApplicationProfile->spouse_cell_no,
                 'employment_type' => $memberApplicationProfile->employment_type,

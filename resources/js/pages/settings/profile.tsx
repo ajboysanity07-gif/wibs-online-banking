@@ -71,6 +71,7 @@ type MemberRecord = {
     address2: string | null;
     address3: string | null;
     address4: string | null;
+    display_address: string | null;
     civilstat: string | null;
     occupation: string | null;
     spouse_name: string | null;
@@ -83,6 +84,7 @@ type MemberApplicationProfileData = {
     nickname: string | null;
     birthplace: string | null;
     length_of_stay: string | null;
+    number_of_children: number | null;
     educational_attainment: string | null;
     spouse_age: number | null;
     spouse_cell_no: string | null;
@@ -169,38 +171,6 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
-
-// Heuristic: treat the first comma as the split between street and locality.
-const splitEmployerBusinessAddress = (
-    address: string,
-): { street: string; city: string } => {
-    const trimmed = address.trim();
-
-    if (trimmed === '') {
-        return { street: '', city: '' };
-    }
-
-    const separatorIndex = trimmed.indexOf(',');
-
-    if (separatorIndex === -1) {
-        return { street: trimmed, city: '' };
-    }
-
-    return {
-        street: trimmed.slice(0, separatorIndex).trim(),
-        city: trimmed.slice(separatorIndex + 1).trim(),
-    };
-};
-
-const composeEmployerBusinessAddress = (
-    street: string,
-    city: string,
-): string => {
-    return [street, city]
-        .map((value) => value.trim())
-        .filter((value) => value !== '')
-        .join(', ');
-};
 
 const calculateAge = (birthday: string | null): number | null => {
     if (!birthday) {
@@ -375,28 +345,20 @@ export default function Profile({
     const memberLastName = memberRecord?.lname?.trim() ?? '';
     const memberAge = calculateAge(memberRecord?.birthday ?? null);
     const memberBirthplace = memberRecord?.birthplace?.trim() ?? '';
-    const memberAddressStreet = memberRecord?.address2?.trim() ?? '';
-    const memberAddressCity = memberRecord?.address3?.trim() ?? '';
-    const memberAddressProvince = memberRecord?.address4?.trim() ?? '';
-    const hasStructuredAddress =
-        memberAddressStreet !== '' ||
-        memberAddressCity !== '' ||
-        memberAddressProvince !== '';
+    const memberDisplayAddress =
+        memberRecord?.display_address?.trim() ||
+        memberRecord?.address?.trim() ||
+        '';
     const memberCivilStatus = normalizeCivilStatusValue(
         memberRecord?.civilstat ?? '',
     );
+    const numberOfChildrenValue =
+        memberApplicationProfile?.number_of_children ??
+        memberRecord?.number_of_children ??
+        '';
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const showOnboardingAlert =
         onboarding && adminProfile === null && !isProfileComplete;
-    const initialEmployerAddress = splitEmployerBusinessAddress(
-        memberApplicationProfile?.employer_business_address ?? '',
-    );
-    const [employerBusinessStreetAddress, setEmployerBusinessStreetAddress] =
-        useState<string>(initialEmployerAddress.street);
-    const employerBusinessCitySearch = useLocationSearch({
-        initialQuery: initialEmployerAddress.city,
-        searchUrl: birthplaces.url(),
-    });
     const initialBirthplaceQuery =
         memberApplicationProfile?.birthplace?.trim() ||
         memberBirthplace;
@@ -449,10 +411,6 @@ export default function Profile({
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
             ? natureOfBusinessOther.trim()
             : natureOfBusinessSelection;
-    const employerBusinessAddress = composeEmployerBusinessAddress(
-        employerBusinessStreetAddress,
-        employerBusinessCitySearch.query,
-    );
 
     useEffect(() => {
         setActiveTab(initialTab);
@@ -1214,96 +1172,27 @@ export default function Profile({
                                                                         />
                                                                     </div>
 
-                                                                    {hasStructuredAddress ? (
-                                                                        <>
-                                                                            <div className="grid gap-2 md:col-span-3">
-                                                                                <Label htmlFor="member_record_street">
-                                                                                    Street
-                                                                                </Label>
+                                                                    <div className="grid gap-2 md:col-span-3">
+                                                                        <Label htmlFor="member_record_address">
+                                                                            Address
+                                                                        </Label>
 
-                                                                                <Input
-                                                                                    id="member_record_street"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        hasWmasterValue(
-                                                                                            memberAddressStreet,
-                                                                                        ) &&
-                                                                                            WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberAddressStreet
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                            </div>
-                                                                            <div className="grid gap-2 md:col-span-2">
-                                                                                <Label htmlFor="member_record_city">
-                                                                                    City/Municipality
-                                                                                </Label>
-
-                                                                                <Input
-                                                                                    id="member_record_city"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        hasWmasterValue(
-                                                                                            memberAddressCity,
-                                                                                        ) &&
-                                                                                            WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberAddressCity
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                            </div>
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="member_record_province">
-                                                                                    Province
-                                                                                </Label>
-
-                                                                                <Input
-                                                                                    id="member_record_province"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        hasWmasterValue(
-                                                                                            memberAddressProvince,
-                                                                                        ) &&
-                                                                                            WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberAddressProvince
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                            </div>
-                                                                        </>
-                                                                    ) : (
-                                                                        <div className="grid gap-2 md:col-span-3">
-                                                                            <Label htmlFor="member_record_address">
-                                                                                Address
-                                                                            </Label>
-
-                                                                            <Input
-                                                                                id="member_record_address"
-                                                                                className={cn(
-                                                                                    'mt-1 block w-full',
-                                                                                    hasWmasterValue(
-                                                                                        memberRecord?.address,
-                                                                                    ) &&
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                                defaultValue={
-                                                                                    memberRecord?.address ??
-                                                                                    ''
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-                                                                    )}
+                                                                        <Input
+                                                                            id="member_record_address"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberDisplayAddress,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
+                                                                            defaultValue={
+                                                                                memberDisplayAddress
+                                                                            }
+                                                                            placeholder="Not available"
+                                                                            disabled
+                                                                        />
+                                                                    </div>
 
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="length_of_stay">
@@ -1468,14 +1357,14 @@ export default function Profile({
                                                                     </div>
 
                                                                     <div className="grid gap-2">
-                                                                        <Label htmlFor="member_record_number_of_children">
-                                                                            Number
+                                                                        <Label htmlFor="number_of_children">
+                                                                            No.
                                                                             of
                                                                             children
                                                                         </Label>
 
                                                                         <Input
-                                                                            id="member_record_number_of_children"
+                                                                            id="number_of_children"
                                                                             type="number"
                                                                             className={cn(
                                                                                 'mt-1 block w-full',
@@ -1485,11 +1374,18 @@ export default function Profile({
                                                                                     WMASTER_VALUE_CLASS,
                                                                             )}
                                                                             defaultValue={
-                                                                                memberRecord?.number_of_children ??
-                                                                                ''
+                                                                                numberOfChildrenValue
                                                                             }
-                                                                            placeholder="Not available"
-                                                                            disabled
+                                                                            name="number_of_children"
+                                                                            min={0}
+                                                                            inputMode="numeric"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.number_of_children
+                                                                            }
                                                                         />
                                                                     </div>
 
@@ -1715,71 +1611,31 @@ export default function Profile({
                                                                             }
                                                                         />
                                                                     </div>
-                                                                    <div className="grid gap-4 md:col-span-2 md:grid-cols-3">
-                                                                        <div className="grid gap-2 md:col-span-2">
-                                                                            <Label htmlFor="employer_business_street_address">
-                                                                                Employer
-                                                                                or
-                                                                                business
-                                                                                street
-                                                                                address
-                                                                            </Label>
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="employer_business_address">
+                                                                            Employer/Business
+                                                                            address
+                                                                        </Label>
 
-                                                                            <Input
-                                                                                id="employer_business_street_address"
-                                                                                className="mt-1 block w-full"
-                                                                                value={
-                                                                                    employerBusinessStreetAddress
-                                                                                }
-                                                                                name="employer_business_street_address"
-                                                                                placeholder="Building, street, office, or site"
-                                                                                onChange={(
-                                                                                    event,
-                                                                                ) => {
-                                                                                    setEmployerBusinessStreetAddress(
-                                                                                        event
-                                                                                            .target
-                                                                                            .value,
-                                                                                    );
-                                                                                }}
-                                                                            />
-                                                                        </div>
+                                                                        <Input
+                                                                            id="employer_business_address"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.employer_business_address ??
+                                                                                ''
+                                                                            }
+                                                                            name="employer_business_address"
+                                                                            required
+                                                                            placeholder="Employer or business address"
+                                                                        />
 
-                                                                        <div className="grid gap-2">
-                                                                            <Label
-                                                                                htmlFor="employer_business_city"
-                                                                                className="invisible"
-                                                                                aria-hidden="true"
-                                                                            >
-                                                                                City
-                                                                            </Label>
-                                                                            <LocationAutocompleteInput
-                                                                                id="employer_business_city"
-                                                                                name="employer_business_city"
-                                                                                search={
-                                                                                    employerBusinessCitySearch
-                                                                                }
-                                                                                placeholder="City or municipality"
-                                                                                ariaLabel="City or municipality"
-                                                                                inputClassName="mt-1 block w-full"
-                                                                            />
-                                                                        </div>
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.employer_business_address
+                                                                            }
+                                                                        />
                                                                     </div>
-
-                                                                    <input
-                                                                        type="hidden"
-                                                                        name="employer_business_address"
-                                                                        value={
-                                                                            employerBusinessAddress
-                                                                        }
-                                                                    />
-
-                                                                    <InputError
-                                                                        className="mt-2 md:col-span-2"
-                                                                        message={
-                                                                            formErrors.employer_business_address
-                                                                        }
-                                                                    />
 
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="telephone_no">
