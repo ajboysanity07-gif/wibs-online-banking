@@ -51,6 +51,12 @@ class MemberVerificationController extends Controller
         MemberVerificationMatcher $matcher,
     ): RedirectResponse {
         $validated = $request->validated();
+        $rawInput = [
+            'accntno' => $validated['accntno'] ?? null,
+            'last_name' => $validated['last_name'] ?? null,
+            'first_name' => $validated['first_name'] ?? null,
+            'middle_initial' => $validated['middle_initial'] ?? null,
+        ];
         $accountNumber = $matcher->normalizeAccountNumber($validated['accntno']);
 
         $member = Wmaster::find($accountNumber);
@@ -65,11 +71,19 @@ class MemberVerificationController extends Controller
                 ),
                 null,
                 'member_not_found',
+                $rawInput,
+                null,
             );
 
             return $this->verificationFailed($request);
         }
 
+        $rawMember = [
+            'acctno' => $member->acctno,
+            'lname' => $member->lname,
+            'fname' => $member->fname,
+            'mname' => $member->mname,
+        ];
         $comparison = $matcher->compare(
             $member,
             $validated['last_name'] ?? null,
@@ -83,6 +97,8 @@ class MemberVerificationController extends Controller
                 $comparison['input'],
                 $comparison['member'],
                 $comparison['failure'] ?? 'unknown',
+                $rawInput,
+                $rawMember,
             );
 
             return $this->verificationFailed($request);
@@ -174,18 +190,24 @@ class MemberVerificationController extends Controller
     /**
      * @param  array{last: string, first: string, middle: string}  $normalizedInput
      * @param  array{last: string, first: string, middle: string, middle_initial: string}|null  $normalizedMember
+     * @param  array{accntno: mixed, last_name: mixed, first_name: mixed, middle_initial: mixed}  $rawInput
+     * @param  array{acctno: mixed, lname: mixed, fname: mixed, mname: mixed}|null  $rawMember
      */
     private function logVerificationFailure(
         string $accountNumber,
         array $normalizedInput,
         ?array $normalizedMember,
         string $failure,
+        array $rawInput,
+        ?array $rawMember,
     ): void {
         Log::warning('Member verification failed.', [
             'flow' => 'web',
             'acctno' => $accountNumber,
             'member_found' => $normalizedMember !== null,
             'failure' => $failure,
+            'raw_input' => $rawInput,
+            'raw_member' => $rawMember,
             'normalized_input' => $normalizedInput,
             'normalized_member' => $normalizedMember,
         ]);

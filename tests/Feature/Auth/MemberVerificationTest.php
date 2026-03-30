@@ -271,9 +271,9 @@ test('member verification returns a generic error on mismatch', function () {
     $response->assertSessionHasErrors('verification');
 });
 
-test('spa member verification matches structured names', function () {
+test('spa member verification matches structured names for production case', function () {
     $member = Wmaster::query()->create([
-        'acctno' => '000913',
+        'acctno' => '000041',
         'lname' => 'ARANAS',
         'fname' => 'JOEL',
         'mname' => 'LALA',

@@ -114,7 +114,7 @@ class MemberVerificationMatcher
     {
         $normalized = Str::upper((string) $value);
         $normalized = preg_replace('/[.,-]/u', ' ', $normalized) ?? $normalized;
-        $normalized = preg_replace('/[\p{Z}\s\p{Cf}]+/u', ' ', $normalized) ?? $normalized;
+        $normalized = preg_replace('/[\p{Z}\s\p{C}]+/u', ' ', $normalized) ?? $normalized;
 
         return trim($normalized);
     }
@@ -129,7 +129,7 @@ class MemberVerificationMatcher
     public function normalizeAccountNumber(?string $value): string
     {
         $normalized = (string) $value;
-        $normalized = preg_replace('/[\p{Z}\s\p{Cf}]+/u', '', $normalized) ?? $normalized;
+        $normalized = preg_replace('/[\p{Z}\s\p{C}]+/u', '', $normalized) ?? $normalized;
 
         return trim($normalized);
     }
