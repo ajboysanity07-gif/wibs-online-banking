@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Api\BirthplaceSearchController;
+use App\Http\Controllers\Api\CitySearchController;
+use App\Http\Controllers\Api\ProvinceSearchController;
 use App\Http\Controllers\Auth\MemberVerificationController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
@@ -114,6 +116,10 @@ Route::prefix('admin/api')->middleware(['auth', 'admin', 'verified'])->group(fun
 Route::prefix('api/locations')->middleware(['auth', 'approved'])->group(function () {
     Route::get('birthplaces', BirthplaceSearchController::class)
         ->name('api.locations.birthplaces');
+    Route::get('provinces', ProvinceSearchController::class)
+        ->name('api.locations.provinces');
+    Route::get('cities', CitySearchController::class)
+        ->name('api.locations.cities');
 });
 
 Route::get('client/dashboard', function (

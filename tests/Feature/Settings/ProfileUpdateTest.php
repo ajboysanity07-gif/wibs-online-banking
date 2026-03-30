@@ -113,11 +113,13 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.lname', 'Santos')
             ->where('memberRecord.mname', 'L')
             ->where('memberRecord.birthplace', 'Quezon City')
+            ->where('memberRecord.birthplace_city', 'Quezon City')
+            ->where('memberRecord.birthplace_province', null)
             ->where('memberRecord.birthday', '1991-04-12')
             ->where('memberRecord.address', 'Legacy Address')
-            ->where('memberRecord.address2', '123 Mabini Street')
-            ->where('memberRecord.address3', 'Manila')
-            ->where('memberRecord.address4', 'Metro Manila')
+            ->where('memberRecord.address1', '123 Mabini Street')
+            ->where('memberRecord.address2', 'Manila')
+            ->where('memberRecord.address3', 'Metro Manila')
             ->where(
                 'memberRecord.display_address',
                 '123 Mabini Street, Manila, Metro Manila',
@@ -168,7 +170,11 @@ test('profile page exposes wmaster birthplace data', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/profile')
             ->where('memberApplicationProfile.birthplace', 'Davao City')
+            ->where('memberApplicationProfile.birthplace_city', 'Davao City')
+            ->where('memberApplicationProfile.birthplace_province', null)
             ->where('memberRecord.birthplace', 'Bacolod City')
+            ->where('memberRecord.birthplace_city', 'Bacolod City')
+            ->where('memberRecord.birthplace_province', null)
         );
 });
 
@@ -247,6 +253,8 @@ test('profile page prefers profile birthplace when wmaster birthplace is missing
             ->component('settings/profile')
             ->where('memberRecord.birthplace', null)
             ->where('memberApplicationProfile.birthplace', 'Cagayan de Oro')
+            ->where('memberApplicationProfile.birthplace_city', 'Cagayan de Oro')
+            ->where('memberApplicationProfile.birthplace_province', null)
         );
 });
 
@@ -358,7 +366,8 @@ test('profile information can be updated', function () {
             'email' => 'test@example.com',
             'phoneno' => '09123456789',
             'nickname' => 'Renee',
-            'birthplace' => 'Cebu City',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
             'number_of_children' => 2,
@@ -366,7 +375,9 @@ test('profile information can be updated', function () {
             'spouse_age' => 32,
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
-            'employer_business_address' => 'Acme Plaza, Tagum City, Davao del Norte',
+            'employer_business_address1' => 'Acme Plaza',
+            'employer_business_address2' => 'Tagum City',
+            'employer_business_address3' => 'Davao del Norte',
             'telephone_no' => '02-123-4567',
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
@@ -391,7 +402,9 @@ test('profile information can be updated', function () {
 
     expect($memberProfile)->not->toBeNull();
     expect($memberProfile->nickname)->toBe('Renee');
-    expect($memberProfile->birthplace)->toBe('Cebu City');
+    expect($memberProfile->birthplace)->toBe('Cebu City, Cebu');
+    expect($memberProfile->birthplace_city)->toBe('Cebu City');
+    expect($memberProfile->birthplace_province)->toBe('Cebu');
     expect($memberProfile->educational_attainment)->toBe('High School');
     expect($memberProfile->length_of_stay)->toBe('2 years');
     expect($memberProfile->number_of_children)->toBe(2);
@@ -403,6 +416,9 @@ test('profile information can be updated', function () {
     expect($memberProfile->employer_business_address)->toBe(
         'Acme Plaza, Tagum City, Davao del Norte',
     );
+    expect($memberProfile->employer_business_address1)->toBe('Acme Plaza');
+    expect($memberProfile->employer_business_address2)->toBe('Tagum City');
+    expect($memberProfile->employer_business_address3)->toBe('Davao del Norte');
     expect($memberProfile->telephone_no)->toBe('02-123-4567');
     expect($memberProfile->current_position)->toBe('Analyst');
     expect($memberProfile->nature_of_business)->toBe('Finance');
@@ -437,7 +453,8 @@ test('profile information can be updated with other nature of business', functio
             'username' => 'OtherUser',
             'email' => 'other@example.com',
             'phoneno' => '09123456700',
-            'birthplace' => 'Cebu City',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
             'educational_attainment' => 'College',
             'length_of_stay' => '3 years',
             'employment_type' => 'Regular',
@@ -538,7 +555,8 @@ test('member profile information can be updated with a profile photo', function 
             'username' => $user->username,
             'email' => $user->email,
             'phoneno' => $user->phoneno,
-            'birthplace' => 'Cebu City',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
             'employment_type' => 'Regular',
@@ -586,7 +604,8 @@ test('member profile photo replacements remove the old file', function () {
             'username' => $user->username,
             'email' => $user->email,
             'phoneno' => $user->phoneno,
-            'birthplace' => 'Davao City',
+            'birthplace_city' => 'Davao City',
+            'birthplace_province' => 'Davao del Sur',
             'educational_attainment' => 'College',
             'length_of_stay' => '3 years',
             'employment_type' => 'Regular',
@@ -636,7 +655,8 @@ test('email verification status is unchanged when the email address is unchanged
             'username' => 'TestUser',
             'email' => $user->email,
             'phoneno' => '09123456788',
-            'birthplace' => 'Cebu City',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
             'educational_attainment' => 'College',
             'length_of_stay' => '2 years',
             'employment_type' => 'Regular',

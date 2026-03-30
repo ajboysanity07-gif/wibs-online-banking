@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestPersonRole;
 use App\Models\LoanRequest;
 use App\Services\OrganizationSettingsService;
+use App\Support\LocationComposer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -50,7 +51,7 @@ class LoanRequestPdfService
             return [];
         }
 
-        return $person->toArray();
+        return $this->normalizePersonForReport($person->toArray());
     }
 
     /**
@@ -88,6 +89,39 @@ class LoanRequestPdfService
             'reportTypography' => $branding['reportTypography'] ?? [],
             'generatedAt' => Carbon::now(),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $person
+     * @return array<string, mixed>
+     */
+    private function normalizePersonForReport(array $person): array
+    {
+        $birthplace = LocationComposer::composeBirthplace(
+            $person['birthplace_city'] ?? null,
+            $person['birthplace_province'] ?? null,
+        );
+        $birthplace = $birthplace !== '' ? $birthplace : ($person['birthplace'] ?? null);
+        $address = LocationComposer::compose(
+            $person['address1'] ?? null,
+            $person['address2'] ?? null,
+            $person['address3'] ?? null,
+        );
+        $address = $address !== '' ? $address : ($person['address'] ?? null);
+        $employerBusinessAddress = LocationComposer::compose(
+            $person['employer_business_address1'] ?? null,
+            $person['employer_business_address2'] ?? null,
+            $person['employer_business_address3'] ?? null,
+        );
+        $employerBusinessAddress = $employerBusinessAddress !== ''
+            ? $employerBusinessAddress
+            : ($person['employer_business_address'] ?? null);
+
+        $person['birthplace'] = $birthplace;
+        $person['address'] = $address;
+        $person['employer_business_address'] = $employerBusinessAddress;
+
+        return $person;
     }
 
     /**

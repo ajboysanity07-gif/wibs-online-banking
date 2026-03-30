@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
+    composeAddress,
     formatCurrency,
     formatDate,
     formatDisplayText,
@@ -66,6 +67,38 @@ const displayText = (value?: string | null): string => {
     const normalized = formatDisplayText(value);
 
     return normalized !== '' ? normalized : '--';
+};
+
+const resolveAddress = (person?: LoanRequestPersonData | null): string => {
+    if (!person) {
+        return '';
+    }
+
+    const composed = composeAddress(
+        person.address1,
+        person.address2,
+        person.address3,
+    );
+
+    return composed !== '' ? composed : person.address ?? '';
+};
+
+const resolveEmployerBusinessAddress = (
+    person?: LoanRequestPersonData | null,
+): string => {
+    if (!person) {
+        return '';
+    }
+
+    const composed = composeAddress(
+        person.employer_business_address1,
+        person.employer_business_address2,
+        person.employer_business_address3,
+    );
+
+    return composed !== ''
+        ? composed
+        : person.employer_business_address ?? '';
 };
 
 const displayCurrency = (value?: string | number | null): string => {
@@ -143,7 +176,10 @@ const PersonPanel = ({ title, person }: PersonPanelProps) => (
         <div className="mt-4 grid gap-4 md:grid-cols-2">
             <DetailRow label="Name" value={personName(person)} />
             <DetailRow label="Cell no." value={displayValue(person?.cell_no)} />
-            <DetailRow label="Address" value={displayText(person?.address)} />
+            <DetailRow
+                label="Address"
+                value={displayText(resolveAddress(person))}
+            />
             <DetailRow
                 label="Employer/Business"
                 value={displayText(person?.employer_business_name)}
@@ -299,7 +335,9 @@ export function LoanRequestDetailPage({
                                 />
                                 <DetailRow
                                     label="Address"
-                                    value={displayText(applicant?.address)}
+                                    value={displayText(
+                                        resolveAddress(applicant),
+                                    )}
                                 />
                                 <DetailRow
                                     label="Birthdate"
@@ -339,7 +377,9 @@ export function LoanRequestDetailPage({
                                 <DetailRow
                                     label="Business address"
                                     value={displayText(
-                                        applicant?.employer_business_address,
+                                        resolveEmployerBusinessAddress(
+                                            applicant,
+                                        ),
                                     )}
                                 />
                                 <DetailRow

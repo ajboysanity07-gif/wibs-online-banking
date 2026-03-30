@@ -82,7 +82,9 @@ test('approved client can view the loan request form', function () {
             ->component('client/loan-request')
             ->has('loanTypes', 1)
             ->has('applicant')
-            ->has('applicant.employer_business_address')
+            ->has('applicant.employer_business_address1')
+            ->has('applicant.employer_business_address2')
+            ->has('applicant.employer_business_address3')
             ->has('coMakerOne')
             ->has('coMakerTwo')
             ->has('draft')
@@ -132,9 +134,17 @@ test('loan request form uses structured wmaster names and address parts', functi
             ->where('applicant.middle_name', 'Q')
             ->where('applicant.last_name', 'Member')
             ->where('applicant.birthplace', 'Makati City')
+            ->where('applicant.birthplace_city', 'Makati City')
+            ->where('applicant.birthplace_province', null)
             ->where('applicant.address', '123 Main Street, Makati, Metro Manila')
-            ->where('applicantReadOnly.address', true)
-            ->where('applicantReadOnly.birthplace', true));
+            ->where('applicant.address1', '123 Main Street')
+            ->where('applicant.address2', 'Makati')
+            ->where('applicant.address3', 'Metro Manila')
+            ->where('applicantReadOnly.address1', true)
+            ->where('applicantReadOnly.address2', true)
+            ->where('applicantReadOnly.address3', true)
+            ->where('applicantReadOnly.birthplace_city', true)
+            ->where('applicantReadOnly.birthplace_province', false));
 });
 
 test('loan request form uses member profile work fields for the applicant', function () {
@@ -178,6 +188,9 @@ test('loan request form uses member profile work fields for the applicant', func
             ->where('applicant.employment_type', 'Regular')
             ->where('applicant.employer_business_name', 'Acme Corp')
             ->where('applicant.employer_business_address', 'Acme Building')
+            ->where('applicant.employer_business_address1', 'Acme Building')
+            ->where('applicant.employer_business_address2', null)
+            ->where('applicant.employer_business_address3', null)
             ->where('applicant.current_position', 'Supervisor')
             ->where('applicant.nature_of_business', 'Finance'));
 });
@@ -204,6 +217,8 @@ test('loan request form falls back to legacy wmaster data when structured data i
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
         'birthplace' => 'Cebu City',
+        'birthplace_city' => 'Cebu City',
+        'birthplace_province' => null,
     ]);
     DB::table('wlntype')->insert([
         'typecode' => 'LN-005',
@@ -223,8 +238,16 @@ test('loan request form falls back to legacy wmaster data when structured data i
             ->where('applicant.last_name', 'Legacy')
             ->where('applicant.birthplace', 'Cebu City')
             ->where('applicant.address', 'Legacy Loan Street')
-            ->where('applicantReadOnly.address', true)
-            ->where('applicantReadOnly.birthplace', false));
+            ->where('applicant.birthplace_city', 'Cebu City')
+            ->where('applicant.birthplace_province', null)
+            ->where('applicant.address1', 'Legacy Loan Street')
+            ->where('applicant.address2', null)
+            ->where('applicant.address3', null)
+            ->where('applicantReadOnly.address1', true)
+            ->where('applicantReadOnly.address2', false)
+            ->where('applicantReadOnly.address3', false)
+            ->where('applicantReadOnly.birthplace_city', false)
+            ->where('applicantReadOnly.birthplace_province', false));
 });
 
 test('loan request form preserves member number of children values', function (
@@ -501,8 +524,11 @@ test('clients can save a loan request draft', function () {
             'first_name' => 'Loan',
             'last_name' => 'Member',
             'birthdate' => '1990-04-10',
-            'birthplace' => 'Manila',
-            'address' => 'Loan Street',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
             'length_of_stay' => '5 years',
             'housing_status' => 'OWNED',
             'cell_no' => '09123456789',
@@ -510,7 +536,9 @@ test('clients can save a loan request draft', function () {
             'educational_attainment' => 'College',
             'employment_type' => 'Private',
             'employer_business_name' => 'Loan Company',
-            'employer_business_address' => 'Loan City',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
@@ -535,7 +563,7 @@ test('clients can save a loan request draft', function () {
             ->where('loan_request_id', $draft->id)
             ->where('role', LoanRequestPersonRole::Applicant)
             ->value('birthplace'),
-    )->toBe('Manila');
+    )->toBe('Manila, Metro Manila');
     expect(
         LoanRequestPerson::query()
             ->where('loan_request_id', $draft->id)
@@ -638,8 +666,11 @@ test('loan request submissions persist snapshots', function () {
             'middle_name' => 'Q',
             'nickname' => 'LM',
             'birthdate' => '1990-04-10',
-            'birthplace' => 'Manila',
-            'address' => 'Loan Street',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
             'length_of_stay' => '5 years',
             'housing_status' => 'OWNED',
             'cell_no' => '09123456789',
@@ -651,7 +682,9 @@ test('loan request submissions persist snapshots', function () {
             'spouse_cell_no' => null,
             'employment_type' => 'Private',
             'employer_business_name' => 'Loan Company',
-            'employer_business_address' => 'Loan City',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
             'telephone_no' => '021234567',
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
@@ -665,8 +698,11 @@ test('loan request submissions persist snapshots', function () {
             'middle_name' => 'One',
             'nickname' => null,
             'birthdate' => '1989-03-12',
-            'birthplace' => 'Cebu',
-            'address' => 'Co Maker Street',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address1' => 'Co Maker Street',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
             'length_of_stay' => '4 years',
             'housing_status' => 'RENT',
             'cell_no' => '09998887777',
@@ -674,7 +710,9 @@ test('loan request submissions persist snapshots', function () {
             'educational_attainment' => 'College',
             'employment_type' => 'Government',
             'employer_business_name' => 'Co Maker Office',
-            'employer_business_address' => 'Cebu City',
+            'employer_business_address1' => 'Co Maker Plaza',
+            'employer_business_address2' => 'Cebu City',
+            'employer_business_address3' => 'Cebu',
             'telephone_no' => '021234567',
             'current_position' => 'Clerk',
             'nature_of_business' => 'Government',
@@ -688,8 +726,11 @@ test('loan request submissions persist snapshots', function () {
             'middle_name' => 'Two',
             'nickname' => null,
             'birthdate' => '1987-02-12',
-            'birthplace' => 'Davao',
-            'address' => 'Second Street',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address1' => 'Second Street',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
             'length_of_stay' => '2 years',
             'housing_status' => 'OWNED',
             'cell_no' => '09111112222',
@@ -697,7 +738,9 @@ test('loan request submissions persist snapshots', function () {
             'educational_attainment' => 'High School',
             'employment_type' => 'Self Employed',
             'employer_business_name' => 'Second Store',
-            'employer_business_address' => 'Davao City',
+            'employer_business_address1' => 'Davao Store',
+            'employer_business_address2' => 'Davao City',
+            'employer_business_address3' => 'Davao del Sur',
             'telephone_no' => '021234567',
             'current_position' => 'Owner',
             'nature_of_business' => 'Retail',
@@ -723,11 +766,11 @@ test('loan request submissions persist snapshots', function () {
         ->where('loan_request_id', $loanRequest->id)
         ->get()
         ->keyBy('role');
-    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila');
+    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila, Metro Manila');
     expect($people[LoanRequestPersonRole::Applicant->value]->housing_status)->toBe('OWNED');
-    expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('Cebu');
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('Cebu, Cebu');
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('RENT');
-    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao');
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao, Davao del Sur');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
 });
 
@@ -769,8 +812,11 @@ test('loan request submission validates housing status values', function () {
             'middle_name' => 'Q',
             'nickname' => 'LM',
             'birthdate' => '1990-04-10',
-            'birthplace' => 'Manila',
-            'address' => 'Loan Street',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
             'length_of_stay' => '5 years',
             'housing_status' => 'Owned',
             'cell_no' => '09123456789',
@@ -782,7 +828,9 @@ test('loan request submission validates housing status values', function () {
             'spouse_cell_no' => null,
             'employment_type' => 'Private',
             'employer_business_name' => 'Loan Company',
-            'employer_business_address' => 'Loan City',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
             'telephone_no' => '021234567',
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
@@ -796,8 +844,11 @@ test('loan request submission validates housing status values', function () {
             'middle_name' => 'One',
             'nickname' => null,
             'birthdate' => '1989-03-12',
-            'birthplace' => 'Cebu',
-            'address' => 'Co Maker Street',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address1' => 'Co Maker Street',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
             'length_of_stay' => '4 years',
             'housing_status' => 'RENT',
             'cell_no' => '09998887777',
@@ -805,7 +856,9 @@ test('loan request submission validates housing status values', function () {
             'educational_attainment' => 'College',
             'employment_type' => 'Government',
             'employer_business_name' => 'Co Maker Office',
-            'employer_business_address' => 'Cebu City',
+            'employer_business_address1' => 'Co Maker Plaza',
+            'employer_business_address2' => 'Cebu City',
+            'employer_business_address3' => 'Cebu',
             'telephone_no' => '021234567',
             'current_position' => 'Clerk',
             'nature_of_business' => 'Government',
@@ -819,8 +872,11 @@ test('loan request submission validates housing status values', function () {
             'middle_name' => 'Two',
             'nickname' => null,
             'birthdate' => '1987-02-12',
-            'birthplace' => 'Davao',
-            'address' => 'Second Street',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address1' => 'Second Street',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
             'length_of_stay' => '2 years',
             'housing_status' => 'OWNED',
             'cell_no' => '09111112222',
@@ -828,7 +884,9 @@ test('loan request submission validates housing status values', function () {
             'educational_attainment' => 'High School',
             'employment_type' => 'Self Employed',
             'employer_business_name' => 'Second Store',
-            'employer_business_address' => 'Davao City',
+            'employer_business_address1' => 'Davao Store',
+            'employer_business_address2' => 'Davao City',
+            'employer_business_address3' => 'Davao del Sur',
             'telephone_no' => '021234567',
             'current_position' => 'Owner',
             'nature_of_business' => 'Retail',

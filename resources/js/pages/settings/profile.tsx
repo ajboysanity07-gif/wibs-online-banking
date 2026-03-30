@@ -40,7 +40,7 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { createCroppedImageFile } from '@/lib/image-crop';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import { birthplaces } from '@/routes/api/locations';
+import { cities, provinces } from '@/routes/api/locations';
 import { edit } from '@/routes/profile';
 import { disable, enable } from '@/routes/two-factor';
 import { send } from '@/routes/verification';
@@ -66,11 +66,13 @@ type MemberRecord = {
     lname: string | null;
     mname: string | null;
     birthplace: string | null;
+    birthplace_city: string | null;
+    birthplace_province: string | null;
     birthday: string | null;
     address: string | null;
+    address1: string | null;
     address2: string | null;
     address3: string | null;
-    address4: string | null;
     display_address: string | null;
     civilstat: string | null;
     occupation: string | null;
@@ -83,6 +85,8 @@ type MemberRecord = {
 type MemberApplicationProfileData = {
     nickname: string | null;
     birthplace: string | null;
+    birthplace_city: string | null;
+    birthplace_province: string | null;
     length_of_stay: string | null;
     number_of_children: number | null;
     spouse_name: string | null;
@@ -92,6 +96,9 @@ type MemberApplicationProfileData = {
     employment_type: string | null;
     employer_business_name: string | null;
     employer_business_address: string | null;
+    employer_business_address1: string | null;
+    employer_business_address2: string | null;
+    employer_business_address3: string | null;
     telephone_no: string | null;
     current_position: string | null;
     nature_of_business: string | null;
@@ -346,6 +353,12 @@ export default function Profile({
     const memberLastName = memberRecord?.lname?.trim() ?? '';
     const memberAge = calculateAge(memberRecord?.birthday ?? null);
     const memberBirthplace = memberRecord?.birthplace?.trim() ?? '';
+    const memberBirthplaceCity = memberRecord?.birthplace_city?.trim() ?? '';
+    const memberBirthplaceProvince =
+        memberRecord?.birthplace_province?.trim() ?? '';
+    const memberAddressStreet = memberRecord?.address1?.trim() ?? '';
+    const memberAddressCity = memberRecord?.address2?.trim() ?? '';
+    const memberAddressProvince = memberRecord?.address3?.trim() ?? '';
     const memberDisplayAddress =
         memberRecord?.display_address?.trim() ||
         memberRecord?.address?.trim() ||
@@ -362,12 +375,39 @@ export default function Profile({
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const showOnboardingAlert =
         onboarding && adminProfile === null && !isProfileComplete;
-    const initialBirthplaceQuery =
-        memberApplicationProfile?.birthplace?.trim() ||
-        memberBirthplace;
-    const birthplaceSearch = useLocationSearch({
-        initialQuery: initialBirthplaceQuery,
-        searchUrl: birthplaces.url(),
+    const initialBirthplaceCity =
+        memberApplicationProfile?.birthplace_city?.trim() ||
+        memberBirthplaceCity;
+    const initialBirthplaceProvince =
+        memberApplicationProfile?.birthplace_province?.trim() ||
+        memberBirthplaceProvince;
+    const birthplaceProvinceSearch = useLocationSearch({
+        initialQuery: initialBirthplaceProvince,
+        searchUrl: provinces.url(),
+    });
+    const birthplaceCitySearch = useLocationSearch({
+        initialQuery: initialBirthplaceCity,
+        searchUrl: cities.url(),
+        params: {
+            province: birthplaceProvinceSearch.query || undefined,
+        },
+    });
+    const employerBusinessAddress1 =
+        memberApplicationProfile?.employer_business_address1?.trim() ?? '';
+    const employerBusinessAddress2 =
+        memberApplicationProfile?.employer_business_address2?.trim() ?? '';
+    const employerBusinessAddress3 =
+        memberApplicationProfile?.employer_business_address3?.trim() ?? '';
+    const employerBusinessProvinceSearch = useLocationSearch({
+        initialQuery: employerBusinessAddress3,
+        searchUrl: provinces.url(),
+    });
+    const employerBusinessCitySearch = useLocationSearch({
+        initialQuery: employerBusinessAddress2,
+        searchUrl: cities.url(),
+        params: {
+            province: employerBusinessProvinceSearch.query || undefined,
+        },
     });
     const [educationalAttainment, setEducationalAttainment] = useState<string>(
         memberApplicationProfile?.educational_attainment?.trim() ?? '',
@@ -1126,56 +1166,92 @@ export default function Profile({
                                                                         />
                                                                     </div>
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="birthplace">
-                                                                            Birthplace
-                                                                        </Label>
-                                                                        {isBirthplaceLocked ? (
-                                                                            <>
-                                                                                <Input
-                                                                                    id="birthplace"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberBirthplace
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                                <input
-                                                                                    type="hidden"
-                                                                                    name="birthplace"
-                                                                                    value={
-                                                                                        memberBirthplace
-                                                                                    }
-                                                                                />
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
+                                                                    {isBirthplaceLocked ? (
+                                                                        <div className="grid gap-2 md:col-span-2">
+                                                                            <Label htmlFor="birthplace">
+                                                                                Birthplace
+                                                                            </Label>
+                                                                            <Input
+                                                                                id="birthplace"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                                defaultValue={
+                                                                                    memberBirthplace
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                            <input
+                                                                                type="hidden"
+                                                                                name="birthplace_city"
+                                                                                value={
+                                                                                    memberBirthplaceCity
+                                                                                }
+                                                                            />
+                                                                            <input
+                                                                                type="hidden"
+                                                                                name="birthplace_province"
+                                                                                value={
+                                                                                    memberBirthplaceProvince
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <>
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="birthplace_city">
+                                                                                    Birthplace
+                                                                                    city/municipality
+                                                                                </Label>
                                                                                 <LocationAutocompleteInput
-                                                                                    id="birthplace"
-                                                                                    name="birthplace"
+                                                                                    id="birthplace_city"
+                                                                                    name="birthplace_city"
                                                                                     search={
-                                                                                        birthplaceSearch
+                                                                                        birthplaceCitySearch
                                                                                     }
-                                                                                    placeholder="City or municipality"
+                                                                                    placeholder="Select city or municipality"
                                                                                     required
                                                                                     inputClassName="mt-1 block w-full"
-                                                                                    loadingMessage="Searching birthplace suggestions..."
-                                                                                    errorMessage="Birthplace suggestions are temporarily unavailable."
+                                                                                    loadingMessage="Searching city suggestions..."
+                                                                                    errorMessage="City suggestions are temporarily unavailable."
                                                                                 />
 
                                                                                 <InputError
                                                                                     className="mt-2"
                                                                                     message={
-                                                                                        formErrors.birthplace
+                                                                                        formErrors.birthplace_city
                                                                                     }
                                                                                 />
-                                                                            </>
-                                                                        )}
-                                                                    </div>
+                                                                            </div>
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="birthplace_province">
+                                                                                    Birthplace
+                                                                                    province
+                                                                                </Label>
+                                                                                <LocationAutocompleteInput
+                                                                                    id="birthplace_province"
+                                                                                    name="birthplace_province"
+                                                                                    search={
+                                                                                        birthplaceProvinceSearch
+                                                                                    }
+                                                                                    placeholder="Select province"
+                                                                                    inputClassName="mt-1 block w-full"
+                                                                                    loadingMessage="Searching province suggestions..."
+                                                                                    errorMessage="Province suggestions are temporarily unavailable."
+                                                                                    promptMessage="Type at least 2 characters to search provinces."
+                                                                                />
+
+                                                                                <InputError
+                                                                                    className="mt-2"
+                                                                                    message={
+                                                                                        formErrors.birthplace_province
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        </>
+                                                                    )}
 
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="member_age">
@@ -1201,27 +1277,102 @@ export default function Profile({
                                                                         />
                                                                     </div>
 
-                                                                    <div className="grid gap-2 md:col-span-3">
-                                                                        <Label htmlFor="member_record_address">
-                                                                            Address
-                                                                        </Label>
+                                                                    {memberAddressStreet !== '' ||
+                                                                    memberAddressCity !==
+                                                                        '' ||
+                                                                    memberAddressProvince !==
+                                                                        '' ? (
+                                                                        <>
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_record_address1">
+                                                                                    Address
+                                                                                    (street)
+                                                                                </Label>
 
-                                                                        <Input
-                                                                            id="member_record_address"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberDisplayAddress,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberDisplayAddress
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
-                                                                    </div>
+                                                                                <Input
+                                                                                    id="member_record_address1"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberAddressStreet,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberAddressStreet
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_record_address2">
+                                                                                    City/Municipality
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_record_address2"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberAddressCity,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberAddressCity
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_record_address3">
+                                                                                    Province
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_record_address3"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberAddressProvince,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberAddressProvince
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+                                                                        </>
+                                                                    ) : (
+                                                                        <div className="grid gap-2 md:col-span-3">
+                                                                            <Label htmlFor="member_record_address">
+                                                                                Address
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_record_address"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    hasWmasterValue(
+                                                                                        memberDisplayAddress,
+                                                                                    ) &&
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                                defaultValue={
+                                                                                    memberDisplayAddress
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
+                                                                    )}
 
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="length_of_stay">
@@ -1658,19 +1809,19 @@ export default function Profile({
                                                                         />
                                                                     </div>
                                                                     <div className="grid gap-2 md:col-span-2">
-                                                                        <Label htmlFor="employer_business_address">
+                                                                        <Label htmlFor="employer_business_address1">
                                                                             Employer/Business
                                                                             address
+                                                                            (street)
                                                                         </Label>
 
                                                                         <Input
-                                                                            id="employer_business_address"
+                                                                            id="employer_business_address1"
                                                                             className="mt-1 block w-full"
                                                                             defaultValue={
-                                                                                memberApplicationProfile?.employer_business_address ??
-                                                                                ''
+                                                                                employerBusinessAddress1
                                                                             }
-                                                                            name="employer_business_address"
+                                                                            name="employer_business_address1"
                                                                             required
                                                                             placeholder="Employer or business address"
                                                                         />
@@ -1678,7 +1829,60 @@ export default function Profile({
                                                                         <InputError
                                                                             className="mt-2"
                                                                             message={
-                                                                                formErrors.employer_business_address
+                                                                                formErrors.employer_business_address1
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="employer_business_address2">
+                                                                            City/Municipality
+                                                                        </Label>
+
+                                                                        <LocationAutocompleteInput
+                                                                            id="employer_business_address2"
+                                                                            name="employer_business_address2"
+                                                                            search={
+                                                                                employerBusinessCitySearch
+                                                                            }
+                                                                            placeholder="Select city or municipality"
+                                                                            required
+                                                                            inputClassName="mt-1 block w-full"
+                                                                            loadingMessage="Searching city suggestions..."
+                                                                            errorMessage="City suggestions are temporarily unavailable."
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.employer_business_address2
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="employer_business_address3">
+                                                                            Province
+                                                                        </Label>
+
+                                                                        <LocationAutocompleteInput
+                                                                            id="employer_business_address3"
+                                                                            name="employer_business_address3"
+                                                                            search={
+                                                                                employerBusinessProvinceSearch
+                                                                            }
+                                                                            placeholder="Select province"
+                                                                            required
+                                                                            inputClassName="mt-1 block w-full"
+                                                                            loadingMessage="Searching province suggestions..."
+                                                                            errorMessage="Province suggestions are temporarily unavailable."
+                                                                            promptMessage="Type at least 2 characters to search provinces."
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.employer_business_address3
                                                                             }
                                                                         />
                                                                     </div>

@@ -19,6 +19,8 @@ class PsgcService
 
     private const CACHE_PROVINCES = 'psgc.provinces.v1';
 
+    private const CACHE_PROVINCES_LIST = 'psgc.provinces.list.v1';
+
     private const CACHE_CITIES = 'psgc.cities.v1';
 
     private const CACHE_MUNICIPALITIES = 'psgc.municipalities.v1';
@@ -101,6 +103,194 @@ class PsgcService
     }
 
     /**
+     * @return array{available: bool, results: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string}>}
+     */
+    public function searchProvinces(string $query, int $limit = 15): array
+    {
+        $query = trim($query);
+
+        if ($query === '') {
+            return [
+                'available' => true,
+                'results' => [],
+            ];
+        }
+
+        $limit = max(1, min($limit, 20));
+        $provinces = $this->provincesList();
+
+        if ($provinces === []) {
+            return [
+                'available' => false,
+                'results' => [],
+            ];
+        }
+
+        $needle = Str::lower($query);
+        $matches = [];
+
+        foreach ($provinces as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $name = $entry['name'] ?? null;
+            $code = $entry['code'] ?? null;
+
+            if (! is_string($name) || ! is_string($code)) {
+                continue;
+            }
+
+            $name = trim($name);
+            $code = trim($code);
+
+            if ($name === '' || $code === '') {
+                continue;
+            }
+
+            $nameLower = Str::lower($name);
+
+            if (! str_contains($nameLower, $needle)) {
+                continue;
+            }
+
+            $score = 2;
+
+            if ($nameLower === $needle) {
+                $score = 0;
+            } elseif (str_starts_with($nameLower, $needle)) {
+                $score = 1;
+            }
+
+            $matches[] = [$score, [
+                'code' => $code,
+                'name' => $name,
+                'type' => 'province',
+                'province' => null,
+                'region' => null,
+                'label' => $name,
+                'value' => $name,
+            ]];
+        }
+
+        usort($matches, static function (array $left, array $right): int {
+            if ($left[0] !== $right[0]) {
+                return $left[0] <=> $right[0];
+            }
+
+            return strcmp($left[1]['name'], $right[1]['name']);
+        });
+
+        $results = [];
+
+        foreach ($matches as [$score, $province]) {
+            $results[] = $province;
+
+            if (count($results) >= $limit) {
+                break;
+            }
+        }
+
+        return [
+            'available' => true,
+            'results' => $results,
+        ];
+    }
+
+    /**
+     * @return array{available: bool, results: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string}>}
+     */
+    public function searchCities(
+        string $query,
+        int $limit = 15,
+        ?string $province = null,
+    ): array {
+        $query = trim($query);
+
+        if ($query === '') {
+            return [
+                'available' => true,
+                'results' => [],
+            ];
+        }
+
+        $limit = max(1, min($limit, 20));
+        $birthplaces = $this->birthplaces();
+
+        if ($birthplaces === []) {
+            return [
+                'available' => false,
+                'results' => [],
+            ];
+        }
+
+        $needle = Str::lower($query);
+        $provinceFilter = trim((string) $province);
+        $provinceFilter = $provinceFilter !== '' ? Str::lower($provinceFilter) : '';
+        $matches = [];
+
+        foreach ($birthplaces as $birthplace) {
+            $name = $birthplace['name_lower'];
+            $provinceName = $birthplace['province'] ?? null;
+
+            if ($provinceFilter !== '') {
+                if (! is_string($provinceName)) {
+                    continue;
+                }
+
+                if (Str::lower($provinceName) !== $provinceFilter) {
+                    continue;
+                }
+            }
+
+            if (! str_contains($name, $needle)) {
+                continue;
+            }
+
+            $score = 2;
+
+            if ($name === $needle) {
+                $score = 0;
+            } elseif (str_starts_with($name, $needle)) {
+                $score = 1;
+            }
+
+            $matches[] = [$score, [
+                'code' => $birthplace['code'],
+                'name' => $birthplace['name'],
+                'type' => $birthplace['type'],
+                'province' => $birthplace['province'],
+                'region' => $birthplace['region'],
+                'label' => $birthplace['label'],
+                'value' => $birthplace['name'],
+            ]];
+        }
+
+        usort($matches, static function (array $left, array $right): int {
+            if ($left[0] !== $right[0]) {
+                return $left[0] <=> $right[0];
+            }
+
+            return strcmp($left[1]['name'], $right[1]['name']);
+        });
+
+        $results = [];
+
+        foreach ($matches as [$score, $birthplace]) {
+            $results[] = $birthplace;
+
+            if (count($results) >= $limit) {
+                break;
+            }
+        }
+
+        return [
+            'available' => true,
+            'results' => $results,
+        ];
+    }
+
+    /**
      * @return list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>
      */
     private function birthplaces(): array
@@ -147,6 +337,14 @@ class PsgcService
         }
 
         return $birthplaces;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function provincesList(): array
+    {
+        return $this->list('provinces', self::CACHE_PROVINCES_LIST);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Client;
 
+use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
@@ -26,6 +27,23 @@ class LoanRequestStoreRequest extends FormRequest
         'Bi-Weekly',
         'Monthly',
     ];
+
+    protected function prepareForValidation(): void
+    {
+        $payload = $this->all();
+
+        foreach (['applicant', 'co_maker_1', 'co_maker_2'] as $key) {
+            $person = $this->input($key);
+
+            if (! is_array($person)) {
+                continue;
+            }
+
+            $payload[$key] = $this->normalizePersonLocationFields($person);
+        }
+
+        $this->merge($payload);
+    }
 
     /**
      * Determine if the user is authorized to make this request.
@@ -95,8 +113,11 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.middle_name" => ['nullable', 'string', 'max:255'],
             "{$prefix}.nickname" => ['nullable', 'string', 'max:255'],
             "{$prefix}.birthdate" => ['required', 'date'],
-            "{$prefix}.birthplace" => ['required', 'string', 'max:255'],
-            "{$prefix}.address" => ['required', 'string', 'max:500'],
+            "{$prefix}.birthplace_city" => ['required', 'string', 'max:255'],
+            "{$prefix}.birthplace_province" => ['required', 'string', 'max:255'],
+            "{$prefix}.address1" => ['required', 'string', 'max:255'],
+            "{$prefix}.address2" => ['required', 'string', 'max:255'],
+            "{$prefix}.address3" => ['required', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
             "{$prefix}.housing_status" => [
                 'required',
@@ -112,7 +133,9 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['required', 'string', 'max:255'],
-            "{$prefix}.employer_business_address" => ['required', 'string', 'max:500'],
+            "{$prefix}.employer_business_address1" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_address2" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_address3" => ['required', 'string', 'max:255'],
             "{$prefix}.telephone_no" => ['nullable', 'string', 'max:20'],
             "{$prefix}.current_position" => ['required', 'string', 'max:255'],
             "{$prefix}.nature_of_business" => ['required', 'string', 'max:255'],
@@ -140,5 +163,89 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * @param  array<string, mixed>  $person
+     * @return array<string, mixed>
+     */
+    private function normalizePersonLocationFields(array $person): array
+    {
+        $birthplaceCity = $this->normalizeOptionalString(
+            $person['birthplace_city'] ?? null,
+        );
+        $birthplaceProvince = $this->normalizeOptionalString(
+            $person['birthplace_province'] ?? null,
+        );
+        $legacyBirthplace = $this->normalizeOptionalString(
+            $person['birthplace'] ?? null,
+        );
+
+        if ($birthplaceCity === null && $birthplaceProvince === null && $legacyBirthplace !== null) {
+            $parsed = LocationComposer::parseLegacyBirthplace($legacyBirthplace);
+            $birthplaceCity = $parsed['city'];
+            $birthplaceProvince = $parsed['province'];
+        }
+
+        $person['birthplace_city'] = $birthplaceCity;
+        $person['birthplace_province'] = $birthplaceProvince;
+
+        $address1 = $this->normalizeOptionalString($person['address1'] ?? null);
+        $address2 = $this->normalizeOptionalString($person['address2'] ?? null);
+        $address3 = $this->normalizeOptionalString($person['address3'] ?? null);
+        $legacyAddress = $this->normalizeOptionalString($person['address'] ?? null);
+
+        if ($address1 === null && $address2 === null && $address3 === null && $legacyAddress !== null) {
+            $parsed = LocationComposer::parseLegacyAddress($legacyAddress);
+            $address1 = $parsed['address1'];
+            $address2 = $parsed['address2'];
+            $address3 = $parsed['address3'];
+        }
+
+        $person['address1'] = $address1;
+        $person['address2'] = $address2;
+        $person['address3'] = $address3;
+
+        $employerAddress1 = $this->normalizeOptionalString(
+            $person['employer_business_address1'] ?? null,
+        );
+        $employerAddress2 = $this->normalizeOptionalString(
+            $person['employer_business_address2'] ?? null,
+        );
+        $employerAddress3 = $this->normalizeOptionalString(
+            $person['employer_business_address3'] ?? null,
+        );
+        $legacyEmployerAddress = $this->normalizeOptionalString(
+            $person['employer_business_address'] ?? null,
+        );
+
+        if (
+            $employerAddress1 === null
+            && $employerAddress2 === null
+            && $employerAddress3 === null
+            && $legacyEmployerAddress !== null
+        ) {
+            $parsed = LocationComposer::parseLegacyAddress($legacyEmployerAddress);
+            $employerAddress1 = $parsed['address1'];
+            $employerAddress2 = $parsed['address2'];
+            $employerAddress3 = $parsed['address3'];
+        }
+
+        $person['employer_business_address1'] = $employerAddress1;
+        $person['employer_business_address2'] = $employerAddress2;
+        $person['employer_business_address3'] = $employerAddress3;
+
+        return $person;
+    }
+
+    private function normalizeOptionalString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 }

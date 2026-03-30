@@ -15,7 +15,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useLocationSearch } from '@/hooks/use-location-search';
 import { cn } from '@/lib/utils';
-import { birthplaces } from '@/routes/api/locations';
+import { cities, provinces } from '@/routes/api/locations';
 import type {
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
@@ -168,13 +168,43 @@ export function LoanRequestPersonalFields({
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
     const hasReadOnlyFields = Object.values(readOnly ?? {}).some(Boolean);
-    const birthplaceSearch = useLocationSearch({
-        initialQuery: values.birthplace,
-        searchUrl: birthplaces.url(),
+    const birthplaceProvinceSearch = useLocationSearch({
+        initialQuery: values.birthplace_province,
+        searchUrl: provinces.url(),
     });
-    const birthplaceInputClass = cn(
+    const birthplaceCitySearch = useLocationSearch({
+        initialQuery: values.birthplace_city,
+        searchUrl: cities.url(),
+        params: {
+            province: values.birthplace_province || undefined,
+        },
+    });
+    const addressProvinceSearch = useLocationSearch({
+        initialQuery: values.address3,
+        searchUrl: provinces.url(),
+    });
+    const addressCitySearch = useLocationSearch({
+        initialQuery: values.address2,
+        searchUrl: cities.url(),
+        params: {
+            province: values.address3 || undefined,
+        },
+    });
+    const birthplaceProvinceInputClass = cn(
         'mt-1 block w-full',
-        isReadOnly('birthplace') && readOnlyInputClass,
+        isReadOnly('birthplace_province') && readOnlyInputClass,
+    );
+    const birthplaceCityInputClass = cn(
+        'mt-1 block w-full',
+        isReadOnly('birthplace_city') && readOnlyInputClass,
+    );
+    const addressCityInputClass = cn(
+        'mt-1 block w-full',
+        isReadOnly('address2') && readOnlyInputClass,
+    );
+    const addressProvinceInputClass = cn(
+        'mt-1 block w-full',
+        isReadOnly('address3') && readOnlyInputClass,
     );
     const updateField =
         (field: keyof LoanRequestPersonFormData) =>
@@ -302,24 +332,56 @@ export function LoanRequestPersonalFields({
 
                 <div className="grid gap-2">
                     <FieldLabel
-                        htmlFor={`${prefix}_birthplace`}
-                        label="Birthplace"
-                        isReadOnly={isReadOnly('birthplace')}
+                        htmlFor={`${prefix}_birthplace_city`}
+                        label="Birthplace city/municipality"
+                        isReadOnly={isReadOnly('birthplace_city')}
                     />
                     <LocationAutocompleteInput
-                        id={`${prefix}_birthplace`}
-                        name={fieldName(prefix, 'birthplace')}
-                        search={birthplaceSearch}
-                        placeholder="City or municipality"
+                        id={`${prefix}_birthplace_city`}
+                        name={fieldName(prefix, 'birthplace_city')}
+                        search={birthplaceCitySearch}
+                        placeholder="Select city or municipality"
                         required
-                        readOnly={isReadOnly('birthplace')}
-                        inputClassName={birthplaceInputClass}
-                        loadingMessage="Searching birthplace suggestions..."
-                        errorMessage="Birthplace suggestions are temporarily unavailable."
-                        onValueChange={(value) => onChange('birthplace', value)}
+                        readOnly={isReadOnly('birthplace_city')}
+                        inputClassName={birthplaceCityInputClass}
+                        loadingMessage="Searching city suggestions..."
+                        errorMessage="City suggestions are temporarily unavailable."
+                        onValueChange={(value) =>
+                            onChange('birthplace_city', value)
+                        }
                     />
                     <InputError
-                        message={fieldError(errors, prefix, 'birthplace')}
+                        message={fieldError(errors, prefix, 'birthplace_city')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <FieldLabel
+                        htmlFor={`${prefix}_birthplace_province`}
+                        label="Birthplace province"
+                        isReadOnly={isReadOnly('birthplace_province')}
+                    />
+                    <LocationAutocompleteInput
+                        id={`${prefix}_birthplace_province`}
+                        name={fieldName(prefix, 'birthplace_province')}
+                        search={birthplaceProvinceSearch}
+                        placeholder="Select province"
+                        required
+                        readOnly={isReadOnly('birthplace_province')}
+                        inputClassName={birthplaceProvinceInputClass}
+                        loadingMessage="Searching province suggestions..."
+                        errorMessage="Province suggestions are temporarily unavailable."
+                        promptMessage="Type at least 2 characters to search provinces."
+                        onValueChange={(value) =>
+                            onChange('birthplace_province', value)
+                        }
+                    />
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'birthplace_province',
+                        )}
                     />
                 </div>
             </div>
@@ -329,24 +391,71 @@ export function LoanRequestPersonalFields({
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2 md:col-span-2">
                     <FieldLabel
-                        htmlFor={`${prefix}_address`}
-                        label="Address (street, city, province)"
-                        isReadOnly={isReadOnly('address')}
+                        htmlFor={`${prefix}_address1`}
+                        label="Address (street)"
+                        isReadOnly={isReadOnly('address1')}
                     />
                     <Input
-                        id={`${prefix}_address`}
-                        name={fieldName(prefix, 'address')}
-                        value={values.address}
-                        readOnly={isReadOnly('address')}
+                        id={`${prefix}_address1`}
+                        name={fieldName(prefix, 'address1')}
+                        value={values.address1}
+                        readOnly={isReadOnly('address1')}
                         required
                         className={cn(
                             'mt-1 block w-full',
-                            isReadOnly('address') && readOnlyInputClass,
+                            isReadOnly('address1') && readOnlyInputClass,
                         )}
-                        onChange={updateField('address')}
+                        onChange={updateField('address1')}
                     />
                     <InputError
-                        message={fieldError(errors, prefix, 'address')}
+                        message={fieldError(errors, prefix, 'address1')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <FieldLabel
+                        htmlFor={`${prefix}_address2`}
+                        label="City/Municipality"
+                        isReadOnly={isReadOnly('address2')}
+                    />
+                    <LocationAutocompleteInput
+                        id={`${prefix}_address2`}
+                        name={fieldName(prefix, 'address2')}
+                        search={addressCitySearch}
+                        placeholder="Select city or municipality"
+                        required
+                        readOnly={isReadOnly('address2')}
+                        inputClassName={addressCityInputClass}
+                        loadingMessage="Searching city suggestions..."
+                        errorMessage="City suggestions are temporarily unavailable."
+                        onValueChange={(value) => onChange('address2', value)}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'address2')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <FieldLabel
+                        htmlFor={`${prefix}_address3`}
+                        label="Province"
+                        isReadOnly={isReadOnly('address3')}
+                    />
+                    <LocationAutocompleteInput
+                        id={`${prefix}_address3`}
+                        name={fieldName(prefix, 'address3')}
+                        search={addressProvinceSearch}
+                        placeholder="Select province"
+                        required
+                        readOnly={isReadOnly('address3')}
+                        inputClassName={addressProvinceInputClass}
+                        loadingMessage="Searching province suggestions..."
+                        errorMessage="Province suggestions are temporarily unavailable."
+                        promptMessage="Type at least 2 characters to search provinces."
+                        onValueChange={(value) => onChange('address3', value)}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'address3')}
                     />
                 </div>
 
@@ -636,6 +745,17 @@ export function LoanRequestWorkFields({
 
         return EMPLOYMENT_TYPE_OPTIONS;
     }, [employmentType]);
+    const employerProvinceSearch = useLocationSearch({
+        initialQuery: values.employer_business_address3,
+        searchUrl: provinces.url(),
+    });
+    const employerCitySearch = useLocationSearch({
+        initialQuery: values.employer_business_address2,
+        searchUrl: cities.url(),
+        params: {
+            province: values.employer_business_address3 || undefined,
+        },
+    });
 
     const [natureOfBusinessSelection, setNatureOfBusinessSelection] =
         useState<string>(() =>
@@ -727,18 +847,18 @@ export function LoanRequestWorkFields({
                 </div>
 
                 <div className="grid gap-2 md:col-span-2">
-                    <Label htmlFor={`${prefix}_employer_business_address`}>
-                        Employer/Business address
+                    <Label htmlFor={`${prefix}_employer_business_address1`}>
+                        Employer/Business address (street)
                     </Label>
                     <Input
-                        id={`${prefix}_employer_business_address`}
-                        name={fieldName(prefix, 'employer_business_address')}
-                        value={values.employer_business_address}
+                        id={`${prefix}_employer_business_address1`}
+                        name={fieldName(prefix, 'employer_business_address1')}
+                        value={values.employer_business_address1}
                         className="mt-1 block w-full"
                         required
                         onChange={(event) =>
                             onChange(
-                                'employer_business_address',
+                                'employer_business_address1',
                                 event.target.value,
                             )
                         }
@@ -747,7 +867,66 @@ export function LoanRequestWorkFields({
                         message={fieldError(
                             errors,
                             prefix,
-                            'employer_business_address',
+                            'employer_business_address1',
+                        )}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_employer_business_address2`}>
+                        City/Municipality
+                    </Label>
+                    <LocationAutocompleteInput
+                        id={`${prefix}_employer_business_address2`}
+                        name={fieldName(
+                            prefix,
+                            'employer_business_address2',
+                        )}
+                        search={employerCitySearch}
+                        placeholder="Select city or municipality"
+                        required
+                        inputClassName="mt-1 block w-full"
+                        loadingMessage="Searching city suggestions..."
+                        errorMessage="City suggestions are temporarily unavailable."
+                        onValueChange={(value) =>
+                            onChange('employer_business_address2', value)
+                        }
+                    />
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'employer_business_address2',
+                        )}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${prefix}_employer_business_address3`}>
+                        Province
+                    </Label>
+                    <LocationAutocompleteInput
+                        id={`${prefix}_employer_business_address3`}
+                        name={fieldName(
+                            prefix,
+                            'employer_business_address3',
+                        )}
+                        search={employerProvinceSearch}
+                        placeholder="Select province"
+                        required
+                        inputClassName="mt-1 block w-full"
+                        loadingMessage="Searching province suggestions..."
+                        errorMessage="Province suggestions are temporarily unavailable."
+                        promptMessage="Type at least 2 characters to search provinces."
+                        onValueChange={(value) =>
+                            onChange('employer_business_address3', value)
+                        }
+                    />
+                    <InputError
+                        message={fieldError(
+                            errors,
+                            prefix,
+                            'employer_business_address3',
                         )}
                     />
                 </div>

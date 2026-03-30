@@ -17,7 +17,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency, formatDisplayText } from '@/lib/formatters';
+import {
+    composeAddress,
+    composeBirthplace,
+    formatCurrency,
+    formatDisplayText,
+} from '@/lib/formatters';
 import type {
     LoanRequestFormData,
     LoanRequestMemberSummary,
@@ -367,6 +372,21 @@ const displayName = (person: LoanRequestPersonFormData): string => {
     return name !== '' ? name : '--';
 };
 
+const resolveBirthplace = (person: LoanRequestPersonFormData): string =>
+    composeBirthplace(person.birthplace_city, person.birthplace_province);
+
+const resolveAddress = (person: LoanRequestPersonFormData): string =>
+    composeAddress(person.address1, person.address2, person.address3);
+
+const resolveEmployerBusinessAddress = (
+    person: LoanRequestPersonFormData,
+): string =>
+    composeAddress(
+        person.employer_business_address1,
+        person.employer_business_address2,
+        person.employer_business_address3,
+    );
+
 const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (
     <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
@@ -432,8 +452,8 @@ export function LoanRequestReviewStep({
         { label: 'Applicant name', value: displayName(data.applicant) },
         { label: 'Nickname', value: displayText(data.applicant.nickname) },
         { label: 'Birthdate', value: displayValue(data.applicant.birthdate) },
-        { label: 'Birthplace', value: displayText(data.applicant.birthplace) },
-        { label: 'Address', value: displayText(data.applicant.address) },
+        { label: 'Birthplace', value: displayText(resolveBirthplace(data.applicant)) },
+        { label: 'Address', value: displayText(resolveAddress(data.applicant)) },
         {
             label: 'Length of stay',
             value: displayText(data.applicant.length_of_stay),
@@ -477,7 +497,9 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Employer/Business address',
-            value: displayText(data.applicant.employer_business_address),
+            value: displayText(
+                resolveEmployerBusinessAddress(data.applicant),
+            ),
         },
         {
             label: 'Telephone no.',
@@ -514,8 +536,8 @@ export function LoanRequestReviewStep({
         { label: `${label} name`, value: displayName(person) },
         { label: 'Nickname', value: displayText(person.nickname) },
         { label: 'Birthdate', value: displayValue(person.birthdate) },
-        { label: 'Birthplace', value: displayText(person.birthplace) },
-        { label: 'Address', value: displayText(person.address) },
+        { label: 'Birthplace', value: displayText(resolveBirthplace(person)) },
+        { label: 'Address', value: displayText(resolveAddress(person)) },
         { label: 'Length of stay', value: displayText(person.length_of_stay) },
         {
             label: 'Housing status',
@@ -540,7 +562,7 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Employer/Business address',
-            value: displayText(person.employer_business_address),
+            value: displayText(resolveEmployerBusinessAddress(person)),
         },
         { label: 'Telephone no.', value: displayValue(person.telephone_no) },
         {

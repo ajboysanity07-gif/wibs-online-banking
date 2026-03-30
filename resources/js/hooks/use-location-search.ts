@@ -5,7 +5,7 @@ import api, { getApiErrorMessage } from '@/lib/api';
 export type LocationSuggestion = {
     code: string;
     name: string;
-    type: 'city' | 'municipality';
+    type: 'city' | 'municipality' | 'province';
     province: string | null;
     region: string | null;
     label: string;
@@ -33,6 +33,7 @@ export const LOCATION_RESULT_LIMIT = 15;
 type LocationSearchOptions = {
     initialQuery: string;
     searchUrl: string;
+    params?: Record<string, string | number | null | undefined>;
     minLength?: number;
     limit?: number;
     debounceMs?: number;
@@ -41,6 +42,7 @@ type LocationSearchOptions = {
 export const useLocationSearch = ({
     initialQuery,
     searchUrl,
+    params,
     minLength = LOCATION_QUERY_MIN,
     limit = LOCATION_RESULT_LIMIT,
     debounceMs = LOCATION_DEBOUNCE_MS,
@@ -87,11 +89,23 @@ export const useLocationSearch = ({
         const controller = new AbortController();
         const timeout = window.setTimeout(async () => {
             try {
+                const requestParams: Record<string, string | number> = {
+                    search: trimmedQuery,
+                    limit,
+                };
+
+                if (params) {
+                    Object.entries(params).forEach(([key, value]) => {
+                        if (value === null || value === undefined) {
+                            return;
+                        }
+
+                        requestParams[key] = value;
+                    });
+                }
+
                 const response = await api.get(searchUrl, {
-                    params: {
-                        search: trimmedQuery,
-                        limit,
-                    },
+                    params: requestParams,
                     signal: controller.signal,
                 });
                 const payload = response.data as {
@@ -134,7 +148,7 @@ export const useLocationSearch = ({
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [open, query, minLength, limit, debounceMs, searchUrl]);
+    }, [open, query, minLength, limit, debounceMs, searchUrl, params]);
 
     const handleFocus = () => {
         if (blurTimeoutRef.current !== null) {

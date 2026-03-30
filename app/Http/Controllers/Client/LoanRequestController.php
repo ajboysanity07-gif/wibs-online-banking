@@ -11,6 +11,7 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
+use App\Support\LocationComposer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -218,7 +219,7 @@ class LoanRequestController extends Controller
             return [];
         }
 
-        return $person->toArray();
+        return $this->hydrateStructuredPersonFields($person->toArray());
     }
 
     private function findLoanRequestForUser(
@@ -348,5 +349,110 @@ class LoanRequestController extends Controller
         }
 
         return $converted;
+    }
+
+    /**
+     * @param  array<string, mixed>  $person
+     * @return array<string, mixed>
+     */
+    private function hydrateStructuredPersonFields(array $person): array
+    {
+        $birthplaceCity = $this->normalizeOptionalString(
+            $person['birthplace_city'] ?? null,
+        );
+        $birthplaceProvince = $this->normalizeOptionalString(
+            $person['birthplace_province'] ?? null,
+        );
+        $legacyBirthplace = $this->normalizeOptionalString(
+            $person['birthplace'] ?? null,
+        );
+
+        if ($birthplaceCity === null && $birthplaceProvince === null && $legacyBirthplace !== null) {
+            $parsed = LocationComposer::parseLegacyBirthplace($legacyBirthplace);
+            $birthplaceCity = $parsed['city'];
+            $birthplaceProvince = $parsed['province'];
+        }
+
+        $birthplace = LocationComposer::composeBirthplace(
+            $birthplaceCity,
+            $birthplaceProvince,
+        );
+        $birthplace = $birthplace !== '' ? $birthplace : $legacyBirthplace;
+
+        $address1 = $this->normalizeOptionalString($person['address1'] ?? null);
+        $address2 = $this->normalizeOptionalString($person['address2'] ?? null);
+        $address3 = $this->normalizeOptionalString($person['address3'] ?? null);
+        $legacyAddress = $this->normalizeOptionalString($person['address'] ?? null);
+
+        if ($address1 === null && $address2 === null && $address3 === null && $legacyAddress !== null) {
+            $parsed = LocationComposer::parseLegacyAddress($legacyAddress);
+            $address1 = $parsed['address1'];
+            $address2 = $parsed['address2'];
+            $address3 = $parsed['address3'];
+        }
+
+        $address = LocationComposer::compose($address1, $address2, $address3);
+        $address = $address !== '' ? $address : $legacyAddress;
+
+        $employerAddress1 = $this->normalizeOptionalString(
+            $person['employer_business_address1'] ?? null,
+        );
+        $employerAddress2 = $this->normalizeOptionalString(
+            $person['employer_business_address2'] ?? null,
+        );
+        $employerAddress3 = $this->normalizeOptionalString(
+            $person['employer_business_address3'] ?? null,
+        );
+        $legacyEmployerAddress = $this->normalizeOptionalString(
+            $person['employer_business_address'] ?? null,
+        );
+
+        if (
+            $employerAddress1 === null
+            && $employerAddress2 === null
+            && $employerAddress3 === null
+            && $legacyEmployerAddress !== null
+        ) {
+            $parsed = LocationComposer::parseLegacyAddress(
+                $legacyEmployerAddress,
+            );
+            $employerAddress1 = $parsed['address1'];
+            $employerAddress2 = $parsed['address2'];
+            $employerAddress3 = $parsed['address3'];
+        }
+
+        $employerBusinessAddress = LocationComposer::compose(
+            $employerAddress1,
+            $employerAddress2,
+            $employerAddress3,
+        );
+        $employerBusinessAddress = $employerBusinessAddress !== ''
+            ? $employerBusinessAddress
+            : $legacyEmployerAddress;
+
+        return array_merge($person, [
+            'birthplace' => $birthplace,
+            'birthplace_city' => $birthplaceCity,
+            'birthplace_province' => $birthplaceProvince,
+            'address' => $address,
+            'address1' => $address1,
+            'address2' => $address2,
+            'address3' => $address3,
+            'employer_business_address' => $employerBusinessAddress,
+            'employer_business_address1' => $employerAddress1,
+            'employer_business_address2' => $employerAddress2,
+            'employer_business_address3' => $employerAddress3,
+        ]);
+    }
+
+    private function normalizeOptionalString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 }

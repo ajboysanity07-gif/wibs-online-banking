@@ -8,6 +8,7 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
+use App\Support\LocationComposer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -389,6 +390,14 @@ class LoanRequestService
         LoanRequestPersonRole $role,
         array $data,
     ): LoanRequestPerson {
+        $birthplaceValues = $this->resolveBirthplaceValues($data);
+        $addressValues = $this->resolveAddressValues($data, 'address');
+        $employerAddressValues = $this->resolveAddressValues(
+            $data,
+            'employer_business_address',
+            'employer_business_',
+        );
+
         return $loanRequest->people()->updateOrCreate([
             'role' => $role,
         ], [
@@ -398,8 +407,13 @@ class LoanRequestService
             'middle_name' => $this->normalizeOptionalString($data['middle_name'] ?? null),
             'nickname' => $this->normalizeOptionalString($data['nickname'] ?? null),
             'birthdate' => $this->normalizeOptionalString($data['birthdate'] ?? null),
-            'birthplace' => $this->normalizeOptionalString($data['birthplace'] ?? null),
-            'address' => $this->normalizeOptionalString($data['address'] ?? null),
+            'birthplace' => $birthplaceValues['legacy'],
+            'birthplace_city' => $birthplaceValues['city'],
+            'birthplace_province' => $birthplaceValues['province'],
+            'address' => $addressValues['legacy'],
+            'address1' => $addressValues['address1'],
+            'address2' => $addressValues['address2'],
+            'address3' => $addressValues['address3'],
             'length_of_stay' => $this->normalizeOptionalString($data['length_of_stay'] ?? null),
             'housing_status' => $this->normalizeOptionalString($data['housing_status'] ?? null),
             'cell_no' => $this->normalizeOptionalString($data['cell_no'] ?? null),
@@ -419,9 +433,10 @@ class LoanRequestService
             'employer_business_name' => $this->normalizeOptionalString(
                 $data['employer_business_name'] ?? null,
             ),
-            'employer_business_address' => $this->normalizeOptionalString(
-                $data['employer_business_address'] ?? null,
-            ),
+            'employer_business_address' => $employerAddressValues['legacy'],
+            'employer_business_address1' => $employerAddressValues['address1'],
+            'employer_business_address2' => $employerAddressValues['address2'],
+            'employer_business_address3' => $employerAddressValues['address3'],
             'telephone_no' => $this->normalizeOptionalString($data['telephone_no'] ?? null),
             'current_position' => $this->normalizeOptionalString(
                 $data['current_position'] ?? null,
@@ -453,7 +468,7 @@ class LoanRequestService
             return [];
         }
 
-        return $person->toArray();
+        return $this->hydrateStructuredPersonFields($person->toArray());
     }
 
     /**
@@ -568,6 +583,101 @@ class LoanRequestService
         );
 
         return $person;
+    }
+
+    /**
+     * @param  array<string, mixed>  $person
+     * @return array<string, mixed>
+     */
+    private function hydrateStructuredPersonFields(array $person): array
+    {
+        $birthplaceValues = $this->resolveBirthplaceValues($person);
+        $addressValues = $this->resolveAddressValues($person, 'address');
+        $employerAddressValues = $this->resolveAddressValues(
+            $person,
+            'employer_business_address',
+            'employer_business_',
+        );
+
+        return array_merge($person, [
+            'birthplace' => $birthplaceValues['legacy'],
+            'birthplace_city' => $birthplaceValues['city'],
+            'birthplace_province' => $birthplaceValues['province'],
+            'address' => $addressValues['legacy'],
+            'address1' => $addressValues['address1'],
+            'address2' => $addressValues['address2'],
+            'address3' => $addressValues['address3'],
+            'employer_business_address' => $employerAddressValues['legacy'],
+            'employer_business_address1' => $employerAddressValues['address1'],
+            'employer_business_address2' => $employerAddressValues['address2'],
+            'employer_business_address3' => $employerAddressValues['address3'],
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{city: string|null, province: string|null, legacy: string|null}
+     */
+    private function resolveBirthplaceValues(array $data): array
+    {
+        $city = $this->normalizeOptionalString($data['birthplace_city'] ?? null);
+        $province = $this->normalizeOptionalString(
+            $data['birthplace_province'] ?? null,
+        );
+        $legacy = $this->normalizeOptionalString($data['birthplace'] ?? null);
+
+        if ($city === null && $province === null && $legacy !== null) {
+            $parsed = LocationComposer::parseLegacyBirthplace($legacy);
+            $city = $parsed['city'];
+            $province = $parsed['province'];
+        }
+
+        $composed = LocationComposer::composeBirthplace($city, $province);
+        $legacyValue = $composed !== '' ? $composed : $legacy;
+
+        return [
+            'city' => $city,
+            'province' => $province,
+            'legacy' => $legacyValue,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{address1: string|null, address2: string|null, address3: string|null, legacy: string|null}
+     */
+    private function resolveAddressValues(
+        array $data,
+        string $legacyKey,
+        string $prefix = '',
+    ): array {
+        $address1 = $this->normalizeOptionalString(
+            $data[$prefix.'address1'] ?? null,
+        );
+        $address2 = $this->normalizeOptionalString(
+            $data[$prefix.'address2'] ?? null,
+        );
+        $address3 = $this->normalizeOptionalString(
+            $data[$prefix.'address3'] ?? null,
+        );
+        $legacy = $this->normalizeOptionalString($data[$legacyKey] ?? null);
+
+        if ($address1 === null && $address2 === null && $address3 === null && $legacy !== null) {
+            $parsed = LocationComposer::parseLegacyAddress($legacy);
+            $address1 = $parsed['address1'];
+            $address2 = $parsed['address2'];
+            $address3 = $parsed['address3'];
+        }
+
+        $composed = LocationComposer::compose($address1, $address2, $address3);
+        $legacyValue = $composed !== '' ? $composed : $legacy;
+
+        return [
+            'address1' => $address1,
+            'address2' => $address2,
+            'address3' => $address3,
+            'legacy' => $legacyValue,
+        ];
     }
 
     private function normalizeHousingStatusValue(mixed $value): ?string
@@ -690,10 +800,110 @@ class LoanRequestService
         $firstName = $this->normalizeOptionalString($nameParts['first_name']);
         $middleName = $this->normalizeOptionalString($nameParts['middle_name']);
         $lastName = $this->normalizeOptionalString($nameParts['last_name']);
-        $birthplace = $this->normalizeOptionalString($wmaster?->birthplace);
-        $address = $wmaster !== null
-            ? $this->normalizeOptionalString($wmaster->displayAddress())
-            : null;
+        $wmasterBirthplace = $this->normalizeOptionalString($wmaster?->birthplace);
+        $birthplaceCity = null;
+        $birthplaceProvince = null;
+
+        if ($wmasterBirthplace !== null) {
+            $parsedBirthplace = LocationComposer::parseLegacyBirthplace(
+                $wmasterBirthplace,
+            );
+            $birthplaceCity = $parsedBirthplace['city'];
+            $birthplaceProvince = $parsedBirthplace['province'];
+        } else {
+            $birthplaceCity = $this->normalizeOptionalString(
+                $profile?->birthplace_city,
+            );
+            $birthplaceProvince = $this->normalizeOptionalString(
+                $profile?->birthplace_province,
+            );
+
+            if ($birthplaceCity === null && $birthplaceProvince === null) {
+                $legacyBirthplace = $this->normalizeOptionalString(
+                    $profile?->birthplace,
+                );
+
+                if ($legacyBirthplace !== null) {
+                    $parsedBirthplace = LocationComposer::parseLegacyBirthplace(
+                        $legacyBirthplace,
+                    );
+                    $birthplaceCity = $parsedBirthplace['city'];
+                    $birthplaceProvince = $parsedBirthplace['province'];
+                }
+            }
+        }
+
+        $birthplace = $wmasterBirthplace;
+
+        if ($birthplace === null) {
+            $birthplace = LocationComposer::composeBirthplace(
+                $birthplaceCity,
+                $birthplaceProvince,
+            );
+            $birthplace = $birthplace !== ''
+                ? $birthplace
+                : $this->normalizeOptionalString($profile?->birthplace);
+        }
+
+        $address1 = $this->normalizeOptionalString($wmaster?->address2);
+        $address2 = $this->normalizeOptionalString($wmaster?->address3);
+        $address3 = $this->normalizeOptionalString($wmaster?->address4);
+
+        if ($address1 === null && $address2 === null && $address3 === null) {
+            $legacyAddress = $this->normalizeOptionalString($wmaster?->address);
+
+            if ($legacyAddress !== null) {
+                $parsedAddress = LocationComposer::parseLegacyAddress(
+                    $legacyAddress,
+                );
+                $address1 = $parsedAddress['address1'];
+                $address2 = $parsedAddress['address2'];
+                $address3 = $parsedAddress['address3'];
+            }
+        }
+
+        $address = LocationComposer::compose($address1, $address2, $address3);
+        $address = $address !== ''
+            ? $address
+            : $this->normalizeOptionalString($wmaster?->displayAddress());
+
+        $employerAddress1 = $this->normalizeOptionalString(
+            $profile?->employer_business_address1,
+        );
+        $employerAddress2 = $this->normalizeOptionalString(
+            $profile?->employer_business_address2,
+        );
+        $employerAddress3 = $this->normalizeOptionalString(
+            $profile?->employer_business_address3,
+        );
+
+        if (
+            $employerAddress1 === null
+            && $employerAddress2 === null
+            && $employerAddress3 === null
+        ) {
+            $legacyEmployerAddress = $this->normalizeOptionalString(
+                $profile?->employer_business_address,
+            );
+
+            if ($legacyEmployerAddress !== null) {
+                $parsedEmployerAddress = LocationComposer::parseLegacyAddress(
+                    $legacyEmployerAddress,
+                );
+                $employerAddress1 = $parsedEmployerAddress['address1'];
+                $employerAddress2 = $parsedEmployerAddress['address2'];
+                $employerAddress3 = $parsedEmployerAddress['address3'];
+            }
+        }
+
+        $employerBusinessAddress = LocationComposer::compose(
+            $employerAddress1,
+            $employerAddress2,
+            $employerAddress3,
+        );
+        $employerBusinessAddress = $employerBusinessAddress !== ''
+            ? $employerBusinessAddress
+            : $this->normalizeOptionalString($profile?->employer_business_address);
         $spouseName = $this->normalizeOptionalString($wmaster?->spouse);
         $numberOfChildren = null;
 
@@ -709,8 +919,13 @@ class LoanRequestService
             'last_name' => $lastName,
             'nickname' => $profile?->nickname,
             'birthdate' => $wmaster?->birthday?->toDateString(),
-            'birthplace' => $birthplace ?? $profile?->birthplace,
+            'birthplace' => $birthplace,
+            'birthplace_city' => $birthplaceCity,
+            'birthplace_province' => $birthplaceProvince,
             'address' => $address,
+            'address1' => $address1,
+            'address2' => $address2,
+            'address3' => $address3,
             'length_of_stay' => $profile?->length_of_stay,
             'housing_status' => $wmaster?->restype !== null
                 ? (string) $wmaster->restype
@@ -724,7 +939,10 @@ class LoanRequestService
             'spouse_cell_no' => $profile?->spouse_cell_no,
             'employment_type' => $profile?->employment_type,
             'employer_business_name' => $profile?->employer_business_name,
-            'employer_business_address' => $profile?->employer_business_address,
+            'employer_business_address' => $employerBusinessAddress,
+            'employer_business_address1' => $employerAddress1,
+            'employer_business_address2' => $employerAddress2,
+            'employer_business_address3' => $employerAddress3,
             'telephone_no' => $profile?->telephone_no,
             'current_position' => $profile?->current_position,
             'nature_of_business' => $profile?->nature_of_business,
@@ -751,16 +969,56 @@ class LoanRequestService
         $hasName = $nameParts['first_name'] !== ''
             || $nameParts['middle_name'] !== ''
             || $nameParts['last_name'] !== '';
-        $hasAddress = $wmaster?->hasStructuredAddressParts() === true
-            || $this->hasValue($wmaster?->address);
+        $birthplaceValue = $this->normalizeOptionalString($wmaster?->birthplace);
+        $birthplaceCity = null;
+        $birthplaceProvince = null;
+
+        if ($birthplaceValue !== null) {
+            $parsedBirthplace = LocationComposer::parseLegacyBirthplace(
+                $birthplaceValue,
+            );
+            $birthplaceCity = $this->normalizeOptionalString($parsedBirthplace['city']);
+            $birthplaceProvince = $this->normalizeOptionalString(
+                $parsedBirthplace['province'],
+            );
+        }
+
+        $address1 = $this->normalizeOptionalString($wmaster?->address2);
+        $address2 = $this->normalizeOptionalString($wmaster?->address3);
+        $address3 = $this->normalizeOptionalString($wmaster?->address4);
+        $legacyAddress = $this->normalizeOptionalString($wmaster?->address);
+
+        if (
+            $address1 === null
+            && $address2 === null
+            && $address3 === null
+            && $legacyAddress !== null
+        ) {
+            $parsedAddress = LocationComposer::parseLegacyAddress(
+                $legacyAddress,
+            );
+            $address1 = $this->normalizeOptionalString($parsedAddress['address1']);
+            $address2 = $this->normalizeOptionalString($parsedAddress['address2']);
+            $address3 = $this->normalizeOptionalString($parsedAddress['address3']);
+        }
+
+        $hasAddress = $address1 !== null
+            || $address2 !== null
+            || $address3 !== null
+            || $legacyAddress !== null;
 
         return [
             'first_name' => $hasName,
             'middle_name' => $nameParts['middle_name'] !== '',
             'last_name' => $hasName,
             'birthdate' => $this->hasValue($wmaster?->birthday),
-            'birthplace' => $this->hasValue($wmaster?->birthplace),
+            'birthplace' => $birthplaceValue !== null,
+            'birthplace_city' => $birthplaceCity !== null,
+            'birthplace_province' => $birthplaceProvince !== null,
             'address' => $hasAddress,
+            'address1' => $address1 !== null,
+            'address2' => $address2 !== null,
+            'address3' => $address3 !== null,
             'housing_status' => $this->hasValue($wmaster?->restype),
             'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat) !== null,
             'number_of_children' => $hasDependentColumn

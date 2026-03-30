@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,8 @@ class MemberApplicationProfile extends Model
         'user_id',
         'nickname',
         'birthplace',
+        'birthplace_city',
+        'birthplace_province',
         'educational_attainment',
         'length_of_stay',
         'number_of_children',
@@ -27,6 +30,9 @@ class MemberApplicationProfile extends Model
         'employment_type',
         'employer_business_name',
         'employer_business_address',
+        'employer_business_address1',
+        'employer_business_address2',
+        'employer_business_address3',
         'telephone_no',
         'current_position',
         'nature_of_business',
@@ -46,6 +52,35 @@ class MemberApplicationProfile extends Model
         return $this->profile_completed_at !== null;
     }
 
+    public function composedBirthplace(): string
+    {
+        $composed = LocationComposer::composeBirthplace(
+            $this->birthplace_city,
+            $this->birthplace_province,
+        );
+
+        if ($composed !== '') {
+            return $composed;
+        }
+
+        return trim((string) $this->birthplace);
+    }
+
+    public function composedEmployerBusinessAddress(): string
+    {
+        $composed = LocationComposer::compose(
+            $this->employer_business_address1,
+            $this->employer_business_address2,
+            $this->employer_business_address3,
+        );
+
+        if ($composed !== '') {
+            return $composed;
+        }
+
+        return trim((string) $this->employer_business_address);
+    }
+
     /**
      * @return list<string>
      */
@@ -54,6 +89,8 @@ class MemberApplicationProfile extends Model
         return [
             'nickname',
             'birthplace',
+            'birthplace_city',
+            'birthplace_province',
             'educational_attainment',
             'length_of_stay',
             'number_of_children',
@@ -63,6 +100,9 @@ class MemberApplicationProfile extends Model
             'employment_type',
             'employer_business_name',
             'employer_business_address',
+            'employer_business_address1',
+            'employer_business_address2',
+            'employer_business_address3',
             'telephone_no',
             'current_position',
             'nature_of_business',
@@ -78,7 +118,7 @@ class MemberApplicationProfile extends Model
     public static function completionRequiredFields(): array
     {
         return [
-            'birthplace',
+            'birthplace_city',
             'educational_attainment',
             'length_of_stay',
             'employment_type',

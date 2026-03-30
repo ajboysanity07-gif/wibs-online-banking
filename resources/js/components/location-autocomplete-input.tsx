@@ -140,9 +140,11 @@ export function LocationAutocompleteInput({
                                         {suggestion.label}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
-                                        {suggestion.type === 'city'
-                                            ? 'City'
-                                            : 'Municipality'}
+                                        {suggestion.type === 'province'
+                                            ? 'Province'
+                                            : suggestion.type === 'city'
+                                              ? 'City'
+                                              : 'Municipality'}
                                     </span>
                                 </button>
                             ))}

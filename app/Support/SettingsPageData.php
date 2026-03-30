@@ -31,13 +31,19 @@ class SettingsPageData
 
             if ($user->wmaster !== null) {
                 $hasStructuredName = $user->wmaster->hasStructuredNameParts();
-                $addressParts = array_filter([
-                    trim((string) $user->wmaster->address2),
-                    trim((string) $user->wmaster->address3),
-                    trim((string) $user->wmaster->address4),
-                ], static fn (string $value): bool => $value !== '');
-                $displayAddress = $addressParts !== []
-                    ? implode(', ', $addressParts)
+                $birthplaceParts = LocationComposer::parseLegacyBirthplace(
+                    $user->wmaster->birthplace,
+                );
+                $address1 = trim((string) $user->wmaster->address2);
+                $address2 = trim((string) $user->wmaster->address3);
+                $address3 = trim((string) $user->wmaster->address4);
+                $displayAddress = LocationComposer::compose(
+                    $address1 !== '' ? $address1 : null,
+                    $address2 !== '' ? $address2 : null,
+                    $address3 !== '' ? $address3 : null,
+                );
+                $displayAddress = $displayAddress !== ''
+                    ? $displayAddress
                     : trim((string) $user->wmaster->address);
                 $displayAddress = $displayAddress !== '' ? $displayAddress : null;
                 $numberOfChildren = null;
@@ -55,11 +61,13 @@ class SettingsPageData
                     'lname' => $user->wmaster->lname,
                     'mname' => $user->wmaster->mname,
                     'birthplace' => $user->wmaster->birthplace,
+                    'birthplace_city' => $birthplaceParts['city'],
+                    'birthplace_province' => $birthplaceParts['province'],
                     'birthday' => $user->wmaster->birthday?->toDateString(),
                     'address' => $user->wmaster->address,
-                    'address2' => $user->wmaster->address2,
-                    'address3' => $user->wmaster->address3,
-                    'address4' => $user->wmaster->address4,
+                    'address1' => $address1 !== '' ? $address1 : null,
+                    'address2' => $address2 !== '' ? $address2 : null,
+                    'address3' => $address3 !== '' ? $address3 : null,
                     'display_address' => $displayAddress,
                     'civilstat' => $user->wmaster->civilstat,
                     'occupation' => $user->wmaster->occupation,
@@ -73,10 +81,59 @@ class SettingsPageData
             }
         }
 
+        $hasProfileValue = static function (mixed $value): bool {
+            if ($value === null) {
+                return false;
+            }
+
+            if (is_string($value)) {
+                return trim($value) !== '';
+            }
+
+            return true;
+        };
+
+        $profileBirthplaceCity = $memberApplicationProfile?->birthplace_city;
+        $profileBirthplaceProvince = $memberApplicationProfile?->birthplace_province;
+
+        if (
+            $memberApplicationProfile !== null
+            && ! $hasProfileValue($profileBirthplaceCity)
+            && ! $hasProfileValue($profileBirthplaceProvince)
+            && $hasProfileValue($memberApplicationProfile->birthplace)
+        ) {
+            $parsed = LocationComposer::parseLegacyBirthplace(
+                $memberApplicationProfile->birthplace,
+            );
+            $profileBirthplaceCity = $parsed['city'];
+            $profileBirthplaceProvince = $parsed['province'];
+        }
+
+        $profileEmployerAddress1 = $memberApplicationProfile?->employer_business_address1;
+        $profileEmployerAddress2 = $memberApplicationProfile?->employer_business_address2;
+        $profileEmployerAddress3 = $memberApplicationProfile?->employer_business_address3;
+
+        if (
+            $memberApplicationProfile !== null
+            && ! $hasProfileValue($profileEmployerAddress1)
+            && ! $hasProfileValue($profileEmployerAddress2)
+            && ! $hasProfileValue($profileEmployerAddress3)
+            && $hasProfileValue($memberApplicationProfile->employer_business_address)
+        ) {
+            $parsed = LocationComposer::parseLegacyAddress(
+                $memberApplicationProfile->employer_business_address,
+            );
+            $profileEmployerAddress1 = $parsed['address1'];
+            $profileEmployerAddress2 = $parsed['address2'];
+            $profileEmployerAddress3 = $parsed['address3'];
+        }
+
         $memberProfilePayload = $memberApplicationProfile
             ? [
                 'nickname' => $memberApplicationProfile->nickname,
                 'birthplace' => $memberApplicationProfile->birthplace,
+                'birthplace_city' => $profileBirthplaceCity,
+                'birthplace_province' => $profileBirthplaceProvince,
                 'educational_attainment' => $memberApplicationProfile->educational_attainment,
                 'length_of_stay' => $memberApplicationProfile->length_of_stay,
                 'number_of_children' => $memberApplicationProfile->number_of_children,
@@ -86,6 +143,9 @@ class SettingsPageData
                 'employment_type' => $memberApplicationProfile->employment_type,
                 'employer_business_name' => $memberApplicationProfile->employer_business_name,
                 'employer_business_address' => $memberApplicationProfile->employer_business_address,
+                'employer_business_address1' => $profileEmployerAddress1,
+                'employer_business_address2' => $profileEmployerAddress2,
+                'employer_business_address3' => $profileEmployerAddress3,
                 'telephone_no' => $memberApplicationProfile->telephone_no,
                 'current_position' => $memberApplicationProfile->current_position,
                 'nature_of_business' => $memberApplicationProfile->nature_of_business,

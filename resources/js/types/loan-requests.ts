@@ -15,7 +15,12 @@ export type LoanRequestPersonData = {
     nickname: string | null;
     birthdate: string | null;
     birthplace: string | null;
+    birthplace_city: string | null;
+    birthplace_province: string | null;
     address: string | null;
+    address1: string | null;
+    address2: string | null;
+    address3: string | null;
     length_of_stay: string | null;
     housing_status: string | null;
     cell_no: string | null;
@@ -28,6 +33,9 @@ export type LoanRequestPersonData = {
     employment_type: string | null;
     employer_business_name: string | null;
     employer_business_address: string | null;
+    employer_business_address1: string | null;
+    employer_business_address2: string | null;
+    employer_business_address3: string | null;
     telephone_no: string | null;
     current_position: string | null;
     nature_of_business: string | null;
@@ -92,8 +100,11 @@ export type LoanRequestPersonFormData = {
     last_name: string;
     nickname: string;
     birthdate: string;
-    birthplace: string;
-    address: string;
+    birthplace_city: string;
+    birthplace_province: string;
+    address1: string;
+    address2: string;
+    address3: string;
     length_of_stay: string;
     housing_status: string;
     cell_no: string;
@@ -105,7 +116,9 @@ export type LoanRequestPersonFormData = {
     spouse_cell_no: string;
     employment_type: string;
     employer_business_name: string;
-    employer_business_address: string;
+    employer_business_address1: string;
+    employer_business_address2: string;
+    employer_business_address3: string;
     telephone_no: string;
     current_position: string;
     nature_of_business: string;
