@@ -80,6 +80,7 @@ class SettingsPageData
                 'educational_attainment' => $memberApplicationProfile->educational_attainment,
                 'length_of_stay' => $memberApplicationProfile->length_of_stay,
                 'number_of_children' => $memberApplicationProfile->number_of_children,
+                'spouse_name' => $memberApplicationProfile->spouse_name,
                 'spouse_age' => $memberApplicationProfile->spouse_age,
                 'spouse_cell_no' => $memberApplicationProfile->spouse_cell_no,
                 'employment_type' => $memberApplicationProfile->employment_type,

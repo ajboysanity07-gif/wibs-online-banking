@@ -172,6 +172,84 @@ test('profile page exposes wmaster birthplace data', function () {
         );
 });
 
+test('profile page exposes editable spouse name when wmaster spouse is missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000905',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Lopez, Anne',
+        'fname' => 'Anne',
+        'lname' => 'Lopez',
+        'birthday' => '1992-06-08',
+        'birthplace' => null,
+        'address' => 'Main Street',
+        'civilstat' => 'Married',
+        'occupation' => 'Clerk',
+        'spouse' => null,
+    ]);
+
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'spouse_name' => 'Alex Lopez',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberRecord.spouse_name', null)
+            ->where('memberApplicationProfile.spouse_name', 'Alex Lopez')
+        );
+});
+
+test('profile page prefers profile birthplace when wmaster birthplace is missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000906',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Santos, Lea',
+        'fname' => 'Lea',
+        'lname' => 'Santos',
+        'birthday' => '1991-11-02',
+        'birthplace' => null,
+        'address' => 'First Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Clerk',
+        'spouse' => null,
+    ]);
+
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'birthplace' => 'Cagayan de Oro',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberRecord.birthplace', null)
+            ->where('memberApplicationProfile.birthplace', 'Cagayan de Oro')
+        );
+});
+
 test('profile page hides structured member name fields when only full name is available', function () {
     $user = User::factory()->create([
         'acctno' => '000902',
@@ -284,6 +362,7 @@ test('profile information can be updated', function () {
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
             'number_of_children' => 2,
+            'spouse_name' => 'Renee Santos',
             'spouse_age' => 32,
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
@@ -316,6 +395,7 @@ test('profile information can be updated', function () {
     expect($memberProfile->educational_attainment)->toBe('High School');
     expect($memberProfile->length_of_stay)->toBe('2 years');
     expect($memberProfile->number_of_children)->toBe(2);
+    expect($memberProfile->spouse_name)->toBe('Renee Santos');
     expect($memberProfile->spouse_age)->toBe(32);
     expect($memberProfile->spouse_cell_no)->toBe('09123456780');
     expect($memberProfile->employment_type)->toBe('Regular');
@@ -582,9 +662,12 @@ test('member application profile table excludes canonical member fields', functi
     expect(Schema::hasColumn('member_application_profiles', 'address'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'civil_status'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'occupation'))->toBeFalse();
-    expect(Schema::hasColumn('member_application_profiles', 'spouse_name'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'housing_status'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'bname'))->toBeFalse();
+});
+
+test('member application profile table includes spouse name', function () {
+    expect(Schema::hasColumn('member_application_profiles', 'spouse_name'))->toBeTrue();
 });
 
 test('user can delete their account', function () {

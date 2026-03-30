@@ -5,6 +5,7 @@
     $formatCurrency = fn ($value) => $value === null
         ? ''
         : number_format((float) $value, 2);
+    $displayText = fn ($value) => \App\Support\DisplayText::normalize($value) ?? '';
     $status = $loanRequest->status instanceof \App\LoanRequestStatus
         ? $loanRequest->status->value
         : (string) $loanRequest->status;
@@ -60,10 +61,10 @@
         <tr class="row-line">
             <td class="label">Loan Type:</td>
 
-            <td class="{{ $fitFieldClass($loanRequest->loan_type_label_snapshot) }}">{{ $loanRequest->loan_type_label_snapshot }}</td>
+            <td class="{{ $fitFieldClass($loanRequest->loan_type_label_snapshot) }}">{{ $displayText($loanRequest->loan_type_label_snapshot) }}</td>
             <td class="label">Loan Purpose:</td>
 
-            <td class="{{ $fitFieldClass($loanRequest->loan_purpose) }}">{{ $loanRequest->loan_purpose }}</td>
+            <td class="{{ $fitFieldClass($loanRequest->loan_purpose) }}">{{ $displayText($loanRequest->loan_purpose) }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Availment Status:</td>
@@ -96,22 +97,22 @@
         </colgroup>
         <tr>
             <td class="label">First Name:</td>
-            <td class="{{ $fitFieldClass($applicant['first_name'] ?? '') }}">{{ $applicant['first_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['first_name'] ?? '') }}">{{ $displayText($applicant['first_name'] ?? '') }}</td>
             <td class="label">Last Name:</td>
-            <td class="{{ $fitFieldClass($applicant['last_name'] ?? '') }}">{{ $applicant['last_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['last_name'] ?? '') }}">{{ $displayText($applicant['last_name'] ?? '') }}</td>
             <td class="label">Middle Name:</td>
-            <td class="{{ $fitFieldClass($applicant['middle_name'] ?? '') }}">{{ $applicant['middle_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['middle_name'] ?? '') }}">{{ $displayText($applicant['middle_name'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Nickname:</td>
 
-            <td class="{{ $fitFieldClass($applicant['nickname'] ?? '') }}">{{ $applicant['nickname'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['nickname'] ?? '') }}">{{ $displayText($applicant['nickname'] ?? '') }}</td>
             <td class="label">Birthdate:</td>
 
             <td class="{{ $fitFieldClass($formatDate($applicant['birthdate'] ?? null)) }}">{{ $formatDate($applicant['birthdate'] ?? null) }}</td>
             <td class="label">Birth Place:</td>
 
-            <td class="{{ $fitFieldClass($applicant['birthplace'] ?? '') }}">{{ $applicant['birthplace'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['birthplace'] ?? '') }}">{{ $displayText($applicant['birthplace'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Length of Stay:</td>
@@ -138,7 +139,7 @@
         <tr class="row-line">
             <td class="label">Spouse Name:</td>
 
-            <td class="{{ $fitFieldClass($applicant['spouse_name'] ?? '') }}">{{ $applicant['spouse_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['spouse_name'] ?? '') }}">{{ $displayText($applicant['spouse_name'] ?? '') }}</td>
             <td class="label">Spouse Age:</td>
 
             <td class="{{ $fitFieldClass($applicant['spouse_age'] ?? '') }}">{{ $applicant['spouse_age'] ?? '' }}</td>
@@ -155,7 +156,7 @@
         <tr class="row-line">
             <td class="label">Address:</td>
 
-            <td class="{{ $fitFieldClass($applicant['address'] ?? '') }}">{{ $applicant['address'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['address'] ?? '') }}">{{ $displayText($applicant['address'] ?? '') }}</td>
         </tr>
         </table>
     </div>
@@ -175,7 +176,7 @@
             <td class="{{ $fitFieldClass($applicant['employment_type'] ?? '') }}">{{ $applicant['employment_type'] ?? '' }}</td>
             <td class="label">Employer/Business Name:</td>
 
-            <td class="{{ $fitFieldClass($applicant['employer_business_name'] ?? '') }}">{{ $applicant['employer_business_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['employer_business_name'] ?? '') }}">{{ $displayText($applicant['employer_business_name'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Tel. No.:</td>
@@ -183,12 +184,12 @@
             <td class="{{ $fitFieldClass($applicant['telephone_no'] ?? '') }}">{{ $applicant['telephone_no'] ?? '' }}</td>
             <td class="label">Current Position:</td>
 
-            <td class="{{ $fitFieldClass($applicant['current_position'] ?? '') }}">{{ $applicant['current_position'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['current_position'] ?? '') }}">{{ $displayText($applicant['current_position'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Nature of Business:</td>
 
-            <td class="{{ $fitFieldClass($applicant['nature_of_business'] ?? '') }}">{{ $applicant['nature_of_business'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($applicant['nature_of_business'] ?? '') }}">{{ $displayText($applicant['nature_of_business'] ?? '') }}</td>
             <td class="label">TOTAL YEARS:</td>
 
             <td class="{{ $fitFieldClass($applicant['years_in_work_business'] ?? '') }}">{{ $applicant['years_in_work_business'] ?? '' }}</td>
@@ -210,7 +211,7 @@
             <tr class="row-line">
                 <td class="label">Business Address:</td>
 
-                <td class="{{ $fitFieldClass($applicant['employer_business_address'] ?? '') }}">{{ $applicant['employer_business_address'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($applicant['employer_business_address'] ?? '') }}">{{ $displayText($applicant['employer_business_address'] ?? '') }}</td>
             </tr>
         </table>
     </div>
@@ -228,22 +229,22 @@
         </colgroup>
         <tr>
             <td class="label">First Name:</td>
-            <td class="{{ $fitFieldClass($coMakerOne['first_name'] ?? '') }}">{{ $coMakerOne['first_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerOne['first_name'] ?? '') }}">{{ $displayText($coMakerOne['first_name'] ?? '') }}</td>
             <td class="label">Last Name:</td>
-            <td class="{{ $fitFieldClass($coMakerOne['last_name'] ?? '') }}">{{ $coMakerOne['last_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerOne['last_name'] ?? '') }}">{{ $displayText($coMakerOne['last_name'] ?? '') }}</td>
             <td class="label">Middle Name:</td>
-            <td class="{{ $fitFieldClass($coMakerOne['middle_name'] ?? '') }}">{{ $coMakerOne['middle_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerOne['middle_name'] ?? '') }}">{{ $displayText($coMakerOne['middle_name'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Nickname:</td>
 
-            <td class="{{ $fitFieldClass($coMakerOne['nickname'] ?? '') }}">{{ $coMakerOne['nickname'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerOne['nickname'] ?? '') }}">{{ $displayText($coMakerOne['nickname'] ?? '') }}</td>
             <td class="label">Birthdate:</td>
 
             <td class="{{ $fitFieldClass($formatDate($coMakerOne['birthdate'] ?? null)) }}">{{ $formatDate($coMakerOne['birthdate'] ?? null) }}</td>
             <td class="label">Birth Place:</td>
 
-            <td class="{{ $fitFieldClass($coMakerOne['birthplace'] ?? '') }}">{{ $coMakerOne['birthplace'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerOne['birthplace'] ?? '') }}">{{ $displayText($coMakerOne['birthplace'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Length of Stay:</td>
@@ -265,7 +266,7 @@
             <tr class="row-line">
                 <td class="label">Address:</td>
 
-                <td class="{{ $fitFieldClass($coMakerOne['address'] ?? '') }}">{{ $coMakerOne['address'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerOne['address'] ?? '') }}">{{ $displayText($coMakerOne['address'] ?? '') }}</td>
             </tr>
         </table>
         <table class="section-table">
@@ -281,7 +282,7 @@
                 <td class="{{ $fitFieldClass($coMakerOne['employment_type'] ?? '') }}">{{ $coMakerOne['employment_type'] ?? '' }}</td>
                 <td class="label">Employer/Business Name:</td>
 
-                <td class="{{ $fitFieldClass($coMakerOne['employer_business_name'] ?? '') }}">{{ $coMakerOne['employer_business_name'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerOne['employer_business_name'] ?? '') }}">{{ $displayText($coMakerOne['employer_business_name'] ?? '') }}</td>
             </tr>
             <tr class="row-line">
                 <td class="label">Tel. No.:</td>
@@ -289,12 +290,12 @@
                 <td class="{{ $fitFieldClass($coMakerOne['telephone_no'] ?? '') }}">{{ $coMakerOne['telephone_no'] ?? '' }}</td>
                 <td class="label">Current Position:</td>
 
-                <td class="{{ $fitFieldClass($coMakerOne['current_position'] ?? '') }}">{{ $coMakerOne['current_position'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerOne['current_position'] ?? '') }}">{{ $displayText($coMakerOne['current_position'] ?? '') }}</td>
             </tr>
             <tr class="row-line">
                 <td class="label">Nature of Business:</td>
 
-                <td class="{{ $fitFieldClass($coMakerOne['nature_of_business'] ?? '') }}">{{ $coMakerOne['nature_of_business'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerOne['nature_of_business'] ?? '') }}">{{ $displayText($coMakerOne['nature_of_business'] ?? '') }}</td>
                 <td class="label">TOTAL YEARS:</td>
 
                 <td class="{{ $fitFieldClass($coMakerOne['years_in_work_business'] ?? '') }}">{{ $coMakerOne['years_in_work_business'] ?? '' }}</td>
@@ -316,7 +317,7 @@
             <tr class="row-line">
                 <td class="label">Business Address:</td>
 
-                <td class="{{ $fitFieldClass($coMakerOne['employer_business_address'] ?? '') }}">{{ $coMakerOne['employer_business_address'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerOne['employer_business_address'] ?? '') }}">{{ $displayText($coMakerOne['employer_business_address'] ?? '') }}</td>
             </tr>
         </table>
     </div>
@@ -334,22 +335,22 @@
         </colgroup>
         <tr>
             <td class="label">First Name:</td>
-            <td class="{{ $fitFieldClass($coMakerTwo['first_name'] ?? '') }}">{{ $coMakerTwo['first_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerTwo['first_name'] ?? '') }}">{{ $displayText($coMakerTwo['first_name'] ?? '') }}</td>
             <td class="label">Last Name:</td>
-            <td class="{{ $fitFieldClass($coMakerTwo['last_name'] ?? '') }}">{{ $coMakerTwo['last_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerTwo['last_name'] ?? '') }}">{{ $displayText($coMakerTwo['last_name'] ?? '') }}</td>
             <td class="label">Middle Name:</td>
-            <td class="{{ $fitFieldClass($coMakerTwo['middle_name'] ?? '') }}">{{ $coMakerTwo['middle_name'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerTwo['middle_name'] ?? '') }}">{{ $displayText($coMakerTwo['middle_name'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Nickname:</td>
 
-            <td class="{{ $fitFieldClass($coMakerTwo['nickname'] ?? '') }}">{{ $coMakerTwo['nickname'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerTwo['nickname'] ?? '') }}">{{ $displayText($coMakerTwo['nickname'] ?? '') }}</td>
             <td class="label">Birthdate:</td>
 
             <td class="{{ $fitFieldClass($formatDate($coMakerTwo['birthdate'] ?? null)) }}">{{ $formatDate($coMakerTwo['birthdate'] ?? null) }}</td>
             <td class="label">Birth Place:</td>
 
-            <td class="{{ $fitFieldClass($coMakerTwo['birthplace'] ?? '') }}">{{ $coMakerTwo['birthplace'] ?? '' }}</td>
+            <td class="{{ $fitFieldClass($coMakerTwo['birthplace'] ?? '') }}">{{ $displayText($coMakerTwo['birthplace'] ?? '') }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Length of Stay:</td>
@@ -371,7 +372,7 @@
             <tr class="row-line">
                 <td class="label">Address:</td>
 
-                <td class="{{ $fitFieldClass($coMakerTwo['address'] ?? '') }}">{{ $coMakerTwo['address'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerTwo['address'] ?? '') }}">{{ $displayText($coMakerTwo['address'] ?? '') }}</td>
             </tr>
         </table>
         <table class="section-table">
@@ -387,7 +388,7 @@
                 <td class="{{ $fitFieldClass($coMakerTwo['employment_type'] ?? '') }}">{{ $coMakerTwo['employment_type'] ?? '' }}</td>
                 <td class="label">Employer/Business Name:</td>
 
-                <td class="{{ $fitFieldClass($coMakerTwo['employer_business_name'] ?? '') }}">{{ $coMakerTwo['employer_business_name'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerTwo['employer_business_name'] ?? '') }}">{{ $displayText($coMakerTwo['employer_business_name'] ?? '') }}</td>
             </tr>
             <tr class="row-line">
                 <td class="label">Tel. No.:</td>
@@ -395,12 +396,12 @@
                 <td class="{{ $fitFieldClass($coMakerTwo['telephone_no'] ?? '') }}">{{ $coMakerTwo['telephone_no'] ?? '' }}</td>
                 <td class="label">Current Position:</td>
 
-                <td class="{{ $fitFieldClass($coMakerTwo['current_position'] ?? '') }}">{{ $coMakerTwo['current_position'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerTwo['current_position'] ?? '') }}">{{ $displayText($coMakerTwo['current_position'] ?? '') }}</td>
             </tr>
             <tr class="row-line">
                 <td class="label">Nature of Business:</td>
 
-                <td class="{{ $fitFieldClass($coMakerTwo['nature_of_business'] ?? '') }}">{{ $coMakerTwo['nature_of_business'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerTwo['nature_of_business'] ?? '') }}">{{ $displayText($coMakerTwo['nature_of_business'] ?? '') }}</td>
                 <td class="label">TOTAL YEARS:</td>
 
                 <td class="{{ $fitFieldClass($coMakerTwo['years_in_work_business'] ?? '') }}">{{ $coMakerTwo['years_in_work_business'] ?? '' }}</td>
@@ -422,7 +423,7 @@
             <tr class="row-line">
                 <td class="label">Business Address:</td>
 
-                <td class="{{ $fitFieldClass($coMakerTwo['employer_business_address'] ?? '') }}">{{ $coMakerTwo['employer_business_address'] ?? '' }}</td>
+                <td class="{{ $fitFieldClass($coMakerTwo['employer_business_address'] ?? '') }}">{{ $displayText($coMakerTwo['employer_business_address'] ?? '') }}</td>
             </tr>
         </table>
     </div>

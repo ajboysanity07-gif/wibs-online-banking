@@ -11,7 +11,11 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import {
+    formatCurrency,
+    formatDate,
+    formatDisplayText,
+} from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type {
     LoanRequestDetail,
@@ -36,7 +40,9 @@ const personName = (person?: LoanRequestPersonData | null): string => {
     }
 
     return [person.first_name, person.middle_name, person.last_name]
-        .filter((value) => Boolean(value && value.trim()))
+        .map((value) => formatDisplayText(value))
+        .map((value) => value.trim())
+        .filter((value) => value !== '')
         .join(' ');
 };
 
@@ -54,6 +60,12 @@ const displayValue = (value?: string | number | null): string => {
     const stringValue = `${value}`.trim();
 
     return stringValue !== '' ? stringValue : '--';
+};
+
+const displayText = (value?: string | null): string => {
+    const normalized = formatDisplayText(value);
+
+    return normalized !== '' ? normalized : '--';
 };
 
 const displayCurrency = (value?: string | number | null): string => {
@@ -131,10 +143,10 @@ const PersonPanel = ({ title, person }: PersonPanelProps) => (
         <div className="mt-4 grid gap-4 md:grid-cols-2">
             <DetailRow label="Name" value={personName(person)} />
             <DetailRow label="Cell no." value={displayValue(person?.cell_no)} />
-            <DetailRow label="Address" value={displayValue(person?.address)} />
+            <DetailRow label="Address" value={displayText(person?.address)} />
             <DetailRow
                 label="Employer/Business"
-                value={displayValue(person?.employer_business_name)}
+                value={displayText(person?.employer_business_name)}
             />
         </div>
     </div>
@@ -174,7 +186,7 @@ export function LoanRequestDetailPage({
         normalizedStatus === 'approved' ||
         normalizedStatus === 'declined';
     const amount = displayCurrency(loanRequest.requested_amount);
-    const loanTypeLabel = displayValue(loanRequest.loan_type_label_snapshot);
+    const loanTypeLabel = displayText(loanRequest.loan_type_label_snapshot);
     const requestedTerm =
         loanRequest.requested_term !== null &&
         loanRequest.requested_term !== undefined &&
@@ -182,7 +194,7 @@ export function LoanRequestDetailPage({
             ? `${loanRequest.requested_term} months`
             : '--';
     const availmentStatus = displayValue(loanRequest.availment_status);
-    const loanPurpose = displayValue(loanRequest.loan_purpose);
+    const loanPurpose = displayText(loanRequest.loan_purpose);
     const submittedLabel = submittedAt
         ? `Submitted ${submittedAt}`
         : 'Not submitted yet';
@@ -287,7 +299,7 @@ export function LoanRequestDetailPage({
                                 />
                                 <DetailRow
                                     label="Address"
-                                    value={displayValue(applicant?.address)}
+                                    value={displayText(applicant?.address)}
                                 />
                                 <DetailRow
                                     label="Birthdate"
@@ -320,19 +332,19 @@ export function LoanRequestDetailPage({
                                 />
                                 <DetailRow
                                     label="Employer/Business"
-                                    value={displayValue(
+                                    value={displayText(
                                         applicant?.employer_business_name,
                                     )}
                                 />
                                 <DetailRow
                                     label="Business address"
-                                    value={displayValue(
+                                    value={displayText(
                                         applicant?.employer_business_address,
                                     )}
                                 />
                                 <DetailRow
                                     label="Current position"
-                                    value={displayValue(
+                                    value={displayText(
                                         applicant?.current_position,
                                     )}
                                 />

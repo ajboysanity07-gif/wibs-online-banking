@@ -8,7 +8,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDisplayText } from '@/lib/formatters';
 import type {
     LoanRequestDraft,
     LoanRequestFormData,
@@ -33,10 +33,17 @@ type SummaryRowProps = {
 const displayValue = (value?: string | null): string =>
     value && value.trim() !== '' ? value : '--';
 
+const displayText = (value?: string | null): string => {
+    const normalized = formatDisplayText(value);
+
+    return normalized !== '' ? normalized : '--';
+};
+
 const displayName = (person: LoanRequestPersonFormData): string => {
     const fullName = [person.first_name, person.middle_name, person.last_name]
+        .map((value) => formatDisplayText(value))
         .map((value) => value.trim())
-        .filter(Boolean)
+        .filter((value) => value !== '')
         .join(' ');
 
     return fullName !== '' ? fullName : '--';
@@ -89,13 +96,15 @@ export function LoanRequestSummaryPanel({
                         <p className="text-xs text-muted-foreground uppercase">
                             Member
                         </p>
-                        <p className="mt-2 font-medium">{member.name}</p>
+                        <p className="mt-2 font-medium">
+                            {displayText(member.name)}
+                        </p>
                     </div>
 
                     <div className="space-y-2">
                         <SummaryRow
                             label="Loan type"
-                            value={displayValue(loanTypeLabel)}
+                            value={displayText(loanTypeLabel)}
                         />
                         <SummaryRow
                             label="Requested amount"
@@ -115,7 +124,7 @@ export function LoanRequestSummaryPanel({
                         />
                         <SummaryRow
                             label="Loan purpose"
-                            value={displayValue(data.loan_purpose)}
+                            value={displayText(data.loan_purpose)}
                         />
                     </div>
 

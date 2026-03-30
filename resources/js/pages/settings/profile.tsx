@@ -85,6 +85,7 @@ type MemberApplicationProfileData = {
     birthplace: string | null;
     length_of_stay: string | null;
     number_of_children: number | null;
+    spouse_name: string | null;
     educational_attainment: string | null;
     spouse_age: number | null;
     spouse_cell_no: string | null;
@@ -356,6 +357,8 @@ export default function Profile({
         memberApplicationProfile?.number_of_children ??
         memberRecord?.number_of_children ??
         '';
+    const isBirthplaceLocked = hasWmasterValue(memberBirthplace);
+    const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const showOnboardingAlert =
         onboarding && adminProfile === null && !isProfileComplete;
@@ -1127,25 +1130,51 @@ export default function Profile({
                                                                         <Label htmlFor="birthplace">
                                                                             Birthplace
                                                                         </Label>
-                                                                        <LocationAutocompleteInput
-                                                                            id="birthplace"
-                                                                            name="birthplace"
-                                                                            search={
-                                                                                birthplaceSearch
-                                                                            }
-                                                                            placeholder="City or municipality"
-                                                                            required
-                                                                            inputClassName="mt-1 block w-full"
-                                                                            loadingMessage="Searching birthplace suggestions..."
-                                                                            errorMessage="Birthplace suggestions are temporarily unavailable."
-                                                                        />
+                                                                        {isBirthplaceLocked ? (
+                                                                            <>
+                                                                                <Input
+                                                                                    id="birthplace"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberBirthplace
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                                <input
+                                                                                    type="hidden"
+                                                                                    name="birthplace"
+                                                                                    value={
+                                                                                        memberBirthplace
+                                                                                    }
+                                                                                />
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <LocationAutocompleteInput
+                                                                                    id="birthplace"
+                                                                                    name="birthplace"
+                                                                                    search={
+                                                                                        birthplaceSearch
+                                                                                    }
+                                                                                    placeholder="City or municipality"
+                                                                                    required
+                                                                                    inputClassName="mt-1 block w-full"
+                                                                                    loadingMessage="Searching birthplace suggestions..."
+                                                                                    errorMessage="Birthplace suggestions are temporarily unavailable."
+                                                                                />
 
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.birthplace
-                                                                            }
-                                                                        />
+                                                                                <InputError
+                                                                                    className="mt-2"
+                                                                                    message={
+                                                                                        formErrors.birthplace
+                                                                                    }
+                                                                                />
+                                                                            </>
+                                                                        )}
                                                                     </div>
 
                                                                     <div className="grid gap-2">
@@ -1394,23 +1423,40 @@ export default function Profile({
                                                                             Spouse
                                                                             name
                                                                         </Label>
-
-                                                                        <Input
-                                                                            id="member_record_spouse_name"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.spouse_name,
-                                                                                ) &&
+                                                                        {isSpouseNameLocked ? (
+                                                                            <Input
+                                                                                id="member_record_spouse_name"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
                                                                                     WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberRecord?.spouse_name ??
-                                                                                ''
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
+                                                                                )}
+                                                                                defaultValue={
+                                                                                    memberRecord?.spouse_name ??
+                                                                                    ''
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        ) : (
+                                                                            <>
+                                                                                <Input
+                                                                                    id="member_record_spouse_name"
+                                                                                    className="mt-1 block w-full"
+                                                                                    defaultValue={
+                                                                                        memberApplicationProfile?.spouse_name ??
+                                                                                        ''
+                                                                                    }
+                                                                                    name="spouse_name"
+                                                                                    placeholder="Spouse name"
+                                                                                />
+                                                                                <InputError
+                                                                                    className="mt-2"
+                                                                                    message={
+                                                                                        formErrors.spouse_name
+                                                                                    }
+                                                                                />
+                                                                            </>
+                                                                        )}
                                                                     </div>
 
                                                                     <div className="grid gap-2">

@@ -25,6 +25,7 @@ class MemberApplicationProfileFactory extends Factory
             'educational_attainment' => null,
             'length_of_stay' => null,
             'number_of_children' => null,
+            'spouse_name' => null,
             'spouse_age' => null,
             'spouse_cell_no' => null,
             'employment_type' => null,

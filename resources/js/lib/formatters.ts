@@ -29,3 +29,23 @@ export const formatDateTime = (value?: string | null): string => {
 
     return new Date(value).toLocaleString();
 };
+
+export const formatDisplayText = (value?: string | null): string => {
+    const trimmed = value?.trim() ?? '';
+
+    if (trimmed === '') {
+        return '';
+    }
+
+    if (!/[A-Za-z]/.test(trimmed)) {
+        return trimmed;
+    }
+
+    if (trimmed !== trimmed.toUpperCase()) {
+        return trimmed;
+    }
+
+    return trimmed
+        .toLowerCase()
+        .replace(/\b([a-z])/g, (match) => match.toUpperCase());
+};

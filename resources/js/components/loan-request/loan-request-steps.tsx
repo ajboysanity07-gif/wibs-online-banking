@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDisplayText } from '@/lib/formatters';
 import type {
     LoanRequestFormData,
     LoanRequestMemberSummary,
@@ -266,6 +266,12 @@ type SummaryItem = {
 const displayValue = (value: string): string =>
     value.trim() !== '' ? value : '--';
 
+const displayText = (value?: string | null): string => {
+    const normalized = formatDisplayText(value);
+
+    return normalized !== '' ? normalized : '--';
+};
+
 const formatHousingStatus = (value: string): string => {
     const trimmed = value.trim();
 
@@ -353,8 +359,9 @@ const formatPayday = (value: string): string => {
 
 const displayName = (person: LoanRequestPersonFormData): string => {
     const name = [person.first_name, person.middle_name, person.last_name]
+        .map((value) => formatDisplayText(value))
         .map((value) => value.trim())
-        .filter(Boolean)
+        .filter((value) => value !== '')
         .join(' ');
 
     return name !== '' ? name : '--';
@@ -405,7 +412,7 @@ export function LoanRequestReviewStep({
             : '--';
 
     const loanSummary: SummaryItem[] = [
-        { label: 'Loan type', value: displayValue(loanTypeLabel || '') },
+        { label: 'Loan type', value: displayText(loanTypeLabel || '') },
         { label: 'Requested amount', value: requestedAmount },
         {
             label: 'Requested term',
@@ -418,18 +425,18 @@ export function LoanRequestReviewStep({
             label: 'Availment status',
             value: displayValue(data.availment_status),
         },
-        { label: 'Loan purpose', value: displayValue(data.loan_purpose) },
+        { label: 'Loan purpose', value: displayText(data.loan_purpose) },
     ];
 
     const applicantPersonal: SummaryItem[] = [
         { label: 'Applicant name', value: displayName(data.applicant) },
-        { label: 'Nickname', value: displayValue(data.applicant.nickname) },
+        { label: 'Nickname', value: displayText(data.applicant.nickname) },
         { label: 'Birthdate', value: displayValue(data.applicant.birthdate) },
-        { label: 'Birthplace', value: displayValue(data.applicant.birthplace) },
-        { label: 'Address', value: displayValue(data.applicant.address) },
+        { label: 'Birthplace', value: displayText(data.applicant.birthplace) },
+        { label: 'Address', value: displayText(data.applicant.address) },
         {
             label: 'Length of stay',
-            value: displayValue(data.applicant.length_of_stay),
+            value: displayText(data.applicant.length_of_stay),
         },
         {
             label: 'Housing status',
@@ -442,7 +449,7 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Educational attainment',
-            value: displayValue(data.applicant.educational_attainment),
+            value: displayText(data.applicant.educational_attainment),
         },
         {
             label: 'No. of children',
@@ -450,7 +457,7 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Spouse name',
-            value: displayValue(data.applicant.spouse_name),
+            value: displayText(data.applicant.spouse_name),
         },
         { label: 'Spouse age', value: displayValue(data.applicant.spouse_age) },
         {
@@ -466,11 +473,11 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Employer/Business name',
-            value: displayValue(data.applicant.employer_business_name),
+            value: displayText(data.applicant.employer_business_name),
         },
         {
             label: 'Employer/Business address',
-            value: displayValue(data.applicant.employer_business_address),
+            value: displayText(data.applicant.employer_business_address),
         },
         {
             label: 'Telephone no.',
@@ -478,15 +485,15 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Current position',
-            value: displayValue(data.applicant.current_position),
+            value: displayText(data.applicant.current_position),
         },
         {
             label: 'Nature of business',
-            value: displayValue(data.applicant.nature_of_business),
+            value: displayText(data.applicant.nature_of_business),
         },
         {
             label: 'Years in work/business',
-            value: displayValue(data.applicant.years_in_work_business),
+            value: displayText(data.applicant.years_in_work_business),
         },
         {
             label: 'Gross monthly income',
@@ -505,11 +512,11 @@ export function LoanRequestReviewStep({
         person: LoanRequestPersonFormData,
     ): SummaryItem[] => [
         { label: `${label} name`, value: displayName(person) },
-        { label: 'Nickname', value: displayValue(person.nickname) },
+        { label: 'Nickname', value: displayText(person.nickname) },
         { label: 'Birthdate', value: displayValue(person.birthdate) },
-        { label: 'Birthplace', value: displayValue(person.birthplace) },
-        { label: 'Address', value: displayValue(person.address) },
-        { label: 'Length of stay', value: displayValue(person.length_of_stay) },
+        { label: 'Birthplace', value: displayText(person.birthplace) },
+        { label: 'Address', value: displayText(person.address) },
+        { label: 'Length of stay', value: displayText(person.length_of_stay) },
         {
             label: 'Housing status',
             value: formatHousingStatus(person.housing_status),
@@ -521,7 +528,7 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Educational attainment',
-            value: displayValue(person.educational_attainment),
+            value: displayText(person.educational_attainment),
         },
         {
             label: 'Employment type',
@@ -529,24 +536,24 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Employer/Business name',
-            value: displayValue(person.employer_business_name),
+            value: displayText(person.employer_business_name),
         },
         {
             label: 'Employer/Business address',
-            value: displayValue(person.employer_business_address),
+            value: displayText(person.employer_business_address),
         },
         { label: 'Telephone no.', value: displayValue(person.telephone_no) },
         {
             label: 'Current position',
-            value: displayValue(person.current_position),
+            value: displayText(person.current_position),
         },
         {
             label: 'Nature of business',
-            value: displayValue(person.nature_of_business),
+            value: displayText(person.nature_of_business),
         },
         {
             label: 'Years in work/business',
-            value: displayValue(person.years_in_work_business),
+            value: displayText(person.years_in_work_business),
         },
         {
             label: 'Gross monthly income',
@@ -568,7 +575,9 @@ export function LoanRequestReviewStep({
                 <p className="text-xs text-muted-foreground uppercase">
                     Member
                 </p>
-                <p className="mt-2 font-medium">{member.name}</p>
+                <p className="mt-2 font-medium">
+                    {displayText(member.name)}
+                </p>
                 <p className="text-xs text-muted-foreground">
                     Account No: {member.acctno ?? '--'}
                 </p>

@@ -129,7 +129,8 @@ test('loan request form uses structured wmaster names and address parts', functi
             ->where('applicant.last_name', 'Member')
             ->where('applicant.birthplace', 'Makati City')
             ->where('applicant.address', '123 Main Street, Makati, Metro Manila')
-            ->where('applicantReadOnly.address', true));
+            ->where('applicantReadOnly.address', true)
+            ->where('applicantReadOnly.birthplace', true));
 });
 
 test('loan request form falls back to legacy wmaster data when structured data is missing', function () {
@@ -173,7 +174,8 @@ test('loan request form falls back to legacy wmaster data when structured data i
             ->where('applicant.last_name', 'Legacy')
             ->where('applicant.birthplace', 'Cebu City')
             ->where('applicant.address', 'Legacy Loan Street')
-            ->where('applicantReadOnly.address', true));
+            ->where('applicantReadOnly.address', true)
+            ->where('applicantReadOnly.birthplace', false));
 });
 
 test('loan request form preserves member number of children values', function (
@@ -264,6 +266,84 @@ test('loan request form falls back to profile children when dependent column is 
             ->component('client/loan-request')
             ->where('applicant.number_of_children', '5')
             ->where('applicantReadOnly.number_of_children', false));
+});
+
+test('loan request form falls back to profile spouse name when wmaster spouse is missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000724',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Married',
+        'occupation' => 'Analyst',
+        'spouse' => null,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'spouse_name' => 'Jamie Lee',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-008',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.spouse_name', 'Jamie Lee')
+            ->where('applicantReadOnly.spouse_name', false));
+});
+
+test('loan request form locks spouse name when wmaster spouse exists', function () {
+    $user = User::factory()->create([
+        'acctno' => '000725',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Married',
+        'occupation' => 'Analyst',
+        'spouse' => 'Miguel Santos',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+        'spouse_name' => 'Jamie Lee',
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-009',
+        'lntype' => 'Personal',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.create'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request')
+            ->where('applicant.spouse_name', 'Miguel Santos')
+            ->where('applicantReadOnly.spouse_name', true));
 });
 
 test('loan request form normalizes housing status values', function (
@@ -1246,6 +1326,78 @@ test('admin loan request print preview renders', function () {
     $response->assertOk();
     $response->assertViewIs('reports.loan-request-print');
     $response->assertSee('APPLICATION FORM');
+});
+
+test('admin loan request print preview normalizes uppercase text fields', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => now(),
+        'loan_type_label_snapshot' => 'SALARY LOAN',
+        'loan_purpose' => 'HOME REPAIR',
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'JUAN',
+            'last_name' => 'DELA CRUZ',
+            'birthplace' => 'DAVAO CITY',
+            'address' => 'PUROK 1',
+            'spouse_name' => 'MARIA CRUZ',
+            'employer_business_name' => 'ACME CORP',
+            'employer_business_address' => 'MAIN ROAD',
+            'current_position' => 'SENIOR ANALYST',
+            'nature_of_business' => 'FINANCE',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'first_name' => 'ANA',
+            'last_name' => 'LIM',
+            'birthplace' => 'CEBU CITY',
+            'address' => 'MANGO STREET',
+            'employer_business_name' => 'ALPHA TRADERS',
+            'employer_business_address' => 'CEBU AVE',
+            'current_position' => 'ACCOUNTANT',
+            'nature_of_business' => 'RETAIL',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'first_name' => 'BEN',
+            'last_name' => 'REYES',
+            'birthplace' => 'BACOLOD CITY',
+            'address' => 'LACSON ST',
+            'employer_business_name' => 'BETA SERVICES',
+            'employer_business_address' => 'BACOLOD RD',
+            'current_position' => 'SUPERVISOR',
+            'nature_of_business' => 'SERVICES',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.print', $loanRequest));
+
+    $response->assertOk();
+    $response->assertViewIs('reports.loan-request-print');
+    $response->assertSee('Juan');
+    $response->assertSee('Dela Cruz');
+    $response->assertSee('Davao City');
+    $response->assertSee('Purok 1');
+    $response->assertSee('Maria Cruz');
+    $response->assertSee('Acme Corp');
+    $response->assertSee('Main Road');
+    $response->assertSee('Senior Analyst');
+    $response->assertSee('Finance');
+    $response->assertSee('Salary Loan');
+    $response->assertSee('Home Repair');
 });
 
 test('non-admin users cannot access admin loan request routes', function () {

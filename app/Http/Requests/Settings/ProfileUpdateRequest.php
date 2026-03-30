@@ -88,6 +88,11 @@ class ProfileUpdateRequest extends FormRequest
                 'min:0',
                 'max:255',
             ],
+            'spouse_name' => [
+                $memberRequirement('spouse_name'),
+                'string',
+                'max:255',
+            ],
             'educational_attainment' => [
                 $memberRequirement('educational_attainment'),
                 'string',
