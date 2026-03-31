@@ -20,7 +20,7 @@ import {
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
-    MemberSavingsLedgerResponse,
+    MemberLoanSecurityLedgerResponse,
     PaginationMeta,
 } from '@/types/admin';
 
@@ -33,7 +33,7 @@ type Props = {
     member: MemberSummary;
     summary: MemberAccountsSummary | null;
     summaryError?: string | null;
-    savings: MemberSavingsLedgerResponse | null;
+    savings: MemberLoanSecurityLedgerResponse | null;
     savingsError?: string | null;
 };
 
@@ -56,8 +56,8 @@ export default function MemberSavings({
     const summaryValue = summary ?? null;
     const isLoading = loading || (savings === null && !savingsError);
     const savingsEmptyMessage = isLoading
-        ? 'Loading savings...'
-        : 'No savings transactions found.';
+        ? 'Loading loan security...'
+        : 'No loan security transactions found.';
 
     const savingsNumbers = useMemo(() => {
         const uniqueNumbers = new Set<string>();
@@ -102,11 +102,13 @@ export default function MemberSavings({
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Member profile', href: clientDashboard().url },
-        { title: 'Savings', href: clientSavings().url },
+        { title: 'Loan Security', href: clientSavings().url },
     ];
-    const currentSavings = formatCurrency(summaryValue?.currentPersonalSavings);
+    const currentSavings = formatCurrency(
+        summaryValue?.currentLoanSecurityBalance,
+    );
     const lastSavingsTransaction = formatDate(
-        summaryValue?.lastSavingsTransactionDate,
+        summaryValue?.lastLoanSecurityTransactionDate,
     );
     const savingsNumberMeta =
         savingsNumbers.length === 0 ? (
@@ -123,17 +125,17 @@ export default function MemberSavings({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Savings" />
+            <Head title="Loan Security" />
             <PageShell>
                 <MemberDetailPageHeader
-                    title="Savings"
-                    subtitle="Your savings ledger activity."
+                    title="Loan Security"
+                    subtitle="Your loan security ledger activity."
                     meta={
                         <span className="inline-flex flex-wrap items-center gap-2">
                             <span>Account No: {member.acctno ?? '--'}</span>
                             <span aria-hidden="true">|</span>
                             <span className="inline-flex flex-wrap items-center gap-2">
-                                <span>Savings No:</span>
+                                <span>Loan Security No:</span>
                                 {savingsNumberMeta}
                             </span>
                         </span>
@@ -150,21 +152,21 @@ export default function MemberSavings({
                 {!member.acctno ? (
                     <MemberAccountAlert
                         title="Account number missing"
-                        description="Add an account number to view savings details."
+                        description="Add an account number to view loan security details."
                     />
                 ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <MemberDetailPrimaryCard
-                        title="Personal Savings Balance"
+                        title="Loan Security Balance"
                         value={currentSavings}
-                        helper="Latest personal savings balance."
+                        helper="Latest loan security balance."
                         icon={PiggyBank}
                         accent="accent"
                     />
                     <MemberDetailSupportingCard
-                        title="Last Savings Transaction"
-                        description="Most recent savings activity date."
+                        title="Last Loan Security Transaction"
+                        description="Most recent loan security activity date."
                         value={lastSavingsTransaction}
                         icon={Clock}
                         accent="accent"

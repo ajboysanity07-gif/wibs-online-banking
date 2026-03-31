@@ -25,7 +25,7 @@ beforeEach(function () {
             $table->string('acctno');
             $table->string('svnumber');
             $table->string('svtype')->nullable();
-            $table->integer('typecode')->default(0);
+            $table->string('typecode')->nullable();
             $table->decimal('mortuary', 12, 2)->default(0);
             $table->decimal('balance', 12, 2)->default(0);
             $table->decimal('wbalance', 12, 2)->default(0);
@@ -103,7 +103,7 @@ test('admin can view member accounts summary', function () {
         'acctno' => $member->acctno,
         'svnumber' => 'SV-1',
         'svtype' => 'Regular',
-        'typecode' => 4,
+        'typecode' => '01',
         'mortuary' => 100,
         'balance' => 500,
         'wbalance' => 400,
@@ -114,7 +114,7 @@ test('admin can view member accounts summary', function () {
         'acctno' => $member->acctno,
         'svnumber' => 'SV-2',
         'svtype' => 'Regular',
-        'typecode' => 2,
+        'typecode' => '02',
         'mortuary' => 50,
         'balance' => 900,
         'wbalance' => 800,
@@ -149,32 +149,88 @@ test('admin can view member accounts summary', function () {
         'data' => [
             'summary' => [
                 'loanBalanceLeft',
-                'currentPersonalSavings',
-                'currentSavingsBalance',
+                'currentLoanSecurityBalance',
+                'currentLoanSecurityTotal',
                 'lastLoanTransactionDate',
-                'lastSavingsTransactionDate',
+                'lastLoanSecurityTransactionDate',
                 'recentLoans',
-                'recentSavings',
+                'recentLoanSecurity',
             ],
         ],
     ]);
 
     expect((float) $response->json('data.summary.loanBalanceLeft'))->toBe(900.0);
-    expect((float) $response->json('data.summary.currentPersonalSavings'))->toBe(550.0);
-    expect((float) $response->json('data.summary.currentSavingsBalance'))->toBe(600.0);
+    expect((float) $response->json('data.summary.currentLoanSecurityBalance'))->toBe(550.0);
+    expect((float) $response->json('data.summary.currentLoanSecurityTotal'))->toBe(600.0);
     expect($response->json('data.summary.lastLoanTransactionDate'))->toBe(
         '2024-02-10 10:00:00'
     );
-    expect($response->json('data.summary.lastSavingsTransactionDate'))->toBe(
+    expect($response->json('data.summary.lastLoanSecurityTransactionDate'))->toBe(
         '2024-02-15 09:00:00'
     );
-    expect($response->json('data.summary.recentSavings'))->toHaveCount(1);
-    expect($response->json('data.summary.recentSavings.0.svnumber'))->toBe('SV-1');
+    expect($response->json('data.summary.recentLoanSecurity'))->toHaveCount(1);
+    expect($response->json('data.summary.recentLoanSecurity.0.svnumber'))->toBe('SV-1');
 
     $recentLoan = $response->json('data.summary.recentLoans.0');
 
     expect($recentLoan['lnnumber'])->toBe('LN-2');
     expect((float) $recentLoan['initial'])->toBe(800.0);
+});
+
+test('admin summary tolerates missing wbalance on loan security master', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000113',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $member->user_id,
+    ]);
+
+    Schema::drop('wsvmaster');
+    Schema::create('wsvmaster', function (Blueprint $table) {
+        $table->string('acctno');
+        $table->string('svnumber');
+        $table->string('svtype')->nullable();
+        $table->string('typecode')->nullable();
+        $table->decimal('mortuary', 12, 2)->default(0);
+        $table->decimal('balance', 12, 2)->default(0);
+        $table->dateTime('lastmove')->nullable();
+    });
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-113',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 20,
+        'balance' => 150,
+        'lastmove' => Carbon::parse('2024-03-05 09:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-113',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-03-06 09:00:00')->toDateTimeString(),
+        'deposit' => 0,
+        'withdrawal' => 0,
+        'balance' => 150,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson("/admin/api/members/{$member->user_id}/accounts/summary");
+
+    $response->assertOk();
+    expect((float) $response->json('data.summary.currentLoanSecurityBalance'))
+        ->toBe(150.0);
+    expect((float) $response->json('data.summary.currentLoanSecurityTotal'))
+        ->toBe(170.0);
+    expect((float) $response->json('data.summary.recentLoanSecurity.0.wbalance'))
+        ->toBe(0.0);
 });
 
 test('recent account actions are paginated and ordered', function () {
@@ -227,7 +283,7 @@ test('recent account actions are paginated and ordered', function () {
         'acctno' => $member->acctno,
         'svnumber' => '100',
         'svtype' => 'Regular',
-        'typecode' => 2,
+        'typecode' => '02',
         'mortuary' => 0,
         'balance' => 500,
         'wbalance' => 500,
@@ -238,7 +294,7 @@ test('recent account actions are paginated and ordered', function () {
         'acctno' => $member->acctno,
         'svnumber' => '101',
         'svtype' => 'Regular',
-        'typecode' => 4,
+        'typecode' => '01',
         'mortuary' => 0,
         'balance' => 300,
         'wbalance' => 300,
@@ -249,7 +305,7 @@ test('recent account actions are paginated and ordered', function () {
         'acctno' => $member->acctno,
         'svnumber' => '102',
         'svtype' => 'Regular',
-        'typecode' => 4,
+        'typecode' => '01',
         'mortuary' => 0,
         'balance' => 400,
         'wbalance' => 400,
@@ -339,7 +395,7 @@ test('member loans endpoint is paginated', function () {
     expect($response->json('data.meta.lastPage'))->toBe(2);
 });
 
-test('member savings endpoint is paginated', function () {
+test('member loan security endpoint is paginated', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
@@ -353,7 +409,7 @@ test('member savings endpoint is paginated', function () {
     ]);
 
     foreach (range(1, 6) as $index) {
-        $typecode = $index < 3 ? 2 : 4;
+        $typecode = $index < 3 ? '02' : '01';
 
         DB::table('wsvmaster')->insert([
             'acctno' => $member->acctno,

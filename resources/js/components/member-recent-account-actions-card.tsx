@@ -56,6 +56,18 @@ const sourceVariant = (source?: MemberRecentAccountActionSource | null) => {
     return 'outline';
 };
 
+const sourceLabel = (source?: MemberRecentAccountActionSource | null) => {
+    if (source === 'LOAN') {
+        return 'Loan';
+    }
+
+    if (source === 'SAV') {
+        return 'Loan Security';
+    }
+
+    return source ?? '--';
+};
+
 const MobileAccountActionSkeleton = () => (
     <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
@@ -108,7 +120,7 @@ const MobileAccountActionCard = ({
                 </p>
             </div>
             <Badge variant={sourceVariant(action.source)}>
-                {action.source ?? '--'}
+                {sourceLabel(action.source)}
             </Badge>
         </div>
         <div className="mt-3 rounded-xl border border-border/30 bg-muted/30 p-3">
@@ -156,7 +168,7 @@ export function MemberRecentAccountActionsCard({
         <SurfaceCard variant="default" padding="lg" className="space-y-5">
             <SectionHeader
                 title="Recent account actions"
-                description="Latest loan and savings movements."
+                description="Latest loan and loan security movements."
                 actions={
                     loading ? (
                         <Badge
@@ -172,13 +184,13 @@ export function MemberRecentAccountActionsCard({
             <div className="space-y-4">
                 {!acctno ? (
                     <Alert>
-                        <AlertTitle>Account number missing</AlertTitle>
-                        <AlertDescription>
-                            Add an account number to view loan and savings
-                            activity.
-                        </AlertDescription>
-                    </Alert>
-                ) : null}
+                    <AlertTitle>Account number missing</AlertTitle>
+                    <AlertDescription>
+                        Add an account number to view loan and loan security
+                        activity.
+                    </AlertDescription>
+                </Alert>
+            ) : null}
                 {error ? (
                     <Alert variant="destructive">
                         <AlertTitle>Unable to load account actions</AlertTitle>
@@ -282,7 +294,9 @@ export function MemberRecentAccountActionsCard({
                                                             action.source,
                                                         )}
                                                     >
-                                                        {action.source ?? '--'}
+                                                        {sourceLabel(
+                                                            action.source,
+                                                        )}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>

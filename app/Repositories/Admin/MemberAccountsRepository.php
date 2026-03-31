@@ -15,17 +15,17 @@ use Illuminate\Support\Facades\Schema;
  */
 class MemberAccountsRepository
 {
-    private const PERSONAL_SAVINGS_TYPECODE = 4;
+    private const LOAN_SECURITY_TYPECODE = '01';
 
     /**
      * @return array{
      *     loanBalanceLeft: float,
-     *     currentPersonalSavings: float,
-     *     currentSavingsBalance: float,
+     *     currentLoanSecurityBalance: float,
+     *     currentLoanSecurityTotal: float,
      *     lastLoanTransactionDate: ?string,
-     *     lastSavingsTransactionDate: ?string,
+     *     lastLoanSecurityTransactionDate: ?string,
      *     recentLoans: \Illuminate\Support\Collection<int, mixed>,
-     *     recentSavings: \Illuminate\Support\Collection<int, mixed>
+     *     recentLoanSecurity: \Illuminate\Support\Collection<int, mixed>
      * }
      */
     public function getSummary(string $acctno, int $recentLimit = 5): array
@@ -34,16 +34,16 @@ class MemberAccountsRepository
             ? (float) Wlnmaster::query()->where('acctno', $acctno)->sum('balance')
             : 0.0;
 
-        [$currentPersonalSavings, $currentSavingsBalance] = $this->getSavingsTotals($acctno);
+        [$currentLoanSecurityBalance, $currentLoanSecurityTotal] = $this->getLoanSecurityTotals($acctno);
 
         return [
             'loanBalanceLeft' => $loanBalanceLeft,
-            'currentPersonalSavings' => $currentPersonalSavings,
-            'currentSavingsBalance' => $currentSavingsBalance,
+            'currentLoanSecurityBalance' => $currentLoanSecurityBalance,
+            'currentLoanSecurityTotal' => $currentLoanSecurityTotal,
             'lastLoanTransactionDate' => $this->getLastLoanTransactionDate($acctno),
-            'lastSavingsTransactionDate' => $this->getLastSavingsTransactionDate($acctno),
+            'lastLoanSecurityTransactionDate' => $this->getLastLoanSecurityTransactionDate($acctno),
             'recentLoans' => $this->getRecentLoans($acctno, $recentLimit),
-            'recentSavings' => $this->getRecentSavings($acctno, $recentLimit),
+            'recentLoanSecurity' => $this->getRecentLoanSecurity($acctno, $recentLimit),
         ];
     }
 
@@ -84,28 +84,32 @@ class MemberAccountsRepository
     /**
      * @return \Illuminate\Support\Collection<int, mixed>
      */
-    public function getRecentSavings(string $acctno, int $limit = 5): Collection
+    public function getRecentLoanSecurity(string $acctno, int $limit = 5): Collection
     {
-        if (! $this->hasTable('wsvmaster') || ! $this->hasColumn('wsvmaster', 'typecode')) {
+        if (! $this->hasTable('wsvmaster')) {
             return collect();
         }
 
         $orderBy = $this->hasColumn('wsvmaster', 'lastmove') ? 'lastmove' : 'svnumber';
 
-        return Wsvmaster::query()
+        $query = Wsvmaster::query()
             ->where('acctno', $acctno)
-            ->where('typecode', self::PERSONAL_SAVINGS_TYPECODE)
             ->select([
                 'svnumber',
                 'svtype',
-                'mortuary',
-                'balance',
-                'wbalance',
-                'lastmove',
+                $this->selectColumnOrDefault('wsvmaster', 'mortuary', '0'),
+                $this->selectColumnOrDefault('wsvmaster', 'balance', '0'),
+                $this->selectColumnOrDefault('wsvmaster', 'wbalance', '0'),
+                $this->selectColumnOrDefault('wsvmaster', 'lastmove', 'null'),
             ])
             ->orderByDesc($orderBy)
-            ->limit($limit)
-            ->get();
+            ->limit($limit);
+
+        if ($this->hasColumn('wsvmaster', 'typecode')) {
+            $query->where('typecode', self::LOAN_SECURITY_TYPECODE);
+        }
+
+        return $query->get();
     }
 
     public function getPaginatedLoans(
@@ -139,7 +143,7 @@ class MemberAccountsRepository
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
-    public function getPaginatedSavings(
+    public function getPaginatedLoanSecurity(
         string $acctno,
         int $perPage,
         int $page,
@@ -152,10 +156,6 @@ class MemberAccountsRepository
         $hasSavingsMasterTypecode = $this->hasTable('wsvmaster')
             && $this->hasColumn('wsvmaster', 'typecode');
 
-        if (! $hasSavingsLedgerTypecode && ! $hasSavingsMasterTypecode) {
-            return $this->emptyPaginator($perPage, $page);
-        }
-
         $orderBy = $this->hasColumn('wsavled', 'date_in')
             ? 'wsavled.date_in'
             : 'wsavled.svnumber';
@@ -165,20 +165,20 @@ class MemberAccountsRepository
             ->select([
                 'wsavled.svnumber',
                 'wsavled.svtype',
-                'wsavled.date_in',
-                'wsavled.deposit',
-                'wsavled.withdrawal',
-                'wsavled.balance',
+                $this->selectColumnOrDefault('wsavled', 'date_in', 'null'),
+                $this->selectColumnOrDefault('wsavled', 'deposit', '0'),
+                $this->selectColumnOrDefault('wsavled', 'withdrawal', '0'),
+                $this->selectColumnOrDefault('wsavled', 'balance', '0'),
             ])
             ->orderByDesc($orderBy);
 
         if ($hasSavingsLedgerTypecode) {
-            $query->where('wsavled.typecode', self::PERSONAL_SAVINGS_TYPECODE);
-        } else {
+            $query->where('wsavled.typecode', self::LOAN_SECURITY_TYPECODE);
+        } elseif ($hasSavingsMasterTypecode) {
             $query->join('wsvmaster', function ($join) {
                 $join->on('wsvmaster.svnumber', '=', 'wsavled.svnumber')
                     ->on('wsvmaster.acctno', '=', 'wsavled.acctno');
-            })->where('wsvmaster.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+            })->where('wsvmaster.typecode', self::LOAN_SECURITY_TYPECODE);
         }
 
         return $query->paginate($perPage, ['*'], 'page', $page);
@@ -187,7 +187,7 @@ class MemberAccountsRepository
     /**
      * @return array{latestBalance: float, lastTransactionDate: ?string}
      */
-    public function getPersonalSavingsLedgerSummary(string $acctno): array
+    public function getLoanSecurityLedgerSummary(string $acctno): array
     {
         if (! $this->hasTable('wsavled')) {
             return ['latestBalance' => 0.0, 'lastTransactionDate' => null];
@@ -201,6 +201,8 @@ class MemberAccountsRepository
             return ['latestBalance' => 0.0, 'lastTransactionDate' => null];
         }
 
+        $hasLedgerBalance = $this->hasColumn('wsavled', 'balance');
+        $hasLedgerDate = $this->hasColumn('wsavled', 'date_in');
         $orderBy = $this->hasColumn('wsavled', 'date_in')
             ? 'wsavled.date_in'
             : 'wsavled.svnumber';
@@ -208,25 +210,31 @@ class MemberAccountsRepository
         $query = DB::table('wsavled')
             ->where('wsavled.acctno', $acctno)
             ->select([
-                'wsavled.balance',
-                'wsavled.date_in',
+                $this->selectColumnOrDefault('wsavled', 'balance', '0'),
+                $this->selectColumnOrDefault('wsavled', 'date_in', 'null'),
             ])
             ->orderByDesc($orderBy);
 
         if ($hasSavingsLedgerTypecode) {
-            $query->where('wsavled.typecode', self::PERSONAL_SAVINGS_TYPECODE);
-        } else {
+            $query->where('wsavled.typecode', self::LOAN_SECURITY_TYPECODE);
+        } elseif ($hasSavingsMasterTypecode) {
             $query->join('wsvmaster', function ($join) {
                 $join->on('wsvmaster.svnumber', '=', 'wsavled.svnumber')
                     ->on('wsvmaster.acctno', '=', 'wsavled.acctno');
-            })->where('wsvmaster.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+            })->where('wsvmaster.typecode', self::LOAN_SECURITY_TYPECODE);
         }
 
         $row = $query->first();
+        $latestBalance = $hasLedgerBalance
+            ? (float) ($row?->balance ?? 0)
+            : $this->resolveLoanSecurityMasterBalance($acctno);
+        $lastTransactionDate = $hasLedgerDate
+            ? ($row?->date_in ? (string) $row->date_in : null)
+            : $this->resolveLoanSecurityMasterLastMove($acctno);
 
         return [
-            'latestBalance' => (float) ($row?->balance ?? 0),
-            'lastTransactionDate' => $row?->date_in ? (string) $row->date_in : null,
+            'latestBalance' => $latestBalance,
+            'lastTransactionDate' => $lastTransactionDate,
         ];
     }
 
@@ -240,6 +248,8 @@ class MemberAccountsRepository
         $hasSavingsLedgerTypecode = $hasSavings && $this->hasColumn('wsavled', 'typecode');
         $hasSavingsMasterTypecode = $this->hasTable('wsvmaster')
             && $this->hasColumn('wsvmaster', 'typecode');
+        $hasSavingsDeposit = $hasSavings && $this->hasColumn('wsavled', 'deposit');
+        $hasSavingsWithdrawal = $hasSavings && $this->hasColumn('wsavled', 'withdrawal');
 
         if (! $hasLoans && ! $hasSavings) {
             return $this->emptyPaginator($perPage, $page);
@@ -269,38 +279,63 @@ class MemberAccountsRepository
                 })
             : null;
 
-        $savingsQuery = $hasSavings && ($hasSavingsLedgerTypecode || $hasSavingsMasterTypecode)
+        $savingsQuery = $hasSavings
             ? DB::table('wsavled')
                 ->select([
                     'wsavled.acctno',
                     'wsavled.svnumber as number',
-                    'wsavled.date_in',
+                    $this->selectColumnOrDefault('wsavled', 'date_in', 'null'),
                     'wsavled.svtype as transaction_type',
-                    'wsavled.deposit as amount',
-                    'wsavled.withdrawal as movement',
-                    'wsavled.balance',
+                    $this->selectColumnOrDefault(
+                        'wsavled',
+                        'deposit',
+                        '0',
+                        'amount',
+                    ),
+                    $this->selectColumnOrDefault(
+                        'wsavled',
+                        'withdrawal',
+                        '0',
+                        'movement',
+                    ),
+                    $this->selectColumnOrDefault('wsavled', 'balance', '0'),
                     DB::raw("'SAV' as source"),
                     DB::raw('null as principal'),
-                    'wsavled.deposit',
-                    'wsavled.withdrawal',
+                    $this->selectColumnOrDefault('wsavled', 'deposit', '0'),
+                    $this->selectColumnOrDefault('wsavled', 'withdrawal', '0'),
                     DB::raw('null as payments'),
                     DB::raw('null as debit'),
                 ])
                 ->where('wsavled.acctno', $acctno)
-                ->where(function ($builder) {
-                    $builder->where('wsavled.withdrawal', '!=', 0)
-                        ->orWhere('wsavled.deposit', '!=', 0);
-                })
             : null;
 
         if ($savingsQuery) {
+            if ($hasSavingsDeposit || $hasSavingsWithdrawal) {
+                $savingsQuery->where(function ($builder) use (
+                    $hasSavingsDeposit,
+                    $hasSavingsWithdrawal,
+                ) {
+                    if ($hasSavingsWithdrawal) {
+                        $builder->where('wsavled.withdrawal', '!=', 0);
+                    }
+
+                    if ($hasSavingsDeposit) {
+                        if ($hasSavingsWithdrawal) {
+                            $builder->orWhere('wsavled.deposit', '!=', 0);
+                        } else {
+                            $builder->where('wsavled.deposit', '!=', 0);
+                        }
+                    }
+                });
+            }
+
             if ($hasSavingsLedgerTypecode) {
-                $savingsQuery->where('wsavled.typecode', self::PERSONAL_SAVINGS_TYPECODE);
-            } else {
+                $savingsQuery->where('wsavled.typecode', self::LOAN_SECURITY_TYPECODE);
+            } elseif ($hasSavingsMasterTypecode) {
                 $savingsQuery->join('wsvmaster', function ($join) {
                     $join->on('wsvmaster.svnumber', '=', 'wsavled.svnumber')
                         ->on('wsvmaster.acctno', '=', 'wsavled.acctno');
-                })->where('wsvmaster.typecode', self::PERSONAL_SAVINGS_TYPECODE);
+                })->where('wsvmaster.typecode', self::LOAN_SECURITY_TYPECODE);
             }
         }
 
@@ -342,22 +377,33 @@ class MemberAccountsRepository
     /**
      * @return array{0: float, 1: float}
      */
-    private function getSavingsTotals(string $acctno): array
+    private function getLoanSecurityTotals(string $acctno): array
     {
-        if (! $this->hasTable('wsvmaster') || ! $this->hasColumn('wsvmaster', 'typecode')) {
+        if (! $this->hasTable('wsvmaster')) {
             return [0.0, 0.0];
         }
 
-        $totals = Wsvmaster::query()
-            ->where('acctno', $acctno)
-            ->where('typecode', self::PERSONAL_SAVINGS_TYPECODE)
-            ->selectRaw('COALESCE(SUM(balance), 0) as balance_total, COALESCE(SUM(mortuary), 0) as mortuary_total')
-            ->first();
+        $balanceSelect = $this->hasColumn('wsvmaster', 'balance')
+            ? DB::raw('COALESCE(SUM(balance), 0) as balance_total')
+            : DB::raw('0 as balance_total');
+        $mortuarySelect = $this->hasColumn('wsvmaster', 'mortuary')
+            ? DB::raw('COALESCE(SUM(mortuary), 0) as mortuary_total')
+            : DB::raw('0 as mortuary_total');
 
-        $personalSavings = (float) ($totals?->balance_total ?? 0);
+        $query = Wsvmaster::query()
+            ->where('acctno', $acctno)
+            ->select([$balanceSelect, $mortuarySelect]);
+
+        if ($this->hasColumn('wsvmaster', 'typecode')) {
+            $query->where('typecode', self::LOAN_SECURITY_TYPECODE);
+        }
+
+        $totals = $query->first();
+
+        $loanSecurityBalance = (float) ($totals?->balance_total ?? 0);
         $mortuaryTotal = (float) ($totals?->mortuary_total ?? 0);
 
-        return [$personalSavings, $personalSavings + $mortuaryTotal];
+        return [$loanSecurityBalance, $loanSecurityBalance + $mortuaryTotal];
     }
 
     private function getLastLoanTransactionDate(string $acctno): ?string
@@ -371,20 +417,19 @@ class MemberAccountsRepository
         return $value ? (string) $value : null;
     }
 
-    private function getLastSavingsTransactionDate(string $acctno): ?string
+    private function getLastLoanSecurityTransactionDate(string $acctno): ?string
     {
-        if (
-            ! $this->hasTable('wsvmaster')
-            || ! $this->hasColumn('wsvmaster', 'lastmove')
-            || ! $this->hasColumn('wsvmaster', 'typecode')
-        ) {
+        if (! $this->hasTable('wsvmaster') || ! $this->hasColumn('wsvmaster', 'lastmove')) {
             return null;
         }
 
-        $value = Wsvmaster::query()
-            ->where('acctno', $acctno)
-            ->where('typecode', self::PERSONAL_SAVINGS_TYPECODE)
-            ->max('lastmove');
+        $query = Wsvmaster::query()->where('acctno', $acctno);
+
+        if ($this->hasColumn('wsvmaster', 'typecode')) {
+            $query->where('typecode', self::LOAN_SECURITY_TYPECODE);
+        }
+
+        $value = $query->max('lastmove');
 
         return $value ? (string) $value : null;
     }
@@ -397,6 +442,68 @@ class MemberAccountsRepository
     private function hasColumn(string $table, string $column): bool
     {
         return Schema::hasColumn($table, $column);
+    }
+
+    /**
+     * @return string|\Illuminate\Database\Query\Expression
+     */
+    private function selectColumnOrDefault(
+        string $table,
+        string $column,
+        string $defaultExpression,
+        ?string $alias = null,
+    ): mixed {
+        $alias = $alias ?? $column;
+
+        if ($this->hasColumn($table, $column)) {
+            if ($alias === $column) {
+                return $table.'.'.$column;
+            }
+
+            return $table.'.'.$column.' as '.$alias;
+        }
+
+        return DB::raw($defaultExpression.' as '.$alias);
+    }
+
+    private function resolveLoanSecurityMasterBalance(string $acctno): float
+    {
+        if (! $this->hasTable('wsvmaster')) {
+            return 0.0;
+        }
+
+        $query = Wsvmaster::query()->where('acctno', $acctno);
+
+        if ($this->hasColumn('wsvmaster', 'typecode')) {
+            $query->where('typecode', self::LOAN_SECURITY_TYPECODE);
+        }
+
+        if ($this->hasColumn('wsvmaster', 'balance')) {
+            return (float) $query->sum('balance');
+        }
+
+        if ($this->hasColumn('wsvmaster', 'wbalance')) {
+            return (float) $query->sum('wbalance');
+        }
+
+        return 0.0;
+    }
+
+    private function resolveLoanSecurityMasterLastMove(string $acctno): ?string
+    {
+        if (! $this->hasTable('wsvmaster') || ! $this->hasColumn('wsvmaster', 'lastmove')) {
+            return null;
+        }
+
+        $query = Wsvmaster::query()->where('acctno', $acctno);
+
+        if ($this->hasColumn('wsvmaster', 'typecode')) {
+            $query->where('typecode', self::LOAN_SECURITY_TYPECODE);
+        }
+
+        $value = $query->max('lastmove');
+
+        return $value ? (string) $value : null;
     }
 
     private function emptyPaginator(int $perPage, int $page): LengthAwarePaginator

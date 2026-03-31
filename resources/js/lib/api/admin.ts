@@ -8,7 +8,7 @@ import type {
     MemberLoansResponse,
     MemberLoanPaymentsResponse,
     MemberLoanScheduleResponse,
-    MemberSavingsLedgerResponse,
+    MemberLoanSecurityLedgerResponse,
     MemberStatusAction,
     MembersResponse,
     PendingApprovalsResponse,
@@ -164,9 +164,9 @@ export const adminApi = {
         userId: number,
         params: MemberAccountQueryParams,
         signal?: AbortSignal,
-    ): Promise<MemberSavingsLedgerResponse> {
+    ): Promise<MemberLoanSecurityLedgerResponse> {
         const response = await client.get<
-            ApiResponse<MemberSavingsLedgerResponse>
+            ApiResponse<MemberLoanSecurityLedgerResponse>
         >(`/admin/api/members/${userId}/accounts/savings`, { params, signal });
 
         return unwrap(response);

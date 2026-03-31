@@ -20,25 +20,25 @@ class MemberAccountsSummaryResource extends JsonResource
             'loanBalanceLeft' => $this->castNumber(
                 data_get($resource, 'loanBalanceLeft'),
             ),
-            'currentPersonalSavings' => $this->castNumber(
-                data_get($resource, 'currentPersonalSavings'),
+            'currentLoanSecurityBalance' => $this->castNumber(
+                data_get($resource, 'currentLoanSecurityBalance'),
             ),
-            'currentSavingsBalance' => $this->castNumber(
-                data_get($resource, 'currentSavingsBalance'),
+            'currentLoanSecurityTotal' => $this->castNumber(
+                data_get($resource, 'currentLoanSecurityTotal'),
             ),
             'lastLoanTransactionDate' => data_get(
                 $resource,
                 'lastLoanTransactionDate',
             ),
-            'lastSavingsTransactionDate' => data_get(
+            'lastLoanSecurityTransactionDate' => data_get(
                 $resource,
-                'lastSavingsTransactionDate',
+                'lastLoanSecurityTransactionDate',
             ),
             'recentLoans' => MemberLoanResource::collection(
                 data_get($resource, 'recentLoans', collect())
             )->resolve(),
-            'recentSavings' => MemberSavingsResource::collection(
-                data_get($resource, 'recentSavings', collect())
+            'recentLoanSecurity' => MemberSavingsResource::collection(
+                data_get($resource, 'recentLoanSecurity', collect())
             )->resolve(),
         ];
     }

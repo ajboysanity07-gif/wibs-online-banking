@@ -23,10 +23,10 @@ class MemberSavingsController extends Controller
         }
 
         $summary = $service->getSummary($user);
-        $ledgerSummary = $service->getPersonalSavingsLedgerSummary($user);
-        $summary['currentPersonalSavings'] = $ledgerSummary['latestBalance'];
-        $summary['lastSavingsTransactionDate'] = $ledgerSummary['lastTransactionDate'];
-        $paginator = $service->getPaginatedSavings($user, 10, 1);
+        $ledgerSummary = $service->getLoanSecurityLedgerSummary($user);
+        $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
+        $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
+        $paginator = $service->getPaginatedLoanSecurity($user, 10, 1);
 
         return Inertia::render('admin/member-savings', [
             'member' => [

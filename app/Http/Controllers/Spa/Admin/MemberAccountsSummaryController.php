@@ -22,9 +22,9 @@ class MemberAccountsSummaryController extends Controller
         }
 
         $summary = $service->getSummary($user);
-        $ledgerSummary = $service->getPersonalSavingsLedgerSummary($user);
-        $summary['currentPersonalSavings'] = $ledgerSummary['latestBalance'];
-        $summary['lastSavingsTransactionDate'] = $ledgerSummary['lastTransactionDate'];
+        $ledgerSummary = $service->getLoanSecurityLedgerSummary($user);
+        $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
+        $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
 
         return response()->json([
             'ok' => true,

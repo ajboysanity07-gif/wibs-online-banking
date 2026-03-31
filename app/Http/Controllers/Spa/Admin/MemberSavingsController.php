@@ -28,7 +28,7 @@ class MemberSavingsController extends Controller
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('perPage', 10);
 
-        $paginator = $service->getPaginatedSavings($user, $perPage, $page);
+        $paginator = $service->getPaginatedLoanSecurity($user, $perPage, $page);
         $items = MemberSavingsLedgerResource::collection($paginator->items())->resolve();
 
         return response()->json([

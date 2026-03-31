@@ -22,7 +22,7 @@ import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
-    MemberSavingsLedgerResponse,
+    MemberLoanSecurityLedgerResponse,
 } from '@/types/admin';
 
 type MemberSummary = {
@@ -34,7 +34,7 @@ type MemberSummary = {
 type Props = {
     member: MemberSummary;
     summary: MemberAccountsSummary;
-    savings: MemberSavingsLedgerResponse;
+    savings: MemberLoanSecurityLedgerResponse;
 };
 
 export default function MemberSavings({ member, summary, savings }: Props) {
@@ -77,15 +77,15 @@ export default function MemberSavings({ member, summary, savings }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Members', href: membersIndex().url },
         { title: 'Member profile', href: showMember(member.user_id).url },
-        { title: 'Savings', href: memberSavings(member.user_id).url },
+        { title: 'Loan Security', href: memberSavings(member.user_id).url },
     ];
-    const currentSavings = formatCurrency(summary.currentPersonalSavings);
+    const currentSavings = formatCurrency(summary.currentLoanSecurityBalance);
     const lastSavingsTransaction = formatDate(
-        summary.lastSavingsTransactionDate,
+        summary.lastLoanSecurityTransactionDate,
     );
     const savingsEmptyMessage = loading
-        ? 'Loading savings...'
-        : 'No savings transactions found.';
+        ? 'Loading loan security...'
+        : 'No loan security transactions found.';
     const savingsNumberMeta =
         savingsNumbers.length === 0 ? (
             <span>--</span>
@@ -101,17 +101,17 @@ export default function MemberSavings({ member, summary, savings }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Member Savings" />
+            <Head title="Member Loan Security" />
             <PageShell size="wide">
                 <MemberDetailPageHeader
-                    title="Member Savings"
-                    subtitle={`Savings overview for ${member.member_name ?? 'this member'}.`}
+                    title="Member Loan Security"
+                    subtitle={`Loan security overview for ${member.member_name ?? 'this member'}.`}
                     meta={
                         <span className="inline-flex flex-wrap items-center gap-2">
                             <span>Account No: {member.acctno ?? '--'}</span>
                             <span aria-hidden="true">|</span>
                             <span className="inline-flex flex-wrap items-center gap-2">
-                                <span>Savings No:</span>
+                                <span>Loan Security No:</span>
                                 {savingsNumberMeta}
                             </span>
                         </span>
@@ -128,21 +128,21 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                 {!member.acctno ? (
                     <MemberAccountAlert
                         title="Account number missing"
-                        description="Add an account number to view savings details."
+                        description="Add an account number to view loan security details."
                     />
                 ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <MemberDetailPrimaryCard
-                        title="Personal Savings Balance"
+                        title="Loan Security Balance"
                         value={currentSavings}
-                        helper="Latest personal savings ledger balance."
+                        helper="Latest loan security ledger balance."
                         icon={PiggyBank}
                         accent="accent"
                     />
                     <MemberDetailSupportingCard
-                        title="Last Savings Transaction"
-                        description="Most recent savings activity date."
+                        title="Last Loan Security Transaction"
+                        description="Most recent loan security activity date."
                         value={lastSavingsTransaction}
                         icon={Clock}
                         accent="accent"

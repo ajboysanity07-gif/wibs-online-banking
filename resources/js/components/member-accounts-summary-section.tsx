@@ -19,7 +19,7 @@ type MemberAccountsSummarySectionProps = {
     error?: string | null;
     onRetry?: () => void;
     loansAction?: SummaryAction;
-    savingsAction?: SummaryAction;
+    loanSecurityAction?: SummaryAction;
 };
 
 export function MemberAccountsSummarySection({
@@ -29,7 +29,7 @@ export function MemberAccountsSummarySection({
     error = null,
     onRetry,
     loansAction,
-    savingsAction,
+    loanSecurityAction,
 }: MemberAccountsSummarySectionProps) {
     const handleRetry = () => {
         onRetry?.();
@@ -38,15 +38,16 @@ export function MemberAccountsSummarySection({
     return (
         <section className="space-y-5">
             <SectionHeader
-                title="Loans and Savings"
-                description="Quick snapshot of loan and personal savings activity."
+                title="Loans and Loan Security"
+                description="Quick snapshot of loan and loan security activity."
                 titleClassName="text-lg"
             />
             {!acctno ? (
                 <Alert>
                     <AlertTitle>Account number missing</AlertTitle>
                     <AlertDescription>
-                        Add an account number to view loan and savings details.
+                        Add an account number to view loan and loan security
+                        details.
                     </AlertDescription>
                 </Alert>
             ) : null}
@@ -86,21 +87,21 @@ export function MemberAccountsSummarySection({
                     loading={loading}
                 />
                 <MemberAccountSummaryCard
-                    title="Savings"
-                    subtitle="Personal savings overview"
-                    primaryLabel="Personal Savings Balance"
+                    title="Loan Security"
+                    subtitle="Loan security overview"
+                    primaryLabel="Loan Security Balance"
                     primaryValue={formatCurrency(
-                        summary?.currentPersonalSavings,
+                        summary?.currentLoanSecurityBalance,
                     )}
-                    secondaryLabel="Last Savings Transaction"
+                    secondaryLabel="Last Loan Security Transaction"
                     secondaryValue={formatDate(
-                        summary?.lastSavingsTransactionDate,
+                        summary?.lastLoanSecurityTransactionDate,
                     )}
                     icon={PiggyBank}
                     accent="accent"
-                    actionLabel={savingsAction?.label}
-                    actionHref={savingsAction?.href}
-                    actionDisabled={savingsAction?.disabled}
+                    actionLabel={loanSecurityAction?.label}
+                    actionHref={loanSecurityAction?.href}
+                    actionDisabled={loanSecurityAction?.disabled}
                     loading={loading}
                 />
             </div>

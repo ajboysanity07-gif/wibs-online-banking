@@ -14,10 +14,13 @@ import {
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { getSavingsMovementMeta } from '@/lib/savings-ledger';
-import type { MemberSavingsLedgerEntry, PaginationMeta } from '@/types/admin';
+import type {
+    MemberLoanSecurityLedgerEntry,
+    PaginationMeta,
+} from '@/types/admin';
 
 type MemberSavingsLedgerCardProps = {
-    items: MemberSavingsLedgerEntry[];
+    items: MemberLoanSecurityLedgerEntry[];
     meta: PaginationMeta;
     isUpdating?: boolean;
     error?: string | null;
@@ -58,7 +61,7 @@ const MobileSavingsCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
 const MobileSavingsCard = ({
     savings,
 }: {
-    savings: MemberSavingsLedgerEntry;
+    savings: MemberLoanSecurityLedgerEntry;
 }) => {
     const movementMeta = getSavingsMovementMeta(savings);
 
@@ -101,11 +104,13 @@ export function MemberSavingsLedgerCard({
 }: MemberSavingsLedgerCardProps) {
     const savingsEmptyMessage =
         emptyMessage ??
-        (isUpdating ? 'Loading savings...' : 'No savings transactions found.');
+        (isUpdating
+            ? 'Loading loan security...'
+            : 'No loan security transactions found.');
     const showSkeletonState =
         showSkeleton ?? (isUpdating && items.length === 0);
 
-    const columns = useMemo<ColumnDef<MemberSavingsLedgerEntry>[]>(
+    const columns = useMemo<ColumnDef<MemberLoanSecurityLedgerEntry>[]>(
         () => [
             {
                 accessorKey: 'date_in',
@@ -151,11 +156,11 @@ export function MemberSavingsLedgerCard({
 
     return (
         <MemberRecordsCard
-            title="Savings"
-            description="Savings ledger activity with pagination."
+            title="Loan Security"
+            description="Loan security ledger activity with pagination."
             isUpdating={isUpdating}
             error={error}
-            errorTitle="Unable to load savings"
+            errorTitle="Unable to load loan security"
             onRetry={onRetry}
             showSkeleton={showSkeletonState}
             skeletonMobile={<MobileSavingsCardSkeletonList rows={4} />}

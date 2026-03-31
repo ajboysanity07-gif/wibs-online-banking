@@ -64,12 +64,12 @@ test('active users can visit the dashboard', function () {
             ->where('member.acctno', '000701')
             ->has('summary')
             ->has('summary.loanBalanceLeft')
-            ->has('summary.currentPersonalSavings')
-            ->has('summary.currentSavingsBalance')
+            ->has('summary.currentLoanSecurityBalance')
+            ->has('summary.currentLoanSecurityTotal')
             ->has('summary.lastLoanTransactionDate')
-            ->has('summary.lastSavingsTransactionDate')
+            ->has('summary.lastLoanSecurityTransactionDate')
             ->has('summary.recentLoans')
-            ->has('summary.recentSavings')
+            ->has('summary.recentLoanSecurity')
             ->has('recentAccountActions')
             ->where('recentAccountActions.meta.page', 1));
 });

@@ -221,7 +221,7 @@ export default function MemberProfile({
                         href: clientLoans().url,
                         disabled: !canNavigate,
                     }}
-                    savingsAction={{
+                    loanSecurityAction={{
                         label: 'View all',
                         href: clientSavings().url,
                         disabled: !canNavigate,

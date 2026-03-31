@@ -164,10 +164,10 @@ Route::get('client/dashboard', function (
 
     try {
         $summary = $service->getSummary($user);
-        $ledgerSummary = $service->getPersonalSavingsLedgerSummary($user);
-        $summary['currentPersonalSavings'] = $ledgerSummary['latestBalance'];
-        $summary['currentSavingsBalance'] = $ledgerSummary['latestBalance'];
-        $summary['lastSavingsTransactionDate'] = $ledgerSummary['lastTransactionDate'];
+        $ledgerSummary = $service->getLoanSecurityLedgerSummary($user);
+        $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
+        $summary['currentLoanSecurityTotal'] = $ledgerSummary['latestBalance'];
+        $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
     } catch (Throwable $exception) {
         report($exception);
         $summaryError = 'Unable to load summary.';

@@ -64,7 +64,7 @@ export type MemberLoan = {
     initial: number | null;
 };
 
-export type MemberSavings = {
+export type MemberLoanSecurity = {
     svnumber: string | number | null;
     svtype: string | null;
     mortuary: number | null;
@@ -73,7 +73,7 @@ export type MemberSavings = {
     lastmove: string | null;
 };
 
-export type MemberSavingsLedgerEntry = {
+export type MemberLoanSecurityLedgerEntry = {
     svnumber: string | number | null;
     svtype: string | null;
     date_in: string | null;
@@ -102,12 +102,12 @@ export type MemberRecentAccountAction = {
 
 export type MemberAccountsSummary = {
     loanBalanceLeft: number;
-    currentPersonalSavings: number;
-    currentSavingsBalance: number;
+    currentLoanSecurityBalance: number;
+    currentLoanSecurityTotal: number;
     lastLoanTransactionDate: string | null;
-    lastSavingsTransactionDate: string | null;
+    lastLoanSecurityTransactionDate: string | null;
     recentLoans: MemberLoan[];
-    recentSavings: MemberSavings[];
+    recentLoanSecurity: MemberLoanSecurity[];
 };
 
 export type MemberLoanSummary = {
@@ -208,8 +208,8 @@ export type MemberAccountActionsResponse =
 
 export type MemberLoansResponse = PaginatedResponse<MemberLoan>;
 
-export type MemberSavingsLedgerResponse =
-    PaginatedResponse<MemberSavingsLedgerEntry>;
+export type MemberLoanSecurityLedgerResponse =
+    PaginatedResponse<MemberLoanSecurityLedgerEntry>;
 
 export type RequestsResponse = {
     items: RequestPreview[];

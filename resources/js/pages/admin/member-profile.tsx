@@ -51,7 +51,7 @@ type Props = {
     recentAccountActions: MemberAccountActionsResponse;
 };
 
-function LoansAndSavingsSummarySection() {
+function LoansAndLoanSecuritySummarySection() {
     const {
         memberId,
         acctno,
@@ -62,7 +62,7 @@ function LoansAndSavingsSummarySection() {
     } = useMemberAccounts();
 
     const loansHref = memberId ? memberLoans(memberId).url : undefined;
-    const savingsHref = memberId ? memberSavings(memberId).url : undefined;
+    const loanSecurityHref = memberId ? memberSavings(memberId).url : undefined;
     const actionDisabled = !acctno || !memberId;
 
     return (
@@ -77,9 +77,9 @@ function LoansAndSavingsSummarySection() {
                 href: loansHref,
                 disabled: actionDisabled,
             }}
-            savingsAction={{
+            loanSecurityAction={{
                 label: 'View all',
-                href: savingsHref,
+                href: loanSecurityHref,
                 disabled: actionDisabled,
             }}
         />
@@ -315,7 +315,7 @@ export default function MemberProfile({
                     initialSummary={accountsSummary}
                     initialActions={recentAccountActions}
                 >
-                    <LoansAndSavingsSummarySection />
+                    <LoansAndLoanSecuritySummarySection />
                     <RecentAccountActionsCard />
                 </MemberAccountsProvider>
             </PageShell>

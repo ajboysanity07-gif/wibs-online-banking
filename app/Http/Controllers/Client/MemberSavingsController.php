@@ -59,10 +59,10 @@ class MemberSavingsController extends Controller
 
         try {
             $summary = $service->getSummary($user);
-            $ledgerSummary = $service->getPersonalSavingsLedgerSummary($user);
-            $summary['currentPersonalSavings'] = $ledgerSummary['latestBalance'];
-            $summary['currentSavingsBalance'] = $ledgerSummary['latestBalance'];
-            $summary['lastSavingsTransactionDate'] = $ledgerSummary['lastTransactionDate'];
+            $ledgerSummary = $service->getLoanSecurityLedgerSummary($user);
+            $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
+            $summary['currentLoanSecurityTotal'] = $ledgerSummary['latestBalance'];
+            $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
         } catch (\Throwable $exception) {
             report($exception);
             $summaryError = 'Unable to load summary.';
@@ -74,7 +74,11 @@ class MemberSavingsController extends Controller
         $savingsError = null;
 
         try {
-            $paginator = $service->getPaginatedSavings($user, $perPage, $page);
+            $paginator = $service->getPaginatedLoanSecurity(
+                $user,
+                $perPage,
+                $page,
+            );
             $items = MemberSavingsLedgerResource::collection(
                 $paginator->items(),
             )->resolve();
@@ -89,7 +93,7 @@ class MemberSavingsController extends Controller
             ];
         } catch (\Throwable $exception) {
             report($exception);
-            $savingsError = 'Unable to load savings.';
+            $savingsError = 'Unable to load loan security.';
         }
 
         $memberPayload = $this->sanitizePayload([

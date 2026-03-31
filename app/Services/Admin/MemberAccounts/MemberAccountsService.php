@@ -15,12 +15,12 @@ class MemberAccountsService
     /**
      * @return array{
      *     loanBalanceLeft: float,
-     *     currentPersonalSavings: float,
-     *     currentSavingsBalance: float,
+     *     currentLoanSecurityBalance: float,
+     *     currentLoanSecurityTotal: float,
      *     lastLoanTransactionDate: ?string,
-     *     lastSavingsTransactionDate: ?string,
+     *     lastLoanSecurityTransactionDate: ?string,
      *     recentLoans: \Illuminate\Support\Collection<int, mixed>,
-     *     recentSavings: \Illuminate\Support\Collection<int, mixed>
+     *     recentLoanSecurity: \Illuminate\Support\Collection<int, mixed>
      * }
      */
     public function getSummary(AppUser $member): array
@@ -50,7 +50,7 @@ class MemberAccountsService
         return $this->repository->getPaginatedLoans($acctno, $perPage, $page);
     }
 
-    public function getPaginatedSavings(
+    public function getPaginatedLoanSecurity(
         AppUser $member,
         int $perPage,
         int $page,
@@ -63,21 +63,21 @@ class MemberAccountsService
             return new LengthAwarePaginator([], 0, $perPage, $page);
         }
 
-        return $this->repository->getPaginatedSavings($acctno, $perPage, $page);
+        return $this->repository->getPaginatedLoanSecurity($acctno, $perPage, $page);
     }
 
     /**
      * @return array{latestBalance: float, lastTransactionDate: ?string}
      */
-    public function getPersonalSavingsLedgerSummary(AppUser $member): array
+    public function getLoanSecurityLedgerSummary(AppUser $member): array
     {
         $acctno = $this->resolveAcctno($member);
 
         if ($acctno === null) {
-            return $this->emptySavingsLedgerSummary();
+            return $this->emptyLoanSecurityLedgerSummary();
         }
 
-        return $this->repository->getPersonalSavingsLedgerSummary($acctno);
+        return $this->repository->getLoanSecurityLedgerSummary($acctno);
     }
 
     public function getPaginatedRecentActions(
@@ -110,31 +110,31 @@ class MemberAccountsService
     /**
      * @return array{
      *     loanBalanceLeft: float,
-     *     currentPersonalSavings: float,
-     *     currentSavingsBalance: float,
+     *     currentLoanSecurityBalance: float,
+     *     currentLoanSecurityTotal: float,
      *     lastLoanTransactionDate: ?string,
-     *     lastSavingsTransactionDate: ?string,
+     *     lastLoanSecurityTransactionDate: ?string,
      *     recentLoans: \Illuminate\Support\Collection<int, mixed>,
-     *     recentSavings: \Illuminate\Support\Collection<int, mixed>
+     *     recentLoanSecurity: \Illuminate\Support\Collection<int, mixed>
      * }
      */
     private function emptySummary(): array
     {
         return [
             'loanBalanceLeft' => 0.0,
-            'currentPersonalSavings' => 0.0,
-            'currentSavingsBalance' => 0.0,
+            'currentLoanSecurityBalance' => 0.0,
+            'currentLoanSecurityTotal' => 0.0,
             'lastLoanTransactionDate' => null,
-            'lastSavingsTransactionDate' => null,
+            'lastLoanSecurityTransactionDate' => null,
             'recentLoans' => collect(),
-            'recentSavings' => collect(),
+            'recentLoanSecurity' => collect(),
         ];
     }
 
     /**
      * @return array{latestBalance: float, lastTransactionDate: ?string}
      */
-    private function emptySavingsLedgerSummary(): array
+    private function emptyLoanSecurityLedgerSummary(): array
     {
         return [
             'latestBalance' => 0.0,

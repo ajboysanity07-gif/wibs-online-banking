@@ -26,7 +26,7 @@ beforeEach(function () {
             $table->string('acctno');
             $table->string('svnumber');
             $table->string('svtype')->nullable();
-            $table->integer('typecode')->default(0);
+            $table->string('typecode')->nullable();
             $table->decimal('mortuary', 12, 2)->default(0);
             $table->decimal('balance', 12, 2)->default(0);
             $table->decimal('wbalance', 12, 2)->default(0);
@@ -149,7 +149,7 @@ test('admin can view member loan schedule page', function () {
             ->where('member.user_id', $member->user_id));
 });
 
-test('admin can view member savings page', function () {
+test('admin can view member loan security page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
@@ -163,7 +163,7 @@ test('admin can view member savings page', function () {
         'acctno' => $member->acctno,
         'svnumber' => 'SV-701',
         'svtype' => 'Regular',
-        'typecode' => 4,
+        'typecode' => '01',
         'mortuary' => 50,
         'balance' => 700,
         'wbalance' => 700,
@@ -174,7 +174,7 @@ test('admin can view member savings page', function () {
         'acctno' => $member->acctno,
         'svnumber' => 'SV-702',
         'svtype' => 'Regular',
-        'typecode' => 2,
+        'typecode' => '02',
         'mortuary' => 0,
         'balance' => 0,
         'wbalance' => 0,
@@ -224,15 +224,68 @@ test('admin can view member savings page', function () {
             ->has('savings')
             ->has('savings.items', 2)
             ->where('member.user_id', $member->user_id)
-            ->where('summary.currentPersonalSavings', 800)
-            ->where('summary.currentSavingsBalance', 750)
-            ->where('summary.lastSavingsTransactionDate', '2024-02-12 08:00:00')
+            ->where('summary.currentLoanSecurityBalance', 800)
+            ->where('summary.currentLoanSecurityTotal', 750)
+            ->where('summary.lastLoanSecurityTransactionDate', '2024-02-12 08:00:00')
             ->where('savings.items.0.svnumber', 'SV-701')
             ->where('savings.items.0.svtype', 'Regular')
             ->where('savings.items.0.date_in', '2024-02-12 08:00:00')
             ->where('savings.items.0.deposit', 300)
             ->where('savings.items.0.withdrawal', 0)
             ->where('savings.items.1.svnumber', 'SV-701'));
+});
+
+test('admin can view member loan security page when ledger balance is missing', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000704',
+    ]);
+
+    Schema::drop('wsavled');
+    Schema::create('wsavled', function (Blueprint $table) {
+        $table->string('acctno');
+        $table->string('svnumber');
+        $table->string('svtype')->nullable();
+        $table->dateTime('date_in')->nullable();
+        $table->decimal('deposit', 12, 2)->default(0);
+        $table->decimal('withdrawal', 12, 2)->default(0);
+    });
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-704',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 400,
+        'wbalance' => 400,
+        'lastmove' => null,
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-704',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-15 08:00:00')->toDateTimeString(),
+        'deposit' => 75,
+        'withdrawal' => 0,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.savings', $member->user_id));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-savings')
+            ->has('summary')
+            ->has('savings')
+            ->where('savings.items.0.balance', 0));
 });
 
 test('non-admin users cannot access member account pages', function () {

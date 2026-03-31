@@ -52,7 +52,7 @@ const baseNavItems: NavItem[] = [
         match: 'section',
     },
     {
-        title: 'Savings',
+        title: 'Loan Security',
         href: clientSavings(),
         icon: PiggyBank,
         match: 'section',

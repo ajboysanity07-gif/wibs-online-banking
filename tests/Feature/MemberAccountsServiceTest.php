@@ -60,8 +60,8 @@ test('member account summary aggregates balances', function () {
     $summary = $service->getSummary($member);
 
     expect($summary['loanBalanceLeft'])->toBe(700.0);
-    expect($summary['currentPersonalSavings'])->toBe(650.0);
-    expect($summary['currentSavingsBalance'])->toBe(800.0);
+    expect($summary['currentLoanSecurityBalance'])->toBe(650.0);
+    expect($summary['currentLoanSecurityTotal'])->toBe(800.0);
     expect($summary['lastLoanTransactionDate'])->toBe('2024-02-01 10:00:00');
-    expect($summary['lastSavingsTransactionDate'])->toBe('2024-02-03 10:00:00');
+    expect($summary['lastLoanSecurityTransactionDate'])->toBe('2024-02-03 10:00:00');
 });

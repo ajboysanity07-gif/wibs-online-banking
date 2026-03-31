@@ -1,6 +1,6 @@
 import type { VariantProps } from 'class-variance-authority';
 import type { badgeVariants } from '@/components/ui/badge';
-import type { MemberSavingsLedgerEntry } from '@/types/admin';
+import type { MemberLoanSecurityLedgerEntry } from '@/types/admin';
 
 export type SavingsMovement = 'Deposit' | 'Withdrawal' | 'Unknown';
 
@@ -13,7 +13,7 @@ const movementVariants: Record<SavingsMovement, BadgeVariant> = {
 };
 
 export const resolveSavingsMovement = (
-    entry: MemberSavingsLedgerEntry,
+    entry: MemberLoanSecurityLedgerEntry,
 ): SavingsMovement => {
     const deposit = entry.deposit ?? 0;
     const withdrawal = entry.withdrawal ?? 0;
@@ -30,7 +30,7 @@ export const resolveSavingsMovement = (
 };
 
 export const getSavingsMovementMeta = (
-    entry: MemberSavingsLedgerEntry,
+    entry: MemberLoanSecurityLedgerEntry,
 ): {
     movement: SavingsMovement;
     label: string;

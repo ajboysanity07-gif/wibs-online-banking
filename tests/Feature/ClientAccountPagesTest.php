@@ -71,7 +71,7 @@ beforeEach(function () {
             $table->string('acctno');
             $table->string('svnumber');
             $table->string('svtype')->nullable();
-            $table->integer('typecode')->default(0);
+            $table->string('typecode')->nullable();
             $table->decimal('mortuary', 12, 2)->default(0);
             $table->decimal('balance', 12, 2)->default(0);
             $table->decimal('wbalance', 12, 2)->default(0);
@@ -127,7 +127,7 @@ test('approved client can view the dashboard profile page', function () {
             ->where('member.acctno', '000700'));
 });
 
-test('client dashboard summary uses latest savings ledger balance', function () {
+test('client dashboard summary uses latest loan security ledger balance', function () {
     $user = User::factory()->create([
         'acctno' => '000704',
     ]);
@@ -152,7 +152,7 @@ test('client dashboard summary uses latest savings ledger balance', function () 
         'acctno' => $user->acctno,
         'svnumber' => 'SV-704',
         'svtype' => 'Regular',
-        'typecode' => 4,
+        'typecode' => '01',
         'mortuary' => 0,
         'balance' => 94.72,
         'wbalance' => 94.72,
@@ -177,8 +177,135 @@ test('client dashboard summary uses latest savings ledger balance', function () 
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/dashboard')
-            ->where('summary.currentPersonalSavings', 37694.72)
-            ->where('summary.currentSavingsBalance', 37694.72));
+            ->where('summary.currentLoanSecurityBalance', 37694.72)
+            ->where('summary.currentLoanSecurityTotal', 37694.72));
+});
+
+test('client dashboard summary loads when wsvmaster lacks mortuary and wbalance', function () {
+    $user = User::factory()->create([
+        'acctno' => '000711',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Cara',
+        'fname' => 'Cara',
+        'lname' => 'Member',
+        'birthday' => '1990-01-10',
+        'address' => '101 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Staff',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    Schema::drop('wsvmaster');
+    Schema::create('wsvmaster', function (Blueprint $table) {
+        $table->string('acctno');
+        $table->string('svnumber');
+        $table->string('svtype')->nullable();
+        $table->string('typecode')->nullable();
+        $table->decimal('balance', 12, 2)->default(0);
+        $table->dateTime('lastmove')->nullable();
+    });
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $user->acctno,
+        'svnumber' => 'SV-711',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'balance' => 120.5,
+        'lastmove' => Carbon::parse('2024-06-10 09:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $user->acctno,
+        'svnumber' => 'SV-711',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-06-11 09:00:00')->toDateTimeString(),
+        'deposit' => 0,
+        'withdrawal' => 0,
+        'balance' => 120.5,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.dashboard'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/dashboard')
+            ->where('summaryError', null)
+            ->where('summary.currentLoanSecurityBalance', 120.5)
+            ->where('summary.currentLoanSecurityTotal', 120.5)
+            ->where('summary.lastLoanSecurityTransactionDate', '2024-06-11 09:00:00'));
+});
+
+test('client dashboard summary falls back when ledger balance and date are missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000712',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Drew',
+        'fname' => 'Drew',
+        'lname' => 'Member',
+        'birthday' => '1991-02-12',
+        'address' => '202 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Staff',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    Schema::drop('wsavled');
+    Schema::create('wsavled', function (Blueprint $table) {
+        $table->string('acctno');
+        $table->string('svnumber');
+        $table->string('svtype')->nullable();
+        $table->decimal('deposit', 12, 2)->default(0);
+        $table->decimal('withdrawal', 12, 2)->default(0);
+    });
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $user->acctno,
+        'svnumber' => 'SV-712',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 500,
+        'wbalance' => 500,
+        'lastmove' => Carbon::parse('2024-06-12 10:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $user->acctno,
+        'svnumber' => 'SV-712',
+        'svtype' => 'Regular',
+        'deposit' => 50,
+        'withdrawal' => 0,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.dashboard'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/dashboard')
+            ->where('summaryError', null)
+            ->where('summary.currentLoanSecurityBalance', 500)
+            ->where('summary.currentLoanSecurityTotal', 500)
+            ->where('summary.lastLoanSecurityTransactionDate', '2024-06-12 10:00:00'));
 });
 
 test('approved client can view the loans page', function () {
@@ -214,7 +341,7 @@ test('approved client can view the loans page', function () {
             ->has('loans'));
 });
 
-test('approved client can view the savings page', function () {
+test('approved client can view the loan security page', function () {
     $user = User::factory()->create([
         'acctno' => '000701',
     ]);
@@ -239,7 +366,7 @@ test('approved client can view the savings page', function () {
         'acctno' => $user->acctno,
         'svnumber' => 'SV-701',
         'svtype' => 'Regular',
-        'typecode' => 4,
+        'typecode' => '01',
         'mortuary' => 0,
         'balance' => 0,
         'wbalance' => 0,
@@ -265,7 +392,7 @@ test('approved client can view the savings page', function () {
             ->component('client/savings')
             ->where('member.acctno', '000701')
             ->has('summary')
-            ->has('summary.currentPersonalSavings')
+            ->has('summary.currentLoanSecurityBalance')
             ->has('savings')
             ->has('savings.items', 1)
             ->where('savings.items.0.svnumber', 'SV-701')

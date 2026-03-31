@@ -2,22 +2,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api';
 import { adminApi } from '@/lib/api/admin';
 import type {
-    MemberSavingsLedgerResponse,
+    MemberLoanSecurityLedgerResponse,
     PaginationMeta,
 } from '@/types/admin';
 
 type MemberSavingsState = {
-    data: MemberSavingsLedgerResponse;
+    data: MemberLoanSecurityLedgerResponse;
     loading: boolean;
     error: string | null;
 };
 
 type MemberSavingsOptions = {
     enabled?: boolean;
-    initial?: MemberSavingsLedgerResponse;
+    initial?: MemberLoanSecurityLedgerResponse;
 };
 
-const buildEmptyResponse = (perPage: number): MemberSavingsLedgerResponse => ({
+const buildEmptyResponse = (
+    perPage: number,
+): MemberLoanSecurityLedgerResponse => ({
     items: [],
     meta: {
         page: 1,
@@ -74,7 +76,7 @@ export function useMemberSavings(
                         loading: false,
                         error: getApiErrorMessage(
                             error,
-                            'Unable to load savings right now.',
+                            'Unable to load loan security right now.',
                         ),
                     }));
                 }
