@@ -7,6 +7,6 @@ test('renders the welcome page', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('welcome')
-            ->where('name', 'MRDINC Portal')
+            ->where('name', 'Member Portal - MRDINC')
             ->has('canRegister'));
 });

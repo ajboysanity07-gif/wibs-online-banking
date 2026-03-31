@@ -34,6 +34,34 @@ class MemberAccountsService
         return $this->repository->getSummary($acctno);
     }
 
+    /**
+     * @return array{
+     *     loanBalanceLeft: float,
+     *     currentLoanSecurityBalance: float,
+     *     currentLoanSecurityTotal: float,
+     *     lastLoanTransactionDate: ?string,
+     *     lastLoanSecurityTransactionDate: ?string,
+     *     recentLoans: \Illuminate\Support\Collection<int, mixed>,
+     *     recentLoanSecurity: \Illuminate\Support\Collection<int, mixed>
+     * }
+     */
+    public function getDashboardSummary(AppUser $member): array
+    {
+        $acctno = $this->resolveAcctno($member);
+
+        if ($acctno === null) {
+            return $this->emptySummary();
+        }
+
+        $summary = $this->repository->getSummary($acctno);
+        $ledgerSummary = $this->repository->getLoanSecurityLedgerSummary($acctno);
+        $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
+        $summary['currentLoanSecurityTotal'] = $ledgerSummary['latestBalance'];
+        $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
+
+        return $summary;
+    }
+
     public function getPaginatedLoans(
         AppUser $member,
         int $perPage,

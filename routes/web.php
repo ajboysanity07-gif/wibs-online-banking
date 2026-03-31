@@ -18,12 +18,15 @@ use App\Http\Controllers\Api\ProvinceSearchController;
 use App\Http\Controllers\Auth\MemberVerificationController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\LoanRequestController;
 use App\Http\Controllers\Client\MemberLoanPaymentsController as ClientMemberLoanPaymentsController;
 use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemberLoanPaymentsExportController;
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
 use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
+use App\Http\Controllers\DashboardRedirectController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\MemberAccountActionsController as SpaMemberAccountActionsController;
@@ -41,20 +44,9 @@ use App\Http\Controllers\Spa\Admin\WatchlistController as SpaWatchlistController
 use App\Http\Controllers\Spa\AuthController as SpaAuthController;
 use App\Http\Controllers\Spa\MemberVerificationController as SpaMemberVerificationController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
-use App\Http\Resources\Admin\MemberAccountsSummaryResource;
-use App\Http\Resources\Admin\MemberRecentAccountActionResource;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
-use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
-Route::get('/', function () {
-    return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
-})->name('home');
+Route::get('/', HomeController::class)->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::post('register/verify', [MemberVerificationController::class, 'store'])
@@ -122,167 +114,9 @@ Route::prefix('api/locations')->middleware(['auth', 'approved'])->group(function
         ->name('api.locations.cities');
 });
 
-Route::get('client/dashboard', function (
-    Request $request,
-    MemberAccountsService $service,
-) {
-    $user = $request->user();
-
-    if ($user === null) {
-        return redirect()->route('login');
-    }
-
-    $user->loadMissing('userProfile.reviewedBy', 'adminProfile');
-
-    if ($user->adminProfile !== null) {
-        return redirect()->route('admin.dashboard');
-    }
-
-    $memberName = $user->username;
-
-    try {
-        if (Schema::hasTable('wmaster')) {
-            $wmaster = $user->wmaster()->first([
-                'acctno',
-                'fname',
-                'mname',
-                'lname',
-                'bname',
-            ]);
-            $wmasterName = $wmaster?->displayName();
-
-            if (is_string($wmasterName) && trim($wmasterName) !== '') {
-                $memberName = $wmasterName;
-            }
-        }
-    } catch (Throwable $exception) {
-        report($exception);
-    }
-
-    $summary = null;
-    $summaryError = null;
-
-    try {
-        $summary = $service->getSummary($user);
-        $ledgerSummary = $service->getLoanSecurityLedgerSummary($user);
-        $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
-        $summary['currentLoanSecurityTotal'] = $ledgerSummary['latestBalance'];
-        $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
-    } catch (Throwable $exception) {
-        report($exception);
-        $summaryError = 'Unable to load summary.';
-    }
-
-    $sanitizeString = static function (?string $value): ?string {
-        if ($value === null || $value === '') {
-            return $value;
-        }
-
-        if (preg_match('//u', $value) === 1) {
-            return $value;
-        }
-
-        if (function_exists('mb_convert_encoding')) {
-            $converted = mb_convert_encoding(
-                $value,
-                'UTF-8',
-                'UTF-8,ISO-8859-1,Windows-1252',
-            );
-
-            if (is_string($converted) && preg_match('//u', $converted) === 1) {
-                return $converted;
-            }
-        }
-
-        $converted = @iconv('UTF-8', 'UTF-8//IGNORE', $value);
-
-        if ($converted === false) {
-            return '';
-        }
-
-        return $converted;
-    };
-
-    $sanitize = static function (mixed $value) use (&$sanitize, $sanitizeString): mixed {
-        if (is_array($value)) {
-            $sanitized = [];
-
-            foreach ($value as $key => $item) {
-                $sanitized[$key] = $sanitize($item);
-            }
-
-            return $sanitized;
-        }
-
-        if (is_string($value)) {
-            return $sanitizeString($value);
-        }
-
-        return $value;
-    };
-
-    $memberPayload = $sanitize([
-        'name' => $memberName,
-        'username' => $user->username,
-        'email' => $user->email,
-        'phone' => $user->phoneno,
-        'acctno' => $user->acctno,
-        'status' => $user->userProfile?->status,
-        'created_at' => $user->created_at?->toDateTimeString(),
-        'reviewed_by' => $user->userProfile?->reviewedBy
-            ? [
-                'user_id' => $user->userProfile->reviewedBy->user_id,
-                'name' => $user->userProfile->reviewedBy->name,
-            ]
-            : null,
-        'reviewed_at' => $user->userProfile?->reviewed_at?->toDateTimeString(),
-        'avatar_url' => $user->avatar,
-    ]);
-    $summaryPayload = $summary === null
-        ? null
-        : $sanitize((new MemberAccountsSummaryResource($summary))->resolve());
-
-    $actionsPage = (int) $request->query('actions_page', 1);
-    $actionsPage = max(1, $actionsPage);
-    $actionsPerPage = 5;
-    $recentAccountActionsPayload = null;
-    $recentAccountActionsError = null;
-
-    try {
-        $paginator = $service->getPaginatedRecentActions(
-            $user,
-            $actionsPerPage,
-            $actionsPage,
-        );
-        $items = MemberRecentAccountActionResource::collection(
-            $paginator->items(),
-        )->resolve();
-        $recentAccountActionsPayload = [
-            'items' => $items,
-            'meta' => [
-                'page' => $paginator->currentPage(),
-                'perPage' => $paginator->perPage(),
-                'total' => $paginator->total(),
-                'lastPage' => $paginator->lastPage(),
-            ],
-        ];
-    } catch (Throwable $exception) {
-        report($exception);
-        $recentAccountActionsError = 'Unable to load account actions.';
-    }
-
-    $recentAccountActionsPayload = $recentAccountActionsPayload === null
-        ? null
-        : $sanitize($recentAccountActionsPayload);
-
-    return Inertia::render('client/dashboard', [
-        'member' => $memberPayload,
-        'summary' => $summaryPayload,
-        'summaryError' => $summaryError,
-        'recentAccountActions' => $recentAccountActionsPayload,
-        'recentAccountActionsError' => $recentAccountActionsError,
-    ]);
-})->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])->name('client.dashboard');
+Route::get('client/dashboard', ClientDashboardController::class)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.dashboard');
 
 Route::get('client/loans', ClientMemberLoansController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
@@ -338,34 +172,16 @@ Route::get('client/savings', ClientMemberSavingsController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.savings');
 
-Route::get('dashboard', function () {
-    $user = request()->user();
-
-    if ($user === null) {
-        return redirect()->route('login');
-    }
-
-    $user->loadMissing('adminProfile', 'userProfile');
-
-    if ($user->role === 'admin') {
-        return redirect()->route('admin.dashboard');
-    }
-
-    if ($user->userProfile?->status === 'suspended') {
-        return redirect()->route('pending-approval');
-    }
-
-    return redirect()->route('client.dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('dashboard', DashboardRedirectController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::get('pending-approval', [PendingApprovalController::class, 'index'])
     ->middleware('auth')
     ->name('pending-approval');
 
 Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(function () {
-    Route::get('/', function () {
-        return redirect()->route('admin.dashboard');
-    })->name('admin.home');
+    Route::redirect('/', '/admin/dashboard')->name('admin.home');
 
     Route::get('dashboard', [AdminDashboardController::class, 'index'])
         ->name('admin.dashboard');

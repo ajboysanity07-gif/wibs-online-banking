@@ -5,14 +5,18 @@ namespace App\Repositories\Admin;
 use App\Models\Amortsched;
 use App\Models\Wlnled;
 use App\Models\Wlnmaster;
+use App\Support\SchemaCapabilities;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Schema;
 
 class MemberLoansRepository
 {
+    public function __construct(
+        private SchemaCapabilities $schemaCapabilities,
+    ) {}
+
     public function findLoan(string $acctno, string $loanNumber): ?Wlnmaster
     {
         if (! $this->hasTable('wlnmaster')) {
@@ -54,9 +58,10 @@ class MemberLoansRepository
             return null;
         }
 
+        $today = Carbon::today();
         $value = $this->scheduleQuery()
             ->where('lnnumber', $loanNumber)
-            ->whereDate('Date_pay', '>=', Carbon::today())
+            ->where('Date_pay', '>=', $today->copy()->startOfDay())
             ->orderBy('Date_pay')
             ->value('Date_pay');
 
@@ -148,7 +153,7 @@ class MemberLoansRepository
         $value = Wlnled::query()
             ->where('acctno', $acctno)
             ->where('lnnumber', $loanNumber)
-            ->whereDate('date_in', '<', $startDate)
+            ->where('date_in', '<', $startDate->copy()->startOfDay())
             ->orderByDesc('date_in')
             ->value('balance');
 
@@ -230,11 +235,11 @@ class MemberLoansRepository
         ?Carbon $endDate,
     ): void {
         if ($startDate !== null) {
-            $query->whereDate('date_in', '>=', $startDate);
+            $query->where('date_in', '>=', $startDate->copy()->startOfDay());
         }
 
         if ($endDate !== null) {
-            $query->whereDate('date_in', '<=', $endDate);
+            $query->where('date_in', '<=', $endDate->copy()->endOfDay());
         }
     }
 
@@ -321,21 +326,17 @@ class MemberLoansRepository
     {
         $connection = $this->scheduleConnectionName();
 
-        if ($connection === null) {
-            return Schema::hasTable('Amortsched');
-        }
-
-        return Schema::connection($connection)->hasTable('Amortsched');
+        return $this->schemaCapabilities->hasTable('Amortsched', $connection);
     }
 
     private function hasTable(string $table): bool
     {
-        return Schema::hasTable($table);
+        return $this->schemaCapabilities->hasTable($table);
     }
 
     private function hasColumn(string $table, string $column): bool
     {
-        return Schema::hasColumn($table, $column);
+        return $this->schemaCapabilities->hasColumn($table, $column);
     }
 
     private function emptyPaginator(int $perPage, int $page): LengthAwarePaginator

@@ -9,6 +9,7 @@ use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -41,6 +42,9 @@ beforeEach(function () {
             $table->string('lntype');
         });
     }
+
+    Cache::forget('loan_requests.loan_types');
+    Cache::forget('loan_requests.loan_type_labels');
 });
 
 test('loan request people schema excludes spouse occupation', function () {

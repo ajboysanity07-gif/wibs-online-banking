@@ -30,6 +30,18 @@ beforeEach(function () {
             $table->dateTime('lastmove')->nullable();
         });
     }
+
+    if (! Schema::hasTable('wsavled')) {
+        Schema::create('wsavled', function (Blueprint $table) {
+            $table->string('acctno');
+            $table->string('svnumber');
+            $table->string('svtype')->nullable();
+            $table->dateTime('date_in')->nullable();
+            $table->decimal('deposit', 12, 2)->default(0);
+            $table->decimal('withdrawal', 12, 2)->default(0);
+            $table->decimal('balance', 12, 2)->default(0);
+        });
+    }
 });
 
 test('member account summary aggregates balances', function () {
@@ -64,4 +76,53 @@ test('member account summary aggregates balances', function () {
     expect($summary['currentLoanSecurityTotal'])->toBe(800.0);
     expect($summary['lastLoanTransactionDate'])->toBe('2024-02-01 10:00:00');
     expect($summary['lastLoanSecurityTransactionDate'])->toBe('2024-02-03 10:00:00');
+});
+
+test('dashboard summary favors the latest loan security ledger balance', function () {
+    $member = User::factory()->create([
+        'acctno' => '000445',
+    ]);
+
+    if (Schema::hasTable('wsavled')) {
+        Schema::drop('wsavled');
+    }
+
+    Schema::create('wsavled', function (Blueprint $table) {
+        $table->string('acctno');
+        $table->string('svnumber');
+        $table->string('svtype')->nullable();
+        $table->string('typecode')->nullable();
+        $table->dateTime('date_in')->nullable();
+        $table->decimal('deposit', 12, 2)->default(0);
+        $table->decimal('withdrawal', 12, 2)->default(0);
+        $table->decimal('balance', 12, 2)->default(0);
+    });
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-10',
+        'svtype' => 'Regular',
+        'mortuary' => 25,
+        'balance' => 125,
+        'wbalance' => 100,
+        'lastmove' => Carbon::parse('2024-02-01 09:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => $member->acctno,
+        'svnumber' => 'SV-10',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'date_in' => Carbon::parse('2024-02-02 10:00:00')->toDateTimeString(),
+        'deposit' => 0,
+        'withdrawal' => 0,
+        'balance' => 250,
+    ]);
+
+    $service = app(MemberAccountsService::class);
+    $summary = $service->getDashboardSummary($member);
+
+    expect($summary['currentLoanSecurityBalance'])->toBe(250.0);
+    expect($summary['currentLoanSecurityTotal'])->toBe(250.0);
+    expect($summary['lastLoanSecurityTransactionDate'])->toBe('2024-02-02 10:00:00');
 });

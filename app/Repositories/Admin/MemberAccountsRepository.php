@@ -5,10 +5,10 @@ namespace App\Repositories\Admin;
 use App\Models\Wlnmaster;
 use App\Models\Wsavled;
 use App\Models\Wsvmaster;
+use App\Support\SchemaCapabilities;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * @note No active/inactive flag was found for WIBS tables, so queries include all rows per acctno.
@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\Schema;
 class MemberAccountsRepository
 {
     private const LOAN_SECURITY_TYPECODE = '01';
+
+    public function __construct(
+        private SchemaCapabilities $schemaCapabilities,
+    ) {}
 
     /**
      * @return array{
@@ -90,7 +94,8 @@ class MemberAccountsRepository
             return collect();
         }
 
-        $orderBy = $this->hasColumn('wsvmaster', 'lastmove') ? 'lastmove' : 'svnumber';
+        $hasLastMove = $this->hasColumn('wsvmaster', 'lastmove');
+        $orderBy = $hasLastMove ? 'lastmove' : 'svnumber';
 
         $query = Wsvmaster::query()
             ->where('acctno', $acctno)
@@ -100,7 +105,9 @@ class MemberAccountsRepository
                 $this->selectColumnOrDefault('wsvmaster', 'mortuary', '0'),
                 $this->selectColumnOrDefault('wsvmaster', 'balance', '0'),
                 $this->selectColumnOrDefault('wsvmaster', 'wbalance', '0'),
-                $this->selectColumnOrDefault('wsvmaster', 'lastmove', 'null'),
+                $hasLastMove
+                    ? 'wsvmaster.lastmove'
+                    : DB::raw('null as lastmove'),
             ])
             ->orderByDesc($orderBy)
             ->limit($limit);
@@ -155,17 +162,18 @@ class MemberAccountsRepository
         $hasSavingsLedgerTypecode = $this->hasColumn('wsavled', 'typecode');
         $hasSavingsMasterTypecode = $this->hasTable('wsvmaster')
             && $this->hasColumn('wsvmaster', 'typecode');
+        $hasLedgerDate = $this->hasColumn('wsavled', 'date_in');
 
-        $orderBy = $this->hasColumn('wsavled', 'date_in')
-            ? 'wsavled.date_in'
-            : 'wsavled.svnumber';
+        $orderBy = $hasLedgerDate ? 'wsavled.date_in' : 'wsavled.svnumber';
 
         $query = Wsavled::query()
             ->where('wsavled.acctno', $acctno)
             ->select([
                 'wsavled.svnumber',
                 'wsavled.svtype',
-                $this->selectColumnOrDefault('wsavled', 'date_in', 'null'),
+                $hasLedgerDate
+                    ? 'wsavled.date_in'
+                    : DB::raw('null as date_in'),
                 $this->selectColumnOrDefault('wsavled', 'deposit', '0'),
                 $this->selectColumnOrDefault('wsavled', 'withdrawal', '0'),
                 $this->selectColumnOrDefault('wsavled', 'balance', '0'),
@@ -203,9 +211,7 @@ class MemberAccountsRepository
 
         $hasLedgerBalance = $this->hasColumn('wsavled', 'balance');
         $hasLedgerDate = $this->hasColumn('wsavled', 'date_in');
-        $orderBy = $this->hasColumn('wsavled', 'date_in')
-            ? 'wsavled.date_in'
-            : 'wsavled.svnumber';
+        $orderBy = $hasLedgerDate ? 'wsavled.date_in' : 'wsavled.svnumber';
 
         $query = DB::table('wsavled')
             ->where('wsavled.acctno', $acctno)
@@ -436,12 +442,12 @@ class MemberAccountsRepository
 
     private function hasTable(string $table): bool
     {
-        return Schema::hasTable($table);
+        return $this->schemaCapabilities->hasTable($table);
     }
 
     private function hasColumn(string $table, string $column): bool
     {
-        return Schema::hasColumn($table, $column);
+        return $this->schemaCapabilities->hasColumn($table, $column);
     }
 
     /**

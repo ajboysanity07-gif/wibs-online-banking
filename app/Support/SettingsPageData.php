@@ -4,7 +4,6 @@ namespace App\Support;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Features;
 
@@ -15,6 +14,7 @@ class SettingsPageData
      */
     public static function fromRequest(Request $request, string $initialTab): array
     {
+        $schema = app(SchemaCapabilities::class);
         $user = $request->user();
         $user?->loadMissing('adminProfile', 'memberApplicationProfile');
 
@@ -26,7 +26,7 @@ class SettingsPageData
 
         $memberRecord = null;
 
-        if ($user !== null && $adminProfile === null && Schema::hasTable('wmaster')) {
+        if ($user !== null && $adminProfile === null && $schema->hasTable('wmaster')) {
             $user->loadMissing('wmaster');
 
             if ($user->wmaster !== null) {
@@ -49,7 +49,7 @@ class SettingsPageData
                 $numberOfChildren = null;
 
                 if (
-                    Schema::hasColumn('wmaster', 'dependent')
+                    $schema->hasColumn('wmaster', 'dependent')
                     && $user->wmaster->dependent !== null
                 ) {
                     $numberOfChildren = (string) $user->wmaster->dependent;

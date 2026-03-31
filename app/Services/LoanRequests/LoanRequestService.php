@@ -9,9 +9,10 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
 use App\Support\LocationComposer;
+use App\Support\SchemaCapabilities;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class LoanRequestService
 {
@@ -30,6 +31,10 @@ class LoanRequestService
         'Bi-Weekly',
         'Monthly',
     ];
+
+    public function __construct(
+        private SchemaCapabilities $schemaCapabilities,
+    ) {}
 
     /**
      * @return array{
@@ -57,7 +62,7 @@ class LoanRequestService
     {
         $user->loadMissing('memberApplicationProfile');
 
-        if (Schema::hasTable('wmaster')) {
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
             $user->loadMissing('wmaster');
         }
 
@@ -178,26 +183,45 @@ class LoanRequestService
      */
     public function getLoanTypes(): Collection
     {
-        if (! Schema::hasTable('wlntype') || ! Schema::hasColumn('wlntype', 'lntype')) {
-            return collect();
+        return collect($this->getCachedLoanTypes());
+    }
+
+    /**
+     * @return list<array{typecode: string, label: string}>
+     */
+    private function getCachedLoanTypes(): array
+    {
+        $hasLoanTypesTable = $this->schemaCapabilities->hasTable('wlntype');
+        $hasLabelColumn = $this->schemaCapabilities->hasColumn('wlntype', 'lntype');
+
+        if (! $hasLoanTypesTable || ! $hasLabelColumn) {
+            return [];
         }
 
-        $hasTypecode = Schema::hasColumn('wlntype', 'typecode');
+        $hasTypecode = $this->schemaCapabilities->hasColumn('wlntype', 'typecode');
         $columns = $hasTypecode ? ['typecode', 'lntype'] : ['lntype'];
 
-        return Wlntype::query()
-            ->select($columns)
-            ->orderBy('lntype')
-            ->get()
-            ->map(function (Wlntype $type) use ($hasTypecode): array {
-                $label = (string) $type->lntype;
-                $typecode = $hasTypecode ? (string) $type->typecode : $label;
+        return Cache::remember(
+            $this->loanTypesCacheKey(),
+            now()->addMinutes(30),
+            function () use ($columns, $hasTypecode): array {
+                return Wlntype::query()
+                    ->select($columns)
+                    ->orderBy('lntype')
+                    ->get()
+                    ->map(function (Wlntype $type) use ($hasTypecode): array {
+                        $label = (string) $type->lntype;
+                        $typecode = $hasTypecode ? (string) $type->typecode : $label;
 
-                return [
-                    'typecode' => $typecode,
-                    'label' => $label,
-                ];
-            });
+                        return [
+                            'typecode' => $typecode,
+                            'label' => $label,
+                        ];
+                    })
+                    ->values()
+                    ->all();
+            },
+        );
     }
 
     /**
@@ -214,7 +238,7 @@ class LoanRequestService
      */
     public function getMemberRequestSummaries(AppUser $user, int $limit = 10): array
     {
-        if (! Schema::hasTable('loan_requests')) {
+        if (! $this->schemaCapabilities->hasTable('loan_requests')) {
             return [];
         }
 
@@ -241,29 +265,50 @@ class LoanRequestService
 
     private function resolveLoanTypeLabel(string $typecode): string
     {
-        if (! Schema::hasTable('wlntype')) {
-            return $typecode;
-        }
+        $labels = $this->getLoanTypeLabelLookup();
 
-        if (Schema::hasColumn('wlntype', 'typecode') && Schema::hasColumn('wlntype', 'lntype')) {
-            $value = Wlntype::query()
-                ->where('typecode', $typecode)
-                ->value('lntype');
-
-            if (is_string($value) && trim($value) !== '') {
-                return $value;
-            }
-        }
-
-        if (Schema::hasColumn('wlntype', 'lntype')) {
-            $value = Wlntype::query()->where('lntype', $typecode)->value('lntype');
-
-            if (is_string($value) && trim($value) !== '') {
-                return $value;
-            }
+        if (array_key_exists($typecode, $labels)) {
+            return $labels[$typecode];
         }
 
         return $typecode;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getLoanTypeLabelLookup(): array
+    {
+        $hasLoanTypesTable = $this->schemaCapabilities->hasTable('wlntype');
+        $hasLabelColumn = $this->schemaCapabilities->hasColumn('wlntype', 'lntype');
+
+        if (! $hasLoanTypesTable || ! $hasLabelColumn) {
+            return [];
+        }
+
+        return Cache::remember(
+            $this->loanTypeLabelsCacheKey(),
+            now()->addMinutes(30),
+            function (): array {
+                $labels = [];
+
+                foreach ($this->getCachedLoanTypes() as $type) {
+                    $labels[$type['typecode']] = $type['label'];
+                }
+
+                return $labels;
+            },
+        );
+    }
+
+    private function loanTypesCacheKey(): string
+    {
+        return 'loan_requests.loan_types';
+    }
+
+    private function loanTypeLabelsCacheKey(): string
+    {
+        return 'loan_requests.loan_type_labels';
     }
 
     /**
@@ -790,7 +835,10 @@ class LoanRequestService
     {
         $wmaster = $user->wmaster;
         $profile = $user->memberApplicationProfile;
-        $hasDependentColumn = Schema::hasColumn('wmaster', 'dependent');
+        $hasDependentColumn = $this->schemaCapabilities->hasColumn(
+            'wmaster',
+            'dependent',
+        );
 
         $nameParts = $wmaster?->resolvedNameParts() ?? [
             'first_name' => '',
@@ -969,7 +1017,10 @@ class LoanRequestService
     private function buildApplicantReadOnlyMap(AppUser $user): array
     {
         $wmaster = $user->wmaster;
-        $hasDependentColumn = Schema::hasColumn('wmaster', 'dependent');
+        $hasDependentColumn = $this->schemaCapabilities->hasColumn(
+            'wmaster',
+            'dependent',
+        );
         $nameParts = $wmaster?->resolvedNameParts() ?? [
             'first_name' => '',
             'middle_name' => '',
