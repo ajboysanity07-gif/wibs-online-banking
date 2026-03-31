@@ -370,6 +370,13 @@ export default function Profile({
         memberApplicationProfile?.number_of_children ??
         memberRecord?.number_of_children ??
         '';
+    const memberOccupation = memberRecord?.occupation?.trim() ?? '';
+    const memberCurrentPosition =
+        memberApplicationProfile?.current_position?.trim() ?? '';
+    const resolvedCurrentPosition =
+        memberCurrentPosition !== '' ? memberCurrentPosition : memberOccupation;
+    const isCurrentPositionFromWmaster =
+        memberCurrentPosition === '' && hasWmasterValue(memberOccupation);
     const isBirthplaceLocked = hasWmasterValue(memberBirthplace);
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
@@ -1696,28 +1703,6 @@ export default function Profile({
                                                                 </div>
 
                                                                 <div className="grid gap-4 md:grid-cols-2">
-                                                                    <div className="grid gap-2 md:col-span-2">
-                                                                        <Label htmlFor="member_occupation">
-                                                                            Occupation
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="member_occupation"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.occupation,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberRecord?.occupation ??
-                                                                                ''
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
-                                                                    </div>
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="employment_type">
                                                                             Employment
@@ -1921,10 +1906,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="current_position"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                isCurrentPositionFromWmaster &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
-                                                                                memberApplicationProfile?.current_position ??
-                                                                                ''
+                                                                                resolvedCurrentPosition
                                                                             }
                                                                             name="current_position"
                                                                             required

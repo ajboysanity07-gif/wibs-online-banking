@@ -195,6 +195,34 @@ test('loan request form uses member profile work fields for the applicant', func
             ->where('applicant.nature_of_business', 'Finance'));
 });
 
+test('loan request snapshot falls back to verified occupation for current position', function () {
+    $user = User::factory()->create([
+        'acctno' => '000717',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'current_position' => null,
+    ]);
+
+    $service = app(\App\Services\LoanRequests\LoanRequestService::class);
+    $payload = $service->getFormData($user);
+
+    expect($payload['applicant']['current_position'])->toBe('Analyst');
+});
+
 test('loan request form falls back to legacy wmaster data when structured data is missing', function () {
     $user = User::factory()->create([
         'acctno' => '000714',

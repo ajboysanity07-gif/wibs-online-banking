@@ -905,7 +905,16 @@ class LoanRequestService
             ? $employerBusinessAddress
             : $this->normalizeOptionalString($profile?->employer_business_address);
         $spouseName = $this->normalizeOptionalString($wmaster?->spouse);
+        $currentPosition = $this->normalizeOptionalString(
+            $profile?->current_position,
+        );
         $numberOfChildren = null;
+
+        if ($currentPosition === null) {
+            $currentPosition = $this->normalizeOptionalString(
+                $wmaster?->occupation,
+            );
+        }
 
         if ($hasDependentColumn && $wmaster?->dependent !== null) {
             $numberOfChildren = (string) $wmaster->dependent;
@@ -944,7 +953,7 @@ class LoanRequestService
             'employer_business_address2' => $employerAddress2,
             'employer_business_address3' => $employerAddress3,
             'telephone_no' => $profile?->telephone_no,
-            'current_position' => $profile?->current_position,
+            'current_position' => $currentPosition,
             'nature_of_business' => $profile?->nature_of_business,
             'years_in_work_business' => $profile?->years_in_work_business,
             'gross_monthly_income' => $profile?->gross_monthly_income !== null
