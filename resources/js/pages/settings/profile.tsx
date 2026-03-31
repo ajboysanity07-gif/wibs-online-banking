@@ -1282,8 +1282,8 @@ export default function Profile({
                                                                         '' ||
                                                                     memberAddressProvince !==
                                                                         '' ? (
-                                                                        <>
-                                                                            <div className="grid gap-2">
+                                                                        <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
+                                                                            <div className="grid gap-2 md:col-span-2">
                                                                                 <Label htmlFor="member_record_address1">
                                                                                     Address
                                                                                     (street)
@@ -1349,7 +1349,7 @@ export default function Profile({
                                                                                     disabled
                                                                                 />
                                                                             </div>
-                                                                        </>
+                                                                        </div>
                                                                     ) : (
                                                                         <div className="grid gap-2 md:col-span-3">
                                                                             <Label htmlFor="member_record_address">

@@ -133,6 +133,38 @@ test('profile page loads member record information from wmaster', function () {
         );
 });
 
+test('profile page falls back to legacy address when structured address is missing', function () {
+    $user = User::factory()->create([
+        'acctno' => '000907',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Dela Cruz, Tina',
+        'address' => 'Legacy Address Only',
+        'address2' => null,
+        'address3' => null,
+        'address4' => null,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberRecord.address1', null)
+            ->where('memberRecord.address2', null)
+            ->where('memberRecord.address3', null)
+            ->where('memberRecord.display_address', 'Legacy Address Only')
+        );
+});
+
 test('profile page exposes wmaster birthplace data', function () {
     $user = User::factory()->create([
         'acctno' => '000903',
