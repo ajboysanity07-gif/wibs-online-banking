@@ -9,7 +9,7 @@ type MemberDetailsState = {
 };
 
 export function useMemberDetails(
-    userId: number | null,
+    memberId: string | null,
     initial?: MemberDetail,
 ) {
     const [state, setState] = useState<MemberDetailsState>({
@@ -20,14 +20,14 @@ export function useMemberDetails(
 
     const refresh = useCallback(
         async (signal?: AbortSignal) => {
-            if (!userId) {
+            if (!memberId) {
                 return null;
             }
 
             setState((current) => ({ ...current, loading: true, error: null }));
 
             try {
-                const member = await adminApi.getMemberDetail(userId, signal);
+                const member = await adminApi.getMemberDetail(memberId, signal);
                 setState({ member, loading: false, error: null });
                 return member;
             } catch {
@@ -39,7 +39,7 @@ export function useMemberDetails(
                 return null;
             }
         },
-        [userId],
+        [memberId],
     );
 
     useEffect(() => {

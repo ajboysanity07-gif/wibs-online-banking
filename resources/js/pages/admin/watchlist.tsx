@@ -28,13 +28,16 @@ import {
 } from '@/components/ui/table-skeleton';
 import { useMembers } from '@/hooks/admin/use-members';
 import AppLayout from '@/layouts/app-layout';
+import {
+    getRegistrationStatusLabel,
+    getRegistrationStatusVariant,
+} from '@/lib/member-status';
 import { show as showMember } from '@/routes/admin/members';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberSort,
-    MemberStatusFilter,
-    MemberStatusValue,
+    MemberRegistrationFilter,
     MemberSummary,
 } from '@/types/admin';
 
@@ -53,38 +56,6 @@ const formatDate = (value?: string | null): string => {
     return new Date(value).toLocaleDateString();
 };
 
-const statusVariant = (status?: MemberStatusValue | null) => {
-    if (status === 'active') {
-        return 'default';
-    }
-
-    if (status === 'pending') {
-        return 'secondary';
-    }
-
-    if (status === 'suspended') {
-        return 'destructive';
-    }
-
-    return 'outline';
-};
-
-const statusLabel = (status?: MemberStatusValue | null) => {
-    if (status === 'active') {
-        return 'Active';
-    }
-
-    if (status === 'pending') {
-        return 'Pending';
-    }
-
-    if (status === 'suspended') {
-        return 'Suspended';
-    }
-
-    return 'Unknown';
-};
-
 const columns: ColumnDef<MemberSummary>[] = [
     {
         accessorKey: 'member_name',
@@ -92,7 +63,8 @@ const columns: ColumnDef<MemberSummary>[] = [
         cell: ({ row }) => (
             <div className="flex flex-col">
                 <span className="font-medium">{row.original.member_name}</span>
-                {row.original.member_name !== row.original.username ? (
+                {row.original.username &&
+                row.original.member_name !== row.original.username ? (
                     <span className="text-xs text-muted-foreground">
                         {row.original.username}
                     </span>
@@ -108,13 +80,18 @@ const columns: ColumnDef<MemberSummary>[] = [
     {
         accessorKey: 'email',
         header: 'Email',
+        cell: ({ row }) => row.original.email ?? '--',
     },
     {
-        accessorKey: 'status',
-        header: 'Status',
+        accessorKey: 'registration_status',
+        header: 'Registration',
         cell: ({ row }) => (
-            <Badge variant={statusVariant(row.original.status)}>
-                {statusLabel(row.original.status)}
+            <Badge
+                variant={getRegistrationStatusVariant(
+                    row.original.registration_status,
+                )}
+            >
+                {getRegistrationStatusLabel(row.original.registration_status)}
             </Badge>
         ),
     },
@@ -129,7 +106,7 @@ const columns: ColumnDef<MemberSummary>[] = [
         cell: ({ row }) => (
             <div className="text-right">
                 <Button asChild type="button" size="sm" variant="outline">
-                    <Link href={showMember(row.original.user_id).url}>
+                    <Link href={showMember(row.original.member_id).url}>
                         Open profile
                     </Link>
                 </Button>
@@ -152,14 +129,18 @@ const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">{member.member_name}</p>
-                {member.member_name !== member.username ? (
+                {member.username && member.member_name !== member.username ? (
                     <p className="text-xs text-muted-foreground">
                         {member.username}
                     </p>
                 ) : null}
             </div>
-            <Badge variant={statusVariant(member.status)}>
-                {statusLabel(member.status)}
+            <Badge
+                variant={getRegistrationStatusVariant(
+                    member.registration_status,
+                )}
+            >
+                {getRegistrationStatusLabel(member.registration_status)}
             </Badge>
         </div>
         <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3 text-xs">
@@ -171,7 +152,9 @@ const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
             </div>
             <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Email</span>
-                <span className="text-sm font-medium">{member.email}</span>
+                <span className="text-sm font-medium">
+                    {member.email ?? '--'}
+                </span>
             </div>
             <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Created</span>
@@ -188,7 +171,9 @@ const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
                 variant="outline"
                 className="w-full sm:w-auto"
             >
-                <Link href={showMember(member.user_id).url}>Open profile</Link>
+                <Link href={showMember(member.member_id).url}>
+                    Open profile
+                </Link>
             </Button>
         </div>
     </SurfaceCard>
@@ -196,14 +181,15 @@ const MobileMemberCard = ({ member }: { member: MemberSummary }) => (
 
 export default function MembersPage() {
     const [search, setSearch] = useState('');
-    const [status, setStatus] = useState<MemberStatusFilter>('all');
+    const [registration, setRegistration] =
+        useState<MemberRegistrationFilter>('all');
     const [sort, setSort] = useState<MemberSort>('newest');
     const [page, setPage] = useState(1);
     const [perPage] = useState(10);
 
     const { items, meta, loading, error } = useMembers({
         search,
-        status,
+        registration,
         sort,
         page,
         perPage,
@@ -211,9 +197,11 @@ export default function MembersPage() {
     const showSkeleton = loading && items.length === 0;
     const searchValue = search.trim();
     const hasSearch = searchValue !== '';
-    const hasStatus = status !== 'all';
+    const hasRegistration = registration !== 'all';
     const hasSort = sort !== 'newest';
-    const filterCount = [hasSearch, hasStatus, hasSort].filter(Boolean).length;
+    const filterCount = [hasSearch, hasRegistration, hasSort].filter(
+        Boolean,
+    ).length;
     const hasFilters = filterCount > 0;
     const totalResults = meta.total;
     const pageStart =
@@ -234,7 +222,7 @@ export default function MembersPage() {
                 <PageHero
                     kicker="Members"
                     title="Member directory"
-                    description="Find members, review account status, and open profiles."
+                    description="Find members, confirm registration status, and open profiles."
                     badges={
                         <>
                             <Badge variant="secondary">
@@ -262,7 +250,7 @@ export default function MembersPage() {
                     <div className="flex flex-col gap-4">
                         <SectionHeader
                             title="Filters"
-                            description="Search and segment members by status."
+                            description="Search and segment members by registration."
                             actions={
                                 <>
                                     {filterCount > 0 ? (
@@ -278,7 +266,7 @@ export default function MembersPage() {
                                         disabled={!hasFilters}
                                         onClick={() => {
                                             setSearch('');
-                                            setStatus('all');
+                                            setRegistration('all');
                                             setSort('newest');
                                             setPage(1);
                                         }}
@@ -299,7 +287,7 @@ export default function MembersPage() {
                                 <Input
                                     id="members-search"
                                     value={search}
-                                    placeholder="Search by account no, username, or email"
+                                    placeholder="Search by account no, name, username, or email"
                                     onChange={(event) => {
                                         setSearch(event.target.value);
                                         setPage(1);
@@ -308,28 +296,27 @@ export default function MembersPage() {
                             </div>
                             <div className="space-y-1">
                                 <span className="text-xs font-medium text-muted-foreground">
-                                    Status
+                                    Registration
                                 </span>
                                 <Select
-                                    value={status}
+                                    value={registration}
                                     onValueChange={(value) => {
-                                        setStatus(value as MemberStatusFilter);
+                                        setRegistration(
+                                            value as MemberRegistrationFilter,
+                                        );
                                         setPage(1);
                                     }}
                                 >
-                                    <SelectTrigger aria-label="Status">
-                                        <SelectValue placeholder="Status" />
+                                    <SelectTrigger aria-label="Registration">
+                                        <SelectValue placeholder="Registration" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All</SelectItem>
-                                        <SelectItem value="pending">
-                                            Pending
+                                        <SelectItem value="registered">
+                                            Registered
                                         </SelectItem>
-                                        <SelectItem value="active">
-                                            Active
-                                        </SelectItem>
-                                        <SelectItem value="suspended">
-                                            Suspended
+                                        <SelectItem value="unregistered">
+                                            Unregistered
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -425,7 +412,7 @@ export default function MembersPage() {
                                     ) : (
                                         items.map((member) => (
                                             <MobileMemberCard
-                                                key={member.user_id}
+                                                key={member.member_id}
                                                 member={member}
                                             />
                                         ))

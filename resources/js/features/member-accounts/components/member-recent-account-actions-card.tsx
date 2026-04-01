@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -16,7 +17,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
+import {
+    TableSkeleton,
+    type TableSkeletonColumn,
+} from '@/components/ui/table-skeleton';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import type { MemberRecentAccountAction, MemberRecentAccountActionSource } from '@/features/member-accounts/types';
 import type { PaginationMeta } from '@/types/pagination';
@@ -29,9 +33,12 @@ type MemberRecentAccountActionsCardProps = {
     error?: string | null;
     onRetry?: () => void;
     onPageChange?: (page: number) => void;
+    resolveActionHref?: (action: MemberRecentAccountAction) => string | null;
 };
 
-const accountActionsSkeletonColumns = [
+const accountActionsSkeletonColumns = (
+    showActions: boolean,
+): TableSkeletonColumn[] => [
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-16', cellClassName: 'w-20' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
@@ -39,6 +46,10 @@ const accountActionsSkeletonColumns = [
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
+    { headerClassName: 'w-20', cellClassName: 'w-24' },
+    ...(showActions
+        ? [{ headerClassName: 'w-12', cellClassName: 'h-8 w-20', align: 'right' }]
+        : []),
 ];
 
 const sourceVariant = (source?: MemberRecentAccountActionSource | null) => {
@@ -103,8 +114,10 @@ const MobileAccountActionSkeletonList = ({ rows = 3 }: { rows?: number }) => (
 
 const MobileAccountActionCard = ({
     action,
+    actionHref,
 }: {
     action: MemberRecentAccountAction;
+    actionHref: string | null;
 }) => (
     <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
@@ -121,6 +134,12 @@ const MobileAccountActionCard = ({
             </Badge>
         </div>
         <div className="mt-3 rounded-xl border border-border/30 bg-muted/30 p-3">
+            <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Control ID</span>
+                <span className="text-sm font-medium tabular-nums">
+                    {action.control_no ?? '--'}
+                </span>
+            </div>
             <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Amount</span>
                 <span className="text-sm font-medium tabular-nums">
@@ -143,6 +162,11 @@ const MobileAccountActionCard = ({
         <p className="mt-3 text-xs text-muted-foreground">
             Date: {formatDate(action.date_in)}
         </p>
+        {actionHref !== null ? (
+            <Button asChild size="sm" variant="outline" className="mt-3 w-full">
+                <Link href={actionHref}>View transaction</Link>
+            </Button>
+        ) : null}
     </SurfaceCard>
 );
 
@@ -154,12 +178,15 @@ export function MemberRecentAccountActionsCard({
     error = null,
     onRetry,
     onPageChange,
+    resolveActionHref,
 }: MemberRecentAccountActionsCardProps) {
     const actionsEmpty = actions.length === 0;
     const showSkeleton = loading && actionsEmpty;
     const handleRetry = () => {
         onRetry?.();
     };
+    const showActions = Boolean(resolveActionHref);
+    const columnCount = showActions ? 9 : 8;
 
     return (
         <SurfaceCard variant="default" padding="lg" className="space-y-5">
@@ -181,13 +208,13 @@ export function MemberRecentAccountActionsCard({
             <div className="space-y-4">
                 {!acctno ? (
                     <Alert>
-                    <AlertTitle>Account number missing</AlertTitle>
-                    <AlertDescription>
-                        Add an account number to view loan and loan security
-                        activity.
-                    </AlertDescription>
-                </Alert>
-            ) : null}
+                        <AlertTitle>Account number missing</AlertTitle>
+                        <AlertDescription>
+                            Add an account number to view loan and loan security
+                            activity.
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
                 {error ? (
                     <Alert variant="destructive">
                         <AlertTitle>Unable to load account actions</AlertTitle>
@@ -213,10 +240,12 @@ export function MemberRecentAccountActionsCard({
                         </div>
                         <div className="hidden md:block" aria-busy="true">
                             <TableSkeleton
-                                columns={accountActionsSkeletonColumns}
+                                columns={accountActionsSkeletonColumns(
+                                    showActions,
+                                )}
                                 rows={meta.perPage}
                                 className="rounded-xl border border-border/40 bg-card/60"
-                                tableClassName="min-w-215"
+                                tableClassName="min-w-240"
                             />
                         </div>
                     </>
@@ -236,29 +265,39 @@ export function MemberRecentAccountActionsCard({
                                                 `action-${index}`
                                             }
                                             action={action}
+                                            actionHref={
+                                                resolveActionHref?.(action) ??
+                                                null
+                                            }
                                         />
                                     ))}
                                 </div>
                             )}
                         </div>
                         <div className="hidden rounded-xl border border-border/40 bg-card/60 md:block">
-                            <Table className="min-w-215">
+                            <Table className="min-w-240">
                                 <TableHeader className="border-b border-border/40 text-muted-foreground">
                                     <TableRow>
                                         <TableHead>Number</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Type</TableHead>
                                         <TableHead>Source</TableHead>
+                                        <TableHead>Control ID</TableHead>
                                         <TableHead>Amount</TableHead>
                                         <TableHead>Movement</TableHead>
                                         <TableHead>Balance</TableHead>
+                                        {showActions ? (
+                                            <TableHead className="text-right">
+                                                Action
+                                            </TableHead>
+                                        ) : null}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {actionsEmpty ? (
                                         <TableRow>
                                             <TableCell
-                                                colSpan={7}
+                                                colSpan={columnCount}
                                                 className="h-24 text-center text-sm text-muted-foreground"
                                             >
                                                 No account activity available
@@ -296,6 +335,9 @@ export function MemberRecentAccountActionsCard({
                                                         )}
                                                     </Badge>
                                                 </TableCell>
+                                                <TableCell className="tabular-nums">
+                                                    {action.control_no ?? '--'}
+                                                </TableCell>
                                                 <TableCell>
                                                     {formatCurrency(
                                                         action.amount,
@@ -311,6 +353,37 @@ export function MemberRecentAccountActionsCard({
                                                         action.balance,
                                                     )}
                                                 </TableCell>
+                                                {showActions ? (
+                                                    <TableCell className="text-right">
+                                                        {resolveActionHref?.(
+                                                            action,
+                                                        ) ? (
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                            >
+                                                                <Link
+                                                                    href={
+                                                                        resolveActionHref?.(
+                                                                            action,
+                                                                        ) as string
+                                                                    }
+                                                                >
+                                                                    View
+                                                                </Link>
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                disabled
+                                                            >
+                                                                Unavailable
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                ) : null}
                                             </TableRow>
                                         ))
                                     )}

@@ -8,13 +8,11 @@ type StatusOptions = {
 };
 
 const successCopy: Record<MemberStatusAction, string> = {
-    approve: adminToastCopy.success.approved('member'),
     suspend: adminToastCopy.success.suspended('member'),
     reactivate: adminToastCopy.success.reactivated('member'),
 };
 
 const errorCopy: Record<MemberStatusAction, string> = {
-    approve: adminToastCopy.error.approved('member'),
     suspend: adminToastCopy.error.updatedStatus(),
     reactivate: adminToastCopy.error.updatedStatus(),
 };

@@ -5,65 +5,56 @@ namespace App\Services\Admin;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\Wmaster;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class AdminDashboardService
 {
     /**
-     * @return array{pendingCount:int,activeCount:int,totalCount:int,requestsCount:?int,lastSync:?string}
+     * @return array{
+     *     registeredCount:int,
+     *     unregisteredCount:int,
+     *     totalCount:int,
+     *     requestsCount:?int,
+     *     lastSync:?string
+     * }
      */
     public function getMetrics(): array
     {
-        $countsBase = AppUser::query()->whereDoesntHave('adminProfile');
+        if (! Schema::hasTable('wmaster')) {
+            $registeredCount = AppUser::query()
+                ->whereDoesntHave('adminProfile')
+                ->count();
 
-        $pendingCount = (clone $countsBase)
-            ->whereHas('userProfile', function ($query) {
-                $query->where('status', 'pending');
-            })
-            ->count();
+            return [
+                'registeredCount' => $registeredCount,
+                'unregisteredCount' => 0,
+                'totalCount' => $registeredCount,
+                'requestsCount' => $this->getPendingRequestsCount(),
+                'lastSync' => 'Manual WIBS Desktop processing',
+            ];
+        }
 
-        $activeCount = (clone $countsBase)
-            ->whereHas('userProfile', function ($query) {
-                $query->where('status', 'active');
-            })
-            ->count();
+        $countsBase = Wmaster::query()
+            ->leftJoin('appusers', 'appusers.acctno', '=', 'wmaster.acctno')
+            ->leftJoin('admin_profiles', 'admin_profiles.user_id', '=', 'appusers.user_id')
+            ->whereNull('admin_profiles.user_id');
 
         $totalCount = (clone $countsBase)->count();
+        $registeredCount = (clone $countsBase)
+            ->whereNotNull('appusers.user_id')
+            ->count();
+        $unregisteredCount = max(0, $totalCount - $registeredCount);
         $requestsCount = $this->getPendingRequestsCount();
 
         return [
-            'pendingCount' => $pendingCount,
-            'activeCount' => $activeCount,
+            'registeredCount' => $registeredCount,
+            'unregisteredCount' => $unregisteredCount,
             'totalCount' => $totalCount,
             'requestsCount' => $requestsCount,
             'lastSync' => 'Manual WIBS Desktop processing',
         ];
-    }
-
-    /**
-     * @return \Illuminate\Support\Collection<int, \App\Models\AppUser>
-     */
-    public function getPendingApprovalsPreview(int $limit = 5): Collection
-    {
-        return AppUser::query()
-            ->whereDoesntHave('adminProfile')
-            ->whereHas('userProfile', function ($query) {
-                $query->where('status', 'pending');
-            })
-            ->with([
-                'wmaster:acctno,fname,mname,lname,bname',
-                'userProfile',
-            ])
-            ->orderByDesc('created_at')
-            ->limit($limit)
-            ->get([
-                'user_id',
-                'username',
-                'email',
-                'acctno',
-                'created_at',
-            ]);
     }
 
     /**

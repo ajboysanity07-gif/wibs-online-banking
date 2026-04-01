@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\MemberProfileController;
 use App\Http\Controllers\Admin\MemberSavingsController;
 use App\Http\Controllers\Admin\OrganizationSettingsController;
 use App\Http\Controllers\Admin\RequestsController;
-use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Api\BirthplaceSearchController;
 use App\Http\Controllers\Api\CitySearchController;
@@ -37,9 +36,7 @@ use App\Http\Controllers\Spa\Admin\MemberLoansController as SpaMemberLoansContro
 use App\Http\Controllers\Spa\Admin\MemberSavingsController as SpaMemberSavingsController;
 use App\Http\Controllers\Spa\Admin\MembersController as SpaMembersController;
 use App\Http\Controllers\Spa\Admin\MemberStatusController as SpaMemberStatusController;
-use App\Http\Controllers\Spa\Admin\PendingApprovalController as SpaPendingApprovalController;
 use App\Http\Controllers\Spa\Admin\RequestsController as SpaRequestsController;
-use App\Http\Controllers\Spa\Admin\UserApprovalController as SpaUserApprovalController;
 use App\Http\Controllers\Spa\Admin\WatchlistController as SpaWatchlistController;
 use App\Http\Controllers\Spa\AuthController as SpaAuthController;
 use App\Http\Controllers\Spa\MemberVerificationController as SpaMemberVerificationController;
@@ -82,15 +79,12 @@ Route::prefix('spa')->middleware('web')->group(function () {
     });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {
-        Route::patch('admin/users/{user}/approve', [SpaUserApprovalController::class, 'approve']);
         Route::get('admin/summary', SpaAccountSummaryController::class);
         Route::get('admin/dashboard/summary', SpaDashboardDataController::class);
         Route::get('admin/members', [SpaMembersController::class, 'index']);
         Route::get('admin/members/{user}', [SpaMembersController::class, 'show']);
-        Route::patch('admin/members/{user}/approve', [SpaMemberStatusController::class, 'approve']);
         Route::patch('admin/members/{user}/suspend', [SpaMemberStatusController::class, 'suspend']);
         Route::patch('admin/members/{user}/reactivate', [SpaMemberStatusController::class, 'reactivate']);
-        Route::get('admin/pending-approvals', SpaPendingApprovalController::class);
         Route::get('admin/requests', SpaRequestsController::class);
         Route::get('admin/watchlist', SpaWatchlistController::class);
     });
@@ -222,12 +216,6 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
 
     Route::get('requests/{loanRequest}/print', [AdminLoanRequestController::class, 'print'])
         ->name('admin.requests.print');
-
-    Route::get('users/pending', [UserApprovalController::class, 'index'])
-        ->name('admin.users.pending');
-
-    Route::patch('users/{user}/approve', [UserApprovalController::class, 'approve'])
-        ->name('admin.users.approve');
 
     Route::get('watchlist', [WatchlistController::class, 'index'])
         ->name('admin.watchlist.index');

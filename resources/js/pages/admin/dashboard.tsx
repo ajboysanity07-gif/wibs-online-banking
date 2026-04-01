@@ -30,19 +30,17 @@ import {
 } from '@/components/ui/table-skeleton';
 import { useAdminDashboard } from '@/hooks/admin/use-admin-dashboard';
 import { useMembers } from '@/hooks/admin/use-members';
-import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes/admin';
+import {
+    getRegistrationStatusLabel,
+    getRegistrationStatusVariant,
+} from '@/lib/member-status';
 import { show as showMember } from '@/routes/admin/members';
 import { index as requestsIndex } from '@/routes/admin/requests';
-import { pending } from '@/routes/admin/users';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
-import type {
-    DashboardSummary,
-    MemberStatusValue,
-    MemberSummary,
-} from '@/types/admin';
+import type { DashboardSummary, MemberSummary } from '@/types/admin';
 
 type Props = {
     summary: DashboardSummary;
@@ -63,47 +61,6 @@ const formatDate = (value?: string | null): string => {
     return new Date(value).toLocaleDateString();
 };
 
-const statusLabel = (status?: MemberStatusValue | null): string => {
-    if (status === 'active') {
-        return 'Active';
-    }
-
-    if (status === 'pending') {
-        return 'Pending';
-    }
-
-    if (status === 'suspended') {
-        return 'Suspended';
-    }
-
-    return 'Unknown';
-};
-
-const statusVariant = (status?: MemberStatusValue | null) => {
-    if (status === 'active') {
-        return 'default';
-    }
-
-    if (status === 'pending') {
-        return 'secondary';
-    }
-
-    if (status === 'suspended') {
-        return 'destructive';
-    }
-
-    return 'outline';
-};
-
-const pendingApprovalsSkeletonColumns: TableSkeletonColumn[] = [
-    { headerClassName: 'w-28', cellClassName: 'w-32' },
-    { headerClassName: 'w-20', cellClassName: 'w-20' },
-    { headerClassName: 'w-32', cellClassName: 'w-36' },
-    { headerClassName: 'w-20', cellClassName: 'w-20' },
-    { headerClassName: 'w-16', cellClassName: 'w-16' },
-    { headerClassName: 'w-12', cellClassName: 'h-8 w-20', align: 'right' },
-];
-
 const requestPreviewSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
@@ -117,74 +74,23 @@ const memberLookupSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-12', cellClassName: 'h-8 w-24', align: 'right' },
 ];
 
-const MobilePendingApprovalCard = ({
-    user,
-    isProcessing,
-    onApprove,
-}: {
-    user: DashboardSummary['pendingApprovals'][number];
-    isProcessing: boolean;
-    onApprove: (userId: number) => void;
-}) => (
-    <SurfaceCard variant="default" padding="sm">
-        <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-                <p className="text-sm font-semibold">{user.member_name}</p>
-                {user.member_name !== user.username ? (
-                    <p className="text-xs text-muted-foreground">
-                        {user.username}
-                    </p>
-                ) : null}
-            </div>
-            <Badge variant={statusVariant(user.status)}>
-                {statusLabel(user.status)}
-            </Badge>
-        </div>
-        <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3 text-xs">
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Account No</span>
-                <span className="text-sm font-medium">
-                    {user.acctno ?? '--'}
-                </span>
-            </div>
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Email</span>
-                <span className="text-sm font-medium">{user.email}</span>
-            </div>
-            <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Created</span>
-                <span className="text-sm font-medium">
-                    {formatDate(user.created_at)}
-                </span>
-            </div>
-        </div>
-        <div className="mt-3">
-            <Button
-                type="button"
-                size="sm"
-                className="w-full sm:w-auto"
-                disabled={isProcessing || user.status !== 'pending'}
-                onClick={() => onApprove(user.user_id)}
-            >
-                Activate
-            </Button>
-        </div>
-    </SurfaceCard>
-);
-
 const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
     <SurfaceCard variant="default" padding="sm">
         <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
                 <p className="text-sm font-semibold">{member.member_name}</p>
-                {member.member_name !== member.username ? (
+                {member.username && member.member_name !== member.username ? (
                     <p className="text-xs text-muted-foreground">
                         {member.username}
                     </p>
                 ) : null}
             </div>
-            <Badge variant={statusVariant(member.status)}>
-                {statusLabel(member.status)}
+            <Badge
+                variant={getRegistrationStatusVariant(
+                    member.registration_status,
+                )}
+            >
+                {getRegistrationStatusLabel(member.registration_status)}
             </Badge>
         </div>
         <div className="mt-3 space-y-2 rounded-xl border border-border/30 bg-muted/30 p-3 text-xs">
@@ -202,7 +108,9 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
                 variant="outline"
                 className="w-full sm:w-auto"
             >
-                <Link href={showMember(member.user_id).url}>Open profile</Link>
+                <Link href={showMember(member.member_id).url}>
+                    Open profile
+                </Link>
             </Button>
         </div>
     </SurfaceCard>
@@ -212,7 +120,6 @@ export default function AdminDashboard({ summary }: Props) {
     const {
         summary: summaryState,
         refresh,
-        setSummary,
         loading,
         error,
     } = useAdminDashboard(summary);
@@ -222,49 +129,23 @@ export default function AdminDashboard({ summary }: Props) {
         void refresh();
     }, [refresh]);
 
-    const { updateStatus, processingIds } = useUpdateMemberStatus({
-        onUpdated: (member, action) => {
-            if (action !== 'approve') {
-                return;
-            }
-
-            setSummary({
-                ...summaryState,
-                metrics: {
-                    ...summaryState.metrics,
-                    pendingCount: Math.max(
-                        0,
-                        summaryState.metrics.pendingCount - 1,
-                    ),
-                    activeCount: summaryState.metrics.activeCount + 1,
-                },
-                pendingApprovals: summaryState.pendingApprovals.filter(
-                    (user) => user.user_id !== member.user_id,
-                ),
-            });
-            void refresh();
-        },
-    });
-
     const {
         items: lookupRows,
         loading: lookupLoading,
         error: lookupError,
     } = useMembers({
         search: memberSearch,
-        status: 'all',
+        registration: 'all',
         sort: 'newest',
         page: 1,
         perPage: 5,
     });
 
-    const pendingRows = summaryState.pendingApprovals;
     const requestsPreview = summaryState.requests;
     const lookupEmptyMessage =
         memberSearch.trim() === ''
             ? 'Search by account number, username, email, or member name.'
             : 'No matching members found.';
-    const pendingSkeleton = loading && pendingRows.length === 0;
     const requestsSkeleton = loading && requestsPreview.length === 0;
     const lookupSkeleton = lookupLoading && lookupRows.length === 0;
 
@@ -275,14 +156,9 @@ export default function AdminDashboard({ summary }: Props) {
                 <PageHero
                     kicker="Admin"
                     title="Dashboard"
-                    description="Member status, requests, and account overview."
+                    description="Members, requests, and account overview."
                     rightSlot={
                         <>
-                            <Button asChild size="sm">
-                                <a href="#pending-approvals">
-                                    Member reviews
-                                </a>
-                            </Button>
                             <Button asChild size="sm" variant="secondary">
                                 <a href="#member-lookup">Member lookup</a>
                             </Button>
@@ -311,44 +187,40 @@ export default function AdminDashboard({ summary }: Props) {
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>
-                                Member status reviews
-                            </CardDescription>
+                            <CardDescription>Registered members</CardDescription>
                             <CardTitle className="text-3xl">
-                                {summaryState.metrics.pendingCount}
+                                {summaryState.metrics.registeredCount}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground">
-                                Awaiting review and activation
+                                Members with portal access
                             </p>
                         </CardContent>
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>Active members</CardDescription>
+                            <CardDescription>Unregistered members</CardDescription>
                             <CardTitle className="text-3xl">
-                                {summaryState.metrics.activeCount}
+                                {summaryState.metrics.unregisteredCount}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground">
-                                Active portal access
+                                Members without portal logins
                             </p>
                         </CardContent>
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>
-                                Total portal users
-                            </CardDescription>
+                            <CardDescription>Total members</CardDescription>
                             <CardTitle className="text-3xl">
                                 {summaryState.metrics.totalCount}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground">
-                                Registered portal logins
+                                System of record member list
                             </p>
                         </CardContent>
                     </Card>
@@ -381,194 +253,6 @@ export default function AdminDashboard({ summary }: Props) {
                         </CardContent>
                     </Card>
                 </div>
-
-                <Card
-                    id="pending-approvals"
-                    className="rounded-2xl border-border/40 bg-card/70 shadow-sm"
-                >
-                    <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <CardTitle>Member status reviews</CardTitle>
-                            <CardDescription>
-                                Legacy accounts awaiting status review.
-                            </CardDescription>
-                        </div>
-                        <Button asChild size="sm" variant="outline">
-                            <Link href={pending().url}>See more</Link>
-                        </Button>
-                    </CardHeader>
-                    <CardContent className="px-0">
-                        {pendingSkeleton ? (
-                            <>
-                                <div
-                                    className="space-y-3 px-6 md:hidden"
-                                    aria-busy="true"
-                                >
-                                    {Array.from({ length: 3 }).map(
-                                        (_, index) => (
-                                            <MemberListCardSkeleton
-                                                key={`pending-card-skeleton-${index}`}
-                                            />
-                                        ),
-                                    )}
-                                </div>
-                                <div
-                                    className="hidden md:block"
-                                    aria-busy="true"
-                                >
-                                    <TableSkeleton
-                                        columns={
-                                            pendingApprovalsSkeletonColumns
-                                        }
-                                        rows={5}
-                                        tableClassName="[&_td]:px-6 [&_th]:px-6"
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="space-y-3 px-6 md:hidden">
-                                    {pendingRows.length === 0 ? (
-                                        <div className="rounded-xl border border-border/30 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                                            No accounts awaiting review.
-                                        </div>
-                                    ) : (
-                                        pendingRows.map((user) => (
-                                            <MobilePendingApprovalCard
-                                                key={user.user_id}
-                                                user={user}
-                                                isProcessing={
-                                                    processingIds[
-                                                        user.user_id
-                                                    ] ?? false
-                                                }
-                                                onApprove={(userId) =>
-                                                    updateStatus(
-                                                        userId,
-                                                        'approve',
-                                                    )
-                                                }
-                                            />
-                                        ))
-                                    )}
-                                </div>
-                                <div className="hidden md:block">
-                                    <Table>
-                                        <TableHeader className="border-b border-sidebar-border/70 text-muted-foreground dark:border-sidebar-border">
-                                            <TableRow>
-                                                <TableHead className="px-6">
-                                                    Member
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Account No
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Email
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Created
-                                                </TableHead>
-                                                <TableHead className="px-6">
-                                                    Status
-                                                </TableHead>
-                                                <TableHead className="px-6 text-right">
-                                                    Action
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {pendingRows.length === 0 ? (
-                                                <TableRow>
-                                                    <TableCell
-                                                        className="px-6 py-6 text-center text-sm text-muted-foreground"
-                                                        colSpan={6}
-                                                    >
-                                                        No accounts awaiting review.
-                                                    </TableCell>
-                                                </TableRow>
-                                            ) : (
-                                                pendingRows.map((user) => (
-                                                    <TableRow
-                                                        key={user.user_id}
-                                                        className="border-sidebar-border/70 dark:border-sidebar-border"
-                                                    >
-                                                        <TableCell className="px-6">
-                                                            <div className="flex flex-col">
-                                                                <span className="font-medium">
-                                                                    {
-                                                                        user.member_name
-                                                                    }
-                                                                </span>
-                                                                {user.member_name !==
-                                                                user.username ? (
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                        {
-                                                                            user.username
-                                                                        }
-                                                                    </span>
-                                                                ) : null}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {user.acctno ??
-                                                                '--'}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {user.email}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            {formatDate(
-                                                                user.created_at,
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="px-6">
-                                                            <Badge
-                                                                variant={statusVariant(
-                                                                    user.status,
-                                                                )}
-                                                            >
-                                                                {statusLabel(
-                                                                    user.status,
-                                                                )}
-                                                            </Badge>
-                                                        </TableCell>
-                                                        <TableCell className="px-6 text-right">
-                                                            <Button
-                                                                type="button"
-                                                                size="sm"
-                                                                disabled={
-                                                                    processingIds[
-                                                                        user
-                                                                            .user_id
-                                                                    ] ||
-                                                                    user.status !==
-                                                                        'pending'
-                                                                }
-                                                                onClick={() =>
-                                                                    updateStatus(
-                                                                        user.user_id,
-                                                                        'approve',
-                                                                    )
-                                                                }
-                                                            >
-                                                                Activate
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </>
-                        )}
-                        {loading ? (
-                            <p className="px-6 pt-3 text-xs text-muted-foreground">
-                                Refreshing summary...
-                            </p>
-                        ) : null}
-                    </CardContent>
-                </Card>
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card
@@ -720,7 +404,7 @@ export default function AdminDashboard({ summary }: Props) {
                                         ) : (
                                             lookupRows.map((member) => (
                                                 <MobileMemberLookupCard
-                                                    key={member.user_id}
+                                                    key={member.member_id}
                                                     member={member}
                                                 />
                                             ))
@@ -737,7 +421,7 @@ export default function AdminDashboard({ summary }: Props) {
                                                         Account No
                                                     </TableHead>
                                                     <TableHead>
-                                                        Status
+                                                        Registration
                                                     </TableHead>
                                                     <TableHead className="text-right">
                                                         Action
@@ -757,7 +441,7 @@ export default function AdminDashboard({ summary }: Props) {
                                                 ) : (
                                                     lookupRows.map((member) => (
                                                         <TableRow
-                                                            key={member.user_id}
+                                                            key={member.member_id}
                                                         >
                                                             <TableCell>
                                                                 <div className="flex flex-col">
@@ -766,8 +450,9 @@ export default function AdminDashboard({ summary }: Props) {
                                                                             member.member_name
                                                                         }
                                                                     </span>
-                                                                    {member.member_name !==
-                                                                    member.username ? (
+                                                                    {member.username &&
+                                                                    member.member_name !==
+                                                                        member.username ? (
                                                                         <span className="text-xs text-muted-foreground">
                                                                             {
                                                                                 member.username
@@ -782,12 +467,12 @@ export default function AdminDashboard({ summary }: Props) {
                                                             </TableCell>
                                                             <TableCell>
                                                                 <Badge
-                                                                    variant={statusVariant(
-                                                                        member.status,
+                                                                    variant={getRegistrationStatusVariant(
+                                                                        member.registration_status,
                                                                     )}
                                                                 >
-                                                                    {statusLabel(
-                                                                        member.status,
+                                                                    {getRegistrationStatusLabel(
+                                                                        member.registration_status,
                                                                     )}
                                                                 </Badge>
                                                             </TableCell>
@@ -800,7 +485,7 @@ export default function AdminDashboard({ summary }: Props) {
                                                                     <Link
                                                                         href={
                                                                             showMember(
-                                                                                member.user_id,
+                                                                                member.member_id,
                                                                             )
                                                                                 .url
                                                                         }

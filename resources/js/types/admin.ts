@@ -15,30 +15,20 @@ export type {
 } from '@/features/member-accounts/types';
 
 export type AdminMetrics = {
-    pendingCount: number;
-    activeCount: number;
+    registeredCount: number;
+    unregisteredCount: number;
     totalCount: number;
     requestsCount: number | null;
     lastSync: string | null;
 };
 
-export type MemberStatusValue = 'pending' | 'active' | 'suspended';
+export type MemberStatusValue = 'active' | 'suspended';
 
-export type MemberStatusFilter = MemberStatusValue | 'all';
+export type MemberRegistrationStatus = 'registered' | 'unregistered';
+
+export type MemberRegistrationFilter = MemberRegistrationStatus | 'all';
 
 export type MemberSort = 'newest' | 'oldest';
-
-export type PendingApprovalRow = {
-    user_id: number;
-    member_name: string;
-    username: string;
-    email: string;
-    acctno: string | null;
-    created_at: string | null;
-    status: MemberStatusValue | null;
-};
-
-export type PendingApprovalPreview = PendingApprovalRow;
 
 export type RequestPreview = {
     id: number | null;
@@ -53,7 +43,6 @@ export type RequestPreview = {
 
 export type DashboardSummary = {
     metrics: AdminMetrics;
-    pendingApprovals: PendingApprovalPreview[];
     requests: RequestPreview[];
 };
 
@@ -105,18 +94,15 @@ export type MemberLoanPaymentsResponse =
         closingBalance?: number | null;
     };
 
-export type PendingApprovalsResponse = {
-    rows: PendingApprovalRow[];
-    meta: PaginationMeta;
-};
-
 export type MemberSummary = {
-    user_id: number;
+    member_id: string;
+    user_id: number | null;
     member_name: string;
-    username: string;
-    email: string;
+    username: string | null;
+    email: string | null;
     acctno: string | null;
-    status: MemberStatusValue | null;
+    registration_status: MemberRegistrationStatus;
+    portal_status: MemberStatusValue | null;
     created_at: string | null;
     reviewed_at: string | null;
 };
@@ -127,13 +113,15 @@ export type MemberReviewedBy = {
 };
 
 export type MemberDetail = {
-    user_id: number;
+    member_id: string;
+    user_id: number | null;
     member_name?: string | null;
-    username: string;
-    email: string;
+    username: string | null;
+    email: string | null;
     phoneno: string | null;
     acctno: string | null;
-    status: MemberStatusValue | null;
+    registration_status: MemberRegistrationStatus;
+    portal_status: MemberStatusValue | null;
     created_at: string | null;
     reviewed_at: string | null;
     reviewed_by: MemberReviewedBy | null;
@@ -141,7 +129,7 @@ export type MemberDetail = {
 };
 
 export type MembersMeta = PaginationMeta & {
-    status: MemberStatusValue | null;
+    registration: MemberRegistrationStatus | null;
     sort: MemberSort;
 };
 
@@ -160,4 +148,4 @@ export type RequestsResponse = {
     };
 };
 
-export type MemberStatusAction = 'approve' | 'suspend' | 'reactivate';
+export type MemberStatusAction = 'suspend' | 'reactivate';

@@ -7,7 +7,6 @@ import {
     LayoutGrid,
     PiggyBank,
     Settings,
-    UserCheck,
     Users,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
@@ -25,7 +24,6 @@ import {
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
-import { pending as pendingApprovals } from '@/routes/admin/users';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import {
     dashboard as clientDashboard,
@@ -71,11 +69,6 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
         icon: Users,
         match: 'section',
         matchPaths: [membersIndex(), '/admin/members'],
-    },
-    {
-        title: 'Member reviews',
-        href: pendingApprovals(),
-        icon: UserCheck,
     },
     {
         title: 'Requests',

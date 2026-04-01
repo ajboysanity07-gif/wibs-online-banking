@@ -11,7 +11,6 @@ import type {
     MemberLoanSecurityLedgerResponse,
     MemberStatusAction,
     MembersResponse,
-    PendingApprovalsResponse,
     RequestsResponse,
 } from '@/types/admin';
 
@@ -30,14 +29,7 @@ const unwrap = <T>(response: AxiosResponse<ApiResponse<T>>): T => {
 
 type MembersQueryParams = {
     search?: string;
-    status?: string | null;
-    sort?: string;
-    page?: number;
-    perPage?: number;
-};
-
-type PendingApprovalsQueryParams = {
-    search?: string;
+    registration?: string | null;
     sort?: string;
     page?: number;
     perPage?: number;
@@ -87,12 +79,12 @@ export const adminApi = {
         return unwrap(response);
     },
     async getMemberDetail(
-        userId: number,
+        memberId: string | number,
         signal?: AbortSignal,
     ): Promise<MemberDetail> {
         const response = await client.get<
             ApiResponse<{ member: MemberDetail }>
-        >(`/spa/admin/members/${userId}`, { signal });
+        >(`/spa/admin/members/${memberId}`, { signal });
 
         return unwrap(response).member;
     },
@@ -105,16 +97,6 @@ export const adminApi = {
         >(`/spa/admin/members/${userId}/${action}`);
 
         return unwrap(response).member;
-    },
-    async getPendingApprovals(
-        params: PendingApprovalsQueryParams,
-        signal?: AbortSignal,
-    ): Promise<PendingApprovalsResponse> {
-        const response = await client.get<
-            ApiResponse<PendingApprovalsResponse>
-        >('/spa/admin/pending-approvals', { params, signal });
-
-        return unwrap(response);
     },
     async getRequests(
         params: RequestsQueryParams,

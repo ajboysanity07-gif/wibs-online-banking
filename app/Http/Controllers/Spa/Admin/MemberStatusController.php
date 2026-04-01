@@ -11,21 +11,6 @@ use Illuminate\Http\JsonResponse;
 
 class MemberStatusController extends Controller
 {
-    public function approve(
-        MemberStatusRequest $request,
-        AppUser $user,
-        MemberStatusService $service,
-    ): JsonResponse {
-        $member = $service->approve($user, $request->user());
-
-        return response()->json([
-            'ok' => true,
-            'data' => [
-                'member' => (new MemberDetailResource($member))->resolve(),
-            ],
-        ]);
-    }
-
     public function suspend(
         MemberStatusRequest $request,
         AppUser $user,

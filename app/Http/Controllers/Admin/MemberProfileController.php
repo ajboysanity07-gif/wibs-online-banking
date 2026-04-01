@@ -2,26 +2,49 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
+use App\Domains\MemberAccounts\Resources\MemberRecentAccountActionResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\MemberDetailResource;
 use App\Models\AppUser;
+use App\Services\Admin\MembersService;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MemberProfileController extends Controller
 {
-    public function show(AppUser $user): Response
-    {
-        $user->loadMissing('userProfile');
+    public function show(
+        string $member,
+        MembersService $service,
+        MemberAccountsService $accountsService,
+    ): Response {
+        $member = $service->getMemberDetail($member);
+        $accountsSummary = null;
+        $recentAccountActions = null;
+
+        if ($member instanceof AppUser) {
+            $summary = $accountsService->getSummary($member);
+            $accountsSummary = (new MemberAccountsSummaryResource($summary))->resolve();
+
+            $actionsPaginator = $accountsService->getPaginatedRecentActions($member, 5, 1);
+            $recentAccountActions = [
+                'items' => MemberRecentAccountActionResource::collection(
+                    $actionsPaginator->items(),
+                )->resolve(),
+                'meta' => [
+                    'page' => $actionsPaginator->currentPage(),
+                    'perPage' => $actionsPaginator->perPage(),
+                    'total' => $actionsPaginator->total(),
+                    'lastPage' => $actionsPaginator->lastPage(),
+                ],
+            ];
+        }
 
         return Inertia::render('admin/member-profile', [
-            'member' => [
-                'user_id' => $user->user_id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'acctno' => $user->acctno,
-                'status' => $user->userProfile?->status,
-                'created_at' => $user->created_at?->toDateTimeString(),
-            ],
+            'member' => (new MemberDetailResource($member))->resolve(),
+            'accountsSummary' => $accountsSummary,
+            'recentAccountActions' => $recentAccountActions,
         ]);
     }
 }

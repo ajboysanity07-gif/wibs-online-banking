@@ -271,6 +271,12 @@ class MemberAccountsRepository
                     'principal as amount',
                     'payments as movement',
                     'balance',
+                    $this->selectColumnOrDefault(
+                        'wlnled',
+                        'controlno',
+                        'null',
+                        'control_no',
+                    ),
                     DB::raw("'LOAN' as source"),
                     'principal',
                     DB::raw('null as deposit'),
@@ -305,6 +311,12 @@ class MemberAccountsRepository
                         'movement',
                     ),
                     $this->selectColumnOrDefault('wsavled', 'balance', '0'),
+                    $this->selectColumnOrDefault(
+                        'wsavled',
+                        'controlno',
+                        'null',
+                        'control_no',
+                    ),
                     DB::raw("'SAV' as source"),
                     DB::raw('null as principal'),
                     $this->selectColumnOrDefault('wsavled', 'deposit', '0'),
@@ -359,7 +371,8 @@ class MemberAccountsRepository
 
         $baseQuery = DB::query()
             ->fromSub($union, 'account_actions')
-            ->orderByDesc('date_in');
+            ->orderByDesc('date_in')
+            ->orderByDesc('control_no');
 
         $total = (clone $baseQuery)->count();
         $items = $baseQuery->forPage($page, $perPage)->get();

@@ -20,9 +20,12 @@ import { formatDate, formatDateTime } from '@/lib/formatters';
 import {
     getMemberStatusLabel,
     getMemberStatusVariant,
+    getRegistrationStatusLabel,
+    getRegistrationStatusVariant,
 } from '@/lib/member-status';
 import { dashboard } from '@/routes/admin';
 import {
+    loanPayments,
     loans as memberLoans,
     savings as memberSavings,
     show as showMember,
@@ -33,22 +36,13 @@ import type {
     MemberAccountActionsResponse,
     MemberAccountsSummary,
     MemberDetail,
-    MemberStatusValue,
+    MemberRecentAccountAction,
 } from '@/types/admin';
 
-type MemberSeed = {
-    user_id: number;
-    username: string;
-    email: string;
-    acctno: string | null;
-    status: MemberStatusValue | null;
-    created_at: string | null;
-};
-
 type Props = {
-    member: MemberSeed;
-    accountsSummary: MemberAccountsSummary;
-    recentAccountActions: MemberAccountActionsResponse;
+    member: MemberDetail;
+    accountsSummary?: MemberAccountsSummary | null;
+    recentAccountActions?: MemberAccountActionsResponse | null;
 };
 
 function LoansAndLoanSecuritySummarySection() {
@@ -88,6 +82,7 @@ function LoansAndLoanSecuritySummarySection() {
 
 function RecentAccountActionsCard() {
     const {
+        memberId,
         acctno,
         actions,
         actionsMeta,
@@ -96,6 +91,21 @@ function RecentAccountActionsCard() {
         setActionsPage,
         refreshActions,
     } = useMemberAccounts();
+
+    const resolveActionHref = (action: MemberRecentAccountAction) => {
+        if (
+            !memberId ||
+            action.source !== 'LOAN' ||
+            action.number === null
+        ) {
+            return null;
+        }
+
+        return loanPayments({
+            user: memberId,
+            loanNumber: action.number,
+        }).url;
+    };
 
     return (
         <MemberRecentAccountActionsCard
@@ -106,34 +116,26 @@ function RecentAccountActionsCard() {
             error={actionsError}
             onRetry={() => void refreshActions()}
             onPageChange={setActionsPage}
+            resolveActionHref={resolveActionHref}
         />
     );
 }
 
 export default function MemberProfile({
     member: initialMember,
-    accountsSummary,
-    recentAccountActions,
+    accountsSummary = null,
+    recentAccountActions = null,
 }: Props) {
-    const seededMember: MemberDetail = {
-        user_id: initialMember.user_id,
-        username: initialMember.username,
-        email: initialMember.email,
-        acctno: initialMember.acctno,
-        status: initialMember.status,
-        created_at: initialMember.created_at,
-        member_name: initialMember.username,
-        phoneno: null,
-        reviewed_at: null,
-        reviewed_by: null,
-        avatar_url: null,
-    };
     const { member, loading, error, setMember } = useMemberDetails(
-        initialMember.user_id,
-        seededMember,
+        initialMember.member_id,
+        initialMember,
     );
-    const currentMember = member ?? seededMember;
-    const memberName = currentMember.member_name ?? currentMember.username;
+    const currentMember = member ?? initialMember;
+    const memberName =
+        currentMember.member_name ??
+        currentMember.username ??
+        currentMember.email ??
+        'Member';
     const getInitials = useInitials();
 
     const { updateStatus, processingIds } = useUpdateMemberStatus({
@@ -142,13 +144,24 @@ export default function MemberProfile({
         },
     });
 
-    const isProcessing = processingIds[currentMember.user_id];
-    const canApprove =
-        currentMember.status === 'pending' || currentMember.status === null;
-    const canSuspend = currentMember.status === 'active';
-    const canReactivate = currentMember.status === 'suspended';
-    const statusLabel = getMemberStatusLabel(currentMember.status);
-    const statusVariant = getMemberStatusVariant(currentMember.status);
+    const isProcessing =
+        currentMember.user_id !== null
+            ? processingIds[currentMember.user_id]
+            : false;
+    const canSuspend =
+        currentMember.user_id !== null &&
+        currentMember.portal_status === 'active';
+    const canReactivate =
+        currentMember.user_id !== null &&
+        currentMember.portal_status === 'suspended';
+    const statusLabel = getMemberStatusLabel(currentMember.portal_status);
+    const statusVariant = getMemberStatusVariant(currentMember.portal_status);
+    const registrationLabel = getRegistrationStatusLabel(
+        currentMember.registration_status,
+    );
+    const registrationVariant = getRegistrationStatusVariant(
+        currentMember.registration_status,
+    );
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -157,7 +170,7 @@ export default function MemberProfile({
         },
         {
             title: 'Member profile',
-            href: showMember(initialMember.user_id).url,
+            href: showMember(initialMember.member_id).url,
         },
     ];
 
@@ -167,15 +180,15 @@ export default function MemberProfile({
             <PageShell size="wide">
                 <MemberProfileHeader
                     name={memberName}
-                    subtitle="Account status and profile details."
+                    subtitle="Profile details and portal access."
                     avatarUrl={currentMember.avatar_url}
                     avatarFallback={getInitials(memberName) || 'U'}
                     statusBadge={
                         <Badge
-                            variant={statusVariant}
+                            variant={registrationVariant}
                             className="text-[0.65rem] uppercase tracking-[0.2em]"
                         >
-                            {statusLabel}
+                            {registrationLabel}
                         </Badge>
                     }
                     meta={
@@ -184,7 +197,8 @@ export default function MemberProfile({
                                 Account No: {currentMember.acctno ?? '--'}
                             </Badge>
                             <Badge variant="outline" className="bg-background/60">
-                                Username: {currentMember.username}
+                                Portal username:{' '}
+                                {currentMember.username ?? '--'}
                             </Badge>
                         </>
                     }
@@ -219,10 +233,13 @@ export default function MemberProfile({
                             items={[
                                 { label: 'Member name', value: memberName },
                                 {
-                                    label: 'Username',
-                                    value: currentMember.username,
+                                    label: 'Portal username',
+                                    value: currentMember.username ?? '--',
                                 },
-                                { label: 'Email', value: currentMember.email },
+                                {
+                                    label: 'Email',
+                                    value: currentMember.email ?? '--',
+                                },
                                 {
                                     label: 'Phone',
                                     value: currentMember.phoneno ?? '--',
@@ -236,12 +253,12 @@ export default function MemberProfile({
                                     value: formatDate(currentMember.created_at),
                                 },
                                 {
-                                    label: 'Reviewed by',
+                                    label: 'Status updated by',
                                     value:
                                         currentMember.reviewed_by?.name ?? '--',
                                 },
                                 {
-                                    label: 'Reviewed at',
+                                    label: 'Status updated at',
                                     value: formatDateTime(
                                         currentMember.reviewed_at,
                                     ),
@@ -250,25 +267,12 @@ export default function MemberProfile({
                         />
                     </div>
                     <MemberStatusCard
+                        title="Portal access"
+                        description="Suspend or restore portal access for this member."
                         statusLabel={statusLabel}
                         statusVariant={statusVariant}
                         actions={
                             <>
-                                {canApprove ? (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        disabled={isProcessing}
-                                        onClick={() =>
-                                            updateStatus(
-                                                currentMember.user_id,
-                                                'approve',
-                                            )
-                                        }
-                                    >
-                                        Activate
-                                    </Button>
-                                ) : null}
                                 {canSuspend ? (
                                     <Button
                                         type="button"
@@ -277,7 +281,7 @@ export default function MemberProfile({
                                         disabled={isProcessing}
                                         onClick={() =>
                                             updateStatus(
-                                                currentMember.user_id,
+                                                currentMember.user_id as number,
                                                 'suspend',
                                             )
                                         }
@@ -293,7 +297,7 @@ export default function MemberProfile({
                                         disabled={isProcessing}
                                         onClick={() =>
                                             updateStatus(
-                                                currentMember.user_id,
+                                                currentMember.user_id as number,
                                                 'reactivate',
                                             )
                                         }
@@ -304,7 +308,12 @@ export default function MemberProfile({
                             </>
                         }
                         helper={
-                            loading ? 'Refreshing member status...' : undefined
+                            loading
+                                ? 'Refreshing member status...'
+                                : currentMember.registration_status ===
+                                      'unregistered'
+                                  ? 'This member does not have a portal login yet.'
+                                  : undefined
                         }
                     />
                 </div>

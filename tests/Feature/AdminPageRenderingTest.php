@@ -3,7 +3,22 @@
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\UserProfile;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
+
+beforeEach(function () {
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('lname')->nullable();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('bname')->nullable();
+        });
+    }
+});
 
 test('admin can view the admin dashboard', function () {
     $admin = User::factory()->create();
@@ -19,22 +34,18 @@ test('admin can view the admin dashboard', function () {
             ->component('admin/dashboard')
             ->has('summary')
             ->has('summary.metrics')
-            ->has('summary.pendingApprovals')
             ->has('summary.requests'));
 });
 
-test('admin can view pending approvals page', function () {
+test('pending approvals page is no longer available', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->admin()->create([
         'user_id' => $admin->user_id,
     ]);
 
-    $response = $this->actingAs($admin)->get(route('admin.users.pending'));
+    $response = $this->actingAs($admin)->get('/admin/users/pending');
 
-    $response
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('admin/pending-users'));
+    $response->assertNotFound();
 });
 
 test('admin can view watchlist page', function () {
@@ -88,4 +99,30 @@ test('admin can view member profile page', function () {
             ->component('admin/member-profile')
             ->has('member')
             ->where('member.user_id', $member->user_id));
+});
+
+test('admin can view unregistered member profile page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000888',
+        'fname' => 'Maria',
+        'lname' => 'Cruz',
+        'bname' => 'Cruz, Maria',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.show', 'acct-000888'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-profile')
+            ->has('member')
+            ->where('member.registration_status', 'unregistered')
+            ->where('member.acctno', '000888'));
 });

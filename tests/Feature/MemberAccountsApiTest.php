@@ -43,6 +43,7 @@ beforeEach(function () {
             $table->decimal('payments', 12, 2)->default(0);
             $table->decimal('balance', 12, 2)->default(0);
             $table->decimal('debit', 12, 2)->default(0);
+            $table->string('controlno')->nullable();
         });
     }
 
@@ -55,6 +56,7 @@ beforeEach(function () {
             $table->decimal('deposit', 12, 2)->default(0);
             $table->decimal('withdrawal', 12, 2)->default(0);
             $table->decimal('balance', 12, 2)->default(0);
+            $table->string('controlno')->nullable();
         });
     }
 });
@@ -255,6 +257,19 @@ test('recent account actions are paginated and ordered', function () {
         'payments' => 0,
         'balance' => 1000,
         'debit' => 0,
+        'controlno' => 'CTRL-101',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => '004',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-15 08:00:00')->toDateTimeString(),
+        'principal' => 0,
+        'payments' => 50,
+        'balance' => 950,
+        'debit' => 0,
+        'controlno' => 'CTRL-202',
     ]);
 
     DB::table('wlnled')->insert([
@@ -266,6 +281,7 @@ test('recent account actions are paginated and ordered', function () {
         'payments' => 200,
         'balance' => 800,
         'debit' => 0,
+        'controlno' => 'CTRL-050',
     ]);
 
     DB::table('wlnled')->insert([
@@ -277,6 +293,7 @@ test('recent account actions are paginated and ordered', function () {
         'payments' => 150,
         'balance' => 650,
         'debit' => 0,
+        'controlno' => 'CTRL-001',
     ]);
 
     DB::table('wsvmaster')->insert([
@@ -349,14 +366,15 @@ test('recent account actions are paginated and ordered', function () {
 
     expect($response->json('data.items'))->toHaveCount(5);
     expect($response->json('data.meta.perPage'))->toBe(5);
-    expect($response->json('data.meta.total'))->toBe(5);
-    expect($response->json('data.items.0.ln_sv_number'))->toBe('LN001');
+    expect($response->json('data.meta.total'))->toBe(6);
+    expect($response->json('data.items.0.ln_sv_number'))->toBe('LN004');
     expect($response->json('data.items.0.source'))->toBe('LOAN');
+    expect($response->json('data.items.0.control_no'))->toBe('CTRL-202');
     $numbers = collect($response->json('data.items'))->pluck('ln_sv_number')->all();
 
     expect($numbers)->not->toContain('SV100');
     expect($numbers)->toContain('SV101');
-    expect($numbers)->toContain('SV102');
+    expect($numbers)->not->toContain('SV102');
 });
 
 test('member loans endpoint is paginated', function () {

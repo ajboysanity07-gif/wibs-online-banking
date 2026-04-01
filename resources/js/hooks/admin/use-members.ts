@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import type {
-    MemberStatusFilter,
+    MemberRegistrationFilter,
     MemberSort,
     MembersResponse,
 } from '@/types/admin';
 
 type MembersParams = {
     search: string;
-    status: MemberStatusFilter;
+    registration: MemberRegistrationFilter;
     sort: MemberSort;
     page: number;
     perPage: number;
@@ -29,7 +29,7 @@ type MembersOptions = {
 const emptyResponse: MembersResponse = {
     items: [],
     meta: {
-        status: null,
+        registration: null,
         sort: 'newest',
         page: 1,
         perPage: 10,
@@ -65,8 +65,10 @@ export function useMembers(
                     {
                         search:
                             trimmedSearch !== '' ? trimmedSearch : undefined,
-                        status:
-                            params.status === 'all' ? undefined : params.status,
+                        registration:
+                            params.registration === 'all'
+                                ? undefined
+                                : params.registration,
                         sort: params.sort,
                         page: params.page,
                         perPage: params.perPage,
@@ -96,7 +98,7 @@ export function useMembers(
         params.refreshKey,
         params.search,
         params.sort,
-        params.status,
+        params.registration,
         options?.debounceMs,
         options?.enabled,
     ]);

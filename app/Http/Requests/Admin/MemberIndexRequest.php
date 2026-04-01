@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Support\MemberStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +24,7 @@ class MemberIndexRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', Rule::in(MemberStatus::values())],
+            'registration' => ['nullable', 'string', Rule::in(['registered', 'unregistered'])],
             'sort' => ['nullable', 'string', Rule::in(['newest', 'oldest'])],
             'perPage' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],

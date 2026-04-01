@@ -4,7 +4,6 @@ namespace App\Support;
 
 enum MemberStatus: string
 {
-    case Pending = 'pending';
     case Active = 'active';
     case Suspended = 'suspended';
 

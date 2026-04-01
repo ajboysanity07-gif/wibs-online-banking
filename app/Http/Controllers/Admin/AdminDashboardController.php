@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\PendingApprovalPreviewResource;
 use App\Http\Resources\Admin\RequestPreviewResource;
 use App\Http\Resources\Admin\WatchlistItemResource;
 use App\Services\Admin\AdminDashboardService;
@@ -16,9 +15,6 @@ class AdminDashboardController extends Controller
     public function index(AdminDashboardService $dashboardService): Response
     {
         $metrics = $dashboardService->getMetrics();
-        $pendingApprovals = PendingApprovalPreviewResource::collection(
-            $dashboardService->getPendingApprovalsPreview()
-        )->resolve();
         $recentRequests = RequestPreviewResource::collection(
             $dashboardService->getRecentRequestsPreview()
         )->resolve();
@@ -35,7 +31,6 @@ class AdminDashboardController extends Controller
         return Inertia::render('admin/dashboard', [
             'summary' => [
                 'metrics' => $metrics,
-                'pendingApprovals' => $pendingApprovals,
                 'requests' => $recentRequests,
                 'watchlist' => [
                     'available' => false,

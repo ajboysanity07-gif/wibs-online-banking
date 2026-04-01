@@ -31,6 +31,7 @@ export type MemberRecentAccountActionSource = 'LOAN' | 'SAV';
 
 export type MemberRecentAccountAction = {
     acctno: string | null;
+    number: string | number | null;
     ln_sv_number: string | null;
     date_in: string | null;
     transaction_type: string | null;
@@ -38,6 +39,7 @@ export type MemberRecentAccountAction = {
     movement: number | null;
     balance: number | null;
     source: MemberRecentAccountActionSource | null;
+    control_no: string | number | null;
     principal: number | null;
     deposit: number | null;
     withdrawal: number | null;

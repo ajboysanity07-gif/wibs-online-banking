@@ -50,15 +50,13 @@ test('admin members list uses the shared layout primitives', async () => {
     assert.match(file, /<SectionHeader/);
 });
 
-test('admin pending approvals uses the shared layout primitives', async () => {
+test('admin navigation removes member reviews entry', async () => {
     const file = await readFile(
-        resolve('resources', 'js', 'pages', 'admin', 'pending-users.tsx'),
+        resolve('resources', 'js', 'components', 'app-sidebar.tsx'),
         'utf8',
     );
 
-    assert.match(file, /<PageHero/);
-    assert.match(file, /<SurfaceCard/);
-    assert.match(file, /<SectionHeader/);
+    assert.doesNotMatch(file, /Member reviews/);
 });
 
 test('organization settings uses the shared page hero', async () => {
@@ -76,6 +74,16 @@ test('organization settings uses the shared page hero', async () => {
     assert.match(file, /<PageHero/);
     assert.match(file, /<SurfaceCard/);
     assert.match(file, /<SectionHeader/);
+});
+
+test('member profile links loan actions to the payments page', async () => {
+    const file = await readFile(
+        resolve('resources', 'js', 'pages', 'admin', 'member-profile.tsx'),
+        'utf8',
+    );
+
+    assert.match(file, /loanPayments/);
+    assert.match(file, /action\.source !== 'LOAN'/);
 });
 
 test('settings layout uses the shared shell and hero', async () => {

@@ -10,13 +10,12 @@ type DashboardState = {
 
 const emptySummary: DashboardSummary = {
     metrics: {
-        pendingCount: 0,
-        activeCount: 0,
+        registeredCount: 0,
+        unregisteredCount: 0,
         totalCount: 0,
         requestsCount: null,
         lastSync: null,
     },
-    pendingApprovals: [],
     requests: [],
 };
 

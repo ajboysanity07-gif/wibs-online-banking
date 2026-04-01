@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberIndexRequest;
 use App\Http\Resources\Admin\MemberDetailResource;
 use App\Http\Resources\Admin\MemberSummaryResource;
-use App\Models\AppUser;
 use App\Services\Admin\MembersService;
 use Illuminate\Http\JsonResponse;
 
@@ -15,13 +14,13 @@ class MembersController extends Controller
     public function index(MemberIndexRequest $request, MembersService $service): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
-        $status = $request->query('status');
+        $registration = $request->query('registration');
         $sort = (string) $request->query('sort', 'newest');
         $perPage = (int) $request->query('perPage', 10);
 
         $paginator = $service->getPaginated(
             $search,
-            is_string($status) ? $status : null,
+            is_string($registration) ? $registration : null,
             $sort,
             $perPage,
         );
@@ -33,7 +32,7 @@ class MembersController extends Controller
             'data' => [
                 'items' => $items,
                 'meta' => [
-                    'status' => is_string($status) ? $status : null,
+                    'registration' => is_string($registration) ? $registration : null,
                     'sort' => $sort,
                     'page' => $paginator->currentPage(),
                     'perPage' => $paginator->perPage(),
@@ -44,15 +43,9 @@ class MembersController extends Controller
         ]);
     }
 
-    public function show(AppUser $user, MembersService $service): JsonResponse
+    public function show(string $member, MembersService $service): JsonResponse
     {
-        $user->loadMissing('adminProfile');
-
-        if ($user->adminProfile !== null) {
-            abort(404);
-        }
-
-        $member = $service->getMemberDetail($user);
+        $member = $service->getMemberDetail($member);
 
         return response()->json([
             'ok' => true,

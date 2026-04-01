@@ -9,30 +9,11 @@ use Illuminate\Validation\ValidationException;
 
 class MemberStatusService
 {
-    public function approve(AppUser $user, AppUser $actor): AppUser
-    {
-        $this->guardTargetUser($user);
-
-        $currentStatus = $user->userProfile?->status;
-
-        if ($currentStatus === MemberStatus::Active->value) {
-            return $this->loadMember($user);
-        }
-
-        if ($currentStatus !== null && $currentStatus !== MemberStatus::Pending->value) {
-            throw ValidationException::withMessages([
-                'status' => 'Only pending members can be approved.',
-            ]);
-        }
-
-        return $this->updateStatus($user, $actor, MemberStatus::Active);
-    }
-
     public function suspend(AppUser $user, AppUser $actor): AppUser
     {
         $this->guardTargetUser($user);
 
-        $currentStatus = $user->userProfile?->status;
+        $currentStatus = $user->userProfile?->status ?? MemberStatus::Active->value;
 
         if ($currentStatus === MemberStatus::Suspended->value) {
             return $this->loadMember($user);
@@ -51,7 +32,7 @@ class MemberStatusService
     {
         $this->guardTargetUser($user);
 
-        $currentStatus = $user->userProfile?->status;
+        $currentStatus = $user->userProfile?->status ?? MemberStatus::Active->value;
 
         if ($currentStatus === MemberStatus::Active->value) {
             return $this->loadMember($user);

@@ -22,6 +22,7 @@ class MemberRecentAccountActionResource extends JsonResource
 
         return [
             'acctno' => $this->acctno,
+            'number' => $number,
             'ln_sv_number' => $lnSvNumber,
             'date_in' => $this->formatDateValue($this->date_in),
             'transaction_type' => $this->transaction_type,
@@ -29,12 +30,30 @@ class MemberRecentAccountActionResource extends JsonResource
             'movement' => $this->castNumber($this->movement),
             'balance' => $this->castNumber($this->balance),
             'source' => $source !== '' ? $source : null,
+            'control_no' => $this->resolveControlNo(),
             'principal' => $this->castNumber($this->principal),
             'deposit' => $this->castNumber($this->deposit),
             'withdrawal' => $this->castNumber($this->withdrawal),
             'payments' => $this->castNumber($this->payments),
             'debit' => $this->castNumber($this->debit),
         ];
+    }
+
+    private function resolveControlNo(): ?string
+    {
+        $controlNo = data_get($this->resource, 'control_no');
+
+        if ($controlNo !== null && $controlNo !== '') {
+            return (string) $controlNo;
+        }
+
+        $controlNo = data_get($this->resource, 'controlno');
+
+        if ($controlNo !== null && $controlNo !== '') {
+            return (string) $controlNo;
+        }
+
+        return null;
     }
 
     private function castNumber(mixed $value): ?float
