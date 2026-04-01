@@ -74,6 +74,32 @@ test('active users can visit the dashboard', function () {
             ->where('recentAccountActions.meta.page', 1));
 });
 
+test('completed profiles can access the dashboard without a complete verified record', function () {
+    $user = User::factory()->create([
+        'acctno' => '000702',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Incomplete, Member',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $this->actingAs($user);
+
+    $response = $this->get(route('client.dashboard'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/dashboard')
+            ->where('member.acctno', '000702'));
+});
+
 test('active users without a completed profile are redirected to onboarding', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([

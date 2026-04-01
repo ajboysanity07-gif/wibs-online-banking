@@ -224,6 +224,57 @@ class Wmaster extends Model
             && $this->hasValue($this->occupation);
     }
 
+    /**
+     * @return list<string>
+     */
+    public function missingRequiredProfileFields(): array
+    {
+        $missing = [];
+        $hasName = $this->hasStructuredName() || $this->hasValue($this->bname);
+        $hasAddress = $this->hasStructuredAddressParts() || $this->hasValue($this->address);
+
+        if (! $hasName) {
+            $missing[] = 'name';
+        }
+
+        if (! $this->hasValue($this->birthday)) {
+            $missing[] = 'birthday';
+        }
+
+        if (! $hasAddress) {
+            $missing[] = 'address';
+        }
+
+        if (! $this->hasValue($this->civilstat)) {
+            $missing[] = 'civil_status';
+        }
+
+        if (! $this->hasValue($this->occupation)) {
+            $missing[] = 'occupation';
+        }
+
+        return $missing;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingRequiredProfileFieldLabels(): array
+    {
+        $labels = [
+            'name' => 'Name',
+            'birthday' => 'Birthday',
+            'address' => 'Address',
+            'civil_status' => 'Civil status',
+            'occupation' => 'Occupation',
+        ];
+
+        return array_values(array_map(
+            static fn (string $field): string => $labels[$field] ?? $field,
+            $this->missingRequiredProfileFields(),
+        ));
+    }
+
     private function normalizeValue(?string $value): string
     {
         $normalized = Str::upper(trim((string) $value));

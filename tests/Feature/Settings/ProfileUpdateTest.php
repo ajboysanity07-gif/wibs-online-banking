@@ -53,6 +53,63 @@ test('profile page is displayed', function () {
         );
 });
 
+test('profile page includes completion details for incomplete profiles', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit', ['onboarding' => 1]));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('profileCompletion.isComplete', false)
+            ->where(
+                'profileCompletion.missingFields',
+                fn ($value) => collect($value)->contains('Birthplace city')
+                    && collect($value)->contains('Payday'),
+            )
+            ->where('profileCompletion.warnings', ['Verified member record is missing.']));
+});
+
+test('incomplete profile updates stay on onboarding with missing fields', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->from(route('profile.edit', ['onboarding' => 1]))
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+        ]);
+
+    $response
+        ->assertSessionHasErrors()
+        ->assertRedirect(route('profile.edit', ['onboarding' => 1]));
+
+    $page = $this
+        ->actingAs($user)
+        ->get(route('profile.edit', ['onboarding' => 1]));
+
+    $page->assertInertia(fn (Assert $page) => $page
+        ->component('settings/profile')
+        ->where('profileCompletion.isComplete', false)
+        ->where(
+            'profileCompletion.missingFields',
+            fn ($value) => collect($value)->contains('Educational attainment')
+                && collect($value)->contains('Payday'),
+        ));
+});
+
 test('admin profile page is displayed', function () {
     $user = User::factory()->create();
     AdminProfile::factory()->create([
@@ -380,17 +437,6 @@ test('profile information can be updated', function () {
         'user_id' => $user->user_id,
     ]);
 
-    DB::table('wmaster')->insert([
-        'acctno' => $user->acctno,
-        'bname' => 'Santos, Renee',
-        'fname' => 'Renee',
-        'lname' => 'Santos',
-        'birthday' => '1990-05-12',
-        'address' => '123 Mabini Street',
-        'civilstat' => 'Single',
-        'occupation' => 'Analyst',
-    ]);
-
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
@@ -421,7 +467,7 @@ test('profile information can be updated', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect(route('client.dashboard'));
 
     $user->refresh();
 
@@ -500,7 +546,7 @@ test('profile information can be updated with other nature of business', functio
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect(route('client.dashboard'));
 
     $memberProfile = $user->refresh()->memberApplicationProfile;
 
@@ -601,7 +647,7 @@ test('member profile information can be updated with a profile photo', function 
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect(route('client.dashboard'));
 
     $userProfile = $user->refresh()->userProfile;
 
@@ -650,7 +696,7 @@ test('member profile photo replacements remove the old file', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect(route('client.dashboard'));
 
     $userProfile = $user->refresh()->userProfile;
 
@@ -700,7 +746,7 @@ test('email verification status is unchanged when the email address is unchanged
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect(route('client.dashboard'));
 
     expect($user->refresh()->email_verified_at)->not->toBeNull();
 });

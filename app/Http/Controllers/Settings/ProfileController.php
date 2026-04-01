@@ -91,6 +91,14 @@ class ProfileController extends Controller
             }
 
             $user->syncMemberApplicationProfileCompletion($memberProfile);
+
+            $user->setRelation('memberApplicationProfile', $memberProfile);
+
+            if ($user->memberApplicationProfileIsComplete()) {
+                return to_route('client.dashboard');
+            }
+
+            return to_route('profile.edit', ['onboarding' => 1]);
         }
 
         return to_route('profile.edit');

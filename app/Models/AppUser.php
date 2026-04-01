@@ -88,16 +88,60 @@ class AppUser extends Authenticatable
 
     public function memberApplicationProfileIsComplete(): bool
     {
-        $this->loadMissing('memberApplicationProfile');
+        return $this->memberApplicationProfileHasRequiredFields();
+    }
 
-        $memberProfile = $this->memberApplicationProfile;
+    public function memberApplicationProfileHasRequiredFields(
+        ?MemberApplicationProfile $memberProfile = null,
+    ): bool {
+        if ($memberProfile === null) {
+            $this->loadMissing('memberApplicationProfile');
+            $memberProfile = $this->memberApplicationProfile;
+        }
 
         if ($memberProfile === null) {
             return false;
         }
 
-        return $this->hasCanonicalMemberRecord()
-            && $memberProfile->hasRequiredFields();
+        return $memberProfile->hasRequiredFields();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingMemberApplicationProfileFields(
+        ?MemberApplicationProfile $memberProfile = null,
+    ): array {
+        if ($memberProfile === null) {
+            $this->loadMissing('memberApplicationProfile');
+            $memberProfile = $this->memberApplicationProfile;
+        }
+
+        if ($memberProfile === null) {
+            return MemberApplicationProfile::completionRequiredFields();
+        }
+
+        return $memberProfile->missingRequiredFields();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingMemberApplicationProfileFieldLabels(
+        ?MemberApplicationProfile $memberProfile = null,
+    ): array {
+        $missingFields = $this->missingMemberApplicationProfileFields($memberProfile);
+
+        if ($missingFields === []) {
+            return [];
+        }
+
+        $labels = MemberApplicationProfile::completionRequiredFieldLabels();
+
+        return array_values(array_map(
+            static fn (string $field): string => $labels[$field] ?? $field,
+            $missingFields,
+        ));
     }
 
     public function syncMemberApplicationProfileCompletion(?MemberApplicationProfile $memberProfile = null): void
@@ -111,7 +155,7 @@ class AppUser extends Authenticatable
             return;
         }
 
-        if ($this->hasCanonicalMemberRecord() && $memberProfile->hasRequiredFields()) {
+        if ($this->memberApplicationProfileHasRequiredFields($memberProfile)) {
             $memberProfile->profile_completed_at ??= now();
         } else {
             $memberProfile->profile_completed_at = null;

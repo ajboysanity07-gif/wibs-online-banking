@@ -131,19 +131,61 @@ class MemberApplicationProfile extends Model
 
     public function hasRequiredFields(): bool
     {
+        return $this->missingRequiredFields() === [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingRequiredFields(): array
+    {
+        $missing = [];
+
         foreach (self::completionRequiredFields() as $field) {
             $value = $this->getAttribute($field);
 
             if ($value === null) {
-                return false;
+                $missing[] = $field;
+
+                continue;
             }
 
             if (is_string($value) && trim($value) === '') {
-                return false;
+                $missing[] = $field;
             }
         }
 
-        return true;
+        return $missing;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function completionRequiredFieldLabels(): array
+    {
+        return [
+            'birthplace_city' => 'Birthplace city',
+            'educational_attainment' => 'Educational attainment',
+            'length_of_stay' => 'Length of stay',
+            'employment_type' => 'Employment type',
+            'employer_business_name' => 'Employer or business name',
+            'current_position' => 'Current position',
+            'gross_monthly_income' => 'Gross monthly income',
+            'payday' => 'Payday',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingRequiredFieldLabels(): array
+    {
+        $labels = self::completionRequiredFieldLabels();
+
+        return array_values(array_map(
+            static fn (string $field): string => $labels[$field] ?? $field,
+            $this->missingRequiredFields(),
+        ));
     }
 
     /**

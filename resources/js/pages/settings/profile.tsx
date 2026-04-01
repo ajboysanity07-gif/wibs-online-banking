@@ -111,6 +111,8 @@ type MemberApplicationProfileData = {
 type ProfileCompletion = {
     isComplete: boolean;
     completedAt: string | null;
+    missingFields: string[];
+    warnings: string[];
 };
 
 type Props = {
@@ -380,8 +382,16 @@ export default function Profile({
     const isBirthplaceLocked = hasWmasterValue(memberBirthplace);
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
+    const missingProfileFields = profileCompletion?.missingFields ?? [];
+    const completionWarnings = profileCompletion?.warnings ?? [];
     const showOnboardingAlert =
         onboarding && adminProfile === null && !isProfileComplete;
+    const showMissingProfileFields =
+        adminProfile === null &&
+        !isProfileComplete &&
+        missingProfileFields.length > 0;
+    const showCompletionWarnings =
+        adminProfile === null && completionWarnings.length > 0;
     const initialBirthplaceCity =
         memberApplicationProfile?.birthplace_city?.trim() ||
         memberBirthplaceCity;
@@ -684,6 +694,52 @@ export default function Profile({
                                                 </AlertDescription>
                                             </Alert>
                                         )}
+
+                                        {showMissingProfileFields ? (
+                                            <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
+                                                <AlertTitle>
+                                                    Missing required details
+                                                </AlertTitle>
+                                                <AlertDescription className="text-amber-900 dark:text-amber-100">
+                                                    <p>
+                                                        Complete the following
+                                                        required fields to
+                                                        finish onboarding:
+                                                    </p>
+                                                    <ul className="mt-2 list-disc pl-5 text-sm">
+                                                        {missingProfileFields.map(
+                                                            (field) => (
+                                                                <li key={field}>
+                                                                    {field}
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                </AlertDescription>
+                                            </Alert>
+                                        ) : null}
+
+                                        {showCompletionWarnings ? (
+                                            <Alert className="border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800/50 dark:bg-slate-950/40 dark:text-slate-100">
+                                                <AlertTitle>
+                                                    Verified member record
+                                                    notice
+                                                </AlertTitle>
+                                                <AlertDescription className="text-slate-700 dark:text-slate-200">
+                                                    <ul className="mt-2 list-disc pl-5 text-sm">
+                                                        {completionWarnings.map(
+                                                            (warning) => (
+                                                                <li
+                                                                    key={warning}
+                                                                >
+                                                                    {warning}
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                </AlertDescription>
+                                            </Alert>
+                                        ) : null}
 
                                         <Form
                                             {...ProfileController.update.form()}
