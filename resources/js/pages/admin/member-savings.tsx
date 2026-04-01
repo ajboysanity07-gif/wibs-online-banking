@@ -1,13 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
 import { Clock, PiggyBank } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { MemberAccountAlert } from '@/components/member-account-alert';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
-import { MemberSavingsLedgerCard } from '@/components/member-savings-ledger-card';
+import { MemberSavingsLedgerCard } from '@/features/member-accounts/components/member-savings-ledger-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageShell } from '@/components/page-shell';

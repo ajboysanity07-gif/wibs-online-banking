@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Spa\Admin;
 
+use App\Domains\MemberAccounts\Resources\MemberLoanResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberAccountLoansRequest;
-use App\Http\Resources\Admin\MemberLoanResource;
 use App\Models\AppUser;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Http\JsonResponse;
 
 class MemberLoansController extends Controller

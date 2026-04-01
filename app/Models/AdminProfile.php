@@ -10,6 +10,10 @@ class AdminProfile extends Model
 {
     use HasFactory;
 
+    public const ACCESS_LEVEL_ADMIN = 'admin';
+
+    public const ACCESS_LEVEL_SUPERADMIN = 'superadmin';
+
     protected $table = 'admin_profiles';
 
     protected $primaryKey = 'user_id';
@@ -24,10 +28,16 @@ class AdminProfile extends Model
     protected $fillable = [
         'user_id',
         'fullname',
+        'access_level',
         'profile_pic_path',
         'reviewed_by',
         'reviewed_at',
     ];
+
+    public function isSuperadmin(): bool
+    {
+        return $this->access_level === self::ACCESS_LEVEL_SUPERADMIN;
+    }
 
     public function appUser(): BelongsTo
     {

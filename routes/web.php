@@ -233,9 +233,11 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
         ->name('admin.watchlist.index');
 
     Route::get('settings/organization', [OrganizationSettingsController::class, 'index'])
+        ->middleware('superadmin')
         ->name('admin.settings.organization');
 
     Route::patch('settings/organization', [OrganizationSettingsController::class, 'update'])
+        ->middleware('superadmin')
         ->name('admin.settings.organization.update');
 });
 

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\AdminProfile;
 use App\Models\AppUser;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,9 +21,24 @@ class AdminProfileFactory extends Factory
         return [
             'user_id' => AppUser::factory(),
             'fullname' => fake()->name(),
+            'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
             'profile_pic_path' => null,
             'reviewed_by' => null,
             'reviewed_at' => null,
         ];
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
+        ]);
+    }
+
+    public function superadmin(): static
+    {
+        return $this->state(fn () => [
+            'access_level' => AdminProfile::ACCESS_LEVEL_SUPERADMIN,
+        ]);
     }
 }

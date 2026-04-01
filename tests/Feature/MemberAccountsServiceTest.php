@@ -1,7 +1,7 @@
 <?php
 
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Models\AppUser as User;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;

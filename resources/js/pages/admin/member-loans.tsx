@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { Banknote, Clock } from 'lucide-react';
 import { useState } from 'react';
-import { MemberAccountAlert } from '@/components/member-account-alert';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,

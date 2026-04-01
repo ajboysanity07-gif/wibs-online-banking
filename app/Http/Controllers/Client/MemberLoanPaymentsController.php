@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Domains\MemberAccounts\Resources\MemberLoanResource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\MemberLoanPaymentsRequest;
 use App\Http\Resources\Admin\MemberLoanPaymentResource;
-use App\Http\Resources\Admin\MemberLoanResource;
 use App\Http\Resources\Admin\MemberLoanSummaryResource;
 use App\Services\Admin\MemberLoans\MemberLoanExportService;
 use App\Services\Admin\MemberLoans\MemberLoanService;

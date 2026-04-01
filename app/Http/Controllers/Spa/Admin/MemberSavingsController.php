@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Spa\Admin;
 
+use App\Domains\MemberAccounts\Resources\MemberLoanSecurityLedgerResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberAccountSavingsRequest;
-use App\Http\Resources\Admin\MemberSavingsLedgerResource;
 use App\Models\AppUser;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Http\JsonResponse;
 
 class MemberSavingsController extends Controller
@@ -29,7 +29,7 @@ class MemberSavingsController extends Controller
         $perPage = (int) $request->query('perPage', 10);
 
         $paginator = $service->getPaginatedLoanSecurity($user, $perPage, $page);
-        $items = MemberSavingsLedgerResource::collection($paginator->items())->resolve();
+        $items = MemberLoanSecurityLedgerResource::collection($paginator->items())->resolve();
 
         return response()->json([
             'ok' => true,

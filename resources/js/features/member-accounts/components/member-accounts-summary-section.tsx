@@ -1,10 +1,10 @@
 import { Banknote, PiggyBank } from 'lucide-react';
-import { MemberAccountSummaryCard } from '@/components/member-account-summary-card';
+import { MemberAccountSummaryCard } from '@/features/member-accounts/components/member-account-summary-card';
 import { SectionHeader } from '@/components/section-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import type { MemberAccountsSummary } from '@/types/admin';
+import type { MemberAccountsSummary } from '@/features/member-accounts/types';
 
 type SummaryAction = {
     label: string;

@@ -7,7 +7,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 test('admin can view the admin dashboard', function () {
     $admin = User::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->admin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -25,7 +25,7 @@ test('admin can view the admin dashboard', function () {
 
 test('admin can view pending approvals page', function () {
     $admin = User::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->admin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -39,7 +39,7 @@ test('admin can view pending approvals page', function () {
 
 test('admin can view watchlist page', function () {
     $admin = User::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->admin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -53,7 +53,7 @@ test('admin can view watchlist page', function () {
 
 test('admin can view requests page', function () {
     $admin = User::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->admin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -67,7 +67,7 @@ test('admin can view requests page', function () {
 
 test('admin can view member profile page', function () {
     $admin = User::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->admin()->create([
         'user_id' => $admin->user_id,
     ]);
 

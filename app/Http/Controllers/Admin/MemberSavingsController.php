@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
+use App\Domains\MemberAccounts\Resources\MemberLoanSecurityLedgerResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\MemberAccountsSummaryResource;
-use App\Http\Resources\Admin\MemberSavingsLedgerResource;
 use App\Models\AppUser;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,7 +36,7 @@ class MemberSavingsController extends Controller
             ],
             'summary' => (new MemberAccountsSummaryResource($summary))->resolve(),
             'savings' => [
-                'items' => MemberSavingsLedgerResource::collection($paginator->items())->resolve(),
+                'items' => MemberLoanSecurityLedgerResource::collection($paginator->items())->resolve(),
                 'meta' => [
                     'page' => $paginator->currentPage(),
                     'perPage' => $paginator->perPage(),

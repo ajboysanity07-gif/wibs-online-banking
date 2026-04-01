@@ -1,8 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
-import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
+import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
-import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
+import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';

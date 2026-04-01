@@ -41,6 +41,7 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $user?->loadMissing('adminProfile', 'userProfile');
         $isAdmin = $user?->isAdmin() ?? false;
+        $isSuperadmin = $user?->isSuperadmin() ?? false;
 
         return [
             ...parent::share($request),
@@ -49,6 +50,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user?->withoutRelations(),
                 'isAdmin' => $isAdmin,
+                'isSuperadmin' => $isSuperadmin,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

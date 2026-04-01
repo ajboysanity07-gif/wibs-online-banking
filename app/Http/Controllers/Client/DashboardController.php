@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
+use App\Domains\MemberAccounts\Resources\MemberRecentAccountActionResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\MemberAccountsSummaryResource;
-use App\Http\Resources\Admin\MemberRecentAccountActionResource;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use App\Support\SchemaCapabilities;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

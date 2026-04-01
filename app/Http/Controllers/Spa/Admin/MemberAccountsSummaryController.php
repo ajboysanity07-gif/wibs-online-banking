@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Spa\Admin;
 
+use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\MemberAccountsSummaryResource;
 use App\Models\AppUser;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Http\JsonResponse;
 
 class MemberAccountsSummaryController extends Controller

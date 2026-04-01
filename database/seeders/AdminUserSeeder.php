@@ -66,7 +66,10 @@ class AdminUserSeeder extends Seeder
 
         AdminProfile::query()->updateOrCreate(
             ['user_id' => $admin->user_id],
-            ['fullname' => $fullname],
+            [
+                'fullname' => $fullname,
+                'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
+            ],
         );
 
         $this->command?->info(

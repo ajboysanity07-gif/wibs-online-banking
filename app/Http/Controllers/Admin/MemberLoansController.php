@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
+use App\Domains\MemberAccounts\Resources\MemberLoanResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\MemberAccountsSummaryResource;
-use App\Http\Resources\Admin\MemberLoanResource;
 use App\Models\AppUser;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;

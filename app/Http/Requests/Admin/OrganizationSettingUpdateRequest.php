@@ -14,7 +14,7 @@ class OrganizationSettingUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->adminProfile !== null;
+        return $this->user()?->isSuperadmin() ?? false;
     }
 
     /**

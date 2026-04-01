@@ -59,7 +59,7 @@ const baseNavItems: NavItem[] = [
     },
 ];
 
-const adminNavItems: NavItem[] = [
+const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
     {
         title: 'Admin Dashboard',
         href: adminDashboard(),
@@ -83,11 +83,15 @@ const adminNavItems: NavItem[] = [
         icon: FileText,
         match: 'section',
     },
-    {
-        title: 'Organization settings',
-        href: organizationSettings(),
-        icon: Settings,
-    },
+    ...(isSuperadmin
+        ? [
+              {
+                  title: 'Organization settings',
+                  href: organizationSettings(),
+                  icon: Settings,
+              },
+          ]
+        : []),
 ];
 
 const footerNavItems: NavItem[] = [
@@ -106,7 +110,9 @@ const footerNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
     const isAdminUser = auth.isAdmin;
-    const mainNavItems = isAdminUser ? adminNavItems : baseNavItems;
+    const mainNavItems = isAdminUser
+        ? adminNavItems(auth.isSuperadmin)
+        : baseNavItems;
     const homeLink = isAdminUser ? adminDashboard() : clientDashboard();
 
     return (

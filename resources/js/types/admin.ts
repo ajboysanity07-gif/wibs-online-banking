@@ -1,4 +1,18 @@
+import type { PaginatedResponse, PaginationMeta } from './pagination';
 import type { LoanRequestStatusValue } from './loan-requests';
+
+export type { PaginatedResponse, PaginationMeta } from './pagination';
+export type {
+    MemberAccountActionsResponse,
+    MemberAccountsSummary,
+    MemberLoan,
+    MemberLoanSecurity,
+    MemberLoanSecurityLedgerEntry,
+    MemberLoanSecurityLedgerResponse,
+    MemberLoansResponse,
+    MemberRecentAccountAction,
+    MemberRecentAccountActionSource,
+} from '@/features/member-accounts/types';
 
 export type AdminMetrics = {
     pendingCount: number;
@@ -41,73 +55,6 @@ export type DashboardSummary = {
     metrics: AdminMetrics;
     pendingApprovals: PendingApprovalPreview[];
     requests: RequestPreview[];
-};
-
-export type PaginationMeta = {
-    page: number;
-    perPage: number;
-    total: number;
-    lastPage: number;
-};
-
-export type PaginatedResponse<T> = {
-    items: T[];
-    meta: PaginationMeta;
-};
-
-export type MemberLoan = {
-    lnnumber: string | number | null;
-    lntype: string | null;
-    principal: number | null;
-    balance: number | null;
-    lastmove: string | null;
-    initial: number | null;
-};
-
-export type MemberLoanSecurity = {
-    svnumber: string | number | null;
-    svtype: string | null;
-    mortuary: number | null;
-    balance: number | null;
-    wbalance: number | null;
-    lastmove: string | null;
-};
-
-export type MemberLoanSecurityLedgerEntry = {
-    svnumber: string | number | null;
-    svtype: string | null;
-    date_in: string | null;
-    deposit: number | null;
-    withdrawal: number | null;
-    balance: number | null;
-};
-
-export type MemberRecentAccountActionSource = 'LOAN' | 'SAV';
-
-export type MemberRecentAccountAction = {
-    acctno: string | null;
-    ln_sv_number: string | null;
-    date_in: string | null;
-    transaction_type: string | null;
-    amount: number | null;
-    movement: number | null;
-    balance: number | null;
-    source: MemberRecentAccountActionSource | null;
-    principal: number | null;
-    deposit: number | null;
-    withdrawal: number | null;
-    payments: number | null;
-    debit: number | null;
-};
-
-export type MemberAccountsSummary = {
-    loanBalanceLeft: number;
-    currentLoanSecurityBalance: number;
-    currentLoanSecurityTotal: number;
-    lastLoanTransactionDate: string | null;
-    lastLoanSecurityTransactionDate: string | null;
-    recentLoans: MemberLoan[];
-    recentLoanSecurity: MemberLoanSecurity[];
 };
 
 export type MemberLoanSummary = {
@@ -202,14 +149,6 @@ export type MembersResponse = {
     items: MemberSummary[];
     meta: MembersMeta;
 };
-
-export type MemberAccountActionsResponse =
-    PaginatedResponse<MemberRecentAccountAction>;
-
-export type MemberLoansResponse = PaginatedResponse<MemberLoan>;
-
-export type MemberLoanSecurityLedgerResponse =
-    PaginatedResponse<MemberLoanSecurityLedgerEntry>;
 
 export type RequestsResponse = {
     items: RequestPreview[];

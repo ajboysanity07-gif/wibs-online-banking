@@ -8,9 +8,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('admin can view organization branding settings page', function () {
+test('superadmin can view organization branding settings page', function () {
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -26,6 +26,17 @@ test('admin can view organization branding settings page', function () {
             ->where('branding.logoFullUrl', asset('mrdinc-logo.png')));
 });
 
+test('admin users cannot view organization branding settings page', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.settings.organization'))
+        ->assertForbidden();
+});
+
 test('non-admin users cannot view organization branding settings page', function () {
     $user = AppUser::factory()->create();
 
@@ -34,11 +45,26 @@ test('non-admin users cannot view organization branding settings page', function
         ->assertForbidden();
 });
 
-test('admin can update organization branding logo and name', function () {
+test('admin users cannot update organization branding settings', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.settings.organization.update'), [
+            'company_name' => 'Acme Cooperative',
+        ])
+        ->assertForbidden();
+
+    expect(OrganizationSetting::query()->count())->toBe(0);
+});
+
+test('superadmin can update organization branding logo and name', function () {
     Storage::fake('public');
 
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -76,11 +102,11 @@ test('admin can update organization branding logo and name', function () {
     Storage::disk('public')->assertExists($setting->favicon_path);
 });
 
-test('admin can upload logo mark and full overrides', function () {
+test('superadmin can upload logo mark and full overrides', function () {
     Storage::fake('public');
 
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -107,7 +133,7 @@ test('admin can upload logo mark and full overrides', function () {
 
 test('brand colors are normalized to 6-digit hex values', function () {
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -131,7 +157,7 @@ test('brand colors are normalized to 6-digit hex values', function () {
 
 test('brand color validation rejects invalid hex values', function () {
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -152,9 +178,9 @@ test('brand color validation rejects invalid hex values', function () {
     expect(OrganizationSetting::query()->count())->toBe(0);
 });
 
-test('admin can select the built-in full logo preset', function () {
+test('superadmin can select the built-in full logo preset', function () {
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -175,9 +201,9 @@ test('admin can select the built-in full logo preset', function () {
         ->toBe(OrganizationSettingsService::LOGO_PRESET_FULL);
 });
 
-test('admin can update report header typography settings', function () {
+test('superadmin can update report header typography settings', function () {
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -233,11 +259,11 @@ test('admin can update report header typography settings', function () {
     expect($setting->report_header_title_font_size)->toBe(16);
 });
 
-test('admin can reset portal icon to the default', function () {
+test('superadmin can reset portal icon to the default', function () {
     Storage::fake('public');
 
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 
@@ -264,11 +290,11 @@ test('admin can reset portal icon to the default', function () {
     Storage::disk('public')->assertMissing($faviconPath);
 });
 
-test('admin can reset logo mark and full to defaults', function () {
+test('superadmin can reset logo mark and full to defaults', function () {
     Storage::fake('public');
 
     $admin = AppUser::factory()->create();
-    AdminProfile::factory()->create([
+    AdminProfile::factory()->superadmin()->create([
         'user_id' => $admin->user_id,
     ]);
 

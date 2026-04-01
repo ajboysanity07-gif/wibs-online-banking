@@ -18,11 +18,8 @@ import {
 } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import type {
-    MemberRecentAccountAction,
-    MemberRecentAccountActionSource,
-    PaginationMeta,
-} from '@/types/admin';
+import type { MemberRecentAccountAction, MemberRecentAccountActionSource } from '@/features/member-accounts/types';
+import type { PaginationMeta } from '@/types/pagination';
 
 type MemberRecentAccountActionsCardProps = {
     acctno: string | null;

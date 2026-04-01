@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Banknote, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { LoanRequestRecordsCard } from '@/components/loan-request/loan-request-records-card';
-import { MemberAccountAlert } from '@/components/member-account-alert';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,

@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { MemberAccountAlert } from '@/components/member-account-alert';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
 import { MemberLoanScheduleSections } from '@/components/member-loan-schedule-sections';
 import { PageShell } from '@/components/page-shell';

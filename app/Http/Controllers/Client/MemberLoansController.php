@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
+use App\Domains\MemberAccounts\Resources\MemberLoanResource;
+use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\MemberAccountsSummaryResource;
-use App\Http\Resources\Admin\MemberLoanResource;
-use App\Services\Admin\MemberAccounts\MemberAccountsService;
 use App\Services\LoanRequests\LoanRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

@@ -1,9 +1,9 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { MemberAccountsSummarySection } from '@/components/member-accounts-summary-section';
+import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
-import { MemberRecentAccountActionsCard } from '@/components/member-recent-account-actions-card';
+import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
 import { PageShell } from '@/components/page-shell';
 import { SectionHeader } from '@/components/section-header';
