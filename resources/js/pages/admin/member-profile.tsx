@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
 import { MemberStatusCard } from '@/components/member-status-card';
@@ -13,6 +13,7 @@ import {
     useMemberAccounts,
 } from '@/hooks/admin/use-member-accounts';
 import { useMemberDetails } from '@/hooks/admin/use-member-details';
+import { useUpdateMemberAdminAccess } from '@/hooks/admin/use-update-member-admin-access';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
@@ -31,7 +32,7 @@ import {
     show as showMember,
 } from '@/routes/admin/members';
 import { index as membersIndex } from '@/routes/admin/watchlist';
-import type { BreadcrumbItem } from '@/types';
+import type { Auth, BreadcrumbItem } from '@/types';
 import type {
     MemberAccountActionsResponse,
     MemberAccountsSummary,
@@ -43,6 +44,10 @@ type Props = {
     member: MemberDetail;
     accountsSummary?: MemberAccountsSummary | null;
     recentAccountActions?: MemberAccountActionsResponse | null;
+};
+
+type PageProps = {
+    auth: Auth;
 };
 
 function LoansAndLoanSecuritySummarySection() {
@@ -126,6 +131,7 @@ export default function MemberProfile({
     accountsSummary = null,
     recentAccountActions = null,
 }: Props) {
+    const { auth } = usePage<PageProps>().props;
     const { member, loading, error, setMember } = useMemberDetails(
         initialMember.member_id,
         initialMember,
@@ -144,16 +150,22 @@ export default function MemberProfile({
         },
     });
 
+    const { updateAdminAccess, processingKeys } = useUpdateMemberAdminAccess({
+        onUpdated: (updated) => {
+            setMember(updated);
+        },
+    });
+
     const isProcessing =
         currentMember.user_id !== null
             ? processingIds[currentMember.user_id]
             : false;
+    const canManagePortalAccess =
+        currentMember.user_id !== null && !currentMember.is_admin;
     const canSuspend =
-        currentMember.user_id !== null &&
-        currentMember.portal_status === 'active';
+        canManagePortalAccess && currentMember.portal_status === 'active';
     const canReactivate =
-        currentMember.user_id !== null &&
-        currentMember.portal_status === 'suspended';
+        canManagePortalAccess && currentMember.portal_status === 'suspended';
     const statusLabel = getMemberStatusLabel(currentMember.portal_status);
     const statusVariant = getMemberStatusVariant(currentMember.portal_status);
     const registrationLabel = getRegistrationStatusLabel(
@@ -162,6 +174,33 @@ export default function MemberProfile({
     const registrationVariant = getRegistrationStatusVariant(
         currentMember.registration_status,
     );
+    const isSuperadmin = auth.isSuperadmin;
+    const isSelf =
+        currentMember.user_id !== null &&
+        currentMember.user_id === auth.user.id;
+    const adminAccessLevel = currentMember.admin_access_level;
+    const adminAccessLabel =
+        adminAccessLevel === 'superadmin'
+            ? 'Superadmin'
+            : adminAccessLevel === 'admin'
+              ? 'Admin'
+              : adminAccessLevel === 'member'
+                ? 'Member'
+                : 'Unregistered';
+    const adminAccessVariant =
+        adminAccessLevel === 'superadmin'
+            ? 'secondary'
+            : adminAccessLevel === 'admin'
+              ? 'default'
+              : 'outline';
+    const canManageAdminAccess =
+        isSuperadmin && currentMember.user_id !== null && !isSelf;
+    const canGrantAdmin =
+        canManageAdminAccess && adminAccessLevel === 'member';
+    const canRevokeAdmin =
+        canManageAdminAccess && adminAccessLevel === 'admin';
+    const isAdminAccessProcessing =
+        processingKeys[currentMember.member_id] ?? false;
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -255,56 +294,114 @@ export default function MemberProfile({
                             ]}
                         />
                     </div>
-                    <MemberStatusCard
-                        title="Portal access"
-                        description="Suspend or restore portal access for this member."
-                        statusLabel={statusLabel}
-                        statusVariant={statusVariant}
-                        actions={
-                            <>
-                                {canSuspend ? (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="destructive"
-                                        disabled={isProcessing}
-                                        onClick={() =>
-                                            updateStatus(
-                                                currentMember.user_id as number,
-                                                'suspend',
-                                            )
-                                        }
-                                    >
-                                        Suspend
-                                    </Button>
-                                ) : null}
-                                {canReactivate ? (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="secondary"
-                                        disabled={isProcessing}
-                                        onClick={() =>
-                                            updateStatus(
-                                                currentMember.user_id as number,
-                                                'reactivate',
-                                            )
-                                        }
-                                    >
-                                        Reactivate
-                                    </Button>
-                                ) : null}
-                            </>
-                        }
-                        helper={
-                            loading
-                                ? 'Refreshing member status...'
-                                : currentMember.registration_status ===
-                                      'unregistered'
-                                  ? 'This member does not have a portal login yet.'
-                                  : undefined
-                        }
-                    />
+                    <div className="space-y-4">
+                        <MemberStatusCard
+                            title="Portal access"
+                            description="Suspend or restore portal access for this member."
+                            statusLabel={statusLabel}
+                            statusVariant={statusVariant}
+                            actions={
+                                <>
+                                    {canSuspend ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="destructive"
+                                            disabled={isProcessing}
+                                            onClick={() =>
+                                                updateStatus(
+                                                    currentMember.user_id as number,
+                                                    'suspend',
+                                                )
+                                            }
+                                        >
+                                            Suspend
+                                        </Button>
+                                    ) : null}
+                                    {canReactivate ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            disabled={isProcessing}
+                                            onClick={() =>
+                                                updateStatus(
+                                                    currentMember.user_id as number,
+                                                    'reactivate',
+                                                )
+                                            }
+                                        >
+                                            Reactivate
+                                        </Button>
+                                    ) : null}
+                                </>
+                            }
+                            helper={
+                                loading
+                                    ? 'Refreshing member status...'
+                                    : currentMember.registration_status ===
+                                          'unregistered'
+                                      ? 'This member does not have a portal login yet.'
+                                      : currentMember.is_admin
+                                        ? 'Portal access for admins is managed separately.'
+                                      : undefined
+                            }
+                        />
+                        {isSuperadmin ? (
+                            <MemberStatusCard
+                                title="Admin access"
+                                description="Promote or revoke admin access for this member."
+                                statusLabel={adminAccessLabel}
+                                statusVariant={adminAccessVariant}
+                                actions={
+                                    <>
+                                        {canGrantAdmin ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="default"
+                                                disabled={isAdminAccessProcessing}
+                                                onClick={() =>
+                                                    updateAdminAccess(
+                                                        currentMember.member_id,
+                                                        'grant',
+                                                    )
+                                                }
+                                            >
+                                                Grant admin access
+                                            </Button>
+                                        ) : null}
+                                        {canRevokeAdmin ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="secondary"
+                                                disabled={isAdminAccessProcessing}
+                                                onClick={() =>
+                                                    updateAdminAccess(
+                                                        currentMember.member_id,
+                                                        'revoke',
+                                                    )
+                                                }
+                                            >
+                                                Revoke admin access
+                                            </Button>
+                                        ) : null}
+                                    </>
+                                }
+                                helper={
+                                    isSelf
+                                        ? 'You cannot update your own admin access.'
+                                        : currentMember.registration_status ===
+                                              'unregistered'
+                                          ? 'Admin access requires a portal account.'
+                                          : adminAccessLevel === 'superadmin'
+                                            ? 'Superadmin access is managed separately.'
+                                            : undefined
+                                }
+                            />
+                        ) : null}
+                    </div>
                 </div>
 
                 <MemberAccountsProvider

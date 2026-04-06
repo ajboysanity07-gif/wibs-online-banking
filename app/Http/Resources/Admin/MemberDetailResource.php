@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\AdminProfile;
 use App\Models\AppUser;
 use App\Models\Wmaster;
 use DateTimeInterface;
@@ -27,6 +28,9 @@ class MemberDetailResource extends JsonResource
         $phoneno = $this->resolveString(data_get($resource, 'phoneno'))
             ?? $this->resolveString(data_get($resource, 'phone'));
         $portalStatus = $this->resolvePortalStatus($resource, $userId);
+        $adminAccessLevel = $this->resolveAdminAccessLevel($resource, $userId);
+        $isAdmin = $adminAccessLevel !== null && $adminAccessLevel !== 'member';
+        $isSuperadmin = $adminAccessLevel === AdminProfile::ACCESS_LEVEL_SUPERADMIN;
 
         return [
             'member_id' => $this->resolveMemberId($userId, $acctno),
@@ -38,6 +42,9 @@ class MemberDetailResource extends JsonResource
             'acctno' => $acctno,
             'registration_status' => $userId === null ? 'unregistered' : 'registered',
             'portal_status' => $portalStatus,
+            'is_admin' => $isAdmin,
+            'is_superadmin' => $isSuperadmin,
+            'admin_access_level' => $adminAccessLevel,
             'created_at' => $this->formatDateValue(data_get($resource, 'created_at')),
             'avatar_url' => $resource instanceof AppUser ? $resource->avatar : null,
         ];
@@ -55,6 +62,23 @@ class MemberDetailResource extends JsonResource
         }
 
         return $portalStatus;
+    }
+
+    private function resolveAdminAccessLevel(mixed $resource, ?int $userId): ?string
+    {
+        $accessLevel = $this->resolveString(
+            data_get($resource, 'adminProfile.access_level'),
+        );
+
+        if ($accessLevel !== null) {
+            return $accessLevel;
+        }
+
+        if ($userId === null) {
+            return null;
+        }
+
+        return 'member';
     }
 
     private function resolveMemberName(mixed $resource): string

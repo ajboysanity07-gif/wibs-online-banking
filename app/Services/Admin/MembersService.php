@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\AppUser;
 use App\Models\Wmaster;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Schema;
 
@@ -64,8 +65,7 @@ class MembersService
                 return new LengthAwarePaginator([], 0, $perPage, 1);
             }
 
-            $query = AppUser::query()
-                ->whereDoesntHave('adminProfile')
+            $query = $this->memberLookupQuery()
                 ->with(['userProfile']);
 
             if ($search !== '') {
@@ -86,8 +86,6 @@ class MembersService
         $query = Wmaster::query()
             ->leftJoin('appusers', 'appusers.acctno', '=', 'wmaster.acctno')
             ->leftJoin('user_profiles', 'user_profiles.user_id', '=', 'appusers.user_id')
-            ->leftJoin('admin_profiles', 'admin_profiles.user_id', '=', 'appusers.user_id')
-            ->whereNull('admin_profiles.user_id')
             ->select([
                 'wmaster.*',
                 'appusers.user_id',
@@ -152,9 +150,8 @@ class MembersService
             return $this->findByAccountNumber($acctno);
         }
 
-        $user = AppUser::query()
+        $user = $this->memberLookupQuery()
             ->whereKey($memberKey)
-            ->whereDoesntHave('adminProfile')
             ->with($this->memberRelations())
             ->first();
 
@@ -173,9 +170,8 @@ class MembersService
             abort(404);
         }
 
-        $user = AppUser::query()
+        $user = $this->memberLookupQuery()
             ->where('acctno', $acctno)
-            ->whereDoesntHave('adminProfile')
             ->with($this->memberRelations())
             ->first();
 
@@ -237,13 +233,23 @@ class MembersService
      */
     private function memberRelations(): array
     {
-        $relations = ['userProfile.reviewedBy'];
+        $relations = ['adminProfile', 'userProfile.reviewedBy'];
 
         if (Schema::hasTable('wmaster')) {
             $relations[] = 'wmaster';
         }
 
         return $relations;
+    }
+
+    private function memberLookupQuery(): Builder
+    {
+        return AppUser::query()
+            ->where(function ($query): void {
+                $query
+                    ->whereDoesntHave('adminProfile')
+                    ->orWhereNotNull('acctno');
+            });
     }
 
     private function resolveAcctno(AppUser|Wmaster $member): ?string

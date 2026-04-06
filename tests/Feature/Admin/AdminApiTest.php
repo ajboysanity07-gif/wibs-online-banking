@@ -52,19 +52,6 @@ test('admin can list members', function () {
         'email_address' => 'ana.cruz@example.test',
     ]);
 
-    $otherAdmin = User::factory()->create();
-    AdminProfile::factory()->create([
-        'user_id' => $otherAdmin->user_id,
-    ]);
-
-    $otherAdmin->update(['acctno' => 'ADM-001']);
-    DB::table('wmaster')->insert([
-        'acctno' => 'ADM-001',
-        'fname' => 'Admin',
-        'lname' => 'User',
-        'bname' => 'Admin User',
-    ]);
-
     $response = $this->actingAs($admin)->getJson('/spa/admin/members');
 
     $response->assertOk();
@@ -76,8 +63,6 @@ test('admin can list members', function () {
     $unregisteredMember = $items->firstWhere('acctno', '000702');
 
     expect($memberIds)->toContain($member->user_id);
-    expect($memberIds)->not->toContain($otherAdmin->user_id);
-    expect($acctnos)->not->toContain('ADM-001');
     expect($registeredMember['registration_status'])->toBe('registered');
     expect($unregisteredMember['registration_status'])->toBe('unregistered');
     expect($unregisteredMember['user_id'])->toBeNull();

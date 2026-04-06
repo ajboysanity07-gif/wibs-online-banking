@@ -101,6 +101,59 @@ test('admin can view member profile page', function () {
             ->where('member.user_id', $member->user_id));
 });
 
+test('admin can view a member profile after admin access is granted', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000702',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $member->user_id,
+    ]);
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $member->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.show', $member->user_id));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-profile')
+            ->where('member.user_id', $member->user_id)
+            ->where('member.admin_access_level', 'admin'));
+});
+
+test('superadmin member profile payload includes admin access data', function () {
+    $superadmin = User::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $superadmin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000703',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $member->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($superadmin)
+        ->get(route('admin.members.show', $member->user_id));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-profile')
+            ->where('auth.isSuperadmin', true)
+            ->where('member.admin_access_level', 'member'));
+});
+
 test('admin can view unregistered member profile page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->admin()->create([

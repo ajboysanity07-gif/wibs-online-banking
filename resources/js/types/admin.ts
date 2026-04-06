@@ -30,6 +30,8 @@ export type MemberRegistrationFilter = MemberRegistrationStatus | 'all';
 
 export type MemberSort = 'newest' | 'oldest';
 
+export type AdminAccessLevel = 'member' | 'admin' | 'superadmin';
+
 export type RequestPreview = {
     id: number | null;
     member_name: string | null;
@@ -117,6 +119,9 @@ export type MemberDetail = {
     acctno: string | null;
     registration_status: MemberRegistrationStatus;
     portal_status: MemberStatusValue | null;
+    is_admin: boolean;
+    is_superadmin: boolean;
+    admin_access_level: AdminAccessLevel | null;
     created_at: string | null;
     avatar_url: string | null;
 };
@@ -142,3 +147,5 @@ export type RequestsResponse = {
 };
 
 export type MemberStatusAction = 'suspend' | 'reactivate';
+
+export type MemberAdminAccessAction = 'grant' | 'revoke';

@@ -30,6 +30,7 @@ use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummary
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\MemberAccountActionsController as SpaMemberAccountActionsController;
 use App\Http\Controllers\Spa\Admin\MemberAccountsSummaryController as SpaMemberAccountsSummaryController;
+use App\Http\Controllers\Spa\Admin\MemberAdminAccessController as SpaMemberAdminAccessController;
 use App\Http\Controllers\Spa\Admin\MemberLoanPaymentsController as SpaMemberLoanPaymentsController;
 use App\Http\Controllers\Spa\Admin\MemberLoanScheduleController as SpaMemberLoanScheduleController;
 use App\Http\Controllers\Spa\Admin\MemberLoansController as SpaMemberLoansController;
@@ -85,6 +86,10 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::get('admin/members/{user}', [SpaMembersController::class, 'show']);
         Route::patch('admin/members/{user}/suspend', [SpaMemberStatusController::class, 'suspend']);
         Route::patch('admin/members/{user}/reactivate', [SpaMemberStatusController::class, 'reactivate']);
+        Route::patch('admin/members/{member}/grant-admin', [SpaMemberAdminAccessController::class, 'grant'])
+            ->middleware('superadmin');
+        Route::patch('admin/members/{member}/revoke-admin', [SpaMemberAdminAccessController::class, 'revoke'])
+            ->middleware('superadmin');
         Route::get('admin/requests', SpaRequestsController::class);
         Route::get('admin/watchlist', SpaWatchlistController::class);
     });

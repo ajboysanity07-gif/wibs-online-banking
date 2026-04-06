@@ -98,6 +98,24 @@ export const adminApi = {
 
         return unwrap(response).member;
     },
+    async grantMemberAdminAccess(
+        memberKey: string | number,
+    ): Promise<MemberDetail> {
+        const response = await client.patch<
+            ApiResponse<{ member: MemberDetail }>
+        >(`/spa/admin/members/${memberKey}/grant-admin`);
+
+        return unwrap(response).member;
+    },
+    async revokeMemberAdminAccess(
+        memberKey: string | number,
+    ): Promise<MemberDetail> {
+        const response = await client.patch<
+            ApiResponse<{ member: MemberDetail }>
+        >(`/spa/admin/members/${memberKey}/revoke-admin`);
+
+        return unwrap(response).member;
+    },
     async getRequests(
         params: RequestsQueryParams,
         signal?: AbortSignal,
