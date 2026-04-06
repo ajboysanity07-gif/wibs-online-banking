@@ -28,12 +28,12 @@ const buildEmptyResponse = (perPage: number): MemberAccountActionsResponse => ({
 });
 
 export function useMemberRecentAccountActions(
-    memberId: number | null,
+    memberKey: string | number | null,
     page: number,
     perPage = 5,
     options?: MemberAccountActionsOptions,
 ) {
-    const initialKey = `${memberId ?? 'unknown'}`;
+    const initialKey = `${memberKey ?? 'unknown'}`;
     const emptyResponse = useMemo(() => buildEmptyResponse(perPage), [perPage]);
     const initialData = options?.initial ?? emptyResponse;
 
@@ -53,7 +53,7 @@ export function useMemberRecentAccountActions(
 
     const refresh = useCallback(
         async (signal?: AbortSignal) => {
-            if (!memberId) {
+            if (!memberKey) {
                 return null;
             }
 
@@ -61,7 +61,7 @@ export function useMemberRecentAccountActions(
 
             try {
                 const data = await adminApi.getMemberAccountActions(
-                    memberId,
+                    memberKey,
                     { page, perPage },
                     signal,
                 );
@@ -81,11 +81,11 @@ export function useMemberRecentAccountActions(
                 return null;
             }
         },
-        [memberId, page, perPage],
+        [memberKey, page, perPage],
     );
 
     useEffect(() => {
-        if (options?.enabled === false || !memberId) {
+        if (options?.enabled === false || !memberKey) {
             return;
         }
 
@@ -107,7 +107,7 @@ export function useMemberRecentAccountActions(
         };
     }, [
         initialKey,
-        memberId,
+        memberKey,
         options?.enabled,
         options?.initial,
         page,

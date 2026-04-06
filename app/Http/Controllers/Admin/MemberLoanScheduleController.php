@@ -6,33 +6,31 @@ use App\Domains\MemberAccounts\Resources\MemberLoanResource;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\MemberLoanScheduleResource;
 use App\Http\Resources\Admin\MemberLoanSummaryResource;
-use App\Models\AppUser;
 use App\Services\Admin\MemberLoans\MemberLoanService;
-use Illuminate\Support\Facades\Schema;
+use App\Services\Admin\MembersService;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MemberLoanScheduleController extends Controller
 {
     public function show(
-        AppUser $user,
+        string $user,
         string $loanNumber,
+        MembersService $membersService,
         MemberLoanService $service,
     ): Response {
-        $memberName = $user->username;
+        $context = $membersService->resolveAccountContext($user);
+        $member = $context['member'];
+        $memberName = $context['memberName'];
 
-        if (Schema::hasTable('wmaster')) {
-            $user->loadMissing('wmaster');
-            $memberName = $user->wmaster?->displayName() ?: $memberName;
-        }
-
-        $payload = $service->getSchedulePageData($user, $loanNumber);
+        $payload = $service->getSchedulePageData($member, $loanNumber);
 
         return Inertia::render('admin/member-loan-schedule', [
             'member' => [
-                'user_id' => $user->user_id,
+                'member_id' => $context['memberKey'],
+                'user_id' => $context['userId'],
                 'member_name' => $memberName,
-                'acctno' => $user->acctno,
+                'acctno' => $context['acctno'],
             ],
             'loan' => (new MemberLoanResource($payload['loan']))->resolve(),
             'summary' => (new MemberLoanSummaryResource($payload['summary']))->resolve(),

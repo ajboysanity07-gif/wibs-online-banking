@@ -6,30 +6,30 @@ use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
 use App\Domains\MemberAccounts\Resources\MemberLoanResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Models\AppUser;
-use Illuminate\Support\Facades\Schema;
+use App\Services\Admin\MembersService;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MemberLoansController extends Controller
 {
-    public function show(AppUser $user, MemberAccountsService $service): Response
-    {
-        $memberName = $user->username;
+    public function show(
+        string $user,
+        MembersService $membersService,
+        MemberAccountsService $service,
+    ): Response {
+        $context = $membersService->resolveAccountContext($user);
+        $member = $context['member'];
+        $memberName = $context['memberName'];
 
-        if (Schema::hasTable('wmaster')) {
-            $user->loadMissing('wmaster');
-            $memberName = $user->wmaster?->displayName() ?: $memberName;
-        }
-
-        $summary = $service->getSummary($user);
-        $paginator = $service->getPaginatedLoans($user, 10, 1);
+        $summary = $service->getSummary($member);
+        $paginator = $service->getPaginatedLoans($member, 10, 1);
 
         return Inertia::render('admin/member-loans', [
             'member' => [
-                'user_id' => $user->user_id,
+                'member_id' => $context['memberKey'],
+                'user_id' => $context['userId'],
                 'member_name' => $memberName,
-                'acctno' => $user->acctno,
+                'acctno' => $context['acctno'],
             ],
             'summary' => (new MemberAccountsSummaryResource($summary))->resolve(),
             'loans' => [

@@ -6,7 +6,7 @@ use App\Domains\MemberAccounts\Resources\MemberRecentAccountActionResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberAccountActionsRequest;
-use App\Models\AppUser;
+use App\Services\Admin\MembersService;
 use Illuminate\Http\JsonResponse;
 
 class MemberAccountActionsController extends Controller
@@ -16,19 +16,17 @@ class MemberAccountActionsController extends Controller
      */
     public function __invoke(
         MemberAccountActionsRequest $request,
-        AppUser $user,
+        string $user,
+        MembersService $membersService,
         MemberAccountsService $service,
     ): JsonResponse {
-        $user->loadMissing('adminProfile');
-
-        if ($user->adminProfile !== null) {
-            abort(404);
-        }
+        $context = $membersService->resolveAccountContext($user);
+        $member = $context['member'];
 
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('perPage', 5);
 
-        $paginator = $service->getPaginatedRecentActions($user, $perPage, $page);
+        $paginator = $service->getPaginatedRecentActions($member, $perPage, $page);
         $items = MemberRecentAccountActionResource::collection($paginator->items())->resolve();
 
         return response()->json([

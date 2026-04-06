@@ -15,11 +15,11 @@ type MemberAccountsSummaryOptions = {
 };
 
 export function useMemberAccountsSummary(
-    memberId: number | null,
+    memberKey: string | number | null,
     options?: MemberAccountsSummaryOptions,
 ) {
     const initialSummary = options?.initial ?? null;
-    const initialKey = `${memberId ?? 'unknown'}`;
+    const initialKey = `${memberKey ?? 'unknown'}`;
     const [state, setState] = useState<MemberAccountsSummaryState>({
         summary: initialSummary,
         loading: false,
@@ -36,7 +36,7 @@ export function useMemberAccountsSummary(
 
     const refresh = useCallback(
         async (signal?: AbortSignal) => {
-            if (!memberId) {
+            if (!memberKey) {
                 return null;
             }
 
@@ -44,7 +44,7 @@ export function useMemberAccountsSummary(
 
             try {
                 const summary = await adminApi.getMemberAccountsSummary(
-                    memberId,
+                    memberKey,
                     signal,
                 );
                 setState({ summary, loading: false, error: null });
@@ -63,11 +63,11 @@ export function useMemberAccountsSummary(
                 return null;
             }
         },
-        [memberId],
+        [memberKey],
     );
 
     useEffect(() => {
-        if (options?.enabled === false || !memberId) {
+        if (options?.enabled === false || !memberKey) {
             return;
         }
 
@@ -82,7 +82,7 @@ export function useMemberAccountsSummary(
         return () => {
             controller.abort();
         };
-    }, [initialKey, initialSummary, memberId, options?.enabled, refresh]);
+    }, [initialKey, initialSummary, memberKey, options?.enabled, refresh]);
 
     return {
         summary: state.summary,

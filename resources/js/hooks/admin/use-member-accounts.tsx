@@ -16,7 +16,7 @@ import type {
 import type { MemberRecentAccountAction } from '@/types/admin';
 
 type MemberAccountsContextValue = {
-    memberId: number | null;
+    memberKey: string | number | null;
     acctno: string | null;
     summary: MemberAccountsSummary | null;
     summaryLoading: boolean;
@@ -41,7 +41,7 @@ const MemberAccountsContext = createContext<MemberAccountsContextValue | null>(
 );
 
 type MemberAccountsProviderProps = {
-    memberId: number | null;
+    memberKey: string | number | null;
     acctno: string | null;
     initialSummary?: MemberAccountsSummary | null;
     initialActions?: MemberAccountActionsResponse | null;
@@ -49,35 +49,35 @@ type MemberAccountsProviderProps = {
 };
 
 export function MemberAccountsProvider({
-    memberId,
+    memberKey,
     acctno,
     initialSummary = null,
     initialActions = null,
     children,
 }: MemberAccountsProviderProps) {
-    const memberKey = `${memberId ?? 'unknown'}-${acctno ?? 'unknown'}`;
+    const accountKey = `${memberKey ?? 'unknown'}-${acctno ?? 'unknown'}`;
     const [actionsPageState, setActionsPageState] = useState(() => ({
-        memberKey,
+        memberKey: accountKey,
         page: 1,
     }));
     const [loansDialogOpen, setLoansDialogOpen] = useState(false);
     const [savingsDialogOpen, setSavingsDialogOpen] = useState(false);
-    const enabled = Boolean(memberId && acctno);
+    const enabled = Boolean(memberKey && acctno);
     const actionsPage =
-        actionsPageState.memberKey === memberKey ? actionsPageState.page : 1;
+        actionsPageState.memberKey === accountKey ? actionsPageState.page : 1;
     const setActionsPage = useCallback(
         (page: number) => {
-            setActionsPageState({ memberKey, page });
+            setActionsPageState({ memberKey: accountKey, page });
         },
-        [memberKey],
+        [accountKey],
     );
 
-    const summaryState = useMemberAccountsSummary(memberId, {
+    const summaryState = useMemberAccountsSummary(memberKey, {
         enabled,
         initial: initialSummary,
     });
     const actionsState = useMemberRecentAccountActions(
-        memberId,
+        memberKey,
         actionsPage,
         5,
         {
@@ -92,7 +92,7 @@ export function MemberAccountsProvider({
 
     const value = useMemo<MemberAccountsContextValue>(
         () => ({
-            memberId,
+            memberKey,
             acctno,
             summary: summaryState.summary,
             summaryLoading: summaryState.loading,
@@ -116,7 +116,7 @@ export function MemberAccountsProvider({
             actionsPage,
             actionsState,
             loansDialogOpen,
-            memberId,
+            memberKey,
             refreshOverview,
             savingsDialogOpen,
             setActionsPage,

@@ -52,6 +52,16 @@ beforeEach(function () {
             $table->string('controlno')->nullable();
         });
     }
+
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('lname')->nullable();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('bname')->nullable();
+        });
+    }
 });
 
 test('admin can view loan schedule page', function () {
@@ -85,6 +95,49 @@ test('admin can view loan schedule page', function () {
             ->where('loan.lnnumber', 'LN-901'));
 });
 
+test('admin can view unregistered member loan schedule page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000941',
+        'lname' => 'Santos',
+        'fname' => 'Mina',
+        'bname' => 'Santos, Mina',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000941',
+        'lnnumber' => 'LN-941',
+        'lntype' => 'Regular',
+        'principal' => 1000,
+        'balance' => 750,
+    ]);
+
+    DB::table('Amortsched')->insert([
+        'lnnumber' => 'LN-941',
+        'Date_pay' => Carbon::parse('2024-03-01 00:00:00')->toDateTimeString(),
+        'Amortization' => 100,
+        'Interest' => 10,
+        'Balance' => 750,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.loan-schedule', [
+            'user' => 'acct-000941',
+            'loanNumber' => 'LN-941',
+        ]));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-loan-schedule')
+            ->where('member.user_id', null)
+            ->where('member.member_id', 'acct-000941')
+            ->where('loan.lnnumber', 'LN-941'));
+});
+
 test('admin can view loan payments page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -114,6 +167,41 @@ test('admin can view loan payments page', function () {
             ->has('summary')
             ->has('payments')
             ->where('loan.lnnumber', 'LN-902'));
+});
+
+test('admin can view unregistered member loan payments page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000942',
+        'lname' => 'Reyes',
+        'fname' => 'Marco',
+        'bname' => 'Reyes, Marco',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000942',
+        'lnnumber' => 'LN-942',
+        'lntype' => 'Regular',
+        'principal' => 1200,
+        'balance' => 980,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.loan-payments', [
+            'user' => 'acct-000942',
+            'loanNumber' => 'LN-942',
+        ]));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-loan-payments')
+            ->where('member.user_id', null)
+            ->where('member.member_id', 'acct-000942')
+            ->where('loan.lnnumber', 'LN-942'));
 });
 
 test('admin can view loan payments print preview', function () {
@@ -166,6 +254,48 @@ test('admin can view loan payments print preview', function () {
     $response->assertSee('This document is electronically generated and is valid without handwritten signature');
     $response->assertDontSee('Not available');
     $response->assertSee('window.print', false);
+});
+
+test('admin can view unregistered member loan payments print preview', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000945',
+        'lname' => 'Cortez',
+        'fname' => 'Aly',
+        'bname' => 'Cortez, Aly',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000945',
+        'lnnumber' => 'LN-945',
+        'lntype' => 'Regular',
+        'principal' => 1800,
+        'balance' => 1400,
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => '000945',
+        'lnnumber' => 'LN-945',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::now()->toDateTimeString(),
+        'principal' => 150,
+        'payments' => 150,
+        'balance' => 1250,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.loan-payments-print', [
+            'user' => 'acct-000945',
+            'loanNumber' => 'LN-945',
+            'range' => 'all',
+        ]));
+
+    $response->assertOk();
+    $response->assertViewIs('reports.loan-payments');
+    $response->assertSee('Loan Payment Transaction Report');
 });
 
 test('non-admin users cannot access loan detail pages', function () {
@@ -303,6 +433,42 @@ test('schedule api returns ordered entries', function () {
     expect($response->json('data.items.0.date_pay'))->toBe('2024-03-15 00:00:00');
 });
 
+test('schedule api accepts unregistered member keys', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000943',
+        'lname' => 'Dizon',
+        'fname' => 'Mia',
+        'bname' => 'Dizon, Mia',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000943',
+        'lnnumber' => 'LN-943',
+    ]);
+
+    DB::table('Amortsched')->insert([
+        'lnnumber' => 'LN-943',
+        'Date_pay' => Carbon::parse('2024-05-15 00:00:00')->toDateTimeString(),
+        'Amortization' => 100,
+        'Interest' => 10,
+        'Balance' => 900,
+    ]);
+
+    $response = $this->actingAs($admin)->getJson(
+        '/admin/api/members/acct-000943/loans/LN-943/schedule',
+    );
+
+    $response->assertOk()->assertJsonStructure([
+        'ok',
+        'data' => ['items'],
+    ]);
+
+    expect($response->json('data.items.0.date_pay'))->toBe('2024-05-15 00:00:00');
+});
+
 test('payments api respects date filters', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -338,6 +504,40 @@ test('payments api respects date filters', function () {
 
     expect($response->json('data.items'))->toHaveCount(1);
     expect($response->json('data.items.0.date_in'))->toBe('2024-02-10 00:00:00');
+});
+
+test('payments api accepts unregistered member keys', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000944',
+        'lname' => 'Lopez',
+        'fname' => 'Kara',
+        'bname' => 'Lopez, Kara',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000944',
+        'lnnumber' => 'LN-944',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => '000944',
+        'lnnumber' => 'LN-944',
+        'date_in' => Carbon::parse('2024-01-12 00:00:00')->toDateTimeString(),
+        'payments' => 120,
+        'balance' => 880,
+    ]);
+
+    $response = $this->actingAs($admin)->getJson(
+        '/admin/api/members/acct-000944/loans/LN-944/payments?range=all',
+    );
+
+    $response->assertOk();
+
+    expect($response->json('data.items'))->toHaveCount(1);
+    expect($response->json('data.items.0.date_in'))->toBe('2024-01-12 00:00:00');
 });
 
 test('payments api excludes rows without principal or payments', function () {

@@ -25,12 +25,12 @@ const buildEmptyResponse = (perPage: number): MemberLoansResponse => ({
 });
 
 export function useMemberLoans(
-    memberId: number | null,
+    memberKey: string | number | null,
     page: number,
     perPage = 10,
     options?: MemberLoansOptions,
 ) {
-    const initialKey = `${memberId ?? 'unknown'}`;
+    const initialKey = `${memberKey ?? 'unknown'}`;
     const emptyResponse = useMemo(() => buildEmptyResponse(perPage), [perPage]);
     const initialData = options?.initial ?? emptyResponse;
 
@@ -50,7 +50,7 @@ export function useMemberLoans(
 
     const refresh = useCallback(
         async (signal?: AbortSignal) => {
-            if (!memberId) {
+            if (!memberKey) {
                 return null;
             }
 
@@ -58,7 +58,7 @@ export function useMemberLoans(
 
             try {
                 const data = await adminApi.getMemberLoans(
-                    memberId,
+                    memberKey,
                     { page, perPage },
                     signal,
                 );
@@ -78,11 +78,11 @@ export function useMemberLoans(
                 return null;
             }
         },
-        [memberId, page, perPage],
+        [memberKey, page, perPage],
     );
 
     useEffect(() => {
-        if (options?.enabled === false || !memberId) {
+        if (options?.enabled === false || !memberKey) {
             return;
         }
 
@@ -104,7 +104,7 @@ export function useMemberLoans(
         };
     }, [
         initialKey,
-        memberId,
+        memberKey,
         options?.enabled,
         options?.initial,
         page,

@@ -7,11 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberLoanPaymentsRequest;
 use App\Http\Resources\Admin\MemberLoanPaymentResource;
 use App\Http\Resources\Admin\MemberLoanSummaryResource;
-use App\Models\AppUser;
 use App\Services\Admin\MemberLoans\MemberLoanExportService;
 use App\Services\Admin\MemberLoans\MemberLoanService;
+use App\Services\Admin\MembersService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,16 +18,14 @@ class MemberLoanPaymentsController extends Controller
 {
     public function show(
         MemberLoanPaymentsRequest $request,
-        AppUser $user,
+        string $user,
         string $loanNumber,
+        MembersService $membersService,
         MemberLoanService $service,
     ): Response {
-        $memberName = $user->username;
-
-        if (Schema::hasTable('wmaster')) {
-            $user->loadMissing('wmaster');
-            $memberName = $user->wmaster?->displayName() ?: $memberName;
-        }
+        $context = $membersService->resolveAccountContext($user);
+        $member = $context['member'];
+        $memberName = $context['memberName'];
 
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('perPage', 10);
@@ -37,7 +34,7 @@ class MemberLoanPaymentsController extends Controller
         $end = $request->query('end');
 
         $payload = $service->getPaymentsPageData(
-            $user,
+            $member,
             $loanNumber,
             $range,
             $start,
@@ -50,9 +47,10 @@ class MemberLoanPaymentsController extends Controller
 
         return Inertia::render('admin/member-loan-payments', [
             'member' => [
-                'user_id' => $user->user_id,
+                'member_id' => $context['memberKey'],
+                'user_id' => $context['userId'],
                 'member_name' => $memberName,
-                'acctno' => $user->acctno,
+                'acctno' => $context['acctno'],
             ],
             'loan' => (new MemberLoanResource($payload['loan']))->resolve(),
             'summary' => (new MemberLoanSummaryResource($payload['summary']))->resolve(),
@@ -75,12 +73,15 @@ class MemberLoanPaymentsController extends Controller
 
     public function print(
         MemberLoanPaymentsRequest $request,
-        AppUser $user,
+        string $user,
         string $loanNumber,
+        MembersService $membersService,
         MemberLoanExportService $service,
     ): View {
+        $context = $membersService->resolveAccountContext($user);
+
         return $service->renderPaymentsPrintView(
-            $user,
+            $context['member'],
             $loanNumber,
             $request->query('range'),
             $request->query('start'),

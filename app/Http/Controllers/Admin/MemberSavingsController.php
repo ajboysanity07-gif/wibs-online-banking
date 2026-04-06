@@ -6,33 +6,33 @@ use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
 use App\Domains\MemberAccounts\Resources\MemberLoanSecurityLedgerResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Models\AppUser;
-use Illuminate\Support\Facades\Schema;
+use App\Services\Admin\MembersService;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MemberSavingsController extends Controller
 {
-    public function show(AppUser $user, MemberAccountsService $service): Response
-    {
-        $memberName = $user->username;
+    public function show(
+        string $user,
+        MembersService $membersService,
+        MemberAccountsService $service,
+    ): Response {
+        $context = $membersService->resolveAccountContext($user);
+        $member = $context['member'];
+        $memberName = $context['memberName'];
 
-        if (Schema::hasTable('wmaster')) {
-            $user->loadMissing('wmaster');
-            $memberName = $user->wmaster?->displayName() ?: $memberName;
-        }
-
-        $summary = $service->getSummary($user);
-        $ledgerSummary = $service->getLoanSecurityLedgerSummary($user);
+        $summary = $service->getSummary($member);
+        $ledgerSummary = $service->getLoanSecurityLedgerSummary($member);
         $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
         $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
-        $paginator = $service->getPaginatedLoanSecurity($user, 10, 1);
+        $paginator = $service->getPaginatedLoanSecurity($member, 10, 1);
 
         return Inertia::render('admin/member-savings', [
             'member' => [
-                'user_id' => $user->user_id,
+                'member_id' => $context['memberKey'],
+                'user_id' => $context['userId'],
                 'member_name' => $memberName,
-                'acctno' => $user->acctno,
+                'acctno' => $context['acctno'],
             ],
             'summary' => (new MemberAccountsSummaryResource($summary))->resolve(),
             'savings' => [

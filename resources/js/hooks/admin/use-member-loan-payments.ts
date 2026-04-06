@@ -38,14 +38,14 @@ const buildFilterKey = (filters: MemberLoanPaymentsFilters) =>
     `${filters.range}-${filters.start ?? 'none'}-${filters.end ?? 'none'}`;
 
 export function useMemberLoanPayments(
-    memberId: number | null,
+    memberKey: string | number | null,
     loanNumber: string | number | null,
     page: number,
     perPage: number,
     filters: MemberLoanPaymentsFilters,
     options?: MemberLoanPaymentsOptions,
 ) {
-    const initialKey = `${memberId ?? 'unknown'}-${loanNumber ?? 'unknown'}`;
+    const initialKey = `${memberKey ?? 'unknown'}-${loanNumber ?? 'unknown'}`;
     const emptyResponse = useMemo(
         () => buildEmptyResponse(perPage, filters),
         [filters, perPage],
@@ -72,7 +72,7 @@ export function useMemberLoanPayments(
 
     const refresh = useCallback(
         async (signal?: AbortSignal) => {
-            if (!memberId || loanNumber === null || loanNumber === undefined) {
+            if (!memberKey || loanNumber === null || loanNumber === undefined) {
                 return null;
             }
 
@@ -80,7 +80,7 @@ export function useMemberLoanPayments(
 
             try {
                 const data = await adminApi.getMemberLoanPayments(
-                    memberId,
+                    memberKey,
                     loanNumber,
                     {
                         page,
@@ -112,7 +112,7 @@ export function useMemberLoanPayments(
             filters.range,
             filters.start,
             loanNumber,
-            memberId,
+            memberKey,
             page,
             perPage,
         ],
@@ -121,7 +121,7 @@ export function useMemberLoanPayments(
     useEffect(() => {
         if (
             options?.enabled === false ||
-            !memberId ||
+            !memberKey ||
             loanNumber === null ||
             loanNumber === undefined
         ) {
@@ -149,7 +149,7 @@ export function useMemberLoanPayments(
         filterKey,
         initialKey,
         loanNumber,
-        memberId,
+        memberKey,
         options?.enabled,
         options?.initial,
         page,

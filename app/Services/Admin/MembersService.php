@@ -9,6 +9,46 @@ use Illuminate\Support\Facades\Schema;
 
 class MembersService
 {
+    /**
+     * @return array{
+     *     member: \App\Models\AppUser|\App\Models\Wmaster,
+     *     memberKey: string,
+     *     userId: ?int,
+     *     acctno: string,
+     *     memberName: string,
+     *     registrationStatus: string,
+     *     portalStatus: ?string
+     * }
+     */
+    public function resolveAccountContext(string $memberKey): array
+    {
+        $member = $this->getMemberDetail($memberKey);
+
+        $context = $this->buildAccountContext($member);
+
+        if ($context === null) {
+            abort(404);
+        }
+
+        return $context;
+    }
+
+    /**
+     * @return array{
+     *     member: \App\Models\AppUser|\App\Models\Wmaster,
+     *     memberKey: string,
+     *     userId: ?int,
+     *     acctno: string,
+     *     memberName: string,
+     *     registrationStatus: string,
+     *     portalStatus: ?string
+     * }|null
+     */
+    public function resolveAccountContextFromMember(AppUser|Wmaster $member): ?array
+    {
+        return $this->buildAccountContext($member);
+    }
+
     public function getPaginated(
         string $search,
         ?string $registration,
@@ -153,6 +193,46 @@ class MembersService
     }
 
     /**
+     * @return array{
+     *     member: \App\Models\AppUser|\App\Models\Wmaster,
+     *     memberKey: string,
+     *     userId: ?int,
+     *     acctno: string,
+     *     memberName: string,
+     *     registrationStatus: string,
+     *     portalStatus: ?string
+     * }|null
+     */
+    private function buildAccountContext(AppUser|Wmaster $member): ?array
+    {
+        if ($member instanceof AppUser) {
+            $member->loadMissing('userProfile');
+        }
+
+        $acctno = $this->resolveAcctno($member);
+
+        if ($acctno === null) {
+            return null;
+        }
+
+        $userId = $member instanceof AppUser ? $member->user_id : null;
+        $memberName = $this->resolveMemberName($member);
+        $portalStatus = $member instanceof AppUser
+            ? $member->userProfile?->status
+            : null;
+
+        return [
+            'member' => $member,
+            'memberKey' => $this->resolveMemberKey($userId, $acctno),
+            'userId' => $userId,
+            'acctno' => $acctno,
+            'memberName' => $memberName,
+            'registrationStatus' => $userId === null ? 'unregistered' : 'registered',
+            'portalStatus' => $portalStatus,
+        ];
+    }
+
+    /**
      * @return array<int, string>
      */
     private function memberRelations(): array
@@ -164,5 +244,57 @@ class MembersService
         }
 
         return $relations;
+    }
+
+    private function resolveAcctno(AppUser|Wmaster $member): ?string
+    {
+        $acctno = $member->acctno;
+
+        if (! is_string($acctno)) {
+            return null;
+        }
+
+        $acctno = trim($acctno);
+
+        return $acctno !== '' ? $acctno : null;
+    }
+
+    private function resolveMemberName(AppUser|Wmaster $member): string
+    {
+        if ($member instanceof Wmaster) {
+            $name = $member->displayName();
+
+            return $name !== '' ? $name : 'Member';
+        }
+
+        $name = null;
+
+        if (Schema::hasTable('wmaster')) {
+            $member->loadMissing('wmaster');
+            $name = $member->wmaster?->displayName();
+        }
+
+        if (! is_string($name) || trim($name) === '') {
+            $name = $member->username;
+        }
+
+        if (! is_string($name) || trim($name) === '') {
+            $name = $member->email;
+        }
+
+        if (! is_string($name) || trim($name) === '') {
+            $name = $member->acctno;
+        }
+
+        return is_string($name) && trim($name) !== '' ? $name : 'Member';
+    }
+
+    private function resolveMemberKey(?int $userId, string $acctno): string
+    {
+        if ($userId !== null) {
+            return (string) $userId;
+        }
+
+        return 'acct-'.$acctno;
     }
 }

@@ -47,7 +47,7 @@ type Props = {
 
 function LoansAndLoanSecuritySummarySection() {
     const {
-        memberId,
+        memberKey,
         acctno,
         summary,
         summaryLoading,
@@ -55,9 +55,9 @@ function LoansAndLoanSecuritySummarySection() {
         refreshSummary,
     } = useMemberAccounts();
 
-    const loansHref = memberId ? memberLoans(memberId).url : undefined;
-    const loanSecurityHref = memberId ? memberSavings(memberId).url : undefined;
-    const actionDisabled = !acctno || !memberId;
+    const loansHref = memberKey ? memberLoans(memberKey).url : undefined;
+    const loanSecurityHref = memberKey ? memberSavings(memberKey).url : undefined;
+    const actionDisabled = !acctno || !memberKey;
 
     return (
         <MemberAccountsSummarySection
@@ -82,7 +82,7 @@ function LoansAndLoanSecuritySummarySection() {
 
 function RecentAccountActionsCard() {
     const {
-        memberId,
+        memberKey,
         acctno,
         actions,
         actionsMeta,
@@ -94,7 +94,7 @@ function RecentAccountActionsCard() {
 
     const resolveActionHref = (action: MemberRecentAccountAction) => {
         if (
-            !memberId ||
+            !memberKey ||
             action.source !== 'LOAN' ||
             action.number === null
         ) {
@@ -102,7 +102,7 @@ function RecentAccountActionsCard() {
         }
 
         return loanPayments({
-            user: memberId,
+            user: memberKey,
             loanNumber: action.number,
         }).url;
     };
@@ -308,7 +308,7 @@ export default function MemberProfile({
                 </div>
 
                 <MemberAccountsProvider
-                    memberId={currentMember.user_id}
+                    memberKey={currentMember.member_id}
                     acctno={currentMember.acctno}
                     initialSummary={accountsSummary}
                     initialActions={recentAccountActions}

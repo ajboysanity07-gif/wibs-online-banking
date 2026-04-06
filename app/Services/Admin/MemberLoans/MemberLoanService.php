@@ -4,6 +4,7 @@ namespace App\Services\Admin\MemberLoans;
 
 use App\Models\AppUser;
 use App\Models\Wlnmaster;
+use App\Models\Wmaster;
 use App\Repositories\Admin\MemberLoansRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -36,7 +37,7 @@ class MemberLoanService
      * }
      */
     public function getSchedulePageData(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
     ): array {
         $context = $this->resolveLoanContext($member, $loanNumber);
@@ -65,7 +66,7 @@ class MemberLoanService
      * }
      */
     public function getPaymentsPageData(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         ?string $range,
         ?string $start,
@@ -117,7 +118,7 @@ class MemberLoanService
      * @return array{items: \Illuminate\Support\Collection<int, \App\Models\Amortsched>}
      */
     public function getScheduleEntries(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
     ): array {
         $context = $this->resolveLoanContext($member, $loanNumber);
@@ -130,7 +131,7 @@ class MemberLoanService
     }
 
     public function getPayments(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         ?string $range,
         ?string $start,
@@ -160,7 +161,7 @@ class MemberLoanService
      * }
      */
     public function getPaymentsWithFilters(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         ?string $range,
         ?string $start,
@@ -199,7 +200,7 @@ class MemberLoanService
      * }
      */
     public function getPaymentsWithBalances(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         ?string $range,
         ?string $start,
@@ -256,7 +257,7 @@ class MemberLoanService
      * }
      */
     public function getPaymentsExportData(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         ?string $range,
         ?string $start,
@@ -317,13 +318,15 @@ class MemberLoanService
      * @return array{acctno: string, loan: \App\Models\Wlnmaster}
      */
     private function resolveLoanContext(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
     ): array {
-        $member->loadMissing('adminProfile');
+        if ($member instanceof AppUser) {
+            $member->loadMissing('adminProfile');
 
-        if ($member->adminProfile !== null) {
-            abort(404);
+            if ($member->adminProfile !== null) {
+                abort(404);
+            }
         }
 
         $acctno = $this->resolveAcctno($member);
@@ -345,7 +348,7 @@ class MemberLoanService
         ];
     }
 
-    private function resolveAcctno(AppUser $member): string
+    private function resolveAcctno(AppUser|Wmaster $member): string
     {
         $acctno = $member->acctno;
 

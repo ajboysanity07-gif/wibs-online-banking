@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Spa\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberLoanScheduleRequest;
 use App\Http\Resources\Admin\MemberLoanScheduleResource;
-use App\Models\AppUser;
 use App\Services\Admin\MemberLoans\MemberLoanService;
+use App\Services\Admin\MembersService;
 use Illuminate\Http\JsonResponse;
 
 class MemberLoanScheduleController extends Controller
@@ -16,11 +16,13 @@ class MemberLoanScheduleController extends Controller
      */
     public function __invoke(
         MemberLoanScheduleRequest $request,
-        AppUser $user,
+        string $user,
         string $loanNumber,
+        MembersService $membersService,
         MemberLoanService $service,
     ): JsonResponse {
-        $payload = $service->getScheduleEntries($user, $loanNumber);
+        $context = $membersService->resolveAccountContext($user);
+        $payload = $service->getScheduleEntries($context['member'], $loanNumber);
 
         return response()->json([
             'ok' => true,

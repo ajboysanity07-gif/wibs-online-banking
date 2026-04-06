@@ -19,11 +19,11 @@ const buildEmptyResponse = (): MemberLoanScheduleResponse => ({
 });
 
 export function useMemberLoanSchedule(
-    memberId: number | null,
+    memberKey: string | number | null,
     loanNumber: string | number | null,
     options?: MemberLoanScheduleOptions,
 ) {
-    const initialKey = `${memberId ?? 'unknown'}-${loanNumber ?? 'unknown'}`;
+    const initialKey = `${memberKey ?? 'unknown'}-${loanNumber ?? 'unknown'}`;
     const emptyResponse = useMemo(() => buildEmptyResponse(), []);
     const initialData = options?.initial ?? emptyResponse;
 
@@ -43,7 +43,7 @@ export function useMemberLoanSchedule(
 
     const refresh = useCallback(
         async (signal?: AbortSignal) => {
-            if (!memberId || loanNumber === null || loanNumber === undefined) {
+            if (!memberKey || loanNumber === null || loanNumber === undefined) {
                 return null;
             }
 
@@ -51,7 +51,7 @@ export function useMemberLoanSchedule(
 
             try {
                 const data = await adminApi.getMemberLoanSchedule(
-                    memberId,
+                    memberKey,
                     loanNumber,
                     signal,
                 );
@@ -71,13 +71,13 @@ export function useMemberLoanSchedule(
                 return null;
             }
         },
-        [loanNumber, memberId],
+        [loanNumber, memberKey],
     );
 
     useEffect(() => {
         if (
             options?.enabled === false ||
-            !memberId ||
+            !memberKey ||
             loanNumber === null ||
             loanNumber === undefined
         ) {
@@ -98,7 +98,7 @@ export function useMemberLoanSchedule(
     }, [
         initialKey,
         loanNumber,
-        memberId,
+        memberKey,
         options?.enabled,
         options?.initial,
         refresh,

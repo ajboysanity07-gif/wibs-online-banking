@@ -7,7 +7,6 @@ use App\Domains\MemberAccounts\Resources\MemberRecentAccountActionResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\MemberDetailResource;
-use App\Models\AppUser;
 use App\Services\Admin\MembersService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,12 +21,17 @@ class MemberProfileController extends Controller
         $member = $service->getMemberDetail($member);
         $accountsSummary = null;
         $recentAccountActions = null;
+        $accountContext = $service->resolveAccountContextFromMember($member);
 
-        if ($member instanceof AppUser) {
-            $summary = $accountsService->getSummary($member);
+        if ($accountContext !== null) {
+            $summary = $accountsService->getSummary($accountContext['member']);
             $accountsSummary = (new MemberAccountsSummaryResource($summary))->resolve();
 
-            $actionsPaginator = $accountsService->getPaginatedRecentActions($member, 5, 1);
+            $actionsPaginator = $accountsService->getPaginatedRecentActions(
+                $accountContext['member'],
+                5,
+                1,
+            );
             $recentAccountActions = [
                 'items' => MemberRecentAccountActionResource::collection(
                     $actionsPaginator->items(),

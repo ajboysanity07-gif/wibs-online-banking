@@ -34,7 +34,8 @@ import type {
 } from '@/types/admin';
 
 type MemberSummary = {
-    user_id: number;
+    member_id: string;
+    user_id: number | null;
     member_name: string | null;
     acctno: string | null;
 };
@@ -64,7 +65,7 @@ export default function MemberLoanPayments({
     payments,
 }: Props) {
     const loanNumber = loan.lnnumber ?? null;
-    const memberKey = `${member.user_id}-${loanNumber ?? 'unknown'}`;
+    const memberKey = `${member.member_id}-${loanNumber ?? 'unknown'}`;
     const [pageState, setPageState] = useState(() => ({
         memberKey,
         page: payments.meta.page,
@@ -93,7 +94,7 @@ export default function MemberLoanPayments({
         openingBalance,
         closingBalance,
     } = useMemberLoanPayments(
-        member.user_id,
+        member.member_id,
         loanNumber,
         page,
         perPage,
@@ -115,23 +116,23 @@ export default function MemberLoanPayments({
     const canNavigate = Boolean(member.acctno && loanNumber);
     const scheduleHref = loanNumber
         ? loanSchedule({
-              user: member.user_id,
+              user: member.member_id,
               loanNumber,
           }).url
         : null;
     const paymentsHref = loanNumber
         ? loanPayments({
-              user: member.user_id,
+              user: member.member_id,
               loanNumber,
           }).url
         : null;
-    const backToLoansHref = memberLoans(member.user_id).url;
-    const backToProfileHref = showMember(member.user_id).url;
+    const backToLoansHref = memberLoans(member.member_id).url;
+    const backToProfileHref = showMember(member.member_id).url;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Members', href: membersIndex().url },
-        { title: 'Member profile', href: showMember(member.user_id).url },
-        { title: 'Loans', href: memberLoans(member.user_id).url },
+        { title: 'Member profile', href: showMember(member.member_id).url },
+        { title: 'Loans', href: memberLoans(member.member_id).url },
         { title: 'Payments', href: '#' },
     ];
 
@@ -156,7 +157,7 @@ export default function MemberLoanPayments({
 
     const buildExportUrl = (download?: boolean) =>
         loanPaymentsExport(
-            { user: member.user_id, loanNumber: loanNumber ?? '' },
+            { user: member.member_id, loanNumber: loanNumber ?? '' },
             {
                 query: {
                     format: 'pdf',
@@ -170,7 +171,7 @@ export default function MemberLoanPayments({
 
     const buildPrintUrl = () =>
         loanPaymentsPrint(
-            { user: member.user_id, loanNumber: loanNumber ?? '' },
+            { user: member.member_id, loanNumber: loanNumber ?? '' },
             {
                 query: {
                     range: filters.range,

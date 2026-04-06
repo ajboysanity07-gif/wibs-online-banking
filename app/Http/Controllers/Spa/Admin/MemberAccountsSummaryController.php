@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Spa\Admin;
 use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Models\AppUser;
+use App\Services\Admin\MembersService;
 use Illuminate\Http\JsonResponse;
 
 class MemberAccountsSummaryController extends Controller
@@ -13,16 +13,16 @@ class MemberAccountsSummaryController extends Controller
     /**
      * Handle the incoming request.
      */
-    public function __invoke(AppUser $user, MemberAccountsService $service): JsonResponse
-    {
-        $user->loadMissing('adminProfile');
+    public function __invoke(
+        string $user,
+        MembersService $membersService,
+        MemberAccountsService $service,
+    ): JsonResponse {
+        $context = $membersService->resolveAccountContext($user);
+        $member = $context['member'];
 
-        if ($user->adminProfile !== null) {
-            abort(404);
-        }
-
-        $summary = $service->getSummary($user);
-        $ledgerSummary = $service->getLoanSecurityLedgerSummary($user);
+        $summary = $service->getSummary($member);
+        $ledgerSummary = $service->getLoanSecurityLedgerSummary($member);
         $summary['currentLoanSecurityBalance'] = $ledgerSummary['latestBalance'];
         $summary['lastLoanSecurityTransactionDate'] = $ledgerSummary['lastTransactionDate'];
 

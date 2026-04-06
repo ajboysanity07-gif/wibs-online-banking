@@ -4,23 +4,25 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberLoanPaymentsExportRequest;
-use App\Models\AppUser;
 use App\Services\Admin\MemberLoans\MemberLoanExportService;
+use App\Services\Admin\MembersService;
 use Symfony\Component\HttpFoundation\Response;
 
 class MemberLoanPaymentsExportController extends Controller
 {
     public function __invoke(
         MemberLoanPaymentsExportRequest $request,
-        AppUser $user,
+        string $user,
         string $loanNumber,
+        MembersService $membersService,
         MemberLoanExportService $service,
     ): Response {
+        $context = $membersService->resolveAccountContext($user);
         $format = (string) $request->query('format', 'pdf');
         $download = $request->boolean('download');
 
         return $service->exportPayments(
-            $user,
+            $context['member'],
             $loanNumber,
             $format,
             $request->query('range'),

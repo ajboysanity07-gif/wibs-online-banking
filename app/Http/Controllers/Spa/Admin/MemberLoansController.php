@@ -6,7 +6,7 @@ use App\Domains\MemberAccounts\Resources\MemberLoanResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberAccountLoansRequest;
-use App\Models\AppUser;
+use App\Services\Admin\MembersService;
 use Illuminate\Http\JsonResponse;
 
 class MemberLoansController extends Controller
@@ -16,19 +16,17 @@ class MemberLoansController extends Controller
      */
     public function __invoke(
         MemberAccountLoansRequest $request,
-        AppUser $user,
+        string $user,
+        MembersService $membersService,
         MemberAccountsService $service,
     ): JsonResponse {
-        $user->loadMissing('adminProfile');
-
-        if ($user->adminProfile !== null) {
-            abort(404);
-        }
+        $context = $membersService->resolveAccountContext($user);
+        $member = $context['member'];
 
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('perPage', 10);
 
-        $paginator = $service->getPaginatedLoans($user, $perPage, $page);
+        $paginator = $service->getPaginatedLoans($member, $perPage, $page);
         $items = MemberLoanResource::collection($paginator->items())->resolve();
 
         return response()->json([

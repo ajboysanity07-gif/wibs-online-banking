@@ -26,7 +26,8 @@ import type {
 } from '@/types/admin';
 
 type MemberSummary = {
-    user_id: number;
+    member_id: string;
+    user_id: number | null;
     member_name: string | null;
     acctno: string | null;
 };
@@ -38,7 +39,7 @@ type Props = {
 };
 
 export default function MemberSavings({ member, summary, savings }: Props) {
-    const memberKey = `${member.user_id}`;
+    const memberKey = member.member_id;
     const [pageState, setPageState] = useState(() => ({
         memberKey,
         page: savings.meta.page,
@@ -51,7 +52,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
     };
 
     const { items, meta, loading, error, refresh } = useMemberSavings(
-        member.user_id,
+        member.member_id,
         page,
         perPage,
         {
@@ -76,8 +77,8 @@ export default function MemberSavings({ member, summary, savings }: Props) {
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Members', href: membersIndex().url },
-        { title: 'Member profile', href: showMember(member.user_id).url },
-        { title: 'Loan Security', href: memberSavings(member.user_id).url },
+        { title: 'Member profile', href: showMember(member.member_id).url },
+        { title: 'Loan Security', href: memberSavings(member.member_id).url },
     ];
     const currentSavings = formatCurrency(summary.currentLoanSecurityBalance);
     const lastSavingsTransaction = formatDate(
@@ -118,7 +119,7 @@ export default function MemberSavings({ member, summary, savings }: Props) {
                     }
                     actions={
                         <Button asChild variant="ghost" size="sm">
-                            <Link href={showMember(member.user_id).url}>
+                            <Link href={showMember(member.member_id).url}>
                                 Back to profile
                             </Link>
                         </Button>

@@ -59,6 +59,16 @@ beforeEach(function () {
             $table->string('controlno')->nullable();
         });
     }
+
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('lname')->nullable();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('bname')->nullable();
+        });
+    }
 });
 
 test('admin can view member accounts summary', function () {
@@ -177,6 +187,36 @@ test('admin can view member accounts summary', function () {
 
     expect($recentLoan['lnnumber'])->toBe('LN-2');
     expect((float) $recentLoan['initial'])->toBe(800.0);
+});
+
+test('admin can view unregistered member accounts summary', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000511',
+        'lname' => 'Villanueva',
+        'fname' => 'May',
+        'bname' => 'Villanueva, May',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000511',
+        'lnnumber' => 'LN-511',
+        'lntype' => 'Regular',
+        'principal' => 1000,
+        'balance' => 850,
+        'lastmove' => Carbon::parse('2024-02-01 10:00:00')->toDateTimeString(),
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/admin/api/members/acct-000511/accounts/summary');
+
+    $response->assertOk();
+
+    expect((float) $response->json('data.summary.loanBalanceLeft'))->toBe(850.0);
 });
 
 test('admin summary tolerates missing wbalance on loan security master', function () {
@@ -377,6 +417,40 @@ test('recent account actions are paginated and ordered', function () {
     expect($numbers)->not->toContain('SV102');
 });
 
+test('recent account actions work for unregistered members', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000522',
+        'lname' => 'Ramos',
+        'fname' => 'Kai',
+        'bname' => 'Ramos, Kai',
+    ]);
+
+    DB::table('wlnled')->insert([
+        'acctno' => '000522',
+        'lnnumber' => 'LN-522',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-15 08:00:00')->toDateTimeString(),
+        'principal' => 500,
+        'payments' => 0,
+        'balance' => 500,
+        'debit' => 0,
+        'controlno' => 'CTRL-522',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/admin/api/members/acct-000522/accounts/actions');
+
+    $response->assertOk();
+
+    expect($response->json('data.items'))->toHaveCount(1);
+    expect($response->json('data.items.0.source'))->toBe('LOAN');
+});
+
 test('member loans endpoint is paginated', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
@@ -411,6 +485,40 @@ test('member loans endpoint is paginated', function () {
     expect($response->json('data.items'))->toHaveCount(5);
     expect($response->json('data.meta.total'))->toBe(7);
     expect($response->json('data.meta.lastPage'))->toBe(2);
+});
+
+test('member loans endpoint supports unregistered members', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000533',
+        'lname' => 'Perez',
+        'fname' => 'Jude',
+        'bname' => 'Perez, Jude',
+    ]);
+
+    foreach (range(1, 3) as $index) {
+        DB::table('wlnmaster')->insert([
+            'acctno' => '000533',
+            'lnnumber' => sprintf('LN-%02d', $index),
+            'lntype' => 'Regular',
+            'principal' => 1000 + $index,
+            'balance' => 500 + $index,
+            'lastmove' => Carbon::parse("2024-02-{$index} 10:00:00")
+                ->toDateTimeString(),
+        ]);
+    }
+
+    $response = $this->actingAs($admin)->getJson(
+        '/admin/api/members/acct-000533/accounts/loans?perPage=5&page=1',
+    );
+
+    $response->assertOk();
+
+    expect($response->json('data.items'))->toHaveCount(3);
 });
 
 test('member loan security endpoint is paginated', function () {
@@ -488,6 +596,49 @@ test('member loan security endpoint is paginated', function () {
     $numbers = collect($response->json('data.items'))->pluck('svnumber')->all();
     expect($numbers)->not->toContain('SV-01');
     expect($numbers)->not->toContain('SV-02');
+});
+
+test('member loan security endpoint supports unregistered members', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000534',
+        'lname' => 'Diaz',
+        'fname' => 'Lara',
+        'bname' => 'Diaz, Lara',
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => '000534',
+        'svnumber' => 'SV-534',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 200,
+        'wbalance' => 200,
+        'lastmove' => null,
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => '000534',
+        'svnumber' => 'SV-534',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-03-10 09:00:00')->toDateTimeString(),
+        'deposit' => 200,
+        'withdrawal' => 0,
+        'balance' => 200,
+    ]);
+
+    $response = $this->actingAs($admin)->getJson(
+        '/admin/api/members/acct-000534/accounts/savings?perPage=5&page=1',
+    );
+
+    $response->assertOk();
+
+    expect($response->json('data.items'))->toHaveCount(1);
 });
 
 test('non-admin users cannot access member account endpoints', function () {

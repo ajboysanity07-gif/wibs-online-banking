@@ -30,12 +30,12 @@ const buildEmptyResponse = (
 });
 
 export function useMemberSavings(
-    memberId: number | null,
+    memberKey: string | number | null,
     page: number,
     perPage = 10,
     options?: MemberSavingsOptions,
 ) {
-    const initialKey = `${memberId ?? 'unknown'}`;
+    const initialKey = `${memberKey ?? 'unknown'}`;
     const emptyResponse = useMemo(() => buildEmptyResponse(perPage), [perPage]);
     const initialData = options?.initial ?? emptyResponse;
 
@@ -55,7 +55,7 @@ export function useMemberSavings(
 
     const refresh = useCallback(
         async (signal?: AbortSignal) => {
-            if (!memberId) {
+            if (!memberKey) {
                 return null;
             }
 
@@ -63,7 +63,7 @@ export function useMemberSavings(
 
             try {
                 const data = await adminApi.getMemberSavings(
-                    memberId,
+                    memberKey,
                     { page, perPage },
                     signal,
                 );
@@ -83,11 +83,11 @@ export function useMemberSavings(
                 return null;
             }
         },
-        [memberId, page, perPage],
+        [memberKey, page, perPage],
     );
 
     useEffect(() => {
-        if (options?.enabled === false || !memberId) {
+        if (options?.enabled === false || !memberKey) {
             return;
         }
 
@@ -109,7 +109,7 @@ export function useMemberSavings(
         };
     }, [
         initialKey,
-        memberId,
+        memberKey,
         options?.enabled,
         options?.initial,
         page,

@@ -46,6 +46,16 @@ beforeEach(function () {
         });
     }
 
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('lname')->nullable();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('bname')->nullable();
+        });
+    }
+
     if (! Schema::hasTable('Amortsched')) {
         Schema::create('Amortsched', function (Blueprint $table) {
             $table->string('lnnumber');
@@ -78,6 +88,64 @@ test('admin can view member profile page', function () {
             ->where('member.user_id', $member->user_id));
 });
 
+test('admin can view unregistered member profile with account activity', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000801',
+        'lname' => 'Cruz',
+        'fname' => 'Ana',
+        'bname' => 'Cruz, Ana',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000801',
+        'lnnumber' => 'LN-801',
+        'lntype' => 'Regular',
+        'principal' => 1000,
+        'balance' => 700,
+        'initial' => 1000,
+        'lastmove' => Carbon::parse('2024-02-01 08:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => '000801',
+        'svnumber' => 'SV-801',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 200,
+        'wbalance' => 200,
+        'lastmove' => Carbon::parse('2024-02-02 08:00:00')->toDateTimeString(),
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => '000801',
+        'svnumber' => 'SV-801',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-02 08:00:00')->toDateTimeString(),
+        'deposit' => 200,
+        'withdrawal' => 0,
+        'balance' => 200,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.show', 'acct-000801'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-profile')
+            ->where('member.user_id', null)
+            ->where('member.registration_status', 'unregistered')
+            ->where('accountsSummary.loanBalanceLeft', 700)
+            ->where('recentAccountActions.items.0.source', 'SAV'));
+});
+
 test('admin can view member loans page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
@@ -100,6 +168,43 @@ test('admin can view member loans page', function () {
             ->has('summary')
             ->has('loans')
             ->where('member.user_id', $member->user_id));
+});
+
+test('admin can view unregistered member loans page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000802',
+        'lname' => 'Lim',
+        'fname' => 'Toni',
+        'bname' => 'Lim, Toni',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '000802',
+        'lnnumber' => 'LN-802',
+        'lntype' => 'Regular',
+        'principal' => 900,
+        'balance' => 450,
+        'initial' => 900,
+        'lastmove' => Carbon::parse('2024-02-05 08:00:00')->toDateTimeString(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.loans', 'acct-000802'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-loans')
+            ->where('member.user_id', null)
+            ->where('member.member_id', 'acct-000802')
+            ->where('member.acctno', '000802')
+            ->has('loans.items', 1));
 });
 
 test('admin can view member loan schedule page', function () {
@@ -233,6 +338,53 @@ test('admin can view member loan security page', function () {
             ->where('savings.items.0.deposit', 300)
             ->where('savings.items.0.withdrawal', 0)
             ->where('savings.items.1.svnumber', 'SV-701'));
+});
+
+test('admin can view unregistered member loan security page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => '000803',
+        'lname' => 'Garcia',
+        'fname' => 'Mae',
+        'bname' => 'Garcia, Mae',
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => '000803',
+        'svnumber' => 'SV-803',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 600,
+        'wbalance' => 600,
+        'lastmove' => null,
+    ]);
+
+    DB::table('wsavled')->insert([
+        'acctno' => '000803',
+        'svnumber' => 'SV-803',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2024-02-20 08:00:00')->toDateTimeString(),
+        'deposit' => 600,
+        'withdrawal' => 0,
+        'balance' => 600,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.members.savings', 'acct-000803'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/member-savings')
+            ->where('member.user_id', null)
+            ->where('member.member_id', 'acct-000803')
+            ->has('savings.items', 1));
 });
 
 test('admin can view member loan security page when ledger balance is missing', function () {

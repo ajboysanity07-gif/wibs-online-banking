@@ -4,6 +4,7 @@ namespace App\Domains\MemberAccounts\Services;
 
 use App\Domains\MemberAccounts\Repositories\MemberAccountsRepository;
 use App\Models\AppUser;
+use App\Models\Wmaster;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class MemberAccountsService
@@ -23,7 +24,7 @@ class MemberAccountsService
      *     recentLoanSecurity: \Illuminate\Support\Collection<int, mixed>
      * }
      */
-    public function getSummary(AppUser $member): array
+    public function getSummary(AppUser|Wmaster $member): array
     {
         $acctno = $this->resolveAcctno($member);
 
@@ -45,7 +46,7 @@ class MemberAccountsService
      *     recentLoanSecurity: \Illuminate\Support\Collection<int, mixed>
      * }
      */
-    public function getDashboardSummary(AppUser $member): array
+    public function getDashboardSummary(AppUser|Wmaster $member): array
     {
         $acctno = $this->resolveAcctno($member);
 
@@ -63,7 +64,7 @@ class MemberAccountsService
     }
 
     public function getPaginatedLoans(
-        AppUser $member,
+        AppUser|Wmaster $member,
         int $perPage,
         int $page,
     ): LengthAwarePaginator {
@@ -79,7 +80,7 @@ class MemberAccountsService
     }
 
     public function getPaginatedLoanSecurity(
-        AppUser $member,
+        AppUser|Wmaster $member,
         int $perPage,
         int $page,
     ): LengthAwarePaginator {
@@ -97,7 +98,7 @@ class MemberAccountsService
     /**
      * @return array{latestBalance: float, lastTransactionDate: ?string}
      */
-    public function getLoanSecurityLedgerSummary(AppUser $member): array
+    public function getLoanSecurityLedgerSummary(AppUser|Wmaster $member): array
     {
         $acctno = $this->resolveAcctno($member);
 
@@ -109,7 +110,7 @@ class MemberAccountsService
     }
 
     public function getPaginatedRecentActions(
-        AppUser $member,
+        AppUser|Wmaster $member,
         int $perPage,
         int $page,
     ): LengthAwarePaginator {
@@ -124,7 +125,7 @@ class MemberAccountsService
         return $this->repository->getPaginatedRecentActions($acctno, $perPage, $page);
     }
 
-    private function resolveAcctno(AppUser $member): ?string
+    private function resolveAcctno(AppUser|Wmaster $member): ?string
     {
         $acctno = $member->acctno;
 

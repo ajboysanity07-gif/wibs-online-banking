@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Spa\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MemberLoanPaymentsRequest;
 use App\Http\Resources\Admin\MemberLoanPaymentResource;
-use App\Models\AppUser;
 use App\Services\Admin\MemberLoans\MemberLoanService;
+use App\Services\Admin\MembersService;
 use Illuminate\Http\JsonResponse;
 
 class MemberLoanPaymentsController extends Controller
@@ -16,15 +16,18 @@ class MemberLoanPaymentsController extends Controller
      */
     public function __invoke(
         MemberLoanPaymentsRequest $request,
-        AppUser $user,
+        string $user,
         string $loanNumber,
+        MembersService $membersService,
         MemberLoanService $service,
     ): JsonResponse {
         $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('perPage', 10);
 
+        $context = $membersService->resolveAccountContext($user);
+
         $payload = $service->getPaymentsWithBalances(
-            $user,
+            $context['member'],
             $loanNumber,
             $request->query('range'),
             $request->query('start'),

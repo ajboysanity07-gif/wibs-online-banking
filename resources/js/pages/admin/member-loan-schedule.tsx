@@ -20,7 +20,8 @@ import type {
 } from '@/types/admin';
 
 type MemberSummary = {
-    user_id: number;
+    member_id: string;
+    user_id: number | null;
     member_name: string | null;
     acctno: string | null;
 };
@@ -41,7 +42,7 @@ export default function MemberLoanSchedule({
     const loanNumber = loan.lnnumber ?? null;
 
     const { items, loading, error, refresh } = useMemberLoanSchedule(
-        member.user_id,
+        member.member_id,
         loanNumber,
         {
             initial: schedule,
@@ -52,23 +53,23 @@ export default function MemberLoanSchedule({
     const canNavigate = Boolean(member.acctno && loanNumber);
     const scheduleHref = loanNumber
         ? loanSchedule({
-              user: member.user_id,
+              user: member.member_id,
               loanNumber,
           }).url
         : null;
     const paymentsHref = loanNumber
         ? loanPayments({
-              user: member.user_id,
+              user: member.member_id,
               loanNumber,
           }).url
         : null;
-    const backToLoansHref = memberLoans(member.user_id).url;
-    const backToProfileHref = showMember(member.user_id).url;
+    const backToLoansHref = memberLoans(member.member_id).url;
+    const backToProfileHref = showMember(member.member_id).url;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Members', href: membersIndex().url },
-        { title: 'Member profile', href: showMember(member.user_id).url },
-        { title: 'Loans', href: memberLoans(member.user_id).url },
+        { title: 'Member profile', href: showMember(member.member_id).url },
+        { title: 'Loans', href: memberLoans(member.member_id).url },
         { title: 'Schedule', href: '#' },
     ];
 

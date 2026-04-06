@@ -24,7 +24,8 @@ import type { BreadcrumbItem } from '@/types';
 import type { MemberAccountsSummary, MemberLoansResponse } from '@/types/admin';
 
 type MemberSummary = {
-    user_id: number;
+    member_id: string;
+    user_id: number | null;
     member_name: string | null;
     acctno: string | null;
 };
@@ -36,7 +37,7 @@ type Props = {
 };
 
 export default function MemberLoans({ member, summary, loans }: Props) {
-    const memberKey = `${member.user_id}`;
+    const memberKey = member.member_id;
     const [pageState, setPageState] = useState(() => ({
         memberKey,
         page: loans.meta.page,
@@ -49,7 +50,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
     };
 
     const { items, meta, loading, error, refresh } = useMemberLoans(
-        member.user_id,
+        member.member_id,
         page,
         perPage,
         {
@@ -62,8 +63,8 @@ export default function MemberLoans({ member, summary, loans }: Props) {
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Members', href: membersIndex().url },
-        { title: 'Member profile', href: showMember(member.user_id).url },
-        { title: 'Loans', href: memberLoans(member.user_id).url },
+        { title: 'Member profile', href: showMember(member.member_id).url },
+        { title: 'Loans', href: memberLoans(member.member_id).url },
     ];
     const loanBalance = formatCurrency(summary.loanBalanceLeft);
     const lastLoanTransaction = formatDate(summary.lastLoanTransactionDate);
@@ -79,7 +80,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                     meta={`Account No: ${member.acctno ?? '--'}`}
                     actions={
                         <Button asChild variant="ghost" size="sm">
-                            <Link href={showMember(member.user_id).url}>
+                        <Link href={showMember(member.member_id).url}>
                                 Back to profile
                             </Link>
                         </Button>
@@ -122,7 +123,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                     buildScheduleHref={(loanNumber) =>
                         loanNumber
                             ? loanSchedule({
-                                  user: member.user_id,
+                                  user: member.member_id,
                                   loanNumber,
                               }).url
                             : null
@@ -130,7 +131,7 @@ export default function MemberLoans({ member, summary, loans }: Props) {
                     buildPaymentsHref={(loanNumber) =>
                         loanNumber
                             ? loanPayments({
-                                  user: member.user_id,
+                                  user: member.member_id,
                                   loanNumber,
                               }).url
                             : null

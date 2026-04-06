@@ -3,6 +3,7 @@
 namespace App\Services\Admin\MemberLoans;
 
 use App\Models\AppUser;
+use App\Models\Wmaster;
 use App\Services\Admin\MemberLoans\Exports\LoanPaymentsExport;
 use App\Services\OrganizationSettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -23,7 +24,7 @@ class MemberLoanExportService
     ) {}
 
     public function exportPayments(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         string $format,
         ?string $range,
@@ -79,7 +80,7 @@ class MemberLoanExportService
     }
 
     public function renderPaymentsPrintView(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         ?string $range,
         ?string $start,
@@ -122,7 +123,7 @@ class MemberLoanExportService
      * }
      */
     private function buildPaymentsReportContext(
-        AppUser $member,
+        AppUser|Wmaster $member,
         string $loanNumber,
         ?string $range,
         ?string $start,
@@ -255,8 +256,14 @@ class MemberLoanExportService
         ];
     }
 
-    private function resolveMemberName(AppUser $member): string
+    private function resolveMemberName(AppUser|Wmaster $member): string
     {
+        if ($member instanceof Wmaster) {
+            $name = $member->displayName();
+
+            return $name !== '' ? $name : 'Member';
+        }
+
         $name = null;
 
         if (Schema::hasTable('wmaster')) {
