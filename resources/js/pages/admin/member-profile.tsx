@@ -1,13 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
-import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
-import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
+import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PageShell } from '@/components/page-shell';
+import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
+import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import {
     MemberAccountsProvider,
     useMemberAccounts,
@@ -16,7 +16,7 @@ import { useMemberDetails } from '@/hooks/admin/use-member-details';
 import { useUpdateMemberStatus } from '@/hooks/admin/use-update-member-status';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate, formatDateTime } from '@/lib/formatters';
+import { formatDate } from '@/lib/formatters';
 import {
     getMemberStatusLabel,
     getMemberStatusVariant,
@@ -251,17 +251,6 @@ export default function MemberProfile({
                                 {
                                     label: 'Created',
                                     value: formatDate(currentMember.created_at),
-                                },
-                                {
-                                    label: 'Status updated by',
-                                    value:
-                                        currentMember.reviewed_by?.name ?? '--',
-                                },
-                                {
-                                    label: 'Status updated at',
-                                    value: formatDateTime(
-                                        currentMember.reviewed_at,
-                                    ),
                                 },
                             ]}
                         />

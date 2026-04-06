@@ -30,15 +30,6 @@ class MemberDetailResource extends JsonResource
             data_get($resource, 'portal_status')
                 ?? data_get($resource, 'userProfile.status'),
         );
-        $reviewedBy = data_get($resource, 'userProfile.reviewedBy');
-        $reviewedByPayload = null;
-
-        if ($reviewedBy instanceof AppUser) {
-            $reviewedByPayload = [
-                'user_id' => $reviewedBy->user_id,
-                'name' => $reviewedBy->name,
-            ];
-        }
 
         return [
             'member_id' => $this->resolveMemberId($userId, $acctno),
@@ -51,11 +42,6 @@ class MemberDetailResource extends JsonResource
             'registration_status' => $userId === null ? 'unregistered' : 'registered',
             'portal_status' => $portalStatus,
             'created_at' => $this->formatDateValue(data_get($resource, 'created_at')),
-            'reviewed_at' => $this->formatDateValue(
-                data_get($resource, 'reviewed_at')
-                    ?? data_get($resource, 'userProfile.reviewed_at'),
-            ),
-            'reviewed_by' => $reviewedByPayload,
             'avatar_url' => $resource instanceof AppUser ? $resource->avatar : null,
         ];
     }

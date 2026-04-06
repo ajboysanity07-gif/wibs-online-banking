@@ -107,11 +107,6 @@ export type MemberSummary = {
     reviewed_at: string | null;
 };
 
-export type MemberReviewedBy = {
-    user_id: number;
-    name: string;
-};
-
 export type MemberDetail = {
     member_id: string;
     user_id: number | null;
@@ -123,8 +118,6 @@ export type MemberDetail = {
     registration_status: MemberRegistrationStatus;
     portal_status: MemberStatusValue | null;
     created_at: string | null;
-    reviewed_at: string | null;
-    reviewed_by: MemberReviewedBy | null;
     avatar_url: string | null;
 };
 
