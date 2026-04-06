@@ -24,10 +24,7 @@ class MemberSummaryResource extends JsonResource
         $username = $this->resolveString(data_get($resource, 'username'));
         $email = $this->resolveString(data_get($resource, 'email'))
             ?? $this->resolveString(data_get($resource, 'email_address'));
-        $portalStatus = $this->resolveString(
-            data_get($resource, 'portal_status')
-                ?? data_get($resource, 'userProfile.status'),
-        );
+        $portalStatus = $this->resolvePortalStatus($resource, $userId);
 
         return [
             'member_id' => $this->resolveMemberId($userId, $acctno),
@@ -44,6 +41,20 @@ class MemberSummaryResource extends JsonResource
                     ?? data_get($resource, 'userProfile.reviewed_at'),
             ),
         ];
+    }
+
+    private function resolvePortalStatus(mixed $resource, ?int $userId): ?string
+    {
+        $portalStatus = $this->resolveString(
+            data_get($resource, 'portal_status')
+                ?? data_get($resource, 'userProfile.status'),
+        );
+
+        if ($userId !== null && $portalStatus === null) {
+            return 'active';
+        }
+
+        return $portalStatus;
     }
 
     private function resolveMemberName(mixed $resource): string

@@ -26,10 +26,7 @@ class MemberDetailResource extends JsonResource
             ?? $this->resolveString(data_get($resource, 'email_address'));
         $phoneno = $this->resolveString(data_get($resource, 'phoneno'))
             ?? $this->resolveString(data_get($resource, 'phone'));
-        $portalStatus = $this->resolveString(
-            data_get($resource, 'portal_status')
-                ?? data_get($resource, 'userProfile.status'),
-        );
+        $portalStatus = $this->resolvePortalStatus($resource, $userId);
 
         return [
             'member_id' => $this->resolveMemberId($userId, $acctno),
@@ -44,6 +41,20 @@ class MemberDetailResource extends JsonResource
             'created_at' => $this->formatDateValue(data_get($resource, 'created_at')),
             'avatar_url' => $resource instanceof AppUser ? $resource->avatar : null,
         ];
+    }
+
+    private function resolvePortalStatus(mixed $resource, ?int $userId): ?string
+    {
+        $portalStatus = $this->resolveString(
+            data_get($resource, 'portal_status')
+                ?? data_get($resource, 'userProfile.status'),
+        );
+
+        if ($userId !== null && $portalStatus === null) {
+            return 'active';
+        }
+
+        return $portalStatus;
     }
 
     private function resolveMemberName(mixed $resource): string

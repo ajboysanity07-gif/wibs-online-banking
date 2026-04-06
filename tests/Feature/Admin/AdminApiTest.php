@@ -83,6 +83,116 @@ test('admin can list members', function () {
     expect($unregisteredMember['user_id'])->toBeNull();
 });
 
+test('member summary portal status defaults to active for registered members', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $activeMember = User::factory()->create(['acctno' => '000710']);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $activeMember->user_id,
+    ]);
+
+    $missingStatusMember = User::factory()->create(['acctno' => '000711']);
+    UserProfile::factory()->create([
+        'user_id' => $missingStatusMember->user_id,
+        'status' => '',
+    ]);
+
+    $suspendedMember = User::factory()->create(['acctno' => '000712']);
+    UserProfile::factory()->create([
+        'user_id' => $suspendedMember->user_id,
+        'status' => 'suspended',
+    ]);
+
+    DB::table('wmaster')->insert([
+        [
+            'acctno' => '000710',
+            'fname' => 'Active',
+            'lname' => 'Member',
+            'bname' => 'Member, Active',
+        ],
+        [
+            'acctno' => '000711',
+            'fname' => 'Missing',
+            'lname' => 'Status',
+            'bname' => 'Status, Missing',
+        ],
+        [
+            'acctno' => '000712',
+            'fname' => 'Suspended',
+            'lname' => 'Member',
+            'bname' => 'Member, Suspended',
+        ],
+        [
+            'acctno' => '000713',
+            'fname' => 'Unregistered',
+            'lname' => 'Member',
+            'bname' => 'Member, Unregistered',
+        ],
+    ]);
+
+    $response = $this->actingAs($admin)->getJson('/spa/admin/members');
+
+    $response->assertSuccessful();
+
+    $items = collect($response->json('data.items'));
+
+    expect($items->firstWhere('acctno', '000710')['portal_status'])->toBe('active');
+    expect($items->firstWhere('acctno', '000711')['portal_status'])->toBe('active');
+    expect($items->firstWhere('acctno', '000712')['portal_status'])->toBe('suspended');
+    expect($items->firstWhere('acctno', '000713')['portal_status'])->toBeNull();
+});
+
+test('member detail portal status defaults to active for registered members', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $activeMember = User::factory()->create(['acctno' => '000720']);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $activeMember->user_id,
+    ]);
+
+    $missingStatusMember = User::factory()->create(['acctno' => '000721']);
+    UserProfile::factory()->create([
+        'user_id' => $missingStatusMember->user_id,
+        'status' => '',
+    ]);
+
+    $suspendedMember = User::factory()->create(['acctno' => '000722']);
+    UserProfile::factory()->create([
+        'user_id' => $suspendedMember->user_id,
+        'status' => 'suspended',
+    ]);
+
+    DB::table('wmaster')->insert([
+        [
+            'acctno' => '000723',
+            'fname' => 'Unregistered',
+            'lname' => 'Member',
+            'bname' => 'Member, Unregistered',
+        ],
+    ]);
+
+    $activeResponse = $this->actingAs($admin)->getJson("/spa/admin/members/{$activeMember->user_id}");
+    $missingResponse = $this->actingAs($admin)->getJson("/spa/admin/members/{$missingStatusMember->user_id}");
+    $suspendedResponse = $this->actingAs($admin)->getJson("/spa/admin/members/{$suspendedMember->user_id}");
+    $unregisteredResponse = $this->actingAs($admin)->getJson('/spa/admin/members/acct-000723');
+
+    $activeResponse->assertSuccessful();
+    $missingResponse->assertSuccessful();
+    $suspendedResponse->assertSuccessful();
+    $unregisteredResponse->assertSuccessful();
+
+    expect($activeResponse->json('data.member.portal_status'))->toBe('active');
+    expect($missingResponse->json('data.member.portal_status'))->toBe('active');
+    expect($suspendedResponse->json('data.member.portal_status'))->toBe('suspended');
+    expect($unregisteredResponse->json('data.member.portal_status'))->toBeNull();
+});
+
 test('admin can suspend and reactivate members', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
