@@ -31,7 +31,7 @@ class DashboardController extends Controller
 
         $user->loadMissing('userProfile.reviewedBy', 'adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->isAdminOnly()) {
             return redirect()->route('admin.dashboard');
         }
 

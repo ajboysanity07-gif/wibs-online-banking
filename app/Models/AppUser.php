@@ -191,6 +191,22 @@ class AppUser extends Authenticatable
         return $this->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN;
     }
 
+    public function hasMemberAccess(): bool
+    {
+        $acctno = $this->acctno;
+
+        if ($acctno === null) {
+            return false;
+        }
+
+        return trim((string) $acctno) !== '';
+    }
+
+    public function isAdminOnly(): bool
+    {
+        return $this->isAdmin() && ! $this->hasMemberAccess();
+    }
+
     public function getDisplayCodeAttribute(): string
     {
         $prefix = $this->isAdmin() ? 'ADM' : 'USR';

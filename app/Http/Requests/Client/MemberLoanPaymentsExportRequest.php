@@ -19,9 +19,7 @@ class MemberLoanPaymentsExportRequest extends FormRequest
             return false;
         }
 
-        $user->loadMissing('adminProfile');
-
-        return $user->adminProfile === null;
+        return $user->hasMemberAccess();
     }
 
     /**

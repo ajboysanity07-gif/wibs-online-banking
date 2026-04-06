@@ -52,7 +52,7 @@ class LoanRequestStoreRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->adminProfile === null;
+        return $user !== null && $user->hasMemberAccess();
     }
 
     /**

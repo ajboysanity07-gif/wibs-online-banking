@@ -324,7 +324,7 @@ class MemberLoanService
         if ($member instanceof AppUser) {
             $member->loadMissing('adminProfile');
 
-            if ($member->adminProfile !== null) {
+            if ($member->isAdminOnly()) {
                 abort(404);
             }
         }

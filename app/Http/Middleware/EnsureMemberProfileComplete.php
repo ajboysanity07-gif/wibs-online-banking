@@ -23,7 +23,7 @@ class EnsureMemberProfileComplete
 
         $user->loadMissing('adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->isAdminOnly()) {
             return $next($request);
         }
 

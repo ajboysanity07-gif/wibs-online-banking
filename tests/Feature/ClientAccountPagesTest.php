@@ -752,7 +752,9 @@ test('client cannot export loan payments for another member', function () {
 });
 
 test('admins are redirected away from client account pages', function () {
-    $admin = User::factory()->create();
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
@@ -767,4 +769,76 @@ test('admins are redirected away from client account pages', function () {
         ->assertRedirect(route('admin.dashboard'));
     $this->get(route('client.loan-payments', ['loanNumber' => 'LN-000']))
         ->assertRedirect(route('admin.dashboard'));
+});
+
+test('admin members can view client account pages', function () {
+    $adminMember = User::factory()->create([
+        'acctno' => '000901',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $adminMember->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $adminMember->user_id,
+    ]);
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $adminMember->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $adminMember->acctno,
+        'bname' => 'Member, Admin',
+        'fname' => 'Admin',
+        'lname' => 'Member',
+        'birthday' => '1991-01-15',
+        'address' => '999 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Staff',
+    ]);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $adminMember->acctno,
+        'lnnumber' => 'LN-901',
+        'lntype' => 'Regular',
+        'principal' => 1500,
+        'balance' => 900,
+    ]);
+    DB::table('wlnled')->insert([
+        'acctno' => $adminMember->acctno,
+        'lnnumber' => 'LN-901',
+        'lntype' => 'Regular',
+        'date_in' => Carbon::parse('2025-04-10 00:00:00')->toDateTimeString(),
+        'principal' => 100,
+        'payments' => 100,
+        'balance' => 800,
+    ]);
+
+    DB::table('wsvmaster')->insert([
+        'acctno' => $adminMember->acctno,
+        'svnumber' => 'SV-901',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 0,
+        'wbalance' => 0,
+        'lastmove' => null,
+    ]);
+    DB::table('wsavled')->insert([
+        'acctno' => $adminMember->acctno,
+        'svnumber' => 'SV-901',
+        'svtype' => 'Regular',
+        'date_in' => Carbon::parse('2025-04-11 00:00:00')->toDateTimeString(),
+        'deposit' => 250,
+        'withdrawal' => 0,
+        'balance' => 250,
+    ]);
+
+    $this->actingAs($adminMember);
+
+    $this->get(route('client.loans'))->assertOk();
+    $this->get(route('client.savings'))->assertOk();
+    $this->get(route('client.loan-schedule', ['loanNumber' => 'LN-901']))
+        ->assertOk();
+    $this->get(route('client.loan-payments', ['loanNumber' => 'LN-901']))
+        ->assertOk();
 });

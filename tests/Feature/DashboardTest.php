@@ -187,7 +187,9 @@ test('client dashboard sanitizes legacy member payloads', function () {
 });
 
 test('admins are redirected away from client dashboard', function () {
-    $admin = User::factory()->create();
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
@@ -196,6 +198,42 @@ test('admins are redirected away from client dashboard', function () {
 
     $response = $this->get(route('client.dashboard'));
     $response->assertRedirect(route('admin.dashboard'));
+});
+
+test('admin members can access the client dashboard', function () {
+    $adminMember = User::factory()->create([
+        'acctno' => '000703',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $adminMember->user_id,
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $adminMember->user_id,
+    ]);
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $adminMember->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $adminMember->acctno,
+        'bname' => 'Admin Member, Maria',
+        'fname' => 'Maria',
+        'lname' => 'Admin Member',
+        'birthday' => '1990-02-02',
+        'address' => '101 Admin Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Staff',
+    ]);
+
+    $this->actingAs($adminMember);
+
+    $response = $this->get(route('client.dashboard'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/dashboard')
+            ->where('member.acctno', '000703'));
 });
 
 test('suspended users are redirected to account unavailable', function () {

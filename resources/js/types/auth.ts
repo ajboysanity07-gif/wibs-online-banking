@@ -16,6 +16,7 @@ export type Auth = {
     user: User;
     isAdmin: boolean;
     isSuperadmin: boolean;
+    hasMemberAccess: boolean;
 };
 
 export type TwoFactorSetupData = {

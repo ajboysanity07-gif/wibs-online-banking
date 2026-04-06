@@ -103,9 +103,16 @@ const footerNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
     const isAdminUser = auth.isAdmin;
-    const mainNavItems = isAdminUser
+    const hasMemberAccess = auth.hasMemberAccess;
+    const showAdminNav = isAdminUser;
+    const showMemberNav = hasMemberAccess;
+    const adminItems = showAdminNav
         ? adminNavItems(auth.isSuperadmin)
-        : baseNavItems;
+        : [];
+    const memberItems = showMemberNav ? baseNavItems : [];
+    const useDualNav = showAdminNav && showMemberNav;
+    const adminLabel = useDualNav ? 'Admin' : 'Platform';
+    const memberLabel = useDualNav ? 'Member' : 'Platform';
     const homeLink = isAdminUser ? adminDashboard() : clientDashboard();
 
     return (
@@ -123,7 +130,12 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                {showAdminNav && (
+                    <NavMain items={adminItems} label={adminLabel} />
+                )}
+                {showMemberNav && (
+                    <NavMain items={memberItems} label={memberLabel} />
+                )}
             </SidebarContent>
 
             <SidebarFooter>

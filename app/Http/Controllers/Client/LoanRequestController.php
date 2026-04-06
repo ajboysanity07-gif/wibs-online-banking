@@ -34,7 +34,7 @@ class LoanRequestController extends Controller
 
         $user->loadMissing('userProfile', 'adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->isAdminOnly()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -85,7 +85,7 @@ class LoanRequestController extends Controller
 
         $user->loadMissing('adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->isAdminOnly()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -147,7 +147,7 @@ class LoanRequestController extends Controller
 
         $user->loadMissing('adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->isAdminOnly()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -184,7 +184,7 @@ class LoanRequestController extends Controller
 
         $user->loadMissing('adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->isAdminOnly()) {
             return redirect()->route('admin.dashboard');
         }
 

@@ -23,7 +23,7 @@ class EnsureUserApproved
 
         $user->loadMissing('userProfile', 'adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->isAdminOnly()) {
             return $next($request);
         }
 
