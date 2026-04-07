@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\SendLoanDecisionSmsJob;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AdminProfile;
@@ -11,6 +12,7 @@ use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -1369,6 +1371,246 @@ test('admin can view loan request details page', function () {
             ->where('loanRequest.id', $loanRequest->id)
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
             ->where('applicant.first_name', 'Loan'));
+});
+
+test('admin can approve an under review loan request', function () {
+    Queue::fake();
+
+    if (! Schema::hasTable('wlnmaster')) {
+        Schema::create('wlnmaster', function (Blueprint $table) {
+            $table->string('acctno');
+            $table->string('lnnumber');
+        });
+    }
+
+    $admin = User::factory()->create([
+        'acctno' => '000500',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000501',
+        'phoneno' => '09171234567',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $payload = [
+        'approved_amount' => 15000,
+        'approved_term' => 12,
+        'decision_notes' => 'Approved for release.',
+    ];
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/approve",
+            $payload,
+        );
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value)
+        ->assertJsonPath('data.loanRequest.approved_amount', '15000.00');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect($loanRequest->reviewed_by)->toBe($admin->user_id);
+    expect($loanRequest->reviewed_at)->not->toBeNull();
+    expect($loanRequest->approved_amount)->toBe('15000.00');
+    expect($loanRequest->approved_term)->toBe(12);
+    expect($loanRequest->decision_notes)->toBe('Approved for release.');
+    expect(DB::table('wlnmaster')->count())->toBe(0);
+
+    Queue::assertPushed(
+        SendLoanDecisionSmsJob::class,
+        fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
+    );
+});
+
+test('admin can decline an under review loan request', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000502',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $payload = [
+        'decision_notes' => 'Declined due to incomplete documents.',
+    ];
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/decline",
+            $payload,
+        );
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Declined->value);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Declined);
+    expect($loanRequest->reviewed_by)->toBe($admin->user_id);
+    expect($loanRequest->reviewed_at)->not->toBeNull();
+    expect($loanRequest->approved_amount)->toBeNull();
+    expect($loanRequest->approved_term)->toBeNull();
+    expect($loanRequest->decision_notes)->toBe('Declined due to incomplete documents.');
+
+    Queue::assertPushed(
+        SendLoanDecisionSmsJob::class,
+        fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
+    );
+});
+
+test('admins cannot decide their own loan request by user id', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create([
+        'acctno' => '000503',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($admin)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 12000,
+            'approved_term' => 10,
+        ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('decision');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    Queue::assertNothingPushed();
+});
+
+test('admins cannot decide their own loan request by account number', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create([
+        'acctno' => '000504',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000999',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $admin->acctno,
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/decline", [
+            'decision_notes' => 'Not allowed.',
+        ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('decision');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    Queue::assertNothingPushed();
+});
+
+test('loan requests not under review cannot be decided', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 10000,
+            'approved_term' => 12,
+        ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('status');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    Queue::assertNothingPushed();
+});
+
+test('loan request decisions succeed even without a phone number', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000505',
+        'phoneno' => null,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 9000,
+            'approved_term' => 6,
+        ]);
+
+    $response->assertOk();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+
+    Queue::assertPushed(SendLoanDecisionSmsJob::class);
 });
 
 test('admin loan request pdf endpoint responds with a pdf', function () {

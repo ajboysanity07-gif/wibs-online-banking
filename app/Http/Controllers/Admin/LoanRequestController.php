@@ -27,7 +27,7 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
-        $loanRequestRecord->loadMissing('people');
+        $loanRequestRecord->loadMissing('people', 'reviewedBy');
 
         $payload = $this->sanitizePayload([
             'loanRequest' => [
@@ -40,6 +40,17 @@ class LoanRequestController extends Controller
                 'loan_purpose' => $loanRequestRecord->loan_purpose,
                 'availment_status' => $loanRequestRecord->availment_status,
                 'submitted_at' => $loanRequestRecord->submitted_at?->toDateTimeString(),
+                'reviewed_by' => $loanRequestRecord->reviewedBy
+                    ? [
+                        'user_id' => $loanRequestRecord->reviewedBy->user_id,
+                        'name' => $loanRequestRecord->reviewedBy->name,
+                    ]
+                    : null,
+                'reviewed_at' => $loanRequestRecord->reviewed_at?->toDateTimeString(),
+                'approved_amount' => $loanRequestRecord->approved_amount,
+                'approved_term' => $loanRequestRecord->approved_term,
+                'decision_notes' => $loanRequestRecord->decision_notes,
+                'acctno' => $loanRequestRecord->acctno,
             ],
             'applicant' => $this->serializePerson(
                 $loanRequestRecord,

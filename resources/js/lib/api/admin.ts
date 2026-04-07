@@ -13,6 +13,7 @@ import type {
     MembersResponse,
     RequestsResponse,
 } from '@/types/admin';
+import type { LoanRequestDetail } from '@/types/loan-requests';
 
 type ApiResponse<T> = {
     ok: boolean;
@@ -56,6 +57,16 @@ type MemberLoanPaymentsQueryParams = {
     range?: string;
     start?: string | null;
     end?: string | null;
+};
+
+type LoanRequestApprovePayload = {
+    approved_amount: number | string;
+    approved_term: number | string;
+    decision_notes?: string | null;
+};
+
+type LoanRequestDeclinePayload = {
+    decision_notes?: string | null;
 };
 
 export const adminApi = {
@@ -126,6 +137,26 @@ export const adminApi = {
         );
 
         return unwrap(response);
+    },
+    async approveLoanRequest(
+        loanRequestId: number,
+        payload: LoanRequestApprovePayload,
+    ): Promise<LoanRequestDetail> {
+        const response = await client.patch<
+            ApiResponse<{ loanRequest: LoanRequestDetail }>
+        >(`/spa/admin/requests/${loanRequestId}/approve`, payload);
+
+        return unwrap(response).loanRequest;
+    },
+    async declineLoanRequest(
+        loanRequestId: number,
+        payload: LoanRequestDeclinePayload,
+    ): Promise<LoanRequestDetail> {
+        const response = await client.patch<
+            ApiResponse<{ loanRequest: LoanRequestDetail }>
+        >(`/spa/admin/requests/${loanRequestId}/decline`, payload);
+
+        return unwrap(response).loanRequest;
     },
     async getMemberAccountsSummary(
         memberKey: string | number,

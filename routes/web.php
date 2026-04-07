@@ -28,6 +28,7 @@ use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
+use App\Http\Controllers\Spa\Admin\LoanRequestDecisionController as SpaLoanRequestDecisionController;
 use App\Http\Controllers\Spa\Admin\MemberAccountActionsController as SpaMemberAccountActionsController;
 use App\Http\Controllers\Spa\Admin\MemberAccountsSummaryController as SpaMemberAccountsSummaryController;
 use App\Http\Controllers\Spa\Admin\MemberAdminAccessController as SpaMemberAdminAccessController;
@@ -91,6 +92,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::patch('admin/members/{member}/revoke-admin', [SpaMemberAdminAccessController::class, 'revoke'])
             ->middleware('superadmin');
         Route::get('admin/requests', SpaRequestsController::class);
+        Route::patch('admin/requests/{loanRequest}/approve', [SpaLoanRequestDecisionController::class, 'approve']);
+        Route::patch('admin/requests/{loanRequest}/decline', [SpaLoanRequestDecisionController::class, 'decline']);
         Route::get('admin/watchlist', SpaWatchlistController::class);
     });
 });

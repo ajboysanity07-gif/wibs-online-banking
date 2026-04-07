@@ -44,6 +44,11 @@ export type LoanRequestPersonData = {
     payday: string | null;
 };
 
+export type LoanRequestReviewer = {
+    user_id: number;
+    name: string;
+};
+
 export type LoanRequestReadOnlyMap = Record<string, boolean>;
 
 export type LoanRequestStatusValue =
@@ -64,6 +69,12 @@ export type LoanRequestDetail = {
     loan_purpose: string | null;
     availment_status: string | null;
     submitted_at: string | null;
+    reviewed_by: LoanRequestReviewer | null;
+    reviewed_at: string | null;
+    approved_amount: number | string | null;
+    approved_term: number | string | null;
+    decision_notes: string | null;
+    acctno: string | null;
 };
 
 export type LoanRequestListItem = {

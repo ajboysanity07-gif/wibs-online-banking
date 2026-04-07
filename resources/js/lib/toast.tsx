@@ -49,6 +49,8 @@ export const adminToastCopy = {
             `${formatEntity(entity)} disabled successfully.`,
         approved: (entity: string) =>
             `${formatEntity(entity)} approved successfully.`,
+        declined: (entity: string) =>
+            `${formatEntity(entity)} declined successfully.`,
         suspended: (entity: string) =>
             `${formatEntity(entity)} suspended successfully.`,
         reactivated: (entity: string) =>
@@ -66,6 +68,8 @@ export const adminToastCopy = {
             `Failed to disable ${formatEntity(entity, true)}.`,
         approved: (entity: string) =>
             `Failed to approve ${formatEntity(entity, true)}.`,
+        declined: (entity: string) =>
+            `Failed to decline ${formatEntity(entity, true)}.`,
         updatedStatus: () => 'Failed to update account status.',
     },
 };

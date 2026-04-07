@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { useState } from 'react';
 import { Calendar, Download, Printer } from 'lucide-react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
@@ -10,6 +11,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
     composeAddress,
@@ -33,6 +36,7 @@ type Props = {
     backLabel: string;
     pdfHref: string;
     printHref: string;
+    decision?: DecisionProps;
 };
 
 const personName = (person?: LoanRequestPersonData | null): string => {
@@ -153,6 +157,24 @@ type SummaryStatProps = {
     value: string;
 };
 
+type DecisionProps = {
+    show?: boolean;
+    canDecide?: boolean;
+    isProcessing?: boolean;
+    onApprove?: (payload: LoanRequestApprovePayload) => void;
+    onDecline?: (payload: LoanRequestDeclinePayload) => void;
+};
+
+type LoanRequestApprovePayload = {
+    approved_amount: string;
+    approved_term: string;
+    decision_notes?: string | null;
+};
+
+type LoanRequestDeclinePayload = {
+    decision_notes?: string | null;
+};
+
 const SummaryStat = ({ label, value }: SummaryStatProps) => (
     <div className="rounded-xl border border-border/20 bg-muted/10 p-3">
         <p className="text-xs text-muted-foreground">{label}</p>
@@ -197,6 +219,7 @@ export function LoanRequestDetailPage({
     backLabel,
     pdfHref,
     printHref,
+    decision,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -234,6 +257,37 @@ export function LoanRequestDetailPage({
     const submittedLabel = submittedAt
         ? `Submitted ${submittedAt}`
         : 'Not submitted yet';
+    const showDecision = decision?.show ?? false;
+    const showDecisionForm =
+        showDecision &&
+        decision?.canDecide &&
+        normalizedStatus === 'under_review';
+    const showDecisionSummary =
+        showDecision &&
+        (normalizedStatus === 'approved' || normalizedStatus === 'declined');
+    const [approvedAmount, setApprovedAmount] = useState(() => {
+        const initial =
+            loanRequest.approved_amount ?? loanRequest.requested_amount ?? '';
+        return `${initial}`.trim() !== '' ? `${initial}` : '';
+    });
+    const [approvedTerm, setApprovedTerm] = useState(() => {
+        const initial =
+            loanRequest.approved_term ?? loanRequest.requested_term ?? '';
+        return `${initial}`.trim() !== '' ? `${initial}` : '';
+    });
+    const [decisionNotes, setDecisionNotes] = useState(() =>
+        loanRequest.decision_notes ? loanRequest.decision_notes : '',
+    );
+    const reviewedBy = loanRequest.reviewed_by?.name ?? '--';
+    const reviewedAt = displayDateValue(loanRequest.reviewed_at);
+    const approvedAmountValue = displayCurrency(loanRequest.approved_amount);
+    const approvedTermValue =
+        loanRequest.approved_term !== null &&
+        loanRequest.approved_term !== undefined &&
+        `${loanRequest.approved_term}`.trim() !== ''
+            ? `${loanRequest.approved_term} months`
+            : '--';
+    const decisionNotesValue = displayText(loanRequest.decision_notes);
 
     return (
         <PageShell size="wide" className="gap-8">
@@ -517,6 +571,173 @@ export function LoanRequestDetailPage({
                             </div>
                         </CardContent>
                     </Card>
+
+                    {showDecision ? (
+                        <Card className="border-border/30 bg-card/50 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    Decision
+                                </CardTitle>
+                                <CardDescription>
+                                    Capture the approval or decline details.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {showDecisionForm ? (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="approved_amount">
+                                                Approved amount
+                                            </Label>
+                                            <Input
+                                                id="approved_amount"
+                                                type="number"
+                                                inputMode="decimal"
+                                                min="1"
+                                                step="0.01"
+                                                placeholder="Enter approved amount"
+                                                value={approvedAmount}
+                                                onChange={(event) =>
+                                                    setApprovedAmount(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                disabled={
+                                                    decision?.isProcessing
+                                                }
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="approved_term">
+                                                Approved term (months)
+                                            </Label>
+                                            <Input
+                                                id="approved_term"
+                                                type="number"
+                                                inputMode="numeric"
+                                                min="1"
+                                                step="1"
+                                                placeholder="Enter approved term"
+                                                value={approvedTerm}
+                                                onChange={(event) =>
+                                                    setApprovedTerm(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                disabled={
+                                                    decision?.isProcessing
+                                                }
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="decision_notes">
+                                                Decision notes
+                                            </Label>
+                                            <textarea
+                                                id="decision_notes"
+                                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                placeholder="Add optional notes for the member"
+                                                value={decisionNotes}
+                                                onChange={(event) =>
+                                                    setDecisionNotes(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                disabled={
+                                                    decision?.isProcessing
+                                                }
+                                            />
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button
+                                                type="button"
+                                                onClick={() =>
+                                                    decision?.onApprove?.({
+                                                        approved_amount:
+                                                            approvedAmount,
+                                                        approved_term:
+                                                            approvedTerm,
+                                                        decision_notes:
+                                                            decisionNotes
+                                                                ? decisionNotes
+                                                                : null,
+                                                    })
+                                                }
+                                                disabled={
+                                                    decision?.isProcessing
+                                                }
+                                            >
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    decision?.onDecline?.({
+                                                        decision_notes:
+                                                            decisionNotes
+                                                                ? decisionNotes
+                                                                : null,
+                                                    })
+                                                }
+                                                disabled={
+                                                    decision?.isProcessing
+                                                }
+                                            >
+                                                Decline
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Only requests under review can be
+                                            decided.
+                                        </p>
+                                    </>
+                                ) : showDecisionSummary ? (
+                                    <div className="space-y-3 text-sm">
+                                        <DetailRow
+                                            label="Status"
+                                            value={
+                                                statusLabels[
+                                                    statusForTimeline
+                                                ] ?? '--'
+                                            }
+                                        />
+                                        <DetailRow
+                                            label="Reviewed by"
+                                            value={reviewedBy}
+                                        />
+                                        <DetailRow
+                                            label="Reviewed at"
+                                            value={reviewedAt}
+                                        />
+                                        {statusForTimeline === 'approved' ? (
+                                            <>
+                                                <DetailRow
+                                                    label="Approved amount"
+                                                    value={
+                                                        approvedAmountValue
+                                                    }
+                                                />
+                                                <DetailRow
+                                                    label="Approved term"
+                                                    value={approvedTermValue}
+                                                />
+                                            </>
+                                        ) : null}
+                                        <DetailRow
+                                            label="Decision notes"
+                                            value={decisionNotesValue}
+                                        />
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        Decision details will appear once the
+                                        request is reviewed.
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    ) : null}
 
                     <Card className="border-border/30 bg-card/50 shadow-sm">
                         <CardHeader>

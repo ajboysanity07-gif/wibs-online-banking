@@ -41,6 +41,11 @@ class LoanRequest extends Model
         return $this->belongsTo(AppUser::class, 'user_id', 'user_id');
     }
 
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'reviewed_by', 'user_id');
+    }
+
     public function people(): HasMany
     {
         return $this->hasMany(LoanRequestPerson::class);
