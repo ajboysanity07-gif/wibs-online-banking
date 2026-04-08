@@ -22,6 +22,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from '@/components/ui/tabs';
 import { useBranding } from '@/hooks/use-branding';
 import AppLayout from '@/layouts/app-layout';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
@@ -1048,7 +1054,32 @@ export default function OrganizationSettings() {
 
                                     return (
                                         <>
-                                            <SurfaceCard
+                                            <Tabs
+                                                defaultValue="general"
+                                                className="flex flex-col gap-6"
+                                            >
+                                                <TabsList className="w-full flex-wrap justify-start gap-2">
+                                                    <TabsTrigger value="general">
+                                                        General
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="brand-assets">
+                                                        Brand assets
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="colors">
+                                                        Colors
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="report-header">
+                                                        Report header
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="support">
+                                                        Support
+                                                    </TabsTrigger>
+                                                </TabsList>
+                                                <TabsContent
+                                                    value="general"
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
                                                 variant="muted"
                                                 padding="md"
                                                 className="space-y-6"
@@ -1135,8 +1166,13 @@ export default function OrganizationSettings() {
                                                     </div>
                                                 </div>
                                             </SurfaceCard>
+                                                </TabsContent>
 
-                                            <SurfaceCard
+                                                <TabsContent
+                                                    value="brand-assets"
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
                                                 variant="muted"
                                                 padding="md"
                                                 className="space-y-6"
@@ -1603,8 +1639,13 @@ export default function OrganizationSettings() {
                                                     </div>
                                                 </div>
                                             </SurfaceCard>
+                                                </TabsContent>
 
-                                            <SurfaceCard
+                                                <TabsContent
+                                                    value="report-header"
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
                                                 variant="muted"
                                                 padding="md"
                                                 className="space-y-6"
@@ -3064,8 +3105,13 @@ export default function OrganizationSettings() {
                                                 </div>
                                             </div>
                                             </SurfaceCard>
+                                                </TabsContent>
 
-                                            <SurfaceCard
+                                                <TabsContent
+                                                    value="colors"
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
                                                 variant="muted"
                                                 padding="md"
                                                 className="space-y-6"
@@ -3331,8 +3377,13 @@ export default function OrganizationSettings() {
                                                     </div>
                                                 </div>
                                             </SurfaceCard>
+                                                </TabsContent>
 
-                                            <SurfaceCard
+                                                <TabsContent
+                                                    value="support"
+                                                    className="mt-0 space-y-6"
+                                                >
+                                                    <SurfaceCard
                                                 variant="muted"
                                                 padding="md"
                                                 className="space-y-6"
@@ -3568,6 +3619,8 @@ export default function OrganizationSettings() {
                                                     </div>
                                                 </div>
                                             </SurfaceCard>
+                                                </TabsContent>
+                                            </Tabs>
 
                                             <div className="sticky bottom-4 z-10 rounded-2xl border border-border/40 bg-background/95 p-4 shadow-[0_12px_24px_-24px_rgba(0,0,0,0.45)] backdrop-blur">
                                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

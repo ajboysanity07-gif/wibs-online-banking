@@ -23,7 +23,8 @@ test('superadmin can view organization branding settings page', function () {
             ->component('admin/organization-settings')
             ->where('branding.logoPreset', OrganizationSettingsService::LOGO_PRESET_MARK)
             ->where('branding.logoMarkUrl', asset('mrdinc-logo-mark.png'))
-            ->where('branding.logoFullUrl', asset('mrdinc-logo.png')));
+            ->where('branding.logoFullUrl', asset('mrdinc-logo.png'))
+            ->has('branding.communications.loanSmsTemplates'));
 });
 
 test('admin users cannot view organization branding settings page', function () {
