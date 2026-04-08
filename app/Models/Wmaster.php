@@ -266,7 +266,7 @@ class Wmaster extends Model
             'birthday' => 'Birthday',
             'address' => 'Address',
             'civil_status' => 'Civil status',
-            'occupation' => 'Occupation',
+            'occupation' => 'Current position',
         ];
 
         return array_values(array_map(
