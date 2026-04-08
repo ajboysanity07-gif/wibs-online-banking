@@ -80,3 +80,25 @@ test('performance indexes migration adds expected indexes', function () {
     expect(Schema::hasIndex('appusers', 'idx_appusers_created_at'))
         ->toBeTrue();
 });
+
+test('loan requests performance indexes migration adds expected indexes', function () {
+    if (! Schema::hasTable('loan_requests')) {
+        Schema::create('loan_requests', function (Blueprint $table) {
+            $table->id();
+            $table->string('status');
+            $table->timestamp('submitted_at')->nullable();
+            $table->string('loan_type_label_snapshot')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    $migration = require database_path(
+        'migrations/2026_04_08_032929_add_performance_indexes_to_loan_requests_table.php',
+    );
+    $migration->up();
+
+    expect(Schema::hasIndex('loan_requests', 'idx_loan_requests_status_submitted_at_created_at'))
+        ->toBeTrue();
+    expect(Schema::hasIndex('loan_requests', 'idx_loan_requests_status_loan_type_label_snapshot'))
+        ->toBeTrue();
+});
