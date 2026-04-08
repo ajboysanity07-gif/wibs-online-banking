@@ -72,8 +72,7 @@ test('profile page includes completion details for incomplete profiles', functio
                 'profileCompletion.missingFields',
                 fn ($value) => collect($value)->contains('Birthplace city')
                     && collect($value)->contains('Payday'),
-            )
-            ->where('profileCompletion.warnings', ['Verified member record is missing.']));
+            ));
 });
 
 test('incomplete profile updates stay on onboarding with missing fields', function () {

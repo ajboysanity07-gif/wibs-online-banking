@@ -102,7 +102,6 @@ type ProfileCompletion = {
     isComplete: boolean;
     completedAt: string | null;
     missingFields: string[];
-    warnings: string[];
 };
 
 type Props = {
@@ -349,15 +348,12 @@ export default function Profile({
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const missingProfileFields = profileCompletion?.missingFields ?? [];
-    const completionWarnings = profileCompletion?.warnings ?? [];
     const showOnboardingAlert =
         onboarding && hasMemberAccess && !isProfileComplete;
     const showMissingProfileFields =
         hasMemberAccess &&
         !isProfileComplete &&
         missingProfileFields.length > 0;
-    const showCompletionWarnings =
-        hasMemberAccess && completionWarnings.length > 0;
     const initialBirthplaceCity =
         memberApplicationProfile?.birthplace_city?.trim() ||
         memberBirthplaceCity;
@@ -625,28 +621,6 @@ export default function Profile({
                                                             (field) => (
                                                                 <li key={field}>
                                                                     {field}
-                                                                </li>
-                                                            ),
-                                                        )}
-                                                    </ul>
-                                                </AlertDescription>
-                                            </Alert>
-                                        ) : null}
-
-                                        {showCompletionWarnings ? (
-                                            <Alert className="border-slate-200 bg-slate-50 text-slate-950 dark:border-slate-800/50 dark:bg-slate-950/40 dark:text-slate-100">
-                                                <AlertTitle>
-                                                    Verified member record
-                                                    notice
-                                                </AlertTitle>
-                                                <AlertDescription className="text-slate-700 dark:text-slate-200">
-                                                    <ul className="mt-2 list-disc pl-5 text-sm">
-                                                        {completionWarnings.map(
-                                                            (warning) => (
-                                                                <li
-                                                                    key={warning}
-                                                                >
-                                                                    {warning}
                                                                 </li>
                                                             ),
                                                         )}

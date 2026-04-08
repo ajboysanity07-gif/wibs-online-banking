@@ -160,36 +160,18 @@ class SettingsPageData
             : null;
 
         $profileMissingFields = [];
-        $profileWarnings = [];
 
         if ($user !== null && $hasMemberAccess) {
             $profileMissingFields = $user->missingMemberApplicationProfileFieldLabels(
                 $memberApplicationProfile,
             );
 
-            if ($schema->hasTable('wmaster')) {
-                $user->loadMissing('wmaster');
-
-                if ($user->wmaster === null) {
-                    $profileWarnings[] = 'Verified member record is missing.';
-                } else {
-                    $missingCanonicalFields = $user->wmaster->missingRequiredProfileFieldLabels();
-
-                    if ($missingCanonicalFields !== []) {
-                        $profileWarnings[] = sprintf(
-                            'Verified member record is missing: %s.',
-                            implode(', ', $missingCanonicalFields),
-                        );
-                    }
-                }
-            }
         }
 
         $profileCompletion = [
             'isComplete' => $user?->memberApplicationProfileIsComplete() ?? false,
             'completedAt' => $memberApplicationProfile?->profile_completed_at?->toDateTimeString(),
             'missingFields' => $profileMissingFields,
-            'warnings' => $profileWarnings,
         ];
 
         return [
