@@ -28,8 +28,10 @@ test('superadmin can grant admin access to a registered member', function () {
     $member = User::factory()->create([
         'acctno' => '001001',
     ]);
+    $profilePhotoPath = "profile-photos/client/{$member->user_id}/avatar.jpg";
     UserProfile::factory()->approved()->create([
         'user_id' => $member->user_id,
+        'profile_pic_path' => $profilePhotoPath,
     ]);
 
     DB::table('wmaster')->insert([
@@ -53,6 +55,11 @@ test('superadmin can grant admin access to a registered member', function () {
             ->where('access_level', AdminProfile::ACCESS_LEVEL_ADMIN)
             ->exists(),
     )->toBeTrue();
+    expect(
+        AdminProfile::query()
+            ->where('user_id', $member->user_id)
+            ->value('profile_pic_path'),
+    )->toBe($profilePhotoPath);
     expect($response->json('data.member.admin_access_level'))->toBe('admin');
     expect($response->json('data.member.is_admin'))->toBeTrue();
 

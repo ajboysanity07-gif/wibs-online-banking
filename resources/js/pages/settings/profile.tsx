@@ -307,6 +307,7 @@ export default function Profile({
     twoFactorAvailable = true,
 }: Props) {
     const { auth } = usePage().props;
+    const hasMemberAccess = auth.hasMemberAccess;
     const getInitials = useInitials();
     const profilePhotoInputRef = useRef<HTMLInputElement>(null);
     const profilePhotoDraftFileRef = useRef<File | null>(null);
@@ -385,13 +386,13 @@ export default function Profile({
     const missingProfileFields = profileCompletion?.missingFields ?? [];
     const completionWarnings = profileCompletion?.warnings ?? [];
     const showOnboardingAlert =
-        onboarding && adminProfile === null && !isProfileComplete;
+        onboarding && hasMemberAccess && !isProfileComplete;
     const showMissingProfileFields =
-        adminProfile === null &&
+        hasMemberAccess &&
         !isProfileComplete &&
         missingProfileFields.length > 0;
     const showCompletionWarnings =
-        adminProfile === null && completionWarnings.length > 0;
+        hasMemberAccess && completionWarnings.length > 0;
     const initialBirthplaceCity =
         memberApplicationProfile?.birthplace_city?.trim() ||
         memberBirthplaceCity;
@@ -666,7 +667,7 @@ export default function Profile({
                                                 title="Profile information"
                                                 description="Update your profile details, photo, and contact information"
                                             />
-                                            {adminProfile === null && (
+                                            {hasMemberAccess && (
                                                 <Badge
                                                     variant={
                                                         isProfileComplete
@@ -1031,7 +1032,7 @@ export default function Profile({
                                                             )}
                                                     </div>
 
-                                                    {adminProfile === null && (
+                                                    {hasMemberAccess && (
                                                         <>
                                                             <Separator />
 

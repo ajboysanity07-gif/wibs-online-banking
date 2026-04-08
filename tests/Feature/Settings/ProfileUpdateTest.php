@@ -111,7 +111,9 @@ test('incomplete profile updates stay on onboarding with missing fields', functi
 });
 
 test('admin profile page is displayed', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'acctno' => null,
+    ]);
     AdminProfile::factory()->create([
         'user_id' => $user->user_id,
         'fullname' => 'Admin Account',
@@ -127,6 +129,39 @@ test('admin profile page is displayed', function () {
             ->component('settings/profile')
             ->where('initialTab', 'profile')
             ->where('adminProfile.fullname', 'Admin Account')
+            ->where('memberRecord', null)
+        );
+});
+
+test('profile page includes member data for admin members', function () {
+    $user = User::factory()->create([
+        'acctno' => '001201',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'fullname' => 'Hybrid Admin',
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Hybrid',
+        'fname' => 'Hybrid',
+        'lname' => 'Member',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('adminProfile.fullname', 'Hybrid Admin')
+            ->where('memberRecord.bname', 'Member, Hybrid')
         );
 });
 
@@ -386,7 +421,9 @@ test('profile page hides structured member name fields when only full name is av
 test('profile page exposes admin profile photo url for preview', function () {
     Storage::fake('public');
 
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'acctno' => null,
+    ]);
     $adminProfile = AdminProfile::factory()->create([
         'user_id' => $user->user_id,
         'profile_pic_path' => "profile-photos/admin/{$user->user_id}/avatar.jpg",
@@ -409,6 +446,41 @@ test('profile page exposes admin profile photo url for preview', function () {
             ->where(
                 'auth.user.avatar',
                 Storage::disk('public')->url($adminProfile->profile_pic_path),
+            )
+        );
+});
+
+test('profile page falls back to member profile photo when admin photo is missing', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create([
+        'acctno' => '001202',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'profile_pic_path' => null,
+    ]);
+    $memberPath = "profile-photos/client/{$user->user_id}/avatar.jpg";
+
+    Storage::disk('public')->put($memberPath, 'avatar');
+
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+        'profile_pic_path' => $memberPath,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('adminProfile.profilePicUrl', null)
+            ->where(
+                'auth.user.avatar',
+                Storage::disk('public')->url($memberPath),
             )
         );
 });
@@ -558,6 +630,7 @@ test('admin profile information can be updated with a profile photo', function (
     Storage::fake('public');
 
     $user = User::factory()->create([
+        'acctno' => null,
         'phoneno' => '09123456789',
     ]);
     AdminProfile::factory()->create([
@@ -592,6 +665,47 @@ test('admin profile information can be updated with a profile photo', function (
     expect($user->phoneno)->toBe($updatedPhoneNumber);
 
     Storage::disk('public')->assertExists($adminProfile->profile_pic_path);
+});
+
+test('hybrid members can update member profile fields', function () {
+    $user = User::factory()->create([
+        'acctno' => '001203',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'fullname' => 'Hybrid Admin',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'HybridUser',
+            'email' => 'hybrid@example.com',
+            'phoneno' => '09123456711',
+            'fullname' => 'Hybrid Admin',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'College',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '45000.00',
+            'payday' => '15th',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->birthplace_city)->toBe('Cebu City');
+    expect($memberProfile->educational_attainment)->toBe('College');
 });
 
 test('profile page exposes client profile photo url for preview', function () {

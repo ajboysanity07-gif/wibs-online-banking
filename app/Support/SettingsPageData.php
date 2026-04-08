@@ -17,6 +17,7 @@ class SettingsPageData
         $schema = app(SchemaCapabilities::class);
         $user = $request->user();
         $user?->loadMissing('adminProfile', 'memberApplicationProfile');
+        $hasMemberAccess = $user?->hasMemberAccess() ?? false;
 
         $adminProfile = $user?->adminProfile;
         $memberApplicationProfile = $user?->memberApplicationProfile;
@@ -26,7 +27,7 @@ class SettingsPageData
 
         $memberRecord = null;
 
-        if ($user !== null && $adminProfile === null && $schema->hasTable('wmaster')) {
+        if ($user !== null && $hasMemberAccess && $schema->hasTable('wmaster')) {
             $user->loadMissing('wmaster');
 
             if ($user->wmaster !== null) {
@@ -161,7 +162,7 @@ class SettingsPageData
         $profileMissingFields = [];
         $profileWarnings = [];
 
-        if ($user !== null && $adminProfile === null) {
+        if ($user !== null && $hasMemberAccess) {
             $profileMissingFields = $user->missingMemberApplicationProfileFieldLabels(
                 $memberApplicationProfile,
             );

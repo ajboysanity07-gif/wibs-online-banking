@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\AdminProfile;
 use App\Models\AppUser;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -13,25 +14,33 @@ class MemberAdminAccessService
     {
         $this->guardTargetUser($user, $actor);
 
-        $user->loadMissing('adminProfile');
+        return DB::transaction(function () use ($user): AppUser {
+            $user->loadMissing('adminProfile', 'userProfile');
 
-        if ($user->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN) {
-            throw ValidationException::withMessages([
-                'member' => 'Superadmin access cannot be updated from here.',
-            ]);
-        }
+            if ($user->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN) {
+                throw ValidationException::withMessages([
+                    'member' => 'Superadmin access cannot be updated from here.',
+                ]);
+            }
 
-        $fullname = $user->adminProfile?->fullname ?? $this->resolveFullName($user);
-
-        AdminProfile::query()->updateOrCreate(
-            ['user_id' => $user->user_id],
-            [
+            $fullname = $user->adminProfile?->fullname ?? $this->resolveFullName($user);
+            $profilePicPath = $this->resolveProfilePicPath($user);
+            $adminProfileData = [
                 'fullname' => $fullname,
                 'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
-            ],
-        );
+            ];
 
-        return $this->loadMember($user->refresh());
+            if ($profilePicPath !== null) {
+                $adminProfileData['profile_pic_path'] = $profilePicPath;
+            }
+
+            AdminProfile::query()->updateOrCreate(
+                ['user_id' => $user->user_id],
+                $adminProfileData,
+            );
+
+            return $this->loadMember($user->refresh());
+        });
     }
 
     public function revoke(AppUser $user, AppUser $actor): AppUser
@@ -87,6 +96,23 @@ class MemberAdminAccessService
         }
 
         return 'Administrator';
+    }
+
+    private function resolveProfilePicPath(AppUser $user): ?string
+    {
+        $adminPath = $user->adminProfile?->profile_pic_path;
+
+        if (is_string($adminPath) && trim($adminPath) !== '') {
+            return $adminPath;
+        }
+
+        $userPath = $user->userProfile?->profile_pic_path;
+
+        if (is_string($userPath) && trim($userPath) !== '') {
+            return $userPath;
+        }
+
+        return null;
     }
 
     private function loadMember(AppUser $user): AppUser

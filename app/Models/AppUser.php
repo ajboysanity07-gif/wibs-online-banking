@@ -217,8 +217,9 @@ class AppUser extends Authenticatable
 
     public function getAvatarAttribute(): ?string
     {
-        $profilePath = $this->adminProfile !== null
-            ? $this->adminProfile->profile_pic_path
+        $adminProfilePath = $this->adminProfile?->profile_pic_path;
+        $profilePath = is_string($adminProfilePath) && trim($adminProfilePath) !== ''
+            ? $adminProfilePath
             : $this->userProfile?->profile_pic_path;
 
         if (! is_string($profilePath) || $profilePath === '') {

@@ -48,18 +48,31 @@ class ProfileController extends Controller
 
         $user->save();
 
+        $user->loadMissing('adminProfile', 'memberApplicationProfile', 'userProfile');
+
         $adminProfile = $user->adminProfile;
+        $hasMemberAccess = $user->hasMemberAccess();
+        $profilePhotoPath = null;
+
+        if ($request->hasFile('profile_photo')) {
+            $profilePhotoPath = $request->file('profile_photo')
+                ->store(
+                    $adminProfile !== null
+                        ? "profile-photos/admin/{$user->user_id}"
+                        : "profile-photos/client/{$user->user_id}",
+                    'public',
+                );
+        }
 
         if ($adminProfile !== null) {
             $adminProfileData = Arr::only($validated, ['fullname']);
 
-            if ($request->hasFile('profile_photo')) {
-                if ($adminProfile->profile_pic_path) {
+            if ($profilePhotoPath !== null) {
+                if ($adminProfile->profile_pic_path && $adminProfile->profile_pic_path !== $profilePhotoPath) {
                     Storage::disk('public')->delete($adminProfile->profile_pic_path);
                 }
 
-                $adminProfileData['profile_pic_path'] = $request->file('profile_photo')
-                    ->store("profile-photos/admin/{$user->user_id}", 'public');
+                $adminProfileData['profile_pic_path'] = $profilePhotoPath;
             }
 
             if ($adminProfileData !== []) {
@@ -67,7 +80,7 @@ class ProfileController extends Controller
             }
         }
 
-        if ($adminProfile === null) {
+        if ($hasMemberAccess) {
             $memberProfileData = Arr::only(
                 $validated,
                 MemberApplicationProfile::fields(),
@@ -76,17 +89,16 @@ class ProfileController extends Controller
             $memberProfile = $user->memberApplicationProfile()->firstOrNew();
             $memberProfile->fill($memberProfileData);
 
-            if ($request->hasFile('profile_photo')) {
+            if ($profilePhotoPath !== null) {
                 $userProfile = $user->userProfile()->firstOrNew([
                     'user_id' => $user->user_id,
                 ]);
 
-                if ($userProfile->profile_pic_path) {
+                if ($userProfile->profile_pic_path && $userProfile->profile_pic_path !== $profilePhotoPath) {
                     Storage::disk('public')->delete($userProfile->profile_pic_path);
                 }
 
-                $userProfile->profile_pic_path = $request->file('profile_photo')
-                    ->store("profile-photos/client/{$user->user_id}", 'public');
+                $userProfile->profile_pic_path = $profilePhotoPath;
                 $userProfile->save();
             }
 

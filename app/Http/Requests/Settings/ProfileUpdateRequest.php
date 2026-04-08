@@ -118,7 +118,8 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         $isAdmin = $this->user()?->adminProfile !== null;
-        $memberRequirement = fn (string $field): string => $this->memberProfileRequirement($field, $isAdmin);
+        $skipMemberRequirements = $this->user()?->isAdminOnly() ?? false;
+        $memberRequirement = fn (string $field): string => $this->memberProfileRequirement($field, $skipMemberRequirements);
 
         return [
             ...$this->profileRules($this->user()->id),
@@ -280,9 +281,9 @@ class ProfileUpdateRequest extends FormRequest
         ];
     }
 
-    private function memberProfileRequirement(string $field, bool $isAdmin): string
+    private function memberProfileRequirement(string $field, bool $skipMemberRequirements): string
     {
-        if ($isAdmin) {
+        if ($skipMemberRequirements) {
             return 'nullable';
         }
 
