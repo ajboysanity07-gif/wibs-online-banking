@@ -164,6 +164,7 @@ class RequestsService
 
         return [
             'id' => $request->id,
+            'reference' => $request->reference,
             'member_name' => $memberName,
             'status' => $status,
             'created_at' => $submittedAt,

@@ -28,6 +28,7 @@ type LoanRequestRecordsCardProps = {
 };
 
 const requestTableSkeletonColumns: TableSkeletonColumn[] = [
+    { headerClassName: 'w-24', cellClassName: 'w-32' },
     { headerClassName: 'w-32', cellClassName: 'w-40' },
     { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
@@ -35,6 +36,12 @@ const requestTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-16', cellClassName: 'w-28', align: 'right' },
 ];
+
+const resolveReference = (request: LoanRequestListItem): string => {
+    const reference = request.reference?.trim();
+
+    return reference && reference !== '' ? reference : '--';
+};
 
 const resolveLoanTypeLabel = (request: LoanRequestListItem): string => {
     if (request.loan_type_label_snapshot) {
@@ -121,6 +128,10 @@ const LoanRequestMobileCard = ({
             value={resolveAmount(request)}
             meta={[
                 {
+                    label: 'Reference',
+                    value: resolveReference(request),
+                },
+                {
                     label: 'Status',
                     value: (
                         <LoanRequestStatusBadge
@@ -155,6 +166,11 @@ export function LoanRequestRecordsCard({
 
     const columns = useMemo<ColumnDef<LoanRequestListItem>[]>(
         () => [
+            {
+                id: 'reference',
+                header: 'Reference',
+                cell: ({ row }) => resolveReference(row.original),
+            },
             {
                 id: 'loan_type',
                 header: 'Loan type',
@@ -233,7 +249,7 @@ export function LoanRequestRecordsCard({
                     columns={requestTableSkeletonColumns}
                     rows={4}
                     className="rounded-xl border border-border/40 bg-card/60"
-                    tableClassName="min-w-[920px]"
+                    tableClassName="min-w-[1040px]"
                 />
             }
             body={
@@ -274,7 +290,7 @@ export function LoanRequestRecordsCard({
                         <DataTable
                             columns={columns}
                             data={items}
-                            className="min-w-[920px]"
+                            className="min-w-[1040px]"
                             emptyMessage="No loan requests found."
                         />
                     </div>

@@ -32,6 +32,7 @@ class LoanRequestController extends Controller
         $payload = $this->sanitizePayload([
             'loanRequest' => [
                 'id' => $loanRequestRecord->id,
+                'reference' => $loanRequestRecord->reference,
                 'status' => $this->normalizeStatus($loanRequestRecord),
                 'typecode' => $loanRequestRecord->typecode,
                 'loan_type_label_snapshot' => $loanRequestRecord->loan_type_label_snapshot,

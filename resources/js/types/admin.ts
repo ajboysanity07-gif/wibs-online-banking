@@ -34,6 +34,7 @@ export type AdminAccessLevel = 'member' | 'admin' | 'superadmin';
 
 export type RequestPreview = {
     id: number | null;
+    reference: string | null;
     member_name: string | null;
     status: LoanRequestStatusValue | null;
     created_at: string | null;

@@ -84,6 +84,11 @@ const formatCountLabel = (count: number, label: string): string => {
 
 const columns: ColumnDef<RequestPreview>[] = [
     {
+        accessorKey: 'reference',
+        header: 'Reference',
+        cell: ({ row }) => row.original.reference ?? '--',
+    },
+    {
         accessorKey: 'member_name',
         header: 'Member',
         cell: ({ row }) => row.original.member_name ?? '--',
@@ -139,6 +144,7 @@ const columns: ColumnDef<RequestPreview>[] = [
 ];
 
 const requestsTableSkeletonColumns = [
+    { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
@@ -514,6 +520,9 @@ export default function RequestsPage() {
                                                     <p className="text-sm font-semibold text-foreground">
                                                         {item.member_name ??
                                                             '--'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {`Reference: ${item.reference ?? '--'}`}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         {item.loan_type ??

@@ -331,6 +331,7 @@ class LoanRequestService
 
         return [
             'id' => $loanRequest->id,
+            'reference' => $loanRequest->reference,
             'status' => $status,
             'typecode' => $loanRequest->typecode,
             'loan_type_label_snapshot' => $loanRequest->loan_type_label_snapshot,
@@ -557,6 +558,7 @@ class LoanRequestService
 
         return [
             'id' => $loanRequest->id,
+            'reference' => $loanRequest->reference,
             'status' => $status,
             'typecode' => $typecode,
             'loan_type_label_snapshot' => $loanTypeLabel,

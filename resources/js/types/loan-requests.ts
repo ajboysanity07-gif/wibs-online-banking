@@ -61,6 +61,7 @@ export type LoanRequestStatusValue =
 
 export type LoanRequestDetail = {
     id: number;
+    reference: string;
     status: LoanRequestStatusValue | null;
     typecode: string | null;
     loan_type_label_snapshot: string | null;
@@ -79,6 +80,7 @@ export type LoanRequestDetail = {
 
 export type LoanRequestListItem = {
     id: number;
+    reference: string;
     status: LoanRequestStatusValue | null;
     typecode: string | null;
     loan_type_label_snapshot: string | null;
@@ -94,6 +96,7 @@ export type LoanRequestListResponse = {
 
 export type LoanRequestDraft = {
     id: number;
+    reference: string;
     status: LoanRequestStatusValue | null;
     typecode: string | null;
     loan_type_label_snapshot: string | null;

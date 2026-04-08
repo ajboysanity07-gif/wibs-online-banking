@@ -299,7 +299,7 @@ export function LoanRequestDetailPage({
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
                             <h1 className="text-3xl font-semibold tracking-tight">
-                                Request #{loanRequest.id}
+                                Request {loanRequest.reference}
                             </h1>
                             <LoanRequestStatusBadge
                                 status={loanRequest.status}

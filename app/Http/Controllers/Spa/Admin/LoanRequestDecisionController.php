@@ -65,6 +65,7 @@ class LoanRequestDecisionController extends Controller
 
         return [
             'id' => $loanRequest->id,
+            'reference' => $loanRequest->reference,
             'status' => $this->normalizeStatus($loanRequest),
             'typecode' => $loanRequest->typecode,
             'loan_type_label_snapshot' => $loanRequest->loan_type_label_snapshot,

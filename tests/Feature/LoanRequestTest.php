@@ -8,10 +8,12 @@ use App\Models\AppUser as User;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
+use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -51,6 +53,12 @@ beforeEach(function () {
 
 test('loan request people schema excludes spouse occupation', function () {
     expect(Schema::hasColumn('loan_request_people', 'spouse_occupation'))->toBeFalse();
+});
+
+test('loan request reference uses the formatted request number', function () {
+    $loanRequest = LoanRequest::factory()->create();
+
+    expect($loanRequest->reference)->toBe(sprintf('LNREQ-%06d', $loanRequest->id));
 });
 
 test('approved client can view the loan request form', function () {
@@ -1178,7 +1186,8 @@ test('admin requests api returns loan request data', function () {
         ->assertOk()
         ->assertJsonPath('ok', true)
         ->assertJsonCount(1, 'data.items')
-        ->assertJsonPath('data.items.0.id', $loanRequest->id);
+        ->assertJsonPath('data.items.0.id', $loanRequest->id)
+        ->assertJsonPath('data.items.0.reference', $loanRequest->reference);
 });
 
 test('admin requests api filters by loan type', function () {
@@ -1369,6 +1378,7 @@ test('admin can view loan request details page', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/loan-request-show')
             ->where('loanRequest.id', $loanRequest->id)
+            ->where('loanRequest.reference', $loanRequest->reference)
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
             ->where('applicant.first_name', 'Loan'));
 });
@@ -1416,6 +1426,7 @@ test('admin can approve an under review loan request', function () {
     $response
         ->assertOk()
         ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value)
+        ->assertJsonPath('data.loanRequest.reference', $loanRequest->reference)
         ->assertJsonPath('data.loanRequest.approved_amount', '15000.00');
 
     $loanRequest->refresh();
@@ -1464,7 +1475,8 @@ test('admin can decline an under review loan request', function () {
 
     $response
         ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Declined->value);
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Declined->value)
+        ->assertJsonPath('data.loanRequest.reference', $loanRequest->reference);
 
     $loanRequest->refresh();
 
@@ -1479,6 +1491,86 @@ test('admin can decline an under review loan request', function () {
         SendLoanDecisionSmsJob::class,
         fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
     );
+});
+
+test('loan request decision sms uses branding and reference for approvals', function () {
+    Http::fake([
+        'https://api.semaphore.co/api/v4/messages' => Http::response(['ok' => true], 200),
+    ]);
+
+    config()->set('services.semaphore.api_key', 'test-key');
+    config()->set('services.semaphore.base_url', 'https://api.semaphore.co/api/v4/messages');
+    config()->set('services.semaphore.sender_name', 'MRDINC');
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'MRDINC',
+        'portal_label' => 'Member Portal',
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000510',
+        'phoneno' => '09175551234',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_amount' => 100000,
+        'approved_term' => 12,
+    ]);
+
+    SendLoanDecisionSmsJob::dispatchSync($loanRequest->id);
+
+    $expectedMessage = sprintf(
+        'MRDINC Member Portal: Your loan request (%s) has been APPROVED for Php. 100,000.00 payable over 12 months. Please visit the MRDINC office to finalize your loan.',
+        $loanRequest->reference,
+    );
+
+    Http::assertSent(function ($request) use ($member, $expectedMessage): bool {
+        $payload = $request->data();
+
+        return $request->url() === 'https://api.semaphore.co/api/v4/messages'
+            && ($payload['number'] ?? null) === $member->phoneno
+            && ($payload['message'] ?? null) === $expectedMessage;
+    });
+});
+
+test('loan request decision sms avoids duplicate company names for declines', function () {
+    Http::fake([
+        'https://api.semaphore.co/api/v4/messages' => Http::response(['ok' => true], 200),
+    ]);
+
+    config()->set('services.semaphore.api_key', 'test-key');
+    config()->set('services.semaphore.base_url', 'https://api.semaphore.co/api/v4/messages');
+    config()->set('services.semaphore.sender_name', 'MRDINC');
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'MRDINC',
+        'portal_label' => 'MRDINC Member Portal',
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000511',
+        'phoneno' => '09175551235',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Declined,
+    ]);
+
+    SendLoanDecisionSmsJob::dispatchSync($loanRequest->id);
+
+    $expectedMessage = sprintf(
+        'MRDINC Member Portal: Your loan request (%s) has been DECLINED. For questions or clarification, please contact the MRDINC office.',
+        $loanRequest->reference,
+    );
+
+    Http::assertSent(function ($request) use ($member, $expectedMessage): bool {
+        $payload = $request->data();
+
+        return $request->url() === 'https://api.semaphore.co/api/v4/messages'
+            && ($payload['number'] ?? null) === $member->phoneno
+            && ($payload['message'] ?? null) === $expectedMessage;
+    });
 });
 
 test('admins cannot decide their own loan request by user id', function () {
@@ -1881,8 +1973,10 @@ test('client loans page lists member loan requests', function () {
             ->has('loans')
             ->has('loanRequests.items', 2)
             ->where('loanRequests.items.0.id', $draft->id)
+            ->where('loanRequests.items.0.reference', $draft->reference)
             ->where('loanRequests.items.0.status', LoanRequestStatus::Draft->value)
             ->where('loanRequests.items.1.id', $submitted->id)
+            ->where('loanRequests.items.1.reference', $submitted->reference)
             ->where('loanRequests.items.1.status', LoanRequestStatus::UnderReview->value));
 });
 
@@ -1959,6 +2053,7 @@ test('client can view submitted loan request details', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-request-show')
             ->where('loanRequest.id', $loanRequest->id)
+            ->where('loanRequest.reference', $loanRequest->reference)
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
             ->where('applicant.first_name', 'Sample'));
 });

@@ -16,6 +16,7 @@ class RequestPreviewResource extends JsonResource
 
         return [
             'id' => $resource['id'] ?? null,
+            'reference' => $resource['reference'] ?? null,
             'member_name' => $resource['member_name'] ?? null,
             'status' => $resource['status'] ?? null,
             'created_at' => $resource['created_at'] ?? null,

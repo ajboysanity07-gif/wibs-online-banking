@@ -63,6 +63,7 @@ const formatDate = (value?: string | null): string => {
 
 const requestPreviewSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-28', cellClassName: 'w-32' },
+    { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
 ];
@@ -291,6 +292,9 @@ export default function AdminDashboard({ summary }: Props) {
                                                 Member
                                             </TableHead>
                                             <TableHead className="px-6">
+                                                Reference
+                                            </TableHead>
+                                            <TableHead className="px-6">
                                                 Status
                                             </TableHead>
                                             <TableHead className="px-6">
@@ -310,6 +314,9 @@ export default function AdminDashboard({ summary }: Props) {
                                                     <TableCell className="px-6 font-medium">
                                                         {request.member_name ??
                                                             '--'}
+                                                    </TableCell>
+                                                    <TableCell className="px-6">
+                                                        {request.reference ?? '--'}
                                                     </TableCell>
                                                     <TableCell className="px-6">
                                                         <LoanRequestStatusBadge

@@ -15,6 +15,8 @@ class LoanRequest extends Model
     /** @use HasFactory<\Database\Factories\LoanRequestFactory> */
     use HasFactory;
 
+    private const REFERENCE_PREFIX = 'LNREQ';
+
     /**
      * @var list<string>
      */
@@ -67,6 +69,13 @@ class LoanRequest extends Model
     {
         return $this->hasOne(LoanRequestPerson::class)
             ->where('role', LoanRequestPersonRole::CoMakerTwo->value);
+    }
+
+    public function getReferenceAttribute(): string
+    {
+        $id = (int) ($this->getKey() ?? 0);
+
+        return sprintf('%s-%06d', self::REFERENCE_PREFIX, $id);
     }
 
     /**
