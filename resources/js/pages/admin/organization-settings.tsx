@@ -1077,6 +1077,7 @@ export default function OrganizationSettings() {
                                                 </TabsList>
                                                 <TabsContent
                                                     value="general"
+                                                    forceMount
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
@@ -1170,6 +1171,7 @@ export default function OrganizationSettings() {
 
                                                 <TabsContent
                                                     value="brand-assets"
+                                                    forceMount
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
@@ -1643,6 +1645,7 @@ export default function OrganizationSettings() {
 
                                                 <TabsContent
                                                     value="report-header"
+                                                    forceMount
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
@@ -3109,6 +3112,7 @@ export default function OrganizationSettings() {
 
                                                 <TabsContent
                                                     value="colors"
+                                                    forceMount
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
@@ -3381,6 +3385,7 @@ export default function OrganizationSettings() {
 
                                                 <TabsContent
                                                     value="support"
+                                                    forceMount
                                                     className="mt-0 space-y-6"
                                                 >
                                                     <SurfaceCard
