@@ -43,6 +43,9 @@ class HandleInertiaRequests extends Middleware
         $isAdmin = $user?->isAdmin() ?? false;
         $isSuperadmin = $user?->isSuperadmin() ?? false;
         $hasMemberAccess = $user?->hasMemberAccess() ?? false;
+        $isAdminOnly = $user?->isAdminOnly() ?? false;
+        $isHybrid = $user?->isHybrid() ?? false;
+        $experience = $user?->experienceType();
 
         return [
             ...parent::share($request),
@@ -53,6 +56,9 @@ class HandleInertiaRequests extends Middleware
                 'isAdmin' => $isAdmin,
                 'isSuperadmin' => $isSuperadmin,
                 'hasMemberAccess' => $hasMemberAccess,
+                'isAdminOnly' => $isAdminOnly,
+                'isHybrid' => $isHybrid,
+                'experience' => $experience,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

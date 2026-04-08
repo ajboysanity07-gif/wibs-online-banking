@@ -15,9 +15,15 @@ export default function PendingApproval() {
         try {
             const response = await api.get('/spa/auth/me');
             const user = response.data?.data?.user;
+            const experience = user?.experience;
 
-            if (user?.role === 'admin') {
+            if (experience === 'superadmin' || experience === 'admin-only') {
                 router.visit('/admin/dashboard');
+                return;
+            }
+
+            if (experience === 'user-admin') {
+                router.visit('/dashboard');
                 return;
             }
 

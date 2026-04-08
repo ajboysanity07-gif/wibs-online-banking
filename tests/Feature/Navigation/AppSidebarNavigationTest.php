@@ -24,6 +24,9 @@ test('admin settings profile exposes admin navigation context', function () {
             ->where('auth.isAdmin', true)
             ->where('auth.isSuperadmin', false)
             ->where('auth.hasMemberAccess', false)
+            ->where('auth.isAdminOnly', true)
+            ->where('auth.isHybrid', false)
+            ->where('auth.experience', 'admin-only')
         );
 });
 
@@ -46,6 +49,9 @@ test('admin member settings profile exposes member navigation context', function
             ->where('auth.isAdmin', true)
             ->where('auth.isSuperadmin', false)
             ->where('auth.hasMemberAccess', true)
+            ->where('auth.isAdminOnly', false)
+            ->where('auth.isHybrid', true)
+            ->where('auth.experience', 'user-admin')
         );
 });
 
@@ -68,6 +74,7 @@ test('superadmin settings profile exposes superadmin navigation context', functi
             ->where('auth.isAdmin', true)
             ->where('auth.isSuperadmin', true)
             ->where('auth.hasMemberAccess', false)
+            ->where('auth.experience', 'superadmin')
         );
 });
 
@@ -86,10 +93,13 @@ test('admin settings password exposes admin navigation context', function () {
     $response
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/profile')
+            ->component('settings/security')
             ->where('auth.isAdmin', true)
             ->where('auth.isSuperadmin', false)
             ->where('auth.hasMemberAccess', false)
+            ->where('auth.isAdminOnly', true)
+            ->where('auth.isHybrid', false)
+            ->where('auth.experience', 'admin-only')
         );
 });
 
@@ -110,6 +120,9 @@ test('member settings profile exposes member navigation context', function () {
             ->where('auth.isAdmin', false)
             ->where('auth.isSuperadmin', false)
             ->where('auth.hasMemberAccess', true)
+            ->where('auth.isAdminOnly', false)
+            ->where('auth.isHybrid', false)
+            ->where('auth.experience', 'user')
         );
 });
 
@@ -131,5 +144,8 @@ test('admin dashboard exposes admin navigation context', function () {
             ->where('auth.isAdmin', true)
             ->where('auth.isSuperadmin', false)
             ->where('auth.hasMemberAccess', false)
+            ->where('auth.isAdminOnly', true)
+            ->where('auth.isHybrid', false)
+            ->where('auth.experience', 'admin-only')
         );
 });

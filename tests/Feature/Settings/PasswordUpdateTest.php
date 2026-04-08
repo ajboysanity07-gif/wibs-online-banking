@@ -18,8 +18,8 @@ test('password update page is displayed', function () {
     $response
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/profile')
-            ->where('initialTab', 'password')
+            ->component('settings/security')
+            ->where('initialTab', 'security')
         );
 });
 

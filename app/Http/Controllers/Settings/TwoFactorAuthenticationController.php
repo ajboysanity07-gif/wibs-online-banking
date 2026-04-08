@@ -31,8 +31,8 @@ class TwoFactorAuthenticationController extends Controller implements HasMiddlew
         $request->ensureStateIsValid();
 
         return Inertia::render(
-            'settings/profile',
-            SettingsPageData::fromRequest($request, 'two-factor'),
+            'settings/security',
+            SettingsPageData::fromRequest($request, 'security'),
         );
     }
 }

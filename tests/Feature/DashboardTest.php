@@ -74,6 +74,51 @@ test('active users can visit the dashboard', function () {
             ->where('recentAccountActions.meta.page', 1));
 });
 
+test('admin-only users are redirected to the admin dashboard', function () {
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $this->actingAs($admin);
+
+    $response = $this->get(route('dashboard'));
+    $response->assertRedirect(route('admin.dashboard'));
+});
+
+test('superadmins are redirected to the admin dashboard', function () {
+    $superadmin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $superadmin->user_id,
+    ]);
+
+    $this->actingAs($superadmin);
+
+    $response = $this->get(route('dashboard'));
+    $response->assertRedirect(route('admin.dashboard'));
+});
+
+test('hybrid users see the workspace chooser dashboard', function () {
+    $hybrid = User::factory()->create([
+        'acctno' => '001701',
+    ]);
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $hybrid->user_id,
+    ]);
+
+    $this->actingAs($hybrid);
+
+    $response = $this->get(route('dashboard'));
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('dashboard'));
+});
+
 test('completed profiles can access the dashboard without a complete verified record', function () {
     $user = User::factory()->create([
         'acctno' => '000702',

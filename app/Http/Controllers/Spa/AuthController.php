@@ -24,7 +24,7 @@ class AuthController extends Controller
         }
 
         $user->loadMissing('adminProfile', 'userProfile');
-        $status = $user->role === 'admin' ? 'active' : $user->userProfile?->status;
+        $status = $user->isAdminOnly() ? 'active' : $user->userProfile?->status;
 
         return response()->json([
             'ok' => true,
@@ -38,6 +38,12 @@ class AuthController extends Controller
                     'role' => $user->role,
                     'status' => $status,
                     'acctno' => $user->acctno,
+                    'is_admin' => $user->isAdmin(),
+                    'is_superadmin' => $user->isSuperadmin(),
+                    'has_member_access' => $user->hasMemberAccess(),
+                    'is_admin_only' => $user->isAdminOnly(),
+                    'is_hybrid' => $user->isHybrid(),
+                    'experience' => $user->experienceType(),
                 ],
             ],
         ]);
@@ -104,8 +110,17 @@ class AuthController extends Controller
     {
         $user->loadMissing('adminProfile', 'userProfile');
 
-        if ($user->role === 'admin') {
+        $experience = $user->experienceType();
+
+        if (
+            $experience === AppUser::EXPERIENCE_SUPERADMIN
+            || $experience === AppUser::EXPERIENCE_ADMIN_ONLY
+        ) {
             return '/admin/dashboard';
+        }
+
+        if ($experience === AppUser::EXPERIENCE_USER_ADMIN) {
+            return '/dashboard';
         }
 
         if ($user->userProfile?->status === 'suspended') {

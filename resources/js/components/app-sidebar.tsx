@@ -21,6 +21,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { dashboard as workspaceDashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
@@ -30,6 +31,8 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
+import { create as loanRequestCreate } from '@/routes/client/loan-requests';
+import { edit as profileEdit } from '@/routes/profile';
 import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
 
@@ -37,9 +40,9 @@ type PageProps = {
     auth: Auth;
 };
 
-const baseNavItems: NavItem[] = [
+const memberNavItems: NavItem[] = [
     {
-        title: 'Member profile',
+        title: 'Overview',
         href: clientDashboard(),
         icon: LayoutGrid,
     },
@@ -54,6 +57,20 @@ const baseNavItems: NavItem[] = [
         href: clientSavings(),
         icon: PiggyBank,
         match: 'section',
+    },
+    {
+        title: 'Loan requests',
+        href: loanRequestCreate(),
+        icon: FileText,
+        match: 'section',
+        matchPaths: [loanRequestCreate(), '/client/loans/requests'],
+    },
+    {
+        title: 'Settings',
+        href: profileEdit(),
+        icon: Settings,
+        match: 'section',
+        matchPaths: [profileEdit(), '/settings'],
     },
 ];
 
@@ -102,18 +119,21 @@ const footerNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
-    const isAdminUser = auth.isAdmin;
     const hasMemberAccess = auth.hasMemberAccess;
-    const showAdminNav = isAdminUser;
+    const showAdminNav = auth.isAdmin;
     const showMemberNav = hasMemberAccess;
     const adminItems = showAdminNav
         ? adminNavItems(auth.isSuperadmin)
         : [];
-    const memberItems = showMemberNav ? baseNavItems : [];
-    const useDualNav = showAdminNav && showMemberNav;
-    const adminLabel = useDualNav ? 'Admin' : 'Platform';
-    const memberLabel = useDualNav ? 'Member' : 'Platform';
-    const homeLink = isAdminUser ? adminDashboard() : clientDashboard();
+    const memberItems = showMemberNav ? memberNavItems : [];
+    const adminLabel = 'Admin Workspace';
+    const memberLabel = 'My Account';
+    const homeLink =
+        auth.experience === 'user-admin'
+            ? workspaceDashboard()
+            : auth.isAdmin
+              ? adminDashboard()
+              : clientDashboard();
 
     return (
         <Sidebar collapsible="icon" variant="inset">

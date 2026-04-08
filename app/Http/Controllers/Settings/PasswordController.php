@@ -18,8 +18,8 @@ class PasswordController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render(
-            'settings/profile',
-            SettingsPageData::fromRequest($request, 'password'),
+            'settings/security',
+            SettingsPageData::fromRequest($request, 'security'),
         );
     }
 

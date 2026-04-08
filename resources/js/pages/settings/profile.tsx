@@ -1,13 +1,10 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { Camera, ShieldBan, ShieldCheck } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
-import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
-import AppearanceTabs from '@/components/appearance-tabs';
-import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
@@ -15,8 +12,6 @@ import ProfileImageCropModal, {
     type ProfileImageCropResult,
 } from '@/components/profile/profile-image-crop-modal';
 import { SurfaceCard } from '@/components/surface-card';
-import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
-import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -31,10 +26,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useInitials } from '@/hooks/use-initials';
 import { useLocationSearch } from '@/hooks/use-location-search';
-import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { createCroppedImageFile } from '@/lib/image-crop';
@@ -42,7 +35,6 @@ import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { cities, provinces } from '@/routes/api/locations';
 import { edit } from '@/routes/profile';
-import { disable, enable } from '@/routes/two-factor';
 import { send } from '@/routes/verification';
 import type { BreadcrumbItem } from '@/types';
 
@@ -52,8 +44,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: edit().url,
     },
 ];
-
-type SettingsTab = 'profile' | 'password' | 'two-factor' | 'appearance';
 
 type AdminProfileSummary = {
     fullname: string | null;
@@ -123,14 +113,7 @@ type Props = {
     memberApplicationProfile?: MemberApplicationProfileData | null;
     profileCompletion?: ProfileCompletion | null;
     onboarding?: boolean;
-    initialTab?: SettingsTab;
-    twoFactorEnabled?: boolean;
-    requiresConfirmation?: boolean;
-    twoFactorAvailable?: boolean;
 };
-
-const tabContentClasses =
-    'data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-2 data-[state=active]:duration-300';
 const WMASTER_VALUE_CLASS = 'border-ring/40 ring-1 ring-ring/20';
 
 const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
@@ -301,19 +284,12 @@ export default function Profile({
     memberApplicationProfile = null,
     profileCompletion = null,
     onboarding = false,
-    initialTab = 'profile',
-    twoFactorEnabled = false,
-    requiresConfirmation = false,
-    twoFactorAvailable = true,
 }: Props) {
     const { auth } = usePage().props;
     const hasMemberAccess = auth.hasMemberAccess;
     const getInitials = useInitials();
     const profilePhotoInputRef = useRef<HTMLInputElement>(null);
     const profilePhotoDraftFileRef = useRef<File | null>(null);
-    const passwordInput = useRef<HTMLInputElement>(null);
-    const currentPasswordInput = useRef<HTMLInputElement>(null);
-    const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
     const [profilePhotoPreview, setProfilePhotoPreview] = useState<
         string | null
     >(null);
@@ -325,17 +301,6 @@ export default function Profile({
         useState<File | null>(null);
     const [showProfilePhotoCropModal, setShowProfilePhotoCropModal] =
         useState<boolean>(false);
-    const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
-    const {
-        qrCodeSvg,
-        hasSetupData,
-        manualSetupKey,
-        clearSetupData,
-        fetchSetupData,
-        recoveryCodesList,
-        fetchRecoveryCodes,
-        errors,
-    } = useTwoFactorAuth();
     const profilePhotoUrl =
         profilePhotoPreview ?? adminProfile?.profilePicUrl ?? auth.user.avatar;
     const displayName = adminProfile?.fullname ?? auth.user.name;
@@ -474,10 +439,6 @@ export default function Profile({
             : natureOfBusinessSelection;
 
     useEffect(() => {
-        setActiveTab(initialTab);
-    }, [initialTab]);
-
-    useEffect(() => {
         if (!profilePhotoPreview) {
             return;
         }
@@ -496,21 +457,6 @@ export default function Profile({
             URL.revokeObjectURL(profilePhotoDraftPreview);
         };
     }, [profilePhotoDraftPreview]);
-
-    const settingsTabs = [
-        { value: 'profile', label: 'Profile' },
-        { value: 'password', label: 'Password' },
-        {
-            value: 'two-factor',
-            label: 'Two-Factor Auth',
-            disabled: !twoFactorAvailable,
-        },
-        { value: 'appearance', label: 'Appearance' },
-    ] satisfies Array<{
-        value: SettingsTab;
-        label: string;
-        disabled?: boolean;
-    }>;
 
     const setProfilePhotoDraft = (
         file: File | null,
@@ -626,40 +572,7 @@ export default function Profile({
 
             <SettingsLayout>
                 <SurfaceCard variant="default" padding="lg" className="space-y-6">
-                    <Tabs
-                        value={activeTab}
-                        onValueChange={(value) =>
-                            setActiveTab(value as SettingsTab)
-                        }
-                        orientation="vertical"
-                        className="flex flex-col lg:flex-row lg:space-x-12"
-                    >
-                        <aside className="w-full max-w-xl lg:w-48">
-                            <nav aria-label="Settings">
-                                <TabsList className="flex w-full flex-col gap-1 bg-transparent p-0">
-                                    {settingsTabs.map((tab) => (
-                                        <TabsTrigger
-                                            key={tab.value}
-                                            value={tab.value}
-                                            disabled={tab.disabled}
-                                            className="w-full justify-start rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-muted/70 hover:text-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                                        >
-                                            {tab.label}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                            </nav>
-                        </aside>
-
-                        <Separator className="my-6 lg:hidden" />
-
-                        <div className="flex-1 md:max-w-3xl">
-                            <TabsContent
-                                value="profile"
-                                forceMount
-                                className={tabContentClasses}
-                            >
-                                <section className="max-w-3xl space-y-12">
+                    <section className="max-w-3xl space-y-12">
                                     <div className="space-y-6">
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <Heading
@@ -1055,16 +968,18 @@ export default function Profile({
                                                                         updated.
                                                                     </p>
                                                                     <p className="text-xs text-muted-foreground">
-                                                                        Some
-                                                                        fields
-                                                                        below
-                                                                        are
-                                                                        read-only
+                                                                        Fields
+                                                                        with a
+                                                                        subtle
+                                                                        outline
+                                                                        come
                                                                         from
                                                                         your
                                                                         verified
                                                                         member
-                                                                        record.
+                                                                        record
+                                                                        and are
+                                                                        read-only.
                                                                     </p>
                                                                 </div>
 
@@ -2269,8 +2184,6 @@ export default function Profile({
                                         </Form>
                                     </div>
 
-                                    <DeleteUser />
-
                                     <ProfileImageCropModal
                                         isOpen={showProfilePhotoCropModal}
                                         onClose={handleProfilePhotoCropClose}
@@ -2280,351 +2193,6 @@ export default function Profile({
                                         }
                                     />
                                 </section>
-                            </TabsContent>
-
-                            <TabsContent
-                                value="password"
-                                forceMount
-                                className={tabContentClasses}
-                            >
-                                <section className="max-w-xl space-y-6">
-                                    <Heading
-                                        variant="small"
-                                        title="Update password"
-                                        description="Ensure your account is using a long, random password to stay secure"
-                                    />
-
-                                    <Form
-                                        {...PasswordController.update.form()}
-                                        options={{
-                                            preserveScroll: true,
-                                        }}
-                                        onSuccess={() => {
-                                            showSuccessToast(
-                                                adminToastCopy.success.updated(
-                                                    'Password',
-                                                ),
-                                                { id: 'password-update' },
-                                            );
-                                        }}
-                                        resetOnError={[
-                                            'password',
-                                            'password_confirmation',
-                                            'current_password',
-                                        ]}
-                                        resetOnSuccess
-                                        onError={(formErrors) => {
-                                            showErrorToast(
-                                                formErrors,
-                                                adminToastCopy.error.updated(
-                                                    'Password',
-                                                ),
-                                                { id: 'password-update' },
-                                            );
-
-                                            if (formErrors.password) {
-                                                passwordInput.current?.focus();
-                                            }
-
-                                            if (formErrors.current_password) {
-                                                currentPasswordInput.current?.focus();
-                                            }
-                                        }}
-                                        className="space-y-6"
-                                    >
-                                        {({
-                                            errors: formErrors,
-                                            processing,
-                                            recentlySuccessful,
-                                        }) => (
-                                            <>
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="current_password">
-                                                        Current password
-                                                    </Label>
-
-                                                    <Input
-                                                        id="current_password"
-                                                        ref={
-                                                            currentPasswordInput
-                                                        }
-                                                        name="current_password"
-                                                        type="password"
-                                                        className="mt-1 block w-full"
-                                                        autoComplete="current-password"
-                                                        placeholder="Current password"
-                                                    />
-
-                                                    <InputError
-                                                        message={
-                                                            formErrors.current_password
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="password">
-                                                        New password
-                                                    </Label>
-
-                                                    <Input
-                                                        id="password"
-                                                        ref={passwordInput}
-                                                        name="password"
-                                                        type="password"
-                                                        className="mt-1 block w-full"
-                                                        autoComplete="new-password"
-                                                        placeholder="New password"
-                                                    />
-
-                                                    <InputError
-                                                        message={
-                                                            formErrors.password
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="password_confirmation">
-                                                        Confirm password
-                                                    </Label>
-
-                                                    <Input
-                                                        id="password_confirmation"
-                                                        name="password_confirmation"
-                                                        type="password"
-                                                        className="mt-1 block w-full"
-                                                        autoComplete="new-password"
-                                                        placeholder="Confirm password"
-                                                    />
-
-                                                    <InputError
-                                                        message={
-                                                            formErrors.password_confirmation
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="flex items-center gap-4">
-                                                    <Button
-                                                        disabled={processing}
-                                                        data-test="update-password-button"
-                                                    >
-                                                        Save password
-                                                    </Button>
-
-                                                    <Transition
-                                                        show={
-                                                            recentlySuccessful
-                                                        }
-                                                        enter="transition ease-in-out"
-                                                        enterFrom="opacity-0"
-                                                        leave="transition ease-in-out"
-                                                        leaveTo="opacity-0"
-                                                    >
-                                                        <p className="text-sm text-neutral-600">
-                                                            Saved
-                                                        </p>
-                                                    </Transition>
-                                                </div>
-                                            </>
-                                        )}
-                                    </Form>
-                                </section>
-                            </TabsContent>
-
-                            <TabsContent
-                                value="two-factor"
-                                forceMount
-                                className={tabContentClasses}
-                            >
-                                <section className="max-w-xl space-y-6">
-                                    <Heading
-                                        variant="small"
-                                        title="Two-Factor Authentication"
-                                        description="Manage your two-factor authentication settings"
-                                    />
-
-                                    {!twoFactorAvailable ? (
-                                        <p className="text-sm text-muted-foreground">
-                                            Two-factor authentication is
-                                            currently unavailable for this
-                                            account.
-                                        </p>
-                                    ) : twoFactorEnabled ? (
-                                        <div className="flex flex-col items-start justify-start space-y-4">
-                                            <Badge variant="default">
-                                                Enabled
-                                            </Badge>
-                                            <p className="text-muted-foreground">
-                                                With two-factor authentication
-                                                enabled, you will be prompted
-                                                for a secure, random pin during
-                                                login, which you can retrieve
-                                                from the TOTP-supported
-                                                application on your phone.
-                                            </p>
-
-                                            <TwoFactorRecoveryCodes
-                                                recoveryCodesList={
-                                                    recoveryCodesList
-                                                }
-                                                fetchRecoveryCodes={
-                                                    fetchRecoveryCodes
-                                                }
-                                                errors={errors}
-                                            />
-
-                                            <div className="relative inline">
-                                                <Form
-                                                    {...disable.form()}
-                                                    onSuccess={() => {
-                                                        showSuccessToast(
-                                                            adminToastCopy.success.disabled(
-                                                                'Two-factor authentication',
-                                                            ),
-                                                            {
-                                                                id: 'two-factor-disable',
-                                                            },
-                                                        );
-                                                    }}
-                                                    onError={(formErrors) => {
-                                                        showErrorToast(
-                                                            formErrors,
-                                                            adminToastCopy.error.disabled(
-                                                                'Two-factor authentication',
-                                                            ),
-                                                            {
-                                                                id: 'two-factor-disable',
-                                                            },
-                                                        );
-                                                    }}
-                                                >
-                                                    {({ processing }) => (
-                                                        <Button
-                                                            variant="destructive"
-                                                            type="submit"
-                                                            disabled={
-                                                                processing
-                                                            }
-                                                        >
-                                                            <ShieldBan />{' '}
-                                                            Disable 2FA
-                                                        </Button>
-                                                    )}
-                                                </Form>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-start justify-start space-y-4">
-                                            <Badge variant="destructive">
-                                                Disabled
-                                            </Badge>
-                                            <p className="text-muted-foreground">
-                                                When you enable two-factor
-                                                authentication, you will be
-                                                prompted for a secure pin during
-                                                login. This pin can be retrieved
-                                                from a TOTP-supported
-                                                application on your phone.
-                                            </p>
-
-                                            <div>
-                                                {hasSetupData ? (
-                                                    <Button
-                                                        onClick={() =>
-                                                            setShowSetupModal(
-                                                                true,
-                                                            )
-                                                        }
-                                                    >
-                                                        <ShieldCheck />
-                                                        Continue Setup
-                                                    </Button>
-                                                ) : (
-                                                    <Form
-                                                        {...enable.form()}
-                                                        onSuccess={() => {
-                                                            setShowSetupModal(
-                                                                true,
-                                                            );
-
-                                                            if (
-                                                                !requiresConfirmation
-                                                            ) {
-                                                                showSuccessToast(
-                                                                    adminToastCopy.success.enabled(
-                                                                        'Two-factor authentication',
-                                                                    ),
-                                                                    {
-                                                                        id: 'two-factor-enable',
-                                                                    },
-                                                                );
-                                                            }
-                                                        }}
-                                                        onError={(
-                                                            formErrors,
-                                                        ) => {
-                                                            showErrorToast(
-                                                                formErrors,
-                                                                adminToastCopy.error.enabled(
-                                                                    'Two-factor authentication',
-                                                                ),
-                                                                {
-                                                                    id: 'two-factor-enable',
-                                                                },
-                                                            );
-                                                        }}
-                                                    >
-                                                        {({ processing }) => (
-                                                            <Button
-                                                                type="submit"
-                                                                disabled={
-                                                                    processing
-                                                                }
-                                                            >
-                                                                <ShieldCheck />
-                                                                Enable 2FA
-                                                            </Button>
-                                                        )}
-                                                    </Form>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <TwoFactorSetupModal
-                                        isOpen={showSetupModal}
-                                        onClose={() => setShowSetupModal(false)}
-                                        requiresConfirmation={
-                                            requiresConfirmation
-                                        }
-                                        twoFactorEnabled={twoFactorEnabled}
-                                        qrCodeSvg={qrCodeSvg}
-                                        manualSetupKey={manualSetupKey}
-                                        clearSetupData={clearSetupData}
-                                        fetchSetupData={fetchSetupData}
-                                        errors={errors}
-                                    />
-                                </section>
-                            </TabsContent>
-
-                            <TabsContent
-                                value="appearance"
-                                forceMount
-                                className={tabContentClasses}
-                            >
-                                <section className="max-w-xl space-y-6">
-                                    <Heading
-                                        variant="small"
-                                        title="Appearance settings"
-                                        description="Update your account's appearance settings"
-                                    />
-                                    <AppearanceTabs />
-                                </section>
-                            </TabsContent>
-                        </div>
-                    </Tabs>
                 </SurfaceCard>
             </SettingsLayout>
         </AppLayout>

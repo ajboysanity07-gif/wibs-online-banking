@@ -17,6 +17,9 @@ export type Auth = {
     isAdmin: boolean;
     isSuperadmin: boolean;
     hasMemberAccess: boolean;
+    isAdminOnly: boolean;
+    isHybrid: boolean;
+    experience?: 'superadmin' | 'user' | 'user-admin' | 'admin-only';
 };
 
 export type TwoFactorSetupData = {

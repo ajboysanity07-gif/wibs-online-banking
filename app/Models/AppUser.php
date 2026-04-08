@@ -17,6 +17,14 @@ class AppUser extends Authenticatable
     /** @use HasFactory<\Database\Factories\AppUserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
+    public const EXPERIENCE_SUPERADMIN = 'superadmin';
+
+    public const EXPERIENCE_USER = 'user';
+
+    public const EXPERIENCE_USER_ADMIN = 'user-admin';
+
+    public const EXPERIENCE_ADMIN_ONLY = 'admin-only';
+
     protected $table = 'appusers';
 
     protected $primaryKey = 'user_id';
@@ -189,6 +197,28 @@ class AppUser extends Authenticatable
     public function isSuperadmin(): bool
     {
         return $this->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN;
+    }
+
+    public function isHybrid(): bool
+    {
+        return $this->isAdmin() && $this->hasMemberAccess();
+    }
+
+    public function experienceType(): string
+    {
+        if ($this->isSuperadmin()) {
+            return self::EXPERIENCE_SUPERADMIN;
+        }
+
+        if ($this->isAdminOnly()) {
+            return self::EXPERIENCE_ADMIN_ONLY;
+        }
+
+        if ($this->isHybrid()) {
+            return self::EXPERIENCE_USER_ADMIN;
+        }
+
+        return self::EXPERIENCE_USER;
     }
 
     public function hasMemberAccess(): bool
