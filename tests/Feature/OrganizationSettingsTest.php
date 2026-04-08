@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Storage;
 test('branding falls back to defaults when no settings exist', function () {
     config(['app.name' => 'Acme Portal']);
 
-    $branding = app(OrganizationSettingsService::class)->branding();
+    $service = app(OrganizationSettingsService::class);
+    $branding = $service->branding();
+    $templates = $service->loanSmsTemplates();
 
     expect($branding['companyName'])->toBe('Acme');
     expect($branding['portalLabel'])->toBe('Member Portal');
@@ -46,6 +48,7 @@ test('branding falls back to defaults when no settings exist', function () {
     expect($branding['reportTypography']['headerTitle']['size'])->toBe(14);
     expect($branding['reportTypography']['label']['size'])->toBe(8);
     expect($branding['reportTypography']['value']['size'])->toBe(10);
+    expect($branding['communications']['loanSmsTemplates'])->toBe($templates);
 });
 
 test('branding uses stored organization settings when available', function () {
@@ -84,6 +87,8 @@ test('branding uses stored organization settings when available', function () {
         'report_value_font_variant' => 'regular',
         'report_value_font_weight' => '600',
         'report_value_font_size' => 11,
+        'loan_sms_approved_template' => 'Approved {loan_reference}.',
+        'loan_sms_declined_template' => 'Declined {loan_reference}.',
     ]);
 
     $branding = app(OrganizationSettingsService::class)->branding();
@@ -129,6 +134,27 @@ test('branding uses stored organization settings when available', function () {
     expect($branding['reportTypography']['label']['color'])->toBe('#223344');
     expect($branding['reportTypography']['value']['family'])->toBe('Futura');
     expect($branding['reportTypography']['value']['color'])->toBe('#334455');
+    expect($branding['communications']['loanSmsTemplates']['approved'])
+        ->toBe('Approved {loan_reference}.');
+    expect($branding['communications']['loanSmsTemplates']['declined'])
+        ->toBe('Declined {loan_reference}.');
+});
+
+test('loan sms templates fall back to defaults when blank', function () {
+    $service = app(OrganizationSettingsService::class);
+    $defaults = $service->defaultAttributes();
+
+    OrganizationSetting::factory()->create([
+        'loan_sms_approved_template' => ' ',
+        'loan_sms_declined_template' => null,
+    ]);
+
+    $templates = $service->loanSmsTemplates();
+
+    expect($templates['approved'])
+        ->toBe($defaults['loan_sms_approved_template']);
+    expect($templates['declined'])
+        ->toBe($defaults['loan_sms_declined_template']);
 });
 
 test('branding supports built-in full logo preset', function () {

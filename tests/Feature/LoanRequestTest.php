@@ -1505,6 +1505,7 @@ test('loan request decision sms uses branding and reference for approvals', func
     OrganizationSetting::factory()->create([
         'company_name' => 'MRDINC',
         'portal_label' => 'Member Portal',
+        'loan_sms_approved_template' => ' ',
     ]);
 
     $member = User::factory()->create([
@@ -1561,6 +1562,88 @@ test('loan request decision sms avoids duplicate company names for declines', fu
 
     $expectedMessage = sprintf(
         'MRDINC Member Portal: Your loan request (%s) has been DECLINED. For questions or clarification, please contact the MRDINC office.',
+        $loanRequest->reference,
+    );
+
+    Http::assertSent(function ($request) use ($member, $expectedMessage): bool {
+        $payload = $request->data();
+
+        return $request->url() === 'https://api.semaphore.co/api/v4/messages'
+            && ($payload['number'] ?? null) === $member->phoneno
+            && ($payload['message'] ?? null) === $expectedMessage;
+    });
+});
+
+test('loan request decision sms renders custom approved templates', function () {
+    Http::fake([
+        'https://api.semaphore.co/api/v4/messages' => Http::response(['ok' => true], 200),
+    ]);
+
+    config()->set('services.semaphore.api_key', 'test-key');
+    config()->set('services.semaphore.base_url', 'https://api.semaphore.co/api/v4/messages');
+    config()->set('services.semaphore.sender_name', 'MRDINC');
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'MRDINC',
+        'portal_label' => 'Member Portal',
+        'loan_sms_approved_template' => '{message_prefix}: Loan {loan_reference} approved for {approved_amount} over {approved_term} months. Please visit {office_name}.',
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000512',
+        'phoneno' => '09175551236',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_amount' => 54000,
+        'approved_term' => 18,
+    ]);
+
+    SendLoanDecisionSmsJob::dispatchSync($loanRequest->id);
+
+    $expectedMessage = sprintf(
+        'MRDINC Member Portal: Loan %s approved for Php. 54,000.00 over 18 months. Please visit MRDINC.',
+        $loanRequest->reference,
+    );
+
+    Http::assertSent(function ($request) use ($member, $expectedMessage): bool {
+        $payload = $request->data();
+
+        return $request->url() === 'https://api.semaphore.co/api/v4/messages'
+            && ($payload['number'] ?? null) === $member->phoneno
+            && ($payload['message'] ?? null) === $expectedMessage;
+    });
+});
+
+test('loan request decision sms renders custom declined templates', function () {
+    Http::fake([
+        'https://api.semaphore.co/api/v4/messages' => Http::response(['ok' => true], 200),
+    ]);
+
+    config()->set('services.semaphore.api_key', 'test-key');
+    config()->set('services.semaphore.base_url', 'https://api.semaphore.co/api/v4/messages');
+    config()->set('services.semaphore.sender_name', 'MRDINC');
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'MRDINC',
+        'portal_label' => 'Member Portal',
+        'loan_sms_declined_template' => '{message_prefix}: Loan {loan_reference} declined. Please contact {office_name} for assistance.',
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000513',
+        'phoneno' => '09175551237',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Declined,
+    ]);
+
+    SendLoanDecisionSmsJob::dispatchSync($loanRequest->id);
+
+    $expectedMessage = sprintf(
+        'MRDINC Member Portal: Loan %s declined. Please contact MRDINC for assistance.',
         $loanRequest->reference,
     );
 

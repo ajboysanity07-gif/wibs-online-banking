@@ -26,6 +26,8 @@ class OrganizationSetting extends Model
         'support_email',
         'support_phone',
         'support_contact_name',
+        'loan_sms_approved_template',
+        'loan_sms_declined_template',
         'report_header_title',
         'report_header_tagline',
         'report_header_show_logo',

@@ -111,6 +111,19 @@ const REPORT_FONT_STYLE_OPTIONS = [
     { value: 'regular', label: 'Regular' },
     { value: 'italic', label: 'Italic' },
 ];
+const DEFAULT_LOAN_SMS_APPROVED_TEMPLATE =
+    '{company_name} {portal_label}: Your loan request ({loan_reference}) has been APPROVED for {approved_amount} payable over {approved_term} months. Please visit the {office_name} office to finalize your loan.';
+const DEFAULT_LOAN_SMS_DECLINED_TEMPLATE =
+    '{company_name} {portal_label}: Your loan request ({loan_reference}) has been DECLINED. For questions or clarification, please contact the {office_name} office.';
+const LOAN_SMS_PLACEHOLDERS = [
+    { token: '{company_name}', label: 'Company name' },
+    { token: '{portal_label}', label: 'Portal label' },
+    { token: '{message_prefix}', label: 'Smart message prefix' },
+    { token: '{office_name}', label: 'Office name' },
+    { token: '{loan_reference}', label: 'Loan request reference' },
+    { token: '{approved_amount}', label: 'Approved amount' },
+    { token: '{approved_term}', label: 'Approved term (months)' },
+];
 
 const normalizeHexValue = (value: string): string | null => {
     const trimmed = value.trim();
@@ -147,6 +160,116 @@ const normalizeHexInputValue = (value: string | null | undefined): string => {
     const normalized = normalizeHexValue(value);
 
     return normalized ?? value.trim();
+};
+
+const resolveAppTitlePreview = (
+    companyName: string,
+    portalLabel: string,
+): string => {
+    const normalizedCompany = companyName.trim();
+    const normalizedPortal = portalLabel.trim();
+
+    if (normalizedPortal === '') {
+        return normalizedCompany;
+    }
+
+    if (
+        normalizedCompany !== '' &&
+        normalizedPortal.toLowerCase().includes(normalizedCompany.toLowerCase())
+    ) {
+        return normalizedPortal;
+    }
+
+    return normalizedCompany !== ''
+        ? `${normalizedPortal} - ${normalizedCompany}`
+        : normalizedPortal;
+};
+
+const resolveMessagePrefix = (
+    companyName: string,
+    portalLabel: string,
+): string => {
+    const normalizedCompany = companyName.trim();
+    const normalizedPortal = portalLabel.trim();
+
+    if (normalizedPortal && normalizedCompany) {
+        if (
+            normalizedPortal.toLowerCase().includes(normalizedCompany.toLowerCase())
+        ) {
+            return normalizedPortal;
+        }
+
+        return `${normalizedCompany} ${normalizedPortal}`.trim();
+    }
+
+    return normalizedPortal || normalizedCompany;
+};
+
+const resolveOfficeName = (companyName: string, portalLabel: string): string => {
+    const normalizedCompany = companyName.trim();
+
+    if (normalizedCompany !== '') {
+        return normalizedCompany;
+    }
+
+    const normalizedPortal = portalLabel.trim();
+
+    return normalizedPortal !== '' ? normalizedPortal : 'coop';
+};
+
+const resolvePortalLabelForMessage = (
+    companyName: string,
+    portalLabel: string,
+): string => {
+    const normalizedCompany = companyName.trim();
+    const normalizedPortal = portalLabel.trim();
+
+    if (normalizedPortal === '' || normalizedCompany === '') {
+        return normalizedPortal;
+    }
+
+    if (
+        !normalizedPortal
+            .toLowerCase()
+            .includes(normalizedCompany.toLowerCase())
+    ) {
+        return normalizedPortal;
+    }
+
+    let stripped = normalizedPortal;
+    const needle = normalizedCompany.toLowerCase();
+
+    while (true) {
+        const index = stripped.toLowerCase().indexOf(needle);
+
+        if (index < 0) {
+            break;
+        }
+
+        stripped =
+            stripped.slice(0, index) +
+            stripped.slice(index + normalizedCompany.length);
+    }
+
+    stripped = stripped
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+        .replace(/^[-:]+|[-:]+$/g, '')
+        .trim();
+
+    return stripped !== '' ? stripped : normalizedPortal;
+};
+
+const renderLoanSmsTemplate = (
+    template: string,
+    replacements: Record<string, string>,
+): string => {
+    const rendered = Object.entries(replacements).reduce(
+        (message, [token, value]) => message.split(token).join(value),
+        template,
+    );
+
+    return rendered.replace(/\s{2,}/g, ' ').trim();
 };
 
 const resolveNumberInput = (value: string, fallback: number): number => {
@@ -295,6 +418,16 @@ export default function OrganizationSettings() {
     );
     const [reportValueColorTouched, setReportValueColorTouched] =
         useState(false);
+    const [loanSmsApprovedTemplate, setLoanSmsApprovedTemplate] = useState(() =>
+        branding.communications?.loanSmsTemplates?.approved
+            ? branding.communications.loanSmsTemplates.approved
+            : DEFAULT_LOAN_SMS_APPROVED_TEMPLATE,
+    );
+    const [loanSmsDeclinedTemplate, setLoanSmsDeclinedTemplate] = useState(() =>
+        branding.communications?.loanSmsTemplates?.declined
+            ? branding.communications.loanSmsTemplates.declined
+            : DEFAULT_LOAN_SMS_DECLINED_TEMPLATE,
+    );
     const primaryInputValue = brandPrimaryTouched
         ? brandPrimaryValue
         : normalizeHexInputValue(branding.brandPrimaryColor);
@@ -365,6 +498,47 @@ export default function OrganizationSettings() {
         portalLabelValue.trim() !== ''
             ? portalLabelValue.trim()
             : branding.portalLabel;
+    const portalLabelForMessage = resolvePortalLabelForMessage(
+        companyNamePreview,
+        portalLabelPreview,
+    );
+    const appTitlePreview = resolveAppTitlePreview(
+        companyNamePreview,
+        portalLabelPreview,
+    );
+    const messagePrefixPreview = resolveMessagePrefix(
+        companyNamePreview,
+        portalLabelPreview,
+    );
+    const officeNamePreview = resolveOfficeName(
+        companyNamePreview,
+        portalLabelPreview,
+    );
+    const loanSmsApprovedTemplateValue =
+        loanSmsApprovedTemplate.trim() !== ''
+            ? loanSmsApprovedTemplate
+            : DEFAULT_LOAN_SMS_APPROVED_TEMPLATE;
+    const loanSmsDeclinedTemplateValue =
+        loanSmsDeclinedTemplate.trim() !== ''
+            ? loanSmsDeclinedTemplate
+            : DEFAULT_LOAN_SMS_DECLINED_TEMPLATE;
+    const loanSmsPreviewReplacements = {
+        '{company_name}': companyNamePreview,
+        '{portal_label}': portalLabelForMessage,
+        '{message_prefix}': messagePrefixPreview,
+        '{office_name}': officeNamePreview,
+        '{loan_reference}': 'LNREQ-000001',
+        '{approved_amount}': 'Php. 100,000.00',
+        '{approved_term}': '12',
+    };
+    const loanSmsApprovedPreview = renderLoanSmsTemplate(
+        loanSmsApprovedTemplateValue,
+        loanSmsPreviewReplacements,
+    );
+    const loanSmsDeclinedPreview = renderLoanSmsTemplate(
+        loanSmsDeclinedTemplateValue,
+        loanSmsPreviewReplacements,
+    );
     const faviconPreviewUrl =
         faviconPreview ??
         (faviconReset ? branding.faviconDefaultUrl : branding.faviconUrl);
@@ -706,8 +880,8 @@ export default function OrganizationSettings() {
             <PageShell size="wide" className="gap-8 pb-16">
                 <PageHero
                     kicker="Settings"
-                    title="Organization branding"
-                    description="Manage organization identity, portal labeling, and support details shown to members."
+                    title="Organization settings"
+                    description="Manage company identity, brand assets, report layouts, and member communications."
                     badges={
                         <>
                             <Badge
@@ -744,8 +918,8 @@ export default function OrganizationSettings() {
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start xl:grid-cols-[minmax(0,1fr)_420px]">
                     <SurfaceCard variant="default" padding="lg" className="space-y-8">
                         <SectionHeader
-                            title="Brand settings"
-                            description="Configure identity, portal labeling, and support details shown across member experiences and reports."
+                            title="Organization settings"
+                            description="Update identity, visual assets, report design, and communications sent to members."
                             titleClassName="text-base font-semibold"
                         />
                         <div>
@@ -881,12 +1055,12 @@ export default function OrganizationSettings() {
                                             >
                                                 <div className="space-y-1">
                                                     <h3 className="text-base font-semibold tracking-tight">
-                                                        Organization identity
+                                                        General
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
-                                                        Company name and portal
-                                                        label used across the
-                                                        portal.
+                                                        Company name, portal
+                                                        label, and the app title
+                                                        shown to members.
                                                     </p>
                                                 </div>
 
@@ -949,6 +1123,15 @@ export default function OrganizationSettings() {
                                                                 formErrors.portal_label
                                                             }
                                                         />
+                                                    </div>
+                                                    <div className="grid gap-2 md:col-span-2">
+                                                        <Label>
+                                                            App title preview
+                                                        </Label>
+                                                        <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2 text-sm text-muted-foreground">
+                                                            {appTitlePreview ||
+                                                                '--'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </SurfaceCard>
@@ -1428,12 +1611,13 @@ export default function OrganizationSettings() {
                                             >
                                                 <div className="space-y-1">
                                                     <h3 className="text-base font-semibold tracking-tight">
-                                                        Report typography
+                                                        Reports &amp; documents
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
-                                                        Customize report headers
-                                                        and body typography used
-                                                        in PDF documents.
+                                                        Control report header
+                                                        content, layout, and the
+                                                        typography used in PDF
+                                                        documents.
                                                     </p>
                                                 </div>
 
@@ -2888,7 +3072,7 @@ export default function OrganizationSettings() {
                                             >
                                                 <div className="space-y-1">
                                                     <h3 className="text-base font-semibold tracking-tight">
-                                                        Theme colors
+                                                        Brand colors
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
                                                         Applied to primary and
@@ -3155,10 +3339,10 @@ export default function OrganizationSettings() {
                                             >
                                                 <div className="space-y-1">
                                                     <h3 className="text-base font-semibold tracking-tight">
-                                                        Support contact
+                                                        Contact &amp; communications
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
-                                                        Optional contact details
+                                                        Support contact details
                                                         shown on the welcome and
                                                         sign-in screens.
                                                     </p>
@@ -3225,6 +3409,162 @@ export default function OrganizationSettings() {
                                                                 formErrors.support_phone
                                                             }
                                                         />
+                                                    </div>
+                                                </div>
+                                            </SurfaceCard>
+
+                                            <SurfaceCard
+                                                variant="muted"
+                                                padding="md"
+                                                className="space-y-6"
+                                            >
+                                                <div className="space-y-1">
+                                                    <h3 className="text-base font-semibold tracking-tight">
+                                                        Loan SMS templates
+                                                    </h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Customize the approval
+                                                        and decline SMS messages
+                                                        sent to members after
+                                                        decisions.
+                                                    </p>
+                                                </div>
+
+                                                <div className="grid gap-6">
+                                                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                            Available
+                                                            placeholders
+                                                        </p>
+                                                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                            {LOAN_SMS_PLACEHOLDERS.map(
+                                                                (item) => (
+                                                                    <div
+                                                                        key={
+                                                                            item.token
+                                                                        }
+                                                                        className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-background px-3 py-2 text-xs"
+                                                                    >
+                                                                        <span className="font-mono text-foreground">
+                                                                            {
+                                                                                item.token
+                                                                            }
+                                                                        </span>
+                                                                        <span className="text-muted-foreground">
+                                                                            {
+                                                                                item.label
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid gap-6 lg:grid-cols-2">
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="loan_sms_approved_template">
+                                                                Approved SMS
+                                                                template
+                                                            </Label>
+                                                            <textarea
+                                                                id="loan_sms_approved_template"
+                                                                name="loan_sms_approved_template"
+                                                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[120px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                                placeholder="Leave blank to use the default template."
+                                                                value={
+                                                                    loanSmsApprovedTemplate
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) => {
+                                                                    setLoanSmsApprovedTemplate(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    );
+                                                                    setHasChanges(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                            />
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Leave blank to
+                                                                use the default
+                                                                template.
+                                                            </p>
+                                                            <InputError
+                                                                message={
+                                                                    formErrors.loan_sms_approved_template
+                                                                }
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="loan_sms_declined_template">
+                                                                Declined SMS
+                                                                template
+                                                            </Label>
+                                                            <textarea
+                                                                id="loan_sms_declined_template"
+                                                                name="loan_sms_declined_template"
+                                                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[120px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                                placeholder="Leave blank to use the default template."
+                                                                value={
+                                                                    loanSmsDeclinedTemplate
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) => {
+                                                                    setLoanSmsDeclinedTemplate(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    );
+                                                                    setHasChanges(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                            />
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Leave blank to
+                                                                use the default
+                                                                template.
+                                                            </p>
+                                                            <InputError
+                                                                message={
+                                                                    formErrors.loan_sms_declined_template
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                            Preview
+                                                        </p>
+                                                        <div className="mt-3 space-y-4 text-sm">
+                                                            <div className="space-y-1">
+                                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                                    Approved
+                                                                </p>
+                                                                <p className="text-sm text-foreground">
+                                                                    {
+                                                                        loanSmsApprovedPreview
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                                    Declined
+                                                                </p>
+                                                                <p className="text-sm text-foreground">
+                                                                    {
+                                                                        loanSmsDeclinedPreview
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </SurfaceCard>

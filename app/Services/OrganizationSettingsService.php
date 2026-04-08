@@ -10,6 +10,10 @@ class OrganizationSettingsService
 {
     private const DEFAULT_PORTAL_LABEL = 'Member Portal';
 
+    private const DEFAULT_LOAN_SMS_APPROVED_TEMPLATE = '{company_name} {portal_label}: Your loan request ({loan_reference}) has been APPROVED for {approved_amount} payable over {approved_term} months. Please visit the {office_name} office to finalize your loan.';
+
+    private const DEFAULT_LOAN_SMS_DECLINED_TEMPLATE = '{company_name} {portal_label}: Your loan request ({loan_reference}) has been DECLINED. For questions or clarification, please contact the {office_name} office.';
+
     public const LOGO_PRESET_MARK = 'mark';
 
     public const LOGO_PRESET_FULL = 'full';
@@ -153,6 +157,8 @@ class OrganizationSettingsService
             'support_email' => null,
             'support_phone' => null,
             'support_contact_name' => null,
+            'loan_sms_approved_template' => self::DEFAULT_LOAN_SMS_APPROVED_TEMPLATE,
+            'loan_sms_declined_template' => self::DEFAULT_LOAN_SMS_DECLINED_TEMPLATE,
             'report_header_title' => null,
             'report_header_tagline' => null,
             'report_header_show_logo' => true,
@@ -270,6 +276,7 @@ class OrganizationSettingsService
             : $markLogo;
         $reportHeader = $this->resolveReportHeader($setting);
         $reportTypography = $this->resolveReportTypography($setting);
+        $loanSmsTemplates = $this->resolveLoanSmsTemplates($setting);
 
         return [
             'companyName' => $companyName,
@@ -301,7 +308,116 @@ class OrganizationSettingsService
             ),
             'reportHeader' => $reportHeader,
             'reportTypography' => $reportTypography,
+            'general' => [
+                'companyName' => $companyName,
+                'portalLabel' => $portalLabel,
+                'appTitle' => $this->resolveAppTitle($companyName, $portalLabel),
+            ],
+            'assets' => [
+                'logoPreset' => $logoPreset,
+                'logoIsWordmark' => $logoPreset === self::LOGO_PRESET_FULL,
+                'logoPath' => $activeLogo['path'],
+                'logoUrl' => $activeLogo['url'],
+                'logoMarkUrl' => $markLogo['url'],
+                'logoFullUrl' => $fullLogo['url'],
+                'logoMarkDefaultUrl' => asset(self::LOGO_MARK_ASSET),
+                'logoFullDefaultUrl' => asset(self::LOGO_FULL_ASSET),
+                'logoMarkIsDefault' => $markLogo['isDefault'],
+                'logoFullIsDefault' => $fullLogo['isDefault'],
+                'faviconPath' => $faviconPath,
+                'faviconUrl' => $this->resolveFaviconUrl($faviconPath),
+                'faviconDefaultUrl' => asset(self::DEFAULT_FAVICON_ASSET),
+                'brandPrimaryColor' => $this->normalizeValue(
+                    $setting?->brand_primary_color,
+                ),
+                'brandAccentColor' => $this->normalizeValue(
+                    $setting?->brand_accent_color,
+                ),
+            ],
+            'contact' => [
+                'supportEmail' => $this->normalizeValue(
+                    $setting?->support_email,
+                ),
+                'supportPhone' => $this->normalizeValue(
+                    $setting?->support_phone,
+                ),
+                'supportContactName' => $this->normalizeValue(
+                    $setting?->support_contact_name,
+                ),
+            ],
+            'reports' => [
+                'header' => $reportHeader,
+                'typography' => $reportTypography,
+            ],
+            'communications' => [
+                'loanSmsTemplates' => $loanSmsTemplates,
+            ],
         ];
+    }
+
+    /**
+     * @return array{approved: string, declined: string}
+     */
+    public function loanSmsTemplates(?OrganizationSetting $setting = null): array
+    {
+        $setting = $setting ?? OrganizationSetting::query()->first();
+
+        return $this->resolveLoanSmsTemplates($setting);
+    }
+
+    public function resolveMessagePrefix(string $companyName, string $portalLabel): string
+    {
+        $companyName = $this->normalizeValue($companyName);
+        $portalLabel = $this->normalizeValue($portalLabel);
+
+        if ($portalLabel !== null && $companyName !== null) {
+            if (Str::contains(Str::lower($portalLabel), Str::lower($companyName))) {
+                return $portalLabel;
+            }
+
+            return trim(sprintf('%s %s', $companyName, $portalLabel));
+        }
+
+        return $portalLabel ?? $companyName ?? '';
+    }
+
+    public function resolvePortalLabelForMessage(
+        string $companyName,
+        string $portalLabel,
+    ): string {
+        $companyName = $this->normalizeValue($companyName);
+        $portalLabel = $this->normalizeValue($portalLabel);
+
+        if ($portalLabel === null) {
+            return $companyName ?? '';
+        }
+
+        if ($companyName === null) {
+            return $portalLabel;
+        }
+
+        if (! Str::contains(Str::lower($portalLabel), Str::lower($companyName))) {
+            return $portalLabel;
+        }
+
+        $stripped = str_ireplace($companyName, '', $portalLabel);
+        $stripped = preg_replace('/\\s{2,}/', ' ', trim($stripped));
+        $stripped = trim($stripped ?? '', '-: ');
+
+        return $stripped !== '' ? $stripped : $portalLabel;
+    }
+
+    public function resolveOfficeName(string $companyName, string $portalLabel): string
+    {
+        $companyName = $this->normalizeValue($companyName);
+
+        if ($companyName !== null) {
+            return $companyName;
+        }
+
+        $portalLabel = $this->normalizeValue($portalLabel);
+
+        return $portalLabel ?? 'coop';
     }
 
     public function logoDataUri(): ?string
@@ -374,6 +490,30 @@ class OrganizationSettingsService
         }
 
         return trim(sprintf('%s - %s', $portalLabel, $companyName));
+    }
+
+    /**
+     * @return array{approved: string, declined: string}
+     */
+    private function resolveLoanSmsTemplates(?OrganizationSetting $setting): array
+    {
+        return [
+            'approved' => $this->resolveLoanSmsTemplate(
+                $setting?->loan_sms_approved_template,
+                self::DEFAULT_LOAN_SMS_APPROVED_TEMPLATE,
+            ),
+            'declined' => $this->resolveLoanSmsTemplate(
+                $setting?->loan_sms_declined_template,
+                self::DEFAULT_LOAN_SMS_DECLINED_TEMPLATE,
+            ),
+        ];
+    }
+
+    private function resolveLoanSmsTemplate(?string $value, string $fallback): string
+    {
+        $normalized = $this->normalizeValue($value);
+
+        return $normalized ?? $fallback;
     }
 
     private function resolveLogoPreset(?string $logoPreset): string

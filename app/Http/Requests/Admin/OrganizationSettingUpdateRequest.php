@@ -56,6 +56,8 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'support_email' => ['nullable', 'email', 'max:255'],
             'support_phone' => ['nullable', 'string', 'max:32'],
             'support_contact_name' => ['nullable', 'string', 'max:255'],
+            'loan_sms_approved_template' => ['nullable', 'string', 'max:1000'],
+            'loan_sms_declined_template' => ['nullable', 'string', 'max:1000'],
             'brand_primary_color' => [
                 'nullable',
                 'string',
@@ -269,6 +271,8 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'support_email.max' => 'Support email may not be greater than 255 characters.',
             'support_phone.max' => 'Support phone may not be greater than 32 characters.',
             'support_contact_name.max' => 'Support contact name may not be greater than 255 characters.',
+            'loan_sms_approved_template.max' => 'Approved SMS template may not be greater than 1000 characters.',
+            'loan_sms_declined_template.max' => 'Declined SMS template may not be greater than 1000 characters.',
             'brand_primary_color.regex' => 'Primary color must be a valid hex value (e.g., #1a2b3c).',
             'brand_accent_color.regex' => 'Accent color must be a valid hex value (e.g., #1a2b3c).',
             'report_header_font_color.regex' => 'Header color must be a valid hex value (e.g., #1a2b3c).',

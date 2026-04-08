@@ -50,6 +50,8 @@ class OrganizationSettingsController extends Controller
             'support_contact_name',
             'brand_primary_color',
             'brand_accent_color',
+            'loan_sms_approved_template',
+            'loan_sms_declined_template',
             'report_header_title',
             'report_header_tagline',
             'report_header_show_logo',

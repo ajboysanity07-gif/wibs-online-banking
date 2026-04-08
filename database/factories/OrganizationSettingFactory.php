@@ -30,6 +30,8 @@ class OrganizationSettingFactory extends Factory
             'support_email' => fake()->safeEmail(),
             'support_phone' => fake()->phoneNumber(),
             'support_contact_name' => fake()->name(),
+            'loan_sms_approved_template' => null,
+            'loan_sms_declined_template' => null,
             'report_header_title' => null,
             'report_header_tagline' => null,
             'report_header_show_logo' => true,

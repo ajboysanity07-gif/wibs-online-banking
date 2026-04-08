@@ -12,7 +12,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class SendLoanDecisionSmsJob implements ShouldQueue
 {
@@ -68,10 +67,14 @@ class SendLoanDecisionSmsJob implements ShouldQueue
             return;
         }
 
+        $branding = $organizationSettings->branding();
+        $templates = $organizationSettings->loanSmsTemplates();
         $message = $this->buildMessage(
             $loanRequest,
             $status,
-            $organizationSettings->branding(),
+            $templates,
+            $branding,
+            $organizationSettings,
         );
 
         if ($message === null) {
@@ -87,86 +90,74 @@ class SendLoanDecisionSmsJob implements ShouldQueue
         }
     }
 
-    /**
-     * @param  array{companyName: string, portalLabel: string}  $branding
-     */
     private function buildMessage(
         LoanRequest $loanRequest,
         string $status,
+        array $templates,
         array $branding,
+        OrganizationSettingsService $organizationSettings,
     ): ?string {
-        $prefix = $this->resolveMessagePrefix($branding);
-        $officeName = $this->resolveOfficeName($branding);
-        $reference = $loanRequest->reference;
+        $template = match ($status) {
+            LoanRequestStatus::Approved->value => $templates['approved'] ?? null,
+            LoanRequestStatus::Declined->value => $templates['declined'] ?? null,
+            default => null,
+        };
 
-        if ($status === LoanRequestStatus::Approved->value) {
-            $approvedAmount = $loanRequest->approved_amount;
-            $approvedTerm = $loanRequest->approved_term;
-            $amountText = $this->formatCurrency($approvedAmount);
-            $termText = $approvedTerm !== null ? (int) $approvedTerm : 0;
-
-            return sprintf(
-                '%s: Your loan request (%s) has been APPROVED for %s payable over %s months. Please visit the %s office to finalize your loan.',
-                $prefix,
-                $reference,
-                $amountText,
-                $termText,
-                $officeName,
-            );
+        if ($template === null) {
+            return null;
         }
 
-        if ($status === LoanRequestStatus::Declined->value) {
-            return sprintf(
-                '%s: Your loan request (%s) has been DECLINED. For questions or clarification, please contact the %s office.',
-                $prefix,
-                $reference,
-                $officeName,
-            );
-        }
+        $companyName = $this->normalizeText($branding['companyName'] ?? null) ?? '';
+        $portalLabel = $this->normalizeText($branding['portalLabel'] ?? null) ?? '';
+        $messagePrefix = $organizationSettings->resolveMessagePrefix(
+            $companyName,
+            $portalLabel,
+        );
+        $portalLabelForMessage = $organizationSettings->resolvePortalLabelForMessage(
+            $companyName,
+            $portalLabel,
+        );
+        $officeName = $organizationSettings->resolveOfficeName(
+            $companyName,
+            $portalLabel,
+        );
 
-        return null;
-    }
-
-    /**
-     * @param  array{companyName: string, portalLabel: string}  $branding
-     */
-    private function resolveMessagePrefix(array $branding): string
-    {
-        $companyName = $this->normalizeText($branding['companyName'] ?? null);
-        $portalLabel = $this->normalizeText($branding['portalLabel'] ?? null);
-
-        if ($portalLabel !== null && $companyName !== null) {
-            if (Str::contains(Str::lower($portalLabel), Str::lower($companyName))) {
-                return $portalLabel;
-            }
-
-            return trim(sprintf('%s %s', $companyName, $portalLabel));
-        }
-
-        return $portalLabel ?? $companyName ?? '';
-    }
-
-    /**
-     * @param  array{companyName: string, portalLabel: string}  $branding
-     */
-    private function resolveOfficeName(array $branding): string
-    {
-        $companyName = $this->normalizeText($branding['companyName'] ?? null);
-
-        if ($companyName !== null) {
-            return $companyName;
-        }
-
-        $portalLabel = $this->normalizeText($branding['portalLabel'] ?? null);
-
-        return $portalLabel ?? 'coop';
+        return $this->renderTemplate($template, [
+            '{company_name}' => $companyName,
+            '{portal_label}' => $portalLabelForMessage,
+            '{message_prefix}' => $messagePrefix,
+            '{office_name}' => $officeName,
+            '{loan_reference}' => $loanRequest->reference,
+            '{approved_amount}' => $this->formatCurrency(
+                $loanRequest->approved_amount,
+            ),
+            '{approved_term}' => $loanRequest->approved_term !== null
+                ? (string) (int) $loanRequest->approved_term
+                : '',
+        ]);
     }
 
     private function formatCurrency(mixed $value): string
     {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
         $numericValue = is_numeric($value) ? (float) $value : 0.0;
 
         return sprintf('Php. %s', number_format($numericValue, 2));
+    }
+
+    /**
+     * @param  array<string, string>  $replacements
+     */
+    private function renderTemplate(string $template, array $replacements): string
+    {
+        $rendered = strtr($template, $replacements);
+
+        $collapsed = preg_replace('/\\s{2,}/', ' ', trim($rendered));
+
+        return $collapsed ?? trim($rendered);
     }
 
     private function normalizeText(?string $value): ?string

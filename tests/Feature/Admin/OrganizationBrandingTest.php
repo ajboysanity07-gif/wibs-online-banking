@@ -102,6 +102,32 @@ test('superadmin can update organization branding logo and name', function () {
     Storage::disk('public')->assertExists($setting->favicon_path);
 });
 
+test('superadmin can update loan sms templates', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $response = $this->actingAs($admin)->patch(
+        route('admin.settings.organization.update'),
+        [
+            'company_name' => 'Acme Cooperative',
+            'loan_sms_approved_template' => 'Approved {loan_reference}.',
+            'loan_sms_declined_template' => 'Declined {loan_reference}.',
+        ],
+    );
+
+    $response->assertRedirect(route('admin.settings.organization'));
+
+    $setting = OrganizationSetting::query()->first();
+
+    expect($setting)->not->toBeNull();
+    expect($setting->loan_sms_approved_template)
+        ->toBe('Approved {loan_reference}.');
+    expect($setting->loan_sms_declined_template)
+        ->toBe('Declined {loan_reference}.');
+});
+
 test('superadmin can upload logo mark and full overrides', function () {
     Storage::fake('public');
 
