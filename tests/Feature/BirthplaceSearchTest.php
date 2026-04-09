@@ -4,41 +4,18 @@ use App\Models\AppUser as User;
 use App\Models\UserProfile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
     Config::set('cache.default', 'array');
     Cache::store()->flush();
+    Config::set('locations.provider', 'ph-address');
+    Config::set(
+        'locations.providers.ph-address.testing_data_path',
+        base_path('tests/Fixtures/psgc-locations.csv'),
+    );
 });
 
 test('birthplace search endpoint returns suggestions', function () {
-    Http::fake([
-        'https://psgc.cloud/api/regions' => Http::response([
-            ['code' => '0100000000', 'name' => 'Region I (Ilocos Region)'],
-        ]),
-        'https://psgc.cloud/api/provinces' => Http::response([
-            ['code' => '0102800000', 'name' => 'Ilocos Norte'],
-        ]),
-        'https://psgc.cloud/api/cities' => Http::response([
-            [
-                'code' => '0102805000',
-                'name' => 'City of Batac',
-                'type' => 'City',
-                'district' => '2nd',
-                'zip_code' => '2906',
-            ],
-        ]),
-        'https://psgc.cloud/api/municipalities' => Http::response([
-            [
-                'code' => '0102801000',
-                'name' => 'Adams',
-                'type' => 'Mun',
-                'district' => '1st',
-                'zip_code' => '',
-            ],
-        ]),
-    ]);
-
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
@@ -57,10 +34,12 @@ test('birthplace search endpoint returns suggestions', function () {
         ->assertJsonPath('data.0.label', 'City of Batac, Ilocos Norte');
 });
 
-test('birthplace search endpoint reports unavailable when psgc fails', function () {
-    Http::fake([
-        'https://psgc.cloud/api/*' => Http::response(null, 503),
-    ]);
+test('birthplace search endpoint reports unavailable when dataset is missing', function () {
+    Config::set(
+        'locations.providers.ph-address.testing_data_path',
+        base_path('tests/Fixtures/missing-psgc.csv'),
+    );
+    Cache::store()->flush();
 
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Locations\LocationProvider;
+use App\Services\Locations\PhAddressLocationProvider;
 use App\Support\SchemaCapabilities;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -17,6 +19,14 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(SchemaCapabilities::class);
+        $this->app->singleton(LocationProvider::class, function (): LocationProvider {
+            $provider = config('locations.provider', 'ph-address');
+
+            return match ($provider) {
+                'ph-address' => $this->app->make(PhAddressLocationProvider::class),
+                default => $this->app->make(PhAddressLocationProvider::class),
+            };
+        });
     }
 
     /**

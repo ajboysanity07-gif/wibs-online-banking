@@ -3,44 +3,21 @@
 use App\Services\Locations\PsgcService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Http;
 
 uses(Tests\TestCase::class);
 
 beforeEach(function () {
     Config::set('cache.default', 'array');
     Cache::store()->flush();
+    Config::set('locations.provider', 'ph-address');
+    Config::set(
+        'locations.providers.ph-address.testing_data_path',
+        base_path('tests/Fixtures/psgc-locations.csv'),
+    );
 });
 
 test('psgc service normalizes birthplace suggestions', function () {
-    Http::fake([
-        'https://psgc.cloud/api/regions' => Http::response([
-            ['code' => '0100000000', 'name' => 'Region I (Ilocos Region)'],
-        ]),
-        'https://psgc.cloud/api/provinces' => Http::response([
-            ['code' => '0102800000', 'name' => 'Ilocos Norte'],
-        ]),
-        'https://psgc.cloud/api/cities' => Http::response([
-            [
-                'code' => '0102805000',
-                'name' => 'City of Batac',
-                'type' => 'City',
-                'district' => '2nd',
-                'zip_code' => '2906',
-            ],
-        ]),
-        'https://psgc.cloud/api/municipalities' => Http::response([
-            [
-                'code' => '0102801000',
-                'name' => 'Adams',
-                'type' => 'Mun',
-                'district' => '1st',
-                'zip_code' => '',
-            ],
-        ]),
-    ]);
-
-    $service = new PsgcService;
+    $service = app(PsgcService::class);
     $result = $service->searchBirthplaces('Ada');
 
     expect($result['available'])->toBeTrue();
@@ -51,34 +28,7 @@ test('psgc service normalizes birthplace suggestions', function () {
 });
 
 test('psgc service includes province details for city suggestions', function () {
-    Http::fake([
-        'https://psgc.cloud/api/regions' => Http::response([
-            ['code' => '0100000000', 'name' => 'Region I (Ilocos Region)'],
-        ]),
-        'https://psgc.cloud/api/provinces' => Http::response([
-            ['code' => '0102800000', 'name' => 'Ilocos Norte'],
-        ]),
-        'https://psgc.cloud/api/cities' => Http::response([
-            [
-                'code' => '0102805000',
-                'name' => 'City of Batac',
-                'type' => 'City',
-                'district' => '2nd',
-                'zip_code' => '2906',
-            ],
-        ]),
-        'https://psgc.cloud/api/municipalities' => Http::response([
-            [
-                'code' => '0102801000',
-                'name' => 'Adams',
-                'type' => 'Mun',
-                'district' => '1st',
-                'zip_code' => '',
-            ],
-        ]),
-    ]);
-
-    $service = new PsgcService;
+    $service = app(PsgcService::class);
     $result = $service->searchCities('Ada');
 
     expect($result['available'])->toBeTrue();
@@ -89,37 +39,10 @@ test('psgc service includes province details for city suggestions', function () 
     expect($result['results'][0]['type'])->toBe('municipality');
 });
 
-test('psgc service caches birthplace responses', function () {
-    Http::fake([
-        'https://psgc.cloud/api/regions' => Http::response([
-            ['code' => '0100000000', 'name' => 'Region I (Ilocos Region)'],
-        ]),
-        'https://psgc.cloud/api/provinces' => Http::response([
-            ['code' => '0102800000', 'name' => 'Ilocos Norte'],
-        ]),
-        'https://psgc.cloud/api/cities' => Http::response([
-            [
-                'code' => '0102805000',
-                'name' => 'City of Batac',
-                'type' => 'City',
-                'district' => '2nd',
-                'zip_code' => '2906',
-            ],
-        ]),
-        'https://psgc.cloud/api/municipalities' => Http::response([
-            [
-                'code' => '0102801000',
-                'name' => 'Adams',
-                'type' => 'Mun',
-                'district' => '1st',
-                'zip_code' => '',
-            ],
-        ]),
-    ]);
-
-    $service = new PsgcService;
+test('psgc service caches dataset responses', function () {
+    $service = app(PsgcService::class);
     $service->searchBirthplaces('Batac');
     $service->searchBirthplaces('Batac');
 
-    Http::assertSentCount(4);
+    expect(Cache::has('locations.dataset.v1'))->toBeTrue();
 });

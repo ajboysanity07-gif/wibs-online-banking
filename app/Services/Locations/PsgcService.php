@@ -3,27 +3,28 @@
 namespace App\Services\Locations;
 
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PsgcService
 {
-    private const BASE_URL = 'https://psgc.cloud/api';
-
     private const CACHE_TTL_SECONDS = 86400;
 
-    private const CACHE_BIRTHPLACES = 'psgc.birthplaces.v1';
+    private const CACHE_DATASET = 'locations.dataset.v1';
 
-    private const CACHE_REGIONS = 'psgc.regions.v1';
+    private const CODE_LENGTH = 9;
 
-    private const CACHE_PROVINCES = 'psgc.provinces.v1';
+    private const SMALL_WORDS = [
+        'Of',
+        'And',
+        'The',
+        'De',
+        'Del',
+        'La',
+        'Las',
+        'Los',
+    ];
 
-    private const CACHE_PROVINCES_LIST = 'psgc.provinces.list.v1';
-
-    private const CACHE_CITIES = 'psgc.cities.v1';
-
-    private const CACHE_MUNICIPALITIES = 'psgc.municipalities.v1';
+    public function __construct(private LocationProvider $provider) {}
 
     /**
      * @return array{available: bool, results: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string}>}
@@ -117,7 +118,7 @@ class PsgcService
         }
 
         $limit = max(1, min($limit, 20));
-        $provinces = $this->provincesList();
+        $provinces = $this->provinces();
 
         if ($provinces === []) {
             return [
@@ -130,47 +131,21 @@ class PsgcService
         $matches = [];
 
         foreach ($provinces as $entry) {
-            if (! is_array($entry)) {
-                continue;
-            }
+            $name = $entry['name_lower'];
 
-            $name = $entry['name'] ?? null;
-            $code = $entry['code'] ?? null;
-
-            if (! is_string($name) || ! is_string($code)) {
-                continue;
-            }
-
-            $name = trim($name);
-            $code = trim($code);
-
-            if ($name === '' || $code === '') {
-                continue;
-            }
-
-            $nameLower = Str::lower($name);
-
-            if (! str_contains($nameLower, $needle)) {
+            if (! str_contains($name, $needle)) {
                 continue;
             }
 
             $score = 2;
 
-            if ($nameLower === $needle) {
+            if ($name === $needle) {
                 $score = 0;
-            } elseif (str_starts_with($nameLower, $needle)) {
+            } elseif (str_starts_with($name, $needle)) {
                 $score = 1;
             }
 
-            $matches[] = [$score, [
-                'code' => $code,
-                'name' => $name,
-                'type' => 'province',
-                'province' => null,
-                'region' => null,
-                'label' => $name,
-                'value' => $name,
-            ]];
+            $matches[] = [$score, $entry];
         }
 
         usort($matches, static function (array $left, array $right): int {
@@ -184,7 +159,15 @@ class PsgcService
         $results = [];
 
         foreach ($matches as [$score, $province]) {
-            $results[] = $province;
+            $results[] = [
+                'code' => $province['code'],
+                'name' => $province['name'],
+                'type' => $province['type'],
+                'province' => $province['province'],
+                'region' => $province['region'],
+                'label' => $province['label'],
+                'value' => $province['value'],
+            ];
 
             if (count($results) >= $limit) {
                 break;
@@ -295,101 +278,225 @@ class PsgcService
      */
     private function birthplaces(): array
     {
-        $cached = Cache::get(self::CACHE_BIRTHPLACES);
+        $dataset = $this->dataset();
+
+        return $dataset['birthplaces'] ?? [];
+    }
+
+    /**
+     * @return list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>
+     */
+    private function provinces(): array
+    {
+        $dataset = $this->dataset();
+
+        return $dataset['provinces'] ?? [];
+    }
+
+    /**
+     * @return array{
+     *     birthplaces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>,
+     *     provinces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>
+     * }
+     */
+    private function dataset(): array
+    {
+        $cached = Cache::get(self::CACHE_DATASET);
 
         if (is_array($cached)) {
             return $cached;
         }
 
-        $regions = $this->lookupMap('regions', self::CACHE_REGIONS);
-        $provinces = $this->lookupMap('provinces', self::CACHE_PROVINCES);
-        $cities = $this->list('cities', self::CACHE_CITIES);
-        $municipalities = $this->list('municipalities', self::CACHE_MUNICIPALITIES);
+        $dataset = $this->buildDataset();
 
+        if ($dataset !== []) {
+            Cache::put(self::CACHE_DATASET, $dataset, $this->cacheTtl());
+        }
+
+        return $dataset;
+    }
+
+    /**
+     * @return array{
+     *     birthplaces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>,
+     *     provinces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>
+     * }|array{}
+     */
+    private function buildDataset(): array
+    {
+        $rawDataset = $this->provider->dataset();
+
+        if ($rawDataset === []) {
+            return [];
+        }
+
+        $regions = $this->normalizeMap($rawDataset['regions'] ?? []);
+        $provinces = $this->normalizeMap($rawDataset['provinces'] ?? []);
         $birthplaces = [];
 
-        foreach ($cities as $entry) {
+        foreach ($rawDataset['localities'] ?? [] as $entry) {
             if (! is_array($entry)) {
                 continue;
             }
 
-            $normalized = $this->normalizeBirthplace($entry, 'city', $provinces, $regions);
+            $normalized = $this->normalizeBirthplace($entry, $provinces, $regions);
 
             if ($normalized !== null) {
                 $birthplaces[] = $normalized;
             }
         }
 
-        foreach ($municipalities as $entry) {
-            if (! is_array($entry)) {
+        $provinceSuggestions = [];
+
+        foreach ($provinces as $code => $name) {
+            if (! is_string($code)) {
                 continue;
             }
 
-            $normalized = $this->normalizeBirthplace($entry, 'municipality', $provinces, $regions);
-
-            if ($normalized !== null) {
-                $birthplaces[] = $normalized;
-            }
+            $provinceSuggestions[] = [
+                'code' => $code,
+                'name' => $name,
+                'type' => 'province',
+                'province' => null,
+                'region' => null,
+                'label' => $name,
+                'value' => $name,
+                'name_lower' => Str::lower($name),
+            ];
         }
 
-        if ($birthplaces !== []) {
-            Cache::put(self::CACHE_BIRTHPLACES, $birthplaces, self::CACHE_TTL_SECONDS);
-        }
-
-        return $birthplaces;
+        return [
+            'birthplaces' => $birthplaces,
+            'provinces' => $provinceSuggestions,
+        ];
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private function provincesList(): array
-    {
-        return $this->list('provinces', self::CACHE_PROVINCES_LIST);
-    }
-
-    /**
-     * @param  array<string, mixed>  $entry
+     * @param  array{code: string, name: string, type: string}  $entry
      * @param  array<string, string>  $provinces
      * @param  array<string, string>  $regions
      * @return array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}|null
      */
-    private function normalizeBirthplace(array $entry, string $type, array $provinces, array $regions): ?array
+    private function normalizeBirthplace(array $entry, array $provinces, array $regions): ?array
     {
         $code = $entry['code'] ?? null;
         $name = $entry['name'] ?? null;
+        $type = $entry['type'] ?? null;
 
-        if (! is_string($code) || trim($code) === '' || ! is_string($name) || trim($name) === '') {
+        if (
+            ! is_string($code)
+            || trim($code) === ''
+            || ! is_string($name)
+            || trim($name) === ''
+            || ! is_string($type)
+            || trim($type) === ''
+        ) {
             return null;
         }
 
+        $normalizedType = $this->normalizeLocalityType($type);
+
+        if ($normalizedType === null) {
+            return null;
+        }
+
+        $displayName = $this->normalizeName($name);
         $provinceCode = $this->provinceCodeFrom($code);
         $regionCode = $this->regionCodeFrom($code);
         $province = $provinceCode !== null ? ($provinces[$provinceCode] ?? null) : null;
         $region = $regionCode !== null ? ($regions[$regionCode] ?? null) : null;
         $suffix = $province ?? $region;
-        $label = $suffix !== null ? sprintf('%s, %s', $name, $suffix) : $name;
+        $label = $suffix !== null ? sprintf('%s, %s', $displayName, $suffix) : $displayName;
 
         return [
             'code' => $code,
-            'name' => $name,
-            'type' => $type,
+            'name' => $displayName,
+            'type' => $normalizedType,
             'province' => $province,
             'region' => $region,
             'label' => $label,
             'value' => $label,
-            'name_lower' => Str::lower($name),
+            'name_lower' => Str::lower($displayName),
         ];
+    }
+
+    private function normalizeLocalityType(string $type): ?string
+    {
+        $normalized = Str::lower(trim($type));
+
+        if ($normalized === 'city') {
+            return 'city';
+        }
+
+        if ($normalized === 'mun' || $normalized === 'municipality') {
+            return 'municipality';
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, string>  $map
+     * @return array<string, string>
+     */
+    private function normalizeMap(array $map): array
+    {
+        $normalized = [];
+
+        foreach ($map as $code => $name) {
+            if (! is_string($name)) {
+                continue;
+            }
+
+            $code = trim((string) $code);
+            $name = $this->normalizeName($name);
+
+            if ($code === '' || $name === '') {
+                continue;
+            }
+
+            $normalized[$code] = $name;
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeName(string $name): string
+    {
+        $name = trim(preg_replace('/\\s+/', ' ', $name) ?? '');
+
+        if ($name === '') {
+            return '';
+        }
+
+        $normalized = Str::title(Str::lower($name));
+
+        foreach (self::SMALL_WORDS as $word) {
+            $normalized = preg_replace(
+                sprintf('/\\b%s\\b/u', $word),
+                Str::lower($word),
+                $normalized,
+            );
+        }
+
+        $normalized = preg_replace_callback(
+            '/\\b[ivx]{1,4}\\b/i',
+            static fn (array $match): string => Str::upper($match[0]),
+            $normalized,
+        );
+
+        return $normalized;
     }
 
     private function provinceCodeFrom(string $code): ?string
     {
         $code = trim($code);
 
-        if (strlen($code) < 5) {
+        if (strlen($code) < 4) {
             return null;
         }
 
-        return substr($code, 0, 5).'00000';
+        return str_pad(substr($code, 0, 4), self::CODE_LENGTH, '0');
     }
 
     private function regionCodeFrom(string $code): ?string
@@ -400,110 +507,17 @@ class PsgcService
             return null;
         }
 
-        return substr($code, 0, 2).'00000000';
+        return str_pad(substr($code, 0, 2), self::CODE_LENGTH, '0');
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function list(string $endpoint, string $cacheKey): array
+    private function cacheTtl(): int
     {
-        $cached = Cache::get($cacheKey);
+        $ttl = (int) config('locations.cache_ttl', self::CACHE_TTL_SECONDS);
 
-        if (is_array($cached)) {
-            return $cached;
+        if ($ttl <= 0) {
+            return self::CACHE_TTL_SECONDS;
         }
 
-        $data = $this->fetchEndpoint($endpoint);
-
-        if ($data === []) {
-            return [];
-        }
-
-        Cache::put($cacheKey, $data, self::CACHE_TTL_SECONDS);
-
-        return $data;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function lookupMap(string $endpoint, string $cacheKey): array
-    {
-        $cached = Cache::get($cacheKey);
-
-        if (is_array($cached)) {
-            return $cached;
-        }
-
-        $data = $this->fetchEndpoint($endpoint);
-
-        if ($data === []) {
-            return [];
-        }
-
-        $mapped = [];
-
-        foreach ($data as $entry) {
-            if (! is_array($entry)) {
-                continue;
-            }
-
-            $code = $entry['code'] ?? null;
-            $name = $entry['name'] ?? null;
-
-            if (is_string($code) && trim($code) !== '' && is_string($name) && trim($name) !== '') {
-                $mapped[$code] = $name;
-            }
-        }
-
-        if ($mapped !== []) {
-            Cache::put($cacheKey, $mapped, self::CACHE_TTL_SECONDS);
-        }
-
-        return $mapped;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function fetchEndpoint(string $endpoint): array
-    {
-        $url = sprintf('%s/%s', self::BASE_URL, $endpoint);
-
-        try {
-            $response = Http::timeout(10)
-                ->retry(2, 200)
-                ->acceptJson()
-                ->get($url);
-        } catch (\Throwable $exception) {
-            Log::warning('PSGC API request failed', [
-                'endpoint' => $endpoint,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return [];
-        }
-
-        if (! $response->ok()) {
-            Log::warning('PSGC API request failed', [
-                'endpoint' => $endpoint,
-                'status' => $response->status(),
-            ]);
-
-            return [];
-        }
-
-        $payload = $response->json();
-
-        if (! is_array($payload)) {
-            Log::warning('PSGC API response is invalid', [
-                'endpoint' => $endpoint,
-            ]);
-
-            return [];
-        }
-
-        return $payload;
+        return $ttl;
     }
 }
