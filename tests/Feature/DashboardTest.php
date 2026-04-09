@@ -116,7 +116,11 @@ test('hybrid users see the workspace chooser dashboard', function () {
     $response
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('dashboard'));
+            ->component('dashboard')
+            ->where('auth.isAdmin', true)
+            ->where('auth.hasMemberAccess', true)
+            ->where('auth.isHybrid', true)
+            ->where('auth.experience', 'user-admin'));
 });
 
 test('completed profiles can access the dashboard without a complete verified record', function () {
