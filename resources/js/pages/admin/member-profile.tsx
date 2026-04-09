@@ -50,13 +50,7 @@ type PageProps = {
     auth: Auth;
 };
 
-type LoansAndLoanSecuritySummarySectionProps = {
-    cardsClassName?: string;
-};
-
-function LoansAndLoanSecuritySummarySection({
-    cardsClassName,
-}: LoansAndLoanSecuritySummarySectionProps) {
+function LoansAndLoanSecuritySummarySection() {
     const {
         memberKey,
         acctno,
@@ -87,7 +81,6 @@ function LoansAndLoanSecuritySummarySection({
                 href: loanSecurityHref,
                 disabled: actionDisabled,
             }}
-            cardsClassName={cardsClassName}
         />
     );
 }
@@ -413,30 +406,15 @@ export default function MemberProfile({
                     initialSummary={accountsSummary}
                     initialActions={recentAccountActions}
                 >
-                    {isSuperadmin ? (
-                        <>
-                            <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                                <div>{memberDetailsCard}</div>
-                                <div className="space-y-4">
-                                    {portalAccessCard}
-                                    {adminAccessCard}
-                                    <LoansAndLoanSecuritySummarySection cardsClassName="lg:grid-cols-1" />
-                                </div>
-                            </div>
-                            <RecentAccountActionsCard />
-                        </>
-                    ) : (
-                        <>
-                            <div className="grid items-stretch gap-4 lg:grid-cols-3">
-                                <div className="lg:col-span-2">
-                                    {memberDetailsCard}
-                                </div>
-                                <div className="h-full">{portalAccessCard}</div>
-                            </div>
-                            <LoansAndLoanSecuritySummarySection />
-                            <RecentAccountActionsCard />
-                        </>
-                    )}
+                    <div className="grid items-stretch gap-4 lg:grid-cols-3">
+                        <div className="lg:col-span-2">{memberDetailsCard}</div>
+                        <div className={isSuperadmin ? 'space-y-4' : 'h-full'}>
+                            {portalAccessCard}
+                            {adminAccessCard}
+                        </div>
+                    </div>
+                    <LoansAndLoanSecuritySummarySection />
+                    <RecentAccountActionsCard />
                 </MemberAccountsProvider>
             </PageShell>
         </AppLayout>

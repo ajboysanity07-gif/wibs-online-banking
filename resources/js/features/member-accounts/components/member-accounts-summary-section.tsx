@@ -4,7 +4,6 @@ import { SectionHeader } from '@/components/section-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
 import type { MemberAccountsSummary } from '@/features/member-accounts/types';
 
 type SummaryAction = {
@@ -21,7 +20,6 @@ type MemberAccountsSummarySectionProps = {
     onRetry?: () => void;
     loansAction?: SummaryAction;
     loanSecurityAction?: SummaryAction;
-    cardsClassName?: string;
 };
 
 export function MemberAccountsSummarySection({
@@ -32,7 +30,6 @@ export function MemberAccountsSummarySection({
     onRetry,
     loansAction,
     loanSecurityAction,
-    cardsClassName,
 }: MemberAccountsSummarySectionProps) {
     const handleRetry = () => {
         onRetry?.();
@@ -72,7 +69,7 @@ export function MemberAccountsSummarySection({
                     </AlertDescription>
                 </Alert>
             ) : null}
-            <div className={cn('grid gap-5 md:grid-cols-2', cardsClassName)}>
+            <div className="grid gap-5 md:grid-cols-2">
                 <MemberAccountSummaryCard
                     title="Loans"
                     subtitle="Loan portfolio snapshot"
