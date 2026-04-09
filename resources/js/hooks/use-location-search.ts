@@ -15,6 +15,7 @@ export type LocationSuggestion = {
 export type LocationSearchState = {
     query: string;
     setQuery: (value: string) => void;
+    setSelectedValue: (value: string) => void;
     suggestions: LocationSuggestion[];
     open: boolean;
     status: 'idle' | 'loading' | 'error';
@@ -175,15 +176,20 @@ export const useLocationSearch = ({
         }, 120);
     };
 
-    const handleSelect = (suggestion: LocationSuggestion) => {
-        setQueryState(suggestion.value);
+    const setSelectedValue = (value: string) => {
+        setQueryState(value);
         setOpen(false);
         resetSearchState();
+    };
+
+    const handleSelect = (suggestion: LocationSuggestion) => {
+        setSelectedValue(suggestion.value);
     };
 
     return {
         query,
         setQuery,
+        setSelectedValue,
         suggestions,
         open,
         status,

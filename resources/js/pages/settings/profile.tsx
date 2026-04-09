@@ -1169,6 +1169,17 @@ export default function Profile({
                                                                                     inputClassName="mt-1 block w-full"
                                                                                     loadingMessage="Searching city suggestions..."
                                                                                     errorMessage="City suggestions are temporarily unavailable."
+                                                                                    onSelect={(
+                                                                                        suggestion,
+                                                                                    ) => {
+                                                                                        if (
+                                                                                            suggestion.province
+                                                                                        ) {
+                                                                                            birthplaceProvinceSearch.setSelectedValue(
+                                                                                                suggestion.province,
+                                                                                            );
+                                                                                        }
+                                                                                    }}
                                                                                 />
 
                                                                                 <InputError
@@ -1781,6 +1792,17 @@ export default function Profile({
                                                                             inputClassName="mt-1 block w-full"
                                                                             loadingMessage="Searching city suggestions..."
                                                                             errorMessage="City suggestions are temporarily unavailable."
+                                                                            onSelect={(
+                                                                                suggestion,
+                                                                            ) => {
+                                                                                if (
+                                                                                    suggestion.province
+                                                                                ) {
+                                                                                    employerBusinessProvinceSearch.setSelectedValue(
+                                                                                        suggestion.province,
+                                                                                    );
+                                                                                }
+                                                                            }}
                                                                         />
 
                                                                         <InputError
