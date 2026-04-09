@@ -139,6 +139,25 @@ test('spa logout rotates the csrf token', function () {
     expect($nextToken)->not->toBe($initialToken);
 });
 
+test('spa login works after logout', function () {
+    $user = User::factory()->create();
+
+    $this->postJson('/spa/auth/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertOk();
+    $this->assertAuthenticatedAs($user);
+
+    $this->postJson('/spa/auth/logout')->assertOk();
+    $this->assertGuest();
+
+    $this->postJson('/spa/auth/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertOk();
+    $this->assertAuthenticatedAs($user);
+});
+
 test('users can logout', function () {
     $user = User::factory()->create();
 

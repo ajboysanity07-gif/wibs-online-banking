@@ -30,15 +30,9 @@ const getCookieValue = (name: string): string | null => {
     return value ? decodeURIComponent(value) : null;
 };
 
-const getCsrfToken = (): string | null => {
+const getMetaCsrfToken = (): string | null => {
     if (typeof document === 'undefined') {
         return null;
-    }
-
-    const cookieToken = getCookieValue('XSRF-TOKEN');
-
-    if (cookieToken) {
-        return cookieToken;
     }
 
     return (
@@ -55,12 +49,21 @@ client.interceptors.request.use((config) => {
         return config;
     }
 
-    const token = getCsrfToken();
+    const cookieToken = getCookieValue('XSRF-TOKEN');
+    const metaToken = getMetaCsrfToken();
 
-    if (token) {
+    if (cookieToken) {
+        const headers = { ...config.headers };
+        delete headers['X-CSRF-TOKEN'];
+        headers['X-XSRF-TOKEN'] = cookieToken;
+        config.headers = headers;
+        return config;
+    }
+
+    if (metaToken) {
         config.headers = {
             ...config.headers,
-            'X-CSRF-TOKEN': token,
+            'X-CSRF-TOKEN': metaToken,
         };
     }
 
