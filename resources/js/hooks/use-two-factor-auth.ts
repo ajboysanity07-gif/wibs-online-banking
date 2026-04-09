@@ -24,7 +24,11 @@ const fetchJson = async <T>(url: string): Promise<T> => {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
+        const error = new Error(`Failed to fetch: ${response.status}`) as Error & {
+            status?: number;
+        };
+        error.status = response.status;
+        throw error;
     }
 
     return response.json();
@@ -78,7 +82,16 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             clearErrors();
             const codes = await fetchJson<string[]>(recoveryCodes.url());
             setRecoveryCodesList(codes);
-        } catch {
+        } catch (error) {
+            const status = (error as { status?: number }).status;
+
+            if (status === 423) {
+                setErrors([
+                    'Please confirm your password again to view recovery codes.',
+                ]);
+                return;
+            }
+
             setErrors((prev) => [...prev, 'Failed to fetch recovery codes']);
             setRecoveryCodesList([]);
         }

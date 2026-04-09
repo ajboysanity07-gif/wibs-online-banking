@@ -110,3 +110,57 @@ test('two factor challenge authenticates with a code after spa login', function 
     $response->assertRedirect();
     $this->assertAuthenticatedAs($user);
 });
+
+test('recovery codes require password confirmation', function () {
+    if (! Features::canManageTwoFactorAuthentication()) {
+        $this->markTestSkipped('Two-factor authentication is not enabled.');
+    }
+
+    Features::twoFactorAuthentication([
+        'confirm' => true,
+        'confirmPassword' => true,
+    ]);
+
+    $user = User::factory()->create();
+
+    $user->forceFill([
+        'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
+        'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
+        'two_factor_confirmed_at' => now(),
+    ])->save();
+
+    $this->actingAs($user)
+        ->getJson('/user/two-factor-recovery-codes')
+        ->assertStatus(423);
+});
+
+test('recovery codes are available after password confirmation', function () {
+    if (! Features::canManageTwoFactorAuthentication()) {
+        $this->markTestSkipped('Two-factor authentication is not enabled.');
+    }
+
+    Features::twoFactorAuthentication([
+        'confirm' => true,
+        'confirmPassword' => true,
+    ]);
+
+    $user = User::factory()->create();
+
+    $user->forceFill([
+        'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
+        'two_factor_recovery_codes' => encrypt(json_encode([
+            'recovery-code-1',
+            'recovery-code-2',
+        ])),
+        'two_factor_confirmed_at' => now(),
+    ])->save();
+
+    $response = $this->actingAs($user)
+        ->withSession(['auth.password_confirmed_at' => now()->unix()])
+        ->getJson('/user/two-factor-recovery-codes');
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('0', 'recovery-code-1')
+        ->assertJsonPath('1', 'recovery-code-2');
+});
