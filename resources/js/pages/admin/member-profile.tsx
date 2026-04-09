@@ -294,10 +294,11 @@ export default function MemberProfile({
                             ]}
                         />
                     </div>
-                    <div className="space-y-4">
+                    <div className="flex h-full flex-col gap-4">
                         <MemberStatusCard
                             title="Portal access"
                             description="Suspend or restore portal access for this member."
+                            className="flex-1"
                             statusLabel={statusLabel}
                             statusVariant={statusVariant}
                             actions={

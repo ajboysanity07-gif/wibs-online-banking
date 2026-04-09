@@ -45,7 +45,12 @@ export function MemberStatusCard({
                     <CardDescription>{description}</CardDescription>
                 ) : null}
             </CardHeader>
-            <CardContent className={cn('space-y-4', contentClassName)}>
+            <CardContent
+                className={cn(
+                    'flex flex-1 flex-col gap-4',
+                    contentClassName,
+                )}
+            >
                 <div className="flex items-center justify-between rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         Current status

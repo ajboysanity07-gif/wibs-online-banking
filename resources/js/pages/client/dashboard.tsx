@@ -154,7 +154,7 @@ export default function MemberProfile({
                         description="Key account details and access status."
                         titleClassName="text-lg"
                     />
-                    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                    <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                         <MemberProfileDetailsCard
                             title="Member details"
                             description="Portal profile information and contact details."
@@ -189,7 +189,6 @@ export default function MemberProfile({
                         />
                         <MemberStatusCard
                             className="h-full border-border/30 bg-background/60 shadow-none"
-                            contentClassName="flex-1"
                             statusLabel={statusLabel}
                             statusVariant={statusVariant}
                         />

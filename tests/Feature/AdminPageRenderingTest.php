@@ -98,7 +98,8 @@ test('admin can view member profile page', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/member-profile')
             ->has('member')
-            ->where('member.user_id', $member->user_id));
+            ->where('member.user_id', $member->user_id)
+            ->where('member.portal_status', 'active'));
 });
 
 test('admin can view a member profile after admin access is granted', function () {
