@@ -5,8 +5,8 @@ return [
     'cache_ttl' => env('LOCATIONS_CACHE_TTL', 86400),
     'providers' => [
         'ph-address' => [
-            'data_path' => base_path('vendor/dmn/ph-address/database/seeders/PSGC.csv'),
-            'testing_data_path' => base_path('vendor/dmn/ph-address/database/seeders/PSGCTest.csv'),
+            'data_path' => base_path('resources/data/ph-address.json'),
+            'testing_data_path' => base_path('tests/Fixtures/ph-address.json'),
         ],
     ],
 ];

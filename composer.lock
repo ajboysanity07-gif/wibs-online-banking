@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "47b65cc50bb0a90a795f949d1e9b1772",
+    "content-hash": "e9b8d7670076cf015ca1aa86902ba1a9",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -547,49 +547,6 @@
                 "source": "https://github.com/dflydev/dflydev-dot-access-data/tree/v3.0.3"
             },
             "time": "2024-07-08T12:26:09+00:00"
-        },
-        {
-            "name": "dmn/ph-address",
-            "version": "v4.0.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/jmcnualan/ph-address.git",
-                "reference": "c83d44498fdfca05b0318fa3ccc504ce8f1caed1"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/jmcnualan/ph-address/zipball/c83d44498fdfca05b0318fa3ccc504ce8f1caed1",
-                "reference": "c83d44498fdfca05b0318fa3ccc504ce8f1caed1",
-                "shasum": ""
-            },
-            "require-dev": {
-                "fzaninotto/faker": "^1.5",
-                "laravel/lumen-framework": "^9.0",
-                "phpunit/phpunit": "^9.5"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Dmn\\PhAddress\\": "src/",
-                    "Database\\Seeders\\": "database/seeders/",
-                    "Database\\Factories\\": "database/factories/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "dmn"
-                }
-            ],
-            "description": "PH Address",
-            "support": {
-                "issues": "https://github.com/jmcnualan/ph-address/issues",
-                "source": "https://github.com/jmcnualan/ph-address/tree/v4.0.1"
-            },
-            "time": "2022-03-30T03:33:22+00:00"
         },
         {
             "name": "doctrine/inflector",

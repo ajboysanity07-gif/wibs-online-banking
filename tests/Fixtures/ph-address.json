@@ -1,0 +1,51 @@
+{
+  "regions": {
+    "0100000000": "REGION I (ILOCOS REGION)",
+    "0700000000": "REGION VII (CENTRAL VISAYAS)",
+    "1100000000": "REGION XI (DAVAO REGION)",
+    "1200000000": "REGION XII (SOCCSKSARGEN)"
+  },
+  "provinces": {
+    "0102800000": "ILOCOS NORTE",
+    "0722000000": "CEBU",
+    "1123000000": "DAVAO DEL NORTE",
+    "1247000000": "COTABATO"
+  },
+  "localities": [
+    {
+      "code": "0102801000",
+      "name": "ADAMS",
+      "type": "Mun",
+      "province_code": "0102800000",
+      "region_code": "0100000000"
+    },
+    {
+      "code": "0102805000",
+      "name": "CITY OF BATAC",
+      "type": "City",
+      "province_code": "0102800000",
+      "region_code": "0100000000"
+    },
+    {
+      "code": "0722090000",
+      "name": "CARMEN",
+      "type": "Mun",
+      "province_code": "0722000000",
+      "region_code": "0700000000"
+    },
+    {
+      "code": "1123120000",
+      "name": "CARMEN",
+      "type": "Mun",
+      "province_code": "1123000000",
+      "region_code": "1100000000"
+    },
+    {
+      "code": "1247080000",
+      "name": "CARMEN",
+      "type": "Mun",
+      "province_code": "1247000000",
+      "region_code": "1200000000"
+    }
+  ]
+}

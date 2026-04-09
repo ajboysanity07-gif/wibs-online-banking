@@ -11,7 +11,7 @@ beforeEach(function () {
     Config::set('locations.provider', 'ph-address');
     Config::set(
         'locations.providers.ph-address.testing_data_path',
-        base_path('tests/Fixtures/psgc-locations.csv'),
+        base_path('tests/Fixtures/ph-address.json'),
     );
 
     $this->user = User::factory()->create();

@@ -9,9 +9,9 @@ class PsgcService
 {
     private const CACHE_TTL_SECONDS = 86400;
 
-    private const CACHE_DATASET = 'locations.dataset.v1';
+    private const CACHE_DATASET = 'locations.dataset.v2';
 
-    private const CODE_LENGTH = 9;
+    private const CODE_LENGTH = 10;
 
     private const SMALL_WORDS = [
         'Of',
@@ -372,7 +372,7 @@ class PsgcService
     }
 
     /**
-     * @param  array{code: string, name: string, type: string}  $entry
+     * @param  array{code: string, name: string, type: string, province_code?: string|null, region_code?: string|null}  $entry
      * @param  array<string, string>  $provinces
      * @param  array<string, string>  $regions
      * @return array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}|null
@@ -403,6 +403,14 @@ class PsgcService
         $displayName = $this->normalizeName($name);
         $provinceCode = $this->provinceCodeFrom($code);
         $regionCode = $this->regionCodeFrom($code);
+
+        if (is_string($entry['province_code'] ?? null) && trim($entry['province_code']) !== '') {
+            $provinceCode = $entry['province_code'];
+        }
+
+        if (is_string($entry['region_code'] ?? null) && trim($entry['region_code']) !== '') {
+            $regionCode = $entry['region_code'];
+        }
         $province = $provinceCode !== null ? ($provinces[$provinceCode] ?? null) : null;
         $region = $regionCode !== null ? ($regions[$regionCode] ?? null) : null;
         $suffix = $province ?? $region;
@@ -469,6 +477,12 @@ class PsgcService
             return '';
         }
 
+        $acronyms = [];
+
+        if (preg_match_all('/\\(([A-Z0-9-]{2,})\\)/', $name, $matches)) {
+            $acronyms = $matches[1];
+        }
+
         $normalized = Str::title(Str::lower($name));
 
         foreach (self::SMALL_WORDS as $word) {
@@ -485,6 +499,14 @@ class PsgcService
             $normalized,
         );
 
+        foreach ($acronyms as $acronym) {
+            $normalized = preg_replace(
+                sprintf('/\\b%s\\b/iu', preg_quote($acronym, '/')),
+                $acronym,
+                $normalized,
+            );
+        }
+
         return $normalized;
     }
 
@@ -492,11 +514,11 @@ class PsgcService
     {
         $code = trim($code);
 
-        if (strlen($code) < 4) {
+        if (strlen($code) < 5) {
             return null;
         }
 
-        return str_pad(substr($code, 0, 4), self::CODE_LENGTH, '0');
+        return str_pad(substr($code, 0, 5), self::CODE_LENGTH, '0');
     }
 
     private function regionCodeFrom(string $code): ?string

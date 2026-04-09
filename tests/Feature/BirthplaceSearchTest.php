@@ -11,7 +11,7 @@ beforeEach(function () {
     Config::set('locations.provider', 'ph-address');
     Config::set(
         'locations.providers.ph-address.testing_data_path',
-        base_path('tests/Fixtures/psgc-locations.csv'),
+        base_path('tests/Fixtures/ph-address.json'),
     );
 });
 
@@ -37,7 +37,7 @@ test('birthplace search endpoint returns suggestions', function () {
 test('birthplace search endpoint reports unavailable when dataset is missing', function () {
     Config::set(
         'locations.providers.ph-address.testing_data_path',
-        base_path('tests/Fixtures/missing-psgc.csv'),
+        base_path('tests/Fixtures/missing-ph-address.json'),
     );
     Cache::store()->flush();
 

@@ -12,7 +12,7 @@ beforeEach(function () {
     Config::set('locations.provider', 'ph-address');
     Config::set(
         'locations.providers.ph-address.testing_data_path',
-        base_path('tests/Fixtures/psgc-locations.csv'),
+        base_path('tests/Fixtures/ph-address.json'),
     );
 });
 
@@ -44,5 +44,5 @@ test('psgc service caches dataset responses', function () {
     $service->searchBirthplaces('Batac');
     $service->searchBirthplaces('Batac');
 
-    expect(Cache::has('locations.dataset.v1'))->toBeTrue();
+    expect(Cache::has('locations.dataset.v2'))->toBeTrue();
 });
