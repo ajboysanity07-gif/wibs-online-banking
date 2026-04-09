@@ -50,7 +50,13 @@ type PageProps = {
     auth: Auth;
 };
 
-function LoansAndLoanSecuritySummarySection() {
+type LoansAndLoanSecuritySummarySectionProps = {
+    cardsClassName?: string;
+};
+
+function LoansAndLoanSecuritySummarySection({
+    cardsClassName,
+}: LoansAndLoanSecuritySummarySectionProps) {
     const {
         memberKey,
         acctno,
@@ -81,6 +87,7 @@ function LoansAndLoanSecuritySummarySection() {
                 href: loanSecurityHref,
                 disabled: actionDisabled,
             }}
+            cardsClassName={cardsClassName}
         />
     );
 }
@@ -205,7 +212,7 @@ export default function MemberProfile({
         <MemberStatusCard
             title="Portal access"
             description="Suspend or restore portal access for this member."
-            className={isSuperadmin ? 'flex-1' : 'h-full'}
+            className={isSuperadmin ? undefined : 'h-full'}
             statusLabel={statusLabel}
             statusVariant={statusVariant}
             actions={
@@ -259,7 +266,6 @@ export default function MemberProfile({
         <MemberStatusCard
             title="Admin access"
             description="Promote or revoke admin access for this member."
-            className="flex-1"
             statusLabel={adminAccessLabel}
             statusVariant={adminAccessVariant}
             actions={
@@ -309,6 +315,35 @@ export default function MemberProfile({
             }
         />
     ) : null;
+    const memberDetailsCard = (
+        <MemberProfileDetailsCard
+            title="Member details"
+            description="Portal profile information and contact details."
+            items={[
+                { label: 'Member name', value: memberName },
+                {
+                    label: 'Portal username',
+                    value: currentMember.username ?? '--',
+                },
+                {
+                    label: 'Email',
+                    value: currentMember.email ?? '--',
+                },
+                {
+                    label: 'Phone',
+                    value: currentMember.phoneno ?? '--',
+                },
+                {
+                    label: 'Account No',
+                    value: currentMember.acctno ?? '--',
+                },
+                {
+                    label: 'Created',
+                    value: formatDate(currentMember.created_at),
+                },
+            ]}
+        />
+    );
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -372,54 +407,36 @@ export default function MemberProfile({
                     </Alert>
                 ) : null}
 
-                <div className="grid items-stretch gap-4 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
-                        <MemberProfileDetailsCard
-                            title="Member details"
-                            description="Portal profile information and contact details."
-                            items={[
-                                { label: 'Member name', value: memberName },
-                                {
-                                    label: 'Portal username',
-                                    value: currentMember.username ?? '--',
-                                },
-                                {
-                                    label: 'Email',
-                                    value: currentMember.email ?? '--',
-                                },
-                                {
-                                    label: 'Phone',
-                                    value: currentMember.phoneno ?? '--',
-                                },
-                                {
-                                    label: 'Account No',
-                                    value: currentMember.acctno ?? '--',
-                                },
-                                {
-                                    label: 'Created',
-                                    value: formatDate(currentMember.created_at),
-                                },
-                            ]}
-                        />
-                    </div>
-                    {isSuperadmin ? (
-                        <div className="flex h-full flex-col gap-4">
-                            {portalAccessCard}
-                            {adminAccessCard}
-                        </div>
-                    ) : (
-                        <div className="h-full">{portalAccessCard}</div>
-                    )}
-                </div>
-
                 <MemberAccountsProvider
                     memberKey={currentMember.member_id}
                     acctno={currentMember.acctno}
                     initialSummary={accountsSummary}
                     initialActions={recentAccountActions}
                 >
-                    <LoansAndLoanSecuritySummarySection />
-                    <RecentAccountActionsCard />
+                    {isSuperadmin ? (
+                        <>
+                            <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                                <div>{memberDetailsCard}</div>
+                                <div className="space-y-4">
+                                    {portalAccessCard}
+                                    {adminAccessCard}
+                                    <LoansAndLoanSecuritySummarySection cardsClassName="lg:grid-cols-1" />
+                                </div>
+                            </div>
+                            <RecentAccountActionsCard />
+                        </>
+                    ) : (
+                        <>
+                            <div className="grid items-stretch gap-4 lg:grid-cols-3">
+                                <div className="lg:col-span-2">
+                                    {memberDetailsCard}
+                                </div>
+                                <div className="h-full">{portalAccessCard}</div>
+                            </div>
+                            <LoansAndLoanSecuritySummarySection />
+                            <RecentAccountActionsCard />
+                        </>
+                    )}
                 </MemberAccountsProvider>
             </PageShell>
         </AppLayout>
