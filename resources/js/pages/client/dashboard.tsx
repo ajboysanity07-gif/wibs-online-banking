@@ -11,7 +11,7 @@ import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate, formatDateTime } from '@/lib/formatters';
+import { formatDate } from '@/lib/formatters';
 import {
     getMemberStatusLabel,
     getMemberStatusVariant,
@@ -43,8 +43,6 @@ type MemberProfile = {
     acctno: string | null;
     status: string | null;
     created_at: string | null;
-    reviewed_by?: { user_id: number; name: string } | null;
-    reviewed_at?: string | null;
     avatar_url: string | null;
 };
 
@@ -86,8 +84,6 @@ export default function MemberProfile({
         acctno: null,
         status: null,
         created_at: auth.user.created_at ?? null,
-        reviewed_by: null,
-        reviewed_at: null,
         avatar_url: auth.user.avatar ?? null,
     };
     const actionsMeta = recentAccountActions?.meta ?? fallbackActionsMeta;
@@ -188,17 +184,6 @@ export default function MemberProfile({
                                 {
                                     label: 'Created',
                                     value: formatDate(currentMember.created_at),
-                                },
-                                {
-                                    label: 'Reviewed by',
-                                    value:
-                                        currentMember.reviewed_by?.name ?? '--',
-                                },
-                                {
-                                    label: 'Reviewed at',
-                                    value: formatDateTime(
-                                        currentMember.reviewed_at ?? null,
-                                    ),
                                 },
                             ]}
                         />

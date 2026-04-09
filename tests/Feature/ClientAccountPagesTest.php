@@ -124,7 +124,9 @@ test('approved client can view the dashboard profile page', function () {
             ->has('member')
             ->has('summary')
             ->has('recentAccountActions')
-            ->where('member.acctno', '000700'));
+            ->where('member.acctno', '000700')
+            ->where('member.reviewed_by', null)
+            ->where('member.reviewed_at', null));
 });
 
 test('client dashboard summary uses latest loan security ledger balance', function () {
