@@ -201,6 +201,114 @@ export default function MemberProfile({
         canManageAdminAccess && adminAccessLevel === 'admin';
     const isAdminAccessProcessing =
         processingKeys[currentMember.member_id] ?? false;
+    const portalAccessCard = (
+        <MemberStatusCard
+            title="Portal access"
+            description="Suspend or restore portal access for this member."
+            className="h-full"
+            statusLabel={statusLabel}
+            statusVariant={statusVariant}
+            actions={
+                <>
+                    {canSuspend ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            disabled={isProcessing}
+                            onClick={() =>
+                                updateStatus(
+                                    currentMember.user_id as number,
+                                    'suspend',
+                                )
+                            }
+                        >
+                            Suspend
+                        </Button>
+                    ) : null}
+                    {canReactivate ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={isProcessing}
+                            onClick={() =>
+                                updateStatus(
+                                    currentMember.user_id as number,
+                                    'reactivate',
+                                )
+                            }
+                        >
+                            Reactivate
+                        </Button>
+                    ) : null}
+                </>
+            }
+            helper={
+                loading
+                    ? 'Refreshing member status...'
+                    : currentMember.registration_status === 'unregistered'
+                      ? 'This member does not have a portal login yet.'
+                      : currentMember.is_admin
+                        ? 'Portal access for admins is managed separately.'
+                        : undefined
+            }
+        />
+    );
+    const adminAccessCard = isSuperadmin ? (
+        <MemberStatusCard
+            title="Admin access"
+            description="Promote or revoke admin access for this member."
+            className="h-full"
+            statusLabel={adminAccessLabel}
+            statusVariant={adminAccessVariant}
+            actions={
+                <>
+                    {canGrantAdmin ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="default"
+                            disabled={isAdminAccessProcessing}
+                            onClick={() =>
+                                updateAdminAccess(
+                                    currentMember.member_id,
+                                    'grant',
+                                )
+                            }
+                        >
+                            Grant admin access
+                        </Button>
+                    ) : null}
+                    {canRevokeAdmin ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={isAdminAccessProcessing}
+                            onClick={() =>
+                                updateAdminAccess(
+                                    currentMember.member_id,
+                                    'revoke',
+                                )
+                            }
+                        >
+                            Revoke admin access
+                        </Button>
+                    ) : null}
+                </>
+            }
+            helper={
+                isSelf
+                    ? 'You cannot update your own admin access.'
+                    : currentMember.registration_status === 'unregistered'
+                      ? 'Admin access requires a portal account.'
+                      : adminAccessLevel === 'superadmin'
+                        ? 'Superadmin access is managed separately.'
+                        : undefined
+            }
+        />
+    ) : null;
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -264,7 +372,7 @@ export default function MemberProfile({
                     </Alert>
                 ) : null}
 
-                <div className="grid gap-4 lg:grid-cols-3">
+                <div className="grid items-stretch gap-4 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <MemberProfileDetailsCard
                             title="Member details"
@@ -294,115 +402,14 @@ export default function MemberProfile({
                             ]}
                         />
                     </div>
-                    <div className="flex h-full flex-col gap-4">
-                        <MemberStatusCard
-                            title="Portal access"
-                            description="Suspend or restore portal access for this member."
-                            className="flex-1"
-                            statusLabel={statusLabel}
-                            statusVariant={statusVariant}
-                            actions={
-                                <>
-                                    {canSuspend ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="destructive"
-                                            disabled={isProcessing}
-                                            onClick={() =>
-                                                updateStatus(
-                                                    currentMember.user_id as number,
-                                                    'suspend',
-                                                )
-                                            }
-                                        >
-                                            Suspend
-                                        </Button>
-                                    ) : null}
-                                    {canReactivate ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="secondary"
-                                            disabled={isProcessing}
-                                            onClick={() =>
-                                                updateStatus(
-                                                    currentMember.user_id as number,
-                                                    'reactivate',
-                                                )
-                                            }
-                                        >
-                                            Reactivate
-                                        </Button>
-                                    ) : null}
-                                </>
-                            }
-                            helper={
-                                loading
-                                    ? 'Refreshing member status...'
-                                    : currentMember.registration_status ===
-                                          'unregistered'
-                                      ? 'This member does not have a portal login yet.'
-                                      : currentMember.is_admin
-                                        ? 'Portal access for admins is managed separately.'
-                                      : undefined
-                            }
-                        />
-                        {isSuperadmin ? (
-                            <MemberStatusCard
-                                title="Admin access"
-                                description="Promote or revoke admin access for this member."
-                                statusLabel={adminAccessLabel}
-                                statusVariant={adminAccessVariant}
-                                actions={
-                                    <>
-                                        {canGrantAdmin ? (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="default"
-                                                disabled={isAdminAccessProcessing}
-                                                onClick={() =>
-                                                    updateAdminAccess(
-                                                        currentMember.member_id,
-                                                        'grant',
-                                                    )
-                                                }
-                                            >
-                                                Grant admin access
-                                            </Button>
-                                        ) : null}
-                                        {canRevokeAdmin ? (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="secondary"
-                                                disabled={isAdminAccessProcessing}
-                                                onClick={() =>
-                                                    updateAdminAccess(
-                                                        currentMember.member_id,
-                                                        'revoke',
-                                                    )
-                                                }
-                                            >
-                                                Revoke admin access
-                                            </Button>
-                                        ) : null}
-                                    </>
-                                }
-                                helper={
-                                    isSelf
-                                        ? 'You cannot update your own admin access.'
-                                        : currentMember.registration_status ===
-                                              'unregistered'
-                                          ? 'Admin access requires a portal account.'
-                                          : adminAccessLevel === 'superadmin'
-                                            ? 'Superadmin access is managed separately.'
-                                            : undefined
-                                }
-                            />
-                        ) : null}
-                    </div>
+                    {isSuperadmin ? (
+                        <div className="grid h-full gap-4 auto-rows-fr">
+                            {portalAccessCard}
+                            {adminAccessCard}
+                        </div>
+                    ) : (
+                        <div className="h-full">{portalAccessCard}</div>
+                    )}
                 </div>
 
                 <MemberAccountsProvider
