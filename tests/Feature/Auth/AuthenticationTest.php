@@ -118,6 +118,27 @@ test('spa login fails with invalid password', function () {
     $this->assertGuest();
 });
 
+test('spa logout rotates the csrf token', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $initialResponse = $this->get('/');
+    $initialToken = collect($initialResponse->headers->getCookies())
+        ->first(fn ($cookie) => $cookie->getName() === 'XSRF-TOKEN')
+        ?->getValue();
+
+    $response = $this->postJson('/spa/auth/logout');
+    $response->assertOk();
+
+    $nextToken = collect($response->headers->getCookies())
+        ->first(fn ($cookie) => $cookie->getName() === 'XSRF-TOKEN')
+        ?->getValue();
+
+    expect($initialToken)->not->toBeNull();
+    expect($nextToken)->not->toBeNull();
+    expect($nextToken)->not->toBe($initialToken);
+});
+
 test('users can logout', function () {
     $user = User::factory()->create();
 

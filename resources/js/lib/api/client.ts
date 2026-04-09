@@ -10,15 +10,62 @@ const client = axios.create({
     },
 });
 
-if (typeof document !== 'undefined') {
-    const token = document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute('content');
+const mutatingMethods = new Set(['post', 'put', 'patch', 'delete']);
+
+const getCookieValue = (name: string): string | null => {
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
+    const entry = document.cookie
+        .split('; ')
+        .find((cookie) => cookie.startsWith(`${name}=`));
+
+    if (!entry) {
+        return null;
+    }
+
+    const [, value] = entry.split('=');
+
+    return value ? decodeURIComponent(value) : null;
+};
+
+const getCsrfToken = (): string | null => {
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
+    const cookieToken = getCookieValue('XSRF-TOKEN');
+
+    if (cookieToken) {
+        return cookieToken;
+    }
+
+    return (
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? null
+    );
+};
+
+client.interceptors.request.use((config) => {
+    const method = config.method?.toLowerCase() ?? '';
+
+    if (!mutatingMethods.has(method)) {
+        return config;
+    }
+
+    const token = getCsrfToken();
 
     if (token) {
-        client.defaults.headers.common['X-CSRF-TOKEN'] = token;
+        config.headers = {
+            ...config.headers,
+            'X-CSRF-TOKEN': token,
+        };
     }
-}
+
+    return config;
+});
 
 client.interceptors.response.use(
     (response) => response,
