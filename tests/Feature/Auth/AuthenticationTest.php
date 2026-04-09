@@ -22,6 +22,51 @@ test('users can authenticate using the login screen', function () {
     $response->assertRedirect(route('dashboard', absolute: false));
 });
 
+test('spa login authenticates users without two factor', function () {
+    $user = User::factory()->create();
+
+    $response = $this->postJson('/spa/auth/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $response
+        ->assertOk()
+        ->assertJson(['ok' => true])
+        ->assertJsonStructure(['redirect_to']);
+    $this->assertAuthenticatedAs($user);
+});
+
+test('spa login requires two factor for confirmed users', function () {
+    if (! Features::canManageTwoFactorAuthentication()) {
+        $this->markTestSkipped('Two-factor authentication is not enabled.');
+    }
+
+    Features::twoFactorAuthentication([
+        'confirm' => true,
+        'confirmPassword' => true,
+    ]);
+
+    $user = User::factory()->withTwoFactor()->create();
+
+    $response = $this->postJson('/spa/auth/login', [
+        'email' => $user->email,
+        'password' => 'password',
+        'remember' => true,
+    ]);
+
+    $response
+        ->assertOk()
+        ->assertJson([
+            'ok' => true,
+            'requires_two_factor' => true,
+            'redirect_to' => route('two-factor.login', absolute: false),
+        ])
+        ->assertSessionHas('login.id', $user->id)
+        ->assertSessionHas('login.remember', true);
+    $this->assertGuest();
+});
+
 test('users with two factor enabled are redirected to two factor challenge', function () {
     if (! Features::canManageTwoFactorAuthentication()) {
         $this->markTestSkipped('Two-factor authentication is not enabled.');
@@ -58,6 +103,18 @@ test('users can not authenticate with invalid password', function () {
         'password' => 'wrong-password',
     ]);
 
+    $this->assertGuest();
+});
+
+test('spa login fails with invalid password', function () {
+    $user = User::factory()->create();
+
+    $response = $this->postJson('/spa/auth/login', [
+        'email' => $user->email,
+        'password' => 'wrong-password',
+    ]);
+
+    $response->assertUnprocessable();
     $this->assertGuest();
 });
 

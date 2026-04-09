@@ -53,6 +53,13 @@ export default function Login({
         try {
             const response = await api.post('/spa/auth/login', formData);
             const redirectTo = response.data?.redirect_to;
+            const requiresTwoFactor =
+                response.data?.requires_two_factor === true;
+
+            if (requiresTwoFactor && redirectTo) {
+                router.visit(redirectTo);
+                return;
+            }
 
             if (redirectTo) {
                 router.visit(redirectTo);

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Fortify\Events\TwoFactorAuthenticationChallenged;
 
 class AuthController extends Controller
 {
@@ -68,6 +69,22 @@ class AuthController extends Controller
         if ($user === null || ! Hash::check($password, (string) $user->password)) {
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
+            ]);
+        }
+
+        if ($this->requiresTwoFactorChallenge($user)) {
+            $request->session()->put([
+                'login.id' => $user->getKey(),
+                'login.remember' => $request->boolean('remember'),
+                'url.intended' => $this->postAuthRedirect($user),
+            ]);
+
+            TwoFactorAuthenticationChallenged::dispatch($user);
+
+            return response()->json([
+                'ok' => true,
+                'requires_two_factor' => true,
+                'redirect_to' => route('two-factor.login', absolute: false),
             ]);
         }
 
@@ -132,5 +149,11 @@ class AuthController extends Controller
         }
 
         return '/client/dashboard';
+    }
+
+    private function requiresTwoFactorChallenge(AppUser $user): bool
+    {
+        return $user->two_factor_secret !== null
+            && $user->two_factor_confirmed_at !== null;
     }
 }
