@@ -205,7 +205,7 @@ export default function MemberProfile({
         <MemberStatusCard
             title="Portal access"
             description="Suspend or restore portal access for this member."
-            className="h-full"
+            className={isSuperadmin ? 'flex-1' : 'h-full'}
             statusLabel={statusLabel}
             statusVariant={statusVariant}
             actions={
@@ -259,7 +259,7 @@ export default function MemberProfile({
         <MemberStatusCard
             title="Admin access"
             description="Promote or revoke admin access for this member."
-            className="h-full"
+            className="flex-1"
             statusLabel={adminAccessLabel}
             statusVariant={adminAccessVariant}
             actions={
@@ -403,7 +403,7 @@ export default function MemberProfile({
                         />
                     </div>
                     {isSuperadmin ? (
-                        <div className="grid h-full gap-4 auto-rows-fr">
+                        <div className="flex h-full flex-col gap-4">
                             {portalAccessCard}
                             {adminAccessCard}
                         </div>
