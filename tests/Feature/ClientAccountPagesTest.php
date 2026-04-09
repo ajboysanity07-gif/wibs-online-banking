@@ -125,6 +125,7 @@ test('approved client can view the dashboard profile page', function () {
             ->has('summary')
             ->has('recentAccountActions')
             ->where('member.acctno', '000700')
+            ->where('member.status', 'active')
             ->where('member.reviewed_by', null)
             ->where('member.reviewed_at', null));
 });

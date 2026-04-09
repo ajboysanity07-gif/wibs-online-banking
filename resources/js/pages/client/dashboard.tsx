@@ -188,7 +188,8 @@ export default function MemberProfile({
                             ]}
                         />
                         <MemberStatusCard
-                            className="border-border/30 bg-background/60 shadow-none"
+                            className="h-full border-border/30 bg-background/60 shadow-none"
+                            contentClassName="flex-1"
                             statusLabel={statusLabel}
                             statusVariant={statusVariant}
                         />
