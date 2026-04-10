@@ -496,13 +496,13 @@ export function LoanRequestDetailPage({
                             <div className="relative">
                                 <span
                                     aria-hidden="true"
-                                    className="absolute left-3 w-px rounded-full bg-primary/70"
+                                    className="absolute left-3 w-px rounded-full bg-primary/50"
                                     style={{
                                         top: '0.3125rem',
                                         bottom: '0.3125rem',
                                     }}
                                 />
-                                <div className="space-y-6">
+                                <div className="space-y-5">
                                     {statusSteps.map((status, index) => {
                                         const isCurrent =
                                             status === statusTimelineKey;
@@ -512,7 +512,7 @@ export function LoanRequestDetailPage({
                                         return (
                                             <div
                                                 key={status}
-                                                className="flex gap-3"
+                                                className="flex gap-2.5"
                                             >
                                                 <div className="flex w-6 items-start justify-center">
                                                     <span
@@ -521,20 +521,20 @@ export function LoanRequestDetailPage({
                                                             isComplete
                                                                 ? 'h-2.5 w-2.5 border-primary/70 bg-primary/60'
                                                                 : isCurrent
-                                                                  ? 'h-3 w-3 border-primary bg-primary ring-2 ring-primary/30 shadow-sm shadow-primary/30'
-                                                                  : 'h-2.5 w-2.5 border-primary/30 bg-transparent',
+                                                                  ? 'h-3.5 w-3.5 border-primary bg-primary ring-4 ring-primary/20 shadow-sm shadow-primary/40'
+                                                                  : 'h-2 w-2 border-primary/20 bg-transparent',
                                                         )}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <p
                                                         className={cn(
-                                                            'text-sm font-medium',
+                                                            'text-sm',
                                                             isCurrent
-                                                                ? 'text-foreground'
+                                                                ? 'font-semibold text-foreground'
                                                                 : isComplete
-                                                                  ? 'text-foreground/70'
-                                                                  : 'text-muted-foreground',
+                                                                  ? 'font-medium text-foreground/70'
+                                                                  : 'font-medium text-muted-foreground/70',
                                                         )}
                                                     >
                                                         {
