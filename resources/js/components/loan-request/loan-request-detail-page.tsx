@@ -522,7 +522,7 @@ export function LoanRequestDetailPage({
                                                                 ? 'h-2.5 w-2.5 border-primary/70 bg-primary/60'
                                                                 : isCurrent
                                                                   ? 'h-3.5 w-3.5 border-primary bg-primary ring-4 ring-primary/20 shadow-sm shadow-primary/40'
-                                                                  : 'h-2 w-2 border-primary/20 bg-transparent',
+                                                                  : 'h-2 w-2 border-border/50 bg-card',
                                                         )}
                                                     />
                                                 </div>

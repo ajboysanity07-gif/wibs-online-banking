@@ -20,4 +20,6 @@ test('loan request status timeline uses a full primary line and distinct current
     assert.match(file, /h-3\.5 w-3\.5/);
     assert.match(file, /h-2\.5 w-2\.5/);
     assert.match(file, /h-2 w-2/);
+    assert.match(file, /bg-card/);
+    assert.match(file, /border-border\/50/);
 });
