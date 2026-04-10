@@ -237,10 +237,6 @@ export function LoanRequestDetailPage({
         0,
         statusSteps.indexOf(statusTimelineKey),
     );
-    const statusProgress =
-        statusSteps.length > 1
-            ? currentStatusIndex / (statusSteps.length - 1)
-            : 0;
     const canDownloadPdf =
         normalizedStatus === 'under_review' ||
         normalizedStatus === 'approved' ||
@@ -500,18 +496,10 @@ export function LoanRequestDetailPage({
                             <div className="relative">
                                 <span
                                     aria-hidden="true"
-                                    className="absolute left-3 w-px rounded-full bg-border/40"
+                                    className="absolute left-3 w-px rounded-full bg-primary/70"
                                     style={{
                                         top: '0.3125rem',
                                         bottom: '0.3125rem',
-                                    }}
-                                />
-                                <span
-                                    aria-hidden="true"
-                                    className="absolute left-3 w-px rounded-full bg-primary/40"
-                                    style={{
-                                        top: '0.3125rem',
-                                        height: `calc((100% - 0.625rem) * ${statusProgress})`,
                                     }}
                                 />
                                 <div className="space-y-6">
@@ -529,12 +517,12 @@ export function LoanRequestDetailPage({
                                                 <div className="flex w-6 items-start justify-center">
                                                     <span
                                                         className={cn(
-                                                            'relative z-10 h-2.5 w-2.5 rounded-full border transition-colors',
+                                                            'relative z-10 rounded-full border transition-colors',
                                                             isComplete
-                                                                ? 'border-primary bg-primary shadow-sm shadow-primary/20'
+                                                                ? 'h-2.5 w-2.5 border-primary/70 bg-primary/60'
                                                                 : isCurrent
-                                                                  ? 'border-primary/70 bg-card ring-2 ring-primary/20'
-                                                                  : 'border-border/30 bg-muted/15',
+                                                                  ? 'h-3 w-3 border-primary bg-primary ring-2 ring-primary/30 shadow-sm shadow-primary/30'
+                                                                  : 'h-2.5 w-2.5 border-primary/30 bg-transparent',
                                                         )}
                                                     />
                                                 </div>
