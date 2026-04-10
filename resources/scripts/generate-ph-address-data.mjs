@@ -1,11 +1,12 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { decode } from '@toon-format/toon';
 import {
   getAllProvinces,
   getAllRegions,
-  getMunicipalitiesByProvince,
 } from '@aivangogh/ph-address';
+import pako from 'pako';
 
 const ROOT_DIR = process.cwd();
 const DATA_PATH = path.join(ROOT_DIR, 'resources', 'data', 'ph-address.json');
@@ -62,11 +63,47 @@ const normalizeProvinces = (provinces) => {
   return { provinceMap, provinceRegions };
 };
 
-const buildLocalities = (regions, provinces, provinceRegions, regionCodes) => {
+const MUNICIPALITIES_PATTERN = /\bmunicipalities\s*=\s*"([^"]+)"/;
+
+const loadMunicipalities = async () => {
+  const sourcePath = path.join(
+    ROOT_DIR,
+    'node_modules',
+    '@aivangogh',
+    'ph-address',
+    'dist',
+    'index.js',
+  );
+  const contents = await readFile(sourcePath, 'utf8');
+  const match = contents.match(MUNICIPALITIES_PATTERN);
+
+  if (!match) {
+    throw new Error(
+      'Unable to locate municipalities dataset in @aivangogh/ph-address.',
+    );
+  }
+
+  const compressed = match[1];
+  const decompressed = pako.inflate(Buffer.from(compressed, 'base64'), {
+    to: 'string',
+  });
+
+  return decode(decompressed);
+};
+
+const regionCodeFrom = (code) => {
+  if (!code || code.length < 2) {
+    return null;
+  }
+
+  return `${code.slice(0, 2)}00000000`;
+};
+
+const buildLocalities = (municipalities, provinceRegions, regionCodes) => {
   const localities = [];
   const seen = new Set();
 
-  const addLocality = (entry, regionFallback) => {
+  const addLocality = (entry) => {
     if (!entry || !entry.psgcCode) {
       return;
     }
@@ -80,14 +117,17 @@ const buildLocalities = (regions, provinces, provinceRegions, regionCodes) => {
     const name = entry.name || '';
     const type = /\bCity\b/i.test(name) ? 'City' : 'Mun';
     const provinceCode = entry.provinceCode ? String(entry.provinceCode) : null;
-    let regionCode = regionFallback ? String(regionFallback) : null;
-
-    if (!regionCode && provinceCode && provinceRegions.has(provinceCode)) {
-      regionCode = provinceRegions.get(provinceCode);
-    }
+    let regionCode =
+      provinceCode && provinceRegions.has(provinceCode)
+        ? provinceRegions.get(provinceCode)
+        : null;
 
     if (!regionCode && provinceCode && regionCodes.has(provinceCode)) {
       regionCode = provinceCode;
+    }
+
+    if (!regionCode) {
+      regionCode = regionCodeFrom(code);
     }
 
     const locality = {
@@ -108,30 +148,8 @@ const buildLocalities = (regions, provinces, provinceRegions, regionCodes) => {
     seen.add(code);
   };
 
-  for (const province of provinces) {
-    if (!province || !province.psgcCode) {
-      continue;
-    }
-
-    const provinceCode = String(province.psgcCode);
-    const provinceLocalities = getMunicipalitiesByProvince(provinceCode) || [];
-
-    for (const entry of provinceLocalities) {
-      addLocality(entry, province.regionCode);
-    }
-  }
-
-  for (const region of regions) {
-    if (!region || !region.psgcCode) {
-      continue;
-    }
-
-    const regionCode = String(region.psgcCode);
-    const regionLocalities = getMunicipalitiesByProvince(regionCode) || [];
-
-    for (const entry of regionLocalities) {
-      addLocality(entry, regionCode);
-    }
+  for (const entry of municipalities) {
+    addLocality(entry);
   }
 
   localities.sort((a, b) => {
@@ -147,14 +165,14 @@ const buildLocalities = (regions, provinces, provinceRegions, regionCodes) => {
   return localities;
 };
 
-const buildDataset = () => {
+const buildDataset = async () => {
   const regions = getAllRegions();
   const provinces = getAllProvinces();
+  const municipalities = await loadMunicipalities();
   const { regionMap, regionCodes } = normalizeRegions(regions);
   const { provinceMap, provinceRegions } = normalizeProvinces(provinces);
   const localities = buildLocalities(
-    regions,
-    provinces,
+    municipalities,
     provinceRegions,
     regionCodes,
   );
@@ -171,6 +189,10 @@ const buildFixture = (dataset) => {
     '0102800000',
     '0702200000',
     '1102300000',
+    '1102400000',
+    '1102500000',
+    '1108200000',
+    '1108600000',
     '1204700000',
   ];
   const fixtureLocalityTargets = [
@@ -179,6 +201,7 @@ const buildFixture = (dataset) => {
     { name: 'Carmen', provinceCode: '0702200000' },
     { name: 'Carmen', provinceCode: '1102300000' },
     { name: 'Carmen', provinceCode: '1204700000' },
+    { name: 'Davao City', provinceCode: '1130700000' },
   ];
 
   const localityLookup = new Map();
@@ -241,7 +264,7 @@ const buildFixture = (dataset) => {
   };
 };
 
-const dataset = buildDataset();
+const dataset = await buildDataset();
 const fixture = buildFixture(dataset);
 
 await writeJson(DATA_PATH, dataset);

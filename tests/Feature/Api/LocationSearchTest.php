@@ -61,3 +61,36 @@ test('city search returns duplicate names with province labels', function () {
     ]);
     expect($values)->toBe(['Carmen']);
 });
+
+test('city search returns davao suggestions', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.cities', ['search' => 'Davao']));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'ok' => true,
+            'available' => true,
+        ]);
+
+    $data = collect($response->json('data'));
+    $labels = $data->pluck('label');
+    $values = $data->pluck('value');
+
+    expect($labels)->toContain('City of Davao, Region XI (Davao Region)');
+    expect($values)->toContain('City of Davao');
+});
+
+test('province search returns davao provinces', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.provinces', ['search' => 'Davao']));
+
+    $response->assertSuccessful();
+
+    $labels = collect($response->json('data'))->pluck('label');
+
+    expect($labels)->toContain('Davao del Norte');
+    expect($labels)->toContain('Davao del Sur');
+});

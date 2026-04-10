@@ -7,6 +7,10 @@
   },
   "provinces": {
     "1102300000": "Davao del Norte",
+    "1102400000": "Davao del Sur",
+    "1102500000": "Davao Oriental",
+    "1108200000": "Davao de Oro",
+    "1108600000": "Davao Occidental",
     "1204700000": "Cotabato",
     "0102800000": "Ilocos Norte",
     "0702200000": "Cebu"
@@ -38,6 +42,13 @@
       "name": "Carmen",
       "type": "Mun",
       "province_code": "1102300000",
+      "region_code": "1100000000"
+    },
+    {
+      "code": "1130700000",
+      "name": "Davao City",
+      "type": "City",
+      "province_code": "1130700000",
       "region_code": "1100000000"
     },
     {

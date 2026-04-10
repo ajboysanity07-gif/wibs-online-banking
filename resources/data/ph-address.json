@@ -546,6 +546,13 @@
       "region_code": "0300000000"
     },
     {
+      "code": "0330100000",
+      "name": "Angeles City",
+      "type": "City",
+      "province_code": "0330100000",
+      "region_code": "0300000000"
+    },
+    {
       "code": "0405801000",
       "name": "Angono",
       "type": "Mun",
@@ -777,6 +784,13 @@
       "region_code": "1000000000"
     },
     {
+      "code": "1830200000",
+      "name": "Bacolod City",
+      "type": "City",
+      "province_code": "1830200000",
+      "region_code": "1800000000"
+    },
+    {
       "code": "1903601000",
       "name": "Bacolod-Kalawi",
       "type": "Mun",
@@ -873,6 +887,13 @@
       "type": "City",
       "province_code": "1804500000",
       "region_code": "1800000000"
+    },
+    {
+      "code": "1430300000",
+      "name": "Baguio City",
+      "type": "City",
+      "province_code": "1430300000",
+      "region_code": "1400000000"
     },
     {
       "code": "0103304000",
@@ -1617,6 +1638,13 @@
       "region_code": "0100000000"
     },
     {
+      "code": "1380602000",
+      "name": "Binondo",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "1004304000",
       "name": "Binuangan",
       "type": "Mun",
@@ -2023,6 +2051,13 @@
       "region_code": "1900000000"
     },
     {
+      "code": "1630400000",
+      "name": "Butuan City",
+      "type": "City",
+      "province_code": "1630400000",
+      "region_code": "1600000000"
+    },
+    {
       "code": "0908302000",
       "name": "Buug",
       "type": "Mun",
@@ -2133,6 +2168,13 @@
       "type": "City",
       "province_code": "1804500000",
       "region_code": "1800000000"
+    },
+    {
+      "code": "1030500000",
+      "name": "Cagayan De Oro City",
+      "type": "City",
+      "province_code": "1030500000",
+      "region_code": "1000000000"
     },
     {
       "code": "1705308000",
@@ -2716,6 +2758,13 @@
       "region_code": "0500000000"
     },
     {
+      "code": "0730600000",
+      "name": "Cebu City",
+      "type": "City",
+      "province_code": "0730600000",
+      "region_code": "0700000000"
+    },
+    {
       "code": "0102908000",
       "name": "Cervantes",
       "type": "Mun",
@@ -3157,6 +3206,13 @@
       "region_code": "0700000000"
     },
     {
+      "code": "1130700000",
+      "name": "Davao City",
+      "type": "City",
+      "province_code": "1130700000",
+      "region_code": "1100000000"
+    },
+    {
       "code": "1606708000",
       "name": "Del Carmen",
       "type": "Mun",
@@ -3521,6 +3577,13 @@
       "region_code": "1800000000"
     },
     {
+      "code": "1380608000",
+      "name": "Ermita",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "1804509000",
       "name": "Escalante City",
       "type": "City",
@@ -3722,6 +3785,13 @@
       "type": "Mun",
       "province_code": "0405600000",
       "region_code": "0400000000"
+    },
+    {
+      "code": "1230800000",
+      "name": "General Santos City",
+      "type": "City",
+      "province_code": "1230800000",
+      "region_code": "1200000000"
     },
     {
       "code": "0304910000",
@@ -4123,11 +4193,25 @@
       "region_code": "0200000000"
     },
     {
+      "code": "1030900000",
+      "name": "Iligan City",
+      "type": "City",
+      "province_code": "1030900000",
+      "region_code": "1000000000"
+    },
+    {
       "code": "1804513000",
       "name": "Ilog",
       "type": "Mun",
       "province_code": "1804500000",
       "region_code": "1800000000"
+    },
+    {
+      "code": "0631000000",
+      "name": "Iloilo City",
+      "type": "City",
+      "province_code": "0631000000",
+      "region_code": "0600000000"
     },
     {
       "code": "0908304000",
@@ -4200,6 +4284,13 @@
       "region_code": "0800000000"
     },
     {
+      "code": "1380609000",
+      "name": "Intramuros",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "0908305000",
       "name": "Ipil",
       "type": "Mun",
@@ -4233,6 +4324,13 @@
       "type": "Mun",
       "province_code": "1804500000",
       "region_code": "1800000000"
+    },
+    {
+      "code": "0990101000",
+      "name": "Isabela City",
+      "type": "City",
+      "province_code": "0990100000",
+      "region_code": "0900000000"
     },
     {
       "code": "1102317000",
@@ -4487,6 +4585,13 @@
       "region_code": "1900000000"
     },
     {
+      "code": "1999903000",
+      "name": "Kadayangan",
+      "type": "Mun",
+      "province_code": "1999900000",
+      "region_code": "1900000000"
+    },
+    {
       "code": "1001306000",
       "name": "Kadingilan",
       "type": "Mun",
@@ -4554,6 +4659,13 @@
       "name": "Kapai",
       "type": "Mun",
       "province_code": "1903600000",
+      "region_code": "1900000000"
+    },
+    {
+      "code": "1999901000",
+      "name": "Kapalawan",
+      "type": "Mun",
+      "province_code": "1999900000",
       "region_code": "1900000000"
     },
     {
@@ -4977,6 +5089,13 @@
       "region_code": "0800000000"
     },
     {
+      "code": "0731100000",
+      "name": "Lapu-Lapu City",
+      "type": "City",
+      "province_code": "0731100000",
+      "region_code": "0700000000"
+    },
+    {
       "code": "0907313000",
       "name": "Lapuyan",
       "type": "Mun",
@@ -5229,6 +5348,13 @@
       "region_code": "0500000000"
     },
     {
+      "code": "1999907000",
+      "name": "Ligawasan",
+      "type": "Mun",
+      "province_code": "1999900000",
+      "region_code": "1900000000"
+    },
+    {
       "code": "0701227000",
       "name": "Lila",
       "type": "Mun",
@@ -5443,6 +5569,13 @@
       "name": "Lucban",
       "type": "Mun",
       "province_code": "0405600000",
+      "region_code": "0400000000"
+    },
+    {
+      "code": "0431200000",
+      "name": "Lucena City",
+      "type": "City",
+      "province_code": "0431200000",
       "region_code": "0400000000"
     },
     {
@@ -5971,6 +6104,13 @@
       "region_code": "0100000000"
     },
     {
+      "code": "1380610000",
+      "name": "Malate",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "0600412000",
       "name": "Malay",
       "type": "Mun",
@@ -5990,6 +6130,13 @@
       "type": "Mun",
       "province_code": "1400100000",
       "region_code": "1400000000"
+    },
+    {
+      "code": "1999906000",
+      "name": "Malidegao",
+      "type": "Mun",
+      "province_code": "1999900000",
+      "region_code": "1900000000"
     },
     {
       "code": "0500509000",
@@ -6144,6 +6291,13 @@
       "type": "Mun",
       "province_code": "0504100000",
       "region_code": "0500000000"
+    },
+    {
+      "code": "0731300000",
+      "name": "Mandaue City",
+      "type": "City",
+      "province_code": "0731300000",
+      "region_code": "0700000000"
     },
     {
       "code": "0105526000",
@@ -6769,6 +6923,13 @@
       "region_code": "1000000000"
     },
     {
+      "code": "1999904000",
+      "name": "Nabalawag",
+      "type": "Mun",
+      "province_code": "1999900000",
+      "region_code": "1900000000"
+    },
+    {
       "code": "0600414000",
       "name": "Nabas",
       "type": "Mun",
@@ -7035,11 +7196,25 @@
       "region_code": "1700000000"
     },
     {
+      "code": "1999902000",
+      "name": "Old Kaabakan",
+      "type": "Mun",
+      "province_code": "1999900000",
+      "region_code": "1900000000"
+    },
+    {
       "code": "0906607000",
       "name": "Old Panamao",
       "type": "Mun",
       "province_code": "0906600000",
       "region_code": "0900000000"
+    },
+    {
+      "code": "0331400000",
+      "name": "Olongapo City",
+      "type": "City",
+      "province_code": "0331400000",
+      "region_code": "0300000000"
     },
     {
       "code": "0908310000",
@@ -7117,6 +7292,13 @@
       "type": "City",
       "province_code": "1004200000",
       "region_code": "1000000000"
+    },
+    {
+      "code": "1380611000",
+      "name": "Paco",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
     },
     {
       "code": "1102411000",
@@ -7215,6 +7397,13 @@
       "type": "Mun",
       "province_code": "0102800000",
       "region_code": "0100000000"
+    },
+    {
+      "code": "1999905000",
+      "name": "Pahamuddin",
+      "type": "Mun",
+      "province_code": "1999900000",
+      "region_code": "1900000000"
     },
     {
       "code": "0403420000",
@@ -7334,6 +7523,13 @@
       "type": "Mun",
       "province_code": "0601900000",
       "region_code": "0600000000"
+    },
+    {
+      "code": "1380612000",
+      "name": "Pandacan",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
     },
     {
       "code": "1908818000",
@@ -7959,6 +8155,13 @@
       "region_code": "0700000000"
     },
     {
+      "code": "1380613000",
+      "name": "Port Area",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "0603037000",
       "name": "Pototan",
       "type": "Mun",
@@ -8050,6 +8253,13 @@
       "region_code": "1700000000"
     },
     {
+      "code": "1731500000",
+      "name": "Puerto Princesa City",
+      "type": "City",
+      "province_code": "1731500000",
+      "region_code": "1700000000"
+    },
+    {
       "code": "0103312000",
       "name": "Pugo",
       "type": "Mun",
@@ -8124,6 +8334,13 @@
       "name": "Quezon City",
       "type": "City",
       "province_code": "1300000000",
+      "region_code": "1300000000"
+    },
+    {
+      "code": "1380603000",
+      "name": "Quiapo",
+      "type": "Mun",
+      "province_code": "1380600000",
       "region_code": "1300000000"
     },
     {
@@ -8510,6 +8727,13 @@
       "type": "Mun",
       "province_code": "0405600000",
       "region_code": "0400000000"
+    },
+    {
+      "code": "1380606000",
+      "name": "Sampaloc",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
     },
     {
       "code": "0203127000",
@@ -9142,6 +9366,13 @@
       "region_code": "0900000000"
     },
     {
+      "code": "1380607000",
+      "name": "San Miguel",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "1606816000",
       "name": "San Miguel",
       "type": "Mun",
@@ -9182,6 +9413,13 @@
       "type": "Mun",
       "province_code": "0401000000",
       "region_code": "0400000000"
+    },
+    {
+      "code": "1380604000",
+      "name": "San Nicolas",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
     },
     {
       "code": "0203133000",
@@ -9366,6 +9604,13 @@
       "region_code": "0300000000"
     },
     {
+      "code": "1380614000",
+      "name": "Santa Ana",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "0105538000",
       "name": "Santa Barbara",
       "type": "Mun",
@@ -9420,6 +9665,13 @@
       "type": "Mun",
       "province_code": "1102400000",
       "region_code": "1100000000"
+    },
+    {
+      "code": "1380605000",
+      "name": "Santa Cruz",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
     },
     {
       "code": "1704005000",
@@ -10360,6 +10612,13 @@
       "region_code": "1400000000"
     },
     {
+      "code": "0831600000",
+      "name": "Tacloban City",
+      "type": "City",
+      "province_code": "0831600000",
+      "region_code": "0800000000"
+    },
+    {
       "code": "1206511000",
       "name": "Tacurong City",
       "type": "City",
@@ -10927,6 +11186,13 @@
       "region_code": "0800000000"
     },
     {
+      "code": "1380601000",
+      "name": "Tondo I/II",
+      "type": "Mun",
+      "province_code": "1380600000",
+      "region_code": "1300000000"
+    },
+    {
       "code": "0906615000",
       "name": "Tongkil",
       "type": "Mun",
@@ -11086,6 +11352,13 @@
       "type": "City",
       "province_code": "0201500000",
       "region_code": "0200000000"
+    },
+    {
+      "code": "1999908000",
+      "name": "Tugunan",
+      "type": "Mun",
+      "province_code": "1999900000",
+      "region_code": "1900000000"
     },
     {
       "code": "0907330000",
@@ -11387,6 +11660,13 @@
       "type": "Mun",
       "province_code": "1903600000",
       "region_code": "1900000000"
+    },
+    {
+      "code": "0931700000",
+      "name": "Zamboanga City",
+      "type": "City",
+      "province_code": "0931700000",
+      "region_code": "0900000000"
     },
     {
       "code": "1804625000",

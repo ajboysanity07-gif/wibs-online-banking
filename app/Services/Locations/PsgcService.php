@@ -349,7 +349,9 @@ class PsgcService
         $provinceSuggestions = [];
 
         foreach ($provinces as $code => $name) {
-            if (! is_string($code)) {
+            $code = (string) $code;
+
+            if ($code === '') {
                 continue;
             }
 
