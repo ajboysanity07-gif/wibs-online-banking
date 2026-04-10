@@ -44,5 +44,5 @@ test('psgc service caches dataset responses', function () {
     $service->searchBirthplaces('Batac');
     $service->searchBirthplaces('Batac');
 
-    expect(Cache::has('locations.dataset.v2'))->toBeTrue();
+    expect(Cache::has('locations.dataset.v3'))->toBeTrue();
 });

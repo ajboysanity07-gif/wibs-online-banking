@@ -9,7 +9,7 @@ class PsgcService
 {
     private const CACHE_TTL_SECONDS = 86400;
 
-    private const CACHE_DATASET = 'locations.dataset.v2';
+    private const CACHE_DATASET = 'locations.dataset.v3';
 
     private const CODE_LENGTH = 10;
 
@@ -401,6 +401,10 @@ class PsgcService
         }
 
         $displayName = $this->normalizeName($name);
+
+        if ($normalizedType === 'city') {
+            $displayName = $this->normalizeCityName($displayName);
+        }
         $provinceCode = $this->provinceCodeFrom($code);
         $regionCode = $this->regionCodeFrom($code);
 
@@ -508,6 +512,23 @@ class PsgcService
         }
 
         return $normalized;
+    }
+
+    private function normalizeCityName(string $name): string
+    {
+        if (Str::startsWith(Str::lower($name), 'city of ')) {
+            return $name;
+        }
+
+        if (preg_match('/\\s+city$/i', $name) === 1) {
+            $baseName = trim(preg_replace('/\\s+city$/i', '', $name) ?? '');
+
+            if ($baseName !== '') {
+                return sprintf('City of %s', $baseName);
+            }
+        }
+
+        return $name;
     }
 
     private function provinceCodeFrom(string $code): ?string

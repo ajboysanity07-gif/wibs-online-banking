@@ -5,7 +5,8 @@ return [
     'cache_ttl' => env('LOCATIONS_CACHE_TTL', 86400),
     'providers' => [
         'ph-address' => [
-            'data_path' => base_path('resources/data/ph-address.json'),
+            'node_binary' => env('PH_ADDRESS_NODE_BINARY', 'node'),
+            'node_timeout' => env('PH_ADDRESS_NODE_TIMEOUT', 20),
             'testing_data_path' => base_path('tests/Fixtures/ph-address.json'),
         ],
     ],
