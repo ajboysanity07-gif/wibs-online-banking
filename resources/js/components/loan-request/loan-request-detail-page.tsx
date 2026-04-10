@@ -776,34 +776,48 @@ export function LoanRequestDetailPage({
                                 Actions
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-4">
                             {canDownloadPdf ? (
-                                <Button asChild>
-                                    <a href={pdfHref}>
-                                        <Download />
-                                        Download PDF
-                                    </a>
-                                </Button>
+                                <div className="space-y-3">
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        <Button
+                                            asChild
+                                            className="w-full justify-center"
+                                        >
+                                            <a href={pdfHref}>
+                                                <Download />
+                                                Download PDF
+                                            </a>
+                                        </Button>
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            className="w-full justify-center"
+                                        >
+                                            <a
+                                                href={printHref}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                <Printer />
+                                                Print application
+                                            </a>
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground sm:col-span-2">
+                                            PDFs include the exact snapshot
+                                            submitted for review.
+                                        </p>
+                                    </div>
+                                    <Separator className="bg-border/40" />
+                                </div>
                             ) : null}
-                            {canDownloadPdf ? (
-                                <Button asChild variant="outline">
-                                    <a
-                                        href={printHref}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        <Printer />
-                                        Print application
-                                    </a>
-                                </Button>
-                            ) : null}
-                            <Button asChild variant="ghost">
+                            <Button
+                                asChild
+                                variant="ghost"
+                                className="w-full justify-start"
+                            >
                                 <Link href={backHref}>{backLabel}</Link>
                             </Button>
-                            <p className="text-xs text-muted-foreground">
-                                PDFs include the exact snapshot submitted for
-                                review.
-                            </p>
                         </CardContent>
                     </Card>
 
