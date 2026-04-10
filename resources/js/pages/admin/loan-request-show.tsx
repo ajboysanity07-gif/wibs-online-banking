@@ -12,11 +12,17 @@ import {
 import type { BreadcrumbItem } from '@/types';
 import type { LoanRequestDetail, LoanRequestPersonData } from '@/types/loan-requests';
 
+type DecisionState = {
+    canDecide: boolean;
+    isOwnRequest: boolean;
+};
+
 type Props = {
     loanRequest: LoanRequestDetail;
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
+    decision: DecisionState;
 };
 
 export default function LoanRequestShow({
@@ -24,6 +30,7 @@ export default function LoanRequestShow({
     applicant,
     coMakerOne,
     coMakerTwo,
+    decision,
 }: Props) {
     const [currentRequest, setCurrentRequest] =
         useState<LoanRequestDetail>(loanRequest);
@@ -41,6 +48,12 @@ export default function LoanRequestShow({
         query: { download: 1 },
     }).url;
     const printHref = requestsPrint(currentRequest.id).url;
+    const canDecide =
+        currentRequest.status === 'under_review' && decision.canDecide;
+    const blockedMessage =
+        currentRequest.status === 'under_review' && decision.isOwnRequest
+            ? 'You cannot decide your own loan request.'
+            : null;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -56,7 +69,8 @@ export default function LoanRequestShow({
                 printHref={printHref}
                 decision={{
                     show: true,
-                    canDecide: currentRequest.status === 'under_review',
+                    canDecide,
+                    blockedMessage,
                     isProcessing: processingIds[currentRequest.id] ?? false,
                     onApprove: (payload) =>
                         updateDecision(currentRequest.id, 'approve', payload),

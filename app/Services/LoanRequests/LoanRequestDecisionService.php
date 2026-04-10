@@ -54,13 +54,23 @@ class LoanRequestDecisionService
         return $loanRequest->refresh()->loadMissing('reviewedBy');
     }
 
+    public function canDecide(LoanRequest $loanRequest, AppUser $actor): bool
+    {
+        if (! $this->isUnderReview($loanRequest)) {
+            return false;
+        }
+
+        return ! $this->isSelfDecision($loanRequest, $actor);
+    }
+
+    public function isOwnRequest(LoanRequest $loanRequest, AppUser $actor): bool
+    {
+        return $this->isSelfDecision($loanRequest, $actor);
+    }
+
     private function ensureDecisionable(LoanRequest $loanRequest, AppUser $actor): void
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
-
-        if ($status !== LoanRequestStatus::UnderReview->value) {
+        if (! $this->isUnderReview($loanRequest)) {
             throw ValidationException::withMessages([
                 'status' => 'Only under review requests can be decided.',
             ]);
@@ -71,6 +81,15 @@ class LoanRequestDecisionService
                 'decision' => 'You cannot decide your own loan request.',
             ]);
         }
+    }
+
+    private function isUnderReview(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return $status === LoanRequestStatus::UnderReview->value;
     }
 
     private function isSelfDecision(LoanRequest $loanRequest, AppUser $actor): bool

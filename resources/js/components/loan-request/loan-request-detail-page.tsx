@@ -161,6 +161,7 @@ type DecisionProps = {
     show?: boolean;
     canDecide?: boolean;
     isProcessing?: boolean;
+    blockedMessage?: string | null;
     onApprove?: (payload: LoanRequestApprovePayload) => void;
     onDecline?: (payload: LoanRequestDeclinePayload) => void;
 };
@@ -265,6 +266,10 @@ export function LoanRequestDetailPage({
     const showDecisionSummary =
         showDecision &&
         (normalizedStatus === 'approved' || normalizedStatus === 'declined');
+    const blockedMessage =
+        normalizedStatus === 'under_review'
+            ? decision?.blockedMessage ?? null
+            : null;
     const [approvedAmount, setApprovedAmount] = useState(() => {
         const initial =
             loanRequest.approved_amount ?? loanRequest.requested_amount ?? '';
@@ -731,8 +736,8 @@ export function LoanRequestDetailPage({
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">
-                                        Decision details will appear once the
-                                        request is reviewed.
+                                        {blockedMessage ??
+                                            'Decision details will appear once the request is reviewed.'}
                                     </p>
                                 )}
                             </CardContent>

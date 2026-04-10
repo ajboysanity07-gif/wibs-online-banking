@@ -1380,7 +1380,40 @@ test('admin can view loan request details page', function () {
             ->where('loanRequest.id', $loanRequest->id)
             ->where('loanRequest.reference', $loanRequest->reference)
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
+            ->where('decision.canDecide', true)
+            ->where('decision.isOwnRequest', false)
             ->where('applicant.first_name', 'Loan'));
+});
+
+test('admin loan request detail marks own requests as not decisionable', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000700',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($admin)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Loan',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.show', $loanRequest));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/loan-request-show')
+            ->where('decision.canDecide', false)
+            ->where('decision.isOwnRequest', true));
 });
 
 test('admin can approve an under review loan request', function () {

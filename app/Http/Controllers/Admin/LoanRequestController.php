@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -15,8 +17,11 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class LoanRequestController extends Controller
 {
-    public function show(int $loanRequest): Response
-    {
+    public function show(
+        Request $request,
+        LoanRequestDecisionService $decisionService,
+        int $loanRequest,
+    ): Response {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
         if ($loanRequestRecord === null) {
@@ -28,6 +33,24 @@ class LoanRequestController extends Controller
         }
 
         $loanRequestRecord->loadMissing('people', 'reviewedBy');
+        $actor = $request->user();
+        $decision = [
+            'canDecide' => false,
+            'isOwnRequest' => false,
+        ];
+
+        if ($actor instanceof AppUser) {
+            $decision = [
+                'canDecide' => $decisionService->canDecide(
+                    $loanRequestRecord,
+                    $actor,
+                ),
+                'isOwnRequest' => $decisionService->isOwnRequest(
+                    $loanRequestRecord,
+                    $actor,
+                ),
+            ];
+        }
 
         $payload = $this->sanitizePayload([
             'loanRequest' => [
@@ -53,6 +76,7 @@ class LoanRequestController extends Controller
                 'decision_notes' => $loanRequestRecord->decision_notes,
                 'acctno' => $loanRequestRecord->acctno,
             ],
+            'decision' => $decision,
             'applicant' => $this->serializePerson(
                 $loanRequestRecord,
                 LoanRequestPersonRole::Applicant,
