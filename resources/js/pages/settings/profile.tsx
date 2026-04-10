@@ -31,6 +31,7 @@ import { useLocationSearch } from '@/hooks/use-location-search';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { createCroppedImageFile } from '@/lib/image-crop';
+import { normalizeMobileNumberInput } from '@/lib/phone';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { cities, provinces } from '@/routes/api/locations';
@@ -273,6 +274,12 @@ const normalizePaydayValue = (value?: string | null): string => {
     }
 
     return '';
+};
+
+const handleMobileNumberInput = (
+    event: ChangeEvent<HTMLInputElement>,
+): void => {
+    event.target.value = normalizeMobileNumberInput(event.target.value);
 };
 
 export default function Profile({
@@ -862,6 +869,9 @@ export default function Profile({
                                                                         11
                                                                     }
                                                                     placeholder="09XXXXXXXXX"
+                                                                    onChange={
+                                                                        handleMobileNumberInput
+                                                                    }
                                                                 />
 
                                                                 <InputError
@@ -1625,6 +1635,9 @@ export default function Profile({
                                                                                 11
                                                                             }
                                                                             placeholder="09XXXXXXXXX"
+                                                                            onChange={
+                                                                                handleMobileNumberInput
+                                                                            }
                                                                         />
 
                                                                         <InputError

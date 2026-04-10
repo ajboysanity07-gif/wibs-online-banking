@@ -18,6 +18,7 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import api, { mapValidationErrors } from '@/lib/api';
+import { normalizeMobileNumberInput } from '@/lib/phone';
 import {
     getPasswordConfirmationMismatchMessage,
     normalizeRegistrationErrors,
@@ -347,7 +348,10 @@ export default function Register({ memberName }: Props) {
                             maxLength={11}
                             value={phoneValue}
                             onChange={(event) => {
-                                setPhoneValue(event.target.value);
+                                const normalized = normalizeMobileNumberInput(
+                                    event.target.value,
+                                );
+                                setPhoneValue(normalized);
                                 clearError('phoneno');
                             }}
                         />

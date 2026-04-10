@@ -124,7 +124,7 @@ class LoanRequestStoreRequest extends FormRequest
                 'string',
                 Rule::in(self::HOUSING_STATUS_OPTIONS),
             ],
-            "{$prefix}.cell_no" => ['required', 'string', 'max:20'],
+            "{$prefix}.cell_no" => ['required', 'string', 'digits:11'],
             "{$prefix}.civil_status" => [
                 'required',
                 'string',
@@ -159,7 +159,7 @@ class LoanRequestStoreRequest extends FormRequest
         if ($includeSpouse) {
             $rules["{$prefix}.spouse_name"] = ['nullable', 'string', 'max:255'];
             $rules["{$prefix}.spouse_age"] = ['nullable', 'integer', 'min:18', 'max:120'];
-            $rules["{$prefix}.spouse_cell_no"] = ['nullable', 'string', 'max:20'];
+            $rules["{$prefix}.spouse_cell_no"] = ['nullable', 'string', 'digits:11'];
         }
 
         return $rules;

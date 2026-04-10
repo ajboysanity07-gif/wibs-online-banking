@@ -115,7 +115,7 @@ class LoanRequestDraftRequest extends FormRequest
                 'string',
                 Rule::in(self::HOUSING_STATUS_OPTIONS),
             ],
-            "{$prefix}.cell_no" => ['sometimes', 'nullable', 'string', 'max:20'],
+            "{$prefix}.cell_no" => ['sometimes', 'nullable', 'string', 'digits:11'],
             "{$prefix}.civil_status" => [
                 'sometimes',
                 'nullable',
@@ -153,7 +153,7 @@ class LoanRequestDraftRequest extends FormRequest
         if ($includeSpouse) {
             $rules["{$prefix}.spouse_name"] = ['sometimes', 'nullable', 'string', 'max:255'];
             $rules["{$prefix}.spouse_age"] = ['sometimes', 'nullable', 'integer', 'min:18', 'max:120'];
-            $rules["{$prefix}.spouse_cell_no"] = ['sometimes', 'nullable', 'string', 'max:20'];
+            $rules["{$prefix}.spouse_cell_no"] = ['sometimes', 'nullable', 'string', 'digits:11'];
         }
 
         return $rules;

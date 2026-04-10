@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useLocationSearch } from '@/hooks/use-location-search';
+import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { cities, provinces } from '@/routes/api/locations';
 import type {
@@ -210,6 +211,14 @@ export function LoanRequestPersonalFields({
         (field: keyof LoanRequestPersonFormData) =>
         (event: ChangeEvent<HTMLInputElement>) => {
             onChange(field, event.target.value);
+        };
+    const updateMobileField =
+        (field: keyof LoanRequestPersonFormData) =>
+        (event: ChangeEvent<HTMLInputElement>) => {
+            onChange(
+                field,
+                normalizeMobileNumberInput(event.target.value),
+            );
         };
 
     return (
@@ -547,8 +556,10 @@ export function LoanRequestPersonalFields({
                         value={values.cell_no}
                         className="mt-1 block w-full"
                         inputMode="numeric"
+                        maxLength={11}
+                        placeholder="09XXXXXXXXX"
                         required
-                        onChange={updateField('cell_no')}
+                        onChange={updateMobileField('cell_no')}
                     />
                     <InputError
                         message={fieldError(errors, prefix, 'cell_no')}
@@ -722,7 +733,9 @@ export function LoanRequestPersonalFields({
                                 value={values.spouse_cell_no}
                                 className="mt-1 block w-full"
                                 inputMode="numeric"
-                                onChange={updateField('spouse_cell_no')}
+                                maxLength={11}
+                                placeholder="09XXXXXXXXX"
+                                onChange={updateMobileField('spouse_cell_no')}
                             />
                             <InputError
                                 message={fieldError(
