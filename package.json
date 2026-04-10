@@ -6,6 +6,7 @@
         "build": "vite build",
         "build:ssr": "vite build && vite build --ssr",
         "dev": "vite",
+        "generate:ph-address": "node resources/scripts/generate-ph-address-data.mjs",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
