@@ -346,6 +346,17 @@ export function LoanRequestPersonalFields({
                         inputClassName={birthplaceCityInputClass}
                         loadingMessage="Searching city suggestions..."
                         errorMessage="City suggestions are temporarily unavailable."
+                        onSelect={(suggestion) => {
+                            if (suggestion.province) {
+                                birthplaceProvinceSearch.setSelectedValue(
+                                    suggestion.province,
+                                );
+                                onChange(
+                                    'birthplace_province',
+                                    suggestion.province,
+                                );
+                            }
+                        }}
                         onValueChange={(value) =>
                             onChange('birthplace_city', value)
                         }
@@ -428,6 +439,14 @@ export function LoanRequestPersonalFields({
                         inputClassName={addressCityInputClass}
                         loadingMessage="Searching city suggestions..."
                         errorMessage="City suggestions are temporarily unavailable."
+                        onSelect={(suggestion) => {
+                            if (suggestion.province) {
+                                addressProvinceSearch.setSelectedValue(
+                                    suggestion.province,
+                                );
+                                onChange('address3', suggestion.province);
+                            }
+                        }}
                         onValueChange={(value) => onChange('address2', value)}
                     />
                     <InputError
@@ -888,6 +907,17 @@ export function LoanRequestWorkFields({
                         inputClassName="mt-1 block w-full"
                         loadingMessage="Searching city suggestions..."
                         errorMessage="City suggestions are temporarily unavailable."
+                        onSelect={(suggestion) => {
+                            if (suggestion.province) {
+                                employerProvinceSearch.setSelectedValue(
+                                    suggestion.province,
+                                );
+                                onChange(
+                                    'employer_business_address3',
+                                    suggestion.province,
+                                );
+                            }
+                        }}
                         onValueChange={(value) =>
                             onChange('employer_business_address2', value)
                         }
