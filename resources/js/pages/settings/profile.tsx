@@ -733,6 +733,7 @@ export default function Profile({
                                                 }
                                             }}
                                             encType="multipart/form-data"
+                                            noValidate
                                             className="space-y-6"
                                         >
                                             {({
@@ -2382,6 +2383,7 @@ export default function Profile({
                                                 )}
 
                                                 <Button
+                                                    type="submit"
                                                     disabled={processing}
                                                     data-test="update-profile-button"
                                                     variant={
