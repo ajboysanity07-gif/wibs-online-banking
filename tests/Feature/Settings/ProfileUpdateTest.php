@@ -67,6 +67,7 @@ test('profile page includes completion details for incomplete profiles', functio
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/profile')
+            ->where('onboarding', true)
             ->where('profileCompletion.isComplete', false)
             ->where(
                 'profileCompletion.missingFields',

@@ -26,6 +26,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useInitials } from '@/hooks/use-initials';
 import { useLocationSearch } from '@/hooks/use-location-search';
 import AppLayout from '@/layouts/app-layout';
@@ -164,6 +165,50 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
+const PROFILE_TAB_ORDER = ['account', 'personal', 'work'] as const;
+type ProfileTab = (typeof PROFILE_TAB_ORDER)[number];
+const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
+    account: ['profile_photo', 'fullname', 'username', 'email', 'phoneno'],
+    personal: [
+        'nickname',
+        'birthplace_city',
+        'birthplace_province',
+        'birthplace',
+        'length_of_stay',
+        'number_of_children',
+        'spouse_name',
+        'spouse_age',
+        'spouse_cell_no',
+        'educational_attainment',
+    ],
+    work: [
+        'employment_type',
+        'employer_business_name',
+        'employer_business_address1',
+        'employer_business_address2',
+        'employer_business_address3',
+        'telephone_no',
+        'current_position',
+        'nature_of_business',
+        'years_in_work_business',
+        'gross_monthly_income',
+        'payday',
+    ],
+};
+
+const findFirstTabWithErrors = (
+    errors: Record<string, string>,
+): ProfileTab | null => {
+    const errorFields = new Set(Object.keys(errors));
+
+    for (const tab of PROFILE_TAB_ORDER) {
+        if (PROFILE_TAB_FIELDS[tab].some((field) => errorFields.has(field))) {
+            return tab;
+        }
+    }
+
+    return null;
+};
 
 const calculateAge = (birthday: string | null): number | null => {
     if (!birthday) {
@@ -440,6 +485,20 @@ export default function Profile({
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
             ? natureOfBusinessOther.trim()
             : natureOfBusinessSelection;
+    const [activeTab, setActiveTab] = useState<ProfileTab>('account');
+    const availableTabs = (hasMemberAccess
+        ? PROFILE_TAB_ORDER
+        : ['account']) as ProfileTab[];
+    const resolvedActiveTab = hasMemberAccess ? activeTab : 'account';
+    const activeTabIndex = availableTabs.indexOf(resolvedActiveTab);
+    const previousTab =
+        activeTabIndex > 0 ? availableTabs[activeTabIndex - 1] : null;
+    const nextTab =
+        activeTabIndex >= 0 && activeTabIndex < availableTabs.length - 1
+            ? availableTabs[activeTabIndex + 1]
+            : null;
+    const showOnboardingSteps = onboarding && hasMemberAccess;
+    const showStepperNav = availableTabs.length > 1;
 
     useEffect(() => {
         if (!profilePhotoPreview) {
@@ -657,9 +716,24 @@ export default function Profile({
                                                     ),
                                                     { id: 'profile-update' },
                                                 );
+                                                const nextTabWithErrors =
+                                                    findFirstTabWithErrors(
+                                                        formErrors,
+                                                    );
+
+                                                if (
+                                                    nextTabWithErrors &&
+                                                    (hasMemberAccess ||
+                                                        nextTabWithErrors ===
+                                                            'account')
+                                                ) {
+                                                    setActiveTab(
+                                                        nextTabWithErrors,
+                                                    );
+                                                }
                                             }}
                                             encType="multipart/form-data"
-                                            className="space-y-8"
+                                            className="space-y-6"
                                         >
                                             {({
                                                 processing,
@@ -667,8 +741,82 @@ export default function Profile({
                                                 errors: formErrors,
                                             }) => (
                                                 <>
-                                                    <div className="space-y-6">
-                                                        <div className="grid gap-3">
+                                                    <Tabs
+                                                        value={
+                                                            resolvedActiveTab
+                                                        }
+                                                        onValueChange={(
+                                                            value,
+                                                        ) => {
+                                                            setActiveTab(
+                                                                value as ProfileTab,
+                                                            );
+                                                        }}
+                                                        className="flex w-full flex-col gap-6"
+                                                    >
+                                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                            <TabsList className="w-full flex-wrap justify-start gap-2">
+                                                                <TabsTrigger value="account">
+                                                                    Account
+                                                                </TabsTrigger>
+                                                                {hasMemberAccess && (
+                                                                    <>
+                                                                        <TabsTrigger value="personal">
+                                                                            Personal
+                                                                        </TabsTrigger>
+                                                                        <TabsTrigger value="work">
+                                                                            Work
+                                                                            &amp;
+                                                                            Finances
+                                                                        </TabsTrigger>
+                                                                    </>
+                                                                )}
+                                                            </TabsList>
+                                                            {showOnboardingSteps && (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="shrink-0"
+                                                                >
+                                                                    Step{' '}
+                                                                    {activeTabIndex +
+                                                                        1}{' '}
+                                                                    of{' '}
+                                                                    {
+                                                                        availableTabs.length
+                                                                    }
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+
+                                                        <TabsContent
+                                                            value="account"
+                                                            forceMount
+                                                            className="mt-0"
+                                                        >
+                                                            <SurfaceCard
+                                                                variant="muted"
+                                                                padding="md"
+                                                                className="space-y-6"
+                                                            >
+                                                                <div className="space-y-1">
+                                                                    <h3 className="text-base font-semibold tracking-tight">
+                                                                        Account
+                                                                    </h3>
+                                                                    <p className="text-sm text-muted-foreground">
+                                                                        Manage
+                                                                        your
+                                                                        profile
+                                                                        photo,
+                                                                        login
+                                                                        details,
+                                                                        and
+                                                                        contact
+                                                                        information.
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className="space-y-6">
+                                                                    <div className="grid gap-3">
                                                             <Label htmlFor="profile_photo">
                                                                 Profile picture
                                                             </Label>
@@ -773,6 +921,8 @@ export default function Profile({
                                                             </div>
                                                         )}
                                                     </div>
+
+                                                    <Separator />
 
                                                     <div className="space-y-6">
                                                         <div className="space-y-1">
@@ -928,16 +1078,24 @@ export default function Profile({
                                                                 </div>
                                                             )}
                                                     </div>
+                                                </SurfaceCard>
+                                            </TabsContent>
 
-                                                    {hasMemberAccess && (
-                                                        <>
-                                                            <Separator />
-
-                                                            <div className="space-y-6">
+                                            {hasMemberAccess && (
+                                                <TabsContent
+                                                    value="personal"
+                                                    forceMount
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-6">
                                                                 <div className="space-y-1">
                                                                     <h3 className="text-base font-semibold">
                                                                         Personal
-                                                                        Data
                                                                     </h3>
                                                                     <p className="text-sm text-muted-foreground">
                                                                         Review
@@ -1650,10 +1808,22 @@ export default function Profile({
 
                                                                 </div>
                                                             </div>
+                                                    </SurfaceCard>
+                                                </TabsContent>
+                                            )}
 
-                                                            <Separator />
-
-                                                            <div className="space-y-6">
+                                            {hasMemberAccess && (
+                                                <TabsContent
+                                                    value="work"
+                                                    forceMount
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-6">
                                                                 <div className="space-y-1">
                                                                     <h3 className="text-base font-semibold">
                                                                         Work
@@ -2161,33 +2331,83 @@ export default function Profile({
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </>
-                                                    )}
+                                                    </SurfaceCard>
+                                                </TabsContent>
+                                            )}
+                                        </Tabs>
 
-                                                    <div className="flex items-center gap-4">
-                                                        <Button
-                                                            disabled={
-                                                                processing
+                                        <div className="flex flex-col gap-3 border-t border-border/40 pt-6 sm:flex-row sm:items-center sm:justify-end">
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                {showStepperNav && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        disabled={
+                                                            processing ||
+                                                            !previousTab
+                                                        }
+                                                        onClick={() => {
+                                                            if (
+                                                                !previousTab
+                                                            ) {
+                                                                return;
                                                             }
-                                                            data-test="update-profile-button"
-                                                        >
-                                                            Save
-                                                        </Button>
 
-                                                        <Transition
-                                                            show={
-                                                                recentlySuccessful
-                                                            }
-                                                            enter="transition ease-in-out"
-                                                            enterFrom="opacity-0"
-                                                            leave="transition ease-in-out"
-                                                            leaveTo="opacity-0"
-                                                        >
-                                                            <p className="text-sm text-neutral-600">
-                                                                Saved
-                                                            </p>
-                                                        </Transition>
-                                                    </div>
+                                                            setActiveTab(
+                                                                previousTab,
+                                                            );
+                                                        }}
+                                                    >
+                                                        Previous
+                                                    </Button>
+                                                )}
+
+                                                {showStepperNav && nextTab && (
+                                                    <Button
+                                                        type="button"
+                                                        variant={
+                                                            onboarding
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
+                                                        disabled={processing}
+                                                        onClick={() => {
+                                                            setActiveTab(
+                                                                nextTab,
+                                                            );
+                                                        }}
+                                                    >
+                                                        Next
+                                                    </Button>
+                                                )}
+
+                                                <Button
+                                                    disabled={processing}
+                                                    data-test="update-profile-button"
+                                                    variant={
+                                                        onboarding && nextTab
+                                                            ? 'secondary'
+                                                            : 'default'
+                                                    }
+                                                >
+                                                    Save
+                                                </Button>
+
+                                                <Transition
+                                                    show={
+                                                        recentlySuccessful
+                                                    }
+                                                    enter="transition ease-in-out"
+                                                    enterFrom="opacity-0"
+                                                    leave="transition ease-in-out"
+                                                    leaveTo="opacity-0"
+                                                >
+                                                    <p className="text-sm text-neutral-600">
+                                                        Saved
+                                                    </p>
+                                                </Transition>
+                                            </div>
+                                        </div>
                                                 </>
                                             )}
                                         </Form>
