@@ -210,6 +210,55 @@ const findFirstTabWithErrors = (
     return null;
 };
 
+const findFirstInvalidField = (
+    errors: Record<string, string>,
+): string | null => {
+    const errorFields = new Set(Object.keys(errors));
+
+    for (const tab of PROFILE_TAB_ORDER) {
+        for (const field of PROFILE_TAB_FIELDS[tab]) {
+            if (errorFields.has(field)) {
+                return field;
+            }
+        }
+    }
+
+    return null;
+};
+
+const focusInvalidField = (fieldName: string | null): void => {
+    if (!fieldName || typeof window === 'undefined') {
+        return;
+    }
+
+    window.setTimeout(() => {
+        const escaped =
+            typeof CSS !== 'undefined' && 'escape' in CSS
+                ? CSS.escape(fieldName)
+                : fieldName;
+        const element =
+            document.getElementById(fieldName) ??
+            document.querySelector(
+                `[name="${escaped}"]:not([type="hidden"])`,
+            );
+
+        if (!(element instanceof HTMLElement)) {
+            return;
+        }
+
+        if (
+            'disabled' in element &&
+            typeof element.disabled === 'boolean' &&
+            element.disabled
+        ) {
+            return;
+        }
+
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus({ preventScroll: true });
+    }, 0);
+};
+
 const calculateAge = (birthday: string | null): number | null => {
     if (!birthday) {
         return null;
@@ -720,6 +769,10 @@ export default function Profile({
                                                     findFirstTabWithErrors(
                                                         formErrors,
                                                     );
+                                                const firstInvalidField =
+                                                    findFirstInvalidField(
+                                                        formErrors,
+                                                    );
 
                                                 if (
                                                     nextTabWithErrors &&
@@ -731,6 +784,10 @@ export default function Profile({
                                                         nextTabWithErrors,
                                                     );
                                                 }
+
+                                                focusInvalidField(
+                                                    firstInvalidField,
+                                                );
                                             }}
                                             encType="multipart/form-data"
                                             noValidate
