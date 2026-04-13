@@ -730,7 +730,7 @@ return new class extends Migration
         $property = $this->sqlServerStringLiteral(self::PROPERTY_NAME);
         $tableLiteral = $this->sqlServerStringLiteral($table);
         $columnLiteral = $this->sqlServerStringLiteral($column);
-        $valueLiteral = $this->sqlServerStringLiteral((string) $length);
+        $valueLiteral = (int) $length;
 
         $connection->statement(
             "IF NOT EXISTS (
@@ -749,7 +749,7 @@ return new class extends Migration
                 @level1type = N'TABLE',
                 @level1name = {$tableLiteral},
                 @level2type = N'COLUMN',
-                @level2name = {$columnLiteral}",
+                @level2name = {$columnLiteral};",
         );
     }
 
@@ -806,7 +806,7 @@ return new class extends Migration
                 @level1type = N'TABLE',
                 @level1name = {$tableLiteral},
                 @level2type = N'COLUMN',
-                @level2name = {$columnLiteral}",
+                @level2name = {$columnLiteral};",
         );
     }
 };

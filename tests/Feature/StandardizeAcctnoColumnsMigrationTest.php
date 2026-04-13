@@ -20,6 +20,8 @@ test('acctno normalization migration is guarded for non-sqlsrv', function () {
 
     expect($contents)->not->toContain('@name = ?');
     expect($contents)->not->toContain('@value = ?');
+    expect($contents)->not->toContain("@value = N'");
     expect($contents)->not->toContain('@level1name = ?');
     expect($contents)->not->toContain('@level2name = ?');
+    expect($contents)->not->toContain('@level2name = {$columnLiteral})');
 });
