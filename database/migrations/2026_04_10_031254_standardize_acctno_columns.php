@@ -726,6 +726,10 @@ return new class extends Migration
         string $column,
         int $length,
     ): void {
+        if ($this->hasOriginalLength($schema, $table, $column)) {
+            return;
+        }
+
         $connection = $schema->getConnection();
         $property = $this->sqlServerStringLiteral(self::PROPERTY_NAME);
         $tableLiteral = $this->sqlServerStringLiteral($table);
@@ -733,15 +737,7 @@ return new class extends Migration
         $valueLiteral = (int) $length;
 
         $connection->statement(
-            "IF NOT EXISTS (
-                SELECT 1
-                FROM sys.extended_properties
-                WHERE name = {$property}
-                AND class = 1
-                AND major_id = OBJECT_ID({$tableLiteral})
-                AND minor_id = COLUMNPROPERTY(OBJECT_ID({$tableLiteral}), {$columnLiteral}, 'ColumnId')
-            )
-            EXEC sp_addextendedproperty
+            "EXEC sp_addextendedproperty
                 @name = {$property},
                 @value = {$valueLiteral},
                 @level0type = N'SCHEMA',
@@ -780,26 +776,40 @@ return new class extends Migration
         return "N'".str_replace("'", "''", $value)."'";
     }
 
+    private function hasOriginalLength(
+        Builder $schema,
+        string $table,
+        string $column,
+    ): bool {
+        $rows = $schema->getConnection()->select(
+            'select 1
+             from sys.extended_properties
+             where name = ?
+             and class = 1
+             and major_id = OBJECT_ID(?)
+             and minor_id = COLUMNPROPERTY(OBJECT_ID(?), ?, \'ColumnId\')',
+            [self::PROPERTY_NAME, $table, $table, $column],
+        );
+
+        return $rows !== [];
+    }
+
     private function dropOriginalLength(
         Builder $schema,
         string $table,
         string $column,
     ): void {
+        if (! $this->hasOriginalLength($schema, $table, $column)) {
+            return;
+        }
+
         $connection = $schema->getConnection();
         $property = $this->sqlServerStringLiteral(self::PROPERTY_NAME);
         $tableLiteral = $this->sqlServerStringLiteral($table);
         $columnLiteral = $this->sqlServerStringLiteral($column);
 
         $connection->statement(
-            "IF EXISTS (
-                SELECT 1
-                FROM sys.extended_properties
-                WHERE name = {$property}
-                AND class = 1
-                AND major_id = OBJECT_ID({$tableLiteral})
-                AND minor_id = COLUMNPROPERTY(OBJECT_ID({$tableLiteral}), {$columnLiteral}, 'ColumnId')
-            )
-            EXEC sp_dropextendedproperty
+            "EXEC sp_dropextendedproperty
                 @name = {$property},
                 @level0type = N'SCHEMA',
                 @level0name = SCHEMA_NAME(),
