@@ -731,6 +731,7 @@ return new class extends Migration
         }
 
         $connection = $schema->getConnection();
+        $schemaLiteral = $this->sqlServerStringLiteral($this->schemaNameForTable($schema, $table));
         $property = $this->sqlServerStringLiteral(self::PROPERTY_NAME);
         $tableLiteral = $this->sqlServerStringLiteral($table);
         $columnLiteral = $this->sqlServerStringLiteral($column);
@@ -741,7 +742,7 @@ return new class extends Migration
                 @name = {$property},
                 @value = {$valueLiteral},
                 @level0type = N'SCHEMA',
-                @level0name = SCHEMA_NAME(),
+                @level0name = {$schemaLiteral},
                 @level1type = N'TABLE',
                 @level1name = {$tableLiteral},
                 @level2type = N'COLUMN',
@@ -776,6 +777,23 @@ return new class extends Migration
         return "N'".str_replace("'", "''", $value)."'";
     }
 
+    private function schemaNameForTable(Builder $schema, string $table): string
+    {
+        $rows = $schema->getConnection()->select(
+            'select scm.name as schema_name
+             from sys.tables as tbl
+             join sys.schemas as scm on tbl.schema_id = scm.schema_id
+             where tbl.name = ?',
+            [$table],
+        );
+
+        if ($rows === []) {
+            return 'dbo';
+        }
+
+        return (string) $rows[0]->schema_name;
+    }
+
     private function hasOriginalLength(
         Builder $schema,
         string $table,
@@ -804,6 +822,7 @@ return new class extends Migration
         }
 
         $connection = $schema->getConnection();
+        $schemaLiteral = $this->sqlServerStringLiteral($this->schemaNameForTable($schema, $table));
         $property = $this->sqlServerStringLiteral(self::PROPERTY_NAME);
         $tableLiteral = $this->sqlServerStringLiteral($table);
         $columnLiteral = $this->sqlServerStringLiteral($column);
@@ -812,7 +831,7 @@ return new class extends Migration
             "EXEC sp_dropextendedproperty
                 @name = {$property},
                 @level0type = N'SCHEMA',
-                @level0name = SCHEMA_NAME(),
+                @level0name = {$schemaLiteral},
                 @level1type = N'TABLE',
                 @level1name = {$tableLiteral},
                 @level2type = N'COLUMN',
