@@ -749,7 +749,7 @@ return new class extends Migration
                 @level1type = N'TABLE',
                 @level1name = {$tableLiteral},
                 @level2type = N'COLUMN',
-                @level2name = {$columnLiteral};",
+                @level2name = {$columnLiteral}",
         );
     }
 
@@ -806,7 +806,7 @@ return new class extends Migration
                 @level1type = N'TABLE',
                 @level1name = {$tableLiteral},
                 @level2type = N'COLUMN',
-                @level2name = {$columnLiteral};",
+                @level2name = {$columnLiteral}",
         );
     }
 };
