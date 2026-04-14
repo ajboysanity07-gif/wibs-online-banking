@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Notifications\LoanRequestDecisionNotification;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestDecisionService
@@ -30,6 +31,8 @@ class LoanRequestDecisionService
 
         $loanRequest->save();
 
+        $this->notifyMember($loanRequest);
+
         return $loanRequest->refresh()->loadMissing('reviewedBy');
     }
 
@@ -50,6 +53,8 @@ class LoanRequestDecisionService
         ]);
 
         $loanRequest->save();
+
+        $this->notifyMember($loanRequest);
 
         return $loanRequest->refresh()->loadMissing('reviewedBy');
     }
@@ -113,5 +118,18 @@ class LoanRequestDecisionService
         }
 
         return $requestAcctno === $actorAcctno;
+    }
+
+    private function notifyMember(LoanRequest $loanRequest): void
+    {
+        $loanRequest->loadMissing('user');
+
+        $member = $loanRequest->user;
+
+        if ($member === null || ! $member->hasMemberAccess()) {
+            return;
+        }
+
+        $member->notify(new LoanRequestDecisionNotification($loanRequest));
     }
 }

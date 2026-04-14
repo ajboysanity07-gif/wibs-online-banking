@@ -18,6 +18,11 @@ class LoanRequest extends Model
     private const REFERENCE_PREFIX = 'LNREQ';
 
     /**
+     * Target turnaround time (business days) for loan decisions.
+     */
+    public const DECISION_TARGET_BUSINESS_DAYS = 3;
+
+    /**
      * @var list<string>
      */
     protected $fillable = [

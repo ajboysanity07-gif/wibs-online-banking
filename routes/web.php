@@ -42,6 +42,7 @@ use App\Http\Controllers\Spa\Admin\RequestsController as SpaRequestsController;
 use App\Http\Controllers\Spa\Admin\WatchlistController as SpaWatchlistController;
 use App\Http\Controllers\Spa\AuthController as SpaAuthController;
 use App\Http\Controllers\Spa\MemberVerificationController as SpaMemberVerificationController;
+use App\Http\Controllers\Spa\NotificationsController as SpaNotificationsController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use Illuminate\Support\Facades\Route;
 
@@ -78,6 +79,10 @@ Route::prefix('spa')->middleware('web')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::get('auth/me', [SpaAuthController::class, 'me']);
         Route::post('auth/logout', [SpaAuthController::class, 'logout']);
+        Route::get('notifications', [SpaNotificationsController::class, 'index']);
+        Route::get('notifications/unread-count', [SpaNotificationsController::class, 'unreadCount']);
+        Route::patch('notifications/{notification}/read', [SpaNotificationsController::class, 'markAsRead']);
+        Route::patch('notifications/read-all', [SpaNotificationsController::class, 'markAllAsRead']);
     });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {
