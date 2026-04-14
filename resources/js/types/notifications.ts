@@ -9,6 +9,14 @@ export type NotificationPayload = {
     message: string;
     decision_notes: string | null;
     reviewed_at: string | null;
+    member_id?: number | null;
+    member_name?: string | null;
+    member_acctno?: string | null;
+    loan_type_code?: string | null;
+    loan_type_label?: string | null;
+    requested_amount?: number | string | null;
+    requested_term?: number | string | null;
+    submitted_at?: string | null;
 };
 
 export type NotificationItem = {

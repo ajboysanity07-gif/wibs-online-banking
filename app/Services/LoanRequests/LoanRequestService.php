@@ -8,11 +8,13 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
+use App\Notifications\LoanRequestSubmittedNotification;
 use App\Support\LocationComposer;
 use App\Support\SchemaCapabilities;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class LoanRequestService
 {
@@ -157,12 +159,16 @@ class LoanRequestService
      */
     public function submit(AppUser $user, array $payload): LoanRequest
     {
-        return DB::transaction(function () use ($user, $payload): LoanRequest {
+        $shouldNotifyAdmins = false;
+
+        $loanRequest = DB::transaction(function () use ($user, $payload, &$shouldNotifyAdmins): LoanRequest {
             $loanRequest = $this->getActiveDraft($user);
 
             if ($loanRequest === null) {
                 $loanRequest = $this->initializeLoanRequest($user);
             }
+
+            $wasSubmitted = $loanRequest->submitted_at !== null;
 
             $this->fillLoanRequest(
                 $loanRequest,
@@ -174,8 +180,48 @@ class LoanRequestService
 
             $this->upsertPeopleSnapshots($loanRequest, $payload);
 
+            $shouldNotifyAdmins = ! $wasSubmitted;
+
             return $loanRequest->loadMissing('people');
         });
+
+        if ($shouldNotifyAdmins) {
+            $this->notifyAdminsOfSubmission($loanRequest->id);
+        }
+
+        return $loanRequest;
+    }
+
+    private function notifyAdminsOfSubmission(int $loanRequestId): void
+    {
+        $loanRequest = LoanRequest::query()
+            ->with('user')
+            ->find($loanRequestId);
+
+        if ($loanRequest === null) {
+            return;
+        }
+
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        if ($status !== LoanRequestStatus::UnderReview->value) {
+            return;
+        }
+
+        $admins = AppUser::query()
+            ->whereHas('adminProfile')
+            ->get();
+
+        if ($admins->isEmpty()) {
+            return;
+        }
+
+        Notification::send(
+            $admins,
+            new LoanRequestSubmittedNotification($loanRequest),
+        );
     }
 
     /**

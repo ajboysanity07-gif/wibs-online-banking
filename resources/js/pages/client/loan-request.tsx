@@ -19,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
+import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { loans as clientLoans } from '@/routes/client';
 import type { BreadcrumbItem } from '@/types';
 import type {
@@ -370,11 +371,24 @@ export default function LoanRequestPage({
     const handleSubmit = () => {
         setActiveAction('submit');
         form.post(LoanRequestController.store().url, {
+            onSuccess: () => {
+                showSuccessToast('Loan request submitted successfully.', {
+                    id: 'loan-request-submit',
+                });
+            },
             onError: (errors) => {
                 const step = resolveStepFromErrors(errors);
 
                 if (step !== null) {
                     handleStepChange(step);
+                }
+
+                if (Object.keys(errors).length === 0) {
+                    showErrorToast(
+                        null,
+                        'Unable to submit the loan request.',
+                        { id: 'loan-request-submit' },
+                    );
                 }
             },
             onFinish: () => setActiveAction(null),
