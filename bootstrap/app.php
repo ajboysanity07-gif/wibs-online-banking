@@ -68,6 +68,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return $response;
             }
 
+            $request->attributes->set('inertia_error_page', true);
+
             return Inertia::render('errors/error', [
                 'status' => $status,
             ])->toResponse($request)->setStatusCode($status);

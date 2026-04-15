@@ -31,7 +31,12 @@
             }
         </style>
 
-        @php($branding = app(\App\Services\OrganizationSettingsService::class)->branding())
+        @php
+            $organizationSettings = app(\App\Services\OrganizationSettingsService::class);
+            $branding = request()->attributes->get('inertia_error_page') === true
+                ? $organizationSettings->fallbackBranding()
+                : $organizationSettings->branding();
+        @endphp
         <title inertia>{{ $branding['appTitle'] }}</title>
 
         <link rel="icon" href="{{ $branding['faviconUrl'] }}" sizes="any">

@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\OrganizationSetting;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 class OrganizationSettingsService
 {
@@ -134,9 +136,91 @@ class OrganizationSettingsService
      */
     public function branding(): array
     {
-        $setting = OrganizationSetting::query()->first();
+        try {
+            return $this->mapBranding($this->currentSetting());
+        } catch (Throwable $exception) {
+            Log::warning('Organization branding lookup failed. Using fallback branding.', [
+                'exception' => $exception::class,
+                'exception_message' => $exception->getMessage(),
+            ]);
 
-        return $this->mapBranding($setting);
+            return $this->fallbackBranding();
+        }
+    }
+
+    /**
+     * @return array{
+     *     companyName: string,
+     *     portalLabel: string,
+     *     appTitle: string,
+     *     logoPreset: string,
+     *     logoIsWordmark: bool,
+     *     logoPath: ?string,
+     *     logoUrl: string,
+     *     logoMarkUrl: string,
+     *     logoFullUrl: string,
+     *     logoMarkDefaultUrl: string,
+     *     logoFullDefaultUrl: string,
+     *     logoMarkIsDefault: bool,
+     *     logoFullIsDefault: bool,
+     *     faviconPath: ?string,
+     *     faviconUrl: string,
+     *     faviconDefaultUrl: string,
+     *     brandPrimaryColor: ?string,
+     *     brandAccentColor: ?string,
+     *     supportEmail: ?string,
+     *     supportPhone: ?string,
+     *     supportContactName: ?string,
+     *     reportHeader: array{
+     *         title: ?string,
+     *         tagline: ?string,
+     *         alignment: string,
+     *         showLogo: bool,
+     *         showCompanyName: bool
+     *     },
+     *     reportTypography: array{
+     *         headerTitle: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         headerTagline: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         label: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         },
+     *         value: array{
+     *             family: string,
+     *             variant: string,
+     *             weight: int,
+     *             size: int,
+     *             color: ?string,
+     *             cssFamily: string,
+     *             cssStyle: string
+     *         }
+     *     }
+     * }
+     */
+    public function fallbackBranding(): array
+    {
+        return $this->mapBranding(null);
     }
 
     /**
@@ -453,6 +537,11 @@ class OrganizationSettingsService
     public function reportHeaderAlignments(): array
     {
         return self::REPORT_HEADER_ALIGNMENT_OPTIONS;
+    }
+
+    protected function currentSetting(): ?OrganizationSetting
+    {
+        return OrganizationSetting::query()->first();
     }
 
     private function resolveCompanyName(?string $companyName): string

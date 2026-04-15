@@ -2,6 +2,8 @@
 
 use App\Models\OrganizationSetting;
 use App\Services\OrganizationSettingsService;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 test('branding falls back to defaults when no settings exist', function () {
@@ -196,4 +198,63 @@ test('branding uses stored logo mark and full overrides when available', functio
     expect($branding['logoUrl'])->toBe(
         Storage::disk('public')->url('branding/logos/full/custom-full.png'),
     );
+});
+
+test('branding falls back to safe defaults when lookup throws', function () {
+    config(['app.name' => 'Acme Portal']);
+
+    Log::spy();
+
+    $service = \Mockery::mock(OrganizationSettingsService::class)
+        ->makePartial()
+        ->shouldAllowMockingProtectedMethods();
+
+    $service->shouldReceive('currentSetting')
+        ->once()
+        ->andThrow(new QueryException(
+            'sqlsrv',
+            'select top 1 * from [organization_settings]',
+            [],
+            new \PDOException('SQLSTATE[08001]: Login timeout expired'),
+        ));
+
+    $branding = $service->branding();
+
+    expect($branding['companyName'])->toBe('Acme');
+    expect($branding['portalLabel'])->toBe('Member Portal');
+    expect($branding['appTitle'])->toBe('Member Portal - Acme');
+    expect($branding['logoUrl'])->toBe(asset('mrdinc-logo-mark.png'));
+    expect($branding['faviconUrl'])->toBe(asset('favicon.ico'));
+    expect($branding['general'])->toMatchArray([
+        'companyName' => 'Acme',
+        'portalLabel' => 'Member Portal',
+        'appTitle' => 'Member Portal - Acme',
+    ]);
+    expect($branding['assets'])->toHaveKeys([
+        'logoPreset',
+        'logoUrl',
+        'logoMarkUrl',
+        'logoFullUrl',
+        'faviconUrl',
+        'brandPrimaryColor',
+        'brandAccentColor',
+    ]);
+    expect($branding['contact'])->toMatchArray([
+        'supportEmail' => null,
+        'supportPhone' => null,
+        'supportContactName' => null,
+    ]);
+    expect($branding['reports'])->toHaveKeys(['header', 'typography']);
+    expect($branding['communications'])->toHaveKey('loanSmsTemplates');
+
+    Log::shouldHaveReceived('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'Organization branding lookup failed. Using fallback branding.'
+                && ($context['exception'] ?? null) === QueryException::class
+                && str_contains(
+                    (string) ($context['exception_message'] ?? ''),
+                    'Login timeout expired',
+                );
+        });
 });
