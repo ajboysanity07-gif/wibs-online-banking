@@ -10,12 +10,42 @@ import { Button } from '@/components/ui/button';
 import { notificationsApi } from '@/lib/api/notifications';
 import { formatDateTime } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import type { NotificationItem } from '@/types/notifications';
+import type { NotificationItem, NotificationPayload } from '@/types/notifications';
 
 const MAX_BADGE_COUNT = 99;
 
 const formatBadgeCount = (count: number): string =>
     count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : `${count}`;
+
+const formatFieldLabel = (field: string): string =>
+    field
+        .split('_')
+        .filter((segment) => segment.length > 0)
+        .map((segment) => segment[0].toUpperCase() + segment.slice(1))
+        .join(' ');
+
+const buildMetadata = (payload: NotificationPayload): string | null => {
+    const details = [
+        payload.reference ? `Ref: ${payload.reference}` : null,
+        payload.member_name && payload.member_name !== payload.actor_name
+            ? payload.member_acctno
+                ? `${payload.member_name} (${payload.member_acctno})`
+                : payload.member_name
+            : null,
+        payload.actor_name ? `By ${payload.actor_name}` : null,
+        payload.changed_fields && payload.changed_fields.length > 0
+            ? `Fields: ${payload.changed_fields
+                  .map((field) => formatFieldLabel(field))
+                  .join(', ')}`
+            : null,
+    ].filter((detail): detail is string => detail !== null);
+
+    if (details.length === 0) {
+        return null;
+    }
+
+    return details.join(' | ');
+};
 
 export function NotificationBell() {
     const [open, setOpen] = useState(false);
@@ -158,6 +188,7 @@ export function NotificationBell() {
                                 ? formatDateTime(notification.created_at)
                                 : null;
                             const notes = data.decision_notes?.trim();
+                            const metadata = buildMetadata(data);
 
                             return (
                                 <DropdownMenuItem
@@ -201,6 +232,11 @@ export function NotificationBell() {
                                         {notes ? (
                                             <span className="text-xs text-muted-foreground">
                                                 {notes}
+                                            </span>
+                                        ) : null}
+                                        {metadata ? (
+                                            <span className="text-xs text-muted-foreground/80">
+                                                {metadata}
                                             </span>
                                         ) : null}
                                     </div>

@@ -130,6 +130,9 @@ class LoanRequestDecisionService
             return;
         }
 
-        $member->notify(new LoanRequestDecisionNotification($loanRequest));
+        $member->notify(new LoanRequestDecisionNotification(
+            $loanRequest,
+            $loanRequest->reviewedBy,
+        ));
     }
 }

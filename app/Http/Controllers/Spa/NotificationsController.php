@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Spa;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Spa\NotificationResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationsController extends Controller
 {
@@ -24,9 +24,7 @@ class NotificationsController extends Controller
             ->limit(self::DEFAULT_LIMIT)
             ->get();
 
-        $items = $notifications
-            ->map(fn (DatabaseNotification $notification): array => $this->serializeNotification($notification))
-            ->values();
+        $items = NotificationResource::collection($notifications)->resolve();
 
         return response()->json([
             'ok' => true,
@@ -77,7 +75,7 @@ class NotificationsController extends Controller
         return response()->json([
             'ok' => true,
             'data' => [
-                'notification' => $this->serializeNotification($notificationModel),
+                'notification' => (new NotificationResource($notificationModel))->resolve(),
                 'unreadCount' => $user->unreadNotifications()->count(),
             ],
         ]);
@@ -104,23 +102,5 @@ class NotificationsController extends Controller
                 'readAt' => $readAt->toDateTimeString(),
             ],
         ]);
-    }
-
-    /**
-     * @return array{
-     *     id: string,
-     *     data: array<string, mixed>,
-     *     read_at: string|null,
-     *     created_at: string|null
-     * }
-     */
-    private function serializeNotification(DatabaseNotification $notification): array
-    {
-        return [
-            'id' => $notification->id,
-            'data' => $notification->data,
-            'read_at' => $notification->read_at?->toDateTimeString(),
-            'created_at' => $notification->created_at?->toDateTimeString(),
-        ];
     }
 }

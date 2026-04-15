@@ -3,12 +3,21 @@
 namespace App\Services\Admin;
 
 use App\Models\AppUser;
+use App\Notifications\MemberStatusAuditNotification;
+use App\Notifications\MemberStatusChangedNotification;
+use App\Services\Notifications\NotificationRecipientService;
 use App\Support\MemberStatus;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class MemberStatusService
 {
+    public function __construct(
+        private NotificationRecipientService $notificationRecipients,
+    ) {}
+
     public function suspend(AppUser $user, AppUser $actor): AppUser
     {
         $this->guardTargetUser($user);
@@ -63,16 +72,31 @@ class MemberStatusService
         AppUser $actor,
         MemberStatus $status,
     ): AppUser {
-        $user->userProfile()->updateOrCreate(
-            ['user_id' => $user->user_id],
-            [
-                'status' => $status->value,
-                'reviewed_by' => $actor->user_id,
-                'reviewed_at' => now(),
-            ],
-        );
+        $member = DB::transaction(function () use ($user, $actor, $status): AppUser {
+            $user->userProfile()->updateOrCreate(
+                ['user_id' => $user->user_id],
+                [
+                    'status' => $status->value,
+                    'reviewed_by' => $actor->user_id,
+                    'reviewed_at' => now(),
+                ],
+            );
 
-        return $this->loadMember($user->refresh());
+            return $this->loadMember($user->refresh());
+        });
+
+        $member->notify(new MemberStatusChangedNotification($member, $actor, $status));
+
+        $superadmins = $this->notificationRecipients->superadmins();
+
+        if ($superadmins->isNotEmpty()) {
+            Notification::send(
+                $superadmins,
+                new MemberStatusAuditNotification($member, $actor, $status),
+            );
+        }
+
+        return $member;
     }
 
     private function loadMember(AppUser $user): AppUser

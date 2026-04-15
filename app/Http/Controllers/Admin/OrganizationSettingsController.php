@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\OrganizationSettingUpdateRequest;
 use App\Models\OrganizationSetting;
+use App\Notifications\OrganizationSettingsUpdatedNotification;
+use App\Services\Notifications\NotificationRecipientService;
 use App\Services\OrganizationSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,6 +34,7 @@ class OrganizationSettingsController extends Controller
      */
     public function update(
         OrganizationSettingUpdateRequest $request,
+        NotificationRecipientService $notificationRecipients,
     ): RedirectResponse {
         $validated = $request->validated();
         $setting = OrganizationSetting::query()->first();
@@ -127,6 +131,8 @@ class OrganizationSettingsController extends Controller
             $payload['favicon_path'] = null;
         }
 
+        $changedFields = [];
+
         if ($payload !== []) {
             if (array_key_exists('report_header_show_logo', $payload)) {
                 $payload['report_header_show_logo'] = $request->boolean(
@@ -141,7 +147,26 @@ class OrganizationSettingsController extends Controller
             }
 
             $setting->fill($payload);
-            $setting->save();
+            $changedFields = array_keys($setting->getDirty());
+
+            if ($changedFields !== []) {
+                $setting->save();
+            }
+        }
+
+        if ($changedFields !== []) {
+            $superadmins = $notificationRecipients->superadmins();
+
+            if ($superadmins->isNotEmpty()) {
+                Notification::send(
+                    $superadmins,
+                    new OrganizationSettingsUpdatedNotification(
+                        $setting->refresh(),
+                        $request->user(),
+                        $changedFields,
+                    ),
+                );
+            }
         }
 
         return to_route('admin.settings.organization');

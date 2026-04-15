@@ -4,17 +4,25 @@ namespace App\Services\Admin;
 
 use App\Models\AdminProfile;
 use App\Models\AppUser;
+use App\Notifications\AdminAccessAuditNotification;
+use App\Notifications\AdminAccessChangedNotification;
+use App\Services\Notifications\NotificationRecipientService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class MemberAdminAccessService
 {
+    public function __construct(
+        private NotificationRecipientService $notificationRecipients,
+    ) {}
+
     public function grant(AppUser $user, AppUser $actor): AppUser
     {
         $this->guardTargetUser($user, $actor);
 
-        return DB::transaction(function () use ($user): AppUser {
+        $member = DB::transaction(function () use ($user): AppUser {
             $user->loadMissing('adminProfile', 'userProfile');
 
             if ($user->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN) {
@@ -41,6 +49,19 @@ class MemberAdminAccessService
 
             return $this->loadMember($user->refresh());
         });
+
+        $member->notify(new AdminAccessChangedNotification($member, $actor, 'granted'));
+
+        $superadmins = $this->notificationRecipients->superadmins();
+
+        if ($superadmins->isNotEmpty()) {
+            Notification::send(
+                $superadmins,
+                new AdminAccessAuditNotification($member, $actor, 'granted'),
+            );
+        }
+
+        return $member;
     }
 
     public function revoke(AppUser $user, AppUser $actor): AppUser
@@ -55,11 +76,26 @@ class MemberAdminAccessService
             ]);
         }
 
-        AdminProfile::query()
-            ->where('user_id', $user->user_id)
-            ->delete();
+        $member = DB::transaction(function () use ($user): AppUser {
+            AdminProfile::query()
+                ->where('user_id', $user->user_id)
+                ->delete();
 
-        return $this->loadMember($user->refresh());
+            return $this->loadMember($user->refresh());
+        });
+
+        $member->notify(new AdminAccessChangedNotification($member, $actor, 'revoked'));
+
+        $superadmins = $this->notificationRecipients->superadmins();
+
+        if ($superadmins->isNotEmpty()) {
+            Notification::send(
+                $superadmins,
+                new AdminAccessAuditNotification($member, $actor, 'revoked'),
+            );
+        }
+
+        return $member;
     }
 
     private function guardTargetUser(AppUser $user, AppUser $actor): void

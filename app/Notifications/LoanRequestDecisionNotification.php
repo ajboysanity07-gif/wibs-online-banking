@@ -3,35 +3,27 @@
 namespace App\Notifications;
 
 use App\LoanRequestStatus;
+use App\Models\AppUser;
 use App\Models\LoanRequest;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Notification;
+use App\Support\NotificationPayload;
 
-class LoanRequestDecisionNotification extends Notification implements ShouldQueue
+class LoanRequestDecisionNotification extends AbstractDatabaseNotification
 {
-    use Queueable;
+    public function __construct(
+        LoanRequest $loanRequest,
+        ?AppUser $actor = null,
+    ) {
+        parent::__construct();
 
-    /**
-     * @var array{
-     *     type: string,
-     *     loan_request_id: int,
-     *     reference: string,
-     *     status: string,
-     *     title: string,
-     *     message: string,
-     *     decision_notes: string|null,
-     *     reviewed_at: string|null
-     * }
-     */
-    private array $payload;
+        $loanRequest->loadMissing('user', 'reviewedBy');
 
-    public function __construct(LoanRequest $loanRequest)
-    {
         $status = $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
         $reference = $loanRequest->reference;
+        $member = $loanRequest->user;
+        $actor ??= $loanRequest->reviewedBy;
+
         [$title, $message] = match ($status) {
             LoanRequestStatus::Approved->value => [
                 'Loan request approved',
@@ -47,59 +39,22 @@ class LoanRequestDecisionNotification extends Notification implements ShouldQueu
             ],
         };
 
-        $this->payload = [
-            'type' => 'loan_request_decision',
-            'loan_request_id' => $loanRequest->id,
-            'reference' => $reference,
-            'status' => $status,
-            'title' => $title,
-            'message' => $message,
-            'decision_notes' => $loanRequest->decision_notes,
-            'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
-        ];
-    }
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return ['database'];
-    }
-
-    /**
-     * @return array{
-     *     type: string,
-     *     loan_request_id: int,
-     *     reference: string,
-     *     status: string,
-     *     title: string,
-     *     message: string,
-     *     decision_notes: string|null,
-     *     reviewed_at: string|null
-     * }
-     */
-    public function toDatabase(object $notifiable): array
-    {
-        return $this->payload;
-    }
-
-    /**
-     * @return array{
-     *     type: string,
-     *     loan_request_id: int,
-     *     reference: string,
-     *     status: string,
-     *     title: string,
-     *     message: string,
-     *     decision_notes: string|null,
-     *     reviewed_at: string|null
-     * }
-     */
-    public function toArray(object $notifiable): array
-    {
-        return $this->payload;
+        $this->payload = array_merge(
+            [
+                'type' => 'loan_request_decision',
+                'loan_request_id' => $loanRequest->id,
+                'reference' => $reference,
+                'status' => $status,
+                'title' => $title,
+                'message' => $message,
+                'entity_type' => 'loan_request',
+                'entity_id' => $loanRequest->id,
+                'decision_notes' => $loanRequest->decision_notes,
+                'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
+                'updated_at' => $loanRequest->updated_at?->toDateTimeString(),
+            ],
+            NotificationPayload::member($member),
+            NotificationPayload::actor($actor),
+        );
     }
 }

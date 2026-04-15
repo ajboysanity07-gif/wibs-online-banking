@@ -9,6 +9,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
 use App\Notifications\LoanRequestSubmittedNotification;
+use App\Services\Notifications\NotificationRecipientService;
 use App\Support\LocationComposer;
 use App\Support\SchemaCapabilities;
 use Illuminate\Support\Collection;
@@ -36,6 +37,7 @@ class LoanRequestService
 
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
+        private NotificationRecipientService $notificationRecipients,
     ) {}
 
     /**
@@ -210,9 +212,7 @@ class LoanRequestService
             return;
         }
 
-        $admins = AppUser::query()
-            ->whereHas('adminProfile')
-            ->get();
+        $admins = $this->notificationRecipients->adminsAndSuperadmins();
 
         if ($admins->isEmpty()) {
             return;
