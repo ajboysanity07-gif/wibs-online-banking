@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Spa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Spa\NotificationResource;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -22,34 +24,31 @@ class NotificationsController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
-        $notifications = $user->notifications()
-            ->latest()
-            ->limit(self::DEFAULT_LIMIT)
-            ->get();
+        try {
+            $notifications = $user->notifications()
+                ->limit(self::DEFAULT_LIMIT)
+                ->get();
 
-        $items = [];
+            $items = [];
 
-        foreach ($notifications as $notification) {
-            try {
-                $items[] = $this->serializeNotification($notification);
-            } catch (Throwable $exception) {
-                $this->logNotificationSerializationFailure(
-                    $notification,
-                    $exception,
-                    'skipped',
-                );
+            foreach ($notifications as $notification) {
+                try {
+                    $items[] = $this->serializeNotification($notification);
+                } catch (Throwable $exception) {
+                    $this->logNotificationSerializationFailure(
+                        $notification,
+                        $exception,
+                        'skipped',
+                    );
+                }
             }
-        }
 
-        return response()->json(
-            [
-                'ok' => true,
-                'data' => [
-                    'items' => $items,
-                ],
-            ],
-            options: JSON_INVALID_UTF8_SUBSTITUTE,
-        );
+            return $this->notificationIndexResponse($items);
+        } catch (Throwable $exception) {
+            $this->logNotificationFetchFailure($user, $exception);
+
+            return $this->notificationIndexResponse([]);
+        }
     }
 
     public function unreadCount(Request $request): JsonResponse
@@ -65,6 +64,42 @@ class NotificationsController extends Controller
             'data' => [
                 'unreadCount' => $user->unreadNotifications()->count(),
             ],
+        ]);
+    }
+
+    /**
+     * @param  array<int, array{
+     *     id: string,
+     *     data: array<string, mixed>,
+     *     read_at: string|null,
+     *     created_at: string|null
+     * }>  $items
+     */
+    private function notificationIndexResponse(array $items): JsonResponse
+    {
+        return response()->json(
+            [
+                'ok' => true,
+                'data' => [
+                    'items' => $items,
+                ],
+            ],
+            options: JSON_INVALID_UTF8_SUBSTITUTE,
+        );
+    }
+
+    private function logNotificationFetchFailure(
+        Authenticatable $user,
+        Throwable $exception,
+    ): void {
+        Log::warning('Notification fetch failed.', [
+            'action' => 'index_fetch',
+            'user_id' => $user->getAuthIdentifier(),
+            'connection' => $exception instanceof QueryException
+                ? $exception->getConnectionName()
+                : null,
+            'exception' => $exception::class,
+            'exception_message' => $exception->getMessage(),
         ]);
     }
 

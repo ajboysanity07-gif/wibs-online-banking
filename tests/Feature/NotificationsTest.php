@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Spa\NotificationsController;
 use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
@@ -14,9 +15,13 @@ use App\Notifications\MemberStatusAuditNotification;
 use App\Notifications\MemberStatusChangedNotification;
 use App\Notifications\OrganizationSettingsUpdatedNotification;
 use App\Services\LoanRequests\LoanRequestService;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -644,6 +649,63 @@ test('unread count succeeds while notification listing skips malformed rows and 
     expect($listResponse->json('data.items'))->toHaveCount(1);
     expect($listResponse->json('data.items.0.id'))->toBe((string) $validNotification->id);
     expect($listResponse->json('data.items.0.data.type'))->toBe('loan_request_decision');
+});
+
+test('fetch stage failures return an empty notifications response instead of a server error', function () {
+    Log::spy();
+
+    $exception = new QueryException(
+        'sqlsrv',
+        'select top 10 * from [notifications] order by [created_at] desc, [created_at] desc',
+        [],
+        new \PDOException(
+            'SQLSTATE[42000]: [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]A column has been specified more than once in the order by list. Columns in the order by list must be unique.',
+        ),
+    );
+
+    $notifications = \Mockery::mock(MorphMany::class);
+    $notifications->shouldReceive('limit')
+        ->once()
+        ->with(10)
+        ->andReturnSelf();
+    $notifications->shouldReceive('get')
+        ->once()
+        ->andThrow($exception);
+
+    $user = \Mockery::mock(User::class)->makePartial();
+    $user->shouldReceive('notifications')
+        ->once()
+        ->andReturn($notifications);
+    $user->shouldReceive('getAuthIdentifier')
+        ->once()
+        ->andReturn(123);
+
+    $request = Request::create('/spa/notifications', 'GET');
+    $request->setUserResolver(static fn (): User => $user);
+
+    $response = app(NotificationsController::class)->index($request);
+
+    expect($response->getStatusCode())->toBe(200);
+    expect($response->getData(true))->toBe([
+        'ok' => true,
+        'data' => [
+            'items' => [],
+        ],
+    ]);
+
+    Log::shouldHaveReceived('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'Notification fetch failed.'
+                && ($context['action'] ?? null) === 'index_fetch'
+                && ($context['user_id'] ?? null) === 123
+                && ($context['connection'] ?? null) === 'sqlsrv'
+                && ($context['exception'] ?? null) === QueryException::class
+                && str_contains(
+                    (string) ($context['exception_message'] ?? ''),
+                    'A column has been specified more than once in the order by list.',
+                );
+        });
 });
 
 function insertRawNotification(
