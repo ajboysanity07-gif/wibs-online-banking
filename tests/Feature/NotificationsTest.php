@@ -18,6 +18,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     if (! Schema::hasTable('wmaster')) {
@@ -483,6 +484,138 @@ test('admin-only loan request owners are not notified', function () {
         ->count();
 
     expect($notificationCount)->toBe(0);
+});
+
+test('malformed legacy notification payload does not crash notification listing', function () {
+    $user = User::factory()->create();
+
+    $validLoanRequest = LoanRequest::factory()->forUser($user)->create([
+        'status' => LoanRequestStatus::Approved,
+        'reviewed_at' => now(),
+    ]);
+
+    $user->notify(new LoanRequestDecisionNotification($validLoanRequest));
+
+    DB::table('notifications')->insert([
+        'id' => (string) Str::uuid(),
+        'type' => LoanRequestDecisionNotification::class,
+        'notifiable_type' => User::class,
+        'notifiable_id' => $user->user_id,
+        'data' => '{invalid-json',
+        'read_at' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->getJson('/spa/notifications');
+
+    $response->assertOk();
+    $items = collect($response->json('data.items'));
+
+    expect($items)->toHaveCount(2);
+
+    $fallbackItem = $items->first(
+        fn (array $item): bool => ($item['data']['type'] ?? null) === 'notification_unavailable',
+    );
+    $validItem = $items->first(
+        fn (array $item): bool => ($item['data']['type'] ?? null) === 'loan_request_decision',
+    );
+
+    expect($fallbackItem)->not->toBeNull();
+    expect($validItem)->not->toBeNull();
+    expect($fallbackItem['data']['title'])->toBe(
+        'Notification unavailable',
+    );
+    expect($fallbackItem['data']['message'])->toBe(
+        'This notification could not be displayed.',
+    );
+    expect($validItem['data']['title'])->toBe('Loan request approved');
+});
+
+test('unexpected notification data types are handled safely', function () {
+    $user = User::factory()->create();
+
+    DB::table('notifications')->insert([
+        'id' => (string) Str::uuid(),
+        'type' => LoanRequestDecisionNotification::class,
+        'notifiable_type' => User::class,
+        'notifiable_id' => $user->user_id,
+        'data' => json_encode('legacy-string-payload'),
+        'read_at' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->getJson('/spa/notifications');
+
+    $response->assertOk();
+    expect($response->json('data.items'))->toHaveCount(1);
+    expect($response->json('data.items.0.data.type'))->toBe('notification_unavailable');
+    expect($response->json('data.items.0.data.title'))->toBe(
+        'Notification unavailable',
+    );
+    expect($response->json('data.items.0.data.message'))->toBe(
+        'This notification could not be displayed.',
+    );
+});
+
+test('valid notifications still serialize correctly in notification listing', function () {
+    $user = User::factory()->create();
+
+    $loanRequest = LoanRequest::factory()->forUser($user)->create([
+        'status' => LoanRequestStatus::Approved,
+        'reviewed_at' => now(),
+    ]);
+
+    $user->notify(new LoanRequestDecisionNotification($loanRequest));
+
+    $response = $this
+        ->actingAs($user)
+        ->getJson('/spa/notifications');
+
+    $response->assertOk();
+    expect($response->json('data.items'))->toHaveCount(1);
+    expect($response->json('data.items.0.data.type'))->toBe('loan_request_decision');
+    expect($response->json('data.items.0.data.title'))->toBe(
+        'Loan request approved',
+    );
+    expect($response->json('data.items.0.data.message'))->toBe(
+        sprintf('Your loan request %s was approved.', $loanRequest->reference),
+    );
+});
+
+test('unread count remains correct with malformed notifications present', function () {
+    $user = User::factory()->create();
+
+    $loanRequest = LoanRequest::factory()->forUser($user)->create([
+        'status' => LoanRequestStatus::Approved,
+        'reviewed_at' => now(),
+    ]);
+
+    $user->notify(new LoanRequestDecisionNotification($loanRequest));
+
+    DB::table('notifications')->insert([
+        'id' => (string) Str::uuid(),
+        'type' => LoanRequestDecisionNotification::class,
+        'notifiable_type' => User::class,
+        'notifiable_id' => $user->user_id,
+        'data' => '{"title":',
+        'read_at' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->getJson('/spa/notifications/unread-count');
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.unreadCount', 2);
 });
 
 function createAdminUser(
