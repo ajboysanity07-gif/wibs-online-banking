@@ -27,17 +27,29 @@ class NotificationsController extends Controller
             ->limit(self::DEFAULT_LIMIT)
             ->get();
 
-        $items = $notifications
-            ->map(fn (DatabaseNotification $notification): array => $this->serializeNotification($notification))
-            ->values()
-            ->all();
+        $items = [];
 
-        return response()->json([
-            'ok' => true,
-            'data' => [
-                'items' => $items,
+        foreach ($notifications as $notification) {
+            try {
+                $items[] = $this->serializeNotification($notification);
+            } catch (Throwable $exception) {
+                $this->logNotificationSerializationFailure(
+                    $notification,
+                    $exception,
+                    'skipped',
+                );
+            }
+        }
+
+        return response()->json(
+            [
+                'ok' => true,
+                'data' => [
+                    'items' => $items,
+                ],
             ],
-        ]);
+            options: JSON_INVALID_UTF8_SUBSTITUTE,
+        );
     }
 
     public function unreadCount(Request $request): JsonResponse
@@ -78,13 +90,16 @@ class NotificationsController extends Controller
 
         $notificationModel->refresh();
 
-        return response()->json([
-            'ok' => true,
-            'data' => [
-                'notification' => $this->serializeNotification($notificationModel),
-                'unreadCount' => $user->unreadNotifications()->count(),
+        return response()->json(
+            [
+                'ok' => true,
+                'data' => [
+                    'notification' => $this->serializeNotificationOrFallback($notificationModel),
+                    'unreadCount' => $user->unreadNotifications()->count(),
+                ],
             ],
-        ]);
+            options: JSON_INVALID_UTF8_SUBSTITUTE,
+        );
     }
 
     public function markAllAsRead(Request $request): JsonResponse
@@ -120,17 +135,27 @@ class NotificationsController extends Controller
      */
     private function serializeNotification(DatabaseNotification $notification): array
     {
+        return (new NotificationResource($notification))->resolve();
+    }
+
+    /**
+     * @return array{
+     *     id: string,
+     *     data: array<string, mixed>,
+     *     read_at: string|null,
+     *     created_at: string|null
+     * }
+     */
+    private function serializeNotificationOrFallback(DatabaseNotification $notification): array
+    {
         try {
             return (new NotificationResource($notification))->resolve();
         } catch (Throwable $exception) {
-            Log::warning('Notification serialization failed unexpectedly.', [
-                'notification_id' => (string) $notification->getKey(),
-                'notification_type' => $notification->type,
-                'notifiable_type' => $notification->notifiable_type,
-                'notifiable_id' => $notification->notifiable_id,
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ]);
+            $this->logNotificationSerializationFailure(
+                $notification,
+                $exception,
+                'fallback',
+            );
 
             return [
                 'id' => (string) $notification->getKey(),
@@ -139,5 +164,25 @@ class NotificationsController extends Controller
                 'created_at' => null,
             ];
         }
+    }
+
+    private function logNotificationSerializationFailure(
+        DatabaseNotification $notification,
+        Throwable $exception,
+        string $action,
+    ): void {
+        $rawPayload = $notification->getRawOriginal('data');
+
+        Log::warning('Notification serialization failed.', [
+            'action' => $action,
+            'notification_id' => (string) $notification->getKey(),
+            'notification_type' => $notification->type,
+            'notifiable_type' => $notification->notifiable_type,
+            'notifiable_id' => $notification->notifiable_id,
+            'raw_payload_type' => gettype($rawPayload),
+            'raw_payload_length' => is_string($rawPayload) ? strlen($rawPayload) : null,
+            'exception' => $exception::class,
+            'exception_message' => $exception->getMessage(),
+        ]);
     }
 }

@@ -6,11 +6,10 @@ use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Notifications\DatabaseNotification;
-use Illuminate\Support\Facades\Log;
 use JsonSerializable;
 use Stringable;
 use Throwable;
+use UnexpectedValueException;
 
 class NotificationResource extends JsonResource
 {
@@ -33,14 +32,8 @@ class NotificationResource extends JsonResource
         return [
             'id' => (string) $this->resource->getKey(),
             'data' => $this->resolvePayload(),
-            'read_at' => $this->formatDateValue(
-                $this->resource->getRawOriginal('read_at'),
-                'read_at',
-            ),
-            'created_at' => $this->formatDateValue(
-                $this->resource->getRawOriginal('created_at'),
-                'created_at',
-            ),
+            'read_at' => $this->formatDateValue($this->resource->getRawOriginal('read_at')),
+            'created_at' => $this->formatDateValue($this->resource->getRawOriginal('created_at')),
         ];
     }
 
@@ -65,31 +58,25 @@ class NotificationResource extends JsonResource
      */
     private function resolvePayload(): array
     {
-        $rawPayload = $this->resource->getRawOriginal('data');
-        $payload = null;
+        $payload = $this->payloadFromRawValue($this->resource->getRawOriginal('data'));
 
-        if (is_array($rawPayload)) {
-            $payload = $this->sanitizeArray($rawPayload);
-        } elseif (is_string($rawPayload)) {
-            $payload = $this->decodePayload($rawPayload);
+        if ($payload !== null) {
+            return $this->ensureRenderablePayload($payload);
+        }
+
+        try {
+            $payload = $this->payloadFromAttributeValue($this->resource->getAttribute('data'));
+        } catch (Throwable $exception) {
+            throw new UnexpectedValueException(
+                'Notification payload attribute access failed.',
+                previous: $exception,
+            );
         }
 
         if ($payload === null) {
-            try {
-                $attribute = $this->resource->getAttribute('data');
-
-                if (is_array($attribute)) {
-                    $payload = $this->sanitizeArray($attribute);
-                }
-            } catch (Throwable $exception) {
-                $this->logMalformedPayload(
-                    'notification payload attribute access failed',
-                    [
-                        'exception' => $exception::class,
-                        'message' => $exception->getMessage(),
-                    ],
-                );
-            }
+            throw new UnexpectedValueException(
+                'Notification payload could not be normalized to an array.',
+            );
         }
 
         return $this->ensureRenderablePayload($payload);
@@ -98,18 +85,42 @@ class NotificationResource extends JsonResource
     /**
      * @return array<string, mixed>|null
      */
+    private function payloadFromRawValue(mixed $payload): ?array
+    {
+        if (is_array($payload)) {
+            return $this->sanitizeArray($payload);
+        }
+
+        if (is_string($payload)) {
+            return $this->decodePayload($payload);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function payloadFromAttributeValue(mixed $payload): ?array
+    {
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        return $this->sanitizeArray($payload);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
     private function decodePayload(string $payload): ?array
     {
-        $decoded = json_decode($payload, true);
+        $decoded = json_decode($payload, true, 512, JSON_INVALID_UTF8_SUBSTITUTE);
 
         if (json_last_error() === JSON_ERROR_NONE) {
             if (is_array($decoded)) {
                 return $this->sanitizeArray($decoded);
             }
-
-            $this->logMalformedPayload('notification payload is not an array', [
-                'decoded_type' => gettype($decoded),
-            ]);
 
             return null;
         }
@@ -117,30 +128,23 @@ class NotificationResource extends JsonResource
         $normalizedPayload = $this->normalizeUtf8($payload);
 
         if ($normalizedPayload !== null && $normalizedPayload !== $payload) {
-            $decoded = json_decode($normalizedPayload, true);
+            $decoded = json_decode(
+                $normalizedPayload,
+                true,
+                512,
+                JSON_INVALID_UTF8_SUBSTITUTE,
+            );
 
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                $this->logMalformedPayload(
-                    'notification payload required UTF-8 normalization',
-                    [
-                        'json_error' => 'utf8_normalized',
-                    ],
-                );
-
                 return $this->sanitizeArray($decoded);
             }
         }
-
-        $this->logMalformedPayload('notification payload could not be decoded', [
-            'json_error' => json_last_error_msg(),
-            'raw_length' => strlen($payload),
-        ]);
 
         return null;
     }
 
     /**
-     * @param  array<mixed>  $value
+     * @param  array<array-key, mixed>  $value
      * @return array<string, mixed>
      */
     private function sanitizeArray(array $value): array
@@ -207,13 +211,11 @@ class NotificationResource extends JsonResource
     }
 
     /**
-     * @param  array<string, mixed>|null  $payload
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function ensureRenderablePayload(?array $payload): array
+    private function ensureRenderablePayload(array $payload): array
     {
-        $payload = $payload ?? [];
-
         $payload['type'] = $this->resolveRenderableString(
             $payload['type'] ?? null,
             self::FALLBACK_TYPE,
@@ -234,7 +236,11 @@ class NotificationResource extends JsonResource
         mixed $value,
         string $fallback,
     ): string {
-        if (! is_string($value)) {
+        if ($value instanceof Stringable) {
+            $value = (string) $value;
+        } elseif (is_bool($value) || is_int($value) || is_float($value)) {
+            $value = (string) $value;
+        } elseif (! is_string($value)) {
             return $fallback;
         }
 
@@ -249,7 +255,7 @@ class NotificationResource extends JsonResource
         return $resolvedValue !== '' ? $resolvedValue : $fallback;
     }
 
-    private function formatDateValue(mixed $value, string $attribute): ?string
+    private function formatDateValue(mixed $value): ?string
     {
         if ($value instanceof DateTimeInterface) {
             return $value->format('Y-m-d H:i:s');
@@ -259,22 +265,12 @@ class NotificationResource extends JsonResource
             $resolvedValue = $this->normalizeUtf8($value);
 
             if ($resolvedValue === null) {
-                $this->logMalformedPayload('notification date contains invalid UTF-8', [
-                    'attribute' => $attribute,
-                ]);
-
                 return null;
             }
 
             try {
                 return CarbonImmutable::parse($resolvedValue)->format('Y-m-d H:i:s');
-            } catch (Throwable $exception) {
-                $this->logMalformedPayload('notification date could not be parsed', [
-                    'attribute' => $attribute,
-                    'exception' => $exception::class,
-                    'message' => $exception->getMessage(),
-                ]);
-
+            } catch (Throwable) {
                 return null;
             }
         }
@@ -324,24 +320,5 @@ class NotificationResource extends JsonResource
         }
 
         return preg_match('//u', $value) === 1;
-    }
-
-    /**
-     * @param  array<string, mixed>  $context
-     */
-    private function logMalformedPayload(string $reason, array $context = []): void
-    {
-        $notification = $this->resource;
-
-        if (! $notification instanceof DatabaseNotification) {
-            return;
-        }
-
-        Log::warning($reason, array_merge([
-            'notification_id' => (string) $notification->getKey(),
-            'notification_type' => $notification->type,
-            'notifiable_type' => $notification->notifiable_type,
-            'notifiable_id' => $notification->notifiable_id,
-        ], $context));
     }
 }
