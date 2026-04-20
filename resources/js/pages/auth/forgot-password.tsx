@@ -18,13 +18,15 @@ import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 import api, { getApiErrorMessage, mapValidationErrors } from '@/lib/api';
 import {
+    getPasswordRecoveryIdentifierSummary,
+    getPasswordRecoveryProgressItems,
     getPasswordRecoveryStepContent,
     getPasswordRecoveryStepIndex,
-    getPasswordRecoveryStepProgress,
     PASSWORD_RECOVERY_WIZARD_STEPS,
     resolvePasswordRecoveryTransitionDirection,
     resolvePasswordRecoveryWizardStep,
 } from '@/lib/password-recovery-flow';
+import { cn } from '@/lib/utils';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
 import { login } from '@/routes';
 
@@ -100,9 +102,56 @@ function SummaryRow({
     );
 }
 
+function ProgressStepRow({
+    items,
+}: {
+    items: Array<{
+        id: string;
+        label: string;
+        state: 'complete' | 'current' | 'upcoming';
+    }>;
+}) {
+    return (
+        <ol
+            className="flex flex-wrap items-center justify-center gap-2"
+            aria-label="Password recovery progress"
+        >
+            {items.map((item) => (
+                <li key={item.id}>
+                    <span
+                        className={cn(
+                            'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                            item.state === 'complete' &&
+                                'border-primary/30 bg-primary/10 text-primary',
+                            item.state === 'current' &&
+                                'border-border/60 bg-background text-foreground shadow-xs',
+                            item.state === 'upcoming' &&
+                                'border-border/40 bg-muted/30 text-muted-foreground',
+                        )}
+                        aria-current={
+                            item.state === 'current' ? 'step' : undefined
+                        }
+                    >
+                        <span
+                            className={cn(
+                                'size-2 rounded-full',
+                                item.state === 'complete' && 'bg-primary',
+                                item.state === 'current' && 'bg-foreground',
+                                item.state === 'upcoming' &&
+                                    'bg-muted-foreground/50',
+                            )}
+                            aria-hidden="true"
+                        />
+                        {item.label}
+                    </span>
+                </li>
+            ))}
+        </ol>
+    );
+}
+
 export default function ForgotPassword({ recovery, status }: Props) {
     const [lookupIdentifier, setLookupIdentifier] = useState('');
-    const [confirmedIdentifier, setConfirmedIdentifier] = useState('');
     const [code, setCode] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -148,8 +197,8 @@ export default function ForgotPassword({ recovery, status }: Props) {
         [emailConfirmationVisible, recoveryState.step, stepOverride],
     );
 
-    const progress = useMemo(
-        () => getPasswordRecoveryStepProgress(currentStep),
+    const progressItems = useMemo(
+        () => getPasswordRecoveryProgressItems(currentStep),
         [currentStep],
     );
 
@@ -261,7 +310,6 @@ export default function ForgotPassword({ recovery, status }: Props) {
         options?: {
             selectedMethod?: RecoveryOption['type'] | null;
             emailConfirmationVisible?: boolean;
-            confirmedIdentifier?: string | null;
         },
     ): void => {
         const nextRecovery = payload?.recovery ?? defaultRecoveryState;
@@ -278,10 +326,6 @@ export default function ForgotPassword({ recovery, status }: Props) {
 
         if (options?.emailConfirmationVisible !== undefined) {
             setEmailConfirmationVisible(options.emailConfirmationVisible);
-        }
-
-        if (options?.confirmedIdentifier !== undefined) {
-            setConfirmedIdentifier(options.confirmedIdentifier ?? '');
         }
     };
 
@@ -319,15 +363,9 @@ export default function ForgotPassword({ recovery, status }: Props) {
                 },
             );
 
-            const normalizedIdentifier = lookupIdentifier.trim();
-
             applyRecoveryResponse(response.data, {
                 selectedMethod: null,
                 emailConfirmationVisible: false,
-                confirmedIdentifier:
-                    normalizedIdentifier !== ''
-                        ? normalizedIdentifier
-                        : confirmedIdentifier,
             });
         } catch (error) {
             handleFailure(
@@ -667,9 +705,7 @@ export default function ForgotPassword({ recovery, status }: Props) {
             <Head title="Forgot password" />
 
             <div className="flex flex-col gap-6">
-                <p className="text-center text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                    Step {progress.current} of {progress.total}
-                </p>
+                <ProgressStepRow items={progressItems} />
 
                 {statusMessage && (
                     <div className="rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-700 dark:text-green-300">
@@ -697,11 +733,7 @@ export default function ForgotPassword({ recovery, status }: Props) {
                             <div className="space-y-2">
                                 <SummaryRow
                                     label="Identifier"
-                                    value={
-                                        confirmedIdentifier !== ''
-                                            ? confirmedIdentifier
-                                            : 'Account identified'
-                                    }
+                                    value={getPasswordRecoveryIdentifierSummary()}
                                     actionLabel="Change"
                                     onAction={moveToIdentifyStep}
                                 />

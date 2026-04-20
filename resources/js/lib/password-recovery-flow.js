@@ -6,6 +6,21 @@ export const PASSWORD_RECOVERY_WIZARD_STEPS = {
     PHONE_RESET: 'phone_reset',
 };
 
+export const PASSWORD_RECOVERY_PROGRESS_STEPS = [
+    {
+        id: 'identify',
+        label: 'Identify',
+    },
+    {
+        id: 'recover',
+        label: 'Recover',
+    },
+    {
+        id: 'reset',
+        label: 'Reset',
+    },
+];
+
 export const resolvePasswordRecoveryWizardStep = ({
     recoveryStep,
     emailConfirmationVisible = false,
@@ -31,19 +46,39 @@ export const resolvePasswordRecoveryWizardStep = ({
     }
 };
 
-export const getPasswordRecoveryStepProgress = (wizardStep) => {
+export const getPasswordRecoveryProgressItems = (wizardStep) => {
+    const currentIndex = getPasswordRecoveryProgressIndex(wizardStep);
+
+    return PASSWORD_RECOVERY_PROGRESS_STEPS.map((step, index) => ({
+        ...step,
+        state:
+            index < currentIndex
+                ? 'complete'
+                : index === currentIndex
+                  ? 'current'
+                  : 'upcoming',
+    }));
+};
+
+const getPasswordRecoveryProgressIndex = (wizardStep) => {
     switch (wizardStep) {
         case PASSWORD_RECOVERY_WIZARD_STEPS.CHOOSE_METHOD:
-            return { current: 2, total: 3 };
-        case PASSWORD_RECOVERY_WIZARD_STEPS.EMAIL_CONFIRMATION:
-            return { current: 3, total: 3 };
         case PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY:
-            return { current: 3, total: 4 };
+            return 1;
+        case PASSWORD_RECOVERY_WIZARD_STEPS.EMAIL_CONFIRMATION:
         case PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_RESET:
-            return { current: 4, total: 4 };
+            return 2;
         default:
-            return { current: 1, total: 3 };
+            return 0;
     }
+};
+
+export const getPasswordRecoveryIdentifierSummary = ({
+    typedIdentifier = null,
+} = {}) => {
+    void typedIdentifier;
+
+    return 'Account identified';
 };
 
 export const getPasswordRecoveryStepIndex = (wizardStep) => {

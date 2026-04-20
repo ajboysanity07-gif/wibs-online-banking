@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+    getPasswordRecoveryIdentifierSummary,
     getPasswordRecoveryStepContent,
     getPasswordRecoveryStepIndex,
-    getPasswordRecoveryStepProgress,
+    getPasswordRecoveryProgressItems,
     PASSWORD_RECOVERY_WIZARD_STEPS,
     resolvePasswordRecoveryTransitionDirection,
     resolvePasswordRecoveryWizardStep,
@@ -47,44 +48,81 @@ test('manual step override wins over recovery state', () => {
     );
 });
 
-test('phone recovery steps report the branched four-step progress', () => {
+test('phone recovery steps report the correct transition order', () => {
     assert.deepEqual(
-        getPasswordRecoveryStepProgress(
-            PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY,
-        ),
-        { current: 3, total: 4 },
-    );
-
-    assert.deepEqual(
-        getPasswordRecoveryStepProgress(
-            PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_RESET,
-        ),
-        { current: 4, total: 4 },
-    );
-});
-
-test('email confirmation keeps the shorter three-step progress', () => {
-    assert.deepEqual(
-        getPasswordRecoveryStepProgress(
-            PASSWORD_RECOVERY_WIZARD_STEPS.EMAIL_CONFIRMATION,
-        ),
-        { current: 3, total: 3 },
+        [
+            getPasswordRecoveryStepIndex(
+                PASSWORD_RECOVERY_WIZARD_STEPS.CHOOSE_METHOD,
+            ),
+            getPasswordRecoveryStepIndex(
+                PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY,
+            ),
+            getPasswordRecoveryStepIndex(
+                PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_RESET,
+            ),
+        ],
+        [1, 2, 3],
     );
 });
 
-test('wizard step index aligns the email and phone branches at step three', () => {
+test('email confirmation keeps the same transition order as phone verification', () => {
     assert.equal(
         getPasswordRecoveryStepIndex(
             PASSWORD_RECOVERY_WIZARD_STEPS.EMAIL_CONFIRMATION,
         ),
-        2,
-    );
-
-    assert.equal(
         getPasswordRecoveryStepIndex(
             PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY,
         ),
-        2,
+    );
+});
+
+test('progress items stay on a stable identify recover reset row for the email branch', () => {
+    assert.deepEqual(
+        getPasswordRecoveryProgressItems(
+            PASSWORD_RECOVERY_WIZARD_STEPS.EMAIL_CONFIRMATION,
+        ),
+        [
+            {
+                id: 'identify',
+                label: 'Identify',
+                state: 'complete',
+            },
+            {
+                id: 'recover',
+                label: 'Recover',
+                state: 'complete',
+            },
+            {
+                id: 'reset',
+                label: 'Reset',
+                state: 'current',
+            },
+        ],
+    );
+});
+
+test('progress items keep the reset stage upcoming during phone verification', () => {
+    assert.deepEqual(
+        getPasswordRecoveryProgressItems(
+            PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY,
+        ),
+        [
+            {
+                id: 'identify',
+                label: 'Identify',
+                state: 'complete',
+            },
+            {
+                id: 'recover',
+                label: 'Recover',
+                state: 'current',
+            },
+            {
+                id: 'reset',
+                label: 'Reset',
+                state: 'upcoming',
+            },
+        ],
     );
 });
 
@@ -105,6 +143,15 @@ test('transition direction moves forward when continuing deeper into recovery', 
             nextStep: PASSWORD_RECOVERY_WIZARD_STEPS.PHONE_VERIFY,
         }),
         'forward',
+    );
+});
+
+test('identifier summary never echoes the raw typed lookup value', () => {
+    assert.equal(
+        getPasswordRecoveryIdentifierSummary({
+            typedIdentifier: 'member@example.com',
+        }),
+        'Account identified',
     );
 });
 
