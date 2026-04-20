@@ -43,6 +43,11 @@ use App\Http\Controllers\Spa\Admin\WatchlistController as SpaWatchlistController
 use App\Http\Controllers\Spa\AuthController as SpaAuthController;
 use App\Http\Controllers\Spa\MemberVerificationController as SpaMemberVerificationController;
 use App\Http\Controllers\Spa\NotificationsController as SpaNotificationsController;
+use App\Http\Controllers\Spa\PasswordRecoveryEmailLinkController as SpaPasswordRecoveryEmailLinkController;
+use App\Http\Controllers\Spa\PasswordRecoveryLookupController as SpaPasswordRecoveryLookupController;
+use App\Http\Controllers\Spa\PasswordRecoveryPhoneOtpController as SpaPasswordRecoveryPhoneOtpController;
+use App\Http\Controllers\Spa\PasswordRecoveryPhoneResetController as SpaPasswordRecoveryPhoneResetController;
+use App\Http\Controllers\Spa\PasswordRecoveryPhoneVerificationController as SpaPasswordRecoveryPhoneVerificationController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +70,21 @@ Route::prefix('spa')->middleware('web')->group(function () {
     Route::middleware('guest')->group(function () {
         Route::post('auth/login', [SpaAuthController::class, 'login'])
             ->middleware('throttle:login');
+
+        Route::post('password-recovery/lookup', SpaPasswordRecoveryLookupController::class)
+            ->middleware('throttle:password-recovery-lookup');
+
+        Route::post('password-recovery/email', SpaPasswordRecoveryEmailLinkController::class)
+            ->middleware('throttle:password-recovery-email');
+
+        Route::post('password-recovery/phone/send', SpaPasswordRecoveryPhoneOtpController::class)
+            ->middleware('throttle:password-recovery-phone-send');
+
+        Route::post('password-recovery/phone/verify', SpaPasswordRecoveryPhoneVerificationController::class)
+            ->middleware('throttle:password-recovery-phone-verify');
+
+        Route::post('password-recovery/phone/reset', SpaPasswordRecoveryPhoneResetController::class)
+            ->middleware('throttle:password-recovery-phone-reset');
 
         Route::post('member/verify', [SpaMemberVerificationController::class, 'store'])
             ->middleware('throttle:member-verification');

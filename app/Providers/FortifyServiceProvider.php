@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Models\AppUser;
+use App\Support\PasswordRecoveryState;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -80,6 +81,7 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
 
         Fortify::requestPasswordResetLinkView(fn (Request $request) => Inertia::render('auth/forgot-password', [
+            'recovery' => app(PasswordRecoveryState::class)->pageData($request),
             'status' => $request->session()->get('status'),
         ]));
 
@@ -124,5 +126,74 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(30)->by($throttleKey);
         });
+
+        RateLimiter::for('password-recovery-lookup', function (Request $request) {
+            $identifier = (string) $request->input('identifier', '');
+            $throttleKey = Str::transliterate(Str::lower(trim($identifier).'|'.$request->ip()));
+
+            return $this->passwordRecoveryLimit(
+                5,
+                $throttleKey,
+                'Too many recovery lookups. Please wait a minute and try again.',
+            );
+        });
+
+        RateLimiter::for('password-recovery-email', function (Request $request) {
+            return $this->passwordRecoveryLimit(
+                3,
+                $this->passwordRecoveryUserThrottleKey($request, 'email'),
+                'Too many recovery link requests. Please wait a few minutes and try again.',
+                5,
+            );
+        });
+
+        RateLimiter::for('password-recovery-phone-send', function (Request $request) {
+            return $this->passwordRecoveryLimit(
+                3,
+                $this->passwordRecoveryUserThrottleKey($request, 'phone-send'),
+                'Too many code requests. Please wait a few minutes and try again.',
+                5,
+            );
+        });
+
+        RateLimiter::for('password-recovery-phone-verify', function (Request $request) {
+            return $this->passwordRecoveryLimit(
+                3,
+                $this->passwordRecoveryUserThrottleKey($request, 'phone-verify'),
+                'Too many code verification attempts. Please wait a minute and try again.',
+            );
+        });
+
+        RateLimiter::for('password-recovery-phone-reset', function (Request $request) {
+            return $this->passwordRecoveryLimit(
+                3,
+                $this->passwordRecoveryUserThrottleKey($request, 'phone-reset'),
+                'Too many password reset attempts. Please wait a few minutes and try again.',
+                10,
+            );
+        });
+    }
+
+    private function passwordRecoveryLimit(
+        int $maxAttempts,
+        string $throttleKey,
+        string $message,
+        int $decayMinutes = 1,
+    ): Limit {
+        return Limit::perMinute($maxAttempts, $decayMinutes)
+            ->by($throttleKey)
+            ->response(fn () => response()->json([
+                'message' => $message,
+            ], 429));
+    }
+
+    private function passwordRecoveryUserThrottleKey(Request $request, string $scope): string
+    {
+        $state = $request->session()->get(PasswordRecoveryState::SESSION_KEY, []);
+        $lookupUserId = is_array($state) ? ($state['lookup']['user_id'] ?? null) : null;
+        $verifiedUserId = is_array($state) ? ($state['verified']['user_id'] ?? null) : null;
+        $userKey = $verifiedUserId ?? $lookupUserId ?? 'guest';
+
+        return Str::transliterate(Str::lower($scope.'|'.$userKey.'|'.$request->ip()));
     }
 }
