@@ -1,5 +1,12 @@
-import { Head, router } from '@inertiajs/react';
-import { Banknote, CalendarCheck, Clock, Download, Printer } from 'lucide-react';
+import { Form, Head, router } from '@inertiajs/react';
+import {
+    Banknote,
+    CalendarCheck,
+    Clock,
+    CreditCard,
+    Download,
+    Printer,
+} from 'lucide-react';
 import { useState } from 'react';
 import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import {
@@ -9,8 +16,11 @@ import {
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
 import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments-filters-card';
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
+import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { PageShell } from '@/components/page-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
@@ -22,6 +32,7 @@ import {
     loans as clientLoans,
 } from '@/routes/client';
 import loanPaymentsRoutes from '@/routes/client/loan-payments';
+import { checkout as paymongoCheckout } from '@/routes/client/loan-payments/paymongo';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberLoan,
@@ -197,6 +208,14 @@ export default function LoanPayments({
     const lastPayment = summary.last_payment_date
         ? formatDate(summary.last_payment_date)
         : 'No payment recorded yet';
+    const recommendedPayment = summary.recommended_payment
+        ? formatCurrency(summary.recommended_payment)
+        : 'Not available';
+    const defaultPaymentAmount =
+        summary.recommended_payment && summary.recommended_payment > 0
+            ? summary.recommended_payment.toFixed(2)
+            : '';
+    const canCheckout = Boolean(loanNumber && summary.balance > 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -262,6 +281,76 @@ export default function LoanPayments({
                         />
                     </div>
                 )}
+
+                <SurfaceCard variant="default" padding="md" className="space-y-5">
+                    <SectionHeader
+                        title="Make a Payment"
+                        description="Pay with GCash, QR Ph, Maya, or Online Banking"
+                        actions={<CreditCard className="h-5 w-5 text-muted-foreground" />}
+                        titleClassName="text-base font-semibold"
+                    />
+
+                    <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.2fr] md:items-end">
+                        <div className="rounded-xl border border-border/30 bg-muted/30 p-4">
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Outstanding Balance
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold tabular-nums">
+                                {summaryBalance}
+                            </p>
+                        </div>
+                        <div className="rounded-xl border border-border/30 bg-muted/30 p-4">
+                            <p className="text-xs font-medium text-muted-foreground">
+                                Recommended Payment
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold tabular-nums">
+                                {recommendedPayment}
+                            </p>
+                        </div>
+                        <Form {...paymongoCheckout.form(loanNumber ?? '')}>
+                            {({ errors, processing }) => (
+                                <div className="space-y-3">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="online-payment-amount">
+                                            Amount
+                                        </Label>
+                                        <Input
+                                            id="online-payment-amount"
+                                            name="amount"
+                                            type="number"
+                                            inputMode="decimal"
+                                            min="1"
+                                            max={summary.balance || undefined}
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            defaultValue={defaultPaymentAmount}
+                                            disabled={!canCheckout || processing}
+                                            aria-invalid={Boolean(errors.amount)}
+                                        />
+                                        {errors.amount ? (
+                                            <p className="text-xs text-destructive">
+                                                {errors.amount}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        className="w-full"
+                                        disabled={!canCheckout || processing}
+                                    >
+                                        <CreditCard />
+                                        {processing
+                                            ? 'Opening checkout...'
+                                            : 'Continue to Secure Checkout'}
+                                    </Button>
+                                </div>
+                            )}
+                        </Form>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Pay with GCash, QR Ph, Maya, or Online Banking. You will be redirected to PayMongo’s secure checkout page.
+                    </p>
+                </SurfaceCard>
 
                 <MemberLoanPaymentsFiltersCard
                     filters={filters}

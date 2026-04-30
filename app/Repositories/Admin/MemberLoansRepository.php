@@ -68,6 +68,26 @@ class MemberLoansRepository
         return $this->formatDateValue($value);
     }
 
+    public function getNextPaymentAmount(string $loanNumber): ?float
+    {
+        $connection = $this->scheduleConnectionName();
+
+        if (
+            ! $this->hasScheduleTable() ||
+            ! $this->schemaCapabilities->hasColumn('Amortsched', 'Amortization', $connection)
+        ) {
+            return null;
+        }
+
+        $value = $this->scheduleQuery()
+            ->where('lnnumber', $loanNumber)
+            ->where('Date_pay', '>=', Carbon::today()->startOfDay())
+            ->orderBy('Date_pay')
+            ->value('Amortization');
+
+        return $this->castNumber($value);
+    }
+
     /**
      * @note Last payment date uses wlnled.payments > 0 to identify actual payments.
      */

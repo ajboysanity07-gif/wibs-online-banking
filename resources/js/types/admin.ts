@@ -51,6 +51,7 @@ export type DashboardSummary = {
 
 export type MemberLoanSummary = {
     balance: number;
+    recommended_payment: number | null;
     next_payment_date: string | null;
     last_payment_date: string | null;
 };
@@ -96,6 +97,46 @@ export type MemberLoanPaymentsResponse =
         openingBalance?: number | null;
         closingBalance?: number | null;
     };
+
+export type OnlinePaymentStatus =
+    | 'pending'
+    | 'paid'
+    | 'failed'
+    | 'expired'
+    | 'cancelled'
+    | 'posted';
+
+export type OnlinePayment = {
+    id: number;
+    member_name: string | null;
+    acctno: string | null;
+    loan_number: string | null;
+    amount: number;
+    currency: string;
+    provider: string;
+    provider_checkout_id: string | null;
+    provider_payment_id: string | null;
+    reference_number: string | null;
+    status: OnlinePaymentStatus;
+    paid_at: string | null;
+    posted_at: string | null;
+    posted_by: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    raw_payload?: unknown;
+};
+
+export type OnlinePaymentsFilters = {
+    status: OnlinePaymentStatus | null;
+    start: string | null;
+    end: string | null;
+    loan_number: string | null;
+    acctno: string | null;
+    reference_number: string | null;
+    perPage: number;
+};
+
+export type OnlinePaymentsResponse = PaginatedResponse<OnlinePayment>;
 
 export type MemberSummary = {
     member_id: string;
