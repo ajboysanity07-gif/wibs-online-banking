@@ -4,10 +4,16 @@ namespace App\Services\Payments;
 
 use App\Models\OnlinePayment;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class PayMongoService
 {
+    /**
+     * @var list<string>
+     */
+    private const SUPPORTED_PAYMENT_METHODS = ['gcash', 'paymaya', 'qrph', 'dob'];
+
     /**
      * Create a PayMongo Hosted Checkout session.
      *
@@ -18,6 +24,8 @@ class PayMongoService
         string $successUrl,
         string $cancelUrl,
     ): array {
+        $paymentMethods = $this->paymentMethods();
+
         $response = Http::withBasicAuth($this->secretKey(), '')
             ->acceptJson()
             ->asJson()
@@ -47,7 +55,7 @@ class PayMongoService
                                 ? null
                                 : (string) $payment->user_id,
                         ],
-                        'payment_method_types' => $this->paymentMethods(),
+                        'payment_method_types' => $paymentMethods,
                         'send_email_receipt' => false,
                         'show_description' => true,
                         'show_line_items' => true,
@@ -55,9 +63,17 @@ class PayMongoService
                         'cancel_url' => $cancelUrl,
                     ],
                 ],
-            ])
-            ->throw()
-            ->json();
+            ]);
+
+        if ($response->failed()) {
+            Log::warning('PayMongo checkout request failed.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'payment_methods' => $paymentMethods,
+            ]);
+        }
+
+        $response = $response->throw()->json();
 
         if (! is_array($response)) {
             throw new RuntimeException('PayMongo returned an invalid checkout response.');
@@ -345,13 +361,17 @@ class PayMongoService
         $paymentMethods = config('paymongo.payment_methods');
 
         if (! is_array($paymentMethods)) {
-            return ['qrph', 'gcash', 'paymaya', 'dob'];
+            return ['gcash'];
         }
 
-        return array_values(array_filter(
+        $paymentMethods = array_values(array_filter(array_map(
+            static fn (mixed $method): ?string => is_string($method) ? strtolower(trim($method)) : null,
             $paymentMethods,
-            static fn (mixed $method): bool => is_string($method) && $method !== '',
-        ));
+        )));
+
+        $paymentMethods = array_values(array_intersect($paymentMethods, self::SUPPORTED_PAYMENT_METHODS));
+
+        return $paymentMethods === [] ? ['gcash'] : $paymentMethods;
     }
 
     private function mode(): string

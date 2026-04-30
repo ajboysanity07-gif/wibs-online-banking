@@ -8,6 +8,7 @@ use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -60,6 +61,26 @@ test('online payments table and model store centavo amounts', function () {
         ->and($payment->paid_at)->not->toBeNull();
 });
 
+test('PayMongo config parses comma separated payment methods from environment', function () {
+    $originalPaymentMethods = env('PAYMONGO_PAYMENT_METHODS');
+
+    try {
+        setPaymongoPaymentMethodsEnvironment('gcash,paymaya,unsupported,qrph,dob');
+        $configured = require base_path('config/paymongo.php');
+
+        expect($configured['payment_methods'])->toBe(['gcash', 'paymaya', 'qrph', 'dob']);
+
+        setPaymongoPaymentMethodsEnvironment(null);
+        $defaulted = require base_path('config/paymongo.php');
+
+        expect($defaulted['payment_methods'])->toBe(['gcash']);
+    } finally {
+        setPaymongoPaymentMethodsEnvironment(
+            is_scalar($originalPaymentMethods) ? (string) $originalPaymentMethods : null,
+        );
+    }
+});
+
 test('client can create a pending PayMongo checkout for their loan', function () {
     $user = createOnlinePaymentsClient('000801');
     createOnlinePaymentsLoan($user, 'LN-801', 1200);
@@ -98,7 +119,115 @@ test('client can create a pending PayMongo checkout for their loan', function ()
     Http::assertSent(fn ($request): bool => data_get(
         $request->data(),
         'data.attributes.payment_method_types',
-    ) === ['qrph', 'gcash', 'paymaya', 'dob']);
+    ) === ['gcash']);
+});
+
+test('failed PayMongo checkout logs response details and shows local exception message', function () {
+    Log::spy();
+
+    $this->withoutMiddleware([
+        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+    ]);
+
+    config(['paymongo.payment_methods' => ['gcash', 'paymaya', 'unsupported']]);
+
+    $user = createOnlinePaymentsClient('000808');
+    createOnlinePaymentsLoan($user, 'LN-808', 1200);
+
+    Http::fake([
+        'https://api.paymongo.com/v1/checkout_sessions' => Http::response([
+            'errors' => [
+                [
+                    'code' => 'parameter_invalid',
+                    'detail' => 'payment_method_types contains an unavailable payment method.',
+                ],
+            ],
+        ], 422),
+    ]);
+
+    $originalEnvironment = app()->environment();
+    app()->detectEnvironment(static fn (): string => 'local');
+
+    try {
+        $response = $this
+            ->actingAs($user)
+            ->post(route('client.loan-payments.paymongo.checkout', [
+                'loanNumber' => 'LN-808',
+            ]), [
+                'amount' => '150.75',
+            ]);
+    } finally {
+        app()->detectEnvironment(static fn (): string => $originalEnvironment);
+    }
+
+    $response->assertSessionHasErrors('amount');
+    expect(session('errors')->get('amount')[0])
+        ->toContain('HTTP request returned status code 422');
+
+    $this->assertDatabaseHas('online_payments', [
+        'user_id' => $user->user_id,
+        'acctno' => '000808',
+        'loan_number' => 'LN-808',
+        'amount' => 15075,
+        'status' => OnlinePayment::STATUS_FAILED,
+    ]);
+
+    Http::assertSent(fn ($request): bool => data_get(
+        $request->data(),
+        'data.attributes.payment_method_types',
+    ) === ['gcash', 'paymaya']);
+
+    Log::shouldHaveReceived('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'PayMongo checkout request failed.'
+                && ($context['status'] ?? null) === 422
+                && str_contains((string) ($context['body'] ?? ''), 'parameter_invalid')
+                && ($context['payment_methods'] ?? null) === ['gcash', 'paymaya']
+                && ! array_key_exists('secret_key', $context)
+                && ! str_contains(json_encode($context, JSON_THROW_ON_ERROR), 'sk_test_online_payments');
+        });
+});
+
+test('failed PayMongo checkout keeps production validation error generic', function () {
+    $this->withoutMiddleware([
+        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+    ]);
+
+    $user = createOnlinePaymentsClient('000809');
+    createOnlinePaymentsLoan($user, 'LN-809', 1200);
+
+    Http::fake([
+        'https://api.paymongo.com/v1/checkout_sessions' => Http::response([
+            'errors' => [
+                [
+                    'code' => 'parameter_invalid',
+                    'detail' => 'payment_method_types contains an unavailable payment method.',
+                ],
+            ],
+        ], 422),
+    ]);
+
+    $originalEnvironment = app()->environment();
+    app()->detectEnvironment(static fn (): string => 'production');
+
+    try {
+        $response = $this
+            ->actingAs($user)
+            ->post(route('client.loan-payments.paymongo.checkout', [
+                'loanNumber' => 'LN-809',
+            ]), [
+                'amount' => '150.75',
+            ]);
+    } finally {
+        app()->detectEnvironment(static fn (): string => $originalEnvironment);
+    }
+
+    $response->assertSessionHasErrors([
+        'amount' => 'Online checkout is temporarily unavailable. Please try again later.',
+    ]);
 });
 
 test('success redirect does not mark an online payment as paid', function () {
@@ -346,4 +475,18 @@ function paymongoSignature(string $payload): string
     );
 
     return 't='.$timestamp.',te='.$signature.',li=';
+}
+
+function setPaymongoPaymentMethodsEnvironment(?string $paymentMethods): void
+{
+    if ($paymentMethods === null) {
+        putenv('PAYMONGO_PAYMENT_METHODS');
+        unset($_ENV['PAYMONGO_PAYMENT_METHODS'], $_SERVER['PAYMONGO_PAYMENT_METHODS']);
+
+        return;
+    }
+
+    putenv('PAYMONGO_PAYMENT_METHODS='.$paymentMethods);
+    $_ENV['PAYMONGO_PAYMENT_METHODS'] = $paymentMethods;
+    $_SERVER['PAYMONGO_PAYMENT_METHODS'] = $paymentMethods;
 }

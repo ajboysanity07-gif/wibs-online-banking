@@ -80,7 +80,9 @@ class PayMongoCheckoutController extends Controller
             ]);
 
             return back()->withErrors([
-                'amount' => 'Online checkout is temporarily unavailable. Please try again later.',
+                'amount' => app()->environment('local')
+                    ? $exception->getMessage()
+                    : 'Online checkout is temporarily unavailable. Please try again later.',
             ])->onlyInput('amount');
         }
 
