@@ -97,6 +97,12 @@ export type MemberLoanPaymentsResponse =
         closingBalance?: number | null;
     };
 
+export type PaymongoLoanPaymentMethod =
+    | 'gcash'
+    | 'maya'
+    | 'qrph'
+    | 'online_banking';
+
 export type MemberSummary = {
     member_id: string;
     user_id: number | null;

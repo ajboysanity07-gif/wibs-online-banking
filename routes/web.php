@@ -24,8 +24,10 @@ use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemb
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
 use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
+use App\Http\Controllers\Client\PaymongoLoanPaymentController as ClientPaymongoLoanPaymentController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PaymongoWebhookController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\LoanRequestDecisionController as SpaLoanRequestDecisionController;
@@ -52,6 +54,9 @@ use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggesti
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+
+Route::post('webhooks/paymongo', PaymongoWebhookController::class)
+    ->name('webhooks.paymongo');
 
 Route::middleware('guest')->group(function () {
     Route::post('register/verify', [MemberVerificationController::class, 'store'])
@@ -181,6 +186,13 @@ Route::get('client/loans/{loanNumber}/payments', ClientMemberLoanPaymentsControl
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments');
 
+Route::post(
+    'client/loans/{loanNumber}/payments/paymongo',
+    [ClientPaymongoLoanPaymentController::class, 'store'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.paymongo.store');
+
 Route::get(
     'client/loans/{loanNumber}/payments/print',
     [ClientMemberLoanPaymentsController::class, 'print'],
@@ -194,6 +206,20 @@ Route::get(
 )
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments.export');
+
+Route::get(
+    'client/payments/paymongo/{payment}/success',
+    [ClientPaymongoLoanPaymentController::class, 'success'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.paymongo.success');
+
+Route::get(
+    'client/payments/paymongo/{payment}/cancel',
+    [ClientPaymongoLoanPaymentController::class, 'cancel'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.paymongo.cancel');
 
 Route::get('client/savings', ClientMemberSavingsController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])

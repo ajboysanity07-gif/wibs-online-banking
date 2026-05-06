@@ -1,6 +1,15 @@
 import { Head, router } from '@inertiajs/react';
-import { Banknote, CalendarCheck, Clock, Download, Printer } from 'lucide-react';
-import { useState } from 'react';
+import axios from 'axios';
+import {
+    Banknote,
+    CalendarCheck,
+    Clock,
+    CreditCard,
+    Download,
+    ExternalLink,
+    Printer,
+} from 'lucide-react';
+import { useState, type FormEvent } from 'react';
 import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import {
     MemberDetailPrimaryCard,
@@ -11,9 +20,20 @@ import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
+import { FieldMessage } from '@/components/ui/field-message';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { PageShell } from '@/components/page-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
+import api, { getApiErrorMessage, mapValidationErrors } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
     dashboard as clientDashboard,
@@ -22,12 +42,14 @@ import {
     loans as clientLoans,
 } from '@/routes/client';
 import loanPaymentsRoutes from '@/routes/client/loan-payments';
+import { store as storePaymongoPayment } from '@/routes/client/loan-payments/paymongo';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberLoan,
     MemberLoanPaymentsFilters,
     MemberLoanPaymentsResponse,
     MemberLoanSummary,
+    PaymongoLoanPaymentMethod,
 } from '@/types/admin';
 
 type MemberSummary = {
@@ -53,6 +75,98 @@ const presetRanges: Array<{
     { value: 'custom', label: 'Custom Range' },
 ];
 
+const vatMultiplier = 1.12;
+const fixedFeeCents = 1339;
+
+const paymongoPaymentMethods: Array<{
+    value: PaymongoLoanPaymentMethod;
+    label: string;
+    rate: number;
+    fixedFeeCents: number;
+    usesMinimum?: boolean;
+}> = [
+    { value: 'gcash', label: 'GCash', rate: 0.0223, fixedFeeCents: 0 },
+    { value: 'maya', label: 'Maya', rate: 0.0179, fixedFeeCents: 0 },
+    { value: 'qrph', label: 'QRPh', rate: 0.0134, fixedFeeCents: 0 },
+    {
+        value: 'online_banking',
+        label: 'Online Banking',
+        rate: 0.0071,
+        fixedFeeCents,
+        usesMinimum: true,
+    },
+];
+
+type PaymongoCheckoutResponse = {
+    payment_id: string;
+    checkout_url: string;
+    base_amount: number;
+    service_fee: number;
+    total_amount: number;
+    payment_method: PaymongoLoanPaymentMethod;
+};
+
+type PaymongoFieldErrors = Partial<
+    Record<'amount' | 'payment_method', string>
+>;
+
+const amountToCents = (value: string): number | null => {
+    const amount = Number(value);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return null;
+    }
+
+    return Math.round(amount * 100);
+};
+
+const withVatCents = (amount: number): number =>
+    amount === 0 ? 0 : Math.ceil(amount * vatMultiplier);
+
+const calculatePassOnFee = (
+    baseAmountCents: number,
+    rate: number,
+    vatInclusiveFixedFeeCents: number,
+): number =>
+    Math.ceil(
+        (baseAmountCents + vatInclusiveFixedFeeCents) / (1 - rate) -
+            baseAmountCents,
+    );
+
+const calculatePaymongoAmounts = (
+    baseAmountCents: number | null,
+    method: PaymongoLoanPaymentMethod,
+) => {
+    const definition = paymongoPaymentMethods.find(
+        (paymentMethod) => paymentMethod.value === method,
+    );
+
+    if (!definition || baseAmountCents === null) {
+        return {
+            baseAmountCents: 0,
+            serviceFeeCents: 0,
+            grossAmountCents: 0,
+        };
+    }
+
+    const rate = definition.rate * vatMultiplier;
+    const vatInclusiveFixedFeeCents = withVatCents(definition.fixedFeeCents);
+    const percentageFeeCents = calculatePassOnFee(baseAmountCents, rate, 0);
+    const serviceFeeCents = definition.usesMinimum
+        ? Math.max(percentageFeeCents, vatInclusiveFixedFeeCents)
+        : calculatePassOnFee(
+              baseAmountCents,
+              rate,
+              vatInclusiveFixedFeeCents,
+          );
+
+    return {
+        baseAmountCents,
+        serviceFeeCents,
+        grossAmountCents: baseAmountCents + serviceFeeCents,
+    };
+};
+
 export default function LoanPayments({
     member,
     loan,
@@ -61,11 +175,22 @@ export default function LoanPayments({
 }: Props) {
     const loanNumber = loan.lnnumber ?? null;
     const perPage = payments.meta.perPage;
+    const defaultOnlinePaymentAmount =
+        summary.balance && summary.balance > 0 ? summary.balance.toFixed(2) : '';
 
     const [filters, setFilters] = useState<MemberLoanPaymentsFilters>(
         payments.filters,
     );
     const [loading, setLoading] = useState(false);
+    const [onlinePaymentAmount, setOnlinePaymentAmount] = useState(
+        defaultOnlinePaymentAmount,
+    );
+    const [paymentMethod, setPaymentMethod] =
+        useState<PaymongoLoanPaymentMethod>('gcash');
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
+    const [checkoutFieldErrors, setCheckoutFieldErrors] =
+        useState<PaymongoFieldErrors>({});
 
     const filtersReady =
         filters.range !== 'custom' ||
@@ -81,6 +206,18 @@ export default function LoanPayments({
     const paymentsHref = loanNumber ? loanPayments(loanNumber).url : null;
     const backToLoansHref = clientLoans().url;
     const backToProfileHref = clientDashboard().url;
+    const onlinePaymentAmountCents = amountToCents(onlinePaymentAmount);
+    const outstandingBalanceCents =
+        summary.balance && summary.balance > 0
+            ? Math.round(summary.balance * 100)
+            : null;
+    const onlinePaymentEstimate = calculatePaymongoAmounts(
+        onlinePaymentAmountCents,
+        paymentMethod,
+    );
+    const canStartCheckout = Boolean(
+        loanNumber && onlinePaymentAmountCents && !checkoutLoading,
+    );
 
     const reloadPayments = (
         nextPage: number,
@@ -184,6 +321,73 @@ export default function LoanPayments({
             },
         ).url;
 
+    const handleOnlinePaymentSubmit = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        if (!loanNumber) {
+            return;
+        }
+
+        setCheckoutError(null);
+        setCheckoutFieldErrors({});
+
+        if (onlinePaymentAmountCents === null) {
+            setCheckoutFieldErrors({
+                amount: 'Enter a valid payment amount.',
+            });
+
+            return;
+        }
+
+        if (
+            outstandingBalanceCents !== null &&
+            onlinePaymentAmountCents > outstandingBalanceCents
+        ) {
+            setCheckoutFieldErrors({
+                amount: 'Amount cannot exceed the outstanding balance.',
+            });
+
+            return;
+        }
+
+        setCheckoutLoading(true);
+
+        try {
+            const response = await api.post<PaymongoCheckoutResponse>(
+                storePaymongoPayment({ loanNumber }).url,
+                {
+                    amount: onlinePaymentAmount,
+                    payment_method: paymentMethod,
+                },
+            );
+
+            window.location.assign(response.data.checkout_url);
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 422) {
+                const payload = error.response.data as {
+                    errors?: Record<string, string[]>;
+                    message?: string;
+                };
+
+                setCheckoutFieldErrors(
+                    mapValidationErrors(payload.errors) as PaymongoFieldErrors,
+                );
+                setCheckoutError(payload.message ?? 'Review the payment form.');
+            } else {
+                setCheckoutError(
+                    getApiErrorMessage(
+                        error,
+                        'PayMongo checkout could not be started.',
+                    ),
+                );
+            }
+        } finally {
+            setCheckoutLoading(false);
+        }
+    };
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Member profile', href: clientDashboard().url },
         { title: 'Loans', href: clientLoans().url },
@@ -262,6 +466,181 @@ export default function LoanPayments({
                         />
                     </div>
                 )}
+
+                <SurfaceCard variant="default" padding="md">
+                    <form
+                        className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]"
+                        onSubmit={handleOnlinePaymentSubmit}
+                    >
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0 space-y-1">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                                        <CreditCard className="size-4 text-primary" />
+                                        Pay Online
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        PayMongo checkout for this loan.
+                                    </p>
+                                </div>
+                                <div className="text-left sm:text-right">
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                        Outstanding Balance
+                                    </p>
+                                    <p className="text-sm font-semibold text-foreground">
+                                        {summaryBalance}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="paymongo-amount">
+                                        Amount
+                                    </Label>
+                                    <Input
+                                        id="paymongo-amount"
+                                        type="number"
+                                        min="1"
+                                        max={summary.balance || undefined}
+                                        step="0.01"
+                                        inputMode="decimal"
+                                        value={onlinePaymentAmount}
+                                        aria-invalid={
+                                            checkoutFieldErrors.amount
+                                                ? true
+                                                : undefined
+                                        }
+                                        onChange={(event) => {
+                                            setOnlinePaymentAmount(
+                                                event.target.value,
+                                            );
+                                            setCheckoutFieldErrors(
+                                                (current) => ({
+                                                    ...current,
+                                                    amount: undefined,
+                                                }),
+                                            );
+                                        }}
+                                    />
+                                    <FieldMessage
+                                        error={checkoutFieldErrors.amount}
+                                        hint={
+                                            outstandingBalanceCents
+                                                ? `Maximum ${formatCurrency(summary.balance)}`
+                                                : undefined
+                                        }
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="paymongo-method">
+                                        Payment Method
+                                    </Label>
+                                    <Select
+                                        value={paymentMethod}
+                                        onValueChange={(value) => {
+                                            setPaymentMethod(
+                                                value as PaymongoLoanPaymentMethod,
+                                            );
+                                            setCheckoutFieldErrors(
+                                                (current) => ({
+                                                    ...current,
+                                                    payment_method: undefined,
+                                                }),
+                                            );
+                                        }}
+                                    >
+                                        <SelectTrigger
+                                            id="paymongo-method"
+                                            aria-invalid={
+                                                checkoutFieldErrors.payment_method
+                                                    ? true
+                                                    : undefined
+                                            }
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {paymongoPaymentMethods.map(
+                                                (method) => (
+                                                    <SelectItem
+                                                        key={method.value}
+                                                        value={method.value}
+                                                    >
+                                                        {method.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <FieldMessage
+                                        error={
+                                            checkoutFieldErrors.payment_method
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            {checkoutError ? (
+                                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                                    {checkoutError}
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <div className="rounded-lg border border-border/50 bg-background/60 p-4">
+                            <div className="space-y-3 text-sm">
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-muted-foreground">
+                                        Loan Payment
+                                    </span>
+                                    <span className="font-medium text-foreground">
+                                        {formatCurrency(
+                                            onlinePaymentEstimate.baseAmountCents /
+                                                100,
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-muted-foreground">
+                                        Service Fee
+                                    </span>
+                                    <span className="font-medium text-foreground">
+                                        {formatCurrency(
+                                            onlinePaymentEstimate.serviceFeeCents /
+                                                100,
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="border-t border-border/60 pt-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="font-semibold text-foreground">
+                                            Total Amount
+                                        </span>
+                                        <span className="text-lg font-semibold text-foreground">
+                                            {formatCurrency(
+                                                onlinePaymentEstimate.grossAmountCents /
+                                                    100,
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button
+                                type="submit"
+                                className="mt-4 w-full"
+                                disabled={!canStartCheckout}
+                            >
+                                <ExternalLink />
+                                {checkoutLoading
+                                    ? 'Starting checkout...'
+                                    : 'Continue to PayMongo'}
+                            </Button>
+                        </div>
+                    </form>
+                </SurfaceCard>
 
                 <MemberLoanPaymentsFiltersCard
                     filters={filters}
