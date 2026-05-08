@@ -410,11 +410,39 @@ class LoanRequestService
     /**
      * @param  array<string, mixed>  $payload
      */
+    public function fillSubmittedDetails(
+        LoanRequest $loanRequest,
+        array $payload,
+    ): void {
+        $this->fillLoanRequestDetails($loanRequest, $payload);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     private function fillLoanRequest(
         LoanRequest $loanRequest,
         array $payload,
         LoanRequestStatus $status,
         bool $markSubmitted,
+    ): void {
+        $this->fillLoanRequestDetails($loanRequest, $payload);
+
+        $loanRequest->status = $status;
+
+        if ($status === LoanRequestStatus::Draft) {
+            $loanRequest->submitted_at = null;
+        } elseif ($markSubmitted) {
+            $loanRequest->submitted_at = now();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function fillLoanRequestDetails(
+        LoanRequest $loanRequest,
+        array $payload,
     ): void {
         $payload = array_merge([
             'typecode' => $loanRequest->typecode ?? '',
@@ -432,19 +460,12 @@ class LoanRequestService
         $loanRequest->requested_term = (int) ($payload['requested_term'] ?? 0);
         $loanRequest->loan_purpose = (string) ($payload['loan_purpose'] ?? '');
         $loanRequest->availment_status = (string) ($payload['availment_status'] ?? '');
-        $loanRequest->status = $status;
-
-        if ($status === LoanRequestStatus::Draft) {
-            $loanRequest->submitted_at = null;
-        } elseif ($markSubmitted) {
-            $loanRequest->submitted_at = now();
-        }
     }
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function upsertPeopleSnapshots(LoanRequest $loanRequest, array $payload): void
+    public function upsertPeopleSnapshots(LoanRequest $loanRequest, array $payload): void
     {
         $this->upsertPersonSnapshot(
             $loanRequest,

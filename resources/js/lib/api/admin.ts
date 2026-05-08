@@ -13,7 +13,11 @@ import type {
     MembersResponse,
     RequestsResponse,
 } from '@/types/admin';
-import type { LoanRequestDetail } from '@/types/loan-requests';
+import type {
+    LoanRequestCorrectionPayload,
+    LoanRequestCorrectionResult,
+    LoanRequestDetail,
+} from '@/types/loan-requests';
 
 type ApiResponse<T> = {
     ok: boolean;
@@ -157,6 +161,16 @@ export const adminApi = {
         >(`/spa/admin/requests/${loanRequestId}/decline`, payload);
 
         return unwrap(response).loanRequest;
+    },
+    async correctLoanRequest(
+        loanRequestId: number,
+        payload: LoanRequestCorrectionPayload,
+    ): Promise<LoanRequestCorrectionResult> {
+        const response = await client.patch<
+            ApiResponse<LoanRequestCorrectionResult>
+        >(`/spa/admin/requests/${loanRequestId}/corrections`, payload);
+
+        return unwrap(response);
     },
     async getMemberAccountsSummary(
         memberKey: string | number,

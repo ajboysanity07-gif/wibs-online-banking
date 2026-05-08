@@ -6,6 +6,7 @@ use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
@@ -50,6 +51,150 @@ beforeEach(function () {
     Cache::forget('loan_requests.loan_types');
     Cache::forget('loan_requests.loan_type_labels');
 });
+
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function validLoanRequestCorrectionPayload(array $overrides = []): array
+{
+    DB::table('wlntype')->updateOrInsert(
+        ['typecode' => 'LN-COR'],
+        ['lntype' => 'Corrected Personal'],
+    );
+
+    $payload = [
+        'change_reason' => 'Corrected submitted request details.',
+        'typecode' => 'LN-COR',
+        'requested_amount' => 23000,
+        'requested_term' => 18,
+        'loan_purpose' => 'Corrected purpose',
+        'availment_status' => 'Re-Loan',
+        'applicant' => [
+            'first_name' => 'Corrected',
+            'last_name' => 'Applicant',
+            'middle_name' => 'A',
+            'nickname' => 'CA',
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Corrected Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
+            'length_of_stay' => '6 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Married',
+            'educational_attainment' => 'College',
+            'number_of_children' => 2,
+            'spouse_name' => 'Corrected Spouse',
+            'spouse_age' => 35,
+            'spouse_cell_no' => '09123456780',
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Corrected Company',
+            'employer_business_address1' => 'Corrected Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'telephone_no' => '021234567',
+            'current_position' => 'Supervisor',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '5 years',
+            'gross_monthly_income' => 32000,
+            'payday' => '15th & 30th',
+        ],
+        'co_maker_1' => [
+            'first_name' => 'Corrected',
+            'last_name' => 'CoMakerOne',
+            'middle_name' => 'One',
+            'nickname' => null,
+            'birthdate' => '1989-03-12',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address1' => 'Corrected Co One Street',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'length_of_stay' => '4 years',
+            'housing_status' => 'RENT',
+            'cell_no' => '09998887777',
+            'civil_status' => 'Married',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Government',
+            'employer_business_name' => 'Corrected Office One',
+            'employer_business_address1' => 'Corrected Plaza',
+            'employer_business_address2' => 'Cebu City',
+            'employer_business_address3' => 'Cebu',
+            'telephone_no' => '021234568',
+            'current_position' => 'Clerk',
+            'nature_of_business' => 'Government',
+            'years_in_work_business' => '6 years',
+            'gross_monthly_income' => 18000,
+            'payday' => '30th',
+        ],
+        'co_maker_2' => [
+            'first_name' => 'Corrected',
+            'last_name' => 'CoMakerTwo',
+            'middle_name' => 'Two',
+            'nickname' => null,
+            'birthdate' => '1987-02-12',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address1' => 'Corrected Co Two Street',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'length_of_stay' => '3 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09111112222',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'High School',
+            'employment_type' => 'Self Employed',
+            'employer_business_name' => 'Corrected Store Two',
+            'employer_business_address1' => 'Corrected Store',
+            'employer_business_address2' => 'Davao City',
+            'employer_business_address3' => 'Davao del Sur',
+            'telephone_no' => '021234569',
+            'current_position' => 'Owner',
+            'nature_of_business' => 'Retail',
+            'years_in_work_business' => '8 years',
+            'gross_monthly_income' => 22000,
+            'payday' => '15th',
+        ],
+    ];
+
+    return array_replace_recursive($payload, $overrides);
+}
+
+function createLoanRequestPeopleSnapshots(LoanRequest $loanRequest): void
+{
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Original',
+            'last_name' => 'Applicant',
+            'birthplace_city' => 'Old City',
+            'birthplace_province' => 'Old Province',
+            'address1' => 'Old Street',
+            'address2' => 'Old City',
+            'address3' => 'Old Province',
+            'employer_business_name' => 'Old Company',
+        ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'first_name' => 'Original',
+            'last_name' => 'CoMakerOne',
+        ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'first_name' => 'Original',
+            'last_name' => 'CoMakerTwo',
+        ]);
+}
 
 test('loan request people schema excludes spouse occupation', function () {
     expect(Schema::hasColumn('loan_request_people', 'spouse_occupation'))->toBeFalse();
@@ -1785,6 +1930,252 @@ test('loan requests not under review cannot be decided', function () {
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
     Queue::assertNothingPushed();
+});
+
+test('admin can correct under review loan request details and people snapshots', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000520',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000521',
+    ]);
+    $submittedAt = now()->subDay();
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-OLD',
+        'loan_type_label_snapshot' => 'Old Loan',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'New',
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => $submittedAt,
+    ]);
+    createLoanRequestPeopleSnapshots($loanRequest);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/corrections",
+            validLoanRequestCorrectionPayload(),
+        );
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::UnderReview->value)
+        ->assertJsonPath('data.loanRequest.requested_amount', '23000.00')
+        ->assertJsonPath('data.loanRequest.requested_term', 18)
+        ->assertJsonPath('data.loanRequest.loan_purpose', 'Corrected purpose')
+        ->assertJsonPath('data.applicant.first_name', 'Corrected')
+        ->assertJsonPath('data.coMakerOne.first_name', 'Corrected')
+        ->assertJsonPath('data.coMakerTwo.first_name', 'Corrected');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->submitted_at?->toDateTimeString())->toBe($submittedAt->toDateTimeString());
+    expect($loanRequest->reviewed_by)->toBeNull();
+    expect($loanRequest->reviewed_at)->toBeNull();
+    expect($loanRequest->approved_amount)->toBeNull();
+    expect($loanRequest->approved_term)->toBeNull();
+    expect($loanRequest->decision_notes)->toBeNull();
+    expect($loanRequest->typecode)->toBe('LN-COR');
+    expect($loanRequest->loan_type_label_snapshot)->toBe('Corrected Personal');
+    expect($loanRequest->requested_amount)->toBe('23000.00');
+    expect($loanRequest->requested_term)->toBe(18);
+
+    $people = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->get()
+        ->keyBy('role');
+
+    expect($people)->toHaveCount(3);
+    expect($people[LoanRequestPersonRole::Applicant->value]->first_name)->toBe('Corrected');
+    expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila, Metro Manila');
+    expect($people[LoanRequestPersonRole::Applicant->value]->address)->toBe('Corrected Street, Manila, Metro Manila');
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->employer_business_name)->toBe('Corrected Office One');
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->employer_business_name)->toBe('Corrected Store Two');
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->loan_request_id)->toBe($loanRequest->id);
+    expect($change->changed_by)->toBe($admin->user_id);
+    expect($change->reason)->toBe('Corrected submitted request details.');
+    expect($change->before_json['loanRequest']['loan_purpose'])->toBe('Original purpose');
+    expect($change->after_json['loanRequest']['loan_purpose'])->toBe('Corrected purpose');
+    expect($change->after_json['applicant']['first_name'])->toBe('Corrected');
+});
+
+test('non admins cannot correct loan requests', function () {
+    $member = User::factory()->create([
+        'acctno' => '000522',
+    ]);
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($member)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/corrections",
+            validLoanRequestCorrectionPayload(),
+        );
+
+    $response->assertForbidden();
+
+    expect(LoanRequestChange::query()->count())->toBe(0);
+});
+
+test('admins cannot correct their own loan request', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000523',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($admin)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/corrections",
+            validLoanRequestCorrectionPayload(),
+        );
+
+    $response
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('correction');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect(LoanRequestChange::query()->count())->toBe(0);
+});
+
+test('approved and declined loan requests cannot be corrected', function (LoanRequestStatus $status) {
+    $admin = User::factory()->create([
+        'acctno' => '000524',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => $status,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/corrections",
+            validLoanRequestCorrectionPayload(),
+        );
+
+    $response
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('status');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe($status);
+    expect(LoanRequestChange::query()->count())->toBe(0);
+})->with([
+    'approved' => LoanRequestStatus::Approved,
+    'declined' => LoanRequestStatus::Declined,
+]);
+
+test('forbidden correction fields are rejected and decision fields remain unchanged', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000525',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    $reviewer = User::factory()->create([
+        'acctno' => '000526',
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000527',
+    ]);
+    $submittedAt = now()->subDays(2);
+    $reviewedAt = now()->subDay();
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-OLD',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'New',
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => $submittedAt,
+        'reviewed_by' => $reviewer->user_id,
+        'reviewed_at' => $reviewedAt,
+        'approved_amount' => 5000,
+        'approved_term' => 6,
+        'decision_notes' => 'Existing notes',
+    ]);
+
+    $payload = validLoanRequestCorrectionPayload([
+        'status' => LoanRequestStatus::Approved->value,
+        'approved_amount' => 1,
+        'approved_term' => 1,
+        'decision_notes' => 'Changed notes',
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => now()->toDateTimeString(),
+        'submitted_at' => now()->toDateTimeString(),
+        'user_id' => $admin->user_id,
+        'acctno' => $admin->acctno,
+        'reference' => 'LNREQ-999999',
+        'undertaking_accepted' => true,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/corrections",
+            $payload,
+        );
+
+    $response
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'status',
+            'approved_amount',
+            'approved_term',
+            'decision_notes',
+            'reviewed_by',
+            'reviewed_at',
+            'submitted_at',
+            'user_id',
+            'acctno',
+            'reference',
+            'undertaking_accepted',
+        ]);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->typecode)->toBe('LN-OLD');
+    expect($loanRequest->requested_amount)->toBe('12000.00');
+    expect($loanRequest->requested_term)->toBe(10);
+    expect($loanRequest->loan_purpose)->toBe('Original purpose');
+    expect($loanRequest->availment_status)->toBe('New');
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->submitted_at?->toDateTimeString())->toBe($submittedAt->toDateTimeString());
+    expect($loanRequest->reviewed_by)->toBe($reviewer->user_id);
+    expect($loanRequest->reviewed_at?->toDateTimeString())->toBe($reviewedAt->toDateTimeString());
+    expect($loanRequest->approved_amount)->toBe('5000.00');
+    expect($loanRequest->approved_term)->toBe(6);
+    expect($loanRequest->decision_notes)->toBe('Existing notes');
+    expect(LoanRequestChange::query()->count())->toBe(0);
 });
 
 test('loan request decisions succeed even without a phone number', function () {

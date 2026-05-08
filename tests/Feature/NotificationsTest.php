@@ -137,7 +137,7 @@ test('loan request submission notifies admins and superadmins', function () {
     $member = createRegisteredMember('000712', 'Loan', 'Member');
 
     $service = app(LoanRequestService::class);
-    $loanRequest = $service->submit($member, loanRequestPayload());
+    $loanRequest = $service->submit($member, notificationLoanRequestPayload());
 
     $adminNotification = latestNotificationFor($admin, LoanRequestSubmittedNotification::class);
     $superadminNotification = latestNotificationFor(
@@ -820,7 +820,7 @@ function notificationWithStatusFor(
         });
 }
 
-function loanRequestPayload(): array
+function notificationLoanRequestPayload(): array
 {
     return [
         'typecode' => 'LN-100',

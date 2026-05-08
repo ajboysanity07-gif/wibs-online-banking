@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
+import { Calendar, Download, PencilLine, Printer } from 'lucide-react';
 import { useState } from 'react';
-import { Calendar, Download, Printer } from 'lucide-react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,7 @@ type Props = {
     pdfHref: string;
     printHref: string;
     decision?: DecisionProps;
+    correction?: CorrectionProps;
 };
 
 const personName = (person?: LoanRequestPersonData | null): string => {
@@ -166,6 +167,12 @@ type DecisionProps = {
     onDecline?: (payload: LoanRequestDeclinePayload) => void;
 };
 
+type CorrectionProps = {
+    show?: boolean;
+    isProcessing?: boolean;
+    onEdit?: () => void;
+};
+
 type LoanRequestApprovePayload = {
     approved_amount: string;
     approved_term: string;
@@ -221,6 +228,7 @@ export function LoanRequestDetailPage({
     pdfHref,
     printHref,
     decision,
+    correction,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -241,6 +249,8 @@ export function LoanRequestDetailPage({
         normalizedStatus === 'under_review' ||
         normalizedStatus === 'approved' ||
         normalizedStatus === 'declined';
+    const showCorrectionAction =
+        normalizedStatus === 'under_review' && (correction?.show ?? false);
     const amount = displayCurrency(loanRequest.requested_amount);
     const loanTypeLabel = displayText(loanRequest.loan_type_label_snapshot);
     const requestedTerm =
@@ -765,6 +775,21 @@ export function LoanRequestDetailPage({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {showCorrectionAction ? (
+                                <div className="space-y-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full justify-start"
+                                        disabled={correction?.isProcessing}
+                                        onClick={correction?.onEdit}
+                                    >
+                                        <PencilLine />
+                                        Edit request details
+                                    </Button>
+                                    <Separator className="bg-border/40" />
+                                </div>
+                            ) : null}
                             {canDownloadPdf ? (
                                 <div className="space-y-3">
                                     <div className="grid gap-2 sm:grid-cols-2">

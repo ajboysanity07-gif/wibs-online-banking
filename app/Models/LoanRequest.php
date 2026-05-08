@@ -58,6 +58,11 @@ class LoanRequest extends Model
         return $this->hasMany(LoanRequestPerson::class);
     }
 
+    public function changes(): HasMany
+    {
+        return $this->hasMany(LoanRequestChange::class);
+    }
+
     public function applicant(): HasOne
     {
         return $this->hasOne(LoanRequestPerson::class)

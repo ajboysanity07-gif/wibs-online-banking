@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
+use App\Services\LoanRequests\LoanRequestService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,6 +21,8 @@ class LoanRequestController extends Controller
     public function show(
         Request $request,
         LoanRequestDecisionService $decisionService,
+        LoanRequestPayloadSerializer $serializer,
+        LoanRequestService $loanRequestService,
         int $loanRequest,
     ): Response {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
@@ -53,42 +56,9 @@ class LoanRequestController extends Controller
         }
 
         $payload = $this->sanitizePayload([
-            'loanRequest' => [
-                'id' => $loanRequestRecord->id,
-                'reference' => $loanRequestRecord->reference,
-                'status' => $this->normalizeStatus($loanRequestRecord),
-                'typecode' => $loanRequestRecord->typecode,
-                'loan_type_label_snapshot' => $loanRequestRecord->loan_type_label_snapshot,
-                'requested_amount' => $loanRequestRecord->requested_amount,
-                'requested_term' => $loanRequestRecord->requested_term,
-                'loan_purpose' => $loanRequestRecord->loan_purpose,
-                'availment_status' => $loanRequestRecord->availment_status,
-                'submitted_at' => $loanRequestRecord->submitted_at?->toDateTimeString(),
-                'reviewed_by' => $loanRequestRecord->reviewedBy
-                    ? [
-                        'user_id' => $loanRequestRecord->reviewedBy->user_id,
-                        'name' => $loanRequestRecord->reviewedBy->name,
-                    ]
-                    : null,
-                'reviewed_at' => $loanRequestRecord->reviewed_at?->toDateTimeString(),
-                'approved_amount' => $loanRequestRecord->approved_amount,
-                'approved_term' => $loanRequestRecord->approved_term,
-                'decision_notes' => $loanRequestRecord->decision_notes,
-                'acctno' => $loanRequestRecord->acctno,
-            ],
+            ...$serializer->serializeDetail($loanRequestRecord),
             'decision' => $decision,
-            'applicant' => $this->serializePerson(
-                $loanRequestRecord,
-                LoanRequestPersonRole::Applicant,
-            ),
-            'coMakerOne' => $this->serializePerson(
-                $loanRequestRecord,
-                LoanRequestPersonRole::CoMakerOne,
-            ),
-            'coMakerTwo' => $this->serializePerson(
-                $loanRequestRecord,
-                LoanRequestPersonRole::CoMakerTwo,
-            ),
+            'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
         ]);
 
         return Inertia::render('admin/loan-request-show', $payload);
@@ -137,36 +107,6 @@ class LoanRequestController extends Controller
         return LoanRequest::query()
             ->whereKey($loanRequestId)
             ->first();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializePerson(
-        LoanRequest $loanRequest,
-        LoanRequestPersonRole $role,
-    ): array {
-        $person = $loanRequest->people
-            ->first(fn ($item) => $item->role === $role);
-
-        if ($person === null) {
-            return [];
-        }
-
-        return $person->toArray();
-    }
-
-    private function normalizeStatus(LoanRequest $loanRequest): string
-    {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
-
-        if ($status === LoanRequestStatus::Submitted->value) {
-            return LoanRequestStatus::UnderReview->value;
-        }
-
-        return $status;
     }
 
     private function isDraft(LoanRequest $loanRequest): bool

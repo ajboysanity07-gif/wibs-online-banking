@@ -152,3 +152,17 @@ export type LoanRequestFormData = {
     co_maker_1: LoanRequestPersonFormData;
     co_maker_2: LoanRequestPersonFormData;
 };
+
+export type LoanRequestCorrectionPayload = Omit<
+    LoanRequestFormData,
+    'undertaking_accepted'
+> & {
+    change_reason: string;
+};
+
+export type LoanRequestCorrectionResult = {
+    loanRequest: LoanRequestDetail;
+    applicant: LoanRequestPersonData | null;
+    coMakerOne: LoanRequestPersonData | null;
+    coMakerTwo: LoanRequestPersonData | null;
+};
