@@ -147,9 +147,17 @@ export type PaymongoReconciliationFilters = {
     search: string | null;
 };
 
+export type PaymongoReconciliationSummary = {
+    paid_unreconciled_count: number;
+    reconciled_count: number;
+    total_loan_payments: number;
+    total_service_fees: number;
+};
+
 export type PaymongoReconciliationResponse =
     PaginatedResponse<PaymongoReconciliationPayment> & {
         filters: PaymongoReconciliationFilters;
+        summary: PaymongoReconciliationSummary;
     };
 
 export type MemberSummary = {

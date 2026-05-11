@@ -62,6 +62,48 @@ test('admin can view paid paymongo payments by default', function () {
             ->where('payments.items.0.provider_reference_number', 'PM-PAID-101'));
 });
 
+test('admin reconciliation page includes paid payment summary totals', function () {
+    $admin = adminUser();
+
+    paymongoPayment([
+        'status' => PaymongoLoanPayment::STATUS_PAID,
+        'base_amount_cents' => 100000,
+        'service_fee_cents' => 2562,
+        'gross_amount_cents' => 102562,
+    ]);
+
+    paymongoPayment([
+        'status' => PaymongoLoanPayment::STATUS_PAID,
+        'reconciliation_status' => PaymongoLoanPayment::RECONCILIATION_RECONCILED,
+        'base_amount_cents' => 50000,
+        'service_fee_cents' => 1500,
+        'gross_amount_cents' => 51500,
+    ]);
+
+    paymongoPayment([
+        'status' => PaymongoLoanPayment::STATUS_PAID,
+        'base_amount_cents' => 250000,
+        'service_fee_cents' => 5000,
+        'gross_amount_cents' => 255000,
+    ]);
+
+    paymongoPayment([
+        'status' => PaymongoLoanPayment::STATUS_PENDING,
+        'base_amount_cents' => 999999,
+        'service_fee_cents' => 9999,
+        'gross_amount_cents' => 1009998,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.paymongo-reconciliation.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('payments.summary.paid_unreconciled_count', 2)
+            ->where('payments.summary.reconciled_count', 1)
+            ->where('payments.summary.total_loan_payments', 4000)
+            ->where('payments.summary.total_service_fees', 90.62));
+});
+
 test('paid paymongo payment can be marked reconciled by admin', function () {
     Carbon::setTestNow('2026-05-11 09:30:00');
 

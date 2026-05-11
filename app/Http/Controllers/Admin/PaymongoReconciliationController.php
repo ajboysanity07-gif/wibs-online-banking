@@ -88,6 +88,7 @@ class PaymongoReconciliationController extends Controller
                     'reconciliation_status' => $reconciliationStatus ?? 'all',
                     'search' => $search,
                 ],
+                'summary' => $this->paidSummary(),
             ],
         ]);
     }
@@ -114,5 +115,38 @@ class PaymongoReconciliationController extends Controller
         ])->save();
 
         return back()->with('success', 'PayMongo payment marked as reconciled.');
+    }
+
+    /**
+     * @return array{
+     *     paid_unreconciled_count: int,
+     *     reconciled_count: int,
+     *     total_loan_payments: float,
+     *     total_service_fees: float
+     * }
+     */
+    private function paidSummary(): array
+    {
+        $paidPayments = PaymongoLoanPayment::query()
+            ->where('status', PaymongoLoanPayment::STATUS_PAID);
+
+        return [
+            'paid_unreconciled_count' => (clone $paidPayments)
+                ->where(
+                    'reconciliation_status',
+                    PaymongoLoanPayment::RECONCILIATION_UNRECONCILED,
+                )
+                ->count(),
+            'reconciled_count' => (clone $paidPayments)
+                ->where(
+                    'reconciliation_status',
+                    PaymongoLoanPayment::RECONCILIATION_RECONCILED,
+                )
+                ->count(),
+            'total_loan_payments' => ((float) (clone $paidPayments)
+                ->sum('base_amount_cents')) / 100,
+            'total_service_fees' => ((float) (clone $paidPayments)
+                ->sum('service_fee_cents')) / 100,
+        ];
     }
 }

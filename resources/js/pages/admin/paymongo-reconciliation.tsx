@@ -1,7 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CheckCircle2, Search } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { CheckCircle2, Eye, Info, Search } from 'lucide-react';
+import type { FormEvent, ReactNode } from 'react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { PageHero } from '@/components/page-hero';
@@ -41,7 +41,6 @@ import type {
     PaymongoPaymentStatusFilter,
     PaymongoReconciliationPayment,
     PaymongoReconciliationResponse,
-    PaymongoReconciliationStatus,
     PaymongoReconciliationStatusFilter,
 } from '@/types/admin';
 import type { BreadcrumbItem } from '@/types';
@@ -96,15 +95,43 @@ const formatMethod = (payment: PaymongoReconciliationPayment): string => {
     return payment.payment_method_label ?? payment.payment_method;
 };
 
+const formatStatusLabel = (value: string): string => {
+    return value
+        .split(/[_\s-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+};
+
+const displayValue = (value?: string | number | null): string => {
+    if (value === null || value === undefined) {
+        return '--';
+    }
+
+    if (typeof value === 'string' && value.trim() === '') {
+        return '--';
+    }
+
+    return String(value);
+};
+
 const textareaClassName =
     'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
 const ReconciliationStatusBadge = ({
-    status,
+    payment,
 }: {
-    status: PaymongoReconciliationStatus;
+    payment: PaymongoReconciliationPayment;
 }) => {
-    if (status === 'reconciled') {
+    if (payment.status !== 'paid') {
+        return (
+            <Badge className="border-border/50 bg-muted text-muted-foreground">
+                {formatStatusLabel(payment.status)}
+            </Badge>
+        );
+    }
+
+    if (payment.reconciliation_status === 'reconciled') {
         return (
             <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-300">
                 Reconciled
@@ -112,12 +139,91 @@ const ReconciliationStatusBadge = ({
         );
     }
 
+    if (payment.reconciliation_status === 'unreconciled') {
+        return (
+            <Badge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300">
+                Unreconciled
+            </Badge>
+        );
+    }
+
     return (
-        <Badge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300">
-            Unreconciled
+        <Badge className="border-border/50 bg-muted text-muted-foreground">
+            {formatStatusLabel(payment.reconciliation_status)}
         </Badge>
     );
 };
+
+const DetailItem = ({
+    label,
+    value,
+    className,
+}: {
+    label: string;
+    value: ReactNode;
+    className?: string;
+}) => (
+    <div className={className}>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <div className="mt-1 text-sm font-medium break-words">{value}</div>
+    </div>
+);
+
+const PaymentDetailsGrid = ({
+    payment,
+    includeMainDetails = false,
+}: {
+    payment: PaymongoReconciliationPayment;
+    includeMainDetails?: boolean;
+}) => (
+    <div className="grid gap-4 rounded-lg border border-border/40 bg-muted/30 p-4 sm:grid-cols-2">
+        {includeMainDetails ? (
+            <>
+                <DetailItem
+                    label="Paid At"
+                    value={formatDate(payment.paid_at)}
+                />
+                <DetailItem label="Account No" value={payment.acctno} />
+                <DetailItem label="Loan No" value={payment.loan_number} />
+                <DetailItem
+                    label="Total Paid"
+                    value={formatCurrency(payment.gross_amount)}
+                />
+                <DetailItem
+                    label="PayMongo Reference"
+                    value={displayValue(payment.provider_reference_number)}
+                    className="sm:col-span-2"
+                />
+            </>
+        ) : null}
+        <DetailItem
+            label="Service Fee"
+            value={formatCurrency(payment.service_fee)}
+        />
+        <DetailItem label="Payment Method" value={formatMethod(payment)} />
+        <DetailItem
+            label="Desktop Reference"
+            value={displayValue(payment.desktop_reference_no)}
+        />
+        <DetailItem
+            label="Official Receipt"
+            value={displayValue(payment.official_receipt_no)}
+        />
+        <DetailItem
+            label="Reconciled By"
+            value={displayValue(payment.reconciled_by?.name)}
+        />
+        <DetailItem
+            label="Reconciled At"
+            value={formatDate(payment.reconciled_at)}
+        />
+        <DetailItem
+            label="Notes"
+            value={displayValue(payment.reconciliation_notes)}
+            className="sm:col-span-2"
+        />
+    </div>
+);
 
 export default function PaymongoReconciliationPage({ payments }: Props) {
     const [search, setSearch] = useState(payments.filters.search ?? '');
@@ -129,6 +235,8 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
             payments.filters.reconciliation_status,
         );
     const [selectedPayment, setSelectedPayment] =
+        useState<PaymongoReconciliationPayment | null>(null);
+    const [detailsPayment, setDetailsPayment] =
         useState<PaymongoReconciliationPayment | null>(null);
     const form = useForm<ReconciliationForm>({
         desktop_reference_no: '',
@@ -165,7 +273,10 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
     const openReconciliationDialog = (
         payment: PaymongoReconciliationPayment,
     ) => {
-        if (payment.status !== 'paid') {
+        if (
+            payment.status !== 'paid' ||
+            payment.reconciliation_status !== 'unreconciled'
+        ) {
             return;
         }
 
@@ -188,10 +299,18 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
         form.clearErrors();
     };
 
+    const closeDetailsDialog = () => {
+        setDetailsPayment(null);
+    };
+
     const submitReconciliation = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (!selectedPayment || selectedPayment.status !== 'paid') {
+        if (
+            !selectedPayment ||
+            selectedPayment.status !== 'paid' ||
+            selectedPayment.reconciliation_status !== 'unreconciled'
+        ) {
             return;
         }
 
@@ -228,13 +347,8 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
         },
         {
             accessorKey: 'base_amount',
-            header: 'Loan Payment Amount',
+            header: 'Loan Payment',
             cell: ({ row }) => formatCurrency(row.original.base_amount),
-        },
-        {
-            accessorKey: 'service_fee',
-            header: 'Service Fee',
-            cell: ({ row }) => formatCurrency(row.original.service_fee),
         },
         {
             accessorKey: 'gross_amount',
@@ -242,55 +356,79 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
             cell: ({ row }) => formatCurrency(row.original.gross_amount),
         },
         {
-            accessorKey: 'payment_method',
-            header: 'Payment Method',
-            cell: ({ row }) => formatMethod(row.original),
-        },
-        {
             accessorKey: 'provider_reference_number',
             header: 'PayMongo Reference',
-            cell: ({ row }) => row.original.provider_reference_number ?? '--',
+            cell: ({ row }) => {
+                const reference = row.original.provider_reference_number;
+
+                return (
+                    <span
+                        className="block max-w-[220px] truncate font-mono text-xs"
+                        title={reference ?? undefined}
+                    >
+                        {displayValue(reference)}
+                    </span>
+                );
+            },
         },
         {
             accessorKey: 'reconciliation_status',
             header: 'Reconciliation Status',
             cell: ({ row }) => (
-                <ReconciliationStatusBadge
-                    status={row.original.reconciliation_status}
-                />
+                <ReconciliationStatusBadge payment={row.original} />
             ),
-        },
-        {
-            accessorKey: 'desktop_reference_no',
-            header: 'Desktop Reference',
-            cell: ({ row }) => row.original.desktop_reference_no ?? '--',
-        },
-        {
-            accessorKey: 'official_receipt_no',
-            header: 'Official Receipt',
-            cell: ({ row }) => row.original.official_receipt_no ?? '--',
         },
         {
             id: 'actions',
             header: () => <div className="text-right">Actions</div>,
             cell: ({ row }) => {
                 const payment = row.original;
+                const canReconcile =
+                    payment.status === 'paid' &&
+                    payment.reconciliation_status === 'unreconciled';
+
+                if (canReconcile) {
+                    return (
+                        <div className="flex justify-end">
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() =>
+                                    openReconciliationDialog(payment)
+                                }
+                            >
+                                <CheckCircle2 />
+                                Mark as Reconciled
+                            </Button>
+                        </div>
+                    );
+                }
+
+                if (payment.reconciliation_status === 'reconciled') {
+                    return (
+                        <div className="flex justify-end">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDetailsPayment(payment)}
+                            >
+                                <Eye />
+                                View Details
+                            </Button>
+                        </div>
+                    );
+                }
 
                 return (
                     <div className="flex justify-end">
                         <Button
                             type="button"
                             size="sm"
-                            variant={
-                                payment.reconciliation_status === 'unreconciled'
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            disabled={payment.status !== 'paid'}
-                            onClick={() => openReconciliationDialog(payment)}
+                            variant="outline"
+                            disabled
                         >
-                            <CheckCircle2 />
-                            Mark as Reconciled
+                            Not paid
                         </Button>
                     </div>
                 );
@@ -298,15 +436,43 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
         },
     ];
 
-    const unreconciledCount = payments.items.filter(
-        (payment) =>
-            payment.status === 'paid' &&
-            payment.reconciliation_status === 'unreconciled',
-    ).length;
     const hasFilters =
         status !== 'paid' ||
         reconciliationStatus !== 'all' ||
         search.trim() !== '';
+    const totalResults = payments.meta.total;
+    const pageStart =
+        totalResults > 0
+            ? (payments.meta.page - 1) * payments.meta.perPage + 1
+            : 0;
+    const pageEnd =
+        totalResults > 0
+            ? Math.min(payments.meta.page * payments.meta.perPage, totalResults)
+            : 0;
+    const resultSummary =
+        totalResults > 0
+            ? `Showing ${pageStart}-${pageEnd} of ${totalResults} payments.`
+            : hasFilters
+              ? 'No payments match the current filters.'
+              : 'No paid PayMongo payments to reconcile yet.';
+    const summaryCards = [
+        {
+            label: 'Paid Unreconciled Count',
+            value: payments.summary.paid_unreconciled_count.toLocaleString(),
+        },
+        {
+            label: 'Reconciled Count',
+            value: payments.summary.reconciled_count.toLocaleString(),
+        },
+        {
+            label: 'Total Loan Payments',
+            value: formatCurrency(payments.summary.total_loan_payments),
+        },
+        {
+            label: 'Total Service Fees',
+            value: formatCurrency(payments.summary.total_service_fees),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -325,10 +491,11 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
                                     'payment',
                                 )}
                             </Badge>
-                            {unreconciledCount > 0 ? (
+                            {payments.summary.paid_unreconciled_count > 0 ? (
                                 <Badge className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300">
                                     {formatCountLabel(
-                                        unreconciledCount,
+                                        payments.summary
+                                            .paid_unreconciled_count,
                                         'unreconciled paid payment',
                                     )}
                                 </Badge>
@@ -336,6 +503,24 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
                         </>
                     }
                 />
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {summaryCards.map((card) => (
+                        <SurfaceCard
+                            key={card.label}
+                            variant="default"
+                            padding="sm"
+                            className="space-y-1"
+                        >
+                            <p className="text-sm font-medium text-muted-foreground">
+                                {card.label}
+                            </p>
+                            <p className="text-2xl font-semibold">
+                                {card.value}
+                            </p>
+                        </SurfaceCard>
+                    ))}
+                </div>
 
                 <SurfaceCard variant="default" padding="md">
                     <form
@@ -369,6 +554,15 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
                                 </Button>
                             }
                         />
+
+                        <div className="flex gap-2 rounded-lg border border-border/40 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                            <Info className="mt-0.5 size-4 shrink-0" />
+                            <span>
+                                Paid payments are shown by default because
+                                unpaid, failed, expired, or cancelled payments
+                                cannot be reconciled.
+                            </span>
+                        </div>
 
                         <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
                             <div className="space-y-1">
@@ -452,18 +646,45 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
                     <div className="border-b border-border/40 bg-card/70 px-6 py-4">
                         <SectionHeader
                             title="Payments"
-                            description={`Showing page ${payments.meta.page} of ${payments.meta.lastPage}.`}
+                            description={resultSummary}
                             titleClassName="text-lg"
                         />
                     </div>
 
-                    <div className="overflow-x-auto px-2 pb-2 sm:px-4 sm:pb-4">
-                        <DataTable
-                            columns={columns}
-                            data={payments.items}
-                            emptyMessage="No PayMongo payments match the current filters."
-                            className="min-w-[1320px] border-0 bg-transparent"
-                        />
+                    <div className="px-2 pb-2 sm:px-4 sm:pb-4">
+                        {payments.items.length === 0 ? (
+                            <div className="rounded-lg border border-border/40 bg-muted/30 px-4 py-8 text-center">
+                                {hasFilters ? (
+                                    <p className="text-sm font-medium">
+                                        No payments match the current filters.
+                                    </p>
+                                ) : (
+                                    <div className="mx-auto max-w-2xl space-y-2">
+                                        <p className="text-sm font-medium">
+                                            No paid PayMongo payments to
+                                            reconcile yet.
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Payments will appear here after a
+                                            borrower pays online and PayMongo
+                                            confirms the payment webhook.
+                                        </p>
+                                        <p className="text-xs font-medium text-muted-foreground">
+                                            Only paid payments can be
+                                            reconciled.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <DataTable
+                                    columns={columns}
+                                    data={payments.items}
+                                    className="min-w-[980px] border-0 bg-transparent"
+                                />
+                            </div>
+                        )}
                     </div>
                 </SurfaceCard>
 
@@ -483,7 +704,7 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
                     }
                 }}
             >
-                <DialogContent>
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Mark as Reconciled</DialogTitle>
                         <DialogDescription>
@@ -491,6 +712,13 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
                             paid PayMongo payment.
                         </DialogDescription>
                     </DialogHeader>
+
+                    {selectedPayment ? (
+                        <PaymentDetailsGrid
+                            payment={selectedPayment}
+                            includeMainDetails
+                        />
+                    ) : null}
 
                     <form className="space-y-4" onSubmit={submitReconciliation}>
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -581,6 +809,42 @@ export default function PaymongoReconciliationPage({ payments }: Props) {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={detailsPayment !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeDetailsDialog();
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Payment Details</DialogTitle>
+                        <DialogDescription>
+                            Review the PayMongo payment, Desktop reference, and
+                            reconciliation details.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {detailsPayment ? (
+                        <PaymentDetailsGrid
+                            payment={detailsPayment}
+                            includeMainDetails
+                        />
+                    ) : null}
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={closeDetailsDialog}
+                        >
+                            Close
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </AppLayout>
