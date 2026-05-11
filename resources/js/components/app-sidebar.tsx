@@ -6,6 +6,7 @@ import {
     Folder,
     LayoutGrid,
     PiggyBank,
+    ReceiptText,
     Settings,
     Users,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard as workspaceDashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
+import { index as paymongoReconciliationIndex } from '@/routes/admin/paymongo-reconciliation';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { index as membersIndex } from '@/routes/admin/watchlist';
@@ -91,6 +93,12 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
         title: 'Requests',
         href: requestsIndex(),
         icon: FileText,
+        match: 'section',
+    },
+    {
+        title: 'PayMongo Reconciliation',
+        href: paymongoReconciliationIndex(),
+        icon: ReceiptText,
         match: 'section',
     },
     ...(isSuperadmin

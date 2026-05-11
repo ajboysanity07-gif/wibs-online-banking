@@ -103,6 +103,55 @@ export type PaymongoLoanPaymentMethod =
     | 'qrph'
     | 'online_banking';
 
+export type PaymongoPaymentStatus =
+    | 'pending'
+    | 'paid'
+    | 'failed'
+    | 'cancelled'
+    | 'expired';
+
+export type PaymongoPaymentStatusFilter = PaymongoPaymentStatus | 'all';
+
+export type PaymongoReconciliationStatus = 'unreconciled' | 'reconciled';
+
+export type PaymongoReconciliationStatusFilter =
+    | PaymongoReconciliationStatus
+    | 'all';
+
+export type PaymongoReconciliationPayment = {
+    id: string;
+    paid_at: string | null;
+    acctno: string;
+    loan_number: string;
+    base_amount: number;
+    service_fee: number;
+    gross_amount: number;
+    payment_method: string;
+    payment_method_label: string | null;
+    provider_reference_number: string | null;
+    status: PaymongoPaymentStatus;
+    reconciliation_status: PaymongoReconciliationStatus;
+    desktop_reference_no: string | null;
+    official_receipt_no: string | null;
+    reconciliation_notes: string | null;
+    reconciled_at: string | null;
+    reconciled_by: {
+        id: number;
+        name: string;
+    } | null;
+};
+
+export type PaymongoReconciliationFilters = {
+    status: PaymongoPaymentStatusFilter;
+    reconciliation_status: PaymongoReconciliationStatusFilter;
+    search: string | null;
+};
+
+export type PaymongoReconciliationResponse =
+    PaginatedResponse<PaymongoReconciliationPayment> & {
+        filters: PaymongoReconciliationFilters;
+    };
+
 export type MemberSummary = {
     member_id: string;
     user_id: number | null;

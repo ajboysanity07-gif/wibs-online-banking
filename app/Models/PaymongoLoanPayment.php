@@ -20,6 +20,10 @@ class PaymongoLoanPayment extends Model
 
     public const STATUS_EXPIRED = 'expired';
 
+    public const RECONCILIATION_UNRECONCILED = 'unreconciled';
+
+    public const RECONCILIATION_RECONCILED = 'reconciled';
+
     /**
      * @var list<string>
      */
@@ -43,11 +47,22 @@ class PaymongoLoanPayment extends Model
         'metadata',
         'paid_at',
         'expires_at',
+        'reconciliation_status',
+        'reconciled_at',
+        'reconciled_by',
+        'desktop_reference_no',
+        'official_receipt_no',
+        'reconciliation_notes',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'user_id', 'user_id');
+    }
+
+    public function reconciledBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'reconciled_by', 'user_id');
     }
 
     public function baseAmount(): float
@@ -74,6 +89,7 @@ class PaymongoLoanPayment extends Model
             'metadata' => 'array',
             'paid_at' => 'datetime',
             'expires_at' => 'datetime',
+            'reconciled_at' => 'datetime',
             'base_amount_cents' => 'integer',
             'service_fee_cents' => 'integer',
             'gross_amount_cents' => 'integer',

@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\MemberLoansController;
 use App\Http\Controllers\Admin\MemberProfileController;
 use App\Http\Controllers\Admin\MemberSavingsController;
 use App\Http\Controllers\Admin\OrganizationSettingsController;
+use App\Http\Controllers\Admin\PaymongoReconciliationController;
 use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Api\BirthplaceSearchController;
@@ -275,6 +276,12 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
 
     Route::get('requests/{loanRequest}/print', [AdminLoanRequestController::class, 'print'])
         ->name('admin.requests.print');
+
+    Route::get('paymongo-reconciliation', [PaymongoReconciliationController::class, 'index'])
+        ->name('admin.paymongo-reconciliation.index');
+
+    Route::patch('paymongo-reconciliation/{payment}', [PaymongoReconciliationController::class, 'update'])
+        ->name('admin.paymongo-reconciliation.update');
 
     Route::get('watchlist', [WatchlistController::class, 'index'])
         ->name('admin.watchlist.index');
