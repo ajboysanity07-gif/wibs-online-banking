@@ -32,7 +32,7 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
-        $loanRequestRecord->loadMissing('people', 'reviewedBy');
+        $loanRequestRecord->loadMissing('people', 'reviewedBy', 'cancelledBy');
         $actor = $request->user();
         $decision = [
             'canDecide' => false,
@@ -74,6 +74,14 @@ class LoanRequestController extends Controller
                 'approved_amount' => $loanRequestRecord->approved_amount,
                 'approved_term' => $loanRequestRecord->approved_term,
                 'decision_notes' => $loanRequestRecord->decision_notes,
+                'cancelled_by' => $loanRequestRecord->cancelledBy
+                    ? [
+                        'user_id' => $loanRequestRecord->cancelledBy->user_id,
+                        'name' => $loanRequestRecord->cancelledBy->name,
+                    ]
+                    : null,
+                'cancelled_at' => $loanRequestRecord->cancelled_at?->toDateTimeString(),
+                'cancellation_reason' => $loanRequestRecord->cancellation_reason,
                 'acctno' => $loanRequestRecord->acctno,
             ],
             'decision' => $decision,
@@ -192,6 +200,7 @@ class LoanRequestController extends Controller
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::Declined->value,
+            LoanRequestStatus::Cancelled->value,
         ], true);
     }
 

@@ -15,6 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Spinner } from '@/components/ui/spinner';
+import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
 import AuthLayout from '@/layouts/auth-layout';
 import api, { getApiErrorMessage, mapValidationErrors } from '@/lib/api';
 import {
@@ -27,7 +28,6 @@ import {
     resolvePasswordRecoveryWizardStep,
 } from '@/lib/password-recovery-flow';
 import { cn } from '@/lib/utils';
-import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
 import { login } from '@/routes';
 
 type RecoveryOption = {

@@ -69,6 +69,10 @@ type LoanRequestDeclinePayload = {
     decision_notes?: string | null;
 };
 
+type LoanRequestCancellationPayload = {
+    cancellation_reason: string;
+};
+
 export const adminApi = {
     async getDashboardSummary(): Promise<DashboardSummary> {
         const response =
@@ -155,6 +159,16 @@ export const adminApi = {
         const response = await client.patch<
             ApiResponse<{ loanRequest: LoanRequestDetail }>
         >(`/spa/admin/requests/${loanRequestId}/decline`, payload);
+
+        return unwrap(response).loanRequest;
+    },
+    async cancelLoanRequest(
+        loanRequestId: number,
+        payload: LoanRequestCancellationPayload,
+    ): Promise<LoanRequestDetail> {
+        const response = await client.patch<
+            ApiResponse<{ loanRequest: LoanRequestDetail }>
+        >(`/spa/admin/requests/${loanRequestId}/cancel`, payload);
 
         return unwrap(response).loanRequest;
     },

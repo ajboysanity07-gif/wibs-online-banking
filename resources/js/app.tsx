@@ -8,8 +8,8 @@ import ApiNotice from '@/components/api-notice';
 import { Toaster } from '@/components/ui/sonner';
 import type { Branding } from '@/types';
 import { initializeTheme } from './hooks/use-appearance';
-import { mrdincTheme } from './theme/clients/mrdinc';
 import { resolveBrandingTheme } from './theme/branding-theme';
+import { mrdincTheme } from './theme/clients/mrdinc';
 import { injectClientTheme } from './theme/inject-theme';
 
 type SharedProps = {

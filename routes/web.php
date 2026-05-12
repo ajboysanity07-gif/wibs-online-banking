@@ -125,6 +125,7 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::get('admin/requests', SpaRequestsController::class);
         Route::patch('admin/requests/{loanRequest}/approve', [SpaLoanRequestDecisionController::class, 'approve']);
         Route::patch('admin/requests/{loanRequest}/decline', [SpaLoanRequestDecisionController::class, 'decline']);
+        Route::patch('admin/requests/{loanRequest}/cancel', [SpaLoanRequestDecisionController::class, 'cancel']);
         Route::get('admin/watchlist', SpaWatchlistController::class);
     });
 });

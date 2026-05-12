@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SurfaceCard } from '@/components/surface-card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type MemberProfileHeaderProps = {
     name: string;

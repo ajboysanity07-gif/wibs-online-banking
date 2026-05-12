@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Spa\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LoanRequestApproveRequest;
+use App\Http\Requests\Admin\LoanRequestCancelRequest;
 use App\Http\Requests\Admin\LoanRequestDeclineRequest;
 use App\Jobs\SendLoanDecisionSmsJob;
 use App\LoanRequestStatus;
@@ -56,12 +57,32 @@ class LoanRequestDecisionController extends Controller
         ]);
     }
 
+    public function cancel(
+        LoanRequestCancelRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestDecisionService $service,
+    ): JsonResponse {
+        $payload = $request->validated();
+        $updated = $service->cancelApprovedRequest(
+            $loanRequest,
+            $request->user(),
+            $payload['cancellation_reason'],
+        );
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'loanRequest' => $this->serializeLoanRequest($updated),
+            ],
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
     private function serializeLoanRequest(LoanRequest $loanRequest): array
     {
-        $loanRequest->loadMissing('reviewedBy');
+        $loanRequest->loadMissing('reviewedBy', 'cancelledBy');
 
         return [
             'id' => $loanRequest->id,
@@ -84,6 +105,14 @@ class LoanRequestDecisionController extends Controller
             'approved_amount' => $loanRequest->approved_amount,
             'approved_term' => $loanRequest->approved_term,
             'decision_notes' => $loanRequest->decision_notes,
+            'cancelled_by' => $loanRequest->cancelledBy
+                ? [
+                    'user_id' => $loanRequest->cancelledBy->user_id,
+                    'name' => $loanRequest->cancelledBy->name,
+                ]
+                : null,
+            'cancelled_at' => $loanRequest->cancelled_at?->toDateTimeString(),
+            'cancellation_reason' => $loanRequest->cancellation_reason,
             'acctno' => $loanRequest->acctno,
         ];
     }

@@ -1,8 +1,8 @@
 import { Head } from '@inertiajs/react';
-import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
 import { MemberLoanScheduleSections } from '@/components/member-loan-schedule-sections';
 import { PageShell } from '@/components/page-shell';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { useMemberLoanSchedule } from '@/hooks/admin/use-member-loan-schedule';
 import AppLayout from '@/layouts/app-layout';
 import {

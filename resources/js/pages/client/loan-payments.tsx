@@ -10,7 +10,6 @@ import {
     Printer,
 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import {
     MemberDetailPrimaryCard,
     MemberDetailSupportingCard,
@@ -18,6 +17,7 @@ import {
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
 import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments-filters-card';
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
+import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
 import { Button } from '@/components/ui/button';
 import { FieldMessage } from '@/components/ui/field-message';
@@ -30,8 +30,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { PageShell } from '@/components/page-shell';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import AppLayout from '@/layouts/app-layout';
 import api, { getApiErrorMessage, mapValidationErrors } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/formatters';
