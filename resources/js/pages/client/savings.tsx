@@ -1,16 +1,16 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Clock, PiggyBank } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
-import { MemberSavingsLedgerCard } from '@/features/member-accounts/components/member-savings-ledger-card';
+import { PageShell } from '@/components/page-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PageShell } from '@/components/page-shell';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
+import { MemberSavingsLedgerCard } from '@/features/member-accounts/components/member-savings-ledger-card';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import {

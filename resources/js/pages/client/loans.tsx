@@ -2,15 +2,15 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Banknote, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { LoanRequestRecordsCard } from '@/components/loan-request/loan-request-records-card';
-import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanRecordsCard } from '@/components/member-loan-records-card';
-import { Button } from '@/components/ui/button';
 import { PageShell } from '@/components/page-shell';
+import { Button } from '@/components/ui/button';
+import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import {

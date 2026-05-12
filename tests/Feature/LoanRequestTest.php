@@ -1671,6 +1671,191 @@ test('admin can decline an under review loan request', function () {
     );
 });
 
+test('admin can cancel an approved loan request with a reason', function () {
+    $reviewer = User::factory()->create([
+        'acctno' => '000610',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $reviewer->user_id,
+    ]);
+
+    $admin = User::factory()->create([
+        'acctno' => '000611',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000612',
+    ]);
+    $reviewedAt = now()->subDay()->startOfSecond();
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'reviewed_by' => $reviewer->user_id,
+        'reviewed_at' => $reviewedAt,
+        'approved_amount' => 25000,
+        'approved_term' => 18,
+        'decision_notes' => 'Approved before cancellation.',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Wrong co-maker details.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Cancelled->value)
+        ->assertJsonPath('data.loanRequest.reference', $loanRequest->reference)
+        ->assertJsonPath('data.loanRequest.reviewed_by.user_id', $reviewer->user_id)
+        ->assertJsonPath('data.loanRequest.cancelled_by.user_id', $admin->user_id)
+        ->assertJsonPath('data.loanRequest.cancellation_reason', 'Wrong co-maker details.');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
+    expect($loanRequest->reviewed_by)->toBe($reviewer->user_id);
+    expect($loanRequest->reviewed_at?->toDateTimeString())->toBe($reviewedAt->toDateTimeString());
+    expect($loanRequest->approved_amount)->toBe('25000.00');
+    expect($loanRequest->approved_term)->toBe(18);
+    expect($loanRequest->decision_notes)->toBe('Approved before cancellation.');
+    expect($loanRequest->cancelled_by)->toBe($admin->user_id);
+    expect($loanRequest->cancelled_at)->not->toBeNull();
+    expect($loanRequest->cancellation_reason)->toBe('Wrong co-maker details.');
+
+    $change = LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->first();
+
+    expect($change)->not->toBeNull();
+    expect($change->changed_by)->toBe($admin->user_id);
+    expect($change->action)->toBe('cancel_approved_request');
+    expect($change->reason)->toBe('Wrong co-maker details.');
+    expect($change->before_json['status'])->toBe(LoanRequestStatus::Approved->value);
+    expect($change->after_json['status'])->toBe(LoanRequestStatus::Cancelled->value);
+    expect($change->after_json['cancelled_by'])->toBe($admin->user_id);
+    expect($change->changed_fields_json)->toBe([
+        'status',
+        'cancelled_by',
+        'cancelled_at',
+        'cancellation_reason',
+    ]);
+});
+
+test('non-admin users cannot cancel approved loan requests', function () {
+    $user = User::factory()->create();
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_amount' => 18000,
+        'approved_term' => 12,
+    ]);
+
+    $this
+        ->actingAs($user)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Wrong applicant details.',
+        ])
+        ->assertForbidden();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect($loanRequest->cancelled_by)->toBeNull();
+    expect($loanRequest->cancelled_at)->toBeNull();
+    expect($loanRequest->cancellation_reason)->toBeNull();
+});
+
+test('admins cannot cancel their own approved loan request', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000613',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($admin)->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_amount' => 22000,
+        'approved_term' => 10,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Wrong applicant details.',
+        ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('decision');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect($loanRequest->cancelled_by)->toBeNull();
+});
+
+test('only approved loan requests can be cancelled through the cancellation endpoint', function (LoanRequestStatus $status) {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => $status,
+        'approved_amount' => $status === LoanRequestStatus::Declined ? null : 15000,
+        'approved_term' => $status === LoanRequestStatus::Declined ? null : 12,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Wrong applicant details.',
+        ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('status');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe($status);
+    expect($loanRequest->cancelled_by)->toBeNull();
+})->with([
+    'under review' => [LoanRequestStatus::UnderReview],
+    'declined' => [LoanRequestStatus::Declined],
+    'draft' => [LoanRequestStatus::Draft],
+    'cancelled' => [LoanRequestStatus::Cancelled],
+]);
+
+test('loan request cancellation requires a reason', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_amount' => 18000,
+        'approved_term' => 12,
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => '',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('cancellation_reason');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect($loanRequest->cancelled_by)->toBeNull();
+});
+
 test('loan request decision sms uses branding and reference for approvals', function () {
     Http::fake([
         'https://api.semaphore.co/api/v4/messages' => Http::response(['ok' => true], 200),

@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import { AdminLoanRequestCorrectionDialog } from '@/components/loan-request/admin-loan-request-correction-dialog';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
+import { useCancelLoanRequest } from '@/hooks/admin/use-cancel-loan-request';
 import { useCorrectLoanRequest } from '@/hooks/admin/use-correct-loan-request';
 import { useUpdateLoanRequestDecision } from '@/hooks/admin/use-update-loan-request-decision';
 import AppLayout from '@/layouts/app-layout';
@@ -67,6 +68,12 @@ export default function LoanRequestShow({
             setIsCorrectionOpen(false);
         },
     });
+    const {
+        cancelLoanRequest,
+        processingIds: cancellationProcessingIds,
+    } = useCancelLoanRequest({
+        onUpdated: (updated) => setCurrentRequest(updated),
+    });
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Requests', href: requestsIndex().url },
         {
@@ -123,10 +130,14 @@ export default function LoanRequestShow({
                     canDecide,
                     blockedMessage,
                     isProcessing: processingIds[currentRequest.id] ?? false,
+                    isCancelling:
+                        cancellationProcessingIds[currentRequest.id] ?? false,
                     onApprove: (payload) =>
                         updateDecision(currentRequest.id, 'approve', payload),
                     onDecline: (payload) =>
                         updateDecision(currentRequest.id, 'decline', payload),
+                    onCancelApproved: (payload) =>
+                        cancelLoanRequest(currentRequest.id, payload),
                 }}
             />
             <AdminLoanRequestCorrectionDialog

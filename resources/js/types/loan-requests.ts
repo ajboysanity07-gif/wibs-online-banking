@@ -75,6 +75,9 @@ export type LoanRequestDetail = {
     approved_amount: number | string | null;
     approved_term: number | string | null;
     decision_notes: string | null;
+    cancelled_by: LoanRequestReviewer | null;
+    cancelled_at: string | null;
+    cancellation_reason: string | null;
     acctno: string | null;
 };
 

@@ -20,7 +20,7 @@ class LoanRequestPayloadSerializer
      */
     public function serializeDetail(LoanRequest $loanRequest): array
     {
-        $loanRequest->loadMissing('people', 'reviewedBy');
+        $loanRequest->loadMissing('people', 'reviewedBy', 'cancelledBy');
 
         return [
             'loanRequest' => $this->serializeLoanRequest($loanRequest),
@@ -44,7 +44,7 @@ class LoanRequestPayloadSerializer
      */
     public function serializeLoanRequest(LoanRequest $loanRequest): array
     {
-        $loanRequest->loadMissing('reviewedBy');
+        $loanRequest->loadMissing('reviewedBy', 'cancelledBy');
 
         return [
             'id' => $loanRequest->id,
@@ -67,6 +67,14 @@ class LoanRequestPayloadSerializer
             'approved_amount' => $loanRequest->approved_amount,
             'approved_term' => $loanRequest->approved_term,
             'decision_notes' => $loanRequest->decision_notes,
+            'cancelled_by' => $loanRequest->cancelledBy
+                ? [
+                    'user_id' => $loanRequest->cancelledBy->user_id,
+                    'name' => $loanRequest->cancelledBy->name,
+                ]
+                : null,
+            'cancelled_at' => $loanRequest->cancelled_at?->toDateTimeString(),
+            'cancellation_reason' => $loanRequest->cancellation_reason,
             'acctno' => $loanRequest->acctno,
         ];
     }

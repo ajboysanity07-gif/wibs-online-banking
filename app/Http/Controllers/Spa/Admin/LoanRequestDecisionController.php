@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Spa\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LoanRequestApproveRequest;
+use App\Http\Requests\Admin\LoanRequestCancelRequest;
 use App\Http\Requests\Admin\LoanRequestDeclineRequest;
 use App\Jobs\SendLoanDecisionSmsJob;
 use App\Models\LoanRequest;
@@ -49,6 +50,27 @@ class LoanRequestDecisionController extends Controller
         );
 
         SendLoanDecisionSmsJob::dispatch($updated->id)->afterCommit();
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'loanRequest' => $serializer->serializeLoanRequest($updated),
+            ],
+        ]);
+    }
+
+    public function cancel(
+        LoanRequestCancelRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestDecisionService $service,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $payload = $request->validated();
+        $updated = $service->cancelApprovedRequest(
+            $loanRequest,
+            $request->user(),
+            $payload['cancellation_reason'],
+        );
 
         return response()->json([
             'ok' => true,

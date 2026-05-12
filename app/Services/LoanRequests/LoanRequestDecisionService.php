@@ -5,7 +5,10 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
 use App\Notifications\LoanRequestDecisionNotification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestDecisionService
@@ -59,6 +62,40 @@ class LoanRequestDecisionService
         return $loanRequest->refresh()->loadMissing('reviewedBy');
     }
 
+    public function cancelApprovedRequest(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        string $cancellationReason,
+    ): LoanRequest {
+        return DB::transaction(function () use ($loanRequest, $actor, $cancellationReason): LoanRequest {
+            $loanRequest->refresh();
+            $this->ensureCancellable($loanRequest, $actor);
+            $this->ensureNoGeneratedLoanRecords($loanRequest);
+
+            $before = $this->snapshotForAudit($loanRequest);
+
+            $loanRequest->fill([
+                'status' => LoanRequestStatus::Cancelled,
+                'cancelled_by' => $actor->user_id,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $cancellationReason,
+            ]);
+
+            $loanRequest->save();
+            $loanRequest->refresh();
+
+            $this->recordCancellationAudit(
+                $loanRequest,
+                $actor,
+                $cancellationReason,
+                $before,
+                $this->snapshotForAudit($loanRequest),
+            );
+
+            return $loanRequest->loadMissing('reviewedBy', 'cancelledBy');
+        });
+    }
+
     public function canDecide(LoanRequest $loanRequest, AppUser $actor): bool
     {
         if (! $this->isUnderReview($loanRequest)) {
@@ -71,6 +108,29 @@ class LoanRequestDecisionService
     public function isOwnRequest(LoanRequest $loanRequest, AppUser $actor): bool
     {
         return $this->isSelfDecision($loanRequest, $actor);
+    }
+
+    private function ensureCancellable(LoanRequest $loanRequest, AppUser $actor): void
+    {
+        if (! $this->isApproved($loanRequest)) {
+            throw ValidationException::withMessages([
+                'status' => 'Only approved requests can be cancelled.',
+            ]);
+        }
+
+        if ($this->isSelfDecision($loanRequest, $actor)) {
+            throw ValidationException::withMessages([
+                'decision' => 'You cannot cancel your own loan request.',
+            ]);
+        }
+    }
+
+    private function ensureNoGeneratedLoanRecords(LoanRequest $loanRequest): void
+    {
+        /**
+         * TODO: Block cancellation here when approved requests persist a reliable generated
+         * loan account, ledger, disbursement, or payment schedule reference.
+         */
     }
 
     private function ensureDecisionable(LoanRequest $loanRequest, AppUser $actor): void
@@ -90,11 +150,19 @@ class LoanRequestDecisionService
 
     private function isUnderReview(LoanRequest $loanRequest): bool
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
+        return $this->statusValue($loanRequest) === LoanRequestStatus::UnderReview->value;
+    }
+
+    private function isApproved(LoanRequest $loanRequest): bool
+    {
+        return $this->statusValue($loanRequest) === LoanRequestStatus::Approved->value;
+    }
+
+    private function statusValue(LoanRequest $loanRequest): string
+    {
+        return $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
-
-        return $status === LoanRequestStatus::UnderReview->value;
     }
 
     private function isSelfDecision(LoanRequest $loanRequest, AppUser $actor): bool
@@ -134,5 +202,59 @@ class LoanRequestDecisionService
             $loanRequest,
             $loanRequest->reviewedBy,
         ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
+    private function recordCancellationAudit(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        string $reason,
+        array $before,
+        array $after,
+    ): void {
+        if (! Schema::hasTable('loan_request_changes')) {
+            return;
+        }
+
+        LoanRequestChange::query()->create([
+            'loan_request_id' => $loanRequest->id,
+            'changed_by' => $actor->user_id,
+            'action' => 'cancel_approved_request',
+            'reason' => $reason,
+            'before_json' => $before,
+            'after_json' => $after,
+            'changed_fields_json' => [
+                'status',
+                'cancelled_by',
+                'cancelled_at',
+                'cancellation_reason',
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshotForAudit(LoanRequest $loanRequest): array
+    {
+        return [
+            'id' => $loanRequest->id,
+            'user_id' => $loanRequest->user_id,
+            'acctno' => $loanRequest->acctno,
+            'status' => $this->statusValue($loanRequest),
+            'requested_amount' => $loanRequest->requested_amount,
+            'requested_term' => $loanRequest->requested_term,
+            'reviewed_by' => $loanRequest->reviewed_by,
+            'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
+            'approved_amount' => $loanRequest->approved_amount,
+            'approved_term' => $loanRequest->approved_term,
+            'decision_notes' => $loanRequest->decision_notes,
+            'cancelled_by' => $loanRequest->cancelled_by,
+            'cancelled_at' => $loanRequest->cancelled_at?->toDateTimeString(),
+            'cancellation_reason' => $loanRequest->cancellation_reason,
+        ];
     }
 }

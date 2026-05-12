@@ -31,11 +31,11 @@ import {
 import { useAdminDashboard } from '@/hooks/admin/use-admin-dashboard';
 import { useMembers } from '@/hooks/admin/use-members';
 import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes/admin';
 import {
     getRegistrationStatusLabel,
     getRegistrationStatusVariant,
 } from '@/lib/member-status';
+import { dashboard } from '@/routes/admin';
 import { show as showMember } from '@/routes/admin/members';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { index as membersIndex } from '@/routes/admin/watchlist';

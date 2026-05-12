@@ -1,14 +1,14 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
-import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { MemberStatusCard } from '@/components/member-status-card';
 import { PageShell } from '@/components/page-shell';
 import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
+import { MemberAccountsSummarySection } from '@/features/member-accounts/components/member-accounts-summary-section';
+import { MemberRecentAccountActionsCard } from '@/features/member-accounts/components/member-recent-account-actions-card';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/formatters';

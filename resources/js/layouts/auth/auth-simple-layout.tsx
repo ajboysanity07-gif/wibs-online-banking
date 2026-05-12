@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import AppLogo from '@/components/app-logo';
-import { SurfaceCard } from '@/components/surface-card';
 import SupportContact from '@/components/support-contact';
+import { SurfaceCard } from '@/components/surface-card';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 

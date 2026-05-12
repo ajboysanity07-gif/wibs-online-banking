@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
-import { Calendar, Download, PencilLine, Printer } from 'lucide-react';
-import { useState } from 'react';
+import { Ban, Calendar, Download, PencilLine, Printer } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import InputError from '@/components/input-error';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,14 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -143,7 +152,7 @@ const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     under_review: 'We are currently reviewing your request.',
     approved: 'Your request is approved. We will contact you next.',
     declined: 'Your request was declined. You may reapply anytime.',
-    cancelled: 'This request was cancelled before completion.',
+    cancelled: 'This approved request was cancelled and remains available for audit.',
 };
 
 const statusSteps: LoanRequestStatusValue[] = [
@@ -162,9 +171,13 @@ type DecisionProps = {
     show?: boolean;
     canDecide?: boolean;
     isProcessing?: boolean;
+    isCancelling?: boolean;
     blockedMessage?: string | null;
     onApprove?: (payload: LoanRequestApprovePayload) => void;
     onDecline?: (payload: LoanRequestDeclinePayload) => void;
+    onCancelApproved?: (
+        payload: LoanRequestCancellationPayload,
+    ) => Promise<LoanRequestDetail | null>;
 };
 
 type CorrectionProps = {
@@ -181,6 +194,10 @@ type LoanRequestApprovePayload = {
 
 type LoanRequestDeclinePayload = {
     decision_notes?: string | null;
+};
+
+type LoanRequestCancellationPayload = {
+    cancellation_reason: string;
 };
 
 const SummaryStat = ({ label, value }: SummaryStatProps) => (
@@ -218,6 +235,9 @@ const PersonPanel = ({ title, person }: PersonPanelProps) => (
     </div>
 );
 
+const textareaClassName =
+    'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+
 export function LoanRequestDetailPage({
     loanRequest,
     applicant,
@@ -239,16 +259,24 @@ export function LoanRequestDetailPage({
             : loanRequest.status;
     const statusForTimeline = (normalizedStatus ??
         'draft') as LoanRequestStatusValue;
-    const statusTimelineKey =
-        statusForTimeline === 'cancelled' ? 'declined' : statusForTimeline;
+    const timelineSteps =
+        statusForTimeline === 'cancelled'
+            ? ([
+                  'draft',
+                  'under_review',
+                  'approved',
+                  'cancelled',
+              ] as LoanRequestStatusValue[])
+            : statusSteps;
     const currentStatusIndex = Math.max(
         0,
-        statusSteps.indexOf(statusTimelineKey),
+        timelineSteps.indexOf(statusForTimeline),
     );
     const canDownloadPdf =
         normalizedStatus === 'under_review' ||
         normalizedStatus === 'approved' ||
-        normalizedStatus === 'declined';
+        normalizedStatus === 'declined' ||
+        normalizedStatus === 'cancelled';
     const showCorrectionAction =
         normalizedStatus === 'under_review' && (correction?.show ?? false);
     const amount = displayCurrency(loanRequest.requested_amount);
@@ -271,11 +299,23 @@ export function LoanRequestDetailPage({
         normalizedStatus === 'under_review';
     const showDecisionSummary =
         showDecision &&
-        (normalizedStatus === 'approved' || normalizedStatus === 'declined');
+        (normalizedStatus === 'approved' ||
+            normalizedStatus === 'declined' ||
+            normalizedStatus === 'cancelled');
+    const showCancellationAction =
+        showDecision &&
+        normalizedStatus === 'approved' &&
+        typeof decision?.onCancelApproved === 'function';
     const blockedMessage =
         normalizedStatus === 'under_review'
             ? decision?.blockedMessage ?? null
             : null;
+    const [isCancellationDialogOpen, setIsCancellationDialogOpen] =
+        useState(false);
+    const [cancellationReason, setCancellationReason] = useState('');
+    const [cancellationReasonError, setCancellationReasonError] = useState<
+        string | null
+    >(null);
     const [approvedAmount, setApprovedAmount] = useState(() => {
         const initial =
             loanRequest.approved_amount ?? loanRequest.requested_amount ?? '';
@@ -299,6 +339,42 @@ export function LoanRequestDetailPage({
             ? `${loanRequest.approved_term} months`
             : '--';
     const decisionNotesValue = displayText(loanRequest.decision_notes);
+    const cancelledBy = loanRequest.cancelled_by?.name ?? '--';
+    const cancelledAt = displayDateValue(loanRequest.cancelled_at);
+    const cancellationReasonValue = displayText(
+        loanRequest.cancellation_reason,
+    );
+
+    const closeCancellationDialog = (force = false) => {
+        if (decision?.isCancelling && !force) {
+            return;
+        }
+
+        setIsCancellationDialogOpen(false);
+        setCancellationReason('');
+        setCancellationReasonError(null);
+    };
+
+    const submitCancellation = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const reason = cancellationReason.trim();
+
+        if (reason === '') {
+            setCancellationReasonError('Cancellation reason is required.');
+            return;
+        }
+
+        setCancellationReasonError(null);
+
+        const updated = await decision?.onCancelApproved?.({
+            cancellation_reason: reason,
+        });
+
+        if (updated) {
+            closeCancellationDialog(true);
+        }
+    };
 
     return (
         <PageShell size="wide" className="gap-8">
@@ -513,9 +589,9 @@ export function LoanRequestDetailPage({
                                     }}
                                 />
                                 <div className="space-y-5">
-                                    {statusSteps.map((status, index) => {
+                                    {timelineSteps.map((status, index) => {
                                         const isCurrent =
-                                            status === statusTimelineKey;
+                                            status === statusForTimeline;
                                         const isComplete =
                                             index < currentStatusIndex;
 
@@ -713,7 +789,8 @@ export function LoanRequestDetailPage({
                                             label="Reviewed at"
                                             value={reviewedAt}
                                         />
-                                        {statusForTimeline === 'approved' ? (
+                                        {statusForTimeline === 'approved' ||
+                                        statusForTimeline === 'cancelled' ? (
                                             <>
                                                 <DetailRow
                                                     label="Approved amount"
@@ -731,6 +808,24 @@ export function LoanRequestDetailPage({
                                             label="Decision notes"
                                             value={decisionNotesValue}
                                         />
+                                        {statusForTimeline === 'cancelled' ? (
+                                            <>
+                                                <DetailRow
+                                                    label="Cancelled by"
+                                                    value={cancelledBy}
+                                                />
+                                                <DetailRow
+                                                    label="Cancelled at"
+                                                    value={cancelledAt}
+                                                />
+                                                <DetailRow
+                                                    label="Cancellation reason"
+                                                    value={
+                                                        cancellationReasonValue
+                                                    }
+                                                />
+                                            </>
+                                        ) : null}
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">
@@ -824,6 +919,23 @@ export function LoanRequestDetailPage({
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
+                            {showCancellationAction ? (
+                                <div className="space-y-3">
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        className="w-full justify-center"
+                                        disabled={decision?.isCancelling}
+                                        onClick={() =>
+                                            setIsCancellationDialogOpen(true)
+                                        }
+                                    >
+                                        <Ban />
+                                        Cancel Approved Request
+                                    </Button>
+                                    <Separator className="bg-border/40" />
+                                </div>
+                            ) : null}
                             <Button
                                 asChild
                                 variant="ghost"
@@ -849,11 +961,77 @@ export function LoanRequestDetailPage({
                                     ? 'You will receive next-step instructions from the loans team.'
                                     : statusForTimeline === 'declined'
                                       ? 'Contact support if you would like to discuss your request.'
-                                      : 'If you need further assistance, reach out to support.'}
+                                      : 'This request remains available as read-only history.'}
                         </CardContent>
                     </Card>
                 </div>
             </div>
+            <Dialog
+                open={isCancellationDialogOpen}
+                onOpenChange={(open) => {
+                    if (open) {
+                        setIsCancellationDialogOpen(true);
+                        return;
+                    }
+
+                    closeCancellationDialog();
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Cancel Approved Request</DialogTitle>
+                        <DialogDescription>
+                            This keeps the approved request as read-only
+                            history.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form className="space-y-4" onSubmit={submitCancellation}>
+                        <div className="space-y-2">
+                            <Label htmlFor="cancellation_reason">
+                                Cancellation reason
+                            </Label>
+                            <textarea
+                                id="cancellation_reason"
+                                className={textareaClassName}
+                                maxLength={1000}
+                                required
+                                value={cancellationReason}
+                                disabled={decision?.isCancelling}
+                                onChange={(event) => {
+                                    setCancellationReason(event.target.value);
+                                    setCancellationReasonError(null);
+                                }}
+                            />
+                            <div className="flex items-start justify-between gap-3">
+                                <InputError
+                                    message={cancellationReasonError ?? ''}
+                                />
+                                <span className="ml-auto text-xs text-muted-foreground">
+                                    {cancellationReason.length}/1000
+                                </span>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={decision?.isCancelling}
+                                onClick={closeCancellationDialog}
+                            >
+                                Keep Request
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                disabled={decision?.isCancelling}
+                            >
+                                <Ban />
+                                Cancel Request
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </PageShell>
     );
 }

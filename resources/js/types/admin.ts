@@ -1,5 +1,5 @@
-import type { PaginatedResponse, PaginationMeta } from './pagination';
 import type { LoanRequestStatusValue } from './loan-requests';
+import type { PaginatedResponse, PaginationMeta } from './pagination';
 
 export type { PaginatedResponse, PaginationMeta } from './pagination';
 export type {

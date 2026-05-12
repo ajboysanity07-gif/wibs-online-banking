@@ -1,6 +1,6 @@
 import { Save } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
 import {
     LoanRequestPersonalFields,
@@ -19,12 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type {
     LoanRequestCorrectionPayload,
     LoanRequestDetail,
@@ -61,6 +56,8 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     onSubmit: (payload: LoanRequestCorrectionPayload) => void;
 };
+
+type CorrectionDialogFormProps = Omit<Props, 'open'>;
 
 const emptyPerson: LoanRequestPersonFormData = {
     first_name: '',
@@ -145,12 +142,9 @@ const toPersonForm = (
         spouse_cell_no: person.spouse_cell_no ?? '',
         employment_type: person.employment_type ?? '',
         employer_business_name: person.employer_business_name ?? '',
-        employer_business_address1:
-            person.employer_business_address1 ?? '',
-        employer_business_address2:
-            person.employer_business_address2 ?? '',
-        employer_business_address3:
-            person.employer_business_address3 ?? '',
+        employer_business_address1: person.employer_business_address1 ?? '',
+        employer_business_address2: person.employer_business_address2 ?? '',
+        employer_business_address3: person.employer_business_address3 ?? '',
         telephone_no: person.telephone_no ?? '',
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
@@ -183,6 +177,34 @@ const textareaClassName =
 
 export function AdminLoanRequestCorrectionDialog({
     open,
+    isProcessing,
+    onOpenChange,
+    ...formProps
+}: Props) {
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={(nextOpen) => {
+                if (isProcessing && !nextOpen) {
+                    return;
+                }
+
+                onOpenChange(nextOpen);
+            }}
+        >
+            {open ? (
+                <CorrectionDialogForm
+                    key={formProps.loanRequest.id}
+                    {...formProps}
+                    isProcessing={isProcessing}
+                    onOpenChange={onOpenChange}
+                />
+            ) : null}
+        </Dialog>
+    );
+}
+
+function CorrectionDialogForm({
     loanRequest,
     applicant,
     coMakerOne,
@@ -192,22 +214,11 @@ export function AdminLoanRequestCorrectionDialog({
     isProcessing,
     onOpenChange,
     onSubmit,
-}: Props) {
+}: CorrectionDialogFormProps) {
     const [activeTab, setActiveTab] = useState('loan');
     const [formData, setFormData] = useState<CorrectionFormData>(() =>
         buildInitialFormData(loanRequest, applicant, coMakerOne, coMakerTwo),
     );
-
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        setFormData(
-            buildInitialFormData(loanRequest, applicant, coMakerOne, coMakerTwo),
-        );
-        setActiveTab('loan');
-    }, [applicant, coMakerOne, coMakerTwo, loanRequest, open]);
 
     const availableLoanTypes = useMemo(() => {
         if (
@@ -264,178 +275,153 @@ export function AdminLoanRequestCorrectionDialog({
     };
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(nextOpen) => {
-                if (isProcessing && !nextOpen) {
-                    return;
-                }
+        <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-5xl">
+            <DialogHeader>
+                <DialogTitle>Edit request details</DialogTitle>
+                <DialogDescription>
+                    Correct submitted loan details and keep the decision
+                    workflow separate.
+                </DialogDescription>
+            </DialogHeader>
 
-                onOpenChange(nextOpen);
-            }}
-        >
-            <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-5xl">
-                <DialogHeader>
-                    <DialogTitle>Edit request details</DialogTitle>
-                    <DialogDescription>
-                        Correct submitted loan details and keep the decision
-                        workflow separate.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <form
-                    className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-4"
-                    onSubmit={handleSubmit}
+            <form
+                className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-4"
+                onSubmit={handleSubmit}
+            >
+                <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="min-h-0 flex-col"
                 >
-                    <Tabs
-                        value={activeTab}
-                        onValueChange={setActiveTab}
-                        className="min-h-0 flex-col"
-                    >
-                        <TabsList className="grid w-full grid-cols-2 gap-1 lg:grid-cols-4">
-                            <TabsTrigger value="loan">Loan</TabsTrigger>
-                            <TabsTrigger value="applicant">
-                                Applicant
-                            </TabsTrigger>
-                            <TabsTrigger value="co-maker-1">
-                                Co-maker 1
-                            </TabsTrigger>
-                            <TabsTrigger value="co-maker-2">
-                                Co-maker 2
-                            </TabsTrigger>
-                        </TabsList>
+                    <TabsList className="grid w-full grid-cols-2 gap-1 lg:grid-cols-4">
+                        <TabsTrigger value="loan">Loan</TabsTrigger>
+                        <TabsTrigger value="applicant">Applicant</TabsTrigger>
+                        <TabsTrigger value="co-maker-1">Co-maker 1</TabsTrigger>
+                        <TabsTrigger value="co-maker-2">Co-maker 2</TabsTrigger>
+                    </TabsList>
 
-                        <div className="mt-4 min-h-0 overflow-y-auto pr-1">
-                            <TabsContent value="loan" className="mt-0 space-y-5">
-                                <LoanRequestLoanDetailsStep
-                                    data={formData}
-                                    errors={errors}
-                                    loanTypes={availableLoanTypes}
-                                    onChange={handleLoanDetailChange}
-                                />
+                    <div className="mt-4 min-h-0 overflow-y-auto pr-1">
+                        <TabsContent value="loan" className="mt-0 space-y-5">
+                            <LoanRequestLoanDetailsStep
+                                data={formData}
+                                errors={errors}
+                                loanTypes={availableLoanTypes}
+                                onChange={handleLoanDetailChange}
+                            />
 
-                                <LoanRequestSectionCard
-                                    title="Correction reason"
-                                    description="This reason is saved in the audit trail."
-                                >
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="change_reason">
-                                            Change reason
-                                        </Label>
-                                        <textarea
-                                            id="change_reason"
-                                            className={textareaClassName}
-                                            value={formData.change_reason}
-                                            maxLength={1000}
-                                            required
-                                            disabled={isProcessing}
-                                            onChange={(event) =>
-                                                setFormData((current) => ({
-                                                    ...current,
-                                                    change_reason:
-                                                        event.target.value,
-                                                }))
-                                            }
-                                        />
-                                        <InputError
-                                            message={errors.change_reason}
-                                        />
-                                    </div>
-                                </LoanRequestSectionCard>
-                            </TabsContent>
-
-                            <TabsContent
-                                value="applicant"
-                                className="mt-0 space-y-5"
+                            <LoanRequestSectionCard
+                                title="Correction reason"
+                                description="This reason is saved in the audit trail."
                             >
-                                <LoanRequestSectionCard title="Applicant personal data">
-                                    <LoanRequestPersonalFields
-                                        prefix="applicant"
-                                        values={formData.applicant}
-                                        errors={errors}
-                                        includeSpouse
-                                        includeChildren
-                                        onChange={updatePersonField('applicant')}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="change_reason">
+                                        Change reason
+                                    </Label>
+                                    <textarea
+                                        id="change_reason"
+                                        className={textareaClassName}
+                                        value={formData.change_reason}
+                                        maxLength={1000}
+                                        required
+                                        disabled={isProcessing}
+                                        onChange={(event) =>
+                                            setFormData((current) => ({
+                                                ...current,
+                                                change_reason:
+                                                    event.target.value,
+                                            }))
+                                        }
                                     />
-                                </LoanRequestSectionCard>
-                                <LoanRequestSectionCard title="Applicant work & finances">
-                                    <LoanRequestWorkFields
-                                        prefix="applicant"
-                                        values={formData.applicant}
-                                        errors={errors}
-                                        onChange={updatePersonField('applicant')}
+                                    <InputError
+                                        message={errors.change_reason}
                                     />
-                                </LoanRequestSectionCard>
-                            </TabsContent>
+                                </div>
+                            </LoanRequestSectionCard>
+                        </TabsContent>
 
-                            <TabsContent
-                                value="co-maker-1"
-                                className="mt-0 space-y-5"
-                            >
-                                <LoanRequestSectionCard title="Co-maker 1">
-                                    <LoanRequestPersonalFields
-                                        prefix="co_maker_1"
-                                        values={formData.co_maker_1}
-                                        errors={errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                    <Separator className="bg-border/40" />
-                                    <LoanRequestWorkFields
-                                        prefix="co_maker_1"
-                                        values={formData.co_maker_1}
-                                        errors={errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_1',
-                                        )}
-                                    />
-                                </LoanRequestSectionCard>
-                            </TabsContent>
-
-                            <TabsContent
-                                value="co-maker-2"
-                                className="mt-0 space-y-5"
-                            >
-                                <LoanRequestSectionCard title="Co-maker 2">
-                                    <LoanRequestPersonalFields
-                                        prefix="co_maker_2"
-                                        values={formData.co_maker_2}
-                                        errors={errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                    <Separator className="bg-border/40" />
-                                    <LoanRequestWorkFields
-                                        prefix="co_maker_2"
-                                        values={formData.co_maker_2}
-                                        errors={errors}
-                                        onChange={updatePersonField(
-                                            'co_maker_2',
-                                        )}
-                                    />
-                                </LoanRequestSectionCard>
-                            </TabsContent>
-                        </div>
-                    </Tabs>
-
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={isProcessing}
-                            onClick={() => onOpenChange(false)}
+                        <TabsContent
+                            value="applicant"
+                            className="mt-0 space-y-5"
                         >
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={isProcessing}>
-                            <Save />
-                            Save corrections
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                            <LoanRequestSectionCard title="Applicant personal data">
+                                <LoanRequestPersonalFields
+                                    prefix="applicant"
+                                    values={formData.applicant}
+                                    errors={errors}
+                                    includeSpouse
+                                    includeChildren
+                                    onChange={updatePersonField('applicant')}
+                                />
+                            </LoanRequestSectionCard>
+                            <LoanRequestSectionCard title="Applicant work & finances">
+                                <LoanRequestWorkFields
+                                    prefix="applicant"
+                                    values={formData.applicant}
+                                    errors={errors}
+                                    onChange={updatePersonField('applicant')}
+                                />
+                            </LoanRequestSectionCard>
+                        </TabsContent>
+
+                        <TabsContent
+                            value="co-maker-1"
+                            className="mt-0 space-y-5"
+                        >
+                            <LoanRequestSectionCard title="Co-maker 1">
+                                <LoanRequestPersonalFields
+                                    prefix="co_maker_1"
+                                    values={formData.co_maker_1}
+                                    errors={errors}
+                                    onChange={updatePersonField('co_maker_1')}
+                                />
+                                <Separator className="bg-border/40" />
+                                <LoanRequestWorkFields
+                                    prefix="co_maker_1"
+                                    values={formData.co_maker_1}
+                                    errors={errors}
+                                    onChange={updatePersonField('co_maker_1')}
+                                />
+                            </LoanRequestSectionCard>
+                        </TabsContent>
+
+                        <TabsContent
+                            value="co-maker-2"
+                            className="mt-0 space-y-5"
+                        >
+                            <LoanRequestSectionCard title="Co-maker 2">
+                                <LoanRequestPersonalFields
+                                    prefix="co_maker_2"
+                                    values={formData.co_maker_2}
+                                    errors={errors}
+                                    onChange={updatePersonField('co_maker_2')}
+                                />
+                                <Separator className="bg-border/40" />
+                                <LoanRequestWorkFields
+                                    prefix="co_maker_2"
+                                    values={formData.co_maker_2}
+                                    errors={errors}
+                                    onChange={updatePersonField('co_maker_2')}
+                                />
+                            </LoanRequestSectionCard>
+                        </TabsContent>
+                    </div>
+                </Tabs>
+
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isProcessing}
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button type="submit" disabled={isProcessing}>
+                        <Save />
+                        Save corrections
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
     );
 }

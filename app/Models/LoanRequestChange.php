@@ -13,9 +13,11 @@ class LoanRequestChange extends Model
     protected $fillable = [
         'loan_request_id',
         'changed_by',
+        'action',
         'reason',
         'before_json',
         'after_json',
+        'changed_fields_json',
     ];
 
     public function loanRequest(): BelongsTo
@@ -36,6 +38,7 @@ class LoanRequestChange extends Model
         return [
             'before_json' => 'array',
             'after_json' => 'array',
+            'changed_fields_json' => 'array',
         ];
     }
 }

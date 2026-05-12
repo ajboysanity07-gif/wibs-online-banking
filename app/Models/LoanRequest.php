@@ -41,6 +41,9 @@ class LoanRequest extends Model
         'approved_amount',
         'approved_term',
         'decision_notes',
+        'cancelled_by',
+        'cancelled_at',
+        'cancellation_reason',
     ];
 
     public function user(): BelongsTo
@@ -53,14 +56,19 @@ class LoanRequest extends Model
         return $this->belongsTo(AppUser::class, 'reviewed_by', 'user_id');
     }
 
-    public function people(): HasMany
+    public function cancelledBy(): BelongsTo
     {
-        return $this->hasMany(LoanRequestPerson::class);
+        return $this->belongsTo(AppUser::class, 'cancelled_by', 'user_id');
     }
 
     public function changes(): HasMany
     {
         return $this->hasMany(LoanRequestChange::class);
+    }
+
+    public function people(): HasMany
+    {
+        return $this->hasMany(LoanRequestPerson::class);
     }
 
     public function applicant(): HasOne
@@ -98,6 +106,7 @@ class LoanRequest extends Model
             'approved_amount' => 'decimal:2',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
             'status' => LoanRequestStatus::class,
         ];
     }

@@ -35,7 +35,7 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
-        $loanRequestRecord->loadMissing('people', 'reviewedBy');
+        $loanRequestRecord->loadMissing('people', 'reviewedBy', 'cancelledBy');
         $actor = $request->user();
         $decision = [
             'canDecide' => false,
@@ -132,6 +132,7 @@ class LoanRequestController extends Controller
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::Declined->value,
+            LoanRequestStatus::Cancelled->value,
         ], true);
     }
 

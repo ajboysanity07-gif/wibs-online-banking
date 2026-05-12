@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 import { edit as appearanceEdit } from '@/routes/appearance';
 import { edit as profileEdit } from '@/routes/profile';
 import { security as securitySettings } from '@/routes/settings';
-import { edit as passwordEdit } from '@/routes/user-password';
 import { show as twoFactorShow } from '@/routes/two-factor';
+import { edit as passwordEdit } from '@/routes/user-password';
 
 type SettingsNavItem = {
     label: string;
