@@ -20,6 +20,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toDateInputValue } from '@/lib/formatters';
 import type {
     LoanRequestCorrectionPayload,
     LoanRequestDetail,
@@ -123,7 +124,7 @@ const toPersonForm = (
         middle_name: person.middle_name ?? '',
         last_name: person.last_name ?? '',
         nickname: person.nickname ?? '',
-        birthdate: person.birthdate ?? '',
+        birthdate: toDateInputValue(person.birthdate),
         birthplace_city: person.birthplace_city ?? '',
         birthplace_province: person.birthplace_province ?? '',
         address1: person.address1 ?? '',

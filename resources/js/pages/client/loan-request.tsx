@@ -18,7 +18,7 @@ import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime } from '@/lib/formatters';
+import { formatDateTime, toDateInputValue } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { loans as clientLoans } from '@/routes/client';
 import type { BreadcrumbItem } from '@/types';
@@ -187,7 +187,7 @@ const toPersonForm = (
         middle_name: person.middle_name ?? '',
         last_name: person.last_name ?? '',
         nickname: person.nickname ?? '',
-        birthdate: person.birthdate ?? '',
+        birthdate: toDateInputValue(person.birthdate),
         birthplace_city: person.birthplace_city ?? '',
         birthplace_province: person.birthplace_province ?? '',
         address1: person.address1 ?? '',

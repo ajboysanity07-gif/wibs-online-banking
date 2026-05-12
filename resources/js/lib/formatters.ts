@@ -30,6 +30,14 @@ export const formatDateTime = (value?: string | null): string => {
     return new Date(value).toLocaleString();
 };
 
+export const toDateInputValue = (value?: string | null): string => {
+    if (!value) {
+        return '';
+    }
+
+    return value.slice(0, 10);
+};
+
 export const formatDisplayText = (value?: string | null): string => {
     const trimmed = value?.trim() ?? '';
 

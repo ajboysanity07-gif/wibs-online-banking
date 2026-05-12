@@ -7,9 +7,26 @@ use App\LoanRequestStatus;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Support\LocationComposer;
+use DateTimeInterface;
 
 class LoanRequestPayloadSerializer
 {
+    private const CIVIL_STATUS_OPTIONS = [
+        'Single',
+        'Married',
+        'Separated',
+        'Widowed',
+    ];
+
+    private const PAYDAY_OPTIONS = [
+        'Weekly',
+        '15th',
+        '30th',
+        '15th & 30th',
+        'Bi-Weekly',
+        'Monthly',
+    ];
+
     /**
      * @return array{
      *     loanRequest: array<string, mixed>,
@@ -123,6 +140,15 @@ class LoanRequestPayloadSerializer
      */
     private function hydrateStructuredPersonFields(array $person): array
     {
+        $birthdate = $this->normalizeDateForInput($person['birthdate'] ?? null);
+        $housingStatus = $this->normalizeHousingStatusValue(
+            $person['housing_status'] ?? null,
+        );
+        $civilStatus = $this->normalizeCivilStatusValue(
+            $person['civil_status'] ?? null,
+        );
+        $payday = $this->normalizePaydayValue($person['payday'] ?? null);
+
         $birthplaceCity = $this->normalizeOptionalString(
             $person['birthplace_city'] ?? null,
         );
@@ -197,6 +223,7 @@ class LoanRequestPayloadSerializer
             : $legacyEmployerAddress;
 
         return array_merge($person, [
+            'birthdate' => $birthdate,
             'birthplace' => $birthplace,
             'birthplace_city' => $birthplaceCity,
             'birthplace_province' => $birthplaceProvince,
@@ -208,6 +235,9 @@ class LoanRequestPayloadSerializer
             'employer_business_address1' => $employerAddress1,
             'employer_business_address2' => $employerAddress2,
             'employer_business_address3' => $employerAddress3,
+            'housing_status' => $housingStatus,
+            'civil_status' => $civilStatus,
+            'payday' => $payday,
         ]);
     }
 
@@ -220,5 +250,131 @@ class LoanRequestPayloadSerializer
         $trimmed = trim((string) $value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    private function normalizeDateForInput(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $candidate = substr($trimmed, 0, 10);
+
+        return preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $candidate) === 1
+            ? $candidate
+            : null;
+    }
+
+    private function normalizeHousingStatusValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $upper = strtoupper($trimmed);
+
+        if (in_array($upper, ['OWNED', 'OWN', 'OWNER'], true)) {
+            return 'OWNED';
+        }
+
+        if (in_array($upper, ['RENT', 'RENTAL', 'RENTED', 'RENTING'], true)) {
+            return 'RENT';
+        }
+
+        return null;
+    }
+
+    private function normalizeCivilStatusValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $upper = strtoupper($trimmed);
+
+        $resolved = match ($upper) {
+            'SINGLE' => 'Single',
+            'MARRIED' => 'Married',
+            'SEPARATED' => 'Separated',
+            'WIDOWED' => 'Widowed',
+            'ANNULLED' => null,
+            default => $trimmed,
+        };
+
+        if ($resolved === null) {
+            return null;
+        }
+
+        return in_array($resolved, self::CIVIL_STATUS_OPTIONS, true)
+            ? $resolved
+            : null;
+    }
+
+    private function normalizePaydayValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (in_array($trimmed, self::PAYDAY_OPTIONS, true)) {
+            return $trimmed;
+        }
+
+        $upper = strtoupper($trimmed);
+        $compact = preg_replace('/[^0-9A-Z]/', '', $upper) ?? '';
+
+        if ($upper === 'WEEKLY') {
+            return 'Weekly';
+        }
+
+        if ($upper === 'MONTHLY') {
+            return 'Monthly';
+        }
+
+        if ($compact === 'BIWEEKLY') {
+            return 'Bi-Weekly';
+        }
+
+        if ($compact === '15') {
+            return '15th';
+        }
+
+        if ($compact === '30') {
+            return '30th';
+        }
+
+        if (str_contains($upper, '15') && str_contains($upper, '30')) {
+            return '15th & 30th';
+        }
+
+        return null;
     }
 }

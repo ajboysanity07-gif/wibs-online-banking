@@ -12,6 +12,7 @@ use App\Notifications\LoanRequestSubmittedNotification;
 use App\Services\Notifications\NotificationRecipientService;
 use App\Support\LocationComposer;
 use App\Support\SchemaCapabilities;
+use DateTimeInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -705,6 +706,7 @@ class LoanRequestService
      */
     private function hydrateStructuredPersonFields(array $person): array
     {
+        $birthdate = $this->normalizeDateForInput($person['birthdate'] ?? null);
         $birthplaceValues = $this->resolveBirthplaceValues($person);
         $addressValues = $this->resolveAddressValues($person, 'address');
         $employerAddressValues = $this->resolveAddressValues(
@@ -714,6 +716,7 @@ class LoanRequestService
         );
 
         return array_merge($person, [
+            'birthdate' => $birthdate,
             'birthplace' => $birthplaceValues['legacy'],
             'birthplace_city' => $birthplaceValues['city'],
             'birthplace_province' => $birthplaceValues['province'],
@@ -808,15 +811,15 @@ class LoanRequestService
 
         $upper = strtoupper($trimmed);
 
-        if ($upper === 'RENTAL') {
+        if (in_array($upper, ['OWNED', 'OWN', 'OWNER'], true)) {
+            return 'OWNED';
+        }
+
+        if (in_array($upper, ['RENT', 'RENTAL', 'RENTED', 'RENTING'], true)) {
             return 'RENT';
         }
 
-        if ($upper === 'OWNED' || $upper === 'RENT') {
-            return $upper;
-        }
-
-        return $upper;
+        return null;
     }
 
     private function normalizeCivilStatusValue(mixed $value): ?string
@@ -1189,6 +1192,29 @@ class LoanRequestService
         $stringValue = trim((string) $value);
 
         return $stringValue !== '' ? $stringValue : null;
+    }
+
+    private function normalizeDateForInput(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $candidate = substr($trimmed, 0, 10);
+
+        return preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $candidate) === 1
+            ? $candidate
+            : null;
     }
 
     private function normalizeOptionalInt(mixed $value): ?int

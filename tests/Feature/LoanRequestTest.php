@@ -650,6 +650,7 @@ test('loan request form normalizes housing status values', function (
     'owned label' => ['Owned', 'OWNED', true],
     'rent value' => ['RENT', 'RENT', true],
     'rental value' => ['RENTAL', 'RENT', true],
+    'rented label' => ['Rented', 'RENT', true],
     'missing value' => [null, null, false],
 ]);
 
@@ -799,7 +800,33 @@ test('loan request form resumes existing draft', function () {
         ->create([
             'first_name' => 'Draft',
             'last_name' => 'Member',
+            'birthdate' => '1990-04-10',
             'birthplace' => 'Quezon City',
+            'housing_status' => 'Rented',
+            'civil_status' => 'MARRIED',
+            'payday' => '15/30',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'first_name' => 'Draft',
+            'last_name' => 'CoMakerOne',
+            'birthdate' => '1989-03-12',
+            'housing_status' => 'Rental',
+            'civil_status' => 'Single',
+            'payday' => 'weekly',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'first_name' => 'Draft',
+            'last_name' => 'CoMakerTwo',
+            'birthdate' => '1987-02-12',
+            'housing_status' => 'Owned',
+            'civil_status' => 'WIDOWED',
+            'payday' => 'Biweekly',
         ]);
 
     $response = $this
@@ -812,7 +839,18 @@ test('loan request form resumes existing draft', function () {
             ->component('client/loan-request')
             ->where('draft.id', $loanRequest->id)
             ->where('applicant.first_name', 'Draft')
-            ->where('applicant.birthplace', 'Quezon City'));
+            ->where('applicant.birthplace', 'Quezon City')
+            ->where('applicant.birthdate', '1990-04-10')
+            ->where('applicant.housing_status', 'RENT')
+            ->where('applicant.civil_status', 'Married')
+            ->where('applicant.payday', '15th & 30th')
+            ->where('coMakerOne.birthdate', '1989-03-12')
+            ->where('coMakerOne.housing_status', 'RENT')
+            ->where('coMakerOne.payday', 'Weekly')
+            ->where('coMakerTwo.birthdate', '1987-02-12')
+            ->where('coMakerTwo.housing_status', 'OWNED')
+            ->where('coMakerTwo.civil_status', 'Widowed')
+            ->where('coMakerTwo.payday', 'Bi-Weekly'));
 });
 
 test('loan request submissions persist snapshots', function () {
@@ -1512,6 +1550,30 @@ test('admin can view loan request details page', function () {
         ->role(LoanRequestPersonRole::Applicant)
         ->create([
             'first_name' => 'Loan',
+            'birthdate' => '1990-04-10',
+            'housing_status' => 'Owned',
+            'civil_status' => 'MARRIED',
+            'payday' => '15/30',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'first_name' => 'Loan',
+            'birthdate' => '1989-03-12',
+            'housing_status' => 'Rented',
+            'civil_status' => 'Single',
+            'payday' => 'monthly',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'first_name' => 'Loan',
+            'birthdate' => '1987-02-12',
+            'housing_status' => 'RENTAL',
+            'civil_status' => 'WIDOWED',
+            'payday' => 'Biweekly',
         ]);
 
     $response = $this
@@ -1527,7 +1589,18 @@ test('admin can view loan request details page', function () {
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
             ->where('decision.canDecide', true)
             ->where('decision.isOwnRequest', false)
-            ->where('applicant.first_name', 'Loan'));
+            ->where('applicant.first_name', 'Loan')
+            ->where('applicant.birthdate', '1990-04-10')
+            ->where('applicant.housing_status', 'OWNED')
+            ->where('applicant.civil_status', 'Married')
+            ->where('applicant.payday', '15th & 30th')
+            ->where('coMakerOne.birthdate', '1989-03-12')
+            ->where('coMakerOne.housing_status', 'RENT')
+            ->where('coMakerOne.payday', 'Monthly')
+            ->where('coMakerTwo.birthdate', '1987-02-12')
+            ->where('coMakerTwo.housing_status', 'RENT')
+            ->where('coMakerTwo.civil_status', 'Widowed')
+            ->where('coMakerTwo.payday', 'Bi-Weekly'));
 });
 
 test('admin loan request detail marks own requests as not decisionable', function () {
@@ -2155,8 +2228,11 @@ test('admin can correct under review loan request details and people snapshots',
         ->assertJsonPath('data.loanRequest.requested_term', 18)
         ->assertJsonPath('data.loanRequest.loan_purpose', 'Corrected purpose')
         ->assertJsonPath('data.applicant.first_name', 'Corrected')
+        ->assertJsonPath('data.applicant.birthdate', '1990-04-10')
         ->assertJsonPath('data.coMakerOne.first_name', 'Corrected')
-        ->assertJsonPath('data.coMakerTwo.first_name', 'Corrected');
+        ->assertJsonPath('data.coMakerOne.birthdate', '1989-03-12')
+        ->assertJsonPath('data.coMakerTwo.first_name', 'Corrected')
+        ->assertJsonPath('data.coMakerTwo.birthdate', '1987-02-12');
 
     $loanRequest->refresh();
 
