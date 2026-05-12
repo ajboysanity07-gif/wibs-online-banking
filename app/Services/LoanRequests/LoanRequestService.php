@@ -6,6 +6,7 @@ use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
 use App\Notifications\LoanRequestSubmittedNotification;
@@ -17,6 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 class LoanRequestService
 {
@@ -39,6 +41,7 @@ class LoanRequestService
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
         private NotificationRecipientService $notificationRecipients,
+        private LoanRequestPayloadSerializer $serializer,
     ) {}
 
     /**
@@ -193,6 +196,125 @@ class LoanRequestService
         }
 
         return $loanRequest;
+    }
+
+    public function createCorrectedDraftFromCancelledRequest(
+        AppUser $user,
+        LoanRequest $source,
+    ): LoanRequest {
+        return DB::transaction(function () use ($user, $source): LoanRequest {
+            $sourceRequest = LoanRequest::query()
+                ->whereKey($source->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((int) $sourceRequest->user_id !== (int) $user->user_id) {
+                throw ValidationException::withMessages([
+                    'loan_request' => 'You can only create a corrected request from your own cancelled request.',
+                ]);
+            }
+
+            $status = $sourceRequest->status instanceof LoanRequestStatus
+                ? $sourceRequest->status->value
+                : (string) $sourceRequest->status;
+
+            if ($status !== LoanRequestStatus::Cancelled->value) {
+                throw ValidationException::withMessages([
+                    'status' => 'Only cancelled requests can be corrected.',
+                ]);
+            }
+
+            $existingDraft = LoanRequest::query()
+                ->where('user_id', $user->user_id)
+                ->where('status', LoanRequestStatus::Draft->value)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingDraft !== null) {
+                throw ValidationException::withMessages([
+                    'draft' => 'You already have an active draft. Please continue or clear your existing draft before creating a corrected request.',
+                ]);
+            }
+
+            $before = $this->serializer->serializeDetail($sourceRequest);
+
+            $draft = new LoanRequest;
+            $draft->user_id = $user->user_id;
+            $draft->corrected_from_id = $sourceRequest->id;
+            $draft->acctno = (string) ($user->acctno ?? '');
+            $draft->typecode = (string) $sourceRequest->typecode;
+            $draft->loan_type_label_snapshot = (string) $sourceRequest->loan_type_label_snapshot;
+            $draft->requested_amount = $sourceRequest->requested_amount;
+            $draft->requested_term = (int) $sourceRequest->requested_term;
+            $draft->loan_purpose = (string) $sourceRequest->loan_purpose;
+            $draft->availment_status = (string) $sourceRequest->availment_status;
+            $draft->status = LoanRequestStatus::Draft;
+            $draft->submitted_at = null;
+            $draft->save();
+
+            $sourceRequest->loadMissing('people');
+
+            foreach ($sourceRequest->people as $person) {
+                $role = $person->role instanceof LoanRequestPersonRole
+                    ? $person->role->value
+                    : (string) $person->role;
+
+                if (! in_array($role, [
+                    LoanRequestPersonRole::Applicant->value,
+                    LoanRequestPersonRole::CoMakerOne->value,
+                    LoanRequestPersonRole::CoMakerTwo->value,
+                ], true)) {
+                    continue;
+                }
+
+                $clone = $person->replicate();
+                $clone->loan_request_id = $draft->id;
+                $clone->save();
+            }
+
+            $draft->loadMissing('people');
+
+            $after = $this->serializer->serializeDetail($draft);
+
+            $this->recordCorrectedDraftAudit(
+                $draft,
+                $user,
+                $before,
+                $after,
+            );
+
+            return $draft;
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
+    private function recordCorrectedDraftAudit(
+        LoanRequest $draft,
+        AppUser $actor,
+        array $before,
+        array $after,
+    ): void {
+        if (! $this->schemaCapabilities->hasTable('loan_request_changes')) {
+            return;
+        }
+
+        LoanRequestChange::query()->create([
+            'loan_request_id' => $draft->id,
+            'changed_by' => $actor->user_id,
+            'action' => 'create_corrected_request',
+            'reason' => 'Created corrected draft from cancelled request.',
+            'before_json' => $before,
+            'after_json' => $after,
+            'changed_fields_json' => [
+                'corrected_from_id',
+                'status',
+                'copied_loan_details',
+                'copied_people_snapshots',
+            ],
+        ]);
     }
 
     private function notifyAdminsOfSubmission(int $loanRequestId): void

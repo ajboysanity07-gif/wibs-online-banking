@@ -27,6 +27,7 @@ class LoanRequest extends Model
      */
     protected $fillable = [
         'user_id',
+        'corrected_from_id',
         'acctno',
         'typecode',
         'loan_type_label_snapshot',
@@ -49,6 +50,16 @@ class LoanRequest extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'user_id', 'user_id');
+    }
+
+    public function correctedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'corrected_from_id', 'id');
+    }
+
+    public function correctedRequests(): HasMany
+    {
+        return $this->hasMany(self::class, 'corrected_from_id', 'id');
     }
 
     public function reviewedBy(): BelongsTo

@@ -6,6 +6,7 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Notifications\LoanRequestCorrectedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -35,7 +36,7 @@ class LoanRequestCorrectionService
         AppUser $actor,
         array $payload,
     ): LoanRequest {
-        return DB::transaction(function () use ($loanRequest, $actor, $payload): LoanRequest {
+        $updated = DB::transaction(function () use ($loanRequest, $actor, $payload): LoanRequest {
             $lockedLoanRequest = LoanRequest::query()
                 ->whereKey($loanRequest->id)
                 ->lockForUpdate()
@@ -71,6 +72,23 @@ class LoanRequestCorrectionService
 
             return $updated;
         });
+
+        $this->notifyMemberOfCorrection($updated, $actor);
+
+        return $updated;
+    }
+
+    private function notifyMemberOfCorrection(LoanRequest $loanRequest, AppUser $actor): void
+    {
+        $loanRequest->loadMissing('user');
+
+        $member = $loanRequest->user;
+
+        if ($member === null || ! $member->hasMemberAccess()) {
+            return;
+        }
+
+        $member->notify(new LoanRequestCorrectedNotification($loanRequest, $actor));
     }
 
     private function ensureCorrectable(LoanRequest $loanRequest, AppUser $actor): void

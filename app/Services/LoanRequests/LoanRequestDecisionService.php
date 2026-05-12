@@ -6,6 +6,7 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -67,7 +68,7 @@ class LoanRequestDecisionService
         AppUser $actor,
         string $cancellationReason,
     ): LoanRequest {
-        return DB::transaction(function () use ($loanRequest, $actor, $cancellationReason): LoanRequest {
+        $updated = DB::transaction(function () use ($loanRequest, $actor, $cancellationReason): LoanRequest {
             $loanRequest->refresh();
             $this->ensureCancellable($loanRequest, $actor);
             $this->ensureNoGeneratedLoanRecords($loanRequest);
@@ -94,6 +95,10 @@ class LoanRequestDecisionService
 
             return $loanRequest->loadMissing('reviewedBy', 'cancelledBy');
         });
+
+        $this->notifyMemberOfCancellation($updated, $actor);
+
+        return $updated;
     }
 
     public function canDecide(LoanRequest $loanRequest, AppUser $actor): bool
@@ -202,6 +207,21 @@ class LoanRequestDecisionService
             $loanRequest,
             $loanRequest->reviewedBy,
         ));
+    }
+
+    private function notifyMemberOfCancellation(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+    ): void {
+        $loanRequest->loadMissing('user');
+
+        $member = $loanRequest->user;
+
+        if ($member === null || ! $member->hasMemberAccess()) {
+            return;
+        }
+
+        $member->notify(new LoanRequestCancelledNotification($loanRequest, $actor));
     }
 
     /**

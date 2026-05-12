@@ -12,7 +12,7 @@ class LoanRequestSubmittedNotification extends AbstractDatabaseNotification
     {
         parent::__construct();
 
-        $loanRequest->loadMissing('user');
+        $loanRequest->loadMissing('user', 'correctedFrom');
 
         $status = $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
@@ -35,6 +35,8 @@ class LoanRequestSubmittedNotification extends AbstractDatabaseNotification
                 ),
                 'entity_type' => 'loan_request',
                 'entity_id' => $loanRequest->id,
+                'corrected_from_id' => $loanRequest->corrected_from_id,
+                'corrected_from_reference' => $loanRequest->correctedFrom?->reference,
                 'loan_type_code' => $loanRequest->typecode,
                 'loan_type_label' => $loanRequest->loan_type_label_snapshot,
                 'requested_amount' => $loanRequest->requested_amount,

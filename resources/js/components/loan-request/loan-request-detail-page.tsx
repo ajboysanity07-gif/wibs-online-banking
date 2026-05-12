@@ -12,6 +12,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -47,6 +48,7 @@ type Props = {
     printHref: string;
     decision?: DecisionProps;
     correction?: CorrectionProps;
+    correctedCopy?: CorrectedCopyProps;
 };
 
 const personName = (person?: LoanRequestPersonData | null): string => {
@@ -186,6 +188,11 @@ type CorrectionProps = {
     onEdit?: () => void;
 };
 
+type CorrectedCopyProps = {
+    isProcessing?: boolean;
+    onCreate?: () => void;
+};
+
 type LoanRequestApprovePayload = {
     approved_amount: string;
     approved_term: string;
@@ -249,6 +256,7 @@ export function LoanRequestDetailPage({
     printHref,
     decision,
     correction,
+    correctedCopy,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -306,11 +314,18 @@ export function LoanRequestDetailPage({
         showDecision &&
         normalizedStatus === 'approved' &&
         typeof decision?.onCancelApproved === 'function';
+    const showCorrectedCopyAction =
+        normalizedStatus === 'cancelled' &&
+        typeof correctedCopy?.onCreate === 'function';
     const blockedMessage =
         normalizedStatus === 'under_review'
             ? decision?.blockedMessage ?? null
             : null;
+    const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+    const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [isCancellationDialogOpen, setIsCancellationDialogOpen] =
+        useState(false);
+    const [isCorrectedCopyDialogOpen, setIsCorrectedCopyDialogOpen] =
         useState(false);
     const [cancellationReason, setCancellationReason] = useState('');
     const [cancellationReasonError, setCancellationReasonError] = useState<
@@ -345,6 +360,15 @@ export function LoanRequestDetailPage({
         loanRequest.cancellation_reason,
     );
 
+    const closeApprovalDialog = (force = false) => {
+        if (decision?.isProcessing && !force) {
+            return;
+        }
+
+        setIsApprovalDialogOpen(false);
+        setApprovalConfirmed(false);
+    };
+
     const closeCancellationDialog = (force = false) => {
         if (decision?.isCancelling && !force) {
             return;
@@ -353,6 +377,14 @@ export function LoanRequestDetailPage({
         setIsCancellationDialogOpen(false);
         setCancellationReason('');
         setCancellationReasonError(null);
+    };
+
+    const closeCorrectedCopyDialog = (force = false) => {
+        if (correctedCopy?.isProcessing && !force) {
+            return;
+        }
+
+        setIsCorrectedCopyDialogOpen(false);
     };
 
     const submitCancellation = async (event: FormEvent<HTMLFormElement>) => {
@@ -730,18 +762,12 @@ export function LoanRequestDetailPage({
                                         <div className="flex flex-wrap gap-2">
                                             <Button
                                                 type="button"
-                                                onClick={() =>
-                                                    decision?.onApprove?.({
-                                                        approved_amount:
-                                                            approvedAmount,
-                                                        approved_term:
-                                                            approvedTerm,
-                                                        decision_notes:
-                                                            decisionNotes
-                                                                ? decisionNotes
-                                                                : null,
-                                                    })
-                                                }
+                                                onClick={() => {
+                                                    setApprovalConfirmed(false);
+                                                    setIsApprovalDialogOpen(
+                                                        true,
+                                                    );
+                                                }}
                                                 disabled={
                                                     decision?.isProcessing
                                                 }
@@ -936,6 +962,21 @@ export function LoanRequestDetailPage({
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
+                            {showCorrectedCopyAction ? (
+                                <div className="space-y-3">
+                                    <Button
+                                        type="button"
+                                        className="w-full justify-center"
+                                        disabled={correctedCopy?.isProcessing}
+                                        onClick={() =>
+                                            setIsCorrectedCopyDialogOpen(true)
+                                        }
+                                    >
+                                        Create Corrected Request
+                                    </Button>
+                                    <Separator className="bg-border/40" />
+                                </div>
+                            ) : null}
                             <Button
                                 asChild
                                 variant="ghost"
@@ -966,6 +1007,98 @@ export function LoanRequestDetailPage({
                     </Card>
                 </div>
             </div>
+            <Dialog
+                open={isApprovalDialogOpen}
+                onOpenChange={(open) => {
+                    if (open) {
+                        setApprovalConfirmed(false);
+                        setIsApprovalDialogOpen(true);
+                        return;
+                    }
+
+                    closeApprovalDialog();
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Approval</DialogTitle>
+                        <DialogDescription>
+                            Please carefully review the loan details, applicant
+                            information, and co-maker information before
+                            approving this request. Once approved, the request
+                            details cannot be edited directly. If wrong
+                            information is found after approval, the approved
+                            request must be cancelled and the member must
+                            create a corrected request.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="rounded-xl border border-border/30 bg-muted/10 p-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <DetailRow
+                                    label="Approved amount"
+                                    value={displayCurrency(approvedAmount)}
+                                />
+                                <DetailRow
+                                    label="Approved term"
+                                    value={
+                                        approvedTerm.trim() !== ''
+                                            ? `${approvedTerm} months`
+                                            : '--'
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 rounded-xl border border-border/30 bg-muted/10 p-4">
+                            <Checkbox
+                                id="confirm_approval"
+                                checked={approvalConfirmed}
+                                onCheckedChange={(checked) =>
+                                    setApprovalConfirmed(checked === true)
+                                }
+                            />
+                            <Label
+                                htmlFor="confirm_approval"
+                                className="text-sm leading-relaxed"
+                            >
+                                I confirm that I have reviewed the loan
+                                details, applicant details, and co-maker
+                                details before approving.
+                            </Label>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={decision?.isProcessing}
+                            onClick={() => closeApprovalDialog()}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            disabled={
+                                decision?.isProcessing ||
+                                !approvalConfirmed
+                            }
+                            onClick={() => {
+                                decision?.onApprove?.({
+                                    approved_amount: approvedAmount,
+                                    approved_term: approvedTerm,
+                                    decision_notes: decisionNotes
+                                        ? decisionNotes
+                                        : null,
+                                });
+
+                                closeApprovalDialog(true);
+                            }}
+                        >
+                            Confirm Approval
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <Dialog
                 open={isCancellationDialogOpen}
                 onOpenChange={(open) => {
@@ -1030,6 +1163,48 @@ export function LoanRequestDetailPage({
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+            <Dialog
+                open={isCorrectedCopyDialogOpen}
+                onOpenChange={(open) => {
+                    if (open) {
+                        setIsCorrectedCopyDialogOpen(true);
+                        return;
+                    }
+
+                    closeCorrectedCopyDialog();
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Create Corrected Request</DialogTitle>
+                        <DialogDescription>
+                            This will create a new draft copied from this
+                            cancelled request. You can review and correct the
+                            details before submitting it again.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={correctedCopy?.isProcessing}
+                            onClick={() => closeCorrectedCopyDialog()}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            disabled={correctedCopy?.isProcessing}
+                            onClick={() => {
+                                correctedCopy?.onCreate?.();
+                                closeCorrectedCopyDialog(true);
+                            }}
+                        >
+                            Create Draft
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </PageShell>

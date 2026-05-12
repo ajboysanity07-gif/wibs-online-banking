@@ -168,6 +168,10 @@ Route::get('client/loans/requests/{loanRequest}', [LoanRequestController::class,
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.show');
 
+Route::post('client/loans/requests/{loanRequest}/corrected-copy', [LoanRequestController::class, 'createCorrectedCopy'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.corrected-copy');
+
 Route::get('client/loans/requests/{loanRequest}/pdf', [LoanRequestController::class, 'pdf'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.pdf');
