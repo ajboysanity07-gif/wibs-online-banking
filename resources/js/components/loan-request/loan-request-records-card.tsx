@@ -227,7 +227,7 @@ export function LoanRequestRecordsCard({
     return (
         <MemberRecordsCard
             title="Loan requests"
-            description="Track your draft and submitted applications."
+            description="Track your draft, submitted, approved, declined, and cancelled applications."
             headerAccessory={
                 <Button asChild size="sm" variant="outline">
                     <Link href={loanRequestCreate().url}>Request loan</Link>

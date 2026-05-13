@@ -31,7 +31,10 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
-import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
+import {
+    create as loanRequestCreate,
+    index as loanRequestsIndex,
+} from '@/routes/client/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
 import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
@@ -50,7 +53,6 @@ const memberNavItems: NavItem[] = [
         title: 'Loans',
         href: clientLoans(),
         icon: Banknote,
-        match: 'section',
     },
     {
         title: 'Loan Security',
@@ -63,6 +65,7 @@ const memberNavItems: NavItem[] = [
         href: loanRequestsIndex(),
         icon: FileText,
         match: 'section',
+        matchPaths: [loanRequestsIndex(), loanRequestCreate()],
     },
     {
         title: 'Settings',
