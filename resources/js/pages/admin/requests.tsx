@@ -1,11 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import {
+    LoanRequestPageHero,
+    LoanRequestSearchBox,
+    LoanRequestStatusFilters,
+    LoanRequestSummaryCards,
+    type LoanRequestStatusFilterOption,
+} from '@/components/loan-request/loan-request-page-sections';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
-import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
-import { SectionHeader } from '@/components/section-header';
-import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,19 +43,22 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const statusLabels: Record<LoanRequestStatusValue, string> = {
-    draft: 'Draft',
-    submitted: 'Submitted',
+type AdminStatusFilter =
+    | 'all'
+    | 'under_review'
+    | 'approved'
+    | 'declined'
+    | 'cancelled';
+
+const statusLabels: Record<Exclude<AdminStatusFilter, 'all'>, string> = {
     under_review: 'Under review',
     approved: 'Approved',
     declined: 'Declined',
     cancelled: 'Cancelled',
 };
 
-const statusOptions: Array<{
-    value: LoanRequestStatusValue;
-    label: string;
-}> = [
+const statusOptions: Array<LoanRequestStatusFilterOption<AdminStatusFilter>> = [
+    { value: 'all', label: 'All' },
     { value: 'under_review', label: 'Under review' },
     { value: 'approved', label: 'Approved' },
     { value: 'declined', label: 'Declined' },
@@ -80,6 +87,16 @@ const parseAmount = (value: string): number | undefined => {
 
 const formatCountLabel = (count: number, label: string): string => {
     return count === 1 ? `${count} ${label}` : `${count} ${label}s`;
+};
+
+const normalizeStatus = (
+    status: LoanRequestStatusValue | null,
+): LoanRequestStatusValue | null => {
+    if (status === 'submitted') {
+        return 'under_review';
+    }
+
+    return status;
 };
 
 const columns: ColumnDef<RequestPreview>[] = [
@@ -156,14 +173,17 @@ const requestsTableSkeletonColumns = [
 export default function RequestsPage() {
     const [search, setSearch] = useState('');
     const [loanType, setLoanType] = useState<string | null>(null);
-    const [status, setStatus] = useState<LoanRequestStatusValue | null>(null);
+    const [statusFilter, setStatusFilter] =
+        useState<AdminStatusFilter>('all');
     const [minAmount, setMinAmount] = useState('');
     const [maxAmount, setMaxAmount] = useState('');
     const [page, setPage] = useState(1);
     const [perPage] = useState(10);
+
     const searchValue = search.trim();
     const minAmountValue = parseAmount(minAmount);
     const maxAmountValue = parseAmount(maxAmount);
+    const status = statusFilter === 'all' ? null : statusFilter;
     const { items, meta, loading, error } = useRequests({
         search,
         page,
@@ -173,15 +193,8 @@ export default function RequestsPage() {
         minAmount: minAmountValue,
         maxAmount: maxAmountValue,
     });
+
     const showSkeleton = loading && items.length === 0;
-    const filterCount = [
-        loanType,
-        status,
-        minAmountValue,
-        maxAmountValue,
-    ].filter((value) => value !== null && value !== undefined).length;
-    const hasFilters = filterCount > 0;
-    const isFiltering = hasFilters || searchValue !== '';
     const loanTypeOptions = (
         meta.loanTypes.length > 0
             ? meta.loanTypes
@@ -209,10 +222,41 @@ export default function RequestsPage() {
             : 'No requests found yet.'
         : (meta.message ?? 'Requests module coming soon.');
     const emptyMessage = meta.available
-        ? isFiltering
+        ? searchValue !== '' ||
+          status !== null ||
+          loanType !== null ||
+          minAmountValue !== undefined ||
+          maxAmountValue !== undefined
             ? 'No requests match the current filters.'
             : 'No requests found yet.'
         : (meta.message ?? 'Requests module coming soon.');
+
+    const filterCount = [
+        searchValue !== '' ? searchValue : null,
+        loanType,
+        status,
+        minAmountValue,
+        maxAmountValue,
+    ].filter((value) => value !== null && value !== undefined).length;
+    const hasFilters = filterCount > 0;
+    const summaryCounts = useMemo(
+        () => ({
+            total: totalResults,
+            underReview: items.filter(
+                (item) => normalizeStatus(item.status) === 'under_review',
+            ).length,
+            approved: items.filter(
+                (item) => normalizeStatus(item.status) === 'approved',
+            ).length,
+            cancelled: items.filter(
+                (item) => normalizeStatus(item.status) === 'cancelled',
+            ).length,
+            declined: items.filter(
+                (item) => normalizeStatus(item.status) === 'declined',
+            ).length,
+        }),
+        [items, totalResults],
+    );
     const activeFilterBadges = [
         searchValue !== '' ? `Search: ${searchValue}` : null,
         loanType ? `Type: ${loanType}` : null,
@@ -231,10 +275,10 @@ export default function RequestsPage() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Requests" />
             <PageShell size="wide">
-                <PageHero
+                <LoanRequestPageHero
                     kicker="Requests"
-                    title="Loan requests"
-                    description="Review member submissions, monitor status updates, and open the full request details for printing or PDF export."
+                    title="Loan Requests"
+                    description="Review member submissions, monitor status updates, and open full request details for printing or PDF export."
                     badges={
                         <>
                             <Badge variant="secondary">
@@ -242,74 +286,89 @@ export default function RequestsPage() {
                             </Badge>
                             {filterCount > 0 ? (
                                 <Badge variant="outline">
-                                    {formatCountLabel(filterCount, 'filter')}
+                                    {formatCountLabel(
+                                        filterCount,
+                                        'active filter',
+                                    )}
                                 </Badge>
                             ) : null}
-                            {searchValue !== '' ? (
-                                <Badge variant="outline">
-                                    Search active
-                                </Badge>
+                            {loading ? (
+                                <Badge variant="outline">Updating</Badge>
                             ) : null}
                         </>
                     }
-                    rightSlot={
-                        loading ? (
-                            <Badge variant="outline">Updating</Badge>
-                        ) : null
-                    }
                 />
 
-                <SurfaceCard variant="default" padding="md">
-                    <div className="flex flex-col gap-4">
-                        <SectionHeader
-                            title="Filters"
-                            description="Use search, loan type, status, and amount range to narrow results."
-                            actions={
-                                <>
-                                    {filterCount > 0 ? (
-                                        <span className="text-xs text-muted-foreground">
-                                            {formatCountLabel(
-                                                filterCount,
-                                                'filter',
-                                            )}{' '}
-                                            active
-                                        </span>
-                                    ) : null}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={!hasFilters}
-                                        onClick={() => {
-                                            setLoanType(null);
-                                            setStatus(null);
-                                            setMinAmount('');
-                                            setMaxAmount('');
-                                            setPage(1);
-                                        }}
-                                    >
-                                        Clear filters
-                                    </Button>
-                                </>
-                            }
+                <LoanRequestSummaryCards
+                    items={[
+                        { label: 'Total', value: summaryCounts.total },
+                        {
+                            label: 'Under review',
+                            value: summaryCounts.underReview,
+                            emphasisClassName:
+                                'text-sky-600 dark:text-sky-400',
+                        },
+                        {
+                            label: 'Approved',
+                            value: summaryCounts.approved,
+                            emphasisClassName:
+                                'text-emerald-600 dark:text-emerald-400',
+                        },
+                        {
+                            label: 'Cancelled',
+                            value: summaryCounts.cancelled,
+                            emphasisClassName: 'text-rose-600 dark:text-rose-400',
+                        },
+                        {
+                            label: 'Declined',
+                            value: summaryCounts.declined,
+                            emphasisClassName:
+                                'text-orange-600 dark:text-orange-400',
+                        },
+                    ]}
+                    helperText="Status cards for Under review, Approved, Cancelled, and Declined reflect the current results page."
+                />
+
+                <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm sm:p-5">
+                    <div className="space-y-4">
+                        <LoanRequestStatusFilters
+                            options={statusOptions}
+                            activeValue={statusFilter}
+                            onChange={(nextStatus) => {
+                                setStatusFilter(nextStatus);
+                                setPage(1);
+                            }}
                         />
-                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
-                            <div className="space-y-1">
-                                <label
-                                    className="text-xs font-medium text-muted-foreground"
-                                    htmlFor="requests-search"
-                                >
-                                    Search
-                                </label>
-                                <Input
-                                    id="requests-search"
-                                    value={search}
-                                    placeholder="Search by account, member, or loan type"
-                                    onChange={(event) => {
-                                        setSearch(event.target.value);
+
+                        <LoanRequestSearchBox
+                            value={search}
+                            onChange={(nextSearch) => {
+                                setSearch(nextSearch);
+                                setPage(1);
+                            }}
+                            placeholder="Search by account, member, loan type, or status"
+                            resultsText={resultsLabel}
+                            actions={
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!hasFilters}
+                                    onClick={() => {
+                                        setSearch('');
+                                        setLoanType(null);
+                                        setStatusFilter('all');
+                                        setMinAmount('');
+                                        setMaxAmount('');
                                         setPage(1);
                                     }}
-                                />
-                            </div>
+                                >
+                                    Clear filters
+                                </Button>
+                            }
+                        />
+
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             <div className="space-y-1">
                                 <span className="text-xs font-medium text-muted-foreground">
                                     Loan type
@@ -341,39 +400,7 @@ export default function RequestsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    Status
-                                </span>
-                                <Select
-                                    value={status ?? 'all'}
-                                    onValueChange={(value) => {
-                                        setStatus(
-                                            value === 'all'
-                                                ? null
-                                                : (value as LoanRequestStatusValue),
-                                        );
-                                        setPage(1);
-                                    }}
-                                >
-                                    <SelectTrigger aria-label="Status">
-                                        <SelectValue placeholder="All statuses" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All statuses
-                                        </SelectItem>
-                                        {statusOptions.map((option) => (
-                                            <SelectItem
-                                                key={option.value}
-                                                value={option.value}
-                                            >
-                                                {option.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
                             <div className="space-y-1">
                                 <label
                                     className="text-xs font-medium text-muted-foreground"
@@ -395,6 +422,7 @@ export default function RequestsPage() {
                                     }}
                                 />
                             </div>
+
                             <div className="space-y-1">
                                 <label
                                     className="text-xs font-medium text-muted-foreground"
@@ -417,36 +445,9 @@ export default function RequestsPage() {
                                 />
                             </div>
                         </div>
-                    </div>
-                </SurfaceCard>
 
-                {error ? (
-                    <Alert variant="destructive">
-                        <AlertTitle>Unable to load requests</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                ) : null}
-
-                <SurfaceCard
-                    variant="default"
-                    padding="none"
-                    className="overflow-hidden"
-                >
-                    <div className="border-b border-border/40 bg-card/70 px-6 py-4">
-                        <SectionHeader
-                            title="Results"
-                            description={resultsLabel}
-                            titleClassName="text-lg"
-                            actions={
-                                loading ? (
-                                    <span className="text-xs text-muted-foreground">
-                                        Updating...
-                                    </span>
-                                ) : null
-                            }
-                        />
                         {shouldShowFiltersSummary ? (
-                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                                 {activeFilterBadges.map((label) => (
                                     <Badge
                                         key={label}
@@ -458,6 +459,22 @@ export default function RequestsPage() {
                                 ))}
                             </div>
                         ) : null}
+                    </div>
+                </section>
+
+                {error ? (
+                    <Alert variant="destructive">
+                        <AlertTitle>Unable to load requests</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                ) : null}
+
+                <section className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-sm">
+                    <div className="border-b border-border/40 bg-card/70 px-4 py-4 sm:px-6">
+                        <h2 className="text-lg font-semibold">Request results</h2>
+                        <p className="text-sm text-muted-foreground">
+                            {resultsLabel}
+                        </p>
                     </div>
 
                     <div className="px-2 pb-2 sm:px-4 sm:pb-4">
@@ -518,8 +535,7 @@ export default function RequestsPage() {
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <p className="text-sm font-semibold text-foreground">
-                                                        {item.member_name ??
-                                                            '--'}
+                                                        {item.member_name ?? '--'}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         {`Reference: ${item.reference ?? '--'}`}
@@ -593,7 +609,7 @@ export default function RequestsPage() {
                             )}
                         </div>
                     </div>
-                </SurfaceCard>
+                </section>
 
                 {showSkeleton ? (
                     <DataTablePaginationSkeleton />

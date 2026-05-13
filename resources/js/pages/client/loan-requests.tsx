@@ -1,12 +1,16 @@
 import { Head, Link } from '@inertiajs/react';
-import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import {
+    LoanRequestPageHero,
+    LoanRequestSearchBox,
+    LoanRequestStatusFilters,
+    LoanRequestSummaryCards,
+    type LoanRequestStatusFilterOption,
+} from '@/components/loan-request/loan-request-page-sections';
 import { LoanRequestRecordsCard } from '@/components/loan-request/loan-request-records-card';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import { dashboard as clientDashboard } from '@/routes/client';
 import {
     create as loanRequestCreate,
@@ -32,10 +36,7 @@ type StatusFilter =
     | 'declined'
     | 'cancelled';
 
-const statusFilters: Array<{
-    value: StatusFilter;
-    label: string;
-}> = [
+const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
     { value: 'all', label: 'All' },
     { value: 'draft', label: 'Draft' },
     { value: 'under_review', label: 'Under review' },
@@ -148,107 +149,65 @@ export default function LoanRequestsPage({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan Requests" />
             <PageShell>
-                <section className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7">
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="space-y-2">
-                            <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
-                                Loan applications
-                            </p>
-                            <h1 className="text-3xl font-semibold tracking-tight">
-                                Loan Requests
-                            </h1>
-                            <p className="max-w-3xl text-sm text-muted-foreground">
-                                Track your draft, submitted, approved,
-                                declined, and cancelled loan applications.
-                            </p>
-                        </div>
-                        <Button asChild className="self-start sm:self-auto">
+                <LoanRequestPageHero
+                    kicker="Loan applications"
+                    title="Loan Requests"
+                    description="Track your draft, submitted, approved, declined, and cancelled loan applications."
+                    cta={
+                        <Button asChild>
                             <Link href={loanRequestCreate().url}>
                                 Request loan
                             </Link>
                         </Button>
-                    </div>
-                </section>
+                    }
+                />
 
-                <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                    {[
+                <LoanRequestSummaryCards
+                    items={[
                         {
                             label: 'Total',
                             value: summaryCounts.total,
-                            emphasisClass: 'text-foreground',
                         },
                         {
                             label: 'Draft',
                             value: summaryCounts.draft,
-                            emphasisClass: 'text-amber-600 dark:text-amber-400',
+                            emphasisClassName:
+                                'text-amber-600 dark:text-amber-400',
                         },
                         {
                             label: 'Under review',
                             value: summaryCounts.underReview,
-                            emphasisClass: 'text-sky-600 dark:text-sky-400',
+                            emphasisClassName:
+                                'text-sky-600 dark:text-sky-400',
                         },
                         {
                             label: 'Approved',
                             value: summaryCounts.approved,
-                            emphasisClass:
+                            emphasisClassName:
                                 'text-emerald-600 dark:text-emerald-400',
                         },
                         {
                             label: 'Cancelled/Declined',
                             value: summaryCounts.declinedOrCancelled,
-                            emphasisClass: 'text-rose-600 dark:text-rose-400',
+                            emphasisClassName:
+                                'text-rose-600 dark:text-rose-400',
                         },
-                    ].map((item) => (
-                        <div
-                            key={item.label}
-                            className="rounded-xl border border-border/40 bg-card/40 px-4 py-3"
-                        >
-                            <p className="text-xs font-medium text-muted-foreground">
-                                {item.label}
-                            </p>
-                            <p className={cn('mt-1 text-2xl font-semibold', item.emphasisClass)}>
-                                {item.value}
-                            </p>
-                        </div>
-                    ))}
-                </section>
+                    ]}
+                />
 
                 <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm sm:p-5">
                     <div className="flex flex-col gap-3">
-                        <div className="flex flex-wrap gap-2">
-                            {statusFilters.map((filter) => (
-                                <Button
-                                    key={filter.value}
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                        statusFilter === filter.value
-                                            ? 'default'
-                                            : 'outline'
-                                    }
-                                    onClick={() =>
-                                        setStatusFilter(filter.value)
-                                    }
-                                >
-                                    {filter.label}
-                                </Button>
-                            ))}
-                        </div>
-                        <div className="relative w-full sm:max-w-sm">
-                            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                value={searchQuery}
-                                onChange={(event) =>
-                                    setSearchQuery(event.target.value)
-                                }
-                                className="pl-9"
-                                placeholder="Search by reference, loan type, or status"
-                            />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Showing {filteredItems.length} of {items.length}{' '}
-                            requests.
-                        </p>
+                        <LoanRequestStatusFilters
+                            options={statusFilters}
+                            activeValue={statusFilter}
+                            onChange={setStatusFilter}
+                        />
+                        <LoanRequestSearchBox
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            placeholder="Search by reference, loan type, or status"
+                            resultsText={`Showing ${filteredItems.length} of ${items.length} requests.`}
+                        />
                     </div>
                 </section>
 
