@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AppUser;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationPayload
 {
@@ -33,9 +34,44 @@ class NotificationPayload
     {
         return [
             'member_id' => $user?->user_id,
-            'member_name' => $user?->name,
+            'member_name' => self::memberDisplayName($user),
             'member_acctno' => $user?->acctno,
         ];
+    }
+
+    public static function memberDisplayName(
+        ?AppUser $user,
+        bool $allowEmailFallback = true,
+    ): ?string {
+        if ($user === null) {
+            return null;
+        }
+
+        $name = null;
+
+        if (Schema::hasTable('wmaster')) {
+            $user->loadMissing('wmaster');
+            $name = $user->wmaster?->displayName();
+        }
+
+        if (! is_string($name) || trim($name) === '') {
+            $name = $user->username;
+        }
+
+        if (
+            $allowEmailFallback &&
+            (! is_string($name) || trim($name) === '')
+        ) {
+            $name = $user->email;
+        }
+
+        if (! is_string($name)) {
+            return null;
+        }
+
+        $name = trim($name);
+
+        return $name !== '' ? $name : null;
     }
 
     /**

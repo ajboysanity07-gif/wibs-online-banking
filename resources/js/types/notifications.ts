@@ -7,7 +7,7 @@ export type NotificationPayload = {
     status?: LoanRequestStatusValue | string | null;
     entity_type?: string | null;
     entity_id?: number | string | null;
-    loan_request_id?: number | null;
+    loan_request_id?: number | string | null;
     reference?: string | null;
     decision_notes?: string | null;
     reviewed_at?: string | null;

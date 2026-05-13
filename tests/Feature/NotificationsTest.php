@@ -156,8 +156,14 @@ test('loan request submission notifies admins and superadmins', function () {
     expect($data['status'])->toBe(LoanRequestStatus::UnderReview->value);
     expect($data['entity_type'])->toBe('loan_request');
     expect($data['entity_id'])->toBe($loanRequest->id);
+    expect($data['message'])->toBe(
+        sprintf(
+            'Loan Member submitted loan request %s.',
+            $loanRequest->reference,
+        ),
+    );
     expect($data['member_id'])->toBe($member->user_id);
-    expect($data['member_name'])->toBe($member->name);
+    expect($data['member_name'])->toBe('Loan Member');
     expect($data['member_acctno'])->toBe($member->acctno);
     expect($data['actor_id'])->toBe($member->user_id);
     expect($data['actor_role'])->toBe('member');

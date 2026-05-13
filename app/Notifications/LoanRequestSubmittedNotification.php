@@ -18,7 +18,10 @@ class LoanRequestSubmittedNotification extends AbstractDatabaseNotification
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
         $member = $loanRequest->user;
-        $memberName = $loanRequest->user?->name;
+        $memberName = NotificationPayload::memberDisplayName(
+            $member,
+            allowEmailFallback: false,
+        ) ?? 'A member';
         $reference = $loanRequest->reference;
 
         $this->payload = array_merge(
@@ -29,8 +32,8 @@ class LoanRequestSubmittedNotification extends AbstractDatabaseNotification
                 'status' => $status,
                 'title' => 'Loan request submitted',
                 'message' => sprintf(
-                    '%s submitted a loan request %s.',
-                    $memberName ?: 'A member',
+                    '%s submitted loan request %s.',
+                    $memberName,
                     $reference,
                 ),
                 'entity_type' => 'loan_request',

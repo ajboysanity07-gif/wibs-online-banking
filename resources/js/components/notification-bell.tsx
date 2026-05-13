@@ -1,5 +1,7 @@
+import { router } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
+    Ban,
     BadgeCheck,
     Bell,
     BellDot,
@@ -11,6 +13,7 @@ import {
     Shield,
     ShieldAlert,
     ShieldCheck,
+    PencilLine,
     TriangleAlert,
     UserCog,
     XCircle,
@@ -27,8 +30,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { notificationsApi } from '@/lib/api/notifications';
-import { formatDateTime, formatDisplayText } from '@/lib/formatters';
+import { formatCurrency, formatDateTime, formatDisplayText } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { show as showAdminLoanRequest } from '@/routes/admin/requests';
+import { show as showClientLoanRequest } from '@/routes/client/loan-requests';
 import type {
     NotificationItem,
     NotificationPayload,
@@ -72,6 +77,15 @@ type NotificationTimestamp = {
     title: string;
 };
 
+type LoanRequestIdentifier = string | number;
+
+const LOAN_NOTIFICATION_TYPES = new Set([
+    'loan_request_submitted',
+    'loan_request_updated',
+    'loan_request_cancelled',
+    'loan_request_decision',
+]);
+
 const formatBadgeCount = (count: number): string =>
     count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : `${count}`;
 
@@ -92,6 +106,99 @@ const formatStatusLabel = (status?: string | null): string | null => {
     }
 
     return formatFieldLabel(status);
+};
+
+const normalizeSearchText = (value?: string | null): string =>
+    (value ?? '')
+        .toLowerCase()
+        .replace(/[^a-z0-9@.]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const messageMentionsValue = (
+    message?: string | null,
+    value?: string | null,
+): boolean => {
+    const normalizedMessage = normalizeSearchText(message);
+    const normalizedValue = normalizeSearchText(value);
+
+    if (normalizedMessage === '' || normalizedValue === '') {
+        return false;
+    }
+
+    return normalizedMessage.includes(normalizedValue);
+};
+
+const isLoanRequestNotification = (payload: NotificationPayload): boolean =>
+    payload.entity_type === 'loan_request' ||
+    LOAN_NOTIFICATION_TYPES.has(payload.type);
+
+const toLoanRequestIdentifier = (
+    value?: NotificationPayload['loan_request_id'],
+): LoanRequestIdentifier | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const normalizedValue = value.trim();
+
+        return normalizedValue !== '' ? normalizedValue : null;
+    }
+
+    return null;
+};
+
+const resolveNotificationDestination = (
+    payload: NotificationPayload,
+): string | null => {
+    const loanRequestId = toLoanRequestIdentifier(payload.loan_request_id);
+
+    if (loanRequestId === null) {
+        return null;
+    }
+
+    if (payload.type === 'loan_request_submitted') {
+        return showAdminLoanRequest(loanRequestId).url;
+    }
+
+    if (
+        payload.type === 'loan_request_updated' ||
+        payload.type === 'loan_request_cancelled' ||
+        payload.type === 'loan_request_decision'
+    ) {
+        return showClientLoanRequest(loanRequestId).url;
+    }
+
+    return null;
+};
+
+const parseRequestedAmount = (
+    value?: NotificationPayload['requested_amount'],
+): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const parsedValue = Number(value.replace(/,/g, '').trim());
+
+        return Number.isFinite(parsedValue) ? parsedValue : null;
+    }
+
+    return null;
+};
+
+const formatRequestedAmountChip = (
+    value?: NotificationPayload['requested_amount'],
+): string | null => {
+    const requestedAmount = parseRequestedAmount(value);
+
+    if (requestedAmount === null) {
+        return null;
+    }
+
+    return `Amount: ${formatCurrency(requestedAmount)}`;
 };
 
 const formatTimestamp = (
@@ -197,6 +304,24 @@ const getNotificationVisual = (
         };
     }
 
+    if (payload.type === 'loan_request_updated') {
+        return {
+            Icon: PencilLine,
+            iconLabel: 'Loan request updated',
+            className:
+                'bg-sky-500/10 text-sky-700 ring-sky-500/15 dark:bg-sky-500/15 dark:text-sky-200',
+        };
+    }
+
+    if (payload.type === 'loan_request_cancelled') {
+        return {
+            Icon: Ban,
+            iconLabel: 'Loan request cancelled',
+            className:
+                'bg-rose-500/10 text-rose-700 ring-rose-500/15 dark:bg-rose-500/15 dark:text-rose-200',
+        };
+    }
+
     if (
         payload.type === 'loan_request_decision' &&
         payload.status === 'approved'
@@ -287,6 +412,20 @@ const buildMetadataChips = (
     const seenLabels = new Set<string>();
     const statusLabel = formatStatusLabel(payload.status);
     const changedFields = payload.changed_fields ?? [];
+    const memberName = formatDisplayText(payload.member_name);
+    const actorName = formatDisplayText(payload.actor_name);
+    const actorLabel =
+        actorName !== '' &&
+        actorName.toLowerCase() !== memberName.toLowerCase()
+            ? `By ${actorName}`
+            : null;
+    const memberLabelIsInMessage = messageMentionsValue(
+        payload.message,
+        memberName,
+    );
+    const actorLabelIsInMessage = messageMentionsValue(payload.message, actorName);
+    const requestedAmountChip = formatRequestedAmountChip(payload.requested_amount);
+    const isLoanNotification = isLoanRequestNotification(payload);
 
     pushChip(chips, seenLabels, statusLabel, resolveChipTone(payload.status));
     pushChip(
@@ -294,24 +433,49 @@ const buildMetadataChips = (
         seenLabels,
         payload.reference ? `Ref: ${payload.reference}` : null,
     );
-    pushChip(chips, seenLabels, formatDisplayText(payload.member_name));
-    pushChip(
-        chips,
-        seenLabels,
-        payload.member_acctno ? `Acct: ${payload.member_acctno}` : null,
-    );
-    pushChip(
-        chips,
-        seenLabels,
-        payload.actor_name
-            ? `By ${formatDisplayText(payload.actor_name)}`
-            : null,
-    );
-    pushChip(
-        chips,
-        seenLabels,
-        payload.loan_type_label ?? payload.loan_type_code ?? null,
-    );
+
+    if (isLoanNotification) {
+        if (memberName !== '' && !memberLabelIsInMessage) {
+            pushChip(chips, seenLabels, memberName);
+        } else {
+            pushChip(
+                chips,
+                seenLabels,
+                payload.member_acctno ? `Acct: ${payload.member_acctno}` : null,
+            );
+        }
+
+        pushChip(chips, seenLabels, requestedAmountChip);
+        pushChip(
+            chips,
+            seenLabels,
+            payload.loan_type_label ?? payload.loan_type_code ?? null,
+        );
+
+        if (!actorLabelIsInMessage) {
+            pushChip(chips, seenLabels, actorLabel);
+        }
+    } else {
+        if (memberName !== '' && !memberLabelIsInMessage) {
+            pushChip(chips, seenLabels, memberName);
+        }
+
+        pushChip(
+            chips,
+            seenLabels,
+            payload.member_acctno ? `Acct: ${payload.member_acctno}` : null,
+        );
+
+        if (!actorLabelIsInMessage) {
+            pushChip(chips, seenLabels, actorLabel);
+        }
+
+        pushChip(
+            chips,
+            seenLabels,
+            payload.loan_type_label ?? payload.loan_type_code ?? null,
+        );
+    }
 
     changedFields.slice(0, 2).forEach((field) => {
         pushChip(chips, seenLabels, formatFieldLabel(field), 'neutral');
@@ -611,7 +775,14 @@ export function NotificationBell() {
 
     const handleNotificationSelect = useCallback(
         async (notification: NotificationItem) => {
+            const destination = resolveNotificationDestination(notification.data);
+
             if (notification.read_at) {
+                if (destination) {
+                    setOpen(false);
+                    router.visit(destination);
+                }
+
                 return;
             }
 
@@ -627,6 +798,11 @@ export function NotificationBell() {
                     ),
                 );
                 setUnreadCount(result.unreadCount);
+
+                if (destination) {
+                    setOpen(false);
+                    router.visit(destination);
+                }
             } catch {
                 return;
             }
