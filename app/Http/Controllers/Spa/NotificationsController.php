@@ -16,6 +16,8 @@ class NotificationsController extends Controller
 {
     private const DEFAULT_LIMIT = 10;
 
+    private const MAX_LIMIT = 200;
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -24,9 +26,11 @@ class NotificationsController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
+        $limit = $this->resolveLimit($request);
+
         try {
             $notifications = $user->notifications()
-                ->limit(self::DEFAULT_LIMIT)
+                ->limit($limit)
                 ->get();
 
             $items = [];
@@ -49,6 +53,17 @@ class NotificationsController extends Controller
 
             return $this->notificationIndexResponse([]);
         }
+    }
+
+    private function resolveLimit(Request $request): int
+    {
+        $limit = (int) $request->query('limit', self::DEFAULT_LIMIT);
+
+        if ($limit <= 0) {
+            return self::DEFAULT_LIMIT;
+        }
+
+        return min($limit, self::MAX_LIMIT);
     }
 
     public function unreadCount(Request $request): JsonResponse

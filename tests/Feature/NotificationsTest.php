@@ -237,6 +237,19 @@ test('superadmins can access and use notifications', function () {
         ->assertJsonPath('data.unreadCount', 0);
 });
 
+test('users with notification access can open notifications page', function () {
+    $admin = createAdminUser(acctno: null);
+    $member = createRegisteredMember('000822', 'Notify', 'Member');
+
+    $this->actingAs($admin)
+        ->get('/notifications')
+        ->assertOk();
+
+    $this->actingAs($member)
+        ->get('/notifications')
+        ->assertOk();
+});
+
 test('member suspend and reactivate send notifications to member and superadmins', function () {
     $admin = createAdminUser();
     $superadmin = createAdminUser(superadmin: true);

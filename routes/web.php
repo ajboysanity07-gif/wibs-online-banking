@@ -26,6 +26,7 @@ use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansContro
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NotificationsController as NotificationsPageController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\LoanRequestCorrectionController as SpaLoanRequestCorrectionController;
@@ -213,6 +214,10 @@ Route::get('dashboard', DashboardRedirectController::class)
 Route::get('pending-approval', [PendingApprovalController::class, 'index'])
     ->middleware('auth')
     ->name('pending-approval');
+
+Route::get('notifications', NotificationsPageController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('notifications');
 
 Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(function () {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');

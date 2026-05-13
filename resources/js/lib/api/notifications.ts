@@ -29,10 +29,15 @@ export const notificationsApi = {
 
         return unwrap(response).unreadCount;
     },
-    async getNotifications(): Promise<NotificationItem[]> {
+    async getNotifications(limit?: number): Promise<NotificationItem[]> {
         const response = await client.get<
             ApiResponse<NotificationListResponse>
-        >('/spa/notifications');
+        >('/spa/notifications', {
+            params:
+                typeof limit === 'number' && Number.isFinite(limit)
+                    ? { limit }
+                    : undefined,
+        });
 
         return unwrap(response).items;
     },
