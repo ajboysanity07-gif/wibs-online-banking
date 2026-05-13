@@ -68,7 +68,7 @@ export function useCorrectLoanRequest(options?: LoanRequestCorrectionOptions) {
                     payload,
                 );
 
-                showSuccessToast('Loan request details corrected successfully.', {
+                showSuccessToast('Loan request details updated.', {
                     id: toastId,
                 });
                 options?.onUpdated?.(result);
