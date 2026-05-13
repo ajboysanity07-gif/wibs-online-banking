@@ -2685,7 +2685,65 @@ test('admin dashboard reports loan requests count', function () {
         ->where('summary.metrics.requestsCount', 1));
 });
 
-test('client loans page lists member loan requests', function () {
+test('client loans page excludes member loan requests data', function () {
+    $user = User::factory()->create([
+        'acctno' => '000720',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Draft,
+            'requested_amount' => 12000,
+            'requested_term' => 12,
+            'updated_at' => now(),
+        ]);
+
+    LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::UnderReview,
+            'requested_amount' => 18000,
+            'requested_term' => 18,
+            'submitted_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loans'));
+
+    $response
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loans')
+            ->has('summary')
+            ->has('loans')
+            ->missing('loanRequests')
+            ->missing('loanRequestsError'));
+});
+
+test('client loan requests page lists member loan requests', function () {
     $user = User::factory()->create([
         'acctno' => '000720',
     ]);
@@ -2731,14 +2789,12 @@ test('client loans page lists member loan requests', function () {
 
     $response = $this
         ->actingAs($user)
-        ->get(route('client.loans'));
+        ->get(route('client.loan-requests.index'));
 
     $response
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('client/loans')
-            ->has('summary')
-            ->has('loans')
+            ->component('client/loan-requests')
             ->has('loanRequests.items', 2)
             ->where('loanRequests.items.0.id', $draft->id)
             ->where('loanRequests.items.0.reference', $draft->reference)

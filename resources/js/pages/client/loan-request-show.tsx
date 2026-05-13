@@ -1,8 +1,9 @@
 import { Head } from '@inertiajs/react';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import AppLayout from '@/layouts/app-layout';
-import { loans as clientLoans } from '@/routes/client';
+import { dashboard as clientDashboard } from '@/routes/client';
 import {
+    index as loanRequestsIndex,
     pdf as loanRequestPdf,
     print as loanRequestPrint,
     show as loanRequestShow,
@@ -23,8 +24,10 @@ export default function LoanRequestShow({
     coMakerOne,
     coMakerTwo,
 }: Props) {
+    const loanRequestsIndexHref = loanRequestsIndex().url;
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Loans', href: clientLoans().url },
+        { title: 'Overview', href: clientDashboard().url },
+        { title: 'Loan Requests', href: loanRequestsIndexHref },
         {
             title: 'Loan request',
             href: loanRequestShow(loanRequest.id).url,
@@ -48,8 +51,8 @@ export default function LoanRequestShow({
                 applicant={applicant}
                 coMakerOne={coMakerOne}
                 coMakerTwo={coMakerTwo}
-                backHref={clientLoans().url}
-                backLabel="Back to loans"
+                backHref={loanRequestsIndexHref}
+                backLabel="Back to loan requests"
                 pdfHref={pdfHref}
                 printHref={printHref}
                 correctedRequestHref={correctedRequestHref}

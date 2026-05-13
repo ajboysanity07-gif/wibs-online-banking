@@ -6,7 +6,6 @@ use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
 use App\Domains\MemberAccounts\Resources\MemberLoanResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
-use App\Services\LoanRequests\LoanRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -21,7 +20,6 @@ class MemberLoansController extends Controller
     public function __invoke(
         Request $request,
         MemberAccountsService $service,
-        LoanRequestService $loanRequestService,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -90,21 +88,6 @@ class MemberLoansController extends Controller
             $loansError = 'Unable to load loans.';
         }
 
-        $loanRequestsPayload = null;
-        $loanRequestsError = null;
-
-        try {
-            $loanRequestsPayload = [
-                'items' => $loanRequestService->getMemberRequestSummaries(
-                    $user,
-                    10,
-                ),
-            ];
-        } catch (\Throwable $exception) {
-            report($exception);
-            $loanRequestsError = 'Unable to load loan requests.';
-        }
-
         $memberPayload = $this->sanitizePayload([
             'name' => $memberName,
             'acctno' => $user->acctno,
@@ -117,9 +100,6 @@ class MemberLoansController extends Controller
         $loansPayload = $loansPayload === null
             ? null
             : $this->sanitizePayload($loansPayload);
-        $loanRequestsPayload = $loanRequestsPayload === null
-            ? null
-            : $this->sanitizePayload($loanRequestsPayload);
 
         return Inertia::render('client/loans', [
             'member' => $memberPayload,
@@ -127,8 +107,6 @@ class MemberLoansController extends Controller
             'summaryError' => $summaryError,
             'loans' => $loansPayload,
             'loansError' => $loansError,
-            'loanRequests' => $loanRequestsPayload,
-            'loanRequestsError' => $loanRequestsError,
         ]);
     }
 

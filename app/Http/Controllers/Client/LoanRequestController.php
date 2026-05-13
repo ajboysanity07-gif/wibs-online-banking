@@ -90,6 +90,45 @@ class LoanRequestController extends Controller
         return redirect()->route('client.loan-requests.create');
     }
 
+    public function index(
+        Request $request,
+        LoanRequestService $service,
+    ): Response|RedirectResponse {
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->route('login');
+        }
+
+        $user->loadMissing('adminProfile');
+
+        if ($user->isAdminOnly()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $loanRequestsPayload = null;
+        $loanRequestsError = null;
+
+        try {
+            $loanRequestsPayload = [
+                'items' => $service->getMemberRequestSummaries(
+                    $user,
+                    10,
+                ),
+            ];
+        } catch (\Throwable $exception) {
+            report($exception);
+            $loanRequestsError = 'Unable to load loan requests.';
+        }
+
+        $payload = $this->sanitizePayload([
+            'loanRequests' => $loanRequestsPayload,
+            'loanRequestsError' => $loanRequestsError,
+        ]);
+
+        return Inertia::render('client/loan-requests', $payload);
+    }
+
     public function show(
         Request $request,
         int $loanRequest,

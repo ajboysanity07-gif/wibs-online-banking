@@ -20,7 +20,8 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
-import { loans as clientLoans } from '@/routes/client';
+import { dashboard as clientDashboard } from '@/routes/client';
+import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestDraft,
@@ -31,6 +32,8 @@ import type {
     LoanRequestReadOnlyMap,
     LoanTypeOption,
 } from '@/types/loan-requests';
+
+const loanRequestsIndexHref = loanRequestsIndex().url;
 
 type Props = {
     loanTypes: LoanTypeOption[];
@@ -43,7 +46,8 @@ type Props = {
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Loans', href: clientLoans().url },
+    { title: 'Overview', href: clientDashboard().url },
+    { title: 'Loan Requests', href: loanRequestsIndexHref },
     { title: 'Loan request', href: LoanRequestController.create().url },
 ];
 
@@ -449,9 +453,9 @@ export default function LoanRequestPage({
                             size="sm"
                             className="gap-2 self-start"
                         >
-                            <Link href={clientLoans().url}>
+                            <Link href={loanRequestsIndexHref}>
                                 <ArrowLeft className="h-4 w-4" />
-                                Back to loans
+                                Back to loan requests
                             </Link>
                         </Button>
                     </div>

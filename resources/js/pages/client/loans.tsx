@@ -1,7 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Banknote, Clock } from 'lucide-react';
 import { useState } from 'react';
-import { LoanRequestRecordsCard } from '@/components/loan-request/loan-request-records-card';
 import { MemberDetailPageHeader } from '@/components/member-detail-page-header';
 import {
     MemberDetailPrimaryCard,
@@ -19,14 +18,12 @@ import {
     loanSchedule,
     loans as clientLoans,
 } from '@/routes/client';
-import { create as loanRequestCreate } from '@/routes/client/loan-requests';
 import type { BreadcrumbItem } from '@/types';
 import type {
     MemberAccountsSummary,
     MemberLoansResponse,
     PaginationMeta,
 } from '@/types/admin';
-import type { LoanRequestListResponse } from '@/types/loan-requests';
 
 type MemberSummary = {
     name: string;
@@ -39,8 +36,6 @@ type Props = {
     summaryError?: string | null;
     loans: MemberLoansResponse | null;
     loansError?: string | null;
-    loanRequests: LoanRequestListResponse | null;
-    loanRequestsError?: string | null;
 };
 
 const fallbackMeta: PaginationMeta = {
@@ -55,8 +50,6 @@ export default function MemberLoans({
     summary,
     loans,
     loansError = null,
-    loanRequests,
-    loanRequestsError = null,
 }: Props) {
     const [loading, setLoading] = useState(false);
     const items = loans?.items ?? [];
@@ -65,9 +58,6 @@ export default function MemberLoans({
     const isLoading = loading || (loans === null && !loansError);
     const loanEmptyMessage = isLoading ? 'Loading loans...' : 'No loans found.';
     const canNavigate = Boolean(member.acctno);
-    const requestItems = loanRequests?.items ?? [];
-    const isRequestsLoading =
-        loanRequests === null && loanRequestsError === null;
 
     const reloadPage = (nextPage: number) => {
         setLoading(true);
@@ -97,7 +87,7 @@ export default function MemberLoans({
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Member profile', href: clientDashboard().url },
+        { title: 'Overview', href: clientDashboard().url },
         { title: 'Loans', href: clientLoans().url },
     ];
     const loanBalance = formatCurrency(summaryValue?.loanBalanceLeft);
@@ -111,21 +101,14 @@ export default function MemberLoans({
             <PageShell>
                 <MemberDetailPageHeader
                     title="Loans"
-                    subtitle="Manage active loans and track new requests."
+                    subtitle="Track your active loans and payment history."
                     meta={`Account No: ${member.acctno ?? '--'}`}
                     actions={
-                        <>
-                            <Button asChild size="sm">
-                                <Link href={loanRequestCreate().url}>
-                                    Request loan
-                                </Link>
-                            </Button>
-                            <Button asChild variant="ghost" size="sm">
-                                <Link href={clientDashboard().url}>
-                                    Back to profile
-                                </Link>
-                            </Button>
-                        </>
+                        <Button asChild variant="ghost" size="sm">
+                            <Link href={clientDashboard().url}>
+                                Back to profile
+                            </Link>
+                        </Button>
                     }
                 />
 
@@ -152,14 +135,6 @@ export default function MemberLoans({
                         accent="primary"
                     />
                 </div>
-
-                <section id="loan-requests" className="scroll-mt-24">
-                    <LoanRequestRecordsCard
-                        items={requestItems}
-                        isUpdating={isRequestsLoading}
-                        error={loanRequestsError}
-                    />
-                </section>
 
                 <MemberLoanRecordsCard
                     items={items}

@@ -31,6 +31,7 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
+import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
 import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
@@ -59,7 +60,7 @@ const memberNavItems: NavItem[] = [
     },
     {
         title: 'Loan requests',
-        href: clientLoans(),
+        href: loanRequestsIndex(),
         icon: FileText,
         match: 'section',
     },

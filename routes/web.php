@@ -166,6 +166,10 @@ Route::patch('client/loans/request', [LoanRequestController::class, 'draft'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.draft');
 
+Route::get('client/loans/requests', [LoanRequestController::class, 'index'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.index');
+
 Route::get('client/loans/requests/{loanRequest}', [LoanRequestController::class, 'show'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.show');
