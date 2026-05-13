@@ -153,11 +153,13 @@ export default function MemberLoans({
                     />
                 </div>
 
-                <LoanRequestRecordsCard
-                    items={requestItems}
-                    isUpdating={isRequestsLoading}
-                    error={loanRequestsError}
-                />
+                <section id="loan-requests" className="scroll-mt-24">
+                    <LoanRequestRecordsCard
+                        items={requestItems}
+                        isUpdating={isRequestsLoading}
+                        error={loanRequestsError}
+                    />
+                </section>
 
                 <MemberLoanRecordsCard
                     items={items}

@@ -4,6 +4,11 @@ import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
+import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+} from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -317,6 +322,7 @@ export function LoanRequestDetailPage({
     const showCorrectedCopyAction =
         normalizedStatus === 'cancelled' &&
         typeof correctedCopy?.onCreate === 'function';
+    const showCancelledNotice = normalizedStatus === 'cancelled';
     const blockedMessage =
         normalizedStatus === 'under_review'
             ? decision?.blockedMessage ?? null
@@ -449,6 +455,31 @@ export function LoanRequestDetailPage({
                     </div>
                 </div>
             </div>
+
+            {showCancelledNotice ? (
+                <Alert className="border-amber-500/35 bg-amber-500/10 text-foreground">
+                    <Ban className="size-4 text-amber-700 dark:text-amber-200" />
+                    <AlertTitle className="line-clamp-none">
+                        This approved request was cancelled
+                    </AlertTitle>
+                    <AlertDescription className="w-full gap-3 text-foreground/90">
+                        <p>
+                            Please review the cancellation reason before
+                            creating a corrected request. Use the cancelled
+                            request as a template, fix the wrong information,
+                            and submit again.
+                        </p>
+                        <div className="w-full rounded-lg border border-amber-500/35 bg-background/85 px-3 py-2">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                                Cancellation reason
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-foreground">
+                                {cancellationReasonValue}
+                            </p>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+            ) : null}
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <div className="space-y-6">

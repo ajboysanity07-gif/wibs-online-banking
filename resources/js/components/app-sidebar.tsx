@@ -31,7 +31,6 @@ import {
     loans as clientLoans,
     savings as clientSavings,
 } from '@/routes/client';
-import { create as loanRequestCreate } from '@/routes/client/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
 import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
@@ -60,10 +59,9 @@ const memberNavItems: NavItem[] = [
     },
     {
         title: 'Loan requests',
-        href: loanRequestCreate(),
+        href: clientLoans(),
         icon: FileText,
         match: 'section',
-        matchPaths: [loanRequestCreate(), '/client/loans/requests'],
     },
     {
         title: 'Settings',
