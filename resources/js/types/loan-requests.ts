@@ -78,6 +78,11 @@ export type LoanRequestDetail = {
     cancelled_by: LoanRequestReviewer | null;
     cancelled_at: string | null;
     cancellation_reason: string | null;
+    corrected_from_id: number | null;
+    corrected_from_reference: string | null;
+    corrected_request_id: number | null;
+    corrected_request_reference: string | null;
+    corrected_request_status: LoanRequestStatusValue | null;
     acctno: string | null;
 };
 

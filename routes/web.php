@@ -123,6 +123,7 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::patch('admin/requests/{loanRequest}/decline', [SpaLoanRequestDecisionController::class, 'decline']);
         Route::patch('admin/requests/{loanRequest}/corrections', SpaLoanRequestCorrectionController::class);
         Route::patch('admin/requests/{loanRequest}/cancel', [SpaLoanRequestDecisionController::class, 'cancel']);
+        Route::post('admin/requests/{loanRequest}/admin-corrected-copy', [SpaLoanRequestDecisionController::class, 'createAdminCorrectedCopy']);
         Route::get('admin/watchlist', SpaWatchlistController::class);
     });
 });

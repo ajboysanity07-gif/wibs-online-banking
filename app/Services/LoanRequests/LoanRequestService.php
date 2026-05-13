@@ -9,6 +9,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
+use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
 use App\Services\Notifications\NotificationRecipientService;
 use App\Support\LocationComposer;
@@ -198,6 +199,113 @@ class LoanRequestService
         return $loanRequest;
     }
 
+    public function createAdminCorrectedCopyFromCancelledRequest(
+        LoanRequest $source,
+        AppUser $actor,
+        string $correctionReason,
+    ): LoanRequest {
+        $corrected = DB::transaction(function () use ($source, $actor, $correctionReason): LoanRequest {
+            $sourceRequest = LoanRequest::query()
+                ->whereKey($source->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $status = $sourceRequest->status instanceof LoanRequestStatus
+                ? $sourceRequest->status->value
+                : (string) $sourceRequest->status;
+
+            if ($status !== LoanRequestStatus::Cancelled->value) {
+                throw ValidationException::withMessages([
+                    'status' => 'Only cancelled requests can be corrected.',
+                ]);
+            }
+
+            if ($sourceRequest->user_id === null) {
+                throw ValidationException::withMessages([
+                    'loan_request' => 'Cancelled request is missing member ownership.',
+                ]);
+            }
+
+            $existingCorrectedRequest = LoanRequest::query()
+                ->where('corrected_from_id', $sourceRequest->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingCorrectedRequest !== null) {
+                throw ValidationException::withMessages([
+                    'loan_request' => 'A corrected request already exists for this cancelled request.',
+                ]);
+            }
+
+            $before = $this->serializer->serializeDetail($sourceRequest);
+
+            $corrected = new LoanRequest;
+            $corrected->user_id = $sourceRequest->user_id;
+            $corrected->corrected_from_id = $sourceRequest->id;
+            $corrected->acctno = (string) ($sourceRequest->acctno ?? '');
+            $corrected->typecode = (string) $sourceRequest->typecode;
+            $corrected->loan_type_label_snapshot = (string) $sourceRequest->loan_type_label_snapshot;
+            $corrected->requested_amount = $sourceRequest->requested_amount;
+            $corrected->requested_term = (int) $sourceRequest->requested_term;
+            $corrected->loan_purpose = (string) $sourceRequest->loan_purpose;
+            $corrected->availment_status = (string) $sourceRequest->availment_status;
+            $corrected->status = LoanRequestStatus::UnderReview;
+            $corrected->submitted_at = now();
+            $corrected->reviewed_by = null;
+            $corrected->reviewed_at = null;
+            $corrected->approved_amount = null;
+            $corrected->approved_term = null;
+            $corrected->decision_notes = null;
+            $corrected->cancelled_by = null;
+            $corrected->cancelled_at = null;
+            $corrected->cancellation_reason = null;
+            $corrected->save();
+
+            $sourceRequest->loadMissing('people');
+
+            foreach ($sourceRequest->people as $person) {
+                $role = $person->role instanceof LoanRequestPersonRole
+                    ? $person->role->value
+                    : (string) $person->role;
+
+                if (! in_array($role, [
+                    LoanRequestPersonRole::Applicant->value,
+                    LoanRequestPersonRole::CoMakerOne->value,
+                    LoanRequestPersonRole::CoMakerTwo->value,
+                ], true)) {
+                    continue;
+                }
+
+                $clone = $person->replicate();
+                $clone->loan_request_id = $corrected->id;
+                $clone->save();
+            }
+
+            $corrected->loadMissing('people', 'correctedFrom');
+
+            $after = $this->serializer->serializeDetail($corrected);
+
+            $this->recordAdminCorrectedRequestAudit(
+                $corrected,
+                $actor,
+                $correctionReason,
+                $before,
+                $after,
+            );
+
+            return $corrected;
+        });
+
+        $this->notifyMemberOfAdminCorrectedCopy(
+            $source,
+            $corrected,
+            $actor,
+            $correctionReason,
+        );
+
+        return $corrected;
+    }
+
     public function createCorrectedDraftFromCancelledRequest(
         AppUser $user,
         LoanRequest $source,
@@ -315,6 +423,60 @@ class LoanRequestService
                 'copied_people_snapshots',
             ],
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
+    private function recordAdminCorrectedRequestAudit(
+        LoanRequest $correctedRequest,
+        AppUser $actor,
+        string $correctionReason,
+        array $before,
+        array $after,
+    ): void {
+        if (! $this->schemaCapabilities->hasTable('loan_request_changes')) {
+            return;
+        }
+
+        LoanRequestChange::query()->create([
+            'loan_request_id' => $correctedRequest->id,
+            'changed_by' => $actor->user_id,
+            'action' => 'admin_create_corrected_request',
+            'reason' => $correctionReason,
+            'before_json' => $before,
+            'after_json' => $after,
+            'changed_fields_json' => [
+                'corrected_from_id',
+                'copied_loan_details',
+                'copied_people_snapshots',
+                'admin_correction_reason',
+            ],
+        ]);
+    }
+
+    private function notifyMemberOfAdminCorrectedCopy(
+        LoanRequest $sourceRequest,
+        LoanRequest $correctedRequest,
+        AppUser $actor,
+        string $correctionReason,
+    ): void {
+        $sourceRequest->loadMissing('user');
+        $correctedRequest->loadMissing('user');
+
+        $member = $sourceRequest->user;
+
+        if ($member === null || ! $member->hasMemberAccess()) {
+            return;
+        }
+
+        $member->notify(new LoanRequestAdminCorrectedCreatedNotification(
+            $sourceRequest,
+            $correctedRequest,
+            $correctionReason,
+            $actor,
+        ));
     }
 
     private function notifyAdminsOfSubmission(int $loanRequestId): void

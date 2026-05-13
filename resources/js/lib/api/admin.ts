@@ -77,6 +77,18 @@ type LoanRequestCancellationPayload = {
     cancellation_reason: string;
 };
 
+type LoanRequestAdminCorrectedCopyPayload = {
+    correction_reason: string;
+};
+
+type LoanRequestAdminCorrectedCopyResult = {
+    loanRequest: {
+        id: number;
+        reference: string;
+        url: string;
+    };
+};
+
 export const adminApi = {
     async getDashboardSummary(): Promise<DashboardSummary> {
         const response =
@@ -185,6 +197,19 @@ export const adminApi = {
         >(`/spa/admin/requests/${loanRequestId}/cancel`, payload);
 
         return unwrap(response).loanRequest;
+    },
+    async createAdminCorrectedCopy(
+        loanRequestId: number,
+        payload: LoanRequestAdminCorrectedCopyPayload,
+    ): Promise<LoanRequestAdminCorrectedCopyResult> {
+        const response = await client.post<
+            ApiResponse<LoanRequestAdminCorrectedCopyResult>
+        >(
+            `/spa/admin/requests/${loanRequestId}/admin-corrected-copy`,
+            payload,
+        );
+
+        return unwrap(response);
     },
     async getMemberAccountsSummary(
         memberKey: string | number,

@@ -1,8 +1,6 @@
-import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head } from '@inertiajs/react';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import AppLayout from '@/layouts/app-layout';
-import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { loans as clientLoans } from '@/routes/client';
 import {
     pdf as loanRequestPdf,
@@ -25,8 +23,6 @@ export default function LoanRequestShow({
     coMakerOne,
     coMakerTwo,
 }: Props) {
-    const [isCreatingCorrectedDraft, setIsCreatingCorrectedDraft] =
-        useState(false);
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Loans', href: clientLoans().url },
         {
@@ -39,7 +35,10 @@ export default function LoanRequestShow({
         query: { download: 1 },
     }).url;
     const printHref = loanRequestPrint(loanRequest.id).url;
-    const correctedCopyUrl = `${loanRequestShow(loanRequest.id).url}/corrected-copy`;
+    const correctedRequestHref =
+        loanRequest.corrected_request_id !== null
+            ? loanRequestShow(loanRequest.corrected_request_id).url
+            : null;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -53,43 +52,7 @@ export default function LoanRequestShow({
                 backLabel="Back to loans"
                 pdfHref={pdfHref}
                 printHref={printHref}
-                correctedCopy={{
-                    isProcessing: isCreatingCorrectedDraft,
-                    onCreate: () => {
-                        if (isCreatingCorrectedDraft) {
-                            return;
-                        }
-
-                        setIsCreatingCorrectedDraft(true);
-
-                        router.post(
-                            correctedCopyUrl,
-                            {},
-                            {
-                                preserveScroll: true,
-                                onSuccess: () => {
-                                    showSuccessToast(
-                                        'Corrected draft created successfully.',
-                                        {
-                                            id: 'loan-request-corrected-copy',
-                                        },
-                                    );
-                                },
-                                onError: (errors) => {
-                                    showErrorToast(
-                                        errors,
-                                        'Failed to create corrected draft.',
-                                        {
-                                            id: 'loan-request-corrected-copy',
-                                        },
-                                    );
-                                },
-                                onFinish: () =>
-                                    setIsCreatingCorrectedDraft(false),
-                            },
-                        );
-                    },
-                }}
+                correctedRequestHref={correctedRequestHref}
             />
         </AppLayout>
     );

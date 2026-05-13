@@ -9,6 +9,7 @@ use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Notifications\AdminAccessAuditNotification;
 use App\Notifications\AdminAccessChangedNotification;
+use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
 use App\Notifications\MemberStatusAuditNotification;
@@ -129,6 +130,61 @@ test('declined loan request sends a database notification', function () {
         'Declined due to incomplete documents.',
     );
     expect($data['reviewed_at'])->not->toBeNull();
+});
+
+test('admin corrected request creation sends member notification payload', function () {
+    $admin = createAdminUser();
+    $member = User::factory()->create([
+        'acctno' => '000824',
+        'phoneno' => null,
+    ]);
+
+    $sourceLoanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDay(),
+        'cancelled_at' => now(),
+        'cancellation_reason' => 'Wrong co-maker details.',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->postJson("/spa/admin/requests/{$sourceLoanRequest->id}/admin-corrected-copy", [
+            'correction_reason' => 'Fix incorrect co-maker and applicant details.',
+        ]);
+
+    $response->assertOk();
+
+    $notification = latestNotificationFor(
+        $member,
+        LoanRequestAdminCorrectedCreatedNotification::class,
+    );
+
+    expect($notification)->not->toBeNull();
+
+    $data = $notification->data;
+    $correctedLoanRequestId = LoanRequest::query()
+        ->where('corrected_from_id', $sourceLoanRequest->id)
+        ->value('id');
+
+    expect($correctedLoanRequestId)->not->toBeNull();
+    expect($data['type'])->toBe('loan_request_corrected_created');
+    expect($data['title'])->toBe('Corrected loan request created');
+    expect($data['loan_request_id'])->toBe($correctedLoanRequestId);
+    expect($data['reference'])->toBe(
+        sprintf('LNREQ-%06d', $correctedLoanRequestId),
+    );
+    expect($data['entity_type'])->toBe('loan_request');
+    expect($data['entity_id'])->toBe($correctedLoanRequestId);
+    expect($data['old_loan_request_id'])->toBe($sourceLoanRequest->id);
+    expect($data['old_reference'])->toBe($sourceLoanRequest->reference);
+    expect($data['corrected_loan_request_id'])->toBe($correctedLoanRequestId);
+    expect($data['corrected_loan_request_reference'])->toBe(
+        sprintf('LNREQ-%06d', $correctedLoanRequestId),
+    );
+    expect($data['corrected_from_id'])->toBe($sourceLoanRequest->id);
+    expect($data['correction_reason'])->toBe(
+        'Fix incorrect co-maker and applicant details.',
+    );
 });
 
 test('loan request submission notifies admins and superadmins', function () {

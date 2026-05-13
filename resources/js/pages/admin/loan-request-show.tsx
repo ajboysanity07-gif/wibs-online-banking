@@ -1,9 +1,10 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { AdminLoanRequestCorrectionDialog } from '@/components/loan-request/admin-loan-request-correction-dialog';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { useCancelLoanRequest } from '@/hooks/admin/use-cancel-loan-request';
 import { useCorrectLoanRequest } from '@/hooks/admin/use-correct-loan-request';
+import { useCreateAdminCorrectedLoanRequest } from '@/hooks/admin/use-create-admin-corrected-loan-request';
 import { useUpdateLoanRequestDecision } from '@/hooks/admin/use-update-loan-request-decision';
 import AppLayout from '@/layouts/app-layout';
 import {
@@ -74,6 +75,14 @@ export default function LoanRequestShow({
     } = useCancelLoanRequest({
         onUpdated: (updated) => setCurrentRequest(updated),
     });
+    const {
+        createAdminCorrectedCopy,
+        processingIds: adminCorrectedCopyProcessingIds,
+    } = useCreateAdminCorrectedLoanRequest({
+        onCreated: (result) => {
+            router.visit(result.loanRequest.url);
+        },
+    });
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Requests', href: requestsIndex().url },
         {
@@ -89,12 +98,21 @@ export default function LoanRequestShow({
         currentRequest.status === 'under_review' && decision.canDecide;
     const canCorrect =
         currentRequest.status === 'under_review' && !decision.isOwnRequest;
+    const canCreateAdminCorrectedCopy =
+        currentRequest.status === 'cancelled' &&
+        currentRequest.corrected_request_id === null;
     const blockedMessage =
         currentRequest.status === 'under_review' && decision.isOwnRequest
             ? 'You cannot decide your own loan request.'
             : null;
     const isCorrecting =
         correctionProcessingIds[currentRequest.id] ?? false;
+    const isCreatingAdminCorrectedCopy =
+        adminCorrectedCopyProcessingIds[currentRequest.id] ?? false;
+    const correctedRequestHref =
+        currentRequest.corrected_request_id !== null
+            ? requestsShow(currentRequest.corrected_request_id).url
+            : null;
 
     const handleCorrectionOpenChange = (open: boolean) => {
         if (open) {
@@ -120,11 +138,28 @@ export default function LoanRequestShow({
                 backLabel="Back to requests"
                 pdfHref={pdfHref}
                 printHref={printHref}
+                correctedRequestHref={correctedRequestHref}
                 correction={{
                     show: canCorrect,
                     isProcessing: isCorrecting,
                     onEdit: () => handleCorrectionOpenChange(true),
                 }}
+                correctedCopy={
+                    canCreateAdminCorrectedCopy
+                        ? {
+                              isProcessing: isCreatingAdminCorrectedCopy,
+                              buttonLabel: 'Create Admin-Corrected Request',
+                              dialogTitle: 'Create Admin-Corrected Request',
+                              dialogDescription:
+                                  'This will create a new corrected request copied from the cancelled request. The cancelled request will remain read-only for audit history.',
+                              onCreate: (payload) =>
+                                  createAdminCorrectedCopy(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined
+                }
                 decision={{
                     show: true,
                     canDecide,

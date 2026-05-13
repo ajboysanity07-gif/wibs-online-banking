@@ -61,7 +61,13 @@ class LoanRequestPayloadSerializer
      */
     public function serializeLoanRequest(LoanRequest $loanRequest): array
     {
-        $loanRequest->loadMissing('reviewedBy', 'cancelledBy');
+        $loanRequest->loadMissing(
+            'reviewedBy',
+            'cancelledBy',
+            'correctedFrom',
+            'correctedRequests',
+        );
+        $correctedRequest = $this->resolveCorrectedRequest($loanRequest);
 
         return [
             'id' => $loanRequest->id,
@@ -92,6 +98,13 @@ class LoanRequestPayloadSerializer
                 : null,
             'cancelled_at' => $loanRequest->cancelled_at?->toDateTimeString(),
             'cancellation_reason' => $loanRequest->cancellation_reason,
+            'corrected_from_id' => $loanRequest->corrected_from_id,
+            'corrected_from_reference' => $loanRequest->correctedFrom?->reference,
+            'corrected_request_id' => $correctedRequest?->id,
+            'corrected_request_reference' => $correctedRequest?->reference,
+            'corrected_request_status' => $correctedRequest !== null
+                ? $this->normalizeStatus($correctedRequest)
+                : null,
             'acctno' => $loanRequest->acctno,
         ];
     }
@@ -132,6 +145,21 @@ class LoanRequestPayloadSerializer
         }
 
         return $status;
+    }
+
+    private function resolveCorrectedRequest(
+        LoanRequest $loanRequest,
+    ): ?LoanRequest {
+        if (! $loanRequest->relationLoaded('correctedRequests')) {
+            return null;
+        }
+
+        /** @var LoanRequest|null $correctedRequest */
+        $correctedRequest = $loanRequest->correctedRequests
+            ->sortByDesc('id')
+            ->first();
+
+        return $correctedRequest;
     }
 
     /**

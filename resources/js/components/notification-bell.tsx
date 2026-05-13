@@ -165,10 +165,10 @@ function NotificationListItem({
 }) {
     const payload = notification.data;
     const notes = payload.decision_notes?.trim();
+    const correctionReason = payload.correction_reason?.trim();
     const cancellationReason = payload.cancellation_reason?.trim();
-    const showCancellationReason =
-        payload.type === 'loan_request_cancelled' &&
-        Boolean(cancellationReason);
+    const visibleReason = correctionReason ?? cancellationReason;
+    const showReasonBlock = Boolean(visibleReason);
     const metadataChips = buildNotificationMetadataChips(payload);
     const timestamp = formatNotificationTimestamp(notification.created_at);
     const visual = getNotificationVisual(payload);
@@ -231,10 +231,10 @@ function NotificationListItem({
                     {payload.message}
                 </p>
 
-                {showCancellationReason ? (
+                {showReasonBlock ? (
                     <div className="rounded-lg border border-rose-500/25 bg-rose-500/8 px-2.5 py-2 text-[12px] leading-5 text-rose-900 dark:text-rose-100">
                         <span className="mr-1 font-semibold">Reason:</span>
-                        <span className="line-clamp-3">{cancellationReason}</span>
+                        <span className="line-clamp-3">{visibleReason}</span>
                     </div>
                 ) : null}
 

@@ -51,6 +51,7 @@ type Props = {
     backLabel: string;
     pdfHref: string;
     printHref: string;
+    correctedRequestHref?: string | null;
     decision?: DecisionProps;
     correction?: CorrectionProps;
     correctedCopy?: CorrectedCopyProps;
@@ -194,8 +195,15 @@ type CorrectionProps = {
 };
 
 type CorrectedCopyProps = {
+    show?: boolean;
     isProcessing?: boolean;
-    onCreate?: () => void;
+    buttonLabel?: string;
+    dialogTitle?: string;
+    dialogDescription?: string;
+    confirmLabel?: string;
+    onCreate?: (
+        payload: LoanRequestCorrectedCopyPayload,
+    ) => Promise<{ loanRequest: { id: number } } | null>;
 };
 
 type LoanRequestApprovePayload = {
@@ -210,6 +218,10 @@ type LoanRequestDeclinePayload = {
 
 type LoanRequestCancellationPayload = {
     cancellation_reason: string;
+};
+
+type LoanRequestCorrectedCopyPayload = {
+    correction_reason: string;
 };
 
 const SummaryStat = ({ label, value }: SummaryStatProps) => (
@@ -259,6 +271,7 @@ export function LoanRequestDetailPage({
     backLabel,
     pdfHref,
     printHref,
+    correctedRequestHref = null,
     decision,
     correction,
     correctedCopy,
@@ -321,6 +334,7 @@ export function LoanRequestDetailPage({
         typeof decision?.onCancelApproved === 'function';
     const showCorrectedCopyAction =
         normalizedStatus === 'cancelled' &&
+        (correctedCopy?.show ?? true) &&
         typeof correctedCopy?.onCreate === 'function';
     const showCancelledNotice = normalizedStatus === 'cancelled';
     const blockedMessage =
@@ -333,6 +347,10 @@ export function LoanRequestDetailPage({
         useState(false);
     const [isCorrectedCopyDialogOpen, setIsCorrectedCopyDialogOpen] =
         useState(false);
+    const [correctedCopyReason, setCorrectedCopyReason] = useState('');
+    const [correctedCopyReasonError, setCorrectedCopyReasonError] = useState<
+        string | null
+    >(null);
     const [cancellationReason, setCancellationReason] = useState('');
     const [cancellationReasonError, setCancellationReasonError] = useState<
         string | null
@@ -365,6 +383,11 @@ export function LoanRequestDetailPage({
     const cancellationReasonValue = displayText(
         loanRequest.cancellation_reason,
     );
+    const correctedRequestReference =
+        displayText(loanRequest.corrected_request_reference);
+    const correctedRequestStatus = displayText(
+        loanRequest.corrected_request_status,
+    );
 
     const closeApprovalDialog = (force = false) => {
         if (decision?.isProcessing && !force) {
@@ -391,6 +414,8 @@ export function LoanRequestDetailPage({
         }
 
         setIsCorrectedCopyDialogOpen(false);
+        setCorrectedCopyReason('');
+        setCorrectedCopyReasonError(null);
     };
 
     const submitCancellation = async (event: FormEvent<HTMLFormElement>) => {
@@ -411,6 +436,27 @@ export function LoanRequestDetailPage({
 
         if (updated) {
             closeCancellationDialog(true);
+        }
+    };
+
+    const submitCorrectedCopy = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const reason = correctedCopyReason.trim();
+
+        if (reason === '') {
+            setCorrectedCopyReasonError('Correction reason is required.');
+            return;
+        }
+
+        setCorrectedCopyReasonError(null);
+
+        const result = await correctedCopy?.onCreate?.({
+            correction_reason: reason,
+        });
+
+        if (result) {
+            closeCorrectedCopyDialog(true);
         }
     };
 
@@ -477,6 +523,28 @@ export function LoanRequestDetailPage({
                                 {cancellationReasonValue}
                             </p>
                         </div>
+                        {loanRequest.corrected_request_id !== null ? (
+                            <div className="w-full rounded-lg border border-amber-500/35 bg-background/85 px-3 py-2">
+                                <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                                    Corrected request
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-foreground">
+                                    {correctedRequestHref ? (
+                                        <Link
+                                            href={correctedRequestHref}
+                                            className="underline underline-offset-2"
+                                        >
+                                            {correctedRequestReference}
+                                        </Link>
+                                    ) : (
+                                        correctedRequestReference
+                                    )}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Status: {correctedRequestStatus}
+                                </p>
+                            </div>
+                        ) : null}
                     </AlertDescription>
                 </Alert>
             ) : null}
@@ -1003,7 +1071,8 @@ export function LoanRequestDetailPage({
                                             setIsCorrectedCopyDialogOpen(true)
                                         }
                                     >
-                                        Create Corrected Request
+                                        {correctedCopy?.buttonLabel ??
+                                            'Create Admin-Corrected Request'}
                                     </Button>
                                     <Separator className="bg-border/40" />
                                 </div>
@@ -1059,7 +1128,7 @@ export function LoanRequestDetailPage({
                             approving this request. Once approved, the request
                             details cannot be edited directly. If wrong
                             information is found after approval, the approved
-                            request must be cancelled and the member must
+                            request must be cancelled and an admin must
                             create a corrected request.
                         </DialogDescription>
                     </DialogHeader>
@@ -1209,33 +1278,64 @@ export function LoanRequestDetailPage({
             >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Create Corrected Request</DialogTitle>
+                        <DialogTitle>
+                            {correctedCopy?.dialogTitle ??
+                                'Create Admin-Corrected Request'}
+                        </DialogTitle>
                         <DialogDescription>
-                            This will create a new draft copied from this
-                            cancelled request. You can review and correct the
-                            details before submitting it again.
+                            {correctedCopy?.dialogDescription ??
+                                'This will create a new corrected request copied from the cancelled request. The cancelled request will remain read-only for audit history.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={correctedCopy?.isProcessing}
-                            onClick={() => closeCorrectedCopyDialog()}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            disabled={correctedCopy?.isProcessing}
-                            onClick={() => {
-                                correctedCopy?.onCreate?.();
-                                closeCorrectedCopyDialog(true);
-                            }}
-                        >
-                            Create Draft
-                        </Button>
-                    </DialogFooter>
+                    <form
+                        className="space-y-4"
+                        onSubmit={submitCorrectedCopy}
+                    >
+                        <div className="space-y-2">
+                            <Label htmlFor="correction_reason">
+                                Correction reason
+                            </Label>
+                            <textarea
+                                id="correction_reason"
+                                className={textareaClassName}
+                                maxLength={1000}
+                                required
+                                value={correctedCopyReason}
+                                disabled={correctedCopy?.isProcessing}
+                                onChange={(event) => {
+                                    setCorrectedCopyReason(
+                                        event.target.value,
+                                    );
+                                    setCorrectedCopyReasonError(null);
+                                }}
+                            />
+                            <div className="flex items-start justify-between gap-3">
+                                <InputError
+                                    message={correctedCopyReasonError ?? ''}
+                                />
+                                <span className="ml-auto text-xs text-muted-foreground">
+                                    {correctedCopyReason.length}/1000
+                                </span>
+                            </div>
+                        </div>
+                        <DialogFooter className="gap-2 sm:gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={correctedCopy?.isProcessing}
+                                onClick={() => closeCorrectedCopyDialog()}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={correctedCopy?.isProcessing}
+                            >
+                                {correctedCopy?.confirmLabel ??
+                                    'Create Corrected Request'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </PageShell>

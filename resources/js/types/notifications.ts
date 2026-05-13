@@ -11,6 +11,12 @@ export type NotificationPayload = {
     reference?: string | null;
     decision_notes?: string | null;
     cancellation_reason?: string | null;
+    correction_reason?: string | null;
+    corrected_from_id?: number | string | null;
+    old_loan_request_id?: number | string | null;
+    old_reference?: string | null;
+    corrected_loan_request_id?: number | string | null;
+    corrected_loan_request_reference?: string | null;
     reviewed_at?: string | null;
     member_id?: number | null;
     member_name?: string | null;

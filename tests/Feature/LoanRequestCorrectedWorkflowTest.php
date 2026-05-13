@@ -5,14 +5,16 @@ use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\UserProfile;
+use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestCorrectedNotification;
 use Illuminate\Support\Facades\Notification;
 
-test('member can create a corrected draft from their own cancelled loan request', function () {
+test('member cannot create corrected request from cancelled request', function () {
     Notification::fake();
 
     $member = User::factory()->create([
@@ -83,33 +85,117 @@ test('member can create a corrected draft from their own cancelled loan request'
     $this
         ->actingAs($member)
         ->post(route('client.loan-requests.corrected-copy', $source->id))
-        ->assertRedirect(route('client.loan-requests.create'));
+        ->assertForbidden();
 
     Notification::assertNothingSent();
+    expect(
+        LoanRequest::query()->where('corrected_from_id', $source->id)->count(),
+    )->toBe(0);
+});
 
-    $draft = LoanRequest::query()
-        ->where('corrected_from_id', $source->id)
-        ->sole();
+test('admin can create corrected request from cancelled request', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000863',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
 
-    expect($draft->status)->toBe(LoanRequestStatus::Draft);
-    expect($draft->corrected_from_id)->toBe($source->id);
-    expect($draft->typecode)->toBe('LN-CAN');
-    expect($draft->requested_amount)->toBe('12345.00');
-    expect($draft->requested_term)->toBe(12);
-    expect($draft->loan_purpose)->toBe('Cancelled purpose');
-    expect($draft->availment_status)->toBe('Re-Loan');
-    expect($draft->submitted_at)->toBeNull();
-    expect($draft->reviewed_by)->toBeNull();
-    expect($draft->reviewed_at)->toBeNull();
-    expect($draft->approved_amount)->toBeNull();
-    expect($draft->approved_term)->toBeNull();
-    expect($draft->decision_notes)->toBeNull();
-    expect($draft->cancelled_by)->toBeNull();
-    expect($draft->cancelled_at)->toBeNull();
-    expect($draft->cancellation_reason)->toBeNull();
+    $member = User::factory()->create([
+        'acctno' => '000864',
+    ]);
+
+    $reviewer = User::factory()->create([
+        'acctno' => '000865',
+    ]);
+    $canceller = User::factory()->create([
+        'acctno' => '000866',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $canceller->user_id,
+    ]);
+
+    $source = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-CAN',
+        'loan_type_label_snapshot' => 'Cancelled Loan',
+        'requested_amount' => 12345,
+        'requested_term' => 12,
+        'loan_purpose' => 'Cancelled purpose',
+        'availment_status' => 'Re-Loan',
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDays(2)->startOfSecond(),
+        'reviewed_by' => $reviewer->user_id,
+        'reviewed_at' => now()->subDay()->startOfSecond(),
+        'approved_amount' => 25000,
+        'approved_term' => 18,
+        'decision_notes' => 'Approved before cancellation.',
+        'cancelled_by' => $canceller->user_id,
+        'cancelled_at' => now()->subHour()->startOfSecond(),
+        'cancellation_reason' => 'Wrong co-maker details.',
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($source)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Cancelled',
+            'last_name' => 'Applicant',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($source)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'first_name' => 'Cancelled',
+            'last_name' => 'CoMakerOne',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($source)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'first_name' => 'Cancelled',
+            'last_name' => 'CoMakerTwo',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->postJson("/spa/admin/requests/{$source->id}/admin-corrected-copy", [
+            'correction_reason' => 'Fix incorrect applicant and co-maker details.',
+        ])
+        ->assertOk()
+        ->assertJsonStructure([
+            'ok',
+            'data' => [
+                'loanRequest' => ['id', 'reference', 'url'],
+            ],
+        ]);
+
+    $correctedId = (int) $response->json('data.loanRequest.id');
+    $correctedReference = $response->json('data.loanRequest.reference');
+    $correctedUrl = $response->json('data.loanRequest.url');
+
+    $corrected = LoanRequest::query()->findOrFail($correctedId);
+
+    expect($correctedReference)->toBe($corrected->reference);
+    expect($correctedUrl)->toBe(route('admin.requests.show', $corrected));
+    expect($corrected->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($corrected->corrected_from_id)->toBe($source->id);
+    expect($corrected->typecode)->toBe('LN-CAN');
+    expect($corrected->requested_amount)->toBe('12345.00');
+    expect($corrected->requested_term)->toBe(12);
+    expect($corrected->loan_purpose)->toBe('Cancelled purpose');
+    expect($corrected->availment_status)->toBe('Re-Loan');
+    expect($corrected->submitted_at)->not->toBeNull();
+    expect($corrected->reviewed_by)->toBeNull();
+    expect($corrected->reviewed_at)->toBeNull();
+    expect($corrected->approved_amount)->toBeNull();
+    expect($corrected->approved_term)->toBeNull();
+    expect($corrected->decision_notes)->toBeNull();
+    expect($corrected->cancelled_by)->toBeNull();
+    expect($corrected->cancelled_at)->toBeNull();
+    expect($corrected->cancellation_reason)->toBeNull();
 
     $people = LoanRequestPerson::query()
-        ->where('loan_request_id', $draft->id)
+        ->where('loan_request_id', $corrected->id)
         ->get()
         ->keyBy('role');
 
@@ -118,58 +204,53 @@ test('member can create a corrected draft from their own cancelled loan request'
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->last_name)->toBe('CoMakerTwo');
 
     $source->refresh();
-
     expect($source->status)->toBe(LoanRequestStatus::Cancelled);
     expect($source->cancelled_by)->toBe($canceller->user_id);
     expect($source->cancellation_reason)->toBe('Wrong co-maker details.');
+
+    $change = LoanRequestChange::query()
+        ->where('loan_request_id', $corrected->id)
+        ->latest('id')
+        ->first();
+
+    expect($change)->not->toBeNull();
+    expect($change?->action)->toBe('admin_create_corrected_request');
+    expect($change?->changed_by)->toBe($admin->user_id);
+    expect($change?->reason)->toBe('Fix incorrect applicant and co-maker details.');
+    expect($change?->before_json['loanRequest']['id'] ?? null)->toBe($source->id);
+    expect($change?->after_json['loanRequest']['id'] ?? null)->toBe($corrected->id);
+    expect($change?->changed_fields_json ?? [])->toContain(
+        'corrected_from_id',
+        'copied_loan_details',
+        'copied_people_snapshots',
+        'admin_correction_reason',
+    );
 });
 
-test('member cannot create a corrected draft from another member cancelled request', function () {
-    $member = User::factory()->create([
-        'acctno' => '000863',
+test('admin cannot create corrected request from non-cancelled request', function (LoanRequestStatus $status) {
+    $admin = User::factory()->create([
+        'acctno' => '000867',
     ]);
-    UserProfile::factory()->approved()->create([
-        'user_id' => $member->user_id,
-    ]);
-    MemberApplicationProfile::factory()->completed()->create([
-        'user_id' => $member->user_id,
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
     ]);
 
-    $otherMember = User::factory()->create([
-        'acctno' => '000864',
-    ]);
-    $source = LoanRequest::factory()->forUser($otherMember)->create([
-        'status' => LoanRequestStatus::Cancelled,
-    ]);
-
-    $this
-        ->actingAs($member)
-        ->post(route('client.loan-requests.corrected-copy', $source->id))
-        ->assertNotFound();
-});
-
-test('member cannot create a corrected draft from non-cancelled requests', function (LoanRequestStatus $status) {
-    $member = User::factory()->create([
-        'acctno' => '000865',
-    ]);
-    UserProfile::factory()->approved()->create([
-        'user_id' => $member->user_id,
-    ]);
-    MemberApplicationProfile::factory()->completed()->create([
-        'user_id' => $member->user_id,
-    ]);
-
-    $source = LoanRequest::factory()->forUser($member)->create([
+    $source = LoanRequest::factory()->create([
         'status' => $status,
         'submitted_at' => $status === LoanRequestStatus::Draft ? null : now(),
     ]);
 
     $this
-        ->actingAs($member)
-        ->post(route('client.loan-requests.corrected-copy', $source->id))
-        ->assertSessionHasErrors(['status']);
+        ->actingAs($admin)
+        ->postJson("/spa/admin/requests/{$source->id}/admin-corrected-copy", [
+            'correction_reason' => 'Fix details.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('status');
 
-    expect(LoanRequest::query()->where('corrected_from_id', $source->id)->count())->toBe(0);
+    expect(
+        LoanRequest::query()->where('corrected_from_id', $source->id)->count(),
+    )->toBe(0);
 })->with([
     'under review' => LoanRequestStatus::UnderReview,
     'approved' => LoanRequestStatus::Approved,
@@ -178,9 +259,45 @@ test('member cannot create a corrected draft from non-cancelled requests', funct
     'draft' => LoanRequestStatus::Draft,
 ]);
 
-test('member cannot create a corrected draft when an active draft exists', function () {
+test('admin cannot create duplicate corrected request from same cancelled request', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000868',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $source = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDay(),
+        'cancelled_at' => now(),
+        'cancellation_reason' => 'Wrong details.',
+    ]);
+
+    LoanRequest::factory()->create([
+        'user_id' => $source->user_id,
+        'acctno' => $source->acctno,
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'corrected_from_id' => $source->id,
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->postJson("/spa/admin/requests/{$source->id}/admin-corrected-copy", [
+            'correction_reason' => 'Fix details.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('loan_request')
+        ->assertJsonPath(
+            'errors.loan_request.0',
+            'A corrected request already exists for this cancelled request.',
+        );
+});
+
+test('non-admin users cannot create admin corrected request copies', function () {
     $member = User::factory()->create([
-        'acctno' => '000866',
+        'acctno' => '000871',
     ]);
     UserProfile::factory()->approved()->create([
         'user_id' => $member->user_id,
@@ -189,21 +306,66 @@ test('member cannot create a corrected draft when an active draft exists', funct
         'user_id' => $member->user_id,
     ]);
 
-    LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::Draft,
-        'submitted_at' => null,
-    ]);
-
     $source = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDay(),
+        'cancelled_at' => now(),
+        'cancellation_reason' => 'Wrong details.',
     ]);
 
     $this
         ->actingAs($member)
-        ->post(route('client.loan-requests.corrected-copy', $source->id))
-        ->assertSessionHasErrors(['draft']);
+        ->postJson("/spa/admin/requests/{$source->id}/admin-corrected-copy", [
+            'correction_reason' => 'Fix details.',
+        ])
+        ->assertForbidden();
+});
 
-    expect(LoanRequest::query()->where('corrected_from_id', $source->id)->count())->toBe(0);
+test('admin corrected-copy creation sends member notification', function () {
+    Notification::fake();
+
+    $admin = User::factory()->create([
+        'acctno' => '000869',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000870',
+    ]);
+
+    $source = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDay(),
+        'cancelled_at' => now(),
+        'cancellation_reason' => 'Wrong details.',
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($source)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($source)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($source)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create();
+
+    $this
+        ->actingAs($admin)
+        ->postJson("/spa/admin/requests/{$source->id}/admin-corrected-copy", [
+            'correction_reason' => 'Fix details.',
+        ])
+        ->assertOk();
+
+    Notification::assertSentTo(
+        $member,
+        LoanRequestAdminCorrectedCreatedNotification::class,
+    );
 });
 
 test('admin correction sends member notification', function () {

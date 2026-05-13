@@ -61,6 +61,7 @@ const LOAN_NOTIFICATION_TYPES = new Set([
     'loan_request_updated',
     'loan_request_cancelled',
     'loan_request_decision',
+    'loan_request_corrected_created',
 ]);
 
 const ACCOUNT_ACCESS_NOTIFICATION_TYPES = new Set([
@@ -221,6 +222,9 @@ export const resolveNotificationDestination = (
     payload: NotificationPayload,
 ): string | null => {
     const loanRequestId = toLoanRequestIdentifier(payload.loan_request_id);
+    const correctedLoanRequestId = toLoanRequestIdentifier(
+        payload.corrected_loan_request_id,
+    );
 
     if (loanRequestId === null) {
         return null;
@@ -235,6 +239,14 @@ export const resolveNotificationDestination = (
         payload.type === 'loan_request_cancelled' ||
         payload.type === 'loan_request_decision'
     ) {
+        return showClientLoanRequest(loanRequestId).url;
+    }
+
+    if (payload.type === 'loan_request_corrected_created') {
+        if (correctedLoanRequestId !== null) {
+            return showClientLoanRequest(correctedLoanRequestId).url;
+        }
+
         return showClientLoanRequest(loanRequestId).url;
     }
 
@@ -335,6 +347,15 @@ export const getNotificationVisual = (
             iconLabel: 'Loan request cancelled',
             className:
                 'bg-rose-500/10 text-rose-700 ring-rose-500/15 dark:bg-rose-500/15 dark:text-rose-200',
+        };
+    }
+
+    if (payload.type === 'loan_request_corrected_created') {
+        return {
+            Icon: PencilLine,
+            iconLabel: 'Corrected loan request created',
+            className:
+                'bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:bg-amber-500/15 dark:text-amber-200',
         };
     }
 

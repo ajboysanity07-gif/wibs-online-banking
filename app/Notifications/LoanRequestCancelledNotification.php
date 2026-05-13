@@ -29,7 +29,7 @@ class LoanRequestCancelledNotification extends AbstractDatabaseNotification
                 'status' => LoanRequestStatus::Cancelled->value,
                 'title' => 'Loan request cancelled',
                 'message' => sprintf(
-                    'Your approved loan request %s was cancelled. You may create a corrected request from the cancelled request.',
+                    'Your approved loan request %s was cancelled. An admin may create a corrected request after reviewing the cancellation reason.',
                     $reference,
                 ),
                 'entity_type' => 'loan_request',

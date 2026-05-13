@@ -120,7 +120,14 @@ class LoanRequestController extends Controller
             return redirect()->route('client.loan-requests.create');
         }
 
-        $loanRequestRecord->loadMissing('people', 'reviewedBy', 'cancelledBy');
+        $loanRequestRecord->loadMissing(
+            'people',
+            'reviewedBy',
+            'cancelledBy',
+            'correctedFrom',
+            'correctedRequests',
+        );
+        $correctedRequest = $this->resolveCorrectedRequest($loanRequestRecord);
 
         $payload = $this->sanitizePayload([
             'loanRequest' => [
@@ -152,6 +159,13 @@ class LoanRequestController extends Controller
                     : null,
                 'cancelled_at' => $loanRequestRecord->cancelled_at?->toDateTimeString(),
                 'cancellation_reason' => $loanRequestRecord->cancellation_reason,
+                'corrected_from_id' => $loanRequestRecord->corrected_from_id,
+                'corrected_from_reference' => $loanRequestRecord->correctedFrom?->reference,
+                'corrected_request_id' => $correctedRequest?->id,
+                'corrected_request_reference' => $correctedRequest?->reference,
+                'corrected_request_status' => $correctedRequest !== null
+                    ? $this->normalizeStatus($correctedRequest)
+                    : null,
                 'acctno' => $loanRequestRecord->acctno,
             ],
             'applicant' => $this->serializePerson(
@@ -176,34 +190,7 @@ class LoanRequestController extends Controller
         int $loanRequest,
         LoanRequestService $service,
     ): RedirectResponse {
-        $user = $request->user();
-
-        if ($user === null) {
-            return redirect()->route('login');
-        }
-
-        $user->loadMissing('adminProfile');
-
-        if ($user->isAdminOnly()) {
-            return redirect()->route('admin.dashboard');
-        }
-
-        $loanRequestRecord = $this->findLoanRequestForUser(
-            $user,
-            $loanRequest,
-            'createCorrectedCopy',
-        );
-
-        if ($loanRequestRecord === null) {
-            abort(404);
-        }
-
-        $service->createCorrectedDraftFromCancelledRequest(
-            $user,
-            $loanRequestRecord,
-        );
-
-        return redirect()->route('client.loan-requests.create');
+        abort(403, 'Members can no longer create corrected requests.');
     }
 
     public function pdf(
@@ -372,6 +359,21 @@ class LoanRequestController extends Controller
             LoanRequestStatus::Declined->value,
             LoanRequestStatus::Cancelled->value,
         ], true);
+    }
+
+    private function resolveCorrectedRequest(
+        LoanRequest $loanRequest,
+    ): ?LoanRequest {
+        if (! $loanRequest->relationLoaded('correctedRequests')) {
+            return null;
+        }
+
+        /** @var LoanRequest|null $correctedRequest */
+        $correctedRequest = $loanRequest->correctedRequests
+            ->sortByDesc('id')
+            ->first();
+
+        return $correctedRequest;
     }
 
     private function sanitizePayload(mixed $value): mixed
