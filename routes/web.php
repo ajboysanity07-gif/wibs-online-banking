@@ -121,6 +121,10 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::patch('admin/members/{member}/revoke-admin', [SpaMemberAdminAccessController::class, 'revoke'])
             ->middleware('superadmin');
         Route::get('admin/requests', SpaRequestsController::class);
+        Route::get('admin/requests/reported', [
+            SpaRequestsController::class,
+            'reported',
+        ]);
         Route::patch('admin/requests/{loanRequest}/approve', [SpaLoanRequestDecisionController::class, 'approve']);
         Route::patch('admin/requests/{loanRequest}/decline', [SpaLoanRequestDecisionController::class, 'decline']);
         Route::patch('admin/requests/{loanRequest}/corrections', SpaLoanRequestCorrectionController::class);
@@ -270,6 +274,9 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
 
     Route::get('requests', [RequestsController::class, 'index'])
         ->name('admin.requests.index');
+
+    Route::get('requests/reported', [RequestsController::class, 'reported'])
+        ->name('admin.requests.reported');
 
     Route::get('requests/{loanRequest}', [AdminLoanRequestController::class, 'show'])
         ->name('admin.requests.show');

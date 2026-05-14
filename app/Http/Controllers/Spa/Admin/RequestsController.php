@@ -19,6 +19,9 @@ class RequestsController extends Controller
         $page = (int) $request->query('page', 1);
         $minAmount = $request->query('minAmount');
         $maxAmount = $request->query('maxAmount');
+        $reported = $request->has('reported')
+            ? $request->boolean('reported')
+            : null;
         $minAmount = is_numeric($minAmount) ? (float) $minAmount : null;
         $maxAmount = is_numeric($maxAmount) ? (float) $maxAmount : null;
 
@@ -30,6 +33,7 @@ class RequestsController extends Controller
             $status !== '' ? $status : null,
             $minAmount,
             $maxAmount,
+            $reported,
         );
         $items = RequestPreviewResource::collection($result['items'])->resolve();
         $paginator = $result['paginator'];
@@ -49,6 +53,43 @@ class RequestsController extends Controller
                     'total' => $total,
                     'lastPage' => $lastPage,
                     'loanTypes' => $result['loanTypes'] ?? [],
+                    'openCorrectionReports' => $result['openCorrectionReports'] ?? 0,
+                ],
+            ],
+        ]);
+    }
+
+    public function reported(
+        RequestsIndexRequest $request,
+        RequestsService $service,
+    ): JsonResponse {
+        $search = trim((string) $request->query('search', ''));
+        $perPage = (int) $request->query('perPage', 10);
+        $page = (int) $request->query('page', 1);
+
+        $result = $service->getReportedPaginated(
+            $search,
+            $perPage,
+            $page,
+        );
+        $items = RequestPreviewResource::collection($result['items'])->resolve();
+        $paginator = $result['paginator'];
+        $total = $paginator?->total() ?? 0;
+        $lastPage = $paginator?->lastPage() ?? 1;
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'items' => $items,
+                'meta' => [
+                    'query' => $search !== '' ? $search : null,
+                    'available' => $result['available'],
+                    'message' => $result['message'],
+                    'page' => max(1, $page),
+                    'perPage' => max(1, min($perPage, 50)),
+                    'total' => $total,
+                    'lastPage' => $lastPage,
+                    'openCorrectionReports' => $result['openCorrectionReports'] ?? 0,
                 ],
             ],
         ]);

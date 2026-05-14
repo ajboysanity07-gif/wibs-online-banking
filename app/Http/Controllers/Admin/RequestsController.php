@@ -12,4 +12,9 @@ class RequestsController extends Controller
     {
         return Inertia::render('admin/requests');
     }
+
+    public function reported(): Response
+    {
+        return Inertia::render('admin/reported-requests');
+    }
 }

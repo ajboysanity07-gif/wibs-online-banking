@@ -36,12 +36,26 @@ export type RequestPreview = {
     id: number | null;
     reference: string | null;
     member_name: string | null;
+    member_acctno: string | null;
     status: LoanRequestStatusValue | null;
     created_at: string | null;
     summary: string | null;
     loan_type: string | null;
     requested_amount: number | string | null;
+    approved_amount: number | string | null;
+    reviewed_at: string | null;
     submitted_at: string | null;
+    has_open_correction_report: boolean;
+    latest_correction_report_id: number | null;
+    latest_correction_report_reported_at: string | null;
+    latest_correction_report_issue: string | null;
+    latest_correction_report_correct_information: string | null;
+    latest_correction_report_supporting_note: string | null;
+    latest_correction_report_reported_by: {
+        user_id: number;
+        name: string;
+        acctno: string | null;
+    } | null;
 };
 
 export type DashboardSummary = {
@@ -144,6 +158,17 @@ export type RequestsResponse = {
         available: boolean;
         message: string | null;
         loanTypes: string[];
+        openCorrectionReports: number;
+    };
+};
+
+export type ReportedRequestsResponse = {
+    items: RequestPreview[];
+    meta: PaginationMeta & {
+        query: string | null;
+        available: boolean;
+        message: string | null;
+        openCorrectionReports: number;
     };
 };
 

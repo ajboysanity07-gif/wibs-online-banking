@@ -7,6 +7,7 @@ use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\LoanRequestCorrectionReport;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
@@ -1360,6 +1361,13 @@ test('admin requests api returns loan request data', function () {
             'first_name' => 'Loan',
             'last_name' => 'Member',
         ]);
+    LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $loanRequest->id,
+        'user_id' => $loanRequest->user_id,
+        'issue_description' => 'Name mismatch in applicant details.',
+        'correct_information' => 'Use legal name from member profile.',
+        'status' => LoanRequestCorrectionReport::STATUS_OPEN,
+    ]);
 
     $response = $this
         ->actingAs($admin)
@@ -1370,7 +1378,12 @@ test('admin requests api returns loan request data', function () {
         ->assertJsonPath('ok', true)
         ->assertJsonCount(1, 'data.items')
         ->assertJsonPath('data.items.0.id', $loanRequest->id)
-        ->assertJsonPath('data.items.0.reference', $loanRequest->reference);
+        ->assertJsonPath('data.items.0.reference', $loanRequest->reference)
+        ->assertJsonPath('data.items.0.has_open_correction_report', true)
+        ->assertJsonPath(
+            'data.items.0.latest_correction_report_issue',
+            'Name mismatch in applicant details.',
+        );
 });
 
 test('admin requests api filters by loan type', function () {
@@ -1525,6 +1538,135 @@ test('admin requests api paginates filtered results', function () {
         ->assertJsonPath('data.meta.page', 2)
         ->assertJsonPath('data.meta.perPage', 1)
         ->assertJsonPath('data.meta.total', 3);
+});
+
+test('admin requests api reported filter returns only requests with open correction reports', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $openReported = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+    LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $openReported->id,
+        'user_id' => $openReported->user_id,
+        'status' => LoanRequestCorrectionReport::STATUS_OPEN,
+    ]);
+
+    $dismissedReported = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+    LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $dismissedReported->id,
+        'user_id' => $dismissedReported->user_id,
+        'status' => LoanRequestCorrectionReport::STATUS_DISMISSED,
+        'dismissed_at' => now(),
+    ]);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?reported=1');
+
+    $response
+        ->assertOk()
+        ->assertJsonCount(1, 'data.items')
+        ->assertJsonPath('data.items.0.id', $openReported->id)
+        ->assertJsonPath('data.items.0.has_open_correction_report', true);
+});
+
+test('admin reported requests api returns only requests with open correction reports', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $firstOpenReported = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+    LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $firstOpenReported->id,
+        'user_id' => $firstOpenReported->user_id,
+        'issue_description' => 'Co-maker address is outdated.',
+        'correct_information' => 'Use current branch address record.',
+        'status' => LoanRequestCorrectionReport::STATUS_OPEN,
+        'created_at' => now()->subHour(),
+    ]);
+
+    $secondOpenReported = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+    LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $secondOpenReported->id,
+        'user_id' => $secondOpenReported->user_id,
+        'issue_description' => 'Applicant middle name typo.',
+        'correct_information' => 'Correct middle name spelling.',
+        'status' => LoanRequestCorrectionReport::STATUS_OPEN,
+        'created_at' => now(),
+    ]);
+
+    $resolvedReported = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+    LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $resolvedReported->id,
+        'user_id' => $resolvedReported->user_id,
+        'status' => LoanRequestCorrectionReport::STATUS_RESOLVED,
+        'resolved_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests/reported');
+
+    $response
+        ->assertOk()
+        ->assertJsonCount(2, 'data.items')
+        ->assertJsonPath('data.items.0.id', $secondOpenReported->id)
+        ->assertJsonPath(
+            'data.items.0.latest_correction_report_issue',
+            'Applicant middle name typo.',
+        )
+        ->assertJsonPath('data.items.1.id', $firstOpenReported->id);
+});
+
+test('non-admin users cannot access admin reported requests routes', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/spa/admin/requests/reported')
+        ->assertForbidden();
+
+    $this->actingAs($user)
+        ->get(route('admin.requests.reported'))
+        ->assertForbidden();
+});
+
+test('admin reported requests route does not conflict with loan request show route', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.reported'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/reported-requests'));
+
+    $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.show', $loanRequest))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/loan-request-show'));
 });
 
 test('non-admin users cannot access filtered requests api', function () {
@@ -1815,6 +1957,112 @@ test('admin can cancel an approved loan request with a reason', function () {
         'cancelled_at',
         'cancellation_reason',
     ]);
+});
+
+test('admin cancel response includes correction reports payload', function () {
+    $reviewer = User::factory()->create([
+        'acctno' => '000614',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $reviewer->user_id,
+    ]);
+    $admin = User::factory()->create([
+        'acctno' => '000615',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    $member = User::factory()->create([
+        'acctno' => '000616',
+    ]);
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'reviewed_by' => $reviewer->user_id,
+        'reviewed_at' => now()->subDay(),
+        'approved_amount' => 15000,
+        'approved_term' => 12,
+    ]);
+    $report = LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $loanRequest->id,
+        'user_id' => $member->user_id,
+        'issue_description' => 'Approved amount is incorrect.',
+        'correct_information' => 'Use approved amount from signed terms.',
+        'status' => LoanRequestCorrectionReport::STATUS_OPEN,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Correcting approved request details.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonStructure([
+            'ok',
+            'data' => [
+                'loanRequest' => ['id', 'status', 'reference'],
+                'correctionReports' => [
+                    '*' => ['id', 'status', 'issue_description', 'correct_information'],
+                ],
+            ],
+        ])
+        ->assertJsonPath('data.correctionReports.0.id', $report->id);
+});
+
+test('cancelling reported approved request resolves open correction reports', function () {
+    $reviewer = User::factory()->create([
+        'acctno' => '000617',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $reviewer->user_id,
+    ]);
+    $admin = User::factory()->create([
+        'acctno' => '000618',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    $member = User::factory()->create([
+        'acctno' => '000619',
+    ]);
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'reviewed_by' => $reviewer->user_id,
+        'reviewed_at' => now()->subDay(),
+        'approved_amount' => 22000,
+        'approved_term' => 18,
+    ]);
+    $firstOpenReport = LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $loanRequest->id,
+        'user_id' => $member->user_id,
+        'status' => LoanRequestCorrectionReport::STATUS_OPEN,
+    ]);
+    $secondOpenReport = LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $loanRequest->id,
+        'user_id' => $member->user_id,
+        'status' => LoanRequestCorrectionReport::STATUS_OPEN,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Member correction report confirmed.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Cancelled->value);
+
+    $firstOpenReport->refresh();
+    $secondOpenReport->refresh();
+
+    expect($firstOpenReport->status)->toBe(LoanRequestCorrectionReport::STATUS_RESOLVED);
+    expect($secondOpenReport->status)->toBe(LoanRequestCorrectionReport::STATUS_RESOLVED);
+    expect($firstOpenReport->resolved_by)->toBe($admin->user_id);
+    expect($secondOpenReport->resolved_by)->toBe($admin->user_id);
+    expect($firstOpenReport->resolved_at)->not->toBeNull();
+    expect($secondOpenReport->resolved_at)->not->toBeNull();
 });
 
 test('non-admin users cannot cancel approved loan requests', function () {

@@ -82,6 +82,13 @@ class LoanRequest extends Model
         return $this->hasMany(LoanRequestCorrectionReport::class);
     }
 
+    public function latestOpenCorrectionReport(): HasOne
+    {
+        return $this->hasOne(LoanRequestCorrectionReport::class)
+            ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
+            ->latest('id');
+    }
+
     public function people(): HasMany
     {
         return $this->hasMany(LoanRequestPerson::class);

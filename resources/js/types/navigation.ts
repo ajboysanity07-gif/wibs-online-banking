@@ -13,4 +13,5 @@ export type NavItem = {
     isActive?: boolean;
     match?: 'exact' | 'section';
     matchPaths?: Array<NonNullable<InertiaLinkProps['href']>>;
+    excludeMatchPaths?: Array<NonNullable<InertiaLinkProps['href']>>;
 };

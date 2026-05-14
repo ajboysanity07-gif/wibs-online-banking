@@ -48,13 +48,15 @@ type AdminStatusFilter =
     | 'under_review'
     | 'approved'
     | 'declined'
-    | 'cancelled';
+    | 'cancelled'
+    | 'reported';
 
 const statusLabels: Record<Exclude<AdminStatusFilter, 'all'>, string> = {
     under_review: 'Under review',
     approved: 'Approved',
     declined: 'Declined',
     cancelled: 'Cancelled',
+    reported: 'Reported',
 };
 
 const statusOptions: Array<LoanRequestStatusFilterOption<AdminStatusFilter>> = [
@@ -63,6 +65,7 @@ const statusOptions: Array<LoanRequestStatusFilterOption<AdminStatusFilter>> = [
     { value: 'approved', label: 'Approved' },
     { value: 'declined', label: 'Declined' },
     { value: 'cancelled', label: 'Cancelled' },
+    { value: 'reported', label: 'Reported' },
 ];
 
 const formatDate = (value?: string | null): string => {
@@ -128,7 +131,17 @@ const columns: ColumnDef<RequestPreview>[] = [
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => (
-            <LoanRequestStatusBadge status={row.original.status} />
+            <div className="flex flex-wrap items-center gap-2">
+                <LoanRequestStatusBadge status={row.original.status} />
+                {row.original.has_open_correction_report ? (
+                    <Badge
+                        variant="outline"
+                        className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200"
+                    >
+                        Correction reported
+                    </Badge>
+                ) : null}
+            </div>
         ),
     },
     {
@@ -183,13 +196,17 @@ export default function RequestsPage() {
     const searchValue = search.trim();
     const minAmountValue = parseAmount(minAmount);
     const maxAmountValue = parseAmount(maxAmount);
-    const status = statusFilter === 'all' ? null : statusFilter;
+    const status = statusFilter === 'all' || statusFilter === 'reported'
+        ? null
+        : statusFilter;
+    const reported = statusFilter === 'reported' ? true : undefined;
     const { items, meta, loading, error } = useRequests({
         search,
         page,
         perPage,
         loanType,
         status,
+        reported,
         minAmount: minAmountValue,
         maxAmount: maxAmountValue,
     });
@@ -223,7 +240,7 @@ export default function RequestsPage() {
         : (meta.message ?? 'Requests module coming soon.');
     const emptyMessage = meta.available
         ? searchValue !== '' ||
-          status !== null ||
+          statusFilter !== 'all' ||
           loanType !== null ||
           minAmountValue !== undefined ||
           maxAmountValue !== undefined
@@ -234,7 +251,7 @@ export default function RequestsPage() {
     const filterCount = [
         searchValue !== '' ? searchValue : null,
         loanType,
-        status,
+        statusFilter !== 'all' ? statusFilter : null,
         minAmountValue,
         maxAmountValue,
     ].filter((value) => value !== null && value !== undefined).length;
@@ -254,13 +271,18 @@ export default function RequestsPage() {
             declined: items.filter(
                 (item) => normalizeStatus(item.status) === 'declined',
             ).length,
+            reported: items.filter(
+                (item) => item.has_open_correction_report,
+            ).length,
         }),
         [items, totalResults],
     );
     const activeFilterBadges = [
         searchValue !== '' ? `Search: ${searchValue}` : null,
         loanType ? `Type: ${loanType}` : null,
-        status ? `Status: ${statusLabels[status]}` : null,
+        statusFilter !== 'all'
+            ? `Filter: ${statusLabels[statusFilter]}`
+            : null,
         minAmountValue !== undefined
             ? `Min: ${formatCurrency(minAmountValue)}`
             : null,
@@ -325,8 +347,20 @@ export default function RequestsPage() {
                             emphasisClassName:
                                 'text-orange-600 dark:text-orange-400',
                         },
+                        {
+                            label: 'Reported',
+                            value: summaryCounts.reported,
+                            emphasisClassName:
+                                'text-amber-600 dark:text-amber-400',
+                        },
+                        {
+                            label: 'Open correction reports',
+                            value: meta.openCorrectionReports,
+                            emphasisClassName:
+                                'text-amber-600 dark:text-amber-400',
+                        },
                     ]}
-                    helperText="Status cards for Under review, Approved, Cancelled, and Declined reflect the current results page."
+                    helperText="Status cards reflect the current results page. Open correction reports shows the current system-wide open report count."
                 />
 
                 <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm sm:p-5">
@@ -545,10 +579,20 @@ export default function RequestsPage() {
                                                             'Loan type unavailable'}
                                                     </p>
                                                 </div>
-                                                <LoanRequestStatusBadge
-                                                    status={item.status}
-                                                    className="text-[0.65rem]"
-                                                />
+                                                <div className="flex flex-wrap justify-end gap-1">
+                                                    <LoanRequestStatusBadge
+                                                        status={item.status}
+                                                        className="text-[0.65rem]"
+                                                    />
+                                                    {item.has_open_correction_report ? (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="border-amber-500/30 bg-amber-500/10 text-[0.65rem] text-amber-700 dark:text-amber-200"
+                                                        >
+                                                            Correction reported
+                                                        </Badge>
+                                                    ) : null}
+                                                </div>
                                             </div>
                                             <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                                                 <div className="space-y-1">

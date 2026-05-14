@@ -61,6 +61,9 @@ class LoanRequestDecisionController extends Controller
             'ok' => true,
             'data' => [
                 'loanRequest' => $serializer->serializeLoanRequest($updated),
+                'correctionReports' => $serializer->serializeCorrectionReports(
+                    $updated,
+                ),
             ],
         ]);
     }
@@ -82,6 +85,9 @@ class LoanRequestDecisionController extends Controller
             'ok' => true,
             'data' => [
                 'loanRequest' => $serializer->serializeLoanRequest($updated),
+                'correctionReports' => $serializer->serializeCorrectionReports(
+                    $updated,
+                ),
             ],
         ]);
     }

@@ -11,6 +11,7 @@ import type {
     MemberLoanSecurityLedgerResponse,
     MemberStatusAction,
     MembersResponse,
+    ReportedRequestsResponse,
     RequestsResponse,
 } from '@/types/admin';
 import type {
@@ -46,6 +47,7 @@ type RequestsQueryParams = {
     search?: string;
     loanType?: string;
     status?: string;
+    reported?: boolean;
     minAmount?: number;
     maxAmount?: number;
     page?: number;
@@ -167,6 +169,21 @@ export const adminApi = {
             '/spa/admin/requests',
             { params, signal },
         );
+
+        return unwrap(response);
+    },
+    async getReportedRequests(
+        params: Pick<RequestsQueryParams, 'search' | 'page' | 'perPage'>,
+        signal?: AbortSignal,
+    ): Promise<ReportedRequestsResponse> {
+        const response =
+            await client.get<ApiResponse<ReportedRequestsResponse>>(
+                '/spa/admin/requests/reported',
+                {
+                    params,
+                    signal,
+                },
+            );
 
         return unwrap(response);
     },

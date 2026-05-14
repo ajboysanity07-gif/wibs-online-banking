@@ -25,6 +25,7 @@ export type UrlMatchOptions = {
     href: NonNullable<InertiaLinkProps['href']>;
     match?: MatchStrategy;
     matchPaths?: Array<NonNullable<InertiaLinkProps['href']>>;
+    excludeMatchPaths?: Array<NonNullable<InertiaLinkProps['href']>>;
 };
 
 export type IsMatchFn = (
@@ -92,6 +93,16 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
             options.matchPaths && options.matchPaths.length > 0
                 ? options.matchPaths
                 : [options.href];
+        const excludedTargets = options.excludeMatchPaths ?? [];
+        const resolvedExcludedTargets = excludedTargets.map(resolvePathname);
+        const shouldExclude =
+            matchesExactPaths(resolvedExcludedTargets, urlToCompare) ||
+            matchesSectionPaths(resolvedExcludedTargets, urlToCompare);
+
+        if (shouldExclude) {
+            return false;
+        }
+
         const resolvedTargets = targets.map(resolvePathname);
         const matchStrategy = options.match ?? 'exact';
 

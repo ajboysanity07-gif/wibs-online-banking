@@ -76,6 +76,20 @@ test('admin can view requests page', function () {
             ->component('admin/requests'));
 });
 
+test('admin can view reported requests page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('admin.requests.reported'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/reported-requests'));
+});
+
 test('admin can view member profile page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->admin()->create([

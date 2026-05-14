@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
-import type { RequestsResponse } from '@/types/admin';
+import type { ReportedRequestsResponse } from '@/types/admin';
 
-type RequestsParams = {
+type ReportedRequestsParams = {
     search: string;
     page: number;
     perPage: number;
-    loanType?: string | null;
-    status?: string | null;
-    reported?: boolean;
-    minAmount?: number;
-    maxAmount?: number;
 };
 
-const emptyResponse: RequestsResponse = {
+const emptyResponse: ReportedRequestsResponse = {
     items: [],
     meta: {
         page: 1,
@@ -23,12 +18,11 @@ const emptyResponse: RequestsResponse = {
         query: null,
         available: true,
         message: null,
-        loanTypes: [],
         openCorrectionReports: 0,
     },
 };
 
-export function useRequests(params: RequestsParams) {
+export function useReportedRequests(params: ReportedRequestsParams) {
     const [state, setState] = useState({
         data: emptyResponse,
         loading: false,
@@ -46,15 +40,10 @@ export function useRequests(params: RequestsParams) {
             const trimmedSearch = params.search.trim();
 
             try {
-                const data = await adminApi.getRequests(
+                const data = await adminApi.getReportedRequests(
                     {
                         search:
                             trimmedSearch !== '' ? trimmedSearch : undefined,
-                        loanType: params.loanType ?? undefined,
-                        status: params.status ?? undefined,
-                        reported: params.reported ?? undefined,
-                        minAmount: params.minAmount ?? undefined,
-                        maxAmount: params.maxAmount ?? undefined,
                         page: params.page,
                         perPage: params.perPage,
                     },
@@ -67,7 +56,7 @@ export function useRequests(params: RequestsParams) {
                     setState((current) => ({
                         ...current,
                         loading: false,
-                        error: 'Unable to load requests right now.',
+                        error: 'Unable to load reported requests right now.',
                     }));
                 }
             }
@@ -77,16 +66,7 @@ export function useRequests(params: RequestsParams) {
             controller.abort();
             clearTimeout(timeout);
         };
-    }, [
-        params.loanType,
-        params.maxAmount,
-        params.minAmount,
-        params.page,
-        params.perPage,
-        params.reported,
-        params.search,
-        params.status,
-    ]);
+    }, [params.page, params.perPage, params.search]);
 
     return {
         items: state.data.items,

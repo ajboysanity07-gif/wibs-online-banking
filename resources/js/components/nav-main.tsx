@@ -31,6 +31,8 @@ export function NavMain({
                                     href: item.href,
                                     match: item.match,
                                     matchPaths: item.matchPaths,
+                                    excludeMatchPaths:
+                                        item.excludeMatchPaths,
                                 })
                             }
                             tooltip={{ children: item.title }}

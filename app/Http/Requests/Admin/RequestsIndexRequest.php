@@ -36,6 +36,7 @@ class RequestsIndexRequest extends FormRequest
             ],
             'minAmount' => ['nullable', 'numeric', 'min:0'],
             'maxAmount' => ['nullable', 'numeric', 'min:0'],
+            'reported' => ['nullable', 'boolean'],
             'perPage' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
         ];

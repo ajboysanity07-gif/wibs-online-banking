@@ -37,7 +37,7 @@ export function useCancelLoanRequest(options?: LoanRequestCancellationOptions) {
             const toastId = `loan-request-cancel-${loanRequestId}`;
 
             try {
-                const loanRequest = await adminApi.cancelLoanRequest(
+                const result = await adminApi.cancelLoanRequest(
                     loanRequestId,
                     payload,
                 );
@@ -45,9 +45,9 @@ export function useCancelLoanRequest(options?: LoanRequestCancellationOptions) {
                 showSuccessToast('Loan request cancelled successfully.', {
                     id: toastId,
                 });
-                options?.onUpdated?.(loanRequest);
+                options?.onUpdated?.(result);
 
-                return loanRequest;
+                return result;
             } catch (error) {
                 showErrorToast(error, 'Failed to cancel loan request.', {
                     id: toastId,

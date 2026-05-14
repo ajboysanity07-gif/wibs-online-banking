@@ -23,7 +23,10 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard as workspaceDashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
-import { index as requestsIndex } from '@/routes/admin/requests';
+import {
+    index as requestsIndex,
+    reported as reportedRequests,
+} from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import {
@@ -94,6 +97,12 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
         href: requestsIndex(),
         icon: FileText,
         match: 'section',
+        excludeMatchPaths: [reportedRequests()],
+    },
+    {
+        title: 'Reported Requests',
+        href: reportedRequests(),
+        icon: FileText,
     },
     ...(isSuperadmin
         ? [
