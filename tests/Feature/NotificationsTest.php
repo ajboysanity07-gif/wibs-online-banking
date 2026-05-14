@@ -5,11 +5,13 @@ use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
+use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Notifications\AdminAccessAuditNotification;
 use App\Notifications\AdminAccessChangedNotification;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
+use App\Notifications\LoanRequestCorrectionReportedNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
 use App\Notifications\MemberStatusAuditNotification;
@@ -228,6 +230,65 @@ test('loan request submission notifies admins and superadmins', function () {
     expect($data['requested_amount'])->toBe('25000.00');
     expect($data['requested_term'])->toBe(12);
     expect($data['submitted_at'])->not->toBeNull();
+});
+
+test('loan request correction report notifies admins and includes admin-routing payload', function () {
+    $admin = createAdminUser();
+    $superadmin = createAdminUser(superadmin: true);
+    $member = createRegisteredMember('000910', 'Report', 'Member');
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $member->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => now()->subDay(),
+        'reviewed_at' => now()->subHour(),
+    ]);
+
+    $response = $this
+        ->actingAs($member)
+        ->postJson(
+            route('client.loan-requests.correction-reports.store', $loanRequest),
+            [
+                'issue_description' => 'Applicant suffix is incorrect.',
+                'correct_information' => 'Applicant suffix should be Jr.',
+                'supporting_note' => 'Matching ID provided.',
+            ],
+        );
+
+    $response->assertOk();
+
+    $adminNotification = latestNotificationFor(
+        $admin,
+        LoanRequestCorrectionReportedNotification::class,
+    );
+    $superadminNotification = latestNotificationFor(
+        $superadmin,
+        LoanRequestCorrectionReportedNotification::class,
+    );
+
+    expect($adminNotification)->not->toBeNull();
+    expect($superadminNotification)->not->toBeNull();
+
+    $data = $adminNotification->data;
+
+    expect($data['type'])->toBe('loan_request_correction_reported');
+    expect($data['title'])->toBe('Loan request correction reported');
+    expect($data['loan_request_id'])->toBe($loanRequest->id);
+    expect($data['reference'])->toBe($loanRequest->reference);
+    expect($data['entity_type'])->toBe('loan_request');
+    expect($data['entity_id'])->toBe($loanRequest->id);
+    expect($data['report_id'])->toBeInt();
+    expect($data['issue_description'])->toBe(
+        'Applicant suffix is incorrect.',
+    );
+    expect($data['correct_information'])->toBe(
+        'Applicant suffix should be Jr.',
+    );
+    expect($data['supporting_note'])->toBe('Matching ID provided.');
+    expect($data['member_id'])->toBe($member->user_id);
+    expect($data['member_acctno'])->toBe($member->acctno);
 });
 
 test('admin-only users can access and use notifications', function () {

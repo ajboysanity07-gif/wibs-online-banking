@@ -12,6 +12,10 @@ export type NotificationPayload = {
     decision_notes?: string | null;
     cancellation_reason?: string | null;
     correction_reason?: string | null;
+    report_id?: number | string | null;
+    issue_description?: string | null;
+    correct_information?: string | null;
+    supporting_note?: string | null;
     corrected_from_id?: number | string | null;
     old_loan_request_id?: number | string | null;
     old_reference?: string | null;

@@ -194,6 +194,9 @@ function NotificationCard({
 }) {
     const payload = notification.data;
     const notes = payload.decision_notes?.trim();
+    const reportedIssue = payload.issue_description?.trim();
+    const correctInformation = payload.correct_information?.trim();
+    const supportingNote = payload.supporting_note?.trim();
     const metadataChips = buildNotificationMetadataChips(payload);
     const timestamp = formatNotificationTimestamp(notification.created_at);
     const visual = getNotificationVisual(payload);
@@ -257,6 +260,39 @@ function NotificationCard({
                     <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">
                         {payload.message}
                     </p>
+
+                    {reportedIssue ? (
+                        <div className="rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2 text-[12px] leading-5 text-amber-900 dark:text-amber-100">
+                            <span className="mr-1 font-semibold">
+                                Reported issue:
+                            </span>
+                            <span className="line-clamp-3">
+                                {reportedIssue}
+                            </span>
+                        </div>
+                    ) : null}
+
+                    {correctInformation ? (
+                        <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/8 px-2.5 py-2 text-[12px] leading-5 text-emerald-900 dark:text-emerald-100">
+                            <span className="mr-1 font-semibold">
+                                Correct information:
+                            </span>
+                            <span className="line-clamp-3">
+                                {correctInformation}
+                            </span>
+                        </div>
+                    ) : null}
+
+                    {supportingNote ? (
+                        <div className="rounded-lg border border-border/40 bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                            <span className="mr-1 font-medium text-foreground/75">
+                                Supporting note:
+                            </span>
+                            <span className="line-clamp-2">
+                                {supportingNote}
+                            </span>
+                        </div>
+                    ) : null}
 
                     {notes ? (
                         <div className="rounded-lg border border-border/40 bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">

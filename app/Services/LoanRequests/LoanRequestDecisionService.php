@@ -14,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class LoanRequestDecisionService
 {
+    public function __construct(
+        private LoanRequestCorrectionReportService $correctionReports,
+    ) {}
+
     /**
      * @param  array{approved_amount: float|int|string, approved_term: int|string, decision_notes?: string|null}  $payload
      */
@@ -91,6 +95,12 @@ class LoanRequestDecisionService
                 $cancellationReason,
                 $before,
                 $this->snapshotForAudit($loanRequest),
+            );
+
+            $this->correctionReports->resolveOpenReports(
+                $loanRequest,
+                $actor,
+                $cancellationReason,
             );
 
             return $loanRequest->loadMissing('reviewedBy', 'cancelledBy');

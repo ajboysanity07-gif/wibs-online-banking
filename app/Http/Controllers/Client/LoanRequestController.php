@@ -9,6 +9,7 @@ use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
 use App\Support\LocationComposer;
@@ -219,6 +220,10 @@ class LoanRequestController extends Controller
                 $loanRequestRecord,
                 LoanRequestPersonRole::CoMakerTwo,
             ),
+            'hasOpenCorrectionReport' => $loanRequestRecord
+                ->correctionReports()
+                ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
+                ->exists(),
         ]);
 
         return Inertia::render('client/loan-request-show', $payload);

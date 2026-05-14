@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Ban, Calendar, Download, PencilLine, Printer } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
@@ -180,12 +180,18 @@ type DecisionProps = {
     canDecide?: boolean;
     isProcessing?: boolean;
     isCancelling?: boolean;
+    cancellationReasonPrefill?: string | null;
+    cancellationDialogEventName?: string | null;
     blockedMessage?: string | null;
     onApprove?: (payload: LoanRequestApprovePayload) => void;
     onDecline?: (payload: LoanRequestDeclinePayload) => void;
     onCancelApproved?: (
         payload: LoanRequestCancellationPayload,
-    ) => Promise<LoanRequestDetail | null>;
+    ) => Promise<
+        | LoanRequestDetail
+        | { loanRequest: LoanRequestDetail }
+        | null
+    >;
 };
 
 type CorrectionProps = {
@@ -408,6 +414,13 @@ export function LoanRequestDetailPage({
         setCancellationReasonError(null);
     };
 
+    const openCancellationDialog = (prefill?: string | null) => {
+        const normalizedPrefill = prefill?.trim() ?? '';
+        setCancellationReason(normalizedPrefill);
+        setCancellationReasonError(null);
+        setIsCancellationDialogOpen(true);
+    };
+
     const closeCorrectedCopyDialog = (force = false) => {
         if (correctedCopy?.isProcessing && !force) {
             return;
@@ -459,6 +472,38 @@ export function LoanRequestDetailPage({
             closeCorrectedCopyDialog(true);
         }
     };
+
+    useEffect(() => {
+        const eventName = decision?.cancellationDialogEventName?.trim() ?? '';
+
+        if (eventName === '' || typeof window === 'undefined') {
+            return;
+        }
+
+        const listener = (event: Event) => {
+            const fallbackPrefill = decision?.cancellationReasonPrefill ?? null;
+
+            if (!(event instanceof CustomEvent)) {
+                openCancellationDialog(fallbackPrefill);
+                return;
+            }
+
+            const detail = event.detail as { prefill?: string } | undefined;
+            const prefill =
+                typeof detail?.prefill === 'string' ? detail.prefill : null;
+
+            openCancellationDialog(prefill ?? fallbackPrefill);
+        };
+
+        window.addEventListener(eventName, listener);
+
+        return () => {
+            window.removeEventListener(eventName, listener);
+        };
+    }, [
+        decision?.cancellationDialogEventName,
+        decision?.cancellationReasonPrefill,
+    ]);
 
     return (
         <PageShell size="wide" className="gap-8">
@@ -1052,7 +1097,10 @@ export function LoanRequestDetailPage({
                                         className="w-full justify-center"
                                         disabled={decision?.isCancelling}
                                         onClick={() =>
-                                            setIsCancellationDialogOpen(true)
+                                            openCancellationDialog(
+                                                decision?.cancellationReasonPrefill ??
+                                                    null,
+                                            )
                                         }
                                     >
                                         <Ban />

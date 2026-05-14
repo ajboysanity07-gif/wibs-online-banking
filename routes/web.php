@@ -19,6 +19,7 @@ use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\LoanRequestController;
+use App\Http\Controllers\Client\LoanRequestCorrectionReportController as ClientLoanRequestCorrectionReportController;
 use App\Http\Controllers\Client\MemberLoanPaymentsController as ClientMemberLoanPaymentsController;
 use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemberLoanPaymentsExportController;
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\NotificationsController as NotificationsPageController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\LoanRequestCorrectionController as SpaLoanRequestCorrectionController;
+use App\Http\Controllers\Spa\Admin\LoanRequestCorrectionReportController as SpaLoanRequestCorrectionReportController;
 use App\Http\Controllers\Spa\Admin\LoanRequestDecisionController as SpaLoanRequestDecisionController;
 use App\Http\Controllers\Spa\Admin\MemberAccountActionsController as SpaMemberAccountActionsController;
 use App\Http\Controllers\Spa\Admin\MemberAccountsSummaryController as SpaMemberAccountsSummaryController;
@@ -122,6 +124,10 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::patch('admin/requests/{loanRequest}/approve', [SpaLoanRequestDecisionController::class, 'approve']);
         Route::patch('admin/requests/{loanRequest}/decline', [SpaLoanRequestDecisionController::class, 'decline']);
         Route::patch('admin/requests/{loanRequest}/corrections', SpaLoanRequestCorrectionController::class);
+        Route::patch(
+            'admin/requests/{loanRequest}/correction-reports/{report}/dismiss',
+            [SpaLoanRequestCorrectionReportController::class, 'dismiss'],
+        );
         Route::patch('admin/requests/{loanRequest}/cancel', [SpaLoanRequestDecisionController::class, 'cancel']);
         Route::post('admin/requests/{loanRequest}/admin-corrected-copy', [SpaLoanRequestDecisionController::class, 'createAdminCorrectedCopy']);
         Route::get('admin/watchlist', SpaWatchlistController::class);
@@ -173,6 +179,13 @@ Route::get('client/loans/requests', [LoanRequestController::class, 'index'])
 Route::get('client/loans/requests/{loanRequest}', [LoanRequestController::class, 'show'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.show');
+
+Route::post(
+    'client/loans/requests/{loanRequest}/correction-reports',
+    [ClientLoanRequestCorrectionReportController::class, 'store'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.correction-reports.store');
 
 Route::post('client/loans/requests/{loanRequest}/corrected-copy', [LoanRequestController::class, 'createCorrectedCopy'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])

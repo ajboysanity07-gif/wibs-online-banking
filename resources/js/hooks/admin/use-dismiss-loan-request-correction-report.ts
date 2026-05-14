@@ -3,53 +3,53 @@ import { adminApi } from '@/lib/api/admin';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type {
     LoanRequestCorrectionReport,
-    LoanRequestDetail,
+    LoanRequestCorrectionReportDismissPayload,
 } from '@/types/loan-requests';
 
-export type LoanRequestCancellationPayload = {
-    cancellation_reason: string;
-};
-
-export type LoanRequestCancellationResult = {
-    loanRequest: LoanRequestDetail;
+type DismissCorrectionReportResult = {
+    report: LoanRequestCorrectionReport;
     correctionReports: LoanRequestCorrectionReport[];
 };
 
-type LoanRequestCancellationOptions = {
-    onUpdated?: (result: LoanRequestCancellationResult) => void;
+type DismissCorrectionReportOptions = {
+    onDismissed?: (result: DismissCorrectionReportResult) => void;
 };
 
-export function useCancelLoanRequest(options?: LoanRequestCancellationOptions) {
+export function useDismissLoanRequestCorrectionReport(
+    options?: DismissCorrectionReportOptions,
+) {
     const [processingIds, setProcessingIds] = useState<Record<number, boolean>>(
         {},
     );
 
-    const cancelLoanRequest = useCallback(
+    const dismissCorrectionReport = useCallback(
         async (
             loanRequestId: number,
-            payload: LoanRequestCancellationPayload,
+            reportId: number,
+            payload: LoanRequestCorrectionReportDismissPayload,
         ) => {
             setProcessingIds((current) => ({
                 ...current,
-                [loanRequestId]: true,
+                [reportId]: true,
             }));
 
-            const toastId = `loan-request-cancel-${loanRequestId}`;
+            const toastId = `loan-request-correction-report-dismiss-${reportId}`;
 
             try {
-                const loanRequest = await adminApi.cancelLoanRequest(
+                const result = await adminApi.dismissLoanRequestCorrectionReport(
                     loanRequestId,
+                    reportId,
                     payload,
                 );
 
-                showSuccessToast('Loan request cancelled successfully.', {
+                showSuccessToast('Correction report dismissed.', {
                     id: toastId,
                 });
-                options?.onUpdated?.(loanRequest);
+                options?.onDismissed?.(result);
 
-                return loanRequest;
+                return result;
             } catch (error) {
-                showErrorToast(error, 'Failed to cancel loan request.', {
+                showErrorToast(error, 'Failed to dismiss correction report.', {
                     id: toastId,
                 });
 
@@ -57,7 +57,7 @@ export function useCancelLoanRequest(options?: LoanRequestCancellationOptions) {
             } finally {
                 setProcessingIds((current) => {
                     const next = { ...current };
-                    delete next[loanRequestId];
+                    delete next[reportId];
 
                     return next;
                 });
@@ -67,7 +67,7 @@ export function useCancelLoanRequest(options?: LoanRequestCancellationOptions) {
     );
 
     return {
-        cancelLoanRequest,
+        dismissCorrectionReport,
         processingIds,
     };
 }

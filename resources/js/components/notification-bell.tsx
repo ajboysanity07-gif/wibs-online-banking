@@ -167,6 +167,9 @@ function NotificationListItem({
     const notes = payload.decision_notes?.trim();
     const correctionReason = payload.correction_reason?.trim();
     const cancellationReason = payload.cancellation_reason?.trim();
+    const reportedIssue = payload.issue_description?.trim();
+    const correctInformation = payload.correct_information?.trim();
+    const supportingNote = payload.supporting_note?.trim();
     const visibleReason = correctionReason ?? cancellationReason;
     const showReasonBlock = Boolean(visibleReason);
     const metadataChips = buildNotificationMetadataChips(payload);
@@ -235,6 +238,35 @@ function NotificationListItem({
                     <div className="rounded-lg border border-rose-500/25 bg-rose-500/8 px-2.5 py-2 text-[12px] leading-5 text-rose-900 dark:text-rose-100">
                         <span className="mr-1 font-semibold">Reason:</span>
                         <span className="line-clamp-3">{visibleReason}</span>
+                    </div>
+                ) : null}
+
+                {reportedIssue ? (
+                    <div className="rounded-lg border border-amber-500/25 bg-amber-500/8 px-2.5 py-2 text-[12px] leading-5 text-amber-900 dark:text-amber-100">
+                        <span className="mr-1 font-semibold">
+                            Reported issue:
+                        </span>
+                        <span className="line-clamp-3">{reportedIssue}</span>
+                    </div>
+                ) : null}
+
+                {correctInformation ? (
+                    <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/8 px-2.5 py-2 text-[12px] leading-5 text-emerald-900 dark:text-emerald-100">
+                        <span className="mr-1 font-semibold">
+                            Correct information:
+                        </span>
+                        <span className="line-clamp-3">
+                            {correctInformation}
+                        </span>
+                    </div>
+                ) : null}
+
+                {supportingNote ? (
+                    <div className="rounded-lg border border-border/40 bg-background/70 px-2.5 py-2 text-[12px] leading-5 text-muted-foreground">
+                        <span className="mr-1 font-medium text-foreground/75">
+                            Supporting note:
+                        </span>
+                        <span className="line-clamp-2">{supportingNote}</span>
                     </div>
                 ) : null}
 

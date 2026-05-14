@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestCorrectionReport;
 use App\Models\LoanRequestPerson;
 use App\Support\LocationComposer;
 use DateTimeInterface;
@@ -106,6 +107,66 @@ class LoanRequestPayloadSerializer
                 ? $this->normalizeStatus($correctedRequest)
                 : null,
             'acctno' => $loanRequest->acctno,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function serializeCorrectionReports(LoanRequest $loanRequest): array
+    {
+        $reports = $loanRequest->correctionReports()
+            ->with(['user', 'resolvedBy', 'dismissedBy'])
+            ->orderByDesc('id')
+            ->get();
+
+        return $reports
+            ->map(
+                fn (LoanRequestCorrectionReport $report): array => $this
+                    ->serializeCorrectionReport($report),
+            )
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function serializeCorrectionReport(
+        LoanRequestCorrectionReport $report,
+    ): array {
+        $report->loadMissing('user', 'resolvedBy', 'dismissedBy');
+
+        return [
+            'id' => $report->id,
+            'loan_request_id' => $report->loan_request_id,
+            'status' => $report->status,
+            'issue_description' => $report->issue_description,
+            'correct_information' => $report->correct_information,
+            'supporting_note' => $report->supporting_note,
+            'admin_notes' => $report->admin_notes,
+            'reported_at' => $report->created_at?->toDateTimeString(),
+            'reported_by' => $report->user
+                ? [
+                    'user_id' => $report->user->user_id,
+                    'name' => $report->user->name,
+                    'acctno' => $report->user->acctno,
+                ]
+                : null,
+            'resolved_by' => $report->resolvedBy
+                ? [
+                    'user_id' => $report->resolvedBy->user_id,
+                    'name' => $report->resolvedBy->name,
+                ]
+                : null,
+            'resolved_at' => $report->resolved_at?->toDateTimeString(),
+            'dismissed_by' => $report->dismissedBy
+                ? [
+                    'user_id' => $report->dismissedBy->user_id,
+                    'name' => $report->dismissedBy->name,
+                ]
+                : null,
+            'dismissed_at' => $report->dismissed_at?->toDateTimeString(),
         ];
     }
 

@@ -14,6 +14,8 @@ import type {
     RequestsResponse,
 } from '@/types/admin';
 import type {
+    LoanRequestCorrectionReport,
+    LoanRequestCorrectionReportDismissPayload,
     LoanRequestCorrectionPayload,
     LoanRequestCorrectionResult,
     LoanRequestDetail,
@@ -75,6 +77,16 @@ type LoanRequestDeclinePayload = {
 
 type LoanRequestCancellationPayload = {
     cancellation_reason: string;
+};
+
+type LoanRequestCancellationResult = {
+    loanRequest: LoanRequestDetail;
+    correctionReports: LoanRequestCorrectionReport[];
+};
+
+type LoanRequestCorrectionReportDismissResult = {
+    report: LoanRequestCorrectionReport;
+    correctionReports: LoanRequestCorrectionReport[];
 };
 
 type LoanRequestAdminCorrectedCopyPayload = {
@@ -191,12 +203,26 @@ export const adminApi = {
     async cancelLoanRequest(
         loanRequestId: number,
         payload: LoanRequestCancellationPayload,
-    ): Promise<LoanRequestDetail> {
+    ): Promise<LoanRequestCancellationResult> {
         const response = await client.patch<
-            ApiResponse<{ loanRequest: LoanRequestDetail }>
+            ApiResponse<LoanRequestCancellationResult>
         >(`/spa/admin/requests/${loanRequestId}/cancel`, payload);
 
-        return unwrap(response).loanRequest;
+        return unwrap(response);
+    },
+    async dismissLoanRequestCorrectionReport(
+        loanRequestId: number,
+        reportId: number,
+        payload: LoanRequestCorrectionReportDismissPayload,
+    ): Promise<LoanRequestCorrectionReportDismissResult> {
+        const response = await client.patch<
+            ApiResponse<LoanRequestCorrectionReportDismissResult>
+        >(
+            `/spa/admin/requests/${loanRequestId}/correction-reports/${reportId}/dismiss`,
+            payload,
+        );
+
+        return unwrap(response);
     },
     async createAdminCorrectedCopy(
         loanRequestId: number,

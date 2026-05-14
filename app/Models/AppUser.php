@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -81,6 +82,15 @@ class AppUser extends Authenticatable
     public function wmaster(): BelongsTo
     {
         return $this->belongsTo(Wmaster::class, 'acctno', 'acctno');
+    }
+
+    public function loanRequestCorrectionReports(): HasMany
+    {
+        return $this->hasMany(
+            LoanRequestCorrectionReport::class,
+            'user_id',
+            'user_id',
+        );
     }
 
     public function hasCanonicalMemberRecord(): bool

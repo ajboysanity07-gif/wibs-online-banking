@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -59,6 +60,11 @@ class LoanRequestController extends Controller
             ...$serializer->serializeDetail($loanRequestRecord),
             'decision' => $decision,
             'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
+            'correctionReports' => $serializer->serializeCorrectionReports(
+                $loanRequestRecord,
+            ),
+            'openCorrectionReportCancellationReason' => $this
+                ->resolveOpenCorrectionCancellationReason($loanRequestRecord),
         ]);
 
         return Inertia::render('admin/loan-request-show', $payload);
@@ -134,6 +140,25 @@ class LoanRequestController extends Controller
             LoanRequestStatus::Declined->value,
             LoanRequestStatus::Cancelled->value,
         ], true);
+    }
+
+    private function resolveOpenCorrectionCancellationReason(
+        LoanRequest $loanRequest,
+    ): ?string {
+        $latestOpenReport = $loanRequest->correctionReports()
+            ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
+            ->latest('id')
+            ->first();
+
+        if ($latestOpenReport === null) {
+            return null;
+        }
+
+        return sprintf(
+            'Member reported incorrect details: %s. Correct information: %s.',
+            $latestOpenReport->issue_description,
+            $latestOpenReport->correct_information,
+        );
     }
 
     private function sanitizePayload(mixed $value): mixed

@@ -49,6 +49,43 @@ export type LoanRequestReviewer = {
     name: string;
 };
 
+export type LoanRequestCorrectionReportStatus =
+    | 'open'
+    | 'resolved'
+    | 'dismissed';
+
+export type LoanRequestCorrectionReportUser = {
+    user_id: number;
+    name: string;
+    acctno?: string | null;
+};
+
+export type LoanRequestCorrectionReport = {
+    id: number;
+    loan_request_id: number;
+    status: LoanRequestCorrectionReportStatus;
+    issue_description: string;
+    correct_information: string;
+    supporting_note: string | null;
+    admin_notes: string | null;
+    reported_at: string | null;
+    reported_by: LoanRequestCorrectionReportUser | null;
+    resolved_by: LoanRequestReviewer | null;
+    resolved_at: string | null;
+    dismissed_by: LoanRequestReviewer | null;
+    dismissed_at: string | null;
+};
+
+export type LoanRequestCorrectionReportPayload = {
+    issue_description: string;
+    correct_information: string;
+    supporting_note?: string | null;
+};
+
+export type LoanRequestCorrectionReportDismissPayload = {
+    admin_notes?: string | null;
+};
+
 export type LoanRequestReadOnlyMap = Record<string, boolean>;
 
 export type LoanRequestStatusValue =

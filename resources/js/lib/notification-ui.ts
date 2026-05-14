@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
     Ban,
     BadgeCheck,
+    CircleAlert,
     FileText,
     PencilLine,
     Settings2,
@@ -62,6 +63,7 @@ const LOAN_NOTIFICATION_TYPES = new Set([
     'loan_request_cancelled',
     'loan_request_decision',
     'loan_request_corrected_created',
+    'loan_request_correction_reported',
 ]);
 
 const ACCOUNT_ACCESS_NOTIFICATION_TYPES = new Set([
@@ -234,6 +236,10 @@ export const resolveNotificationDestination = (
         return showAdminLoanRequest(loanRequestId).url;
     }
 
+    if (payload.type === 'loan_request_correction_reported') {
+        return showAdminLoanRequest(loanRequestId).url;
+    }
+
     if (
         payload.type === 'loan_request_updated' ||
         payload.type === 'loan_request_cancelled' ||
@@ -354,6 +360,15 @@ export const getNotificationVisual = (
         return {
             Icon: PencilLine,
             iconLabel: 'Corrected loan request created',
+            className:
+                'bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:bg-amber-500/15 dark:text-amber-200',
+        };
+    }
+
+    if (payload.type === 'loan_request_correction_reported') {
+        return {
+            Icon: CircleAlert,
+            iconLabel: 'Loan request correction reported',
             className:
                 'bg-amber-500/10 text-amber-700 ring-amber-500/15 dark:bg-amber-500/15 dark:text-amber-200',
         };
