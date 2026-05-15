@@ -1745,6 +1745,78 @@ test('admin can view loan request details page', function () {
             ->where('coMakerTwo.payday', 'Bi-Weekly'));
 });
 
+test('admin corrected loan request detail uses linked correction report context and open correction flag', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000890',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000891',
+        'username' => 'member.reporter',
+    ]);
+
+    $sourceLoanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDays(4)->startOfSecond(),
+        'cancelled_at' => now()->subDay()->startOfSecond(),
+        'cancellation_reason' => 'Member correction report confirmed.',
+    ]);
+
+    $reportCreatedAt = now()->subDays(3)->startOfSecond();
+    $report = LoanRequestCorrectionReport::factory()->create([
+        'loan_request_id' => $sourceLoanRequest->id,
+        'user_id' => $member->user_id,
+        'issue_description' => 'Applicant birthdate is incorrect.',
+        'correct_information' => 'Use 1991-03-14 from the member ID.',
+        'supporting_note' => 'Government ID screenshot attached.',
+        'status' => LoanRequestCorrectionReport::STATUS_RESOLVED,
+        'resolved_by' => $admin->user_id,
+        'resolved_at' => now()->subDay()->startOfSecond(),
+        'created_at' => $reportCreatedAt,
+        'updated_at' => $reportCreatedAt,
+    ]);
+
+    $correctedLoanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now()->startOfSecond(),
+        'corrected_from_id' => $sourceLoanRequest->id,
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($correctedLoanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Corrected',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.show', [
+            'loanRequest' => $correctedLoanRequest,
+            'openCorrection' => 1,
+        ]));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/loan-request-show')
+            ->where('loanRequest.id', $correctedLoanRequest->id)
+            ->where('loanRequest.corrected_from_id', $sourceLoanRequest->id)
+            ->where('openCorrectionOnLoad', true)
+            ->has('correctionReports', 1)
+            ->where('correctionReports.0.id', $report->id)
+            ->where('correctionReports.0.status', LoanRequestCorrectionReport::STATUS_RESOLVED)
+            ->where('correctionReports.0.issue_description', 'Applicant birthdate is incorrect.')
+            ->where('correctionReports.0.correct_information', 'Use 1991-03-14 from the member ID.')
+            ->where('correctionReports.0.supporting_note', 'Government ID screenshot attached.')
+            ->where('correctionReports.0.reported_at', $reportCreatedAt->toDateTimeString())
+            ->where('correctionReports.0.reported_by.user_id', $member->user_id)
+            ->where('correctionReports.0.reported_by.name', 'member.reporter')
+            ->where('correctionReports.0.reported_by.acctno', '000891'));
+});
+
 test('admin loan request detail marks own requests as not decisionable', function () {
     $admin = User::factory()->create([
         'acctno' => '000700',

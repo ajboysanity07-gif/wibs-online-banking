@@ -20,9 +20,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency, toDateInputValue } from '@/lib/formatters';
+import {
+    formatCurrency,
+    formatDateTime,
+    toDateInputValue,
+} from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type {
+    LoanRequestCorrectionReport,
     LoanRequestCorrectionPayload,
     LoanRequestDetail,
     LoanRequestFormData,
@@ -60,6 +65,7 @@ type Props = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
     loanTypes: LoanTypeOption[];
+    correctionReportContext?: LoanRequestCorrectionReport | null;
     errors: ValidationErrors;
     isProcessing: boolean;
     onOpenChange: (open: boolean) => void;
@@ -429,6 +435,7 @@ const buildInitialFormData = (
     applicant: LoanRequestPersonData | null,
     coMakerOne: LoanRequestPersonData | null,
     coMakerTwo: LoanRequestPersonData | null,
+    correctionReportContext?: LoanRequestCorrectionReport | null,
 ): CorrectionFormData => ({
     typecode: loanRequest.typecode ?? '',
     requested_amount: toStringValue(loanRequest.requested_amount),
@@ -439,11 +446,140 @@ const buildInitialFormData = (
     applicant: toPersonForm(applicant),
     co_maker_1: toPersonForm(coMakerOne),
     co_maker_2: toPersonForm(coMakerTwo),
-    change_reason: '',
+    change_reason: correctionReportContext
+        ? `Member reported incorrect details: ${correctionReportContext.issue_description}. Correct information: ${correctionReportContext.correct_information}.`
+        : '',
 });
 
 const textareaClassName =
     'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+
+const reportContextFieldTitleClassName =
+    'text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase';
+
+const hasTextValue = (value?: string | null): value is string =>
+    value !== null && value !== undefined && value.trim() !== '';
+
+const formatReportedByLabel = (
+    report: LoanRequestCorrectionReport,
+): string | null => {
+    const reportedByName = report.reported_by?.name?.trim() ?? '';
+    const reportedByAcctNo = report.reported_by?.acctno?.trim() ?? '';
+
+    if (reportedByName === '' && reportedByAcctNo === '') {
+        return null;
+    }
+
+    if (reportedByName !== '' && reportedByAcctNo !== '') {
+        return `${reportedByName} (Acct: ${reportedByAcctNo})`;
+    }
+
+    return reportedByName !== '' ? reportedByName : `Acct: ${reportedByAcctNo}`;
+};
+
+type ReportContextFieldProps = {
+    label: string;
+    value: string;
+};
+
+const ReportContextField = ({ label, value }: ReportContextFieldProps) => (
+    <div className="space-y-1.5">
+        <p className={reportContextFieldTitleClassName}>{label}</p>
+        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/95">
+            {value}
+        </p>
+    </div>
+);
+
+type CorrectionReportContextCardProps = {
+    report: LoanRequestCorrectionReport;
+    title: string;
+    description?: string;
+    compact?: boolean;
+    showMeta?: boolean;
+};
+
+const CorrectionReportContextCard = ({
+    report,
+    title,
+    description,
+    compact = false,
+    showMeta = true,
+}: CorrectionReportContextCardProps) => {
+    const supportingNote = hasTextValue(report.supporting_note)
+        ? report.supporting_note
+        : null;
+    const reportedBy = formatReportedByLabel(report);
+    const reportedAt = hasTextValue(report.reported_at)
+        ? formatDateTime(report.reported_at)
+        : null;
+
+    return (
+        <section
+            className={cn(
+                'rounded-2xl border border-amber-500/30 bg-amber-500/[0.08] shadow-[0_18px_44px_-36px_rgba(245,158,11,0.65)] dark:border-amber-400/25 dark:bg-amber-400/[0.08]',
+                compact ? 'space-y-3 p-4' : 'space-y-4 p-4 sm:p-5',
+            )}
+        >
+            <div className="flex items-start gap-3">
+                <div className="rounded-full bg-amber-500/12 p-2 text-amber-700 dark:text-amber-200">
+                    <AlertTriangle className="size-4" />
+                </div>
+                <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                        {title}
+                    </p>
+                    {description ? (
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                            {description}
+                        </p>
+                    ) : null}
+                </div>
+            </div>
+
+            <div
+                className={cn(
+                    'grid gap-3',
+                    showMeta ? 'lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]' : '',
+                )}
+            >
+                <div className="grid gap-3">
+                    <ReportContextField
+                        label="Reported issue"
+                        value={report.issue_description}
+                    />
+                    <ReportContextField
+                        label="Correct information"
+                        value={report.correct_information}
+                    />
+                    {supportingNote ? (
+                        <ReportContextField
+                            label="Supporting note/proof"
+                            value={supportingNote}
+                        />
+                    ) : null}
+                </div>
+
+                {showMeta && (reportedBy || reportedAt) ? (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                        {reportedBy ? (
+                            <ReportContextField
+                                label="Reported by"
+                                value={reportedBy}
+                            />
+                        ) : null}
+                        {reportedAt ? (
+                            <ReportContextField
+                                label="Reported at"
+                                value={reportedAt}
+                            />
+                        ) : null}
+                    </div>
+                ) : null}
+            </div>
+        </section>
+    );
+};
 
 const isBlank = (value: string): boolean => value.trim() === '';
 
@@ -827,7 +963,7 @@ export function AdminLoanRequestCorrectionDialog({
         >
             {open ? (
                 <CorrectionDialogForm
-                    key={formProps.loanRequest.id}
+                    key={`${formProps.loanRequest.id}-${formProps.correctionReportContext?.id ?? 'none'}`}
                     {...formProps}
                     isProcessing={isProcessing}
                     onOpenChange={onOpenChange}
@@ -843,6 +979,7 @@ function CorrectionDialogForm({
     coMakerOne,
     coMakerTwo,
     loanTypes,
+    correctionReportContext,
     errors,
     isProcessing,
     onOpenChange,
@@ -853,8 +990,21 @@ function CorrectionDialogForm({
         'forward',
     );
     const initialFormData = useMemo(
-        () => buildInitialFormData(loanRequest, applicant, coMakerOne, coMakerTwo),
-        [applicant, coMakerOne, coMakerTwo, loanRequest],
+        () =>
+            buildInitialFormData(
+                loanRequest,
+                applicant,
+                coMakerOne,
+                coMakerTwo,
+                correctionReportContext,
+            ),
+        [
+            applicant,
+            coMakerOne,
+            coMakerTwo,
+            correctionReportContext,
+            loanRequest,
+        ],
     );
     const [formData, setFormData] = useState<CorrectionFormData>(initialFormData);
     const [clientErrors, setClientErrors] = useState<ValidationErrors>({});
@@ -1095,6 +1245,14 @@ function CorrectionDialogForm({
                         </DialogDescription>
                     </div>
 
+                    {correctionReportContext ? (
+                        <CorrectionReportContextCard
+                            report={correctionReportContext}
+                            title="Member reported incorrect details"
+                            description="Keep the member's reported issue visible while updating the copied request."
+                        />
+                    ) : null}
+
                     <div className="rounded-2xl border border-border/40 bg-muted/15 p-4 sm:p-5">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-sm font-semibold text-foreground">
@@ -1289,6 +1447,15 @@ function CorrectionDialogForm({
                                         field before saving a correction.
                                     </AlertDescription>
                                 </Alert>
+                            ) : null}
+
+                            {correctionReportContext ? (
+                                <CorrectionReportContextCard
+                                    report={correctionReportContext}
+                                    title="Reported correction context"
+                                    compact
+                                    showMeta={false}
+                                />
                             ) : null}
 
                             <LoanRequestSectionCard

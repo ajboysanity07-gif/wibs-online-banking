@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { CircleAlert } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { AdminLoanRequestCorrectionDialog } from '@/components/loan-request/admin-loan-request-correction-dialog';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import {
@@ -63,6 +63,11 @@ const latestOpenReport = (
 ): LoanRequestCorrectionReport | null =>
     reports.find((report) => report.status === 'open') ?? null;
 
+const latestCorrectionReportContext = (
+    reports: LoanRequestCorrectionReport[],
+): LoanRequestCorrectionReport | null =>
+    latestOpenReport(reports) ?? reports[0] ?? null;
+
 const resolveCancellationReasonPrefill = (
     reports: LoanRequestCorrectionReport[],
     fallback: string | null = null,
@@ -81,6 +86,7 @@ type Props = {
     loanTypes: LoanTypeOption[];
     correctionReports: LoanRequestCorrectionReport[];
     openCorrectionReportCancellationReason: string | null;
+    openCorrectionOnLoad: boolean;
 };
 
 export default function LoanRequestShow({
@@ -92,6 +98,7 @@ export default function LoanRequestShow({
     loanTypes,
     correctionReports,
     openCorrectionReportCancellationReason,
+    openCorrectionOnLoad,
 }: Props) {
     const [currentRequest, setCurrentRequest] =
         useState<LoanRequestDetail>(loanRequest);
@@ -104,7 +111,13 @@ export default function LoanRequestShow({
     const [currentCorrectionReports, setCurrentCorrectionReports] = useState<
         LoanRequestCorrectionReport[]
     >(correctionReports);
-    const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
+    const shouldAutoOpenCorrection =
+        openCorrectionOnLoad &&
+        loanRequest.status === 'under_review' &&
+        !decision.isOwnRequest;
+    const [isCorrectionOpen, setIsCorrectionOpen] = useState(
+        shouldAutoOpenCorrection,
+    );
     const [isDismissDialogOpen, setIsDismissDialogOpen] = useState(false);
     const [dismissNotes, setDismissNotes] = useState('');
     const [selectedReport, setSelectedReport] =
@@ -165,7 +178,20 @@ export default function LoanRequestShow({
         processingIds: adminCorrectedCopyProcessingIds,
     } = useCreateAdminCorrectedLoanRequest({
         onCreated: (result) => {
-            router.visit(result.loanRequest.url);
+            if (typeof window === 'undefined') {
+                router.visit(result.loanRequest.url);
+                return;
+            }
+
+            const correctedRequestUrl = new URL(
+                result.loanRequest.url,
+                window.location.origin,
+            );
+            correctedRequestUrl.searchParams.set('openCorrection', '1');
+
+            router.visit(
+                `${correctedRequestUrl.pathname}${correctedRequestUrl.search}${correctedRequestUrl.hash}`,
+            );
         },
     });
     const breadcrumbs: BreadcrumbItem[] = [
@@ -186,6 +212,9 @@ export default function LoanRequestShow({
     const canCreateAdminCorrectedCopy =
         currentRequest.status === 'cancelled' &&
         currentRequest.corrected_request_id === null;
+    const correctionReportContext = latestCorrectionReportContext(
+        currentCorrectionReports,
+    );
     const blockedMessage =
         currentRequest.status === 'under_review' && decision.isOwnRequest
             ? 'You cannot decide your own loan request.'
@@ -208,6 +237,25 @@ export default function LoanRequestShow({
         resolved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
         dismissed: 'bg-rose-500/10 text-rose-700 dark:text-rose-200',
     };
+
+    useEffect(() => {
+        if (!shouldAutoOpenCorrection || typeof window === 'undefined') {
+            return;
+        }
+
+        const currentUrl = new URL(window.location.href);
+
+        if (!currentUrl.searchParams.has('openCorrection')) {
+            return;
+        }
+
+        currentUrl.searchParams.delete('openCorrection');
+        window.history.replaceState(
+            window.history.state,
+            '',
+            `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+        );
+    }, [shouldAutoOpenCorrection]);
 
     const handleCorrectionOpenChange = (open: boolean) => {
         if (open) {
@@ -450,6 +498,7 @@ export default function LoanRequestShow({
                 coMakerOne={currentCoMakerOne}
                 coMakerTwo={currentCoMakerTwo}
                 loanTypes={loanTypes}
+                correctionReportContext={correctionReportContext}
                 errors={correctionErrors}
                 isProcessing={isCorrecting}
                 onOpenChange={handleCorrectionOpenChange}

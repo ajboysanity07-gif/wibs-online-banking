@@ -56,15 +56,21 @@ class LoanRequestController extends Controller
             ];
         }
 
+        $correctionReportSource = $this->resolveCorrectionReportSource(
+            $loanRequestRecord,
+        );
         $payload = $this->sanitizePayload([
             ...$serializer->serializeDetail($loanRequestRecord),
             'decision' => $decision,
             'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
             'correctionReports' => $serializer->serializeCorrectionReports(
-                $loanRequestRecord,
+                $correctionReportSource,
             ),
             'openCorrectionReportCancellationReason' => $this
-                ->resolveOpenCorrectionCancellationReason($loanRequestRecord),
+                ->resolveOpenCorrectionCancellationReason(
+                    $correctionReportSource,
+                ),
+            'openCorrectionOnLoad' => $request->boolean('openCorrection'),
         ]);
 
         return Inertia::render('admin/loan-request-show', $payload);
@@ -140,6 +146,18 @@ class LoanRequestController extends Controller
             LoanRequestStatus::Declined->value,
             LoanRequestStatus::Cancelled->value,
         ], true);
+    }
+
+    private function resolveCorrectionReportSource(
+        LoanRequest $loanRequest,
+    ): LoanRequest {
+        if ($loanRequest->correctionReports()->exists()) {
+            return $loanRequest;
+        }
+
+        $loanRequest->loadMissing('correctedFrom');
+
+        return $loanRequest->correctedFrom ?? $loanRequest;
     }
 
     private function resolveOpenCorrectionCancellationReason(
