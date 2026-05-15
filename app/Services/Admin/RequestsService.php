@@ -263,14 +263,8 @@ class RequestsService
             : null;
         $latestOpenReportReportedAt = $latestOpenReport?->created_at?->toDateTimeString()
             ?? $this->normalizeDateTime($request->latest_open_correction_reported_at ?? null);
-        $hasOpenCorrectionReport = $latestOpenReport !== null;
-
-        if (
-            ! $hasOpenCorrectionReport
-            && isset($request->has_open_correction_report)
-        ) {
-            $hasOpenCorrectionReport = (bool) $request->has_open_correction_report;
-        }
+        $hasOpenCorrectionReport = $latestOpenReport !== null
+            || (int) ($request->open_correction_reports_count ?? 0) > 0;
 
         $summary = $request->loan_type_label_snapshot;
 
@@ -314,8 +308,8 @@ class RequestsService
     private function applyOpenCorrectionReportMetadata(Builder $query): void
     {
         $query
-            ->withExists([
-                'correctionReports as has_open_correction_report' => function (
+            ->withCount([
+                'correctionReports as open_correction_reports_count' => function (
                     Builder $reportQuery,
                 ): void {
                     $reportQuery->where(
