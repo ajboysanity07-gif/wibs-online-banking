@@ -53,6 +53,9 @@ type DecisionState = {
     isOwnRequest: boolean;
 };
 
+const correctedRequestApprovalBlockedMessage =
+    'Please save the correction before approving this admin-corrected request.';
+
 const buildCancellationReasonPrefill = (
     report: LoanRequestCorrectionReport,
 ): string =>
@@ -113,7 +116,7 @@ export default function LoanRequestShow({
     >(correctionReports);
     const shouldAutoOpenCorrection =
         openCorrectionOnLoad &&
-        loanRequest.status === 'under_review' &&
+        loanRequest.requires_correction_before_approval &&
         !decision.isOwnRequest;
     const [isCorrectionOpen, setIsCorrectionOpen] = useState(
         shouldAutoOpenCorrection,
@@ -209,6 +212,8 @@ export default function LoanRequestShow({
         currentRequest.status === 'under_review' && decision.canDecide;
     const canCorrect =
         currentRequest.status === 'under_review' && !decision.isOwnRequest;
+    const requiresCorrectionBeforeApproval =
+        currentRequest.requires_correction_before_approval;
     const canCreateAdminCorrectedCopy =
         currentRequest.status === 'cancelled' &&
         currentRequest.corrected_request_id === null;
@@ -216,8 +221,12 @@ export default function LoanRequestShow({
         currentCorrectionReports,
     );
     const blockedMessage =
-        currentRequest.status === 'under_review' && decision.isOwnRequest
-            ? 'You cannot decide your own loan request.'
+        currentRequest.status === 'under_review'
+            ? decision.isOwnRequest
+                ? 'You cannot decide your own loan request.'
+                : requiresCorrectionBeforeApproval
+                  ? correctedRequestApprovalBlockedMessage
+                  : null
             : null;
     const isCorrecting =
         correctionProcessingIds[currentRequest.id] ?? false;
@@ -303,6 +312,35 @@ export default function LoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
+            {requiresCorrectionBeforeApproval ? (
+                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <Alert className="border-amber-500/35 bg-amber-500/10 text-foreground">
+                        <CircleAlert className="size-4 text-amber-700 dark:text-amber-200" />
+                        <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="space-y-1">
+                                <AlertTitle>
+                                    Correction required before approval
+                                </AlertTitle>
+                                <AlertDescription>
+                                    This request was created from a cancelled
+                                    request. Review and save the corrected
+                                    details before approving.
+                                </AlertDescription>
+                            </div>
+                            <Button
+                                type="button"
+                                className="shrink-0"
+                                disabled={isCorrecting}
+                                onClick={() =>
+                                    handleCorrectionOpenChange(true)
+                                }
+                            >
+                                Continue correction
+                            </Button>
+                        </div>
+                    </Alert>
+                </section>
+            ) : null}
             {hasCorrectionReports ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     <Card className="border-amber-500/25 bg-amber-500/[0.06]">

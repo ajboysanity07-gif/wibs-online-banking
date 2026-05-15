@@ -8,14 +8,19 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
+use App\Support\SchemaCapabilities;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestDecisionService
 {
+    private const CORRECTION_REQUIRED_MESSAGE = 'Please review and save the correction before approving this admin-corrected request.';
+
+    private const CORRECTION_AUDIT_UNAVAILABLE_MESSAGE = 'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.';
+
     public function __construct(
         private LoanRequestCorrectionReportService $correctionReports,
+        private SchemaCapabilities $schemaCapabilities,
     ) {}
 
     /**
@@ -27,6 +32,7 @@ class LoanRequestDecisionService
         array $payload,
     ): LoanRequest {
         $this->ensureDecisionable($loanRequest, $actor);
+        $this->ensureCorrectedRequestReadyForApproval($loanRequest);
 
         $loanRequest->fill([
             'status' => LoanRequestStatus::Approved,
@@ -123,6 +129,82 @@ class LoanRequestDecisionService
     public function isOwnRequest(LoanRequest $loanRequest, AppUser $actor): bool
     {
         return $this->isSelfDecision($loanRequest, $actor);
+    }
+
+    public function requiresSavedCorrectionBeforeApproval(
+        LoanRequest $loanRequest,
+    ): bool {
+        if ($loanRequest->corrected_from_id === null) {
+            return false;
+        }
+
+        if (! $this->isUnderReview($loanRequest)) {
+            return false;
+        }
+
+        return ! $this->hasSavedCorrectionAfterCreation($loanRequest);
+    }
+
+    public function hasSavedCorrectionAfterCreation(LoanRequest $loanRequest): bool
+    {
+        if ($loanRequest->corrected_from_id === null) {
+            return false;
+        }
+
+        if (! $this->isCorrectionAuditHistoryAvailable()) {
+            return false;
+        }
+
+        $creationAuditId = LoanRequestChange::query()
+            ->where('loan_request_id', $loanRequest->id)
+            ->where(
+                'action',
+                LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST,
+            )
+            ->max('id');
+
+        $changes = LoanRequestChange::query()
+            ->where('loan_request_id', $loanRequest->id)
+            ->where(
+                'action',
+                LoanRequestChange::ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS,
+            )
+            ->orderBy('id')
+            ->get();
+
+        return $changes->contains(
+            function (LoanRequestChange $change) use ($creationAuditId): bool {
+                if ($creationAuditId !== null && $change->id <= $creationAuditId) {
+                    return false;
+                }
+
+                return $this->changeReflectsSavedCorrection($change);
+            },
+        );
+    }
+
+    public function ensureCorrectedRequestReadyForApproval(
+        LoanRequest $loanRequest,
+    ): void {
+        if ($loanRequest->corrected_from_id === null) {
+            return;
+        }
+
+        if (! $this->isUnderReview($loanRequest)) {
+            return;
+        }
+
+        if (! $this->isCorrectionAuditHistoryAvailable()) {
+            throw ValidationException::withMessages([
+                'approval' => self::CORRECTION_AUDIT_UNAVAILABLE_MESSAGE,
+            ]);
+        }
+
+        if (! $this->hasSavedCorrectionAfterCreation($loanRequest)) {
+            throw ValidationException::withMessages([
+                'approval' => self::CORRECTION_REQUIRED_MESSAGE,
+            ]);
+        }
     }
 
     private function ensureCancellable(LoanRequest $loanRequest, AppUser $actor): void
@@ -245,14 +327,14 @@ class LoanRequestDecisionService
         array $before,
         array $after,
     ): void {
-        if (! Schema::hasTable('loan_request_changes')) {
+        if (! $this->schemaCapabilities->hasTable('loan_request_changes')) {
             return;
         }
 
         LoanRequestChange::query()->create([
             'loan_request_id' => $loanRequest->id,
             'changed_by' => $actor->user_id,
-            'action' => 'cancel_approved_request',
+            'action' => LoanRequestChange::ACTION_CANCEL_APPROVED_REQUEST,
             'reason' => $reason,
             'before_json' => $before,
             'after_json' => $after,
@@ -286,5 +368,35 @@ class LoanRequestDecisionService
             'cancelled_at' => $loanRequest->cancelled_at?->toDateTimeString(),
             'cancellation_reason' => $loanRequest->cancellation_reason,
         ];
+    }
+
+    private function isCorrectionAuditHistoryAvailable(): bool
+    {
+        return $this->schemaCapabilities->hasTable('loan_request_changes')
+            && $this->schemaCapabilities->hasColumn(
+                'loan_request_changes',
+                'action',
+            );
+    }
+
+    private function changeReflectsSavedCorrection(
+        LoanRequestChange $change,
+    ): bool {
+        $reason = trim((string) $change->reason);
+
+        if ($reason === '') {
+            return false;
+        }
+
+        $changedFields = array_values(array_filter(
+            $change->changed_fields_json ?? [],
+            fn (mixed $field): bool => is_string($field) && trim($field) !== '',
+        ));
+
+        if ($changedFields !== []) {
+            return true;
+        }
+
+        return $change->before_json !== $change->after_json;
     }
 }

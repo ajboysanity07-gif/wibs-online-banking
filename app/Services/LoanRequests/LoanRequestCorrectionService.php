@@ -61,13 +61,22 @@ class LoanRequestCorrectionService
             $updated = $lockedLoanRequest->refresh();
             $updated->load('people', 'reviewedBy');
             $after = $this->serializer->serializeDetail($updated);
+            $changedFields = $this->detectChangedFields($before, $after);
+
+            if ($changedFields === []) {
+                throw ValidationException::withMessages([
+                    'correction' => 'Please change at least one field before saving the correction.',
+                ]);
+            }
 
             LoanRequestChange::query()->create([
                 'loan_request_id' => $updated->id,
                 'changed_by' => $actor->user_id,
+                'action' => LoanRequestChange::ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS,
                 'reason' => $payload['change_reason'],
                 'before_json' => $before,
                 'after_json' => $after,
+                'changed_fields_json' => $changedFields,
             ]);
 
             return $updated;
@@ -113,5 +122,48 @@ class LoanRequestCorrectionService
             : (string) $loanRequest->status;
 
         return $status === LoanRequestStatus::UnderReview->value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     * @return list<string>
+     */
+    private function detectChangedFields(
+        array $before,
+        array $after,
+        string $path = '',
+    ): array {
+        $changedFields = [];
+        $keys = array_unique(array_merge(array_keys($before), array_keys($after)));
+
+        foreach ($keys as $key) {
+            if (! is_string($key) && ! is_int($key)) {
+                continue;
+            }
+
+            $beforeValue = $before[$key] ?? null;
+            $afterValue = $after[$key] ?? null;
+            $currentPath = $path === '' ? (string) $key : $path.'.'.$key;
+
+            if (is_array($beforeValue) && is_array($afterValue)) {
+                $changedFields = array_merge(
+                    $changedFields,
+                    $this->detectChangedFields(
+                        $beforeValue,
+                        $afterValue,
+                        $currentPath,
+                    ),
+                );
+
+                continue;
+            }
+
+            if ($beforeValue !== $afterValue) {
+                $changedFields[] = $currentPath;
+            }
+        }
+
+        return array_values(array_unique($changedFields));
     }
 }

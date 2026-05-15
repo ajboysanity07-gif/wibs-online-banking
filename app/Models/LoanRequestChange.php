@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LoanRequestChange extends Model
 {
+    public const ACTION_CREATE_CORRECTED_REQUEST = 'create_corrected_request';
+
+    public const ACTION_ADMIN_CREATE_CORRECTED_REQUEST = 'admin_create_corrected_request';
+
+    public const ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS = 'admin_update_corrected_request_details';
+
+    public const ACTION_CANCEL_APPROVED_REQUEST = 'cancel_approved_request';
+
     /**
      * @var list<string>
      */

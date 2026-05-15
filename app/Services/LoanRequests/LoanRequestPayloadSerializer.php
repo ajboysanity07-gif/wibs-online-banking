@@ -28,6 +28,10 @@ class LoanRequestPayloadSerializer
         'Monthly',
     ];
 
+    public function __construct(
+        private LoanRequestDecisionService $decisionService,
+    ) {}
+
     /**
      * @return array{
      *     loanRequest: array<string, mixed>,
@@ -69,6 +73,13 @@ class LoanRequestPayloadSerializer
             'correctedRequests',
         );
         $correctedRequest = $this->resolveCorrectedRequest($loanRequest);
+        $correctionSaved = $loanRequest->corrected_from_id !== null
+            ? $this->decisionService->hasSavedCorrectionAfterCreation(
+                $loanRequest,
+            )
+            : false;
+        $requiresCorrectionBeforeApproval = $this->decisionService
+            ->requiresSavedCorrectionBeforeApproval($loanRequest);
 
         return [
             'id' => $loanRequest->id,
@@ -106,6 +117,8 @@ class LoanRequestPayloadSerializer
             'corrected_request_status' => $correctedRequest !== null
                 ? $this->normalizeStatus($correctedRequest)
                 : null,
+            'correction_saved' => $correctionSaved,
+            'requires_correction_before_approval' => $requiresCorrectionBeforeApproval,
             'acctno' => $loanRequest->acctno,
         ];
     }

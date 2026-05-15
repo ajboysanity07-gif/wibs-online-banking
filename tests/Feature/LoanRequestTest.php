@@ -12,6 +12,7 @@ use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
+use App\Services\LoanRequests\LoanRequestDecisionService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -1804,6 +1805,8 @@ test('admin corrected loan request detail uses linked correction report context 
             ->component('admin/loan-request-show')
             ->where('loanRequest.id', $correctedLoanRequest->id)
             ->where('loanRequest.corrected_from_id', $sourceLoanRequest->id)
+            ->where('loanRequest.correction_saved', false)
+            ->where('loanRequest.requires_correction_before_approval', true)
             ->where('openCorrectionOnLoad', true)
             ->has('correctionReports', 1)
             ->where('correctionReports.0.id', $report->id)
@@ -2510,6 +2513,262 @@ test('loan requests not under review cannot be decided', function () {
     Queue::assertNothingPushed();
 });
 
+test('admin corrected request cannot be approved immediately after creation', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create([
+        'acctno' => '000531',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000532',
+    ]);
+
+    $source = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDays(2),
+        'cancelled_at' => now()->subDay(),
+        'cancellation_reason' => 'Wrong applicant details.',
+    ]);
+
+    $corrected = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'corrected_from_id' => $source->id,
+    ]);
+
+    LoanRequestChange::query()->create([
+        'loan_request_id' => $corrected->id,
+        'changed_by' => $admin->user_id,
+        'action' => LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST,
+        'reason' => 'Create corrected request from cancelled request.',
+        'before_json' => ['loanRequest' => ['id' => $source->id]],
+        'after_json' => ['loanRequest' => ['id' => $corrected->id]],
+        'changed_fields_json' => [
+            'corrected_from_id',
+            'copied_loan_details',
+            'copied_people_snapshots',
+            'admin_correction_reason',
+        ],
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$corrected->id}/approve", [
+            'approved_amount' => 15000,
+            'approved_term' => 12,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('approval')
+        ->assertJsonPath(
+            'errors.approval.0',
+            'Please review and save the correction before approving this admin-corrected request.',
+        );
+
+    $corrected->refresh();
+
+    expect($corrected->status)->toBe(LoanRequestStatus::UnderReview);
+    expect(
+        LoanRequestChange::query()
+            ->where('loan_request_id', $corrected->id)
+            ->pluck('action')
+            ->all(),
+    )->toBe([
+        LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST,
+    ]);
+
+    Queue::assertNothingPushed();
+});
+
+test('admin create corrected request audit alone is not enough to approve', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000533',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000534',
+    ]);
+
+    $source = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDays(2),
+        'cancelled_at' => now()->subDay(),
+        'cancellation_reason' => 'Wrong applicant details.',
+    ]);
+
+    $corrected = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'corrected_from_id' => $source->id,
+    ]);
+
+    LoanRequestChange::query()->create([
+        'loan_request_id' => $corrected->id,
+        'changed_by' => $admin->user_id,
+        'action' => LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST,
+        'reason' => 'Create corrected request from cancelled request.',
+        'before_json' => ['loanRequest' => ['id' => $source->id]],
+        'after_json' => ['loanRequest' => ['id' => $corrected->id]],
+        'changed_fields_json' => [
+            'corrected_from_id',
+            'copied_loan_details',
+            'copied_people_snapshots',
+            'admin_correction_reason',
+        ],
+    ]);
+
+    $service = app(LoanRequestDecisionService::class);
+
+    expect($service->hasSavedCorrectionAfterCreation($corrected))->toBeFalse();
+    expect($service->requiresSavedCorrectionBeforeApproval($corrected))
+        ->toBeTrue();
+});
+
+test('admin corrected request can be approved after a saved correction audit exists', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create([
+        'acctno' => '000535',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000536',
+    ]);
+
+    $source = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDays(2),
+        'cancelled_at' => now()->subDay(),
+        'cancellation_reason' => 'Wrong applicant details.',
+    ]);
+
+    $corrected = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'typecode' => 'LN-OLD',
+        'loan_type_label_snapshot' => 'Old Loan',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'New',
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'corrected_from_id' => $source->id,
+    ]);
+    createLoanRequestPeopleSnapshots($corrected);
+
+    LoanRequestChange::query()->create([
+        'loan_request_id' => $corrected->id,
+        'changed_by' => $admin->user_id,
+        'action' => LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST,
+        'reason' => 'Create corrected request from cancelled request.',
+        'before_json' => ['loanRequest' => ['id' => $source->id]],
+        'after_json' => ['loanRequest' => ['id' => $corrected->id]],
+        'changed_fields_json' => [
+            'corrected_from_id',
+            'copied_loan_details',
+            'copied_people_snapshots',
+            'admin_correction_reason',
+        ],
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$corrected->id}/corrections",
+            validLoanRequestCorrectionPayload(),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.correction_saved', true)
+        ->assertJsonPath(
+            'data.loanRequest.requires_correction_before_approval',
+            false,
+        );
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$corrected->id}/approve", [
+            'approved_amount' => 15000,
+            'approved_term' => 12,
+        ])
+        ->assertOk();
+
+    $corrected->refresh();
+
+    expect($corrected->status)->toBe(LoanRequestStatus::Approved);
+    expect(
+        LoanRequestChange::query()
+            ->where('loan_request_id', $corrected->id)
+            ->where(
+                'action',
+                LoanRequestChange::ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS,
+            )
+            ->exists(),
+    )->toBeTrue();
+
+    Queue::assertPushed(SendLoanDecisionSmsJob::class);
+});
+
+test('corrected request approval is blocked when correction audit history is unavailable', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create([
+        'acctno' => '000537',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000538',
+    ]);
+
+    $source = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'submitted_at' => now()->subDays(2),
+        'cancelled_at' => now()->subDay(),
+        'cancellation_reason' => 'Wrong applicant details.',
+    ]);
+
+    $corrected = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'corrected_from_id' => $source->id,
+    ]);
+
+    Schema::drop('loan_request_changes');
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$corrected->id}/approve", [
+            'approved_amount' => 15000,
+            'approved_term' => 12,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('approval')
+        ->assertJsonPath(
+            'errors.approval.0',
+            'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.',
+        );
+
+    $corrected->refresh();
+
+    expect($corrected->status)->toBe(LoanRequestStatus::UnderReview);
+
+    Queue::assertNothingPushed();
+});
+
 test('admin can correct under review loan request details and people snapshots', function () {
     $admin = User::factory()->create([
         'acctno' => '000520',
@@ -2547,6 +2806,8 @@ test('admin can correct under review loan request details and people snapshots',
         ->assertJsonPath('data.loanRequest.requested_amount', '23000.00')
         ->assertJsonPath('data.loanRequest.requested_term', 18)
         ->assertJsonPath('data.loanRequest.loan_purpose', 'Corrected purpose')
+        ->assertJsonPath('data.loanRequest.correction_saved', false)
+        ->assertJsonPath('data.loanRequest.requires_correction_before_approval', false)
         ->assertJsonPath('data.applicant.first_name', 'Corrected')
         ->assertJsonPath('data.applicant.birthdate', '1990-04-10')
         ->assertJsonPath('data.coMakerOne.first_name', 'Corrected')
@@ -2584,10 +2845,17 @@ test('admin can correct under review loan request details and people snapshots',
 
     expect($change->loan_request_id)->toBe($loanRequest->id);
     expect($change->changed_by)->toBe($admin->user_id);
+    expect($change->action)->toBe(
+        LoanRequestChange::ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS,
+    );
     expect($change->reason)->toBe('Corrected submitted request details.');
     expect($change->before_json['loanRequest']['loan_purpose'])->toBe('Original purpose');
     expect($change->after_json['loanRequest']['loan_purpose'])->toBe('Corrected purpose');
     expect($change->after_json['applicant']['first_name'])->toBe('Corrected');
+    expect($change->changed_fields_json ?? [])->toContain(
+        'loanRequest.loan_purpose',
+        'applicant.first_name',
+    );
 });
 
 test('non admins cannot correct loan requests', function () {

@@ -35,6 +35,7 @@ import {
     formatDate,
     formatDisplayText,
 } from '@/lib/formatters';
+import { showErrorToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type {
     LoanRequestDetail,
@@ -268,6 +269,9 @@ const PersonPanel = ({ title, person }: PersonPanelProps) => (
 const textareaClassName =
     'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
+const defaultApprovalBlockedMessage =
+    'Please save the correction before approving this admin-corrected request.';
+
 export function LoanRequestDetailPage({
     loanRequest,
     applicant,
@@ -329,6 +333,9 @@ export function LoanRequestDetailPage({
         showDecision &&
         decision?.canDecide &&
         normalizedStatus === 'under_review';
+    const canApprove =
+        showDecisionForm &&
+        !loanRequest.requires_correction_before_approval;
     const showDecisionSummary =
         showDecision &&
         (normalizedStatus === 'approved' ||
@@ -346,6 +353,10 @@ export function LoanRequestDetailPage({
     const blockedMessage =
         normalizedStatus === 'under_review'
             ? decision?.blockedMessage ?? null
+            : null;
+    const approvalBlockedMessage =
+        loanRequest.requires_correction_before_approval
+            ? blockedMessage ?? defaultApprovalBlockedMessage
             : null;
     const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
@@ -471,6 +482,19 @@ export function LoanRequestDetailPage({
         if (result) {
             closeCorrectedCopyDialog(true);
         }
+    };
+
+    const openApprovalDialog = () => {
+        if (!canApprove) {
+            showErrorToast(
+                approvalBlockedMessage ?? defaultApprovalBlockedMessage,
+                approvalBlockedMessage ?? defaultApprovalBlockedMessage,
+            );
+            return;
+        }
+
+        setApprovalConfirmed(false);
+        setIsApprovalDialogOpen(true);
     };
 
     useEffect(() => {
@@ -906,12 +930,7 @@ export function LoanRequestDetailPage({
                                         <div className="flex flex-wrap gap-2">
                                             <Button
                                                 type="button"
-                                                onClick={() => {
-                                                    setApprovalConfirmed(false);
-                                                    setIsApprovalDialogOpen(
-                                                        true,
-                                                    );
-                                                }}
+                                                onClick={openApprovalDialog}
                                                 disabled={
                                                     decision?.isProcessing
                                                 }
@@ -937,8 +956,8 @@ export function LoanRequestDetailPage({
                                             </Button>
                                         </div>
                                         <p className="text-xs text-muted-foreground">
-                                            Only requests under review can be
-                                            decided.
+                                            {approvalBlockedMessage ??
+                                                'Only requests under review can be decided.'}
                                         </p>
                                     </>
                                 ) : showDecisionSummary ? (
@@ -1231,6 +1250,17 @@ export function LoanRequestDetailPage({
                                 !approvalConfirmed
                             }
                             onClick={() => {
+                                if (!canApprove) {
+                                    showErrorToast(
+                                        approvalBlockedMessage ??
+                                            defaultApprovalBlockedMessage,
+                                        approvalBlockedMessage ??
+                                            defaultApprovalBlockedMessage,
+                                    );
+                                    closeApprovalDialog(true);
+                                    return;
+                                }
+
                                 decision?.onApprove?.({
                                     approved_amount: approvedAmount,
                                     approved_term: approvedTerm,

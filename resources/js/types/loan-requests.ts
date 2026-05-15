@@ -120,6 +120,8 @@ export type LoanRequestDetail = {
     corrected_request_id: number | null;
     corrected_request_reference: string | null;
     corrected_request_status: LoanRequestStatusValue | null;
+    correction_saved: boolean;
+    requires_correction_before_approval: boolean;
     acctno: string | null;
 };
 
