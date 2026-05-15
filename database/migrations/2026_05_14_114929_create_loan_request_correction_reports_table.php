@@ -26,38 +26,42 @@ return new class extends Migration
             $table->text('admin_notes')->nullable();
             $table->timestamps();
 
+            /*
+             * Keep cascade from loan_requests because correction reports belong
+             * to a loan request and should be removed if the request is removed.
+             */
             $table->foreign('loan_request_id')
                 ->references('id')
                 ->on('loan_requests')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
+            /*
+             * Do not cascade appusers foreign keys.
+             *
+             * SQL Server rejects multiple cascade paths when this table points
+             * directly to appusers and also indirectly through loan_requests.
+             *
+             * These reports are audit/history records, so appuser references
+             * should use NO ACTION instead of cascade.
+             */
             $table->foreign('user_id')
                 ->references('user_id')
                 ->on('appusers')
-                ->cascadeOnUpdate()
-                ->cascadeOnDelete();
+                ->onUpdate('no action')
+                ->onDelete('no action');
 
-            $resolvedByForeignKey = $table->foreign('resolved_by')
+            $table->foreign('resolved_by')
                 ->references('user_id')
-                ->on('appusers');
+                ->on('appusers')
+                ->onUpdate('no action')
+                ->onDelete('no action');
 
-            $dismissedByForeignKey = $table->foreign('dismissed_by')
+            $table->foreign('dismissed_by')
                 ->references('user_id')
-                ->on('appusers');
-
-            if (Schema::getConnection()->getDriverName() === 'sqlsrv') {
-                $resolvedByForeignKey->onDelete('no action');
-                $dismissedByForeignKey->onDelete('no action');
-            } else {
-                $resolvedByForeignKey
-                    ->cascadeOnUpdate()
-                    ->nullOnDelete();
-
-                $dismissedByForeignKey
-                    ->cascadeOnUpdate()
-                    ->nullOnDelete();
-            }
+                ->on('appusers')
+                ->onUpdate('no action')
+                ->onDelete('no action');
 
             $table->index('loan_request_id');
             $table->index('user_id');
