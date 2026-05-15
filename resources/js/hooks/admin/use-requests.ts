@@ -93,5 +93,9 @@ export function useRequests(params: RequestsParams) {
         meta: state.data.meta,
         loading: state.loading,
         error: state.error,
+        warning:
+            state.data.meta.available === false
+                ? state.data.meta.message
+                : null,
     };
 }

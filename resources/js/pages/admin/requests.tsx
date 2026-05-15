@@ -200,7 +200,7 @@ export default function RequestsPage() {
         ? null
         : statusFilter;
     const reported = statusFilter === 'reported' ? true : undefined;
-    const { items, meta, loading, error } = useRequests({
+    const { items, meta, loading, error, warning } = useRequests({
         search,
         page,
         perPage,
@@ -495,6 +495,13 @@ export default function RequestsPage() {
                         ) : null}
                     </div>
                 </section>
+
+                {warning && !error ? (
+                    <Alert>
+                        <AlertTitle>Requests unavailable</AlertTitle>
+                        <AlertDescription>{warning}</AlertDescription>
+                    </Alert>
+                ) : null}
 
                 {error ? (
                     <Alert variant="destructive">

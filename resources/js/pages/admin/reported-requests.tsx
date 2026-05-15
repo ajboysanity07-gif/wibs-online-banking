@@ -149,7 +149,7 @@ export default function ReportedRequestsPage() {
     const [perPage] = useState(10);
 
     const searchValue = search.trim();
-    const { items, meta, loading, error } = useReportedRequests({
+    const { items, meta, loading, error, warning } = useReportedRequests({
         search,
         page,
         perPage,
@@ -162,14 +162,17 @@ export default function ReportedRequestsPage() {
         totalResults > 0
             ? Math.min(meta.page * meta.perPage, totalResults)
             : 0;
-    const resultsLabel = totalResults > 0
-        ? `Showing ${pageStart}-${pageEnd} of ${formatCountLabel(
-              totalResults,
-              'reported request',
-          )}`
-        : 'No reported requests';
-    const emptyMessage =
-        searchValue !== ''
+    const resultsLabel = warning
+        ? warning
+        : totalResults > 0
+            ? `Showing ${pageStart}-${pageEnd} of ${formatCountLabel(
+                  totalResults,
+                  'reported request',
+              )}`
+            : 'No reported requests';
+    const emptyMessage = warning
+        ? warning
+        : searchValue !== ''
             ? 'No reported requests match the current search.'
             : 'No reported requests';
     const oldestPendingReportedAt = useMemo(() => {
@@ -246,6 +249,13 @@ export default function ReportedRequestsPage() {
                         resultsText={resultsLabel}
                     />
                 </section>
+
+                {warning && !error ? (
+                    <Alert>
+                        <AlertTitle>Reported requests unavailable</AlertTitle>
+                        <AlertDescription>{warning}</AlertDescription>
+                    </Alert>
+                ) : null}
 
                 {error ? (
                     <Alert variant="destructive">
@@ -402,11 +412,14 @@ export default function ReportedRequestsPage() {
                             ) : (
                                 <div className="px-4 pb-6 pt-6 text-center">
                                     <p className="text-sm font-medium text-foreground">
-                                        No reported requests
+                                        {warning
+                                            ? 'Reported requests unavailable'
+                                            : 'No reported requests'}
                                     </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        Member correction reports will appear
-                                        here for admin review.
+                                        {warning
+                                            ? warning
+                                            : 'Member correction reports will appear here for admin review.'}
                                     </p>
                                 </div>
                             )}

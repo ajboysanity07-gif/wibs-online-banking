@@ -12,6 +12,8 @@ class RequestsService
 {
     public const UNAVAILABLE_MESSAGE = 'Requests module coming soon.';
 
+    public const REPORTED_REQUESTS_UNAVAILABLE_MESSAGE = 'Reported requests are unavailable until correction report migrations are run.';
+
     /**
      * @return \Illuminate\Support\Collection<int, array<string, mixed>>
      */
@@ -21,13 +23,21 @@ class RequestsService
             return collect();
         }
 
+        $hasCorrectionReportsTable = $this->hasCorrectionReportsTable();
         $query = $this->baseQuery();
-        $this->applyOpenCorrectionReportMetadata($query);
+
+        if ($hasCorrectionReportsTable) {
+            $query->with('latestOpenCorrectionReport.user');
+            $this->applyOpenCorrectionReportMetadata($query);
+        }
 
         return $query
             ->limit($limit)
             ->get()
-            ->map(fn (LoanRequest $request) => $this->mapRequest($request));
+            ->map(fn (LoanRequest $request) => $this->mapRequest(
+                $request,
+                $hasCorrectionReportsTable,
+            ));
     }
 
     /**
@@ -61,8 +71,13 @@ class RequestsService
             ];
         }
 
+        $hasCorrectionReportsTable = $this->hasCorrectionReportsTable();
         $query = $this->baseQuery();
-        $this->applyOpenCorrectionReportMetadata($query);
+
+        if ($hasCorrectionReportsTable) {
+            $query->with('latestOpenCorrectionReport.user');
+            $this->applyOpenCorrectionReportMetadata($query);
+        }
 
         $this->applyRequestsSearch($query, $search);
 
@@ -89,8 +104,14 @@ class RequestsService
             $query->where('requested_amount', '<=', $maxAmount);
         }
 
-        if ($reported !== null) {
+        $reportedUnavailable = ! $hasCorrectionReportsTable && $reported === true;
+
+        if ($reported !== null && $hasCorrectionReportsTable) {
             $this->applyReportedFilter($query, $reported);
+        }
+
+        if ($reportedUnavailable) {
+            $query->whereRaw('1 = 0');
         }
 
         $perPage = max(1, min($perPage, 50));
@@ -99,9 +120,14 @@ class RequestsService
 
         return [
             'items' => $paginator->getCollection()
-                ->map(fn (LoanRequest $request) => $this->mapRequest($request)),
-            'available' => true,
-            'message' => null,
+                ->map(fn (LoanRequest $request) => $this->mapRequest(
+                    $request,
+                    $hasCorrectionReportsTable,
+                )),
+            'available' => ! $reportedUnavailable,
+            'message' => $reportedUnavailable
+                ? self::REPORTED_REQUESTS_UNAVAILABLE_MESSAGE
+                : null,
             'paginator' => $paginator,
             'loanTypes' => $this->getLoanTypeOptions(),
             'openCorrectionReports' => $this->countOpenCorrectionReports(),
@@ -132,7 +158,18 @@ class RequestsService
             ];
         }
 
+        if (! $this->hasCorrectionReportsTable()) {
+            return [
+                'items' => collect(),
+                'available' => false,
+                'message' => self::REPORTED_REQUESTS_UNAVAILABLE_MESSAGE,
+                'paginator' => null,
+                'openCorrectionReports' => 0,
+            ];
+        }
+
         $query = $this->baseQuery();
+        $query->with('latestOpenCorrectionReport.user');
         $this->applyOpenCorrectionReportMetadata($query);
         $this->applyReportedFilter($query, true);
         $this->applyReportedSearch($query, $search);
@@ -148,7 +185,10 @@ class RequestsService
 
         return [
             'items' => $paginator->getCollection()
-                ->map(fn (LoanRequest $request) => $this->mapReportedRequest($request)),
+                ->map(fn (LoanRequest $request) => $this->mapReportedRequest(
+                    $request,
+                    true,
+                )),
             'available' => true,
             'message' => null,
             'paginator' => $paginator,
@@ -161,6 +201,11 @@ class RequestsService
         return LoanRequest::query()->getConnection()->getSchemaBuilder()->hasTable('loan_requests');
     }
 
+    private function hasCorrectionReportsTable(): bool
+    {
+        return LoanRequest::query()->getConnection()->getSchemaBuilder()->hasTable('loan_request_correction_reports');
+    }
+
     private function baseQuery(): Builder
     {
         return LoanRequest::query()
@@ -168,7 +213,6 @@ class RequestsService
             ->with([
                 'applicant',
                 'user',
-                'latestOpenCorrectionReport.user',
             ])
             ->orderByDesc('submitted_at')
             ->orderByDesc('created_at');
@@ -198,7 +242,7 @@ class RequestsService
     /**
      * @return array<string, mixed>
      */
-    private function mapRequest(LoanRequest $request): array
+    private function mapRequest(LoanRequest $request, bool $hasCorrectionReportsTable): array
     {
         $status = $request->status instanceof LoanRequestStatus
             ? $request->status->value
@@ -214,7 +258,9 @@ class RequestsService
             ? trim(sprintf('%s %s', $applicant->first_name, $applicant->last_name))
             : null;
         $memberName = $memberName !== '' ? $memberName : ($request->user?->username ?? null);
-        $latestOpenReport = $request->latestOpenCorrectionReport;
+        $latestOpenReport = $hasCorrectionReportsTable
+            ? $request->latestOpenCorrectionReport
+            : null;
         $latestOpenReportReportedAt = $latestOpenReport?->created_at?->toDateTimeString()
             ?? $this->normalizeDateTime($request->latest_open_correction_reported_at ?? null);
         $hasOpenCorrectionReport = $latestOpenReport !== null;
@@ -260,9 +306,9 @@ class RequestsService
     /**
      * @return array<string, mixed>
      */
-    private function mapReportedRequest(LoanRequest $request): array
+    private function mapReportedRequest(LoanRequest $request, bool $hasCorrectionReportsTable): array
     {
-        return $this->mapRequest($request);
+        return $this->mapRequest($request, $hasCorrectionReportsTable);
     }
 
     private function applyOpenCorrectionReportMetadata(Builder $query): void
@@ -412,6 +458,10 @@ class RequestsService
 
     private function countOpenCorrectionReports(): int
     {
+        if (! $this->hasCorrectionReportsTable()) {
+            return 0;
+        }
+
         return LoanRequestCorrectionReport::query()
             ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
             ->count();
