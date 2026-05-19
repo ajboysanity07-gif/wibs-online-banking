@@ -13,10 +13,9 @@ import {
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
+import { MemberLoanPaymentCard } from '@/components/member-loan-payment-card';
 import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments-filters-card';
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
-import { MemberLoanPaymongoPaymentCard } from '@/components/member-loan-paymongo-payment-card';
-import { MemberLoanSecurityPaymentCard } from '@/components/member-loan-security-payment-card';
 import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -289,12 +288,7 @@ export default function LoanPayments({
                     </Alert>
                 ) : null}
 
-                <MemberLoanPaymongoPaymentCard
-                    loanNumber={loanNumber}
-                    loanBalance={summary.balance}
-                />
-
-                <MemberLoanSecurityPaymentCard
+                <MemberLoanPaymentCard
                     loanNumber={loanNumber}
                     loanBalance={summary.balance}
                     securityPayment={securityPayment}
