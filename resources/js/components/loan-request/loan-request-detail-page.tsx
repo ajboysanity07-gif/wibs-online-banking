@@ -1327,7 +1327,7 @@ export function LoanRequestDetailPage({
                                 type="button"
                                 variant="outline"
                                 disabled={decision?.isCancelling}
-                                onClick={closeCancellationDialog}
+                                onClick={() => closeCancellationDialog()}
                             >
                                 Keep Request
                             </Button>

@@ -27,7 +27,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
+import {
+    TableSkeleton,
+    type TableSkeletonColumn,
+} from '@/components/ui/table-skeleton';
 import { useRequests } from '@/hooks/admin/use-requests';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/formatters';
@@ -173,7 +176,7 @@ const columns: ColumnDef<RequestPreview>[] = [
     },
 ];
 
-const requestsTableSkeletonColumns = [
+const requestsTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },

@@ -1,15 +1,24 @@
-import { Head, router } from '@inertiajs/react';
-import { Banknote, CalendarCheck, Clock, Download, Printer } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import {
+    Banknote,
+    CalendarCheck,
+    CheckCircle2,
+    Clock,
+    Download,
+    Printer,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
     MemberDetailPrimaryCard,
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
+import { MemberLoanPaymentCard } from '@/components/member-loan-payment-card';
 import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments-filters-card';
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
 import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MemberAccountAlert } from '@/features/member-accounts/components/member-account-alert';
@@ -27,6 +36,7 @@ import type {
     MemberLoan,
     MemberLoanPaymentsFilters,
     MemberLoanPaymentsResponse,
+    MemberLoanSecurityPaymentSummary,
     MemberLoanSummary,
 } from '@/types/admin';
 
@@ -39,6 +49,7 @@ type Props = {
     member: MemberSummary;
     loan: MemberLoan;
     summary: MemberLoanSummary;
+    securityPayment: MemberLoanSecurityPaymentSummary;
     payments: MemberLoanPaymentsResponse;
 };
 
@@ -57,8 +68,10 @@ export default function LoanPayments({
     member,
     loan,
     summary,
+    securityPayment,
     payments,
 }: Props) {
+    const page = usePage();
     const loanNumber = loan.lnnumber ?? null;
     const perPage = payments.meta.perPage;
 
@@ -197,6 +210,10 @@ export default function LoanPayments({
     const lastPayment = summary.last_payment_date
         ? formatDate(summary.last_payment_date)
         : 'No payment recorded yet';
+    const flashStatus =
+        typeof page.flash.status === 'string' && page.flash.status.trim() !== ''
+            ? page.flash.status
+            : null;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -262,6 +279,20 @@ export default function LoanPayments({
                         />
                     </div>
                 )}
+
+                {flashStatus ? (
+                    <Alert className="border-emerald-500/25 bg-emerald-500/8 text-emerald-900 dark:text-emerald-100">
+                        <CheckCircle2 className="size-4" />
+                        <AlertTitle>Payment update</AlertTitle>
+                        <AlertDescription>{flashStatus}</AlertDescription>
+                    </Alert>
+                ) : null}
+
+                <MemberLoanPaymentCard
+                    loanNumber={loanNumber}
+                    loanBalance={summary.balance}
+                    securityPayment={securityPayment}
+                />
 
                 <MemberLoanPaymentsFiltersCard
                     filters={filters}
