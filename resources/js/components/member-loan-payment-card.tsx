@@ -107,8 +107,6 @@ const paymentMethodOptions: Array<{
 ];
 
 const summaryRowClassName = 'flex items-center justify-between gap-3 text-sm';
-const securityDetailsRowClassName =
-    'flex items-center justify-between gap-3 text-xs sm:text-sm';
 
 const amountToCents = (value: string): number | null => {
     const amount = Number(value);
@@ -302,8 +300,6 @@ export function MemberLoanPaymentCard({
         minimumBalance: protectedReserve,
         requestedAmount,
     });
-    const exceedsAvailableSecurity =
-        requestedAmount !== null && requestedAmount > availableSecurityAmount;
 
     const submitting = paymentForm.processing || checkoutLoading;
     const canSubmitLoanSecurity =
@@ -312,7 +308,6 @@ export function MemberLoanPaymentCard({
         availableSecurityAmount > 0 &&
         loanBalance > 0 &&
         requestedAmount !== null &&
-        !exceedsAvailableSecurity &&
         !submitting;
     const canSubmitPaymongo =
         Boolean(loanNumber) &&
@@ -325,10 +320,7 @@ export function MemberLoanPaymentCard({
 
     const amountError = isPaymongoMethod(selectedPaymentMethod)
         ? checkoutFieldErrors.amount
-        : paymentForm.errors.amount ??
-          (exceedsAvailableSecurity
-              ? `Exceeds available security. Maximum available while preserving reserve is ${formatCurrency(availableSecurityAmount)}.`
-              : undefined);
+        : paymentForm.errors.amount;
 
     const setAmount = (value: string) => {
         paymentForm.setData('amount', value);
@@ -338,13 +330,6 @@ export function MemberLoanPaymentCard({
             ...current,
             amount: undefined,
         }));
-    };
-    const useAvailableSecurityAmount = () => {
-        if (availableSecurityAmount <= 0) {
-            return;
-        }
-
-        setAmount(availableSecurityAmount.toFixed(2));
     };
 
     useEffect(() => {
@@ -364,15 +349,6 @@ export function MemberLoanPaymentCard({
 
         if (requestedAmount === null) {
             paymentForm.setError('amount', 'Enter a valid payment amount.');
-
-            return;
-        }
-
-        if (requestedAmount > availableSecurityAmount) {
-            paymentForm.setError(
-                'amount',
-                `Exceeds available security. Maximum available while preserving reserve is ${formatCurrency(availableSecurityAmount)}.`,
-            );
 
             return;
         }
@@ -559,78 +535,13 @@ export function MemberLoanPaymentCard({
                     ) : null}
 
                     {selectedPaymentMethod === 'loan_security' ? (
-                        <div className="space-y-3 rounded-xl border border-border/60 bg-muted/35 p-3">
-                            <Alert className="border-border/60 bg-background/70">
-                                <ShieldCheck className="size-4" />
-                                <AlertTitle>{guardrail.title}</AlertTitle>
-                                <AlertDescription>
-                                    {guardrail.description}
-                                </AlertDescription>
-                            </Alert>
-
-                            {exceedsAvailableSecurity ? (
-                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2">
-                                    <p className="text-xs text-muted-foreground">
-                                        Maximum available while preserving
-                                        reserve:{' '}
-                                        {formatCurrency(availableSecurityAmount)}
-                                    </p>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={useAvailableSecurityAmount}
-                                    >
-                                        Use available amount
-                                    </Button>
-                                </div>
-                            ) : null}
-
-                            <div className="grid gap-x-5 gap-y-2 sm:grid-cols-2">
-                                <div className={securityDetailsRowClassName}>
-                                    <span className="text-muted-foreground">
-                                        Current security balance
-                                    </span>
-                                    <span className="font-medium tabular-nums">
-                                        {formatCurrency(currentSecurityBalance)}
-                                    </span>
-                                </div>
-                                <div className={securityDetailsRowClassName}>
-                                    <span className="text-muted-foreground">
-                                        Protected reserve
-                                    </span>
-                                    <span className="font-medium tabular-nums">
-                                        {formatCurrency(protectedReserve)}
-                                    </span>
-                                </div>
-                                <div className={securityDetailsRowClassName}>
-                                    <span className="text-muted-foreground">
-                                        Available amount
-                                    </span>
-                                    <span className="font-medium tabular-nums">
-                                        {formatCurrency(availableSecurityAmount)}
-                                    </span>
-                                </div>
-                                <div className={securityDetailsRowClassName}>
-                                    <span className="text-muted-foreground">
-                                        Security after payment
-                                    </span>
-                                    <span className="font-medium tabular-nums">
-                                        {formatCurrency(securityAfterPayment)}
-                                    </span>
-                                </div>
-                                <div
-                                    className={`${securityDetailsRowClassName} sm:col-span-2`}
-                                >
-                                    <span className="text-muted-foreground">
-                                        Loan after payment
-                                    </span>
-                                    <span className="font-medium tabular-nums">
-                                        {formatCurrency(loanAfterPayment)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        <Alert className="border-border/60 bg-muted/35">
+                            <ShieldCheck className="size-4" />
+                            <AlertTitle>{guardrail.title}</AlertTitle>
+                            <AlertDescription>
+                                {guardrail.description}
+                            </AlertDescription>
+                        </Alert>
                     ) : (
                         <Alert className="border-border/60 bg-muted/35">
                             <ExternalLink className="size-4" />
@@ -648,17 +559,33 @@ export function MemberLoanPaymentCard({
                     )}
                 </div>
 
-                <div className="flex h-full flex-col space-y-4 rounded-xl border border-border/40 bg-background p-4 lg:min-h-[252px]">
+                <div className="space-y-4 rounded-xl border border-border/40 bg-background p-4">
                     <p className="text-sm font-semibold">Payment Summary</p>
 
                     {selectedPaymentMethod === 'loan_security' ? (
-                        <div className="flex-1 space-y-3">
+                        <div className="space-y-3">
                             <div className={summaryRowClassName}>
                                 <span className="text-muted-foreground">
-                                    Requested amount
+                                    Current security balance
                                 </span>
                                 <span className="font-medium tabular-nums">
-                                    {formatCurrency(requestedAmount ?? 0)}
+                                    {formatCurrency(currentSecurityBalance)}
+                                </span>
+                            </div>
+                            <div className={summaryRowClassName}>
+                                <span className="text-muted-foreground">
+                                    Protected reserve
+                                </span>
+                                <span className="font-medium tabular-nums">
+                                    {formatCurrency(protectedReserve)}
+                                </span>
+                            </div>
+                            <div className={summaryRowClassName}>
+                                <span className="text-muted-foreground">
+                                    Available amount
+                                </span>
+                                <span className="font-medium tabular-nums">
+                                    {formatCurrency(availableSecurityAmount)}
                                 </span>
                             </div>
                             <div className={summaryRowClassName}>
@@ -671,23 +598,31 @@ export function MemberLoanPaymentCard({
                             </div>
                             <div className={summaryRowClassName}>
                                 <span className="text-muted-foreground">
-                                    Fee
+                                    PayMongo fee
                                 </span>
                                 <span className="font-medium tabular-nums">
                                     {formatCurrency(0)}
                                 </span>
                             </div>
                             <div className={summaryRowClassName}>
-                                <span className="font-semibold">
-                                    Total applied
+                                <span className="text-muted-foreground">
+                                    Security after payment
                                 </span>
-                                <span className="font-semibold tabular-nums">
-                                    {formatCurrency(amountApplied)}
+                                <span className="font-medium tabular-nums">
+                                    {formatCurrency(securityAfterPayment)}
+                                </span>
+                            </div>
+                            <div className={summaryRowClassName}>
+                                <span className="text-muted-foreground">
+                                    Loan after payment
+                                </span>
+                                <span className="font-medium tabular-nums">
+                                    {formatCurrency(loanAfterPayment)}
                                 </span>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex-1 space-y-3">
+                        <div className="space-y-3">
                             <div className={summaryRowClassName}>
                                 <span className="text-muted-foreground">
                                     Loan payment
@@ -700,7 +635,7 @@ export function MemberLoanPaymentCard({
                             </div>
                             <div className={summaryRowClassName}>
                                 <span className="text-muted-foreground">
-                                    PayMongo fee
+                                    Estimated PayMongo fee
                                 </span>
                                 <span className="font-medium tabular-nums">
                                     {formatCurrency(
@@ -724,7 +659,7 @@ export function MemberLoanPaymentCard({
                     <Button
                         type="submit"
                         size="lg"
-                        className="mt-auto w-full"
+                        className="w-full"
                         disabled={!canSubmit}
                     >
                         {submitting ? (
