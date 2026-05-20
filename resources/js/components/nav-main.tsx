@@ -69,7 +69,7 @@ export function NavMain({
                     <span>{label}</span>
                     <ChevronDown
                         className={cn(
-                            'ml-auto transition-transform duration-200',
+                            'ml-auto transition-transform duration-200 motion-reduce:transition-none',
                             isCollapsed ? '-rotate-90' : 'rotate-0',
                         )}
                     />
@@ -78,32 +78,43 @@ export function NavMain({
 
             <SidebarGroupContent
                 id={groupContentId}
-                className={cn(isCollapsed && 'hidden')}
+                className="overflow-hidden"
             >
-                <SidebarMenu>
-                    {items.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={
-                                    isMatch({
-                                        href: item.href,
-                                        match: item.match,
-                                        matchPaths: item.matchPaths,
-                                        excludeMatchPaths:
-                                            item.excludeMatchPaths,
-                                    })
-                                }
-                                tooltip={{ children: item.title }}
-                            >
-                                <Link href={item.href} prefetch>
-                                    {item.icon && <item.icon />}
-                                    <span>{item.title}</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
-                </SidebarMenu>
+                <div
+                    className={cn(
+                        'grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none',
+                        isCollapsed
+                            ? 'grid-rows-[0fr] opacity-0'
+                            : 'grid-rows-[1fr] opacity-100',
+                    )}
+                >
+                    <div className="overflow-hidden">
+                        <SidebarMenu>
+                            {items.map((item) => (
+                                <SidebarMenuItem key={item.title}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={
+                                            isMatch({
+                                                href: item.href,
+                                                match: item.match,
+                                                matchPaths: item.matchPaths,
+                                                excludeMatchPaths:
+                                                    item.excludeMatchPaths,
+                                            })
+                                        }
+                                        tooltip={{ children: item.title }}
+                                    >
+                                        <Link href={item.href} prefetch>
+                                            {item.icon && <item.icon />}
+                                            <span>{item.title}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </div>
+                </div>
             </SidebarGroupContent>
         </SidebarGroup>
     );
