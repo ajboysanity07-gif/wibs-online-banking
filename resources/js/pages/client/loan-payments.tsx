@@ -198,9 +198,8 @@ export default function LoanPayments({
         ).url;
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Member profile', href: clientDashboard().url },
         { title: 'Loans', href: clientLoans().url },
-        { title: 'Payments', href: '#' },
+        { title: 'Payments', href: paymentsHref ?? '#' },
     ];
 
     const summaryBalance = formatCurrency(summary.balance);

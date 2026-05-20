@@ -87,7 +87,6 @@ export default function MemberLoans({
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Overview', href: clientDashboard().url },
         { title: 'Loans', href: clientLoans().url },
     ];
     const loanBalance = formatCurrency(summaryValue?.loanBalanceLeft);

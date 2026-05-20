@@ -12,7 +12,6 @@ import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -37,7 +36,6 @@ import { mrdincTheme } from '@/theme/clients/mrdinc';
 import type {
     BreadcrumbItem,
     LogoPreset,
-    ReportHeaderAlignment,
 } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -61,16 +59,18 @@ const FAVICON_ALLOWED_TYPES = new Set([
 ]);
 const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 const LOGO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const REPORT_HEADER_DESIGN_MAX_BYTES = 4 * 1024 * 1024;
+const REPORT_HEADER_DESIGN_ALLOWED_TYPES = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+]);
 const DEFAULT_BRAND_PRIMARY = mrdincTheme.hex.primary.toLowerCase();
 const DEFAULT_BRAND_ACCENT = mrdincTheme.hex.accent.toLowerCase();
 const PRIMARY_COLOR_ERROR =
     'Primary color must be a valid hex value (e.g., #1a2b3c).';
 const ACCENT_COLOR_ERROR =
     'Accent color must be a valid hex value (e.g., #1a2b3c).';
-const REPORT_HEADER_COLOR_ERROR =
-    'Header color must be a valid hex value (e.g., #1a2b3c).';
-const REPORT_TAGLINE_COLOR_ERROR =
-    'Tagline color must be a valid hex value (e.g., #1a2b3c).';
 const REPORT_LABEL_COLOR_ERROR =
     'Label color must be a valid hex value (e.g., #1a2b3c).';
 const REPORT_VALUE_COLOR_ERROR =
@@ -91,17 +91,7 @@ const LOGO_PRESET_OPTIONS: Array<{
         description: 'Full wordmark logo.',
     },
 ];
-const REPORT_HEADER_ALIGNMENT_OPTIONS: Array<{
-    value: ReportHeaderAlignment;
-    label: string;
-}> = [
-    { value: 'left', label: 'Left' },
-    { value: 'center', label: 'Center' },
-    { value: 'right', label: 'Right' },
-];
 const ICON_PREVIEW_SIZES = [16, 24, 32];
-const DEFAULT_REPORT_HEADER_TITLE = 'Application Form';
-const DEFAULT_REPORT_HEADER_COLOR = '#111111';
 const DEFAULT_REPORT_LABEL_COLOR = '#333333';
 const DEFAULT_REPORT_VALUE_COLOR = '#111111';
 const REPORT_FONT_WEIGHT_OPTIONS = [
@@ -327,38 +317,6 @@ export default function OrganizationSettings() {
     const [portalLabelValue, setPortalLabelValue] = useState(
         branding.portalLabel,
     );
-    const [reportHeaderTitleValue, setReportHeaderTitleValue] = useState(
-        branding.reportHeader.title ?? '',
-    );
-    const [reportHeaderTaglineValue, setReportHeaderTaglineValue] = useState(
-        branding.reportHeader.tagline ?? '',
-    );
-    const [reportHeaderShowLogo, setReportHeaderShowLogo] = useState(
-        branding.reportHeader.showLogo,
-    );
-    const [reportHeaderShowCompanyName, setReportHeaderShowCompanyName] =
-        useState(branding.reportHeader.showCompanyName);
-    const [reportHeaderAlignment, setReportHeaderAlignment] =
-        useState<ReportHeaderAlignment>(
-            branding.reportHeader.alignment ?? 'center',
-        );
-    const [reportHeaderTitleFontFamily, setReportHeaderTitleFontFamily] =
-        useState(branding.reportTypography.headerTitle.family);
-    const [reportHeaderTitleFontVariant, setReportHeaderTitleFontVariant] =
-        useState(branding.reportTypography.headerTitle.variant);
-    const [reportHeaderTitleFontWeight, setReportHeaderTitleFontWeight] =
-        useState(String(branding.reportTypography.headerTitle.weight));
-    const [reportHeaderTitleFontSize, setReportHeaderTitleFontSize] = useState(
-        String(branding.reportTypography.headerTitle.size),
-    );
-    const [reportHeaderTaglineFontFamily, setReportHeaderTaglineFontFamily] =
-        useState(branding.reportTypography.headerTagline.family);
-    const [reportHeaderTaglineFontVariant, setReportHeaderTaglineFontVariant] =
-        useState(branding.reportTypography.headerTagline.variant);
-    const [reportHeaderTaglineFontWeight, setReportHeaderTaglineFontWeight] =
-        useState(String(branding.reportTypography.headerTagline.weight));
-    const [reportHeaderTaglineFontSize, setReportHeaderTaglineFontSize] =
-        useState(String(branding.reportTypography.headerTagline.size));
     const [reportLabelFontFamily, setReportLabelFontFamily] = useState(
         branding.reportTypography.label.family,
     );
@@ -389,6 +347,12 @@ export default function OrganizationSettings() {
     const [logoFullPreview, setLogoFullPreview] = useState<string | null>(null);
     const [logoMarkReset, setLogoMarkReset] = useState(false);
     const [logoFullReset, setLogoFullReset] = useState(false);
+    const reportHeaderDesignInputRef = useRef<HTMLInputElement>(null);
+    const [reportHeaderDesignPreview, setReportHeaderDesignPreview] = useState<
+        string | null
+    >(null);
+    const [reportHeaderDesignReset, setReportHeaderDesignReset] =
+        useState(false);
     const faviconInputRef = useRef<HTMLInputElement>(null);
     const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
     const [faviconReset, setFaviconReset] = useState(false);
@@ -401,19 +365,6 @@ export default function OrganizationSettings() {
         normalizeHexInputValue(branding.brandAccentColor),
     );
     const [brandAccentTouched, setBrandAccentTouched] = useState(false);
-    const [reportHeaderColorValue, setReportHeaderColorValue] = useState(() =>
-        normalizeHexInputValue(branding.reportTypography.headerTitle.color),
-    );
-    const [reportHeaderColorTouched, setReportHeaderColorTouched] =
-        useState(false);
-    const [reportHeaderTaglineColorValue, setReportHeaderTaglineColorValue] =
-        useState(() =>
-            normalizeHexInputValue(
-                branding.reportTypography.headerTagline.color,
-            ),
-        );
-    const [reportHeaderTaglineColorTouched, setReportHeaderTaglineColorTouched] =
-        useState(false);
     const [reportLabelColorValue, setReportLabelColorValue] = useState(() =>
         normalizeHexInputValue(branding.reportTypography.label.color),
     );
@@ -440,12 +391,6 @@ export default function OrganizationSettings() {
     const accentInputValue = brandAccentTouched
         ? brandAccentValue
         : normalizeHexInputValue(branding.brandAccentColor);
-    const reportHeaderColorInputValue = reportHeaderColorTouched
-        ? reportHeaderColorValue
-        : normalizeHexInputValue(branding.reportTypography.headerTitle.color);
-    const reportHeaderTaglineColorInputValue = reportHeaderTaglineColorTouched
-        ? reportHeaderTaglineColorValue
-        : normalizeHexInputValue(branding.reportTypography.headerTagline.color);
     const reportLabelColorInputValue = reportLabelColorTouched
         ? reportLabelColorValue
         : normalizeHexInputValue(branding.reportTypography.label.color);
@@ -454,12 +399,6 @@ export default function OrganizationSettings() {
         : normalizeHexInputValue(branding.reportTypography.value.color);
     const normalizedPrimary = normalizeHexValue(primaryInputValue);
     const normalizedAccent = normalizeHexValue(accentInputValue);
-    const normalizedReportHeaderColor = normalizeHexValue(
-        reportHeaderColorInputValue,
-    );
-    const normalizedReportHeaderTaglineColor = normalizeHexValue(
-        reportHeaderTaglineColorInputValue,
-    );
     const normalizedReportLabelColor = normalizeHexValue(
         reportLabelColorInputValue,
     );
@@ -468,20 +407,12 @@ export default function OrganizationSettings() {
     );
     const primarySwatch = normalizedPrimary ?? DEFAULT_BRAND_PRIMARY;
     const accentSwatch = normalizedAccent ?? DEFAULT_BRAND_ACCENT;
-    const reportHeaderColorSwatch =
-        normalizedReportHeaderColor ?? DEFAULT_REPORT_HEADER_COLOR;
-    const reportHeaderTaglineColorSwatch =
-        normalizedReportHeaderTaglineColor ??
-        normalizedReportHeaderColor ??
-        DEFAULT_REPORT_HEADER_COLOR;
     const reportLabelColorSwatch =
         normalizedReportLabelColor ?? DEFAULT_REPORT_LABEL_COLOR;
     const reportValueColorSwatch =
         normalizedReportValueColor ?? DEFAULT_REPORT_VALUE_COLOR;
     const brandPrimaryHelpId = 'brand_primary_color_help';
     const brandAccentHelpId = 'brand_accent_color_help';
-    const reportHeaderColorHelpId = 'report_header_font_color_help';
-    const reportHeaderTaglineColorHelpId = 'report_header_tagline_color_help';
     const reportLabelColorHelpId = 'report_label_font_color_help';
     const reportValueColorHelpId = 'report_value_font_color_help';
     const logoMarkPreviewUrl =
@@ -553,33 +484,13 @@ export default function OrganizationSettings() {
     const logoFullIsDefault =
         logoFullReset || (!logoFullPreview && branding.logoFullIsDefault);
     const hasStoredFavicon = branding.faviconPath !== null;
-    const reportHeaderTitlePreview =
-        reportHeaderTitleValue.trim() !== ''
-            ? reportHeaderTitleValue.trim()
-            : DEFAULT_REPORT_HEADER_TITLE;
-    const reportHeaderTaglinePreview = reportHeaderTaglineValue.trim();
-    const reportShowCompanyNamePreview =
-        reportHeaderShowCompanyName && logoPreset !== 'full';
-    const reportHeaderAlignmentClass =
-        reportHeaderAlignment === 'left'
-            ? 'justify-start'
-            : reportHeaderAlignment === 'right'
-              ? 'justify-end'
-              : 'justify-center';
-    const reportHeaderTextAlignClass =
-        reportHeaderAlignment === 'left'
-            ? 'text-left'
-            : reportHeaderAlignment === 'right'
-              ? 'text-right'
-              : 'text-center';
-    const reportHeaderTitleSize = resolveNumberInput(
-        reportHeaderTitleFontSize,
-        branding.reportTypography.headerTitle.size,
-    );
-    const reportHeaderTaglineSize = resolveNumberInput(
-        reportHeaderTaglineFontSize,
-        branding.reportTypography.headerTagline.size,
-    );
+    const hasStoredReportHeaderDesign =
+        branding.reportHeader.designPath !== null;
+    const reportHeaderDesignCurrentUrl = reportHeaderDesignReset
+        ? null
+        : branding.reportHeader.designUrl;
+    const reportHeaderDesignPreviewUrl =
+        reportHeaderDesignPreview ?? reportHeaderDesignCurrentUrl;
     const reportLabelFontSizeValue = resolveNumberInput(
         reportLabelFontSize,
         branding.reportTypography.label.size,
@@ -587,14 +498,6 @@ export default function OrganizationSettings() {
     const reportValueFontSizeValue = resolveNumberInput(
         reportValueFontSize,
         branding.reportTypography.value.size,
-    );
-    const reportHeaderTitleFontFamilyResolved = resolveFontValue(
-        reportHeaderTitleFontFamily,
-        branding.reportTypography.headerTitle.family,
-    );
-    const reportHeaderTaglineFontFamilyResolved = resolveFontValue(
-        reportHeaderTaglineFontFamily,
-        branding.reportTypography.headerTagline.family,
     );
     const reportLabelFontFamilyResolved = resolveFontValue(
         reportLabelFontFamily,
@@ -604,14 +507,6 @@ export default function OrganizationSettings() {
         reportValueFontFamily,
         branding.reportTypography.value.family,
     );
-    const reportHeaderTitleFontWeightResolved = resolveNumberInput(
-        reportHeaderTitleFontWeight,
-        branding.reportTypography.headerTitle.weight,
-    );
-    const reportHeaderTaglineFontWeightResolved = resolveNumberInput(
-        reportHeaderTaglineFontWeight,
-        branding.reportTypography.headerTagline.weight,
-    );
     const reportLabelFontWeightResolved = resolveNumberInput(
         reportLabelFontWeight,
         branding.reportTypography.label.weight,
@@ -620,30 +515,10 @@ export default function OrganizationSettings() {
         reportValueFontWeight,
         branding.reportTypography.value.weight,
     );
-    const reportHeaderColorResolved =
-        normalizedReportHeaderColor ?? DEFAULT_REPORT_HEADER_COLOR;
-    const reportHeaderTaglineColorResolved =
-        normalizedReportHeaderTaglineColor ?? reportHeaderColorResolved;
     const reportLabelColorResolved =
         normalizedReportLabelColor ?? DEFAULT_REPORT_LABEL_COLOR;
     const reportValueColorResolved =
         normalizedReportValueColor ?? DEFAULT_REPORT_VALUE_COLOR;
-    const reportHeaderTitleStyle = {
-        fontFamily: reportHeaderTitleFontFamilyResolved,
-        fontWeight: reportHeaderTitleFontWeightResolved,
-        fontStyle:
-            reportHeaderTitleFontVariant === 'italic' ? 'italic' : 'normal',
-        fontSize: `${reportHeaderTitleSize}px`,
-        color: reportHeaderColorResolved,
-    };
-    const reportHeaderTaglineStyle = {
-        fontFamily: reportHeaderTaglineFontFamilyResolved,
-        fontWeight: reportHeaderTaglineFontWeightResolved,
-        fontStyle:
-            reportHeaderTaglineFontVariant === 'italic' ? 'italic' : 'normal',
-        fontSize: `${reportHeaderTaglineSize}px`,
-        color: reportHeaderTaglineColorResolved,
-    };
     const reportLabelStyle = {
         fontFamily: reportLabelFontFamilyResolved,
         fontWeight: reportLabelFontWeightResolved,
@@ -657,13 +532,6 @@ export default function OrganizationSettings() {
         fontStyle: reportValueFontVariant === 'italic' ? 'italic' : 'normal',
         fontSize: `${reportValueFontSizeValue}px`,
         color: reportValueColorResolved,
-    };
-    const reportCompanyNameStyle = {
-        fontFamily: reportHeaderTitleFontFamilyResolved,
-        fontWeight: reportHeaderTitleFontWeightResolved,
-        fontStyle:
-            reportHeaderTitleFontVariant === 'italic' ? 'italic' : 'normal',
-        color: reportHeaderColorResolved,
     };
 
     useEffect(() => {
@@ -695,6 +563,16 @@ export default function OrganizationSettings() {
             URL.revokeObjectURL(logoFullPreview);
         };
     }, [logoFullPreview]);
+
+    useEffect(() => {
+        if (!reportHeaderDesignPreview) {
+            return;
+        }
+
+        return () => {
+            URL.revokeObjectURL(reportHeaderDesignPreview);
+        };
+    }, [reportHeaderDesignPreview]);
 
     const handleLogoMarkChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -815,6 +693,73 @@ export default function OrganizationSettings() {
 
         if (logoFullInputRef.current) {
             logoFullInputRef.current.value = '';
+        }
+    };
+
+    const handleReportHeaderDesignChange = (
+        event: ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        if (!REPORT_HEADER_DESIGN_ALLOWED_TYPES.has(file.type)) {
+            showErrorToast(
+                null,
+                'Please select a JPG, PNG, or WebP image for the report header design.',
+                {
+                    id: 'organization-report-header-design-type',
+                },
+            );
+            event.target.value = '';
+            return;
+        }
+
+        if (file.size > REPORT_HEADER_DESIGN_MAX_BYTES) {
+            showErrorToast(
+                null,
+                'Report header design must be 4MB or smaller.',
+                {
+                    id: 'organization-report-header-design-size',
+                },
+            );
+            event.target.value = '';
+            return;
+        }
+
+        setReportHeaderDesignReset(false);
+        setReportHeaderDesignPreview(URL.createObjectURL(file));
+        setHasChanges(true);
+    };
+
+    const clearReportHeaderDesignPreview = () => {
+        setReportHeaderDesignPreview(null);
+        setHasChanges(true);
+
+        if (reportHeaderDesignInputRef.current) {
+            reportHeaderDesignInputRef.current.value = '';
+        }
+    };
+
+    const resetReportHeaderDesignToDefault = () => {
+        setReportHeaderDesignReset(true);
+        setReportHeaderDesignPreview(null);
+        setHasChanges(true);
+
+        if (reportHeaderDesignInputRef.current) {
+            reportHeaderDesignInputRef.current.value = '';
+        }
+    };
+
+    const keepCurrentReportHeaderDesign = () => {
+        setReportHeaderDesignReset(false);
+        setReportHeaderDesignPreview(null);
+        setHasChanges(true);
+
+        if (reportHeaderDesignInputRef.current) {
+            reportHeaderDesignInputRef.current.value = '';
         }
     };
 
@@ -953,12 +898,16 @@ export default function OrganizationSettings() {
                                     if (logoFullInputRef.current) {
                                         logoFullInputRef.current.value = '';
                                     }
+                                    setReportHeaderDesignPreview(null);
+                                    setReportHeaderDesignReset(false);
+                                    if (reportHeaderDesignInputRef.current) {
+                                        reportHeaderDesignInputRef.current.value =
+                                            '';
+                                    }
                                     clearFaviconPreview();
                                     setFaviconReset(false);
                                     setBrandPrimaryTouched(false);
                                     setBrandAccentTouched(false);
-                                    setReportHeaderColorTouched(false);
-                                    setReportHeaderTaglineColorTouched(false);
                                     setReportLabelColorTouched(false);
                                     setReportValueColorTouched(false);
                                     setHasChanges(false);
@@ -991,21 +940,6 @@ export default function OrganizationSettings() {
                                         normalizedAccent === null
                                             ? ACCENT_COLOR_ERROR
                                             : undefined;
-                                    const reportHeaderColorClientError =
-                                        reportHeaderColorTouched &&
-                                        reportHeaderColorInputValue.trim() !==
-                                            '' &&
-                                        normalizedReportHeaderColor === null
-                                            ? REPORT_HEADER_COLOR_ERROR
-                                            : undefined;
-                                    const reportHeaderTaglineColorClientError =
-                                        reportHeaderTaglineColorTouched &&
-                                        reportHeaderTaglineColorInputValue.trim() !==
-                                            '' &&
-                                        normalizedReportHeaderTaglineColor ===
-                                            null
-                                            ? REPORT_TAGLINE_COLOR_ERROR
-                                            : undefined;
                                     const reportLabelColorClientError =
                                         reportLabelColorTouched &&
                                         reportLabelColorInputValue.trim() !==
@@ -1026,12 +960,6 @@ export default function OrganizationSettings() {
                                     const accentError =
                                         formErrors.brand_accent_color ??
                                         accentClientError;
-                                    const reportHeaderColorError =
-                                        formErrors.report_header_font_color ??
-                                        reportHeaderColorClientError;
-                                    const reportHeaderTaglineColorError =
-                                        formErrors.report_header_tagline_color ??
-                                        reportHeaderTaglineColorClientError;
                                     const reportLabelColorError =
                                         formErrors.report_label_font_color ??
                                         reportLabelColorClientError;
@@ -1042,11 +970,6 @@ export default function OrganizationSettings() {
                                         primaryError !== undefined;
                                     const accentInvalid =
                                         accentError !== undefined;
-                                    const reportHeaderColorInvalid =
-                                        reportHeaderColorError !== undefined;
-                                    const reportHeaderTaglineColorInvalid =
-                                        reportHeaderTaglineColorError !==
-                                        undefined;
                                     const reportLabelColorInvalid =
                                         reportLabelColorError !== undefined;
                                     const reportValueColorInvalid =
@@ -1658,591 +1581,112 @@ export default function OrganizationSettings() {
                                                         Reports &amp; documents
                                                     </h3>
                                                     <p className="text-sm text-muted-foreground">
-                                                        Control report header
-                                                        content, layout, and the
-                                                        typography used in PDF
+                                                        Upload a single report
+                                                        header design and manage
+                                                        report body typography
+                                                        for generated
                                                         documents.
                                                     </p>
                                                 </div>
 
                                                 <div className="space-y-1">
-                                                    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                                        Header content
-                                                    </p>
-                                                </div>
+    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+        Report header design
+    </p>
+</div>
 
-                                                <div className="grid gap-6">
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="report_header_title">
-                                                            Header title
-                                                        </Label>
-                                                        <Input
-                                                            id="report_header_title"
-                                                            name="report_header_title"
-                                                            value={
-                                                                reportHeaderTitleValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportHeaderTitleValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                            placeholder={
-                                                                DEFAULT_REPORT_HEADER_TITLE
-                                                            }
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.report_header_title
-                                                            }
-                                                        />
-                                                    </div>
+<div className="space-y-6 rounded-2xl border border-border/30 bg-background/60 p-4">
+    <div className="space-y-1">
+        <p className="text-sm font-semibold">
+            Uploaded report header
+        </p>
+        <p className="text-xs text-muted-foreground">
+            Upload one JPG, PNG, or WebP image used at the top of generated documents.
+        </p>
+    </div>
 
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="report_header_tagline">
-                                                            Header tagline
-                                                        </Label>
-                                                        <Input
-                                                            id="report_header_tagline"
-                                                            name="report_header_tagline"
-                                                            value={
-                                                                reportHeaderTaglineValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportHeaderTaglineValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                            placeholder="Optional tagline"
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.report_header_tagline
-                                                            }
-                                                        />
-                                                    </div>
+    <div className="flex h-28 items-center justify-center rounded-xl border border-border/40 bg-muted/20 p-3">
+        {reportHeaderDesignPreviewUrl ? (
+            <img
+                src={reportHeaderDesignPreviewUrl}
+                alt="Report header design preview"
+                className="h-full w-full object-contain"
+            />
+        ) : (
+            <p className="text-center text-xs text-muted-foreground">
+                No report header design uploaded yet.
+            </p>
+        )}
+    </div>
 
-                                                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
-                                                        <div className="flex flex-wrap items-center gap-6">
-                                                            <div className="flex items-center gap-2">
-                                                                <Checkbox
-                                                                    id="report_header_show_logo_toggle"
-                                                                    checked={
-                                                                        reportHeaderShowLogo
-                                                                    }
-                                                                    onCheckedChange={(
-                                                                        checked,
-                                                                    ) => {
-                                                                        setReportHeaderShowLogo(
-                                                                            Boolean(
-                                                                                checked,
-                                                                            ),
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                />
-                                                                <Label htmlFor="report_header_show_logo_toggle">
-                                                                    Show logo
-                                                                </Label>
-                                                                <input
-                                                                    type="hidden"
-                                                                    name="report_header_show_logo"
-                                                                    value={
-                                                                        reportHeaderShowLogo
-                                                                            ? '1'
-                                                                            : '0'
-                                                                    }
-                                                                />
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <Checkbox
-                                                                    id="report_header_show_company_name_toggle"
-                                                                    checked={
-                                                                        reportHeaderShowCompanyName
-                                                                    }
-                                                                    onCheckedChange={(
-                                                                        checked,
-                                                                    ) => {
-                                                                        setReportHeaderShowCompanyName(
-                                                                            Boolean(
-                                                                                checked,
-                                                                            ),
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                />
-                                                                <Label htmlFor="report_header_show_company_name_toggle">
-                                                                    Show company
-                                                                    name
-                                                                </Label>
-                                                                <input
-                                                                    type="hidden"
-                                                                    name="report_header_show_company_name"
-                                                                    value={
-                                                                        reportHeaderShowCompanyName
-                                                                            ? '1'
-                                                                            : '0'
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
+    <div className="flex flex-wrap items-center gap-2">
+        <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => reportHeaderDesignInputRef.current?.click()}
+        >
+            Upload header design
+        </Button>
+        {reportHeaderDesignPreview ? (
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearReportHeaderDesignPreview}
+            >
+                Remove selection
+            </Button>
+        ) : null}
+        {hasStoredReportHeaderDesign || reportHeaderDesignReset ? (
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                    if (reportHeaderDesignReset) {
+                        keepCurrentReportHeaderDesign();
+                        return;
+                    }
 
-                                                        <div className="mt-4 grid gap-2 max-w-55">
-                                                            <Label htmlFor="report_header_alignment">
-                                                                Header alignment
-                                                            </Label>
-                                                            <Select
-                                                                value={
-                                                                    reportHeaderAlignment
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) => {
-                                                                    setReportHeaderAlignment(
-                                                                        value as ReportHeaderAlignment,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <SelectTrigger id="report_header_alignment">
-                                                                    <SelectValue placeholder="Select alignment" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {REPORT_HEADER_ALIGNMENT_OPTIONS.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <input
-                                                                type="hidden"
-                                                                name="report_header_alignment"
-                                                                value={
-                                                                    reportHeaderAlignment
-                                                                }
-                                                            />
-                                                            <InputError
-                                                                message={
-                                                                    formErrors.report_header_alignment
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                  </div>
+                    resetReportHeaderDesignToDefault();
+                }}
+            >
+                {reportHeaderDesignReset
+                    ? 'Keep current design'
+                    : 'Reset to default'}
+            </Button>
+        ) : null}
+    </div>
 
-                                                <div className="space-y-1">
-                                                    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                                        Header typography
-                                                    </p>
-                                                </div>
+    <p className="text-xs text-muted-foreground">
+        Upload a JPG, PNG, or WebP image (max 4MB).
+    </p>
 
-                                                <div className="grid gap-6 lg:grid-cols-2">
-                                                    <div className="space-y-4 rounded-xl border border-border/60 bg-muted/30 p-4">
-                                                        <div className="space-y-1">
-                                                            <p className="text-sm font-semibold">
-                                                                Title font
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Applies to the
-                                                                main report
-                                                                title.
-                                                            </p>
-                                                        </div>
-                                                        <FontPicker
-                                                            defaultValue={
-                                                                reportHeaderTitleFontFamilyResolved
-                                                            }
-                                                            inputId="report-title-font"
-                                                            loadFonts={
-                                                                reportHeaderTitleFontFamilyResolved
-                                                            }
-                                                            autoLoad
-                                                            mode="combo"
-                                                            value={(
-                                                                nextFont,
-                                                            ) => {
-                                                                setReportHeaderTitleFontFamily(
-                                                                    normalizeFontFamily(
-                                                                        nextFont,
-                                                                    ),
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                        />
-                                                        <div className="grid gap-3 sm:grid-cols-3">
-                                                            <div className="grid gap-2">
-                                                                <Label>
-                                                                    Weight
-                                                                </Label>
-                                                                <Select
-                                                                    value={
-                                                                        reportHeaderTitleFontWeight ||
-                                                                        undefined
-                                                                    }
-                                                                    onValueChange={(
-                                                                        value,
-                                                                    ) => {
-                                                                        setReportHeaderTitleFontWeight(
-                                                                            value,
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <SelectTrigger>
-                                                                        <SelectValue placeholder="Weight" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {REPORT_FONT_WEIGHT_OPTIONS.map(
-                                                                            (
-                                                                                option,
-                                                                            ) => (
-                                                                                <SelectItem
-                                                                                    key={
-                                                                                        option.value
-                                                                                    }
-                                                                                    value={
-                                                                                        option.value
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        option.label
-                                                                                    }
-                                                                                </SelectItem>
-                                                                            ),
-                                                                        )}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="grid gap-2">
-                                                                <Label>
-                                                                    Style
-                                                                </Label>
-                                                                <Select
-                                                                    value={
-                                                                        reportHeaderTitleFontVariant ||
-                                                                        undefined
-                                                                    }
-                                                                    onValueChange={(
-                                                                        value,
-                                                                    ) => {
-                                                                        setReportHeaderTitleFontVariant(
-                                                                            value,
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <SelectTrigger>
-                                                                        <SelectValue placeholder="Style" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {REPORT_FONT_STYLE_OPTIONS.map(
-                                                                            (
-                                                                                option,
-                                                                            ) => (
-                                                                                <SelectItem
-                                                                                    key={
-                                                                                        option.value
-                                                                                    }
-                                                                                    value={
-                                                                                        option.value
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        option.label
-                                                                                    }
-                                                                                </SelectItem>
-                                                                            ),
-                                                                        )}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="grid gap-2">
-                                                                <Label htmlFor="report_header_title_font_size">
-                                                                    Size
-                                                                </Label>
-                                                                <Input
-                                                                    id="report_header_title_font_size"
-                                                                    name="report_header_title_font_size"
-                                                                    type="number"
-                                                                    min={6}
-                                                                    max={24}
-                                                                    value={
-                                                                        reportHeaderTitleFontSize
-                                                                    }
-                                                                    onChange={(
-                                                                        event,
-                                                                    ) => {
-                                                                        setReportHeaderTitleFontSize(
-                                                                            event
-                                                                                .target
-                                                                                .value,
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <input
-                                                            type="hidden"
-                                                            name="report_header_title_font_family"
-                                                            value={
-                                                                reportHeaderTitleFontFamily
-                                                            }
-                                                        />
-                                                        <input
-                                                            type="hidden"
-                                                            name="report_header_title_font_variant"
-                                                            value={
-                                                                reportHeaderTitleFontVariant
-                                                            }
-                                                        />
-                                                        <input
-                                                            type="hidden"
-                                                            name="report_header_title_font_weight"
-                                                            value={
-                                                                reportHeaderTitleFontWeight
-                                                            }
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.report_header_title_font_family ??
-                                                                formErrors.report_header_title_font_variant ??
-                                                                formErrors.report_header_title_font_weight ??
-                                                                formErrors.report_header_title_font_size
-                                                            }
-                                                        />
-                                                    </div>
+    <input
+        ref={reportHeaderDesignInputRef}
+        type="file"
+        name="report_header_design"
+        accept="image/png,image/jpeg,image/webp"
+        aria-label="Upload report header design"
+        className="sr-only"
+        onChange={handleReportHeaderDesignChange}
+    />
+    {reportHeaderDesignReset ? (
+        <input
+            type="hidden"
+            name="report_header_design_reset"
+            value="1"
+        />
+    ) : null}
+    <InputError message={formErrors.report_header_design} />
+</div>
 
-                                                    <div className="space-y-4 rounded-xl border border-border/60 bg-muted/30 p-4">
-                                                        <div className="space-y-1">
-                                                            <p className="text-sm font-semibold">
-                                                                Tagline font
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Applies to the
-                                                                optional header
-                                                                tagline.
-                                                            </p>
-                                                        </div>
-                                                        <FontPicker
-                                                            defaultValue={
-                                                                reportHeaderTaglineFontFamilyResolved
-                                                            }
-                                                            inputId="report-tagline-font"
-                                                            loadFonts={
-                                                                reportHeaderTaglineFontFamilyResolved
-                                                            }
-                                                            autoLoad
-                                                            mode="combo"
-                                                            value={(
-                                                                nextFont,
-                                                            ) => {
-                                                                setReportHeaderTaglineFontFamily(
-                                                                    normalizeFontFamily(
-                                                                        nextFont,
-                                                                    ),
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                        />
-                                                        <div className="grid gap-3 sm:grid-cols-3">
-                                                            <div className="grid gap-2">
-                                                                <Label>
-                                                                    Weight
-                                                                </Label>
-                                                                <Select
-                                                                    value={
-                                                                        reportHeaderTaglineFontWeight ||
-                                                                        undefined
-                                                                    }
-                                                                    onValueChange={(
-                                                                        value,
-                                                                    ) => {
-                                                                        setReportHeaderTaglineFontWeight(
-                                                                            value,
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <SelectTrigger>
-                                                                        <SelectValue placeholder="Weight" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {REPORT_FONT_WEIGHT_OPTIONS.map(
-                                                                            (
-                                                                                option,
-                                                                            ) => (
-                                                                                <SelectItem
-                                                                                    key={
-                                                                                        option.value
-                                                                                    }
-                                                                                    value={
-                                                                                        option.value
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        option.label
-                                                                                    }
-                                                                                </SelectItem>
-                                                                            ),
-                                                                        )}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="grid gap-2">
-                                                                <Label>
-                                                                    Style
-                                                                </Label>
-                                                                <Select
-                                                                    value={
-                                                                        reportHeaderTaglineFontVariant ||
-                                                                        undefined
-                                                                    }
-                                                                    onValueChange={(
-                                                                        value,
-                                                                    ) => {
-                                                                        setReportHeaderTaglineFontVariant(
-                                                                            value,
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <SelectTrigger>
-                                                                        <SelectValue placeholder="Style" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {REPORT_FONT_STYLE_OPTIONS.map(
-                                                                            (
-                                                                                option,
-                                                                            ) => (
-                                                                                <SelectItem
-                                                                                    key={
-                                                                                        option.value
-                                                                                    }
-                                                                                    value={
-                                                                                        option.value
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        option.label
-                                                                                    }
-                                                                                </SelectItem>
-                                                                            ),
-                                                                        )}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="grid gap-2">
-                                                                <Label htmlFor="report_header_tagline_font_size">
-                                                                    Size
-                                                                </Label>
-                                                                <Input
-                                                                    id="report_header_tagline_font_size"
-                                                                    name="report_header_tagline_font_size"
-                                                                    type="number"
-                                                                    min={6}
-                                                                    max={24}
-                                                                    value={
-                                                                        reportHeaderTaglineFontSize
-                                                                    }
-                                                                    onChange={(
-                                                                        event,
-                                                                    ) => {
-                                                                        setReportHeaderTaglineFontSize(
-                                                                            event
-                                                                                .target
-                                                                                .value,
-                                                                        );
-                                                                        setHasChanges(
-                                                                            true,
-                                                                        );
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <input
-                                                            type="hidden"
-                                                            name="report_header_tagline_font_family"
-                                                            value={
-                                                                reportHeaderTaglineFontFamily
-                                                            }
-                                                        />
-                                                        <input
-                                                            type="hidden"
-                                                            name="report_header_tagline_font_variant"
-                                                            value={
-                                                                reportHeaderTaglineFontVariant
-                                                            }
-                                                        />
-                                                        <input
-                                                            type="hidden"
-                                                            name="report_header_tagline_font_weight"
-                                                            value={
-                                                                reportHeaderTaglineFontWeight
-                                                            }
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.report_header_tagline_font_family ??
-                                                                formErrors.report_header_tagline_font_variant ??
-                                                                formErrors.report_header_tagline_font_weight ??
-                                                                formErrors.report_header_tagline_font_size
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                            <div className="space-y-1">
-                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                                    Report body typography
-                                                </p>
-                                            </div>
+<div className="space-y-1">
+    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+        Report body typography
+    </p>
+</div>
 
                                             <div className="grid gap-6 lg:grid-cols-2">
                                                 <div className="space-y-4 rounded-xl border border-border/60 bg-muted/30 p-4">
@@ -2607,256 +2051,6 @@ export default function OrganizationSettings() {
                                             </div>
 
                                             <div className="grid gap-6 lg:grid-cols-3">
-                                                <div className="grid gap-3">
-                                                    <Label htmlFor="report_header_font_color">
-                                                        Header font color
-                                                    </Label>
-                                                    <p
-                                                        id={
-                                                            reportHeaderColorHelpId
-                                                        }
-                                                        className="text-sm text-muted-foreground"
-                                                    >
-                                                        Applies to report header
-                                                        title and company name.
-                                                        Default:{' '}
-                                                        {
-                                                            DEFAULT_REPORT_HEADER_COLOR
-                                                        }
-                                                        .
-                                                    </p>
-                                                    <div className="flex flex-wrap items-center gap-3">
-                                                        <input
-                                                            id="report_header_font_color_picker"
-                                                            type="color"
-                                                            value={
-                                                                reportHeaderColorSwatch
-                                                            }
-                                                            aria-label="Report header font color picker"
-                                                            aria-describedby={
-                                                                reportHeaderColorHelpId
-                                                            }
-                                                            className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportHeaderColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderColorValue(
-                                                                    event.target.value.toLowerCase(),
-                                                                );
-                                                            }}
-                                                        />
-                                                        <Input
-                                                            id="report_header_font_color"
-                                                            name="report_header_font_color"
-                                                            value={
-                                                                reportHeaderColorInputValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportHeaderColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderColorValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                            }}
-                                                            onBlur={(event) => {
-                                                                setReportHeaderColorTouched(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderColorValue(
-                                                                    normalizeHexInputValue(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    ),
-                                                                );
-                                                            }}
-                                                            placeholder={
-                                                                DEFAULT_REPORT_HEADER_COLOR
-                                                            }
-                                                            inputMode="text"
-                                                            autoCapitalize="none"
-                                                            autoCorrect="off"
-                                                            spellCheck={false}
-                                                            maxLength={7}
-                                                            className="w-32 font-mono"
-                                                            aria-invalid={
-                                                                reportHeaderColorInvalid
-                                                            }
-                                                            aria-describedby={
-                                                                reportHeaderColorHelpId
-                                                            }
-                                                        />
-                                                        <div
-                                                            className="h-9 w-9 rounded-md border border-border bg-muted"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    reportHeaderColorSwatch,
-                                                            }}
-                                                            aria-hidden="true"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setReportHeaderColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderColorValue(
-                                                                    DEFAULT_REPORT_HEADER_COLOR,
-                                                                );
-                                                            }}
-                                                        >
-                                                            Reset
-                                                        </Button>
-                                                    </div>
-                                                    <InputError
-                                                        message={
-                                                            reportHeaderColorError
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-3">
-                                                    <Label htmlFor="report_header_tagline_color">
-                                                        Tagline font color
-                                                    </Label>
-                                                    <p
-                                                        id={
-                                                            reportHeaderTaglineColorHelpId
-                                                        }
-                                                        className="text-sm text-muted-foreground"
-                                                    >
-                                                        Applies to report header
-                                                        tagline. Defaults to the
-                                                        header color.
-                                                    </p>
-                                                    <div className="flex flex-wrap items-center gap-3">
-                                                        <input
-                                                            id="report_header_tagline_color_picker"
-                                                            type="color"
-                                                            value={
-                                                                reportHeaderTaglineColorSwatch
-                                                            }
-                                                            aria-label="Report header tagline font color picker"
-                                                            aria-describedby={
-                                                                reportHeaderTaglineColorHelpId
-                                                            }
-                                                            className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportHeaderTaglineColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderTaglineColorValue(
-                                                                    event.target.value.toLowerCase(),
-                                                                );
-                                                            }}
-                                                        />
-                                                        <Input
-                                                            id="report_header_tagline_color"
-                                                            name="report_header_tagline_color"
-                                                            value={
-                                                                reportHeaderTaglineColorInputValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportHeaderTaglineColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderTaglineColorValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                            }}
-                                                            onBlur={(
-                                                                event,
-                                                            ) => {
-                                                                setReportHeaderTaglineColorTouched(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderTaglineColorValue(
-                                                                    normalizeHexInputValue(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    ),
-                                                                );
-                                                            }}
-                                                            placeholder={
-                                                                reportHeaderColorResolved
-                                                            }
-                                                            inputMode="text"
-                                                            autoCapitalize="none"
-                                                            autoCorrect="off"
-                                                            spellCheck={false}
-                                                            maxLength={7}
-                                                            className="w-32 font-mono"
-                                                            aria-invalid={
-                                                                reportHeaderTaglineColorInvalid
-                                                            }
-                                                            aria-describedby={
-                                                                reportHeaderTaglineColorHelpId
-                                                            }
-                                                        />
-                                                        <div
-                                                            className="h-9 w-9 rounded-md border border-border bg-muted"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    reportHeaderTaglineColorSwatch,
-                                                            }}
-                                                            aria-hidden="true"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setReportHeaderTaglineColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportHeaderTaglineColorValue(
-                                                                    reportHeaderColorResolved,
-                                                                );
-                                                            }}
-                                                        >
-                                                            Reset
-                                                        </Button>
-                                                    </div>
-                                                    <InputError
-                                                        message={
-                                                            reportHeaderTaglineColorError
-                                                        }
-                                                    />
-                                                </div>
-
                                                 <div className="grid gap-3">
                                                     <Label htmlFor="report_label_font_color">
                                                         Label font color
@@ -3715,7 +2909,6 @@ export default function OrganizationSettings() {
                                             </div>
                                             </div>
                                         </div>
-                                    </div>
 
                                     <div className="space-y-2">
                                         <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
@@ -3750,70 +2943,19 @@ export default function OrganizationSettings() {
                                         </p>
                                         <div className="rounded-2xl border border-border/30 bg-muted/20 p-4">
                                             <div className="rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
-                                                <div
-                                                    className={`flex ${reportHeaderAlignmentClass}`}
-                                                >
-                                                    <div
-                                                        className={`inline-flex items-center gap-3 ${reportHeaderTextAlignClass}`}
-                                                    >
-                                                        {reportHeaderShowLogo ||
-                                                        reportShowCompanyNamePreview ? (
-                                                            <div className="flex items-center gap-2">
-                                                                {reportHeaderShowLogo ? (
-                                                                    <img
-                                                                        src={
-                                                                            logoPreviewUrl
-                                                                        }
-                                                                        alt={`${companyNamePreview} report logo`}
-                                                                        className={`w-auto object-contain ${
-                                                                            logoPreset ===
-                                                                            'full'
-                                                                                ? 'h-10'
-                                                                                : 'h-8'
-                                                                        }`}
-                                                                    />
-                                                                ) : null}
-                                                                {reportShowCompanyNamePreview ? (
-                                                                    <p
-                                                                        className="apply-font-report-title text-xs font-semibold"
-                                                                        style={{
-                                                                            ...reportCompanyNameStyle,
-                                                                            fontSize:
-                                                                                '12px',
-                                                                        }}
-                                                                    >
-                                                                        {
-                                                                            companyNamePreview
-                                                                        }
-                                                                    </p>
-                                                                ) : null}
-                                                            </div>
-                                                        ) : null}
-                                                    <div>
-                                                        <p
-                                                            className="apply-font-report-title text-sm font-semibold"
-                                                            style={
-                                                                reportHeaderTitleStyle
-                                                            }
-                                                        >
-                                                            {
-                                                                reportHeaderTitlePreview
-                                                            }
-                                                        </p>
-                                                        {reportHeaderTaglinePreview ? (
-                                                            <p
-                                                                className="apply-font-report-tagline text-xs"
-                                                                style={
-                                                                    reportHeaderTaglineStyle
-                                                                }
-                                                            >
-                                                                {
-                                                                    reportHeaderTaglinePreview
-                                                                }
-                                                            </p>
-                                                        ) : null}
+                                                {reportHeaderDesignPreviewUrl ? (
+                                                    <img
+                                                        src={
+                                                            reportHeaderDesignPreviewUrl
+                                                        }
+                                                        alt="Report header design preview"
+                                                        className="h-24 w-full object-contain"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                                        Application form
                                                     </div>
-                                                </div>
+                                                )}
                                             </div>
                                             <div className="mt-3 h-px bg-slate-200" />
                                             <div className="mt-3 space-y-2">

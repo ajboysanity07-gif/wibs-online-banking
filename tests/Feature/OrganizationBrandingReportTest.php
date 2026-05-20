@@ -16,16 +16,16 @@ use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\mock;
 
-test('loan request report hides company name for full logo preset', function () {
+test('loan request report renders uploaded header design when available', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('branding/report-headers/header.png', 'header');
+
     OrganizationSetting::factory()->create([
         'company_name' => 'Acme Cooperative',
-        'logo_preset' => OrganizationSettingsService::LOGO_PRESET_FULL,
+        'report_header_design_path' => 'branding/report-headers/header.png',
     ]);
 
     $branding = app(OrganizationSettingsService::class)->branding();
-    $reportHeader = $branding['reportHeader'];
-    $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
-        && ! ($branding['logoIsWordmark'] ?? false);
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::UnderReview,
     ]);
@@ -36,33 +36,30 @@ test('loan request report hides company name for full logo preset', function () 
         'coMakerOne' => [],
         'coMakerTwo' => [],
         'companyName' => $branding['companyName'],
-        'logoData' => 'data:image/png;base64,logo',
-        'reportHeader' => $reportHeader,
+        'reportHeader' => $branding['reportHeader'],
         'reportTypography' => $branding['reportTypography'],
         'generatedAt' => Carbon::now(),
     ])->render();
 
-    expect($reportHeader['showCompanyName'])->toBeFalse();
-    expect($html)->not->toContain($branding['companyName']);
+    expect($branding['reportHeader']['designData'])->not->toBeNull();
+    expect($html)->toContain('class="report-header-design"');
+    expect($html)->toContain('src="data:image/png;base64,'.base64_encode('header').'"');
 });
 
-test('loan payments report hides company name for full logo preset', function () {
+test('loan payments report renders uploaded header design when available', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('branding/report-headers/header.png', 'header');
+
     OrganizationSetting::factory()->create([
         'company_name' => 'Acme Cooperative',
-        'logo_preset' => OrganizationSettingsService::LOGO_PRESET_FULL,
+        'report_header_design_path' => 'branding/report-headers/header.png',
     ]);
 
     $branding = app(OrganizationSettingsService::class)->branding();
-    $reportHeader = $branding['reportHeader'];
-    $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
-        && ! ($branding['logoIsWordmark'] ?? false);
-    $reportHeader['showLogo'] = $reportHeader['showLogo'] ?? true;
-    $reportHeader['alignment'] = $reportHeader['alignment'] ?? 'center';
 
     $html = view('reports.loan-payments', [
-        'logoData' => 'data:image/png;base64,logo',
         'companyName' => $branding['companyName'],
-        'reportHeader' => $reportHeader,
+        'reportHeader' => $branding['reportHeader'],
         'reportTypography' => $branding['reportTypography'],
         'memberName' => 'Loan Member',
         'memberAccountNo' => '000123',
@@ -76,41 +73,33 @@ test('loan payments report hides company name for full logo preset', function ()
         'closingBalance' => 0,
     ])->render();
 
-    expect($reportHeader['showCompanyName'])->toBeFalse();
-    expect($html)->not->toContain($branding['companyName']);
+    expect($html)->toContain('class="report-header-design"');
+    expect($html)->toContain('src="data:image/png;base64,'.base64_encode('header').'"');
 });
 
-test('loan payments report header typography respects alignment styles', function () {
+test('reports fall back to a simple header when no uploaded design exists', function () {
     OrganizationSetting::factory()->create([
-        'report_header_alignment' => 'right',
+        'company_name' => 'Acme Cooperative',
     ]);
 
     $branding = app(OrganizationSettingsService::class)->branding();
-    $reportHeader = $branding['reportHeader'];
-    $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
-        && ! ($branding['logoIsWordmark'] ?? false);
-    $reportHeader['showLogo'] = $reportHeader['showLogo'] ?? true;
-    $reportHeader['alignment'] = $reportHeader['alignment'] ?? 'center';
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
 
-    $html = view('reports.loan-payments', [
-        'logoData' => 'data:image/png;base64,logo',
+    $html = view('reports.loan-request', [
+        'loanRequest' => $loanRequest,
+        'applicant' => [],
+        'coMakerOne' => [],
+        'coMakerTwo' => [],
         'companyName' => $branding['companyName'],
-        'reportHeader' => $reportHeader,
+        'reportHeader' => $branding['reportHeader'],
         'reportTypography' => $branding['reportTypography'],
-        'memberName' => 'Loan Member',
-        'memberAccountNo' => '000123',
-        'loanNumber' => 'LN-001',
-        'reportStart' => Carbon::now()->subDay(),
-        'reportEnd' => Carbon::now(),
         'generatedAt' => Carbon::now(),
-        'generatedBy' => 'Admin',
-        'payments' => Collection::make(),
-        'openingBalance' => 0,
-        'closingBalance' => 0,
     ])->render();
 
-    expect($html)->toMatch('/\\.report-title\\s*\\{[^}]*text-align:\\s*inherit;/');
-    expect($html)->toMatch('/\\.report-tagline\\s*\\{[^}]*text-align:\\s*inherit;/');
+    expect($branding['reportHeader']['designData'])->toBeNull();
+    expect($html)->toContain('Acme Cooperative');
 });
 
 test('loan payments export uses organization branding values', function () {
@@ -168,13 +157,16 @@ test('loan payments export uses organization branding values', function () {
 
     $branding = [
         'companyName' => 'Acme Cooperative',
-        'logoIsWordmark' => true,
+        'reportHeader' => [
+            'designPath' => null,
+            'designUrl' => null,
+            'designData' => 'data:image/png;base64,header',
+        ],
+        'reportTypography' => [],
     ];
-    $logoData = 'data:image/png;base64,logo';
 
-    mock(OrganizationSettingsService::class, function ($mock) use ($branding, $logoData) {
+    mock(OrganizationSettingsService::class, function ($mock) use ($branding) {
         $mock->shouldReceive('branding')->andReturn($branding);
-        $mock->shouldReceive('logoDataUri')->andReturn($logoData);
     });
 
     Pdf::shouldReceive('setOption')
@@ -184,16 +176,13 @@ test('loan payments export uses organization branding values', function () {
 
     Pdf::shouldReceive('loadView')
         ->once()
-        ->with('reports.loan-payments', Mockery::on(function (array $data) use ($branding, $logoData) {
+        ->with('reports.loan-payments', Mockery::on(function (array $data) use ($branding) {
             $reportHeader = $data['reportHeader'] ?? [];
 
-            return isset($data['companyName'], $data['logoData'], $data['showCompanyName'])
+            return isset($data['companyName'])
                 && $data['companyName'] === $branding['companyName']
-                && $data['logoData'] === $logoData
-                && $data['showCompanyName'] === false
                 && ($reportHeader['companyName'] ?? null) === $branding['companyName']
-                && ($reportHeader['logoData'] ?? null) === $logoData
-                && ($reportHeader['showCompanyName'] ?? null) === false;
+                && ($reportHeader['designData'] ?? null) === 'data:image/png;base64,header';
         }))
         ->andReturnSelf();
 
@@ -286,16 +275,7 @@ test('logo data uri uses mark logo asset by default', function () {
     expect($dataUri)->toBe($expected);
 });
 
-test('loan request report shows company name for mark logo preset', function () {
-    OrganizationSetting::factory()->create([
-        'company_name' => 'Acme Cooperative',
-        'logo_preset' => OrganizationSettingsService::LOGO_PRESET_MARK,
-    ]);
-
-    $branding = app(OrganizationSettingsService::class)->branding();
-    $reportHeader = $branding['reportHeader'];
-    $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
-        && ! ($branding['logoIsWordmark'] ?? false);
+test('loan request report fallback uses application form when company name is missing', function () {
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::UnderReview,
     ]);
@@ -305,42 +285,41 @@ test('loan request report shows company name for mark logo preset', function () 
         'applicant' => [],
         'coMakerOne' => [],
         'coMakerTwo' => [],
-        'companyName' => $branding['companyName'],
-        'logoData' => 'data:image/png;base64,logo',
-        'reportHeader' => $reportHeader,
-        'reportTypography' => $branding['reportTypography'],
+        'companyName' => '',
+        'reportHeader' => [
+            'designPath' => null,
+            'designUrl' => null,
+            'designData' => null,
+            'companyName' => '',
+        ],
+        'reportTypography' => [],
         'generatedAt' => Carbon::now(),
     ])->render();
 
-    expect($reportHeader['showCompanyName'])->toBeTrue();
-    expect($html)->toContain($branding['companyName']);
+    expect($html)->toContain('APPLICATION FORM');
 });
 
-test('loan request report header typography respects alignment styles', function () {
-    OrganizationSetting::factory()->create([
-        'report_header_alignment' => 'right',
-    ]);
-
-    $branding = app(OrganizationSettingsService::class)->branding();
-    $reportHeader = $branding['reportHeader'];
-    $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
-        && ! ($branding['logoIsWordmark'] ?? false);
-    $loanRequest = LoanRequest::factory()->create([
-        'status' => LoanRequestStatus::UnderReview,
-    ]);
-
-    $html = view('reports.loan-request', [
-        'loanRequest' => $loanRequest,
-        'applicant' => [],
-        'coMakerOne' => [],
-        'coMakerTwo' => [],
-        'companyName' => $branding['companyName'],
-        'logoData' => 'data:image/png;base64,logo',
-        'reportHeader' => $reportHeader,
-        'reportTypography' => $branding['reportTypography'],
+test('loan payments report fallback header shows company name when design is missing', function () {
+    $html = view('reports.loan-payments', [
+        'companyName' => 'Acme Cooperative',
+        'reportHeader' => [
+            'designPath' => null,
+            'designUrl' => null,
+            'designData' => null,
+            'companyName' => 'Acme Cooperative',
+        ],
+        'reportTypography' => [],
+        'memberName' => 'Loan Member',
+        'memberAccountNo' => '000123',
+        'loanNumber' => 'LN-001',
+        'reportStart' => Carbon::now()->subDay(),
+        'reportEnd' => Carbon::now(),
         'generatedAt' => Carbon::now(),
+        'generatedBy' => 'Admin',
+        'payments' => Collection::make(),
+        'openingBalance' => 0,
+        'closingBalance' => 0,
     ])->render();
 
-    expect($html)->toMatch('/\\.report-title\\s*\\{[^}]*text-align:\\s*inherit;/');
-    expect($html)->toMatch('/\\.report-tagline\\s*\\{[^}]*text-align:\\s*inherit;/');
+    expect($html)->toContain('Acme Cooperative');
 });

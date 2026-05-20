@@ -40,17 +40,9 @@ class OrganizationSettingsService
         900,
     ];
 
-    private const REPORT_HEADER_TITLE_DEFAULT_WEIGHT = 700;
-
-    private const REPORT_HEADER_TAGLINE_DEFAULT_WEIGHT = 500;
-
     private const REPORT_LABEL_DEFAULT_WEIGHT = 400;
 
     private const REPORT_VALUE_DEFAULT_WEIGHT = 600;
-
-    private const REPORT_HEADER_TITLE_DEFAULT_SIZE = 14;
-
-    private const REPORT_HEADER_TAGLINE_DEFAULT_SIZE = 9;
 
     private const REPORT_LABEL_DEFAULT_SIZE = 8;
 
@@ -60,79 +52,8 @@ class OrganizationSettingsService
 
     private const REPORT_FONT_MAX_SIZE = 24;
 
-    private const REPORT_HEADER_ALIGNMENT_DEFAULT = 'center';
-
-    private const REPORT_HEADER_ALIGNMENT_OPTIONS = [
-        'left',
-        'center',
-        'right',
-    ];
-
     /**
-     * @return array{
-     *     companyName: string,
-     *     portalLabel: string,
-     *     appTitle: string,
-     *     logoPreset: string,
-     *     logoIsWordmark: bool,
-     *     logoPath: ?string,
-     *     logoUrl: string,
-     *     logoMarkUrl: string,
-     *     logoFullUrl: string,
-     *     logoMarkDefaultUrl: string,
-     *     logoFullDefaultUrl: string,
-     *     logoMarkIsDefault: bool,
-     *     logoFullIsDefault: bool,
-     *     faviconPath: ?string,
-     *     faviconUrl: string,
-     *     faviconDefaultUrl: string,
-     *     brandPrimaryColor: ?string,
-     *     brandAccentColor: ?string,
-     *     supportEmail: ?string,
-     *     supportPhone: ?string,
-     *     supportContactName: ?string,
-     *     reportHeader: array{
-     *         title: ?string,
-     *         tagline: ?string,
-     *         alignment: string,
-     *         showLogo: bool,
-     *         showCompanyName: bool
-     *     },
-     *     reportTypography: array{
-     *         headerTitle: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         headerTagline: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         label: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         value: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         }
-     *     }
-     * }
+     * @return array<string, mixed>
      */
     public function branding(): array
     {
@@ -149,74 +70,7 @@ class OrganizationSettingsService
     }
 
     /**
-     * @return array{
-     *     companyName: string,
-     *     portalLabel: string,
-     *     appTitle: string,
-     *     logoPreset: string,
-     *     logoIsWordmark: bool,
-     *     logoPath: ?string,
-     *     logoUrl: string,
-     *     logoMarkUrl: string,
-     *     logoFullUrl: string,
-     *     logoMarkDefaultUrl: string,
-     *     logoFullDefaultUrl: string,
-     *     logoMarkIsDefault: bool,
-     *     logoFullIsDefault: bool,
-     *     faviconPath: ?string,
-     *     faviconUrl: string,
-     *     faviconDefaultUrl: string,
-     *     brandPrimaryColor: ?string,
-     *     brandAccentColor: ?string,
-     *     supportEmail: ?string,
-     *     supportPhone: ?string,
-     *     supportContactName: ?string,
-     *     reportHeader: array{
-     *         title: ?string,
-     *         tagline: ?string,
-     *         alignment: string,
-     *         showLogo: bool,
-     *         showCompanyName: bool
-     *     },
-     *     reportTypography: array{
-     *         headerTitle: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         headerTagline: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         label: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         value: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         }
-     *     }
-     * }
+     * @return array<string, mixed>
      */
     public function fallbackBranding(): array
     {
@@ -243,23 +97,9 @@ class OrganizationSettingsService
             'support_contact_name' => null,
             'loan_sms_approved_template' => self::DEFAULT_LOAN_SMS_APPROVED_TEMPLATE,
             'loan_sms_declined_template' => self::DEFAULT_LOAN_SMS_DECLINED_TEMPLATE,
-            'report_header_title' => null,
-            'report_header_tagline' => null,
-            'report_header_show_logo' => true,
-            'report_header_show_company_name' => true,
-            'report_header_alignment' => self::REPORT_HEADER_ALIGNMENT_DEFAULT,
-            'report_header_font_color' => null,
-            'report_header_tagline_color' => null,
+            'report_header_design_path' => null,
             'report_label_font_color' => null,
             'report_value_font_color' => null,
-            'report_header_title_font_family' => null,
-            'report_header_title_font_variant' => null,
-            'report_header_title_font_weight' => null,
-            'report_header_title_font_size' => null,
-            'report_header_tagline_font_family' => null,
-            'report_header_tagline_font_variant' => null,
-            'report_header_tagline_font_weight' => null,
-            'report_header_tagline_font_size' => null,
             'report_label_font_family' => null,
             'report_label_font_variant' => null,
             'report_label_font_weight' => null,
@@ -272,74 +112,7 @@ class OrganizationSettingsService
     }
 
     /**
-     * @return array{
-     *     companyName: string,
-     *     portalLabel: string,
-     *     appTitle: string,
-     *     logoPreset: string,
-     *     logoIsWordmark: bool,
-     *     logoPath: ?string,
-     *     logoUrl: string,
-     *     logoMarkUrl: string,
-     *     logoFullUrl: string,
-     *     logoMarkDefaultUrl: string,
-     *     logoFullDefaultUrl: string,
-     *     logoMarkIsDefault: bool,
-     *     logoFullIsDefault: bool,
-     *     faviconPath: ?string,
-     *     faviconUrl: string,
-     *     faviconDefaultUrl: string,
-     *     brandPrimaryColor: ?string,
-     *     brandAccentColor: ?string,
-     *     supportEmail: ?string,
-     *     supportPhone: ?string,
-     *     supportContactName: ?string,
-     *     reportHeader: array{
-     *         title: ?string,
-     *         tagline: ?string,
-     *         alignment: string,
-     *         showLogo: bool,
-     *         showCompanyName: bool
-     *     },
-     *     reportTypography: array{
-     *         headerTitle: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         headerTagline: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         label: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         },
-     *         value: array{
-     *             family: string,
-     *             variant: string,
-     *             weight: int,
-     *             size: int,
-     *             color: ?string,
-     *             cssFamily: string,
-     *             cssStyle: string
-     *         }
-     *     }
-     * }
+     * @return array<string, mixed>
      */
     private function mapBranding(?OrganizationSetting $setting): array
     {
@@ -529,14 +302,6 @@ class OrganizationSettingsService
             $mimeType,
             base64_encode($logoSource['contents']),
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function reportHeaderAlignments(): array
-    {
-        return self::REPORT_HEADER_ALIGNMENT_OPTIONS;
     }
 
     protected function currentSetting(): ?OrganizationSetting
@@ -739,66 +504,53 @@ class OrganizationSettingsService
 
     /**
      * @return array{
-     *     title: ?string,
-     *     tagline: ?string,
-     *     showLogo: bool,
-     *     showCompanyName: bool
+     *     designPath: ?string,
+     *     designUrl: ?string,
+     *     designData: ?string
      * }
      */
     private function resolveReportHeader(?OrganizationSetting $setting): array
     {
+        $storedPath = $this->normalizeValue(
+            $setting?->report_header_design_path,
+        );
+
+        if (
+            $storedPath === null
+            || ! Storage::disk('public')->exists($storedPath)
+        ) {
+            return [
+                'designPath' => null,
+                'designUrl' => null,
+                'designData' => null,
+            ];
+        }
+
         return [
-            'title' => $this->normalizeValue($setting?->report_header_title),
-            'tagline' => $this->normalizeValue($setting?->report_header_tagline),
-            'alignment' => $this->resolveReportHeaderAlignment(
-                $setting?->report_header_alignment,
-            ),
-            'showLogo' => $this->normalizeBoolean(
-                $setting?->report_header_show_logo,
-                true,
-            ),
-            'showCompanyName' => $this->normalizeBoolean(
-                $setting?->report_header_show_company_name,
-                true,
-            ),
+            'designPath' => $storedPath,
+            'designUrl' => Storage::disk('public')->url($storedPath),
+            'designData' => $this->buildReportHeaderDesignDataUri($storedPath),
         ];
     }
 
-    private function resolveReportHeaderAlignment(?string $alignment): string
+    private function buildReportHeaderDesignDataUri(string $storedPath): ?string
     {
-        $normalized = $this->normalizeValue($alignment);
-
-        if ($normalized === null) {
-            return self::REPORT_HEADER_ALIGNMENT_DEFAULT;
+        if (! Storage::disk('public')->exists($storedPath)) {
+            return null;
         }
 
-        $value = strtolower($normalized);
+        $contents = Storage::disk('public')->get($storedPath);
+        $mimeType = $this->resolveLogoMimeType($storedPath);
 
-        return in_array($value, self::REPORT_HEADER_ALIGNMENT_OPTIONS, true)
-            ? $value
-            : self::REPORT_HEADER_ALIGNMENT_DEFAULT;
+        return sprintf(
+            'data:%s;base64,%s',
+            $mimeType,
+            base64_encode($contents),
+        );
     }
 
     /**
      * @return array{
-     *     headerTitle: array{
-     *         family: string,
-     *         variant: string,
-     *         weight: int,
-     *         size: int,
-     *         color: ?string,
-     *         cssFamily: string,
-     *         cssStyle: string
-     *     },
-     *     headerTagline: array{
-     *         family: string,
-     *         variant: string,
-     *         weight: int,
-     *         size: int,
-     *         color: ?string,
-     *         cssFamily: string,
-     *         cssStyle: string
-     *     },
      *     googleFontUrl: ?string,
      *     label: array{
      *         family: string,
@@ -823,12 +575,6 @@ class OrganizationSettingsService
     private function resolveReportTypography(
         ?OrganizationSetting $setting,
     ): array {
-        $headerColor = $this->normalizeHexColor(
-            $setting?->report_header_font_color,
-        );
-        $taglineColor = $this->normalizeHexColor(
-            $setting?->report_header_tagline_color,
-        );
         $labelColor = $this->normalizeHexColor(
             $setting?->report_label_font_color,
         );
@@ -837,28 +583,6 @@ class OrganizationSettingsService
         );
 
         $reportTypography = [
-            'headerTitle' => array_merge(
-                $this->resolveReportFont(
-                    $setting?->report_header_title_font_family,
-                    $setting?->report_header_title_font_variant,
-                    $setting?->report_header_title_font_weight,
-                    $setting?->report_header_title_font_size,
-                    self::REPORT_HEADER_TITLE_DEFAULT_SIZE,
-                    self::REPORT_HEADER_TITLE_DEFAULT_WEIGHT,
-                ),
-                ['color' => $headerColor],
-            ),
-            'headerTagline' => array_merge(
-                $this->resolveReportFont(
-                    $setting?->report_header_tagline_font_family,
-                    $setting?->report_header_tagline_font_variant,
-                    $setting?->report_header_tagline_font_weight,
-                    $setting?->report_header_tagline_font_size,
-                    self::REPORT_HEADER_TAGLINE_DEFAULT_SIZE,
-                    self::REPORT_HEADER_TAGLINE_DEFAULT_WEIGHT,
-                ),
-                ['color' => $taglineColor ?? $headerColor],
-            ),
             'label' => array_merge(
                 $this->resolveReportFont(
                     $setting?->report_label_font_family,
@@ -884,8 +608,6 @@ class OrganizationSettingsService
         ];
 
         $reportTypography['googleFontUrl'] = $this->buildGoogleFontUrl([
-            $reportTypography['headerTitle'],
-            $reportTypography['headerTagline'],
             $reportTypography['label'],
             $reportTypography['value'],
         ]);
@@ -899,7 +621,6 @@ class OrganizationSettingsService
      *     variant: string,
      *     weight: int,
      *     size: int,
-     *     color: ?string,
      *     cssFamily: string,
      *     cssStyle: string
      * }
@@ -1072,15 +793,6 @@ class OrganizationSettingsService
             'https://fonts.googleapis.com/css2?%s&display=swap',
             implode('&', $googleFontParams),
         );
-    }
-
-    private function normalizeBoolean(?bool $value, bool $default): bool
-    {
-        if ($value === null) {
-            return $default;
-        }
-
-        return (bool) $value;
     }
 
     private function normalizeValue(?string $value): ?string

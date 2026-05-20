@@ -1,13 +1,8 @@
 export type LogoPreset = 'mark' | 'full';
 
-export type ReportHeaderAlignment = 'left' | 'center' | 'right';
-
 export type ReportHeader = {
-    title: string | null;
-    tagline: string | null;
-    showLogo: boolean;
-    showCompanyName: boolean;
-    alignment: ReportHeaderAlignment;
+    designPath: string | null;
+    designUrl: string | null;
 };
 
 export type ReportTypographyFont = {
@@ -21,8 +16,7 @@ export type ReportTypographyFont = {
 };
 
 export type ReportTypography = {
-    headerTitle: ReportTypographyFont;
-    headerTagline: ReportTypographyFont;
+    googleFontUrl?: string | null;
     label: ReportTypographyFont;
     value: ReportTypographyFont;
 };

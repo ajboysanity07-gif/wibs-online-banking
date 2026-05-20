@@ -56,23 +56,8 @@ class OrganizationSettingsController extends Controller
             'brand_accent_color',
             'loan_sms_approved_template',
             'loan_sms_declined_template',
-            'report_header_title',
-            'report_header_tagline',
-            'report_header_show_logo',
-            'report_header_show_company_name',
-            'report_header_alignment',
-            'report_header_font_color',
-            'report_header_tagline_color',
             'report_label_font_color',
             'report_value_font_color',
-            'report_header_title_font_family',
-            'report_header_title_font_variant',
-            'report_header_title_font_weight',
-            'report_header_title_font_size',
-            'report_header_tagline_font_family',
-            'report_header_tagline_font_variant',
-            'report_header_tagline_font_weight',
-            'report_header_tagline_font_size',
             'report_label_font_family',
             'report_label_font_variant',
             'report_label_font_weight',
@@ -81,10 +66,14 @@ class OrganizationSettingsController extends Controller
             'report_value_font_variant',
             'report_value_font_weight',
             'report_value_font_size',
+            'report_header_design_path',
         ]);
         $shouldResetLogoMark = $request->boolean('logo_mark_reset');
         $shouldResetLogoFull = $request->boolean('logo_full_reset');
         $shouldResetFavicon = $request->boolean('favicon_reset');
+        $shouldResetReportHeaderDesign = $request->boolean(
+            'report_header_design_reset',
+        );
 
         if ($request->hasFile('logo_mark')) {
             if ($setting->logo_mark_path) {
@@ -131,21 +120,25 @@ class OrganizationSettingsController extends Controller
             $payload['favicon_path'] = null;
         }
 
+        if ($request->hasFile('report_header_design')) {
+            if ($setting->report_header_design_path) {
+                Storage::disk('public')->delete($setting->report_header_design_path);
+            }
+
+            $payload['report_header_design_path'] = $request->file(
+                'report_header_design',
+            )->store('branding/report-headers', 'public');
+        } elseif ($shouldResetReportHeaderDesign) {
+            if ($setting->report_header_design_path) {
+                Storage::disk('public')->delete($setting->report_header_design_path);
+            }
+
+            $payload['report_header_design_path'] = null;
+        }
+
         $changedFields = [];
 
         if ($payload !== []) {
-            if (array_key_exists('report_header_show_logo', $payload)) {
-                $payload['report_header_show_logo'] = $request->boolean(
-                    'report_header_show_logo',
-                );
-            }
-
-            if (array_key_exists('report_header_show_company_name', $payload)) {
-                $payload['report_header_show_company_name'] = $request->boolean(
-                    'report_header_show_company_name',
-                );
-            }
-
             $setting->fill($payload);
             $changedFields = array_keys($setting->getDirty());
 

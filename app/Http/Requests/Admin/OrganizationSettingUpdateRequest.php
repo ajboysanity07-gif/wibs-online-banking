@@ -58,6 +58,13 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'support_contact_name' => ['nullable', 'string', 'max:255'],
             'loan_sms_approved_template' => ['nullable', 'string', 'max:1000'],
             'loan_sms_declined_template' => ['nullable', 'string', 'max:1000'],
+            'report_header_design' => [
+                'nullable',
+                'file',
+                'max:4096',
+                'mimes:jpg,jpeg,png,webp',
+            ],
+            'report_header_design_reset' => ['nullable', 'boolean'],
             'brand_primary_color' => [
                 'nullable',
                 'string',
@@ -65,30 +72,6 @@ class OrganizationSettingUpdateRequest extends FormRequest
                 'regex:/^#[0-9a-fA-F]{6}$/',
             ],
             'brand_accent_color' => [
-                'nullable',
-                'string',
-                'max:32',
-                'regex:/^#[0-9a-fA-F]{6}$/',
-            ],
-            'report_header_title' => ['nullable', 'string', 'max:255'],
-            'report_header_tagline' => ['nullable', 'string', 'max:255'],
-            'report_header_show_logo' => ['nullable', 'boolean'],
-            'report_header_show_company_name' => ['nullable', 'boolean'],
-            'report_header_alignment' => [
-                'nullable',
-                'string',
-                Rule::in(
-                    app(OrganizationSettingsService::class)
-                        ->reportHeaderAlignments(),
-                ),
-            ],
-            'report_header_font_color' => [
-                'nullable',
-                'string',
-                'max:32',
-                'regex:/^#[0-9a-fA-F]{6}$/',
-            ],
-            'report_header_tagline_color' => [
                 'nullable',
                 'string',
                 'max:32',
@@ -105,50 +88,6 @@ class OrganizationSettingUpdateRequest extends FormRequest
                 'string',
                 'max:32',
                 'regex:/^#[0-9a-fA-F]{6}$/',
-            ],
-            'report_header_title_font_family' => [
-                'nullable',
-                'string',
-                'max:100',
-                'regex:/^[A-Za-z0-9\\s\\-+&.]+$/',
-            ],
-            'report_header_title_font_variant' => [
-                'nullable',
-                'string',
-                Rule::in(['regular', 'italic']),
-            ],
-            'report_header_title_font_weight' => [
-                'nullable',
-                'string',
-                Rule::in(['300', '400', '500', '600', '700', '800', '900']),
-            ],
-            'report_header_title_font_size' => [
-                'nullable',
-                'integer',
-                'min:6',
-                'max:24',
-            ],
-            'report_header_tagline_font_family' => [
-                'nullable',
-                'string',
-                'max:100',
-                'regex:/^[A-Za-z0-9\\s\\-+&.]+$/',
-            ],
-            'report_header_tagline_font_variant' => [
-                'nullable',
-                'string',
-                Rule::in(['regular', 'italic']),
-            ],
-            'report_header_tagline_font_weight' => [
-                'nullable',
-                'string',
-                Rule::in(['300', '400', '500', '600', '700', '800', '900']),
-            ],
-            'report_header_tagline_font_size' => [
-                'nullable',
-                'integer',
-                'min:6',
-                'max:24',
             ],
             'report_label_font_family' => [
                 'nullable',
@@ -205,12 +144,6 @@ class OrganizationSettingUpdateRequest extends FormRequest
             ),
             'brand_accent_color' => $this->normalizeHexColor(
                 $this->input('brand_accent_color'),
-            ),
-            'report_header_font_color' => $this->normalizeHexColor(
-                $this->input('report_header_font_color'),
-            ),
-            'report_header_tagline_color' => $this->normalizeHexColor(
-                $this->input('report_header_tagline_color'),
             ),
             'report_label_font_color' => $this->normalizeHexColor(
                 $this->input('report_label_font_color'),
@@ -273,13 +206,12 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'support_contact_name.max' => 'Support contact name may not be greater than 255 characters.',
             'loan_sms_approved_template.max' => 'Approved SMS template may not be greater than 1000 characters.',
             'loan_sms_declined_template.max' => 'Declined SMS template may not be greater than 1000 characters.',
+            'report_header_design.max' => 'Report header design must be 4MB or smaller.',
+            'report_header_design.mimes' => 'Report header design must be a JPG, PNG, or WebP image.',
             'brand_primary_color.regex' => 'Primary color must be a valid hex value (e.g., #1a2b3c).',
             'brand_accent_color.regex' => 'Accent color must be a valid hex value (e.g., #1a2b3c).',
-            'report_header_font_color.regex' => 'Header color must be a valid hex value (e.g., #1a2b3c).',
-            'report_header_tagline_color.regex' => 'Tagline color must be a valid hex value (e.g., #1a2b3c).',
             'report_label_font_color.regex' => 'Label color must be a valid hex value (e.g., #1a2b3c).',
             'report_value_font_color.regex' => 'Value color must be a valid hex value (e.g., #1a2b3c).',
-            'report_header_alignment.in' => 'Report header alignment must be left, center, or right.',
         ];
     }
 }

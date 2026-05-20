@@ -201,46 +201,21 @@ class MemberLoanExportService
      *     closingBalance: ?float
      * }  $payload
      * @param  array{start: \Illuminate\Support\Carbon, end: \Illuminate\Support\Carbon}  $reportPeriod
-     * @return array{
-     *     logoData: ?string,
-     *     companyName: string,
-     *     showCompanyName: bool,
-     *     memberName: string,
-     *     memberAccountNo: ?string,
-     *     loanNumber: string,
-     *     reportStart: \Illuminate\Support\Carbon,
-     *     reportEnd: \Illuminate\Support\Carbon,
-     *     generatedAt: \Illuminate\Support\Carbon,
-     *     generatedBy: ?string,
-     *     payments: \Illuminate\Support\Collection<int, \App\Models\Wlnled>,
-     *     openingBalance: ?float,
-     *     closingBalance: ?float
-     * }
+     * @return array<string, mixed>
      */
     private function buildViewData(
         array $payload,
         string $memberName,
         array $reportPeriod,
     ): array {
-        $logoData = $this->brandingService->logoDataUri();
         $branding = $this->brandingService->branding();
         $generatedBy = auth()->user()?->name ?? auth()->user()?->username;
         $reportHeader = $branding['reportHeader'] ?? [];
-        $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
-            && ! ($branding['logoIsWordmark'] ?? false);
-        $reportHeader['showLogo'] = $reportHeader['showLogo'] ?? true;
-        $reportHeader['alignment'] = $reportHeader['alignment'] ?? 'center';
         $reportHeader['companyName'] = $branding['companyName'] ?? '';
-        $reportHeader['logoData'] = $logoData;
-        $reportHeader['titleColor'] = $branding['reportTypography']['headerTitle']['color']
-            ?? null;
-        $reportHeader['taglineColor'] = $branding['reportTypography']['headerTagline']['color']
-            ?? null;
+        $reportHeader['designData'] = $reportHeader['designData'] ?? null;
 
         return [
-            'logoData' => $logoData,
             'companyName' => $branding['companyName'],
-            'showCompanyName' => $reportHeader['showCompanyName'],
             'memberName' => $memberName,
             'memberAccountNo' => $payload['loan']->acctno ?? null,
             'loanNumber' => $payload['loan']->lnnumber,

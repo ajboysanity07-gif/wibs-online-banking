@@ -44,9 +44,8 @@ export default function LoanSchedule({
     const backToProfileHref = clientDashboard().url;
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Member profile', href: clientDashboard().url },
         { title: 'Loans', href: clientLoans().url },
-        { title: 'Schedule', href: '#' },
+        { title: 'Schedule', href: scheduleHref ?? '#' },
     ];
 
     return (

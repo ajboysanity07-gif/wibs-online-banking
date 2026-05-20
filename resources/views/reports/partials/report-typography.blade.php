@@ -1,47 +1,23 @@
 @php
     $reportTypography = $reportTypography ?? [];
-    $headerTitle = $reportTypography['headerTitle'] ?? [];
-    $headerTagline = $reportTypography['headerTagline'] ?? [];
     $labelFont = $reportTypography['label'] ?? [];
     $valueFont = $reportTypography['value'] ?? [];
-    $headerTitleFamily = $headerTitle['cssFamily'] ?? '"DejaVu Sans", sans-serif';
-    $headerTaglineFamily = $headerTagline['cssFamily'] ?? '"DejaVu Sans", sans-serif';
     $labelFamily = $labelFont['cssFamily'] ?? '"DejaVu Sans", sans-serif';
     $valueFamily = $valueFont['cssFamily'] ?? '"DejaVu Sans", sans-serif';
-    $headerTitleWeight = $headerTitle['weight'] ?? 700;
-    $headerTaglineWeight = $headerTagline['weight'] ?? 500;
     $labelWeight = $labelFont['weight'] ?? 400;
     $valueWeight = $valueFont['weight'] ?? 600;
-    $headerTitleStyle = $headerTitle['cssStyle'] ?? 'normal';
-    $headerTaglineStyle = $headerTagline['cssStyle'] ?? 'normal';
     $labelStyle = $labelFont['cssStyle'] ?? 'normal';
     $valueStyle = $valueFont['cssStyle'] ?? 'normal';
-    $headerTitleSize = $headerTitle['size'] ?? 14;
-    $headerTaglineSize = $headerTagline['size'] ?? 9;
     $labelSize = $labelFont['size'] ?? 8;
     $valueSize = $valueFont['size'] ?? 10;
-    $headerColor = $headerTitle['color'] ?? null;
-    $headerTaglineColor = $headerTagline['color'] ?? null;
     $labelColor = $labelFont['color'] ?? null;
     $valueColor = $valueFont['color'] ?? null;
-    $resolvedHeaderColor = $headerColor ?? '#111111';
-    $resolvedHeaderTaglineColor = $headerTaglineColor ?? $resolvedHeaderColor;
     $resolvedLabelColor = $labelColor ?? '#333333';
     $resolvedValueColor = $valueColor ?? '#111111';
     $valueSizeTight = max($valueSize - 1, 6);
     $valueSizeTightest = max($valueSize - 1.5, 6);
 @endphp
 :root {
-    --report-font-header-title-family: {!! $headerTitleFamily !!};
-    --report-font-header-title-weight: {{ $headerTitleWeight }};
-    --report-font-header-title-style: {{ $headerTitleStyle }};
-    --report-font-header-title-size: {{ $headerTitleSize }}px;
-    --report-font-header-tagline-family: {!! $headerTaglineFamily !!};
-    --report-font-header-tagline-weight: {{ $headerTaglineWeight }};
-    --report-font-header-tagline-style: {{ $headerTaglineStyle }};
-    --report-font-header-tagline-size: {{ $headerTaglineSize }}px;
-    --report-font-header-color: {{ $resolvedHeaderColor }};
-    --report-font-header-tagline-color: {{ $resolvedHeaderTaglineColor }};
     --report-font-label-family: {!! $labelFamily !!};
     --report-font-label-weight: {{ $labelWeight }};
     --report-font-label-style: {{ $labelStyle }};

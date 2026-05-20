@@ -56,6 +56,7 @@ const memberNavItems: NavItem[] = [
         title: 'Loans',
         href: clientLoans(),
         icon: Banknote,
+        match: 'section',
     },
     {
         title: 'Loan Security',
