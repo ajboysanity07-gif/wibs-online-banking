@@ -19,6 +19,7 @@ class LoanRequestPerson extends Model
     protected $fillable = [
         'loan_request_id',
         'role',
+        'signature_path',
         'first_name',
         'last_name',
         'middle_name',

@@ -6,6 +6,7 @@ import {
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
+import SignaturePadField from '@/components/signature-pad-field';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -173,6 +174,8 @@ type PersonStepProps = {
     errors: Record<string, string | undefined>;
     readOnly?: LoanRequestReadOnlyMap | null;
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
+    signatureData?: string;
+    onSignatureChange?: (value: string) => void;
 };
 
 export function LoanRequestApplicantPersonalStep({
@@ -203,6 +206,8 @@ export function LoanRequestApplicantWorkStep({
     values,
     errors,
     onChange,
+    signatureData = '',
+    onSignatureChange,
 }: PersonStepProps) {
     return (
         <LoanRequestSectionCard
@@ -215,6 +220,14 @@ export function LoanRequestApplicantWorkStep({
                 errors={errors}
                 onChange={onChange}
             />
+            <Separator className="bg-border/40" />
+            <SignaturePadField
+                name="applicant_signature_data"
+                label="Member / Applicant Signature"
+                value={signatureData}
+                error={errors.applicant_signature_data}
+                onChange={(nextValue) => onSignatureChange?.(nextValue)}
+            />
         </LoanRequestSectionCard>
     );
 }
@@ -226,6 +239,10 @@ type CoMakerStepProps = {
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
+    signatureName: string;
+    signatureLabel: string;
+    signatureData: string;
+    onSignatureChange: (value: string) => void;
 };
 
 export function LoanRequestCoMakerStep({
@@ -235,6 +252,10 @@ export function LoanRequestCoMakerStep({
     values,
     errors,
     onChange,
+    signatureName,
+    signatureLabel,
+    signatureData,
+    onSignatureChange,
 }: CoMakerStepProps) {
     return (
         <LoanRequestSectionCard title={title} description={description}>
@@ -250,6 +271,14 @@ export function LoanRequestCoMakerStep({
                 values={values}
                 errors={errors}
                 onChange={onChange}
+            />
+            <Separator className="bg-border/40" />
+            <SignaturePadField
+                name={signatureName}
+                label={signatureLabel}
+                value={signatureData}
+                error={errors[signatureName]}
+                onChange={onSignatureChange}
             />
         </LoanRequestSectionCard>
     );

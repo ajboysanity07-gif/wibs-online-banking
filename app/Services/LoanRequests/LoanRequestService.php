@@ -19,6 +19,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestService
@@ -124,6 +126,9 @@ class LoanRequestService
      *     requested_term?: int|string|null,
      *     loan_purpose?: string|null,
      *     availment_status?: string|null,
+     *     applicant_signature_data?: string|null,
+     *     co_maker_one_signature_data?: string|null,
+     *     co_maker_two_signature_data?: string|null,
      *     applicant?: array<string, mixed>,
      *     co_maker_1?: array<string, mixed>,
      *     co_maker_2?: array<string, mixed>
@@ -159,6 +164,9 @@ class LoanRequestService
      *     requested_term: int|string,
      *     loan_purpose: string,
      *     availment_status: string,
+     *     applicant_signature_data?: string|null,
+     *     co_maker_one_signature_data?: string|null,
+     *     co_maker_two_signature_data?: string|null,
      *     applicant: array<string, mixed>,
      *     co_maker_1: array<string, mixed>,
      *     co_maker_2: array<string, mixed>
@@ -756,16 +764,19 @@ class LoanRequestService
             $loanRequest,
             LoanRequestPersonRole::Applicant,
             $this->extractPersonPayload($payload, 'applicant'),
+            $this->extractSignatureData($payload, 'applicant_signature_data'),
         );
         $this->upsertPersonSnapshot(
             $loanRequest,
             LoanRequestPersonRole::CoMakerOne,
             $this->extractPersonPayload($payload, 'co_maker_1'),
+            $this->extractSignatureData($payload, 'co_maker_one_signature_data'),
         );
         $this->upsertPersonSnapshot(
             $loanRequest,
             LoanRequestPersonRole::CoMakerTwo,
             $this->extractPersonPayload($payload, 'co_maker_2'),
+            $this->extractSignatureData($payload, 'co_maker_two_signature_data'),
         );
     }
 
@@ -780,6 +791,19 @@ class LoanRequestService
         return is_array($value) ? $value : [];
     }
 
+    private function extractSignatureData(array $payload, string $key): ?string
+    {
+        $value = $payload[$key] ?? null;
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed !== '' ? $trimmed : null;
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -787,6 +811,7 @@ class LoanRequestService
         LoanRequest $loanRequest,
         LoanRequestPersonRole $role,
         array $data,
+        ?string $signatureData = null,
     ): LoanRequestPerson {
         $birthplaceValues = $this->resolveBirthplaceValues($data);
         $addressValues = $this->resolveAddressValues($data, 'address');
@@ -796,9 +821,14 @@ class LoanRequestService
             'employer_business_',
         );
 
-        return $loanRequest->people()->updateOrCreate([
+        $person = $loanRequest->people()->firstOrNew([
             'role' => $role,
-        ], [
+        ]);
+        $previousSignaturePath = $this->normalizeOptionalString(
+            $person->signature_path,
+        );
+
+        $attributes = [
             'role' => $role,
             'first_name' => (string) ($data['first_name'] ?? ''),
             'last_name' => (string) ($data['last_name'] ?? ''),
@@ -849,7 +879,49 @@ class LoanRequestService
                 $data['gross_monthly_income'] ?? null,
             ),
             'payday' => $this->normalizeOptionalString($data['payday'] ?? null),
-        ]);
+        ];
+
+        if ($signatureData !== null) {
+            $storedSignaturePath = $this->storeSignatureData($signatureData);
+
+            if ($storedSignaturePath !== null) {
+                if (
+                    $previousSignaturePath !== null
+                    && Storage::disk('public')->exists($previousSignaturePath)
+                ) {
+                    Storage::disk('public')->delete($previousSignaturePath);
+                }
+
+                $attributes['signature_path'] = $storedSignaturePath;
+            }
+        } elseif (! $person->exists) {
+            $attributes['signature_path'] = null;
+        }
+
+        $person->fill($attributes);
+        $person->loanRequest()->associate($loanRequest);
+        $person->save();
+
+        return $person;
+    }
+
+    private function storeSignatureData(?string $data): ?string
+    {
+        if (! $data || ! str_starts_with($data, 'data:image/png;base64,')) {
+            return null;
+        }
+
+        $encoded = substr($data, strlen('data:image/png;base64,'));
+        $image = base64_decode($encoded, true);
+
+        if ($image === false) {
+            return null;
+        }
+
+        $path = 'loan-requests/signatures/'.Str::uuid().'.png';
+        Storage::disk('public')->put($path, $image);
+
+        return $path;
     }
 
     /**

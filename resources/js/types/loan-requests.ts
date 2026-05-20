@@ -42,6 +42,7 @@ export type LoanRequestPersonData = {
     years_in_work_business: string | null;
     gross_monthly_income: string | null;
     payday: string | null;
+    signature_path: string | null;
 };
 
 export type LoanRequestReviewer = {
@@ -195,6 +196,9 @@ export type LoanRequestFormData = {
     loan_purpose: string;
     availment_status: string;
     undertaking_accepted: boolean;
+    applicant_signature_data?: string;
+    co_maker_one_signature_data?: string;
+    co_maker_two_signature_data?: string;
     applicant: LoanRequestPersonFormData;
     co_maker_1: LoanRequestPersonFormData;
     co_maker_2: LoanRequestPersonFormData;

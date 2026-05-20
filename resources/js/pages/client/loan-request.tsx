@@ -243,6 +243,21 @@ const resolveStepFromErrors = (
             return;
         }
 
+        if (key === 'applicant_signature_data') {
+            stepMatches.push(2);
+            return;
+        }
+
+        if (key === 'co_maker_one_signature_data') {
+            stepMatches.push(3);
+            return;
+        }
+
+        if (key === 'co_maker_two_signature_data') {
+            stepMatches.push(4);
+            return;
+        }
+
         if (key.startsWith('co_maker_1.')) {
             stepMatches.push(3);
             return;
@@ -301,6 +316,9 @@ export default function LoanRequestPage({
             loan_purpose: draft?.loan_purpose ?? '',
             availment_status: draft?.availment_status ?? '',
             undertaking_accepted: false,
+            applicant_signature_data: '',
+            co_maker_one_signature_data: '',
+            co_maker_two_signature_data: '',
             applicant: toPersonForm(applicant),
             co_maker_1: toPersonForm(coMakerOne),
             co_maker_2: toPersonForm(coMakerTwo),
@@ -331,6 +349,17 @@ export default function LoanRequestPage({
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
         form.setData(field, value);
     };
+
+    const updateSignatureField =
+        (
+            field:
+                | 'applicant_signature_data'
+                | 'co_maker_one_signature_data'
+                | 'co_maker_two_signature_data',
+        ) =>
+        (value: string) => {
+            form.setData(field, value);
+        };
 
     const handleStepChange = (nextStep: number) => {
         setCurrentStep((current) => {
@@ -514,6 +543,12 @@ export default function LoanRequestPage({
                                 errors={form.errors}
                                 readOnly={applicantReadOnly}
                                 onChange={updatePersonField('applicant')}
+                                signatureData={
+                                    form.data.applicant_signature_data ?? ''
+                                }
+                                onSignatureChange={updateSignatureField(
+                                    'applicant_signature_data',
+                                )}
                             />
                         </LoanRequestAnimatedStep>
 
@@ -525,6 +560,12 @@ export default function LoanRequestPage({
                                 values={form.data.applicant}
                                 errors={form.errors}
                                 onChange={updatePersonField('applicant')}
+                                signatureData={
+                                    form.data.applicant_signature_data ?? ''
+                                }
+                                onSignatureChange={updateSignatureField(
+                                    'applicant_signature_data',
+                                )}
                             />
                         </LoanRequestAnimatedStep>
 
@@ -539,6 +580,14 @@ export default function LoanRequestPage({
                                 values={form.data.co_maker_1}
                                 errors={form.errors}
                                 onChange={updatePersonField('co_maker_1')}
+                                signatureName="co_maker_one_signature_data"
+                                signatureLabel="Co-maker 1 Signature"
+                                signatureData={
+                                    form.data.co_maker_one_signature_data ?? ''
+                                }
+                                onSignatureChange={updateSignatureField(
+                                    'co_maker_one_signature_data',
+                                )}
                             />
                         </LoanRequestAnimatedStep>
 
@@ -553,6 +602,14 @@ export default function LoanRequestPage({
                                 values={form.data.co_maker_2}
                                 errors={form.errors}
                                 onChange={updatePersonField('co_maker_2')}
+                                signatureName="co_maker_two_signature_data"
+                                signatureLabel="Co-maker 2 Signature"
+                                signatureData={
+                                    form.data.co_maker_two_signature_data ?? ''
+                                }
+                                onSignatureChange={updateSignatureField(
+                                    'co_maker_two_signature_data',
+                                )}
                             />
                         </LoanRequestAnimatedStep>
 

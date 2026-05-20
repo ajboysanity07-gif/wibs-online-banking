@@ -22,16 +22,10 @@
         return 'field field--tightest';
     };
     $reportHeader = $reportHeader ?? [];
-    $reportTitle = $reportHeader['title'] ?? null;
-    $reportTagline = $reportHeader['tagline'] ?? null;
-    $titleText = $reportTitle ?: 'APPLICATION FORM';
 @endphp
 
 <div class="page">
-    @include('reports.partials.report-header', [
-        'reportTitle' => $titleText,
-        'reportTagline' => $reportTagline,
-    ])
+    @include('reports.partials.report-header', ['reportHeader' => $reportHeader])
 
     <div class="section-group">
         <table class="info-table">
@@ -455,9 +449,29 @@
         </div>
 
         <div class="signature-row">
-            <div class="signature-line">Signature of Applicant / Printed Name</div>
-            <div class="signature-line">Signature of Co-Maker 1 / Printed Name</div>
-            <div class="signature-line">Signature of Co-Maker 2 / Printed Name</div>
+            <div class="signature-box">
+                @if (! empty($applicant['signatureData']))
+                    <img src="{{ $applicant['signatureData'] }}" class="signature-image" alt="Applicant signature" />
+                @endif
+                <div class="signature-line"></div>
+                <div class="signature-label">Member / Applicant</div>
+            </div>
+
+            <div class="signature-box">
+                @if (! empty($coMakerOne['signatureData']))
+                    <img src="{{ $coMakerOne['signatureData'] }}" class="signature-image" alt="Co-maker 1 signature" />
+                @endif
+                <div class="signature-line"></div>
+                <div class="signature-label">Co-maker 1</div>
+            </div>
+
+            <div class="signature-box">
+                @if (! empty($coMakerTwo['signatureData']))
+                    <img src="{{ $coMakerTwo['signatureData'] }}" class="signature-image" alt="Co-maker 2 signature" />
+                @endif
+                <div class="signature-line"></div>
+                <div class="signature-label">Co-maker 2</div>
+            </div>
         </div>
     </div>
 </div>

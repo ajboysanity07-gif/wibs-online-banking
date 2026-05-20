@@ -10,6 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Browsershot\Browsershot;
 use Symfony\Component\HttpFoundation\Response;
@@ -65,18 +66,9 @@ class LoanRequestPdfService
         $coMakerOne = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerOne);
         $coMakerTwo = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerTwo);
         $branding = $this->brandingService->branding();
-        $logoData = $this->brandingService->logoDataUri();
         $reportHeader = $branding['reportHeader'] ?? [];
-        $reportHeader['showCompanyName'] = ($reportHeader['showCompanyName'] ?? true)
-            && ! ($branding['logoIsWordmark'] ?? false);
-        $reportHeader['showLogo'] = $reportHeader['showLogo'] ?? true;
-        $reportHeader['alignment'] = $reportHeader['alignment'] ?? 'center';
         $reportHeader['companyName'] = $branding['companyName'] ?? '';
-        $reportHeader['logoData'] = $logoData;
-        $reportHeader['titleColor'] = $branding['reportTypography']['headerTitle']['color']
-            ?? null;
-        $reportHeader['taglineColor'] = $branding['reportTypography']['headerTagline']['color']
-            ?? null;
+        $reportHeader['designData'] = $reportHeader['designData'] ?? null;
 
         return [
             'loanRequest' => $loanRequest,
@@ -84,7 +76,6 @@ class LoanRequestPdfService
             'coMakerOne' => $coMakerOne,
             'coMakerTwo' => $coMakerTwo,
             'companyName' => $branding['companyName'],
-            'logoData' => $logoData,
             'reportHeader' => $reportHeader,
             'reportTypography' => $branding['reportTypography'] ?? [],
             'generatedAt' => Carbon::now(),
@@ -120,8 +111,23 @@ class LoanRequestPdfService
         $person['birthplace'] = $birthplace;
         $person['address'] = $address;
         $person['employer_business_address'] = $employerBusinessAddress;
+        $person['signatureData'] = $this->signatureDataUri(
+            $person['signature_path'] ?? null,
+        );
 
         return $person;
+    }
+
+    private function signatureDataUri(?string $path): ?string
+    {
+        if (! $path || ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        $contents = Storage::disk('public')->get($path);
+        $mime = Storage::disk('public')->mimeType($path) ?: 'image/png';
+
+        return 'data:'.$mime.';base64,'.base64_encode($contents);
     }
 
     /**

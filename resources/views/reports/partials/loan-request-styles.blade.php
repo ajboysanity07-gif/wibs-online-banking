@@ -24,67 +24,30 @@
         box-sizing: border-box;
     }
     .report-header {
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
-    .report-header--left {
-        text-align: left;
-    }
-    .report-header--center {
+    .report-header--design {
+        margin-bottom: 16px;
         text-align: center;
     }
-    .report-header--right {
-        text-align: right;
+    .report-header-design {
+        display: block;
+        width: 100%;
+        max-height: 95px;
+        object-fit: contain;
     }
-    .report-header-group {
-        display: inline-block;
-        text-align: inherit;
-    }
-    .report-brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        vertical-align: middle;
-        margin-right: 12px;
-    }
-    .report-header-text {
-        display: inline-block;
-        vertical-align: middle;
-        text-align: inherit;
-    }
-    .report-header--wordmark .report-brand {
-        gap: 0;
-    }
-    .report-logo {
-        height: 36px;
-    }
-    .report-header--wordmark .report-logo {
-        height: 42px;
-    }
-    .report-company-name {
-        font-family: var(--report-font-header-title-family);
-        font-weight: var(--report-font-header-title-weight);
-        font-style: var(--report-font-header-title-style);
-        font-size: 12px;
-        color: var(--report-font-header-color);
+    .report-header--fallback {
+        text-align: center;
     }
     .report-title {
-        text-align: inherit;
-        font-family: var(--report-font-header-title-family);
-        font-weight: var(--report-font-header-title-weight);
-        font-style: var(--report-font-header-title-style);
-        font-size: var(--report-font-header-title-size);
-        color: var(--report-font-header-color);
+        font-family: var(--report-font-value-family);
+        font-weight: 700;
+        font-style: normal;
+        font-size: 12px;
+        color: #111;
         margin: 0;
         letter-spacing: 0.04em;
-    }
-    .report-tagline {
-        text-align: inherit;
-        font-family: var(--report-font-header-tagline-family);
-        font-weight: var(--report-font-header-tagline-weight);
-        font-style: var(--report-font-header-tagline-style);
-        font-size: var(--report-font-header-tagline-size);
-        color: var(--report-font-header-tagline-color);
-        margin: 2px 0 0;
+        text-transform: uppercase;
     }
     .section-title {
         display: block;
@@ -181,16 +144,29 @@
         margin: 0 0 6px;
     }
     .signature-row {
-        margin-top: 60px;
+        margin-top: 48px;
         display: flex;
         justify-content: space-between;
-        gap: 10px;
-        font-size: 9px;
+        gap: 16px;
+    }
+    .signature-box {
+        width: 32%;
         text-align: center;
+    }
+    .signature-image {
+        height: 42px;
+        max-width: 100%;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto 4px;
     }
     .signature-line {
         border-top: 1px solid #111;
-        padding-top: 10px;
-        width: 32%;
+        height: 1px;
+    }
+    .signature-label {
+        margin-top: 6px;
+        font-size: 9px;
+        font-weight: 600;
     }
 </style>

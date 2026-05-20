@@ -82,6 +82,9 @@ class LoanRequestDraftRequest extends FormRequest
                 'string',
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
+            'applicant_signature_data' => $this->signatureDataRules(),
+            'co_maker_one_signature_data' => $this->signatureDataRules(),
+            'co_maker_two_signature_data' => $this->signatureDataRules(),
             'undertaking_accepted' => ['sometimes', 'boolean'],
             ...$this->personRules('applicant', true, true),
             ...$this->personRules('co_maker_1', false, false),
@@ -157,6 +160,20 @@ class LoanRequestDraftRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * @return array<int, ValidationRule|string>
+     */
+    private function signatureDataRules(): array
+    {
+        return [
+            'sometimes',
+            'nullable',
+            'string',
+            'starts_with:data:image/png;base64,',
+            'max:2800000',
+        ];
     }
 
     /**

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -163,6 +164,29 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
     ];
 
     return array_replace_recursive($payload, $overrides);
+}
+
+function sampleSignatureDataUrl(string $variant = 'one'): string
+{
+    $base64 = match ($variant) {
+        'two' => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAApJREFUCNdjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=',
+        default => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
+    };
+
+    return 'data:image/png;base64,'.$base64;
+}
+
+function sampleSignatureBinary(string $variant = 'one'): string
+{
+    $dataUrl = sampleSignatureDataUrl($variant);
+    $encoded = str_replace('data:image/png;base64,', '', $dataUrl);
+    $decoded = base64_decode($encoded, true);
+
+    if ($decoded === false) {
+        throw new RuntimeException('Unable to decode sample signature data.');
+    }
+
+    return $decoded;
 }
 
 function createLoanRequestPeopleSnapshots(LoanRequest $loanRequest): void
@@ -856,6 +880,8 @@ test('loan request form resumes existing draft', function () {
 });
 
 test('loan request submissions persist snapshots', function () {
+    Storage::fake('public');
+
     $user = User::factory()->create([
         'acctno' => '000711',
     ]);
@@ -886,6 +912,9 @@ test('loan request submissions persist snapshots', function () {
         'requested_term' => 12,
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
+        'applicant_signature_data' => sampleSignatureDataUrl('one'),
+        'co_maker_one_signature_data' => sampleSignatureDataUrl('two'),
+        'co_maker_two_signature_data' => sampleSignatureDataUrl('one'),
         'undertaking_accepted' => true,
         'applicant' => [
             'first_name' => 'Loan',
@@ -999,6 +1028,182 @@ test('loan request submissions persist snapshots', function () {
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('RENT');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao, Davao del Sur');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
+    expect($people[LoanRequestPersonRole::Applicant->value]->signature_path)->not->toBeNull();
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->signature_path)->not->toBeNull();
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path)->not->toBeNull();
+    Storage::disk('public')->assertExists(
+        $people[LoanRequestPersonRole::Applicant->value]->signature_path,
+    );
+    Storage::disk('public')->assertExists(
+        $people[LoanRequestPersonRole::CoMakerOne->value]->signature_path,
+    );
+    Storage::disk('public')->assertExists(
+        $people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path,
+    );
+});
+
+test('newly submitted applicant signature replaces old signature file', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create([
+        'acctno' => '000724',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-008',
+        'lntype' => 'Personal',
+    ]);
+
+    $payload = [
+        'typecode' => 'LN-008',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'applicant_signature_data' => sampleSignatureDataUrl('one'),
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '3 years',
+            'gross_monthly_income' => 25000,
+            'payday' => '15th & 30th',
+        ],
+    ];
+
+    $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $payload)
+        ->assertRedirect(route('client.loan-requests.create'));
+
+    $loanRequest = LoanRequest::query()->sole();
+    $firstSignaturePath = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->value('signature_path');
+
+    expect($firstSignaturePath)->not->toBeNull();
+    Storage::disk('public')->assertExists((string) $firstSignaturePath);
+
+    $payload['applicant_signature_data'] = sampleSignatureDataUrl('two');
+    $payload['loan_purpose'] = 'Tuition';
+
+    $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $payload)
+        ->assertRedirect(route('client.loan-requests.create'));
+
+    $secondSignaturePath = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->value('signature_path');
+
+    expect($secondSignaturePath)->not->toBeNull();
+    expect($secondSignaturePath)->not->toBe($firstSignaturePath);
+    Storage::disk('public')->assertMissing((string) $firstSignaturePath);
+    Storage::disk('public')->assertExists((string) $secondSignaturePath);
+});
+
+test('loan request print preview includes signature data uris', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $applicantSignaturePath = 'loan-requests/signatures/applicant.png';
+    $coMakerOneSignaturePath = 'loan-requests/signatures/co-maker-one.png';
+    $coMakerTwoSignaturePath = 'loan-requests/signatures/co-maker-two.png';
+    Storage::disk('public')->put(
+        $applicantSignaturePath,
+        sampleSignatureBinary('one'),
+    );
+    Storage::disk('public')->put(
+        $coMakerOneSignaturePath,
+        sampleSignatureBinary('two'),
+    );
+    Storage::disk('public')->put(
+        $coMakerTwoSignaturePath,
+        sampleSignatureBinary('one'),
+    );
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Approved,
+            'submitted_at' => now(),
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'signature_path' => $applicantSignaturePath,
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'signature_path' => $coMakerOneSignaturePath,
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'signature_path' => $coMakerTwoSignaturePath,
+        ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.print', $loanRequest));
+
+    $response->assertOk();
+    $response->assertSee('data:image/png;base64,', false);
 });
 
 test('loan request submission validates housing status values', function () {
@@ -1268,7 +1473,8 @@ test('loan request print preview renders for the owner', function () {
 
     $response->assertOk();
     $response->assertViewIs('reports.loan-request-print');
-    $response->assertSee('APPLICATION FORM');
+    $response->assertSee('report-header--fallback');
+    $response->assertSee('report-title');
     $response->assertSee('&#10003;', false);
 });
 
@@ -3154,7 +3360,8 @@ test('admin loan request print preview renders', function () {
 
     $response->assertOk();
     $response->assertViewIs('reports.loan-request-print');
-    $response->assertSee('APPLICATION FORM');
+    $response->assertSee('report-header--fallback');
+    $response->assertSee('report-title');
 });
 
 test('admin loan request print preview normalizes uppercase text fields', function () {
