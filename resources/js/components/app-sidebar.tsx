@@ -57,6 +57,7 @@ const memberNavItems: NavItem[] = [
         href: clientLoans(),
         icon: Banknote,
         match: 'section',
+        excludeMatchPaths: [loanRequestsIndex()],
     },
     {
         title: 'Loan Security',
@@ -140,6 +141,8 @@ export function AppSidebar() {
     const memberItems = showMemberNav ? memberNavItems : [];
     const adminLabel = 'Admin Workspace';
     const memberLabel = 'My Account';
+    const adminGroupStorageKey = 'sidebar-admin-workspace-collapsed';
+    const memberGroupStorageKey = 'sidebar-my-account-collapsed';
     const homeLink =
         auth.experience === 'user-admin'
             ? workspaceDashboard()
@@ -163,10 +166,18 @@ export function AppSidebar() {
 
             <SidebarContent>
                 {showAdminNav && (
-                    <NavMain items={adminItems} label={adminLabel} />
+                    <NavMain
+                        items={adminItems}
+                        label={adminLabel}
+                        collapsibleStorageKey={adminGroupStorageKey}
+                    />
                 )}
                 {showMemberNav && (
-                    <NavMain items={memberItems} label={memberLabel} />
+                    <NavMain
+                        items={memberItems}
+                        label={memberLabel}
+                        collapsibleStorageKey={memberGroupStorageKey}
+                    />
                 )}
             </SidebarContent>
 
