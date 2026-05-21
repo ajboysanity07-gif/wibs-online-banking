@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Client\LoanRequestCancelRequest;
 use App\Http\Requests\Client\LoanRequestDraftRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\LoanRequestPersonRole;
@@ -10,11 +11,14 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
+use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
 use App\Support\LocationComposer;
 use DateTimeInterface;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -227,6 +231,51 @@ class LoanRequestController extends Controller
         ]);
 
         return Inertia::render('client/loan-request-show', $payload);
+    }
+
+    public function cancel(
+        LoanRequestCancelRequest $request,
+        int $loanRequest,
+        LoanRequestDecisionService $service,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse|RedirectResponse {
+        $user = $request->user();
+
+        if (! $user instanceof AppUser) {
+            return redirect()->route('login');
+        }
+
+        $user->loadMissing('adminProfile');
+
+        if ($user->isAdminOnly()) {
+            return response()->json([
+                'message' => 'Only members can cancel loan requests from this page.',
+            ], 403);
+        }
+
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'cancel',
+        );
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        $payload = $request->validated();
+        $updated = $service->cancelByMember(
+            $loanRequestRecord,
+            $user,
+            $payload['cancellation_reason'] ?? null,
+        );
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'loanRequest' => $serializer->serializeLoanRequest($updated),
+            ],
+        ]);
     }
 
     public function createCorrectedCopy(

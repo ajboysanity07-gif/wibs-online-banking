@@ -3,11 +3,7 @@ import { CircleAlert } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AdminLoanRequestCorrectionDialog } from '@/components/loan-request/admin-loan-request-correction-dialog';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
-import {
-    Alert,
-    AlertDescription,
-    AlertTitle,
-} from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,6 +46,7 @@ import type {
 
 type DecisionState = {
     canDecide: boolean;
+    canCancel: boolean;
     isOwnRequest: boolean;
 };
 
@@ -111,9 +108,8 @@ export default function LoanRequestShow({
         useState<LoanRequestPersonData | null>(coMakerOne);
     const [currentCoMakerTwo, setCurrentCoMakerTwo] =
         useState<LoanRequestPersonData | null>(coMakerTwo);
-    const [currentCorrectionReports, setCurrentCorrectionReports] = useState<
-        LoanRequestCorrectionReport[]
-    >(correctionReports);
+    const [currentCorrectionReports, setCurrentCorrectionReports] =
+        useState<LoanRequestCorrectionReport[]>(correctionReports);
     const shouldAutoOpenCorrection =
         openCorrectionOnLoad &&
         loanRequest.requires_correction_before_approval &&
@@ -150,32 +146,28 @@ export default function LoanRequestShow({
             setIsCorrectionOpen(false);
         },
     });
-    const {
-        cancelLoanRequest,
-        processingIds: cancellationProcessingIds,
-    } = useCancelLoanRequest({
-        onUpdated: (updated) => {
-            setCurrentRequest(updated.loanRequest);
-            setCurrentCorrectionReports(updated.correctionReports);
-            setCancellationReasonPrefill(
-                resolveCancellationReasonPrefill(updated.correctionReports),
-            );
-        },
-    });
-    const {
-        dismissCorrectionReport,
-        processingIds: dismissProcessingIds,
-    } = useDismissLoanRequestCorrectionReport({
-        onDismissed: (result) => {
-            setCurrentCorrectionReports(result.correctionReports);
-            setCancellationReasonPrefill(
-                resolveCancellationReasonPrefill(result.correctionReports),
-            );
-            setIsDismissDialogOpen(false);
-            setDismissNotes('');
-            setSelectedReport(null);
-        },
-    });
+    const { cancelLoanRequest, processingIds: cancellationProcessingIds } =
+        useCancelLoanRequest({
+            onUpdated: (updated) => {
+                setCurrentRequest(updated.loanRequest);
+                setCurrentCorrectionReports(updated.correctionReports);
+                setCancellationReasonPrefill(
+                    resolveCancellationReasonPrefill(updated.correctionReports),
+                );
+            },
+        });
+    const { dismissCorrectionReport, processingIds: dismissProcessingIds } =
+        useDismissLoanRequestCorrectionReport({
+            onDismissed: (result) => {
+                setCurrentCorrectionReports(result.correctionReports);
+                setCancellationReasonPrefill(
+                    resolveCancellationReasonPrefill(result.correctionReports),
+                );
+                setIsDismissDialogOpen(false);
+                setDismissNotes('');
+                setSelectedReport(null);
+            },
+        });
     const {
         createAdminCorrectedCopy,
         processingIds: adminCorrectedCopyProcessingIds,
@@ -228,8 +220,7 @@ export default function LoanRequestShow({
                   ? correctedRequestApprovalBlockedMessage
                   : null
             : null;
-    const isCorrecting =
-        correctionProcessingIds[currentRequest.id] ?? false;
+    const isCorrecting = correctionProcessingIds[currentRequest.id] ?? false;
     const isCreatingAdminCorrectedCopy =
         adminCorrectedCopyProcessingIds[currentRequest.id] ?? false;
     const correctedRequestHref =
@@ -241,6 +232,26 @@ export default function LoanRequestShow({
         (report) => report.status === 'open',
     );
     const cancellationDialogEventName = `loan-request-cancel-open-${currentRequest.id}`;
+    const showCancellationAction =
+        decision.canCancel &&
+        (currentRequest.status === 'under_review' ||
+            currentRequest.status === 'approved');
+    const cancellationActionLabel =
+        currentRequest.status === 'approved'
+            ? 'Cancel Approved Request'
+            : 'Cancel Application';
+    const cancellationDialogTitle =
+        currentRequest.status === 'approved'
+            ? 'Cancel Approved Request'
+            : 'Cancel Application';
+    const cancellationDialogDescription =
+        currentRequest.status === 'approved'
+            ? 'This keeps the approved request as read-only history.'
+            : 'This will stop the application before a final decision and notify the member.';
+    const cancellationConfirmLabel =
+        currentRequest.status === 'approved'
+            ? 'Cancel Approved Request'
+            : 'Cancel Application';
     const statusTone: Record<string, string> = {
         open: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
         resolved: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
@@ -331,9 +342,7 @@ export default function LoanRequestShow({
                                 type="button"
                                 className="shrink-0"
                                 disabled={isCorrecting}
-                                onClick={() =>
-                                    handleCorrectionOpenChange(true)
-                                }
+                                onClick={() => handleCorrectionOpenChange(true)}
                             >
                                 Continue correction
                             </Button>
@@ -354,9 +363,8 @@ export default function LoanRequestShow({
                                         Member reported incorrect details
                                     </CardTitle>
                                     <CardDescription>
-                                        Review reported issues before
-                                        cancelling and creating an
-                                        admin-corrected request.
+                                        Review reported issues before cancelling
+                                        and creating an admin-corrected request.
                                     </CardDescription>
                                 </div>
                             </div>
@@ -368,8 +376,9 @@ export default function LoanRequestShow({
                                     report.reported_by?.name ?? '--';
                                 const reporterAcctNo =
                                     report.reported_by?.acctno ?? '--';
-                                const reportedAt =
-                                    formatDateTime(report.reported_at);
+                                const reportedAt = formatDateTime(
+                                    report.reported_at,
+                                );
                                 const isDismissing =
                                     dismissProcessingIds[report.id] ?? false;
 
@@ -397,9 +406,7 @@ export default function LoanRequestShow({
                                                     Reported issue
                                                 </p>
                                                 <p className="mt-1 whitespace-pre-wrap">
-                                                    {
-                                                        report.issue_description
-                                                    }
+                                                    {report.issue_description}
                                                 </p>
                                             </div>
                                             <div>
@@ -407,9 +414,7 @@ export default function LoanRequestShow({
                                                     Correct information
                                                 </p>
                                                 <p className="mt-1 whitespace-pre-wrap">
-                                                    {
-                                                        report.correct_information
-                                                    }
+                                                    {report.correct_information}
                                                 </p>
                                             </div>
                                         </div>
@@ -468,14 +473,17 @@ export default function LoanRequestShow({
                             })}
                         </CardContent>
                     </Card>
-                    {hasOpenCorrectionReport && currentRequest.status !== 'approved' ? (
+                    {hasOpenCorrectionReport &&
+                    currentRequest.status !== 'approved' ? (
                         <Alert className="mt-3 border-amber-500/30 bg-amber-500/10">
                             <CircleAlert className="size-4 text-amber-700 dark:text-amber-200" />
-                            <AlertTitle>Open correction report found</AlertTitle>
+                            <AlertTitle>
+                                Open correction report found
+                            </AlertTitle>
                             <AlertDescription>
-                                Open reports can be dismissed now. Cancellation
-                                is available only while the request is still
-                                approved.
+                                Open reports can be dismissed now. If the
+                                request should stop entirely, use the separate
+                                cancellation action instead of declining it.
                             </AlertDescription>
                         </Alert>
                     ) : null}
@@ -517,16 +525,29 @@ export default function LoanRequestShow({
                     canDecide,
                     blockedMessage,
                     isProcessing: processingIds[currentRequest.id] ?? false,
-                    isCancelling:
-                        cancellationProcessingIds[currentRequest.id] ?? false,
-                    cancellationReasonPrefill,
-                    cancellationDialogEventName,
                     onApprove: (payload) =>
                         updateDecision(currentRequest.id, 'approve', payload),
                     onDecline: (payload) =>
                         updateDecision(currentRequest.id, 'decline', payload),
-                    onCancelApproved: (payload) =>
-                        cancelLoanRequest(currentRequest.id, payload),
+                }}
+                cancellation={{
+                    show: showCancellationAction,
+                    isProcessing:
+                        cancellationProcessingIds[currentRequest.id] ?? false,
+                    reasonRequired: true,
+                    actionLabel: cancellationActionLabel,
+                    dialogTitle: cancellationDialogTitle,
+                    dialogDescription: cancellationDialogDescription,
+                    confirmLabel: cancellationConfirmLabel,
+                    dismissLabel: 'Keep Request',
+                    reasonLabel: 'Cancellation reason',
+                    reasonPrefill: cancellationReasonPrefill,
+                    dialogEventName: cancellationDialogEventName,
+                    onSubmit: (payload) =>
+                        cancelLoanRequest(currentRequest.id, {
+                            cancellation_reason:
+                                payload.cancellation_reason ?? '',
+                        }),
                 }}
             />
             <AdminLoanRequestCorrectionDialog
@@ -566,7 +587,7 @@ export default function LoanRequestShow({
                             </Label>
                             <textarea
                                 id="dismiss_admin_notes"
-                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}
                                 value={dismissNotes}
                                 disabled={
@@ -598,7 +619,8 @@ export default function LoanRequestShow({
                                     (selectedReport !== null &&
                                         (dismissProcessingIds[
                                             selectedReport.id
-                                        ] ?? false))
+                                        ] ??
+                                            false))
                                 }
                             >
                                 Dismiss report

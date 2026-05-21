@@ -4,11 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
-import {
-    Alert,
-    AlertDescription,
-    AlertTitle,
-} from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -54,6 +50,7 @@ type Props = {
     printHref: string;
     correctedRequestHref?: string | null;
     decision?: DecisionProps;
+    cancellation?: CancellationProps;
     correction?: CorrectionProps;
     correctedCopy?: CorrectedCopyProps;
 };
@@ -103,7 +100,7 @@ const resolveAddress = (person?: LoanRequestPersonData | null): string => {
         person.address3,
     );
 
-    return composed !== '' ? composed : person.address ?? '';
+    return composed !== '' ? composed : (person.address ?? '');
 };
 
 const resolveEmployerBusinessAddress = (
@@ -121,7 +118,7 @@ const resolveEmployerBusinessAddress = (
 
     return composed !== ''
         ? composed
-        : person.employer_business_address ?? '';
+        : (person.employer_business_address ?? '');
 };
 
 const displayCurrency = (value?: string | number | null): string => {
@@ -161,7 +158,8 @@ const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     under_review: 'We are currently reviewing your request.',
     approved: 'Your request is approved. We will contact you next.',
     declined: 'Your request was declined. You may reapply anytime.',
-    cancelled: 'This approved request was cancelled and remains available for audit.',
+    cancelled:
+        'This request was cancelled and remains available as read-only history.',
 };
 
 const statusSteps: LoanRequestStatusValue[] = [
@@ -180,19 +178,26 @@ type DecisionProps = {
     show?: boolean;
     canDecide?: boolean;
     isProcessing?: boolean;
-    isCancelling?: boolean;
-    cancellationReasonPrefill?: string | null;
-    cancellationDialogEventName?: string | null;
     blockedMessage?: string | null;
     onApprove?: (payload: LoanRequestApprovePayload) => void;
     onDecline?: (payload: LoanRequestDeclinePayload) => void;
-    onCancelApproved?: (
+};
+
+type CancellationProps = {
+    show?: boolean;
+    isProcessing?: boolean;
+    reasonRequired?: boolean;
+    actionLabel?: string;
+    dialogTitle?: string;
+    dialogDescription?: string;
+    confirmLabel?: string;
+    dismissLabel?: string;
+    reasonLabel?: string;
+    reasonPrefill?: string | null;
+    dialogEventName?: string | null;
+    onSubmit?: (
         payload: LoanRequestCancellationPayload,
-    ) => Promise<
-        | LoanRequestDetail
-        | { loanRequest: LoanRequestDetail }
-        | null
-    >;
+    ) => Promise<LoanRequestDetail | { loanRequest: LoanRequestDetail } | null>;
 };
 
 type CorrectionProps = {
@@ -224,7 +229,7 @@ type LoanRequestDeclinePayload = {
 };
 
 type LoanRequestCancellationPayload = {
-    cancellation_reason: string;
+    cancellation_reason?: string | null;
 };
 
 type LoanRequestCorrectedCopyPayload = {
@@ -283,6 +288,7 @@ export function LoanRequestDetailPage({
     printHref,
     correctedRequestHref = null,
     decision,
+    cancellation,
     correction,
     correctedCopy,
 }: Props) {
@@ -295,12 +301,17 @@ export function LoanRequestDetailPage({
             : loanRequest.status;
     const statusForTimeline = (normalizedStatus ??
         'draft') as LoanRequestStatusValue;
+    const showApprovedCancellationHistory =
+        normalizedStatus === 'cancelled' &&
+        (loanRequest.reviewed_at !== null ||
+            loanRequest.approved_amount !== null ||
+            loanRequest.approved_term !== null);
     const timelineSteps =
         statusForTimeline === 'cancelled'
             ? ([
                   'draft',
                   'under_review',
-                  'approved',
+                  ...(showApprovedCancellationHistory ? ['approved'] : []),
                   'cancelled',
               ] as LoanRequestStatusValue[])
             : statusSteps;
@@ -334,17 +345,16 @@ export function LoanRequestDetailPage({
         decision?.canDecide &&
         normalizedStatus === 'under_review';
     const canApprove =
-        showDecisionForm &&
-        !loanRequest.requires_correction_before_approval;
+        showDecisionForm && !loanRequest.requires_correction_before_approval;
     const showDecisionSummary =
         showDecision &&
         (normalizedStatus === 'approved' ||
             normalizedStatus === 'declined' ||
             normalizedStatus === 'cancelled');
     const showCancellationAction =
-        showDecision &&
-        normalizedStatus === 'approved' &&
-        typeof decision?.onCancelApproved === 'function';
+        (cancellation?.show ?? false) &&
+        typeof cancellation?.onSubmit === 'function';
+    const showPrintAction = canDownloadPdf;
     const showCorrectedCopyAction =
         normalizedStatus === 'cancelled' &&
         (correctedCopy?.show ?? true) &&
@@ -352,11 +362,11 @@ export function LoanRequestDetailPage({
     const showCancelledNotice = normalizedStatus === 'cancelled';
     const blockedMessage =
         normalizedStatus === 'under_review'
-            ? decision?.blockedMessage ?? null
+            ? (decision?.blockedMessage ?? null)
             : null;
     const approvalBlockedMessage =
         loanRequest.requires_correction_before_approval
-            ? blockedMessage ?? defaultApprovalBlockedMessage
+            ? (blockedMessage ?? defaultApprovalBlockedMessage)
             : null;
     const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
@@ -400,8 +410,9 @@ export function LoanRequestDetailPage({
     const cancellationReasonValue = displayText(
         loanRequest.cancellation_reason,
     );
-    const correctedRequestReference =
-        displayText(loanRequest.corrected_request_reference);
+    const correctedRequestReference = displayText(
+        loanRequest.corrected_request_reference,
+    );
     const correctedRequestStatus = displayText(
         loanRequest.corrected_request_status,
     );
@@ -416,7 +427,7 @@ export function LoanRequestDetailPage({
     };
 
     const closeCancellationDialog = (force = false) => {
-        if (decision?.isCancelling && !force) {
+        if (cancellation?.isProcessing && !force) {
             return;
         }
 
@@ -446,16 +457,17 @@ export function LoanRequestDetailPage({
         event.preventDefault();
 
         const reason = cancellationReason.trim();
+        const reasonRequired = cancellation?.reasonRequired ?? false;
 
-        if (reason === '') {
+        if (reasonRequired && reason === '') {
             setCancellationReasonError('Cancellation reason is required.');
             return;
         }
 
         setCancellationReasonError(null);
 
-        const updated = await decision?.onCancelApproved?.({
-            cancellation_reason: reason,
+        const updated = await cancellation?.onSubmit?.({
+            cancellation_reason: reason !== '' ? reason : null,
         });
 
         if (updated) {
@@ -498,14 +510,14 @@ export function LoanRequestDetailPage({
     };
 
     useEffect(() => {
-        const eventName = decision?.cancellationDialogEventName?.trim() ?? '';
+        const eventName = cancellation?.dialogEventName?.trim() ?? '';
 
         if (eventName === '' || typeof window === 'undefined') {
             return;
         }
 
         const listener = (event: Event) => {
-            const fallbackPrefill = decision?.cancellationReasonPrefill ?? null;
+            const fallbackPrefill = cancellation?.reasonPrefill ?? null;
 
             if (!(event instanceof CustomEvent)) {
                 openCancellationDialog(fallbackPrefill);
@@ -524,10 +536,7 @@ export function LoanRequestDetailPage({
         return () => {
             window.removeEventListener(eventName, listener);
         };
-    }, [
-        decision?.cancellationDialogEventName,
-        decision?.cancellationReasonPrefill,
-    ]);
+    }, [cancellation?.dialogEventName, cancellation?.reasonPrefill]);
 
     return (
         <PageShell size="wide" className="gap-8">
@@ -575,14 +584,14 @@ export function LoanRequestDetailPage({
                 <Alert className="border-amber-500/35 bg-amber-500/10 text-foreground">
                     <Ban className="size-4 text-amber-700 dark:text-amber-200" />
                     <AlertTitle className="line-clamp-none">
-                        This approved request was cancelled
+                        This request was cancelled
                     </AlertTitle>
                     <AlertDescription className="w-full gap-3 text-foreground/90">
                         <p>
                             Please review the cancellation reason before
-                            creating a corrected request. Use the cancelled
-                            request as a template, fix the wrong information,
-                            and submit again.
+                            continuing with any next steps. If a corrected
+                            request is needed, use the cancelled request as a
+                            reference and resubmit with the right details.
                         </p>
                         <div className="w-full rounded-lg border border-amber-500/35 bg-background/85 px-3 py-2">
                             <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
@@ -807,7 +816,7 @@ export function LoanRequestDetailPage({
                                                             isComplete
                                                                 ? 'h-2.5 w-2.5 border-primary/70 bg-primary/60'
                                                                 : isCurrent
-                                                                  ? 'h-3.5 w-3.5 border-primary bg-primary ring-4 ring-primary/20 shadow-sm shadow-primary/40'
+                                                                  ? 'h-3.5 w-3.5 border-primary bg-primary shadow-sm ring-4 shadow-primary/40 ring-primary/20'
                                                                   : 'h-2 w-2 border-border/50 bg-card',
                                                         )}
                                                     />
@@ -823,11 +832,7 @@ export function LoanRequestDetailPage({
                                                                   : 'font-medium text-muted-foreground/70',
                                                         )}
                                                     >
-                                                        {
-                                                            statusLabels[
-                                                                status
-                                                            ]
-                                                        }
+                                                        {statusLabels[status]}
                                                     </p>
                                                     {isCurrent ? (
                                                         <p className="text-xs text-muted-foreground">
@@ -914,7 +919,7 @@ export function LoanRequestDetailPage({
                                             </Label>
                                             <textarea
                                                 id="decision_notes"
-                                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                                 placeholder="Add optional notes for the member"
                                                 value={decisionNotes}
                                                 onChange={(event) =>
@@ -979,13 +984,12 @@ export function LoanRequestDetailPage({
                                             value={reviewedAt}
                                         />
                                         {statusForTimeline === 'approved' ||
-                                        statusForTimeline === 'cancelled' ? (
+                                        (statusForTimeline === 'cancelled' &&
+                                            showApprovedCancellationHistory) ? (
                                             <>
                                                 <DetailRow
                                                     label="Approved amount"
-                                                    value={
-                                                        approvedAmountValue
-                                                    }
+                                                    value={approvedAmountValue}
                                                 />
                                                 <DetailRow
                                                     label="Approved term"
@@ -1054,9 +1058,7 @@ export function LoanRequestDetailPage({
 
                     <Card className="border-border/30 bg-card/50 shadow-sm">
                         <CardHeader>
-                            <CardTitle className="text-base">
-                                Actions
-                            </CardTitle>
+                            <CardTitle className="text-base">Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {showCorrectionAction ? (
@@ -1074,58 +1076,62 @@ export function LoanRequestDetailPage({
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
+                            {showPrintAction ? (
+                                <div className="space-y-3">
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        className="w-full justify-start"
+                                    >
+                                        <a
+                                            href={printHref}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            <Printer />
+                                            Print application
+                                        </a>
+                                    </Button>
+                                    <Separator className="bg-border/40" />
+                                </div>
+                            ) : null}
                             {canDownloadPdf ? (
                                 <div className="space-y-3">
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <Button
-                                            asChild
-                                            className="w-full justify-center"
-                                        >
-                                            <a href={pdfHref}>
-                                                <Download />
-                                                Download PDF
-                                            </a>
-                                        </Button>
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            className="w-full justify-center"
-                                        >
-                                            <a
-                                                href={printHref}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                            >
-                                                <Printer />
-                                                Print application
-                                            </a>
-                                        </Button>
-                                        <p className="text-xs text-muted-foreground sm:col-span-2">
-                                            PDFs include the exact snapshot
-                                            submitted for review.
-                                        </p>
-                                    </div>
+                                    <Button
+                                        asChild
+                                        className="w-full justify-start"
+                                    >
+                                        <a href={pdfHref}>
+                                            <Download />
+                                            Download PDF
+                                        </a>
+                                    </Button>
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
                             {showCancellationAction ? (
-                                <div className="space-y-3">
+                                <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                                    <p className="text-xs font-semibold tracking-wide text-destructive uppercase">
+                                        {normalizedStatus === 'approved'
+                                            ? 'Danger zone'
+                                            : 'Application action'}
+                                    </p>
                                     <Button
                                         type="button"
                                         variant="destructive"
-                                        className="w-full justify-center"
-                                        disabled={decision?.isCancelling}
+                                        className="w-full justify-start"
+                                        disabled={cancellation?.isProcessing}
                                         onClick={() =>
                                             openCancellationDialog(
-                                                decision?.cancellationReasonPrefill ??
+                                                cancellation?.reasonPrefill ??
                                                     null,
                                             )
                                         }
                                     >
                                         <Ban />
-                                        Cancel Approved Request
+                                        {cancellation?.actionLabel ??
+                                            'Cancel Application'}
                                     </Button>
-                                    <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
                             {showCorrectedCopyAction ? (
@@ -1195,8 +1201,8 @@ export function LoanRequestDetailPage({
                             approving this request. Once approved, the request
                             details cannot be edited directly. If wrong
                             information is found after approval, the approved
-                            request must be cancelled and an admin must
-                            create a corrected request.
+                            request must be cancelled and an admin must create a
+                            corrected request.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -1228,9 +1234,9 @@ export function LoanRequestDetailPage({
                                 htmlFor="confirm_approval"
                                 className="text-sm leading-relaxed"
                             >
-                                I confirm that I have reviewed the loan
-                                details, applicant details, and co-maker
-                                details before approving.
+                                I confirm that I have reviewed the loan details,
+                                applicant details, and co-maker details before
+                                approving.
                             </Label>
                         </div>
                     </div>
@@ -1246,8 +1252,7 @@ export function LoanRequestDetailPage({
                         <Button
                             type="button"
                             disabled={
-                                decision?.isProcessing ||
-                                !approvalConfirmed
+                                decision?.isProcessing || !approvalConfirmed
                             }
                             onClick={() => {
                                 if (!canApprove) {
@@ -1290,24 +1295,27 @@ export function LoanRequestDetailPage({
             >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Cancel Approved Request</DialogTitle>
+                        <DialogTitle>
+                            {cancellation?.dialogTitle ?? 'Cancel Application'}
+                        </DialogTitle>
                         <DialogDescription>
-                            This keeps the approved request as read-only
-                            history.
+                            {cancellation?.dialogDescription ??
+                                'This will mark the application as cancelled.'}
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitCancellation}>
                         <div className="space-y-2">
                             <Label htmlFor="cancellation_reason">
-                                Cancellation reason
+                                {cancellation?.reasonLabel ??
+                                    'Cancellation reason'}
                             </Label>
                             <textarea
                                 id="cancellation_reason"
                                 className={textareaClassName}
                                 maxLength={1000}
-                                required
+                                required={cancellation?.reasonRequired}
                                 value={cancellationReason}
-                                disabled={decision?.isCancelling}
+                                disabled={cancellation?.isProcessing}
                                 onChange={(event) => {
                                     setCancellationReason(event.target.value);
                                     setCancellationReasonError(null);
@@ -1326,18 +1334,20 @@ export function LoanRequestDetailPage({
                             <Button
                                 type="button"
                                 variant="outline"
-                                disabled={decision?.isCancelling}
+                                disabled={cancellation?.isProcessing}
                                 onClick={() => closeCancellationDialog()}
                             >
-                                Keep Request
+                                {cancellation?.dismissLabel ??
+                                    'Keep Application'}
                             </Button>
                             <Button
                                 type="submit"
                                 variant="destructive"
-                                disabled={decision?.isCancelling}
+                                disabled={cancellation?.isProcessing}
                             >
                                 <Ban />
-                                Cancel Request
+                                {cancellation?.confirmLabel ??
+                                    'Cancel Application'}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1365,10 +1375,7 @@ export function LoanRequestDetailPage({
                                 'This will create a new corrected request copied from the cancelled request. The cancelled request will remain read-only for audit history.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={submitCorrectedCopy}
-                    >
+                    <form className="space-y-4" onSubmit={submitCorrectedCopy}>
                         <div className="space-y-2">
                             <Label htmlFor="correction_reason">
                                 Correction reason
@@ -1381,9 +1388,7 @@ export function LoanRequestDetailPage({
                                 value={correctedCopyReason}
                                 disabled={correctedCopy?.isProcessing}
                                 onChange={(event) => {
-                                    setCorrectedCopyReason(
-                                        event.target.value,
-                                    );
+                                    setCorrectedCopyReason(event.target.value);
                                     setCorrectedCopyReasonError(null);
                                 }}
                             />

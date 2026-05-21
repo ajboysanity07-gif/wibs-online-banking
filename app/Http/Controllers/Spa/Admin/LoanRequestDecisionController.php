@@ -75,7 +75,7 @@ class LoanRequestDecisionController extends Controller
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $payload = $request->validated();
-        $updated = $service->cancelApprovedRequest(
+        $updated = $service->cancelByAdmin(
             $loanRequest,
             $request->user(),
             $payload['cancellation_reason'],

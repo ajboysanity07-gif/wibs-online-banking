@@ -40,12 +40,17 @@ class LoanRequestController extends Controller
         $actor = $request->user();
         $decision = [
             'canDecide' => false,
+            'canCancel' => false,
             'isOwnRequest' => false,
         ];
 
         if ($actor instanceof AppUser) {
             $decision = [
                 'canDecide' => $decisionService->canDecide(
+                    $loanRequestRecord,
+                    $actor,
+                ),
+                'canCancel' => $decisionService->canCancel(
                     $loanRequestRecord,
                     $actor,
                 ),
