@@ -207,6 +207,32 @@ Route::get('client/loans/requests/{loanRequest}/print', [LoanRequestController::
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.print');
 
+Route::get(
+    'client/loans/requests/{loanRequest}/approved-documents',
+    [LoanRequestController::class, 'approvedDocuments'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.approved-documents');
+
+Route::prefix('client/loans/requests/{loanRequest}/documents')
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->group(function () {
+        Route::get('application-form', [LoanRequestController::class, 'applicationFormDocument'])
+            ->name('client.loan-requests.documents.application-form');
+        Route::get('grepalife', [LoanRequestController::class, 'grepalifeDocument'])
+            ->name('client.loan-requests.documents.grepalife');
+        Route::get('loan-security-agreement', [LoanRequestController::class, 'loanSecurityAgreementDocument'])
+            ->name('client.loan-requests.documents.loan-security-agreement');
+        Route::get('plan-of-payment', [LoanRequestController::class, 'planOfPaymentDocument'])
+            ->name('client.loan-requests.documents.plan-of-payment');
+        Route::get('undertaking-barangay', [LoanRequestController::class, 'undertakingBarangayDocument'])
+            ->name('client.loan-requests.documents.undertaking-barangay');
+        Route::get('affidavit-undertaking', [LoanRequestController::class, 'affidavitUndertakingDocument'])
+            ->name('client.loan-requests.documents.affidavit-undertaking');
+        Route::get('authorization', [LoanRequestController::class, 'authorizationDocument'])
+            ->name('client.loan-requests.documents.authorization');
+    });
+
 Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-schedule');
@@ -290,6 +316,28 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
 
     Route::get('requests/{loanRequest}/print', [AdminLoanRequestController::class, 'print'])
         ->name('admin.requests.print');
+
+    Route::get(
+        'requests/{loanRequest}/approved-documents',
+        [AdminLoanRequestController::class, 'approvedDocuments'],
+    )->name('admin.requests.approved-documents');
+
+    Route::prefix('requests/{loanRequest}/documents')->group(function () {
+        Route::get('application-form', [AdminLoanRequestController::class, 'applicationFormDocument'])
+            ->name('admin.requests.documents.application-form');
+        Route::get('grepalife', [AdminLoanRequestController::class, 'grepalifeDocument'])
+            ->name('admin.requests.documents.grepalife');
+        Route::get('loan-security-agreement', [AdminLoanRequestController::class, 'loanSecurityAgreementDocument'])
+            ->name('admin.requests.documents.loan-security-agreement');
+        Route::get('plan-of-payment', [AdminLoanRequestController::class, 'planOfPaymentDocument'])
+            ->name('admin.requests.documents.plan-of-payment');
+        Route::get('undertaking-barangay', [AdminLoanRequestController::class, 'undertakingBarangayDocument'])
+            ->name('admin.requests.documents.undertaking-barangay');
+        Route::get('affidavit-undertaking', [AdminLoanRequestController::class, 'affidavitUndertakingDocument'])
+            ->name('admin.requests.documents.affidavit-undertaking');
+        Route::get('authorization', [AdminLoanRequestController::class, 'authorizationDocument'])
+            ->name('admin.requests.documents.authorization');
+    });
 
     Route::get('watchlist', [WatchlistController::class, 'index'])
         ->name('admin.watchlist.index');

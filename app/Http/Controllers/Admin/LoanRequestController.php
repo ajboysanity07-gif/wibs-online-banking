@@ -7,6 +7,7 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
+use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -119,6 +120,118 @@ class LoanRequestController extends Controller
         return $pdfService->renderPrintView($loanRequestRecord);
     }
 
+    public function approvedDocuments(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        if (! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->packageZip($loanRequestRecord);
+    }
+
+    public function applicationFormDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        if (! $this->canViewPdf($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->applicationForm($loanRequestRecord);
+    }
+
+    public function grepalifeDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->grepalife($loanRequestRecord);
+    }
+
+    public function loanSecurityAgreementDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->loanSecurityAgreement($loanRequestRecord);
+    }
+
+    public function planOfPaymentDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->planOfPayment($loanRequestRecord);
+    }
+
+    public function undertakingBarangayDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->undertakingBarangay($loanRequestRecord);
+    }
+
+    public function affidavitUndertakingDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->affidavitUndertaking($loanRequestRecord);
+    }
+
+    public function authorizationDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->authorization($loanRequestRecord);
+    }
+
     private function findLoanRequest(int $loanRequestId): ?LoanRequest
     {
         return LoanRequest::query()
@@ -151,6 +264,15 @@ class LoanRequestController extends Controller
             LoanRequestStatus::Declined->value,
             LoanRequestStatus::Cancelled->value,
         ], true);
+    }
+
+    private function isApproved(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return $status === LoanRequestStatus::Approved->value;
     }
 
     private function resolveCorrectionReportSource(

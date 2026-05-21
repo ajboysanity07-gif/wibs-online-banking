@@ -19,11 +19,21 @@ import { useSubmitLoanRequestCorrectionReport } from '@/hooks/use-submit-loan-re
 import AppLayout from '@/layouts/app-layout';
 import { dashboard as clientDashboard } from '@/routes/client';
 import {
+    approvedDocuments as loanRequestApprovedDocuments,
     index as loanRequestsIndex,
     pdf as loanRequestPdf,
     print as loanRequestPrint,
     show as loanRequestShow,
 } from '@/routes/client/loan-requests';
+import {
+    affidavitUndertaking as loanRequestAffidavitUndertakingDocument,
+    applicationForm as loanRequestApplicationFormDocument,
+    authorization as loanRequestAuthorizationDocument,
+    grepalife as loanRequestGrepalifeDocument,
+    loanSecurityAgreement as loanRequestLoanSecurityAgreementDocument,
+    planOfPayment as loanRequestPlanOfPaymentDocument,
+    undertakingBarangay as loanRequestUndertakingBarangayDocument,
+} from '@/routes/client/loan-requests/documents';
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestDetail,
@@ -89,6 +99,35 @@ export default function LoanRequestShow({
         query: { download: 1 },
     }).url;
     const printHref = loanRequestPrint(loanRequest.id).url;
+    const approvedDocumentHrefs =
+        currentLoanRequest.status === 'approved'
+            ? {
+                  applicationForm: loanRequestApplicationFormDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  grepalife: loanRequestGrepalifeDocument(currentLoanRequest.id)
+                      .url,
+                  loanSecurityAgreement:
+                      loanRequestLoanSecurityAgreementDocument(
+                          currentLoanRequest.id,
+                      ).url,
+                  planOfPayment: loanRequestPlanOfPaymentDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  undertakingBarangay: loanRequestUndertakingBarangayDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  affidavitUndertaking: loanRequestAffidavitUndertakingDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  authorization: loanRequestAuthorizationDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  packageZip: loanRequestApprovedDocuments(
+                      currentLoanRequest.id,
+                  ).url,
+              }
+            : null;
     const correctedRequestHref =
         currentLoanRequest.corrected_request_id !== null
             ? loanRequestShow(currentLoanRequest.corrected_request_id).url
@@ -164,6 +203,7 @@ export default function LoanRequestShow({
                 backLabel="Back to loan requests"
                 pdfHref={pdfHref}
                 printHref={printHref}
+                approvedDocumentHrefs={approvedDocumentHrefs}
                 correctedRequestHref={correctedRequestHref}
                 cancellation={{
                     show: canCancelApplication,

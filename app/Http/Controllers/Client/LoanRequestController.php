@@ -11,6 +11,7 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
+use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -357,6 +358,150 @@ class LoanRequestController extends Controller
         return $pdfService->renderPrintView($loanRequestRecord);
     }
 
+    public function approvedDocuments(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->route('login');
+        }
+
+        $user->loadMissing('adminProfile');
+
+        if ($user->isAdminOnly()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'approved-documents',
+        );
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->packageZip($loanRequestRecord);
+    }
+
+    public function applicationFormDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $user = $request->user();
+
+        if ($user === null) {
+            return redirect()->route('login');
+        }
+
+        $user->loadMissing('adminProfile');
+
+        if ($user->isAdminOnly()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'application-form-document',
+        );
+
+        if ($loanRequestRecord === null || ! $this->canViewPdf($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->applicationForm($loanRequestRecord);
+    }
+
+    public function grepalifeDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'grepalife-document',
+        );
+
+        return $documentService->grepalife($loanRequestRecord);
+    }
+
+    public function loanSecurityAgreementDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'loan-security-agreement-document',
+        );
+
+        return $documentService->loanSecurityAgreement($loanRequestRecord);
+    }
+
+    public function planOfPaymentDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'plan-of-payment-document',
+        );
+
+        return $documentService->planOfPayment($loanRequestRecord);
+    }
+
+    public function undertakingBarangayDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'undertaking-barangay-document',
+        );
+
+        return $documentService->undertakingBarangay($loanRequestRecord);
+    }
+
+    public function affidavitUndertakingDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'affidavit-undertaking-document',
+        );
+
+        return $documentService->affidavitUndertaking($loanRequestRecord);
+    }
+
+    public function authorizationDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'authorization-document',
+        );
+
+        return $documentService->authorization($loanRequestRecord);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -452,6 +597,45 @@ class LoanRequestController extends Controller
             LoanRequestStatus::Declined->value,
             LoanRequestStatus::Cancelled->value,
         ], true);
+    }
+
+    private function isApproved(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return $status === LoanRequestStatus::Approved->value;
+    }
+
+    private function resolveApprovedDocumentLoanRequest(
+        Request $request,
+        int $loanRequest,
+        string $context,
+    ): LoanRequest {
+        $user = $request->user();
+
+        if ($user === null) {
+            abort(404);
+        }
+
+        $user->loadMissing('adminProfile');
+
+        if ($user->isAdminOnly()) {
+            abort(404);
+        }
+
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            $context,
+        );
+
+        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $loanRequestRecord;
     }
 
     private function resolveCorrectedRequest(

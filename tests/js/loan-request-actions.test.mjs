@@ -25,6 +25,7 @@ test('loan request actions group document buttons and separate navigation', asyn
 
     assert.match(detailFile, /Actions/);
     assert.match(detailFile, /Download PDF/);
+    assert.match(detailFile, /Plan of Payment Excel/);
     assert.match(detailFile, /Print application/);
     assert.match(detailFile, /Cancel Application/);
     assert.match(detailFile, /backLabel/);

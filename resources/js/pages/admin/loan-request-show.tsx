@@ -30,11 +30,21 @@ import { useUpdateLoanRequestDecision } from '@/hooks/admin/use-update-loan-requ
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
 import {
+    approvedDocuments as requestsApprovedDocuments,
     index as requestsIndex,
     pdf as requestsPdf,
     print as requestsPrint,
     show as requestsShow,
 } from '@/routes/admin/requests';
+import {
+    affidavitUndertaking as requestsAffidavitUndertakingDocument,
+    applicationForm as requestsApplicationFormDocument,
+    authorization as requestsAuthorizationDocument,
+    grepalife as requestsGrepalifeDocument,
+    loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
+    planOfPayment as requestsPlanOfPaymentDocument,
+    undertakingBarangay as requestsUndertakingBarangayDocument,
+} from '@/routes/admin/requests/documents';
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestCorrectionReport,
@@ -200,6 +210,31 @@ export default function LoanRequestShow({
         query: { download: 1 },
     }).url;
     const printHref = requestsPrint(currentRequest.id).url;
+    const approvedDocumentHrefs =
+        currentRequest.status === 'approved'
+            ? {
+                  applicationForm: requestsApplicationFormDocument(
+                      currentRequest.id,
+                  ).url,
+                  grepalife: requestsGrepalifeDocument(currentRequest.id).url,
+                  loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
+                      currentRequest.id,
+                  ).url,
+                  planOfPayment: requestsPlanOfPaymentDocument(
+                      currentRequest.id,
+                  ).url,
+                  undertakingBarangay: requestsUndertakingBarangayDocument(
+                      currentRequest.id,
+                  ).url,
+                  affidavitUndertaking: requestsAffidavitUndertakingDocument(
+                      currentRequest.id,
+                  ).url,
+                  authorization: requestsAuthorizationDocument(
+                      currentRequest.id,
+                  ).url,
+                  packageZip: requestsApprovedDocuments(currentRequest.id).url,
+              }
+            : null;
     const canDecide =
         currentRequest.status === 'under_review' && decision.canDecide;
     const canCorrect =
@@ -498,6 +533,7 @@ export default function LoanRequestShow({
                 backLabel="Back to requests"
                 pdfHref={pdfHref}
                 printHref={printHref}
+                approvedDocumentHrefs={approvedDocumentHrefs}
                 correctedRequestHref={correctedRequestHref}
                 correction={{
                     show: canCorrect,

@@ -48,11 +48,23 @@ type Props = {
     backLabel: string;
     pdfHref: string;
     printHref: string;
+    approvedDocumentHrefs?: ApprovedDocumentHrefs | null;
     correctedRequestHref?: string | null;
     decision?: DecisionProps;
     cancellation?: CancellationProps;
     correction?: CorrectionProps;
     correctedCopy?: CorrectedCopyProps;
+};
+
+type ApprovedDocumentHrefs = {
+    applicationForm: string;
+    grepalife: string;
+    loanSecurityAgreement: string;
+    planOfPayment: string;
+    undertakingBarangay: string;
+    affidavitUndertaking: string;
+    authorization: string;
+    packageZip?: string | null;
 };
 
 const personName = (person?: LoanRequestPersonData | null): string => {
@@ -286,6 +298,7 @@ export function LoanRequestDetailPage({
     backLabel,
     pdfHref,
     printHref,
+    approvedDocumentHrefs = null,
     correctedRequestHref = null,
     decision,
     cancellation,
@@ -354,7 +367,49 @@ export function LoanRequestDetailPage({
     const showCancellationAction =
         (cancellation?.show ?? false) &&
         typeof cancellation?.onSubmit === 'function';
+    const showApprovedDocuments =
+        normalizedStatus === 'approved' && approvedDocumentHrefs !== null;
+    const showDownloadPdfAction = canDownloadPdf && !showApprovedDocuments;
     const showPrintAction = canDownloadPdf;
+    const approvedDocumentItems = showApprovedDocuments
+        ? [
+              {
+                  label: 'Application Form PDF',
+                  href: approvedDocumentHrefs.applicationForm,
+                  format: 'PDF',
+              },
+              {
+                  label: 'GREPALIFE PDF',
+                  href: approvedDocumentHrefs.grepalife,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Loan Security Agreement PDF',
+                  href: approvedDocumentHrefs.loanSecurityAgreement,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Plan of Payment Excel',
+                  href: approvedDocumentHrefs.planOfPayment,
+                  format: 'XLSX',
+              },
+              {
+                  label: 'Undertaking - Barangay PDF',
+                  href: approvedDocumentHrefs.undertakingBarangay,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Affidavit of Undertaking PDF',
+                  href: approvedDocumentHrefs.affidavitUndertaking,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Authorization PDF',
+                  href: approvedDocumentHrefs.authorization,
+                  format: 'PDF',
+              },
+          ]
+        : [];
     const showCorrectedCopyAction =
         normalizedStatus === 'cancelled' &&
         (correctedCopy?.show ?? true) &&
@@ -1095,7 +1150,7 @@ export function LoanRequestDetailPage({
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
-                            {canDownloadPdf ? (
+                            {showDownloadPdfAction ? (
                                 <div className="space-y-3">
                                     <Button
                                         asChild
@@ -1106,6 +1161,64 @@ export function LoanRequestDetailPage({
                                             Download PDF
                                         </a>
                                     </Button>
+                                    <Separator className="bg-border/40" />
+                                </div>
+                            ) : null}
+                            {showApprovedDocuments ? (
+                                <div className="space-y-3">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                            Approved documents
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Download each approved loan document
+                                            individually, or download all as
+                                            ZIP.
+                                        </p>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        {approvedDocumentItems.map(
+                                            (document) => (
+                                                <Button
+                                                    key={document.label}
+                                                    asChild
+                                                    variant="outline"
+                                                    className="h-11 w-full justify-start px-3"
+                                                >
+                                                    <a
+                                                        href={document.href}
+                                                        className="flex w-full min-w-0 items-center gap-2"
+                                                    >
+                                                        <Download className="size-4 shrink-0" />
+                                                        <span className="min-w-0 flex-1 truncate text-left text-sm">
+                                                            {document.label}
+                                                        </span>
+                                                        <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                                            {document.format}
+                                                        </span>
+                                                    </a>
+                                                </Button>
+                                            ),
+                                        )}
+                                        {approvedDocumentHrefs.packageZip ? (
+                                            <Button
+                                                asChild
+                                                className="mt-1 h-11 w-full justify-start px-3 shadow-sm"
+                                            >
+                                                <a
+                                                    href={
+                                                        approvedDocumentHrefs.packageZip
+                                                    }
+                                                    className="flex w-full min-w-0 items-center gap-2"
+                                                >
+                                                    <Download className="size-4 shrink-0" />
+                                                    <span className="min-w-0 flex-1 text-left text-sm font-semibold">
+                                                        Download All as ZIP
+                                                    </span>
+                                                </a>
+                                            </Button>
+                                        ) : null}
+                                    </div>
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}

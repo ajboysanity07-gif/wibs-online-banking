@@ -145,6 +145,33 @@ class LoanRequestPdfService
         return $download ? $pdf->download($filename) : $pdf->stream($filename);
     }
 
+    public function saveToPath(LoanRequest $loanRequest, string $path): void
+    {
+        File::ensureDirectoryExists(dirname($path));
+
+        $data = $this->buildViewData($loanRequest);
+
+        if ($this->shouldUseChromium()) {
+            try {
+                $this->saveChromiumPdf($data, $path);
+            } catch (\Throwable $exception) {
+                if (is_file($path)) {
+                    @unlink($path);
+                }
+
+                throw $exception;
+            }
+
+            return;
+        }
+
+        $pdf = Pdf::setOption('isPhpEnabled', true)
+            ->setPaper($this->resolveDompdfPaper())
+            ->loadView('reports/loan-request', $data);
+
+        File::put($path, $pdf->output());
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -153,33 +180,10 @@ class LoanRequestPdfService
         string $filename,
         bool $download,
     ): Response {
-        $html = view('reports.loan-request', $data)->render();
         $path = $this->makePdfTempPath('loan-request');
-        [$width, $height, $unit] = $this->resolvePaperSize();
 
         try {
-            $shot = Browsershot::html($html)
-                ->showBackground()
-                ->emulateMedia('print')
-                ->waitUntilNetworkIdle()
-                ->waitForFunction(
-                    '!document.fonts || document.fonts.status === "loaded"',
-                    null,
-                    5000,
-                )
-                ->paperSize($width, $height, $unit)
-                ->margins(0, 0, 0, 0);
-
-            if (config('reports.chromium.no_sandbox', true)) {
-                $shot->noSandbox();
-            }
-
-            $timeout = (int) config('reports.chromium.timeout', 120);
-            if ($timeout > 0) {
-                $shot->timeout($timeout);
-            }
-
-            $shot->savePdf($path);
+            $this->saveChromiumPdf($data, $path);
 
             if ($download) {
                 return response()
@@ -202,6 +206,38 @@ class LoanRequestPdfService
 
             throw $exception;
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function saveChromiumPdf(array $data, string $path): void
+    {
+        $html = view('reports.loan-request', $data)->render();
+        [$width, $height, $unit] = $this->resolvePaperSize();
+
+        $shot = Browsershot::html($html)
+            ->showBackground()
+            ->emulateMedia('print')
+            ->waitUntilNetworkIdle()
+            ->waitForFunction(
+                '!document.fonts || document.fonts.status === "loaded"',
+                null,
+                5000,
+            )
+            ->paperSize($width, $height, $unit)
+            ->margins(0, 0, 0, 0);
+
+        if (config('reports.chromium.no_sandbox', true)) {
+            $shot->noSandbox();
+        }
+
+        $timeout = (int) config('reports.chromium.timeout', 120);
+        if ($timeout > 0) {
+            $shot->timeout($timeout);
+        }
+
+        $shot->savePdf($path);
     }
 
     private function shouldUseChromium(): bool
