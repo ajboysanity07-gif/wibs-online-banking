@@ -53,17 +53,18 @@ client.interceptors.request.use((config) => {
     const metaToken = getMetaCsrfToken();
 
     if (cookieToken) {
-        const headers = axios.AxiosHeaders.from(config.headers);
-        headers.delete('X-CSRF-TOKEN');
-        headers.set('X-XSRF-TOKEN', cookieToken);
+        const headers = { ...config.headers };
+        delete headers['X-CSRF-TOKEN'];
+        headers['X-XSRF-TOKEN'] = cookieToken;
         config.headers = headers;
         return config;
     }
 
     if (metaToken) {
-        const headers = axios.AxiosHeaders.from(config.headers);
-        headers.set('X-CSRF-TOKEN', metaToken);
-        config.headers = headers;
+        config.headers = {
+            ...config.headers,
+            'X-CSRF-TOKEN': metaToken,
+        };
     }
 
     return config;

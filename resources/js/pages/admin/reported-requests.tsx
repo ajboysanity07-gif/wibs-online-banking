@@ -17,10 +17,7 @@ import {
     DataTablePaginationSkeleton,
 } from '@/components/ui/data-table-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    TableSkeleton,
-    type TableSkeletonColumn,
-} from '@/components/ui/table-skeleton';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { useReportedRequests } from '@/hooks/admin/use-reported-requests';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
@@ -136,7 +133,7 @@ const columns: ColumnDef<RequestPreview>[] = [
     },
 ];
 
-const reportedRequestsTableSkeletonColumns: TableSkeletonColumn[] = [
+const reportedRequestsTableSkeletonColumns = [
     { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-32', cellClassName: 'w-40' },
     { headerClassName: 'w-24', cellClassName: 'w-36' },
