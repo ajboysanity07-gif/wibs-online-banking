@@ -69,13 +69,6 @@ export type MemberLoanSummary = {
     last_payment_date: string | null;
 };
 
-export type MemberLoanSecurityPaymentSummary = {
-    svnumber: string | null;
-    currentBalance: number;
-    minimumBalance: number;
-    maxPayable: number;
-};
-
 export type MemberLoanScheduleEntry = {
     lnnumber: string | number | null;
     date_pay: string | null;
@@ -117,13 +110,6 @@ export type MemberLoanPaymentsResponse =
         openingBalance?: number | null;
         closingBalance?: number | null;
     };
-
-export type PaymongoLoanPaymentMethod =
-    | 'gcash'
-    | 'maya'
-    | 'qrph'
-    | 'online_banking'
-    | 'card';
 
 export type MemberSummary = {
     member_id: string;
