@@ -3,11 +3,7 @@ import { CircleAlert } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
-import {
-    Alert,
-    AlertDescription,
-    AlertTitle,
-} from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,6 +14,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useCancelMemberLoanRequest } from '@/hooks/use-cancel-member-loan-request';
 import { useSubmitLoanRequestCorrectionReport } from '@/hooks/use-submit-loan-request-correction-report';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard as clientDashboard } from '@/routes/client';
@@ -28,7 +25,10 @@ import {
     show as loanRequestShow,
 } from '@/routes/client/loan-requests';
 import type { BreadcrumbItem } from '@/types';
-import type { LoanRequestDetail, LoanRequestPersonData } from '@/types/loan-requests';
+import type {
+    LoanRequestDetail,
+    LoanRequestPersonData,
+} from '@/types/loan-requests';
 
 type Props = {
     loanRequest: LoanRequestDetail;
@@ -45,6 +45,8 @@ export default function LoanRequestShow({
     coMakerTwo,
     hasOpenCorrectionReport,
 }: Props) {
+    const [currentLoanRequest, setCurrentLoanRequest] =
+        useState<LoanRequestDetail>(loanRequest);
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
     const [issueDescription, setIssueDescription] = useState('');
     const [correctInformation, setCorrectInformation] = useState('');
@@ -54,8 +56,12 @@ export default function LoanRequestShow({
     const [hasOpenReportState, setHasOpenReportState] = useState(
         hasOpenCorrectionReport,
     );
-    const { submitReport, processingIds } = useSubmitLoanRequestCorrectionReport(
-        {
+    const { cancelLoanRequest, processingIds: cancellationProcessingIds } =
+        useCancelMemberLoanRequest({
+            onUpdated: (updated) => setCurrentLoanRequest(updated),
+        });
+    const { submitReport, processingIds } =
+        useSubmitLoanRequestCorrectionReport({
             onSubmitted: () => {
                 setHasOpenReportState(true);
                 setIsReportDialogOpen(false);
@@ -65,9 +71,10 @@ export default function LoanRequestShow({
                 setIssueError(null);
                 setCorrectError(null);
             },
-        },
-    );
+        });
     const isReportSubmitting = processingIds[loanRequest.id] ?? false;
+    const isCancellationSubmitting =
+        cancellationProcessingIds[currentLoanRequest.id] ?? false;
     const loanRequestsIndexHref = loanRequestsIndex().url;
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Overview', href: clientDashboard().url },
@@ -83,9 +90,12 @@ export default function LoanRequestShow({
     }).url;
     const printHref = loanRequestPrint(loanRequest.id).url;
     const correctedRequestHref =
-        loanRequest.corrected_request_id !== null
-            ? loanRequestShow(loanRequest.corrected_request_id).url
+        currentLoanRequest.corrected_request_id !== null
+            ? loanRequestShow(currentLoanRequest.corrected_request_id).url
             : null;
+    const canCancelApplication = ['submitted', 'under_review'].includes(
+        currentLoanRequest.status,
+    );
 
     const submitCorrectionReport = async (
         event: FormEvent<HTMLFormElement>,
@@ -118,7 +128,7 @@ export default function LoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            {loanRequest.status === 'approved' ? (
+            {currentLoanRequest.status === 'approved' ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     {hasOpenReportState ? (
                         <Alert className="border-amber-500/30 bg-amber-500/10">
@@ -146,7 +156,7 @@ export default function LoanRequestShow({
                 </section>
             ) : null}
             <LoanRequestDetailPage
-                loanRequest={loanRequest}
+                loanRequest={currentLoanRequest}
                 applicant={applicant}
                 coMakerOne={coMakerOne}
                 coMakerTwo={coMakerTwo}
@@ -155,6 +165,20 @@ export default function LoanRequestShow({
                 pdfHref={pdfHref}
                 printHref={printHref}
                 correctedRequestHref={correctedRequestHref}
+                cancellation={{
+                    show: canCancelApplication,
+                    isProcessing: isCancellationSubmitting,
+                    reasonRequired: false,
+                    actionLabel: 'Cancel Application',
+                    dialogTitle: 'Cancel Application',
+                    dialogDescription:
+                        'This will cancel your application before a final decision is made.',
+                    confirmLabel: 'Confirm Cancellation',
+                    dismissLabel: 'Keep Application',
+                    reasonLabel: 'Reason (optional)',
+                    onSubmit: (payload) =>
+                        cancelLoanRequest(currentLoanRequest.id, payload),
+                }}
             />
             <Dialog
                 open={isReportDialogOpen}
@@ -186,7 +210,7 @@ export default function LoanRequestShow({
                             </Label>
                             <textarea
                                 id="issue_description"
-                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}
                                 required
                                 value={issueDescription}
@@ -209,7 +233,7 @@ export default function LoanRequestShow({
                             </Label>
                             <textarea
                                 id="correct_information"
-                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}
                                 required
                                 value={correctInformation}
@@ -232,7 +256,7 @@ export default function LoanRequestShow({
                             </Label>
                             <textarea
                                 id="supporting_note"
-                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 maxLength={2000}
                                 value={supportingNote}
                                 disabled={isReportSubmitting}

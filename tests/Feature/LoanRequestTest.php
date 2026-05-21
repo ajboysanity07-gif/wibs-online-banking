@@ -1937,6 +1937,7 @@ test('admin can view loan request details page', function () {
             ->where('loanRequest.reference', $loanRequest->reference)
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
             ->where('decision.canDecide', true)
+            ->where('decision.canCancel', true)
             ->where('decision.isOwnRequest', false)
             ->where('applicant.first_name', 'Loan')
             ->where('applicant.birthdate', '1990-04-10')
@@ -2054,6 +2055,7 @@ test('admin loan request detail marks own requests as not decisionable', functio
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/loan-request-show')
             ->where('decision.canDecide', false)
+            ->where('decision.canCancel', false)
             ->where('decision.isOwnRequest', true));
 });
 
@@ -2166,6 +2168,62 @@ test('admin can decline an under review loan request', function () {
         fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
     );
 });
+
+test('admin can cancel a pending loan request before decision', function (LoanRequestStatus $status) {
+    $admin = User::factory()->create([
+        'acctno' => '000620',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000621',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => $status,
+        'submitted_at' => now()->subHour()->startOfSecond(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Member asked to stop the application.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Cancelled->value)
+        ->assertJsonPath('data.loanRequest.reference', $loanRequest->reference)
+        ->assertJsonPath('data.loanRequest.cancelled_by.user_id', $admin->user_id)
+        ->assertJsonPath('data.loanRequest.cancellation_reason', 'Member asked to stop the application.');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
+    expect($loanRequest->reviewed_by)->toBeNull();
+    expect($loanRequest->reviewed_at)->toBeNull();
+    expect($loanRequest->approved_amount)->toBeNull();
+    expect($loanRequest->approved_term)->toBeNull();
+    expect($loanRequest->decision_notes)->toBeNull();
+    expect($loanRequest->cancelled_by)->toBe($admin->user_id);
+    expect($loanRequest->cancelled_at)->not->toBeNull();
+    expect($loanRequest->cancellation_reason)->toBe('Member asked to stop the application.');
+
+    $change = LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->sole();
+
+    expect($change->changed_by)->toBe($admin->user_id);
+    expect($change->action)->toBe(LoanRequestChange::ACTION_CANCEL_REQUEST);
+    expect($change->reason)->toBe('Member asked to stop the application.');
+    expect($change->before_json['status'])->toBe($status->value);
+    expect($change->after_json['status'])->toBe(LoanRequestStatus::Cancelled->value);
+})->with([
+    'under review' => [LoanRequestStatus::UnderReview],
+    'submitted' => [LoanRequestStatus::Submitted],
+]);
 
 test('admin can cancel an approved loan request with a reason', function () {
     $reviewer = User::factory()->create([
@@ -2399,7 +2457,7 @@ test('admins cannot cancel their own approved loan request', function () {
     expect($loanRequest->cancelled_by)->toBeNull();
 });
 
-test('only approved loan requests can be cancelled through the cancellation endpoint', function (LoanRequestStatus $status) {
+test('only pending or approved loan requests can be cancelled through the admin cancellation endpoint', function (LoanRequestStatus $status) {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
@@ -2426,7 +2484,6 @@ test('only approved loan requests can be cancelled through the cancellation endp
     expect($loanRequest->status)->toBe($status);
     expect($loanRequest->cancelled_by)->toBeNull();
 })->with([
-    'under review' => [LoanRequestStatus::UnderReview],
     'declined' => [LoanRequestStatus::Declined],
     'draft' => [LoanRequestStatus::Draft],
     'cancelled' => [LoanRequestStatus::Cancelled],
@@ -2455,6 +2512,124 @@ test('loan request cancellation requires a reason', function () {
     $loanRequest->refresh();
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect($loanRequest->cancelled_by)->toBeNull();
+});
+
+test('member can cancel an under review loan request without providing a reason', function () {
+    $member = createApprovedMemberForLoanRequestTests('000733');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/cancel", []);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Cancelled->value)
+        ->assertJsonPath('data.loanRequest.cancelled_by.user_id', $member->user_id)
+        ->assertJsonPath(
+            'data.loanRequest.cancellation_reason',
+            'Cancelled by member before review decision.',
+        );
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
+    expect($loanRequest->cancelled_by)->toBe($member->user_id);
+    expect($loanRequest->cancelled_at)->not->toBeNull();
+    expect($loanRequest->cancellation_reason)
+        ->toBe('Cancelled by member before review decision.');
+
+    $change = LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->sole();
+
+    expect($change->changed_by)->toBe($member->user_id);
+    expect($change->action)->toBe(LoanRequestChange::ACTION_CANCEL_REQUEST);
+    expect($change->reason)->toBe('Cancelled by member before review decision.');
+});
+
+test('member can cancel a submitted loan request with a provided reason', function () {
+    $member = createApprovedMemberForLoanRequestTests('000734');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Submitted,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Found a mistake in the amount.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Cancelled->value)
+        ->assertJsonPath(
+            'data.loanRequest.cancellation_reason',
+            'Found a mistake in the amount.',
+        );
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
+    expect($loanRequest->cancellation_reason)->toBe('Found a mistake in the amount.');
+});
+
+test('member cannot cancel a finalized or unavailable loan request', function (LoanRequestStatus $status) {
+    $member = createApprovedMemberForLoanRequestTests('000735');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => $status,
+        'submitted_at' => now()->subHour(),
+    ]);
+
+    $response = $this
+        ->actingAs($member)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'No longer needed.',
+        ]);
+
+    $response
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('status');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe($status);
+    expect($loanRequest->cancelled_by)->toBeNull();
+    expect($loanRequest->cancelled_at)->toBeNull();
+})->with([
+    'draft' => [LoanRequestStatus::Draft],
+    'approved' => [LoanRequestStatus::Approved],
+    'declined' => [LoanRequestStatus::Declined],
+    'cancelled' => [LoanRequestStatus::Cancelled],
+]);
+
+test('member cannot cancel another members loan request', function () {
+    $owner = createApprovedMemberForLoanRequestTests('000736');
+    $viewer = createApprovedMemberForLoanRequestTests('000737');
+
+    $loanRequest = LoanRequest::factory()->forUser($owner)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($viewer)
+        ->patchJson("/client/loans/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'No longer needed.',
+        ])
+        ->assertNotFound();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
     expect($loanRequest->cancelled_by)->toBeNull();
 });
 
@@ -3714,3 +3889,32 @@ test('client cannot view another member loan request details', function () {
 
     $response->assertNotFound();
 });
+
+function createApprovedMemberForLoanRequestTests(string $acctno): User
+{
+    $user = User::factory()->create([
+        'acctno' => $acctno,
+    ]);
+
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->updateOrInsert([
+        'acctno' => $acctno,
+    ], [
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    return $user;
+}

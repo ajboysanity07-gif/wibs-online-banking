@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 test('loan request actions group document buttons and separate navigation', async () => {
-    const file = await readFile(
+    const detailFile = await readFile(
         resolve(
             'resources',
             'js',
@@ -14,11 +14,25 @@ test('loan request actions group document buttons and separate navigation', asyn
         ),
         'utf8',
     );
+    const adminPageFile = await readFile(
+        resolve('resources', 'js', 'pages', 'admin', 'loan-request-show.tsx'),
+        'utf8',
+    );
+    const clientPageFile = await readFile(
+        resolve('resources', 'js', 'pages', 'client', 'loan-request-show.tsx'),
+        'utf8',
+    );
 
-    assert.match(file, /Actions/);
-    assert.match(file, /Download PDF/);
-    assert.match(file, /Print application/);
-    assert.match(file, /backLabel/);
-    assert.match(file, /sm:grid-cols-2/);
-    assert.match(file, /variant="ghost"/);
+    assert.match(detailFile, /Actions/);
+    assert.match(detailFile, /Download PDF/);
+    assert.match(detailFile, /Print application/);
+    assert.match(detailFile, /Cancel Application/);
+    assert.match(detailFile, /backLabel/);
+    assert.match(detailFile, /sm:grid-cols-2/);
+    assert.match(detailFile, /variant="ghost"/);
+    assert.match(adminPageFile, /Cancel Approved Request/);
+    assert.match(adminPageFile, /Cancel Application/);
+    assert.match(clientPageFile, /\['submitted', 'under_review'\]\.includes/);
+    assert.match(clientPageFile, /Reason \(optional\)/);
+    assert.match(clientPageFile, /Confirm Cancellation/);
 });

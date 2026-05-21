@@ -184,6 +184,10 @@ Route::get('client/loans/requests/{loanRequest}', [LoanRequestController::class,
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.show');
 
+Route::patch('client/loans/requests/{loanRequest}/cancel', [LoanRequestController::class, 'cancel'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.cancel');
+
 Route::post(
     'client/loans/requests/{loanRequest}/correction-reports',
     [ClientLoanRequestCorrectionReportController::class, 'store'],

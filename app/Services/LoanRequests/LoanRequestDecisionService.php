@@ -14,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class LoanRequestDecisionService
 {
+    private const DEFAULT_MEMBER_CANCELLATION_REASON = 'Cancelled by member before review decision.';
+
     private const CORRECTION_REQUIRED_MESSAGE = 'Please review and save the correction before approving this admin-corrected request.';
 
     private const CORRECTION_AUDIT_UNAVAILABLE_MESSAGE = 'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.';
@@ -78,43 +80,38 @@ class LoanRequestDecisionService
         AppUser $actor,
         string $cancellationReason,
     ): LoanRequest {
-        $updated = DB::transaction(function () use ($loanRequest, $actor, $cancellationReason): LoanRequest {
-            $loanRequest->refresh();
-            $this->ensureCancellable($loanRequest, $actor);
-            $this->ensureNoGeneratedLoanRecords($loanRequest);
+        return $this->cancelByAdmin($loanRequest, $actor, $cancellationReason);
+    }
 
-            $before = $this->snapshotForAudit($loanRequest);
+    public function cancelByAdmin(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        string $cancellationReason,
+    ): LoanRequest {
+        $reason = trim($cancellationReason);
 
-            $loanRequest->fill([
-                'status' => LoanRequestStatus::Cancelled,
-                'cancelled_by' => $actor->user_id,
-                'cancelled_at' => now(),
-                'cancellation_reason' => $cancellationReason,
-            ]);
+        return $this->cancelRequest(
+            $loanRequest,
+            $actor,
+            $reason,
+            true,
+        );
+    }
 
-            $loanRequest->save();
-            $loanRequest->refresh();
+    public function cancelByMember(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        ?string $cancellationReason = null,
+    ): LoanRequest {
+        $reason = $this->normalizeOptionalText($cancellationReason)
+            ?? self::DEFAULT_MEMBER_CANCELLATION_REASON;
 
-            $this->recordCancellationAudit(
-                $loanRequest,
-                $actor,
-                $cancellationReason,
-                $before,
-                $this->snapshotForAudit($loanRequest),
-            );
-
-            $this->correctionReports->resolveOpenReports(
-                $loanRequest,
-                $actor,
-                $cancellationReason,
-            );
-
-            return $loanRequest->loadMissing('reviewedBy', 'cancelledBy');
-        });
-
-        $this->notifyMemberOfCancellation($updated, $actor);
-
-        return $updated;
+        return $this->cancelRequest(
+            $loanRequest,
+            $actor,
+            $reason,
+            false,
+        );
     }
 
     public function canDecide(LoanRequest $loanRequest, AppUser $actor): bool
@@ -124,6 +121,25 @@ class LoanRequestDecisionService
         }
 
         return ! $this->isSelfDecision($loanRequest, $actor);
+    }
+
+    public function canCancel(LoanRequest $loanRequest, AppUser $actor): bool
+    {
+        if ($this->isSelfDecision($loanRequest, $actor)) {
+            return false;
+        }
+
+        return $this->isApproved($loanRequest)
+            || $this->isPendingDecision($loanRequest);
+    }
+
+    public function canMemberCancel(LoanRequest $loanRequest, AppUser $actor): bool
+    {
+        if (! $this->isOwnedByActor($loanRequest, $actor)) {
+            return false;
+        }
+
+        return $this->isPendingDecision($loanRequest);
     }
 
     public function isOwnRequest(LoanRequest $loanRequest, AppUser $actor): bool
@@ -207,17 +223,40 @@ class LoanRequestDecisionService
         }
     }
 
-    private function ensureCancellable(LoanRequest $loanRequest, AppUser $actor): void
-    {
-        if (! $this->isApproved($loanRequest)) {
+    private function ensureAdminCanCancel(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+    ): void {
+        if (! ($this->isApproved($loanRequest) || $this->isPendingDecision($loanRequest))) {
             throw ValidationException::withMessages([
-                'status' => 'Only approved requests can be cancelled.',
+                'status' => 'Only submitted, under review, or approved requests can be cancelled.',
             ]);
         }
 
         if ($this->isSelfDecision($loanRequest, $actor)) {
             throw ValidationException::withMessages([
                 'decision' => 'You cannot cancel your own loan request.',
+            ]);
+        }
+
+        if ($this->isApproved($loanRequest)) {
+            $this->ensureNoGeneratedLoanRecords($loanRequest);
+        }
+    }
+
+    private function ensureMemberCanCancel(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+    ): void {
+        if (! $this->isOwnedByActor($loanRequest, $actor)) {
+            throw ValidationException::withMessages([
+                'loan_request' => 'You can only cancel your own loan request.',
+            ]);
+        }
+
+        if (! $this->isPendingDecision($loanRequest)) {
+            throw ValidationException::withMessages([
+                'status' => 'Only submitted or under review requests can be cancelled.',
             ]);
         }
     }
@@ -250,6 +289,14 @@ class LoanRequestDecisionService
         return $this->statusValue($loanRequest) === LoanRequestStatus::UnderReview->value;
     }
 
+    private function isPendingDecision(LoanRequest $loanRequest): bool
+    {
+        return in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::Submitted->value,
+            LoanRequestStatus::UnderReview->value,
+        ], true);
+    }
+
     private function isApproved(LoanRequest $loanRequest): bool
     {
         return $this->statusValue($loanRequest) === LoanRequestStatus::Approved->value;
@@ -263,6 +310,11 @@ class LoanRequestDecisionService
     }
 
     private function isSelfDecision(LoanRequest $loanRequest, AppUser $actor): bool
+    {
+        return $this->isOwnedByActor($loanRequest, $actor);
+    }
+
+    private function isOwnedByActor(LoanRequest $loanRequest, AppUser $actor): bool
     {
         if ($loanRequest->user_id !== null && $loanRequest->user_id === $actor->user_id) {
             return true;
@@ -283,6 +335,69 @@ class LoanRequestDecisionService
         }
 
         return $requestAcctno === $actorAcctno;
+    }
+
+    private function cancelRequest(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        string $cancellationReason,
+        bool $cancelledByAdmin,
+    ): LoanRequest {
+        $originalStatus = null;
+
+        $updated = DB::transaction(function () use (
+            $loanRequest,
+            $actor,
+            $cancellationReason,
+            $cancelledByAdmin,
+            &$originalStatus,
+        ): LoanRequest {
+            $loanRequest->refresh();
+
+            if ($cancelledByAdmin) {
+                $this->ensureAdminCanCancel($loanRequest, $actor);
+            } else {
+                $this->ensureMemberCanCancel($loanRequest, $actor);
+            }
+
+            $originalStatus = $this->statusValue($loanRequest);
+            $before = $this->snapshotForAudit($loanRequest);
+
+            $loanRequest->fill([
+                'status' => LoanRequestStatus::Cancelled,
+                'cancelled_by' => $actor->user_id,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $cancellationReason,
+            ]);
+
+            $loanRequest->save();
+            $loanRequest->refresh();
+
+            $this->recordCancellationAudit(
+                $loanRequest,
+                $actor,
+                $cancellationReason,
+                $before,
+                $this->snapshotForAudit($loanRequest),
+                $originalStatus,
+            );
+
+            if ($cancelledByAdmin) {
+                $this->correctionReports->resolveOpenReports(
+                    $loanRequest,
+                    $actor,
+                    $cancellationReason,
+                );
+            }
+
+            return $loanRequest->loadMissing('reviewedBy', 'cancelledBy');
+        });
+
+        if ($cancelledByAdmin) {
+            $this->notifyMemberOfCancellation($updated, $actor);
+        }
+
+        return $updated;
     }
 
     private function notifyMember(LoanRequest $loanRequest): void
@@ -326,6 +441,7 @@ class LoanRequestDecisionService
         string $reason,
         array $before,
         array $after,
+        string $originalStatus,
     ): void {
         if (! $this->schemaCapabilities->hasTable('loan_request_changes')) {
             return;
@@ -334,7 +450,9 @@ class LoanRequestDecisionService
         LoanRequestChange::query()->create([
             'loan_request_id' => $loanRequest->id,
             'changed_by' => $actor->user_id,
-            'action' => LoanRequestChange::ACTION_CANCEL_APPROVED_REQUEST,
+            'action' => $originalStatus === LoanRequestStatus::Approved->value
+                ? LoanRequestChange::ACTION_CANCEL_APPROVED_REQUEST
+                : LoanRequestChange::ACTION_CANCEL_REQUEST,
             'reason' => $reason,
             'before_json' => $before,
             'after_json' => $after,
@@ -398,5 +516,16 @@ class LoanRequestDecisionService
         }
 
         return $change->before_json !== $change->after_json;
+    }
+
+    private function normalizeOptionalText(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $normalizedValue = trim((string) $value);
+
+        return $normalizedValue !== '' ? $normalizedValue : null;
     }
 }

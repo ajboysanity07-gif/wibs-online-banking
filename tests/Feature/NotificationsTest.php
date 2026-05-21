@@ -11,6 +11,7 @@ use App\Models\UserProfile;
 use App\Notifications\AdminAccessAuditNotification;
 use App\Notifications\AdminAccessChangedNotification;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
+use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestCorrectionReportedNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
@@ -132,6 +133,57 @@ test('declined loan request sends a database notification', function () {
         'Declined due to incomplete documents.',
     );
     expect($data['reviewed_at'])->not->toBeNull();
+});
+
+test('admin cancellation sends a database notification for a pending loan request', function () {
+    $admin = createAdminUser();
+    $member = createRegisteredMember('000822', 'Pending', 'Member');
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $member->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Member requested to stop the application.',
+        ]);
+
+    $response->assertOk();
+
+    $notification = latestNotificationFor(
+        $member,
+        LoanRequestCancelledNotification::class,
+    );
+
+    expect($notification)->not->toBeNull();
+
+    $data = $notification->data;
+
+    expect($data['type'])->toBe('loan_request_cancelled');
+    expect($data['loan_request_id'])->toBe($loanRequest->id);
+    expect($data['reference'])->toBe($loanRequest->reference);
+    expect($data['status'])->toBe(LoanRequestStatus::Cancelled->value);
+    expect($data['title'])->toBe('Loan request cancelled');
+    expect($data['message'])->toBe(
+        sprintf(
+            'Your loan request %s was cancelled. Please review the cancellation reason for the next steps.',
+            $loanRequest->reference,
+        ),
+    );
+    expect($data['entity_type'])->toBe('loan_request');
+    expect($data['entity_id'])->toBe($loanRequest->id);
+    expect($data['member_id'])->toBe($member->user_id);
+    expect($data['actor_id'])->toBe($admin->user_id);
+    expect($data['actor_role'])->toBe('admin');
+    expect($data['cancellation_reason'])->toBe(
+        'Member requested to stop the application.',
+    );
+    expect($data['cancelled_at'])->not->toBeNull();
 });
 
 test('admin corrected request creation sends member notification payload', function () {
