@@ -455,6 +455,7 @@ class LoanRequestSignatureLinkService
                     ? $person->role
                     : LoanRequestPersonRole::CoMakerOne,
             ),
+            'expires_at' => $link->expires_at?->toDateTimeString(),
         ];
     }
 

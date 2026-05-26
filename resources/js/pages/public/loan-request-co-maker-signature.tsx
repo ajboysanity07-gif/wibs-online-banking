@@ -1,8 +1,9 @@
 import { Head, useForm } from '@inertiajs/react';
-import { CircleAlert, CircleCheckBig, Link2Off } from 'lucide-react';
+import { CircleAlert, CircleCheckBig, Clock3, Link2Off } from 'lucide-react';
 import { useState } from 'react';
 import SignaturePadField from '@/components/signature-pad-field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -14,7 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDateTime } from '@/lib/formatters';
 
 type PublicSigningStatus = 'ready' | 'invalid' | 'revoked' | 'expired' | 'signed';
 
@@ -32,6 +33,7 @@ type SigningPayload = {
     current_position: string | null;
     nature_of_business: string | null;
     role_label: string;
+    expires_at: string | null;
 };
 
 type Props = {
@@ -114,6 +116,64 @@ const statusCopy: Record<
     },
 };
 
+const IdentityConfirmationCard = ({
+    signing,
+}: {
+    signing: SigningPayload;
+}) => {
+    const expirationCopy = signing.expires_at
+        ? `This secure signing link expires on ${formatDateTime(signing.expires_at)}.`
+        : null;
+
+    return (
+        <Card className="overflow-hidden border-cyan-500/25 bg-card/95 shadow-[0_18px_50px_rgba(14,116,144,0.10)]">
+            <CardHeader className="gap-4 border-b border-border/40 pb-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-3">
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold tracking-[0.28em] text-cyan-700 uppercase dark:text-cyan-300">
+                                You are signing as
+                            </p>
+                            <CardTitle className="text-3xl leading-tight font-semibold tracking-tight sm:text-4xl">
+                                {displayValue(signing.co_maker_name)}
+                            </CardTitle>
+                        </div>
+                        <p className="text-sm text-muted-foreground sm:text-base">
+                            {displayValue(signing.role_label)} for{' '}
+                            <span className="font-medium text-foreground">
+                                {displayValue(signing.borrower_name)}
+                            </span>
+                        </p>
+                    </div>
+                    <Badge
+                        variant="secondary"
+                        className="rounded-full px-3 py-1 text-xs font-semibold"
+                    >
+                        {displayValue(signing.role_label)}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+                <Alert className="border-amber-500/25 bg-amber-500/10 text-amber-950 dark:text-amber-100">
+                    <CircleAlert className="size-4" />
+                    <AlertTitle>Only continue if this is you</AlertTitle>
+                    <AlertDescription>
+                        Only continue if this is you. If this is not your name
+                        or your information is incorrect, do not sign.
+                    </AlertDescription>
+                </Alert>
+
+                {expirationCopy ? (
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+                        <Clock3 className="size-4" />
+                        {expirationCopy}
+                    </p>
+                ) : null}
+            </CardContent>
+        </Card>
+    );
+};
+
 export default function PublicLoanRequestCoMakerSignaturePage({
     status,
     signing,
@@ -127,16 +187,24 @@ export default function PublicLoanRequestCoMakerSignaturePage({
         signature_data: '',
     });
     const showReadyState = status === 'ready' && signing !== null;
+    const showSuccessState = recentlySigned && signing !== null;
     const showSignedState = status === 'signed';
+    const showUnavailableState = !showReadyState && !showSuccessState;
     const unavailableStateCopy =
-        !showReadyState && status !== 'ready'
+        showUnavailableState && status !== 'ready'
             ? statusCopy[showSignedState ? 'signed' : status]
             : null;
+    const canSubmitSignature =
+        form.data.consent && form.data.signature_data.trim() !== '';
     const linkError = form.errors[
         'link' as keyof typeof form.errors
     ] as string | undefined;
 
-    const submitSignature = () => {
+    const submitSignature = (): void => {
+        if (!canSubmitSignature || form.processing) {
+            return;
+        }
+
         form.post(submitUrl, {
             preserveScroll: true,
         });
@@ -147,7 +215,7 @@ export default function PublicLoanRequestCoMakerSignaturePage({
             <Head title="Co-maker Signature" />
 
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-                <div className="space-y-2 text-center">
+                <div className="space-y-3 text-center">
                     <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
                         Loan Request
                     </p>
@@ -155,23 +223,57 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                         Co-maker Signature
                     </h1>
                     <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
-                        Review the proposed co-maker details, confirm your
-                        consent, and sign to confirm this loan request.
+                        Review the borrower-entered information, confirm your
+                        identity, and sign only if everything shown is correct.
                     </p>
                 </div>
 
-                {recentlySigned ? (
-                    <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100">
-                        <CircleCheckBig className="size-4" />
-                        <AlertTitle>Signature submitted</AlertTitle>
-                        <AlertDescription>
-                            Your co-maker confirmation has been recorded
-                            successfully.
-                        </AlertDescription>
-                    </Alert>
+                {showSuccessState ? (
+                    <Card className="border-emerald-500/30 bg-card/95 shadow-[0_18px_50px_rgba(16,185,129,0.12)]">
+                        <CardContent className="space-y-6 px-6 py-8 sm:py-10">
+                            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-200">
+                                <CircleCheckBig className="size-7" />
+                            </div>
+                            <div className="space-y-3 text-center">
+                                <Badge
+                                    variant="secondary"
+                                    className="rounded-full px-3 py-1"
+                                >
+                                    {displayValue(signing.role_label)}
+                                </Badge>
+                                <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                                    Signature submitted successfully
+                                </h2>
+                                <p className="mx-auto max-w-xl text-sm text-muted-foreground sm:text-base">
+                                    You are now confirmed as a co-maker for
+                                    this loan request. You may close this page.
+                                </p>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <DetailItem
+                                    label="Co-maker"
+                                    value={displayValue(signing.co_maker_name)}
+                                />
+                                <DetailItem
+                                    label="Borrower / Member"
+                                    value={displayValue(signing.borrower_name)}
+                                />
+                                <DetailItem
+                                    label="Loan type"
+                                    value={displayValue(signing.loan_type)}
+                                />
+                                <DetailItem
+                                    label="Requested amount"
+                                    value={displayAmount(
+                                        signing.requested_amount,
+                                    )}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
                 ) : null}
 
-                {!showReadyState ? (
+                {showUnavailableState ? (
                     <Card className="border-border/50 bg-card/90">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -199,14 +301,12 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                                     value={displayValue(signing.co_maker_name)}
                                 />
                                 <DetailItem
-                                    label="Loan type"
-                                    value={displayValue(signing.loan_type)}
+                                    label="Role"
+                                    value={displayValue(signing.role_label)}
                                 />
                                 <DetailItem
-                                    label="Requested amount"
-                                    value={displayAmount(
-                                        signing.requested_amount,
-                                    )}
+                                    label="Loan type"
+                                    value={displayValue(signing.loan_type)}
                                 />
                             </CardContent>
                         ) : null}
@@ -215,12 +315,14 @@ export default function PublicLoanRequestCoMakerSignaturePage({
 
                 {showReadyState ? (
                     <>
+                        <IdentityConfirmationCard signing={signing} />
+
                         <Card className="border-border/50 bg-card/90">
                             <CardHeader>
                                 <CardTitle>Loan request summary</CardTitle>
                                 <CardDescription>
-                                    Only the minimum information needed for
-                                    co-maker review is shown here.
+                                    Only the information needed to review this
+                                    co-maker request is shown here.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -246,10 +348,6 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                                     label="Requested term"
                                     value={displayTerm(signing.requested_term)}
                                 />
-                                <DetailItem
-                                    label="Co-maker name"
-                                    value={displayValue(signing.co_maker_name)}
-                                />
                             </CardContent>
                         </Card>
 
@@ -257,11 +355,16 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                             <CardHeader>
                                 <CardTitle>Proposed co-maker details</CardTitle>
                                 <CardDescription>
-                                    Review the information entered by the
-                                    borrower before signing.
+                                    This is the information the borrower entered
+                                    about you. Review it carefully before
+                                    signing.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="grid gap-3 sm:grid-cols-2">
+                                <DetailItem
+                                    label="Full name"
+                                    value={displayValue(signing.co_maker_name)}
+                                />
                                 <DetailItem
                                     label="Contact number"
                                     value={displayValue(signing.contact_number)}
@@ -304,13 +407,16 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                         </Alert>
 
                         {showIncorrectInfoNotice ? (
-                            <Alert>
+                            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100">
                                 <CircleAlert className="size-4" />
-                                <AlertTitle>Incorrect information noted</AlertTitle>
+                                <AlertTitle>
+                                    Incorrect information reported
+                                </AlertTitle>
                                 <AlertDescription>
-                                    Do not sign until the borrower or
-                                    cooperative office confirms the corrected
-                                    details and provides a new link if needed.
+                                    Please contact the borrower or cooperative
+                                    office before signing. This request will
+                                    remain unsigned until the information is
+                                    corrected.
                                 </AlertDescription>
                             </Alert>
                         ) : null}
@@ -319,8 +425,8 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                             <CardHeader>
                                 <CardTitle>Consent and signature</CardTitle>
                                 <CardDescription>
-                                    Confirm the information, then sign in the
-                                    box below. Only the co-maker should sign.
+                                    Confirm your identity and sign only if all
+                                    of the information above is correct.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-5">
@@ -341,8 +447,10 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                                                 htmlFor="consent"
                                                 className="text-sm leading-relaxed"
                                             >
-                                                I confirm that the information
-                                                shown is correct and I agree to
+                                                I confirm that I am the person
+                                                named above, that the
+                                                information shown is correct,
+                                                and that I voluntarily agree to
                                                 act as co-maker for this loan
                                                 request.
                                             </Label>
@@ -355,15 +463,22 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                                     </div>
                                 </div>
 
-                                <SignaturePadField
-                                    name="signature_data"
-                                    label="Co-maker signature"
-                                    value={form.data.signature_data}
-                                    error={form.errors.signature_data}
-                                    onChange={(value) =>
-                                        form.setData('signature_data', value)
-                                    }
-                                />
+                                <div className="space-y-3">
+                                    <p className="text-sm text-muted-foreground">
+                                        Only the co-maker named above should
+                                        sign here. Do not sign on behalf of
+                                        another person.
+                                    </p>
+                                    <SignaturePadField
+                                        name="signature_data"
+                                        label="Co-maker signature"
+                                        value={form.data.signature_data}
+                                        error={form.errors.signature_data}
+                                        onChange={(value) =>
+                                            form.setData('signature_data', value)
+                                        }
+                                    />
+                                </div>
 
                                 {linkError ? (
                                     <Alert variant="destructive">
@@ -376,13 +491,27 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                                     </Alert>
                                 ) : null}
 
+                                {!canSubmitSignature && !form.processing ? (
+                                    <Alert className="border-border/60 bg-muted/30">
+                                        <CircleAlert className="size-4" />
+                                        <AlertTitle>Signature required</AlertTitle>
+                                        <AlertDescription>
+                                            Please confirm consent and sign
+                                            inside the box to continue.
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
+
                                 <Separator className="bg-border/40" />
 
                                 <div className="grid gap-3">
                                     <Button
                                         type="button"
                                         className="h-12 w-full"
-                                        disabled={form.processing}
+                                        disabled={
+                                            !canSubmitSignature ||
+                                            form.processing
+                                        }
                                         onClick={submitSignature}
                                     >
                                         {form.processing
@@ -393,14 +522,15 @@ export default function PublicLoanRequestCoMakerSignaturePage({
                                         type="button"
                                         variant="outline"
                                         className="h-12 w-full"
-                                        disabled={form.processing}
+                                        disabled={
+                                            form.processing ||
+                                            showIncorrectInfoNotice
+                                        }
                                         onClick={() =>
-                                            setShowIncorrectInfoNotice(
-                                                (current) => !current,
-                                            )
+                                            setShowIncorrectInfoNotice(true)
                                         }
                                     >
-                                        Information is incorrect
+                                        Report incorrect information
                                     </Button>
                                 </div>
                             </CardContent>

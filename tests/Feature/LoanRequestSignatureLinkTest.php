@@ -485,6 +485,7 @@ test('expired co-maker signing links cannot be opened or submitted', function ()
 
 test('public co-maker signing page only exposes the required review details', function () {
     $fixture = createPublicSignatureLinkFixture('review-details-token');
+    $link = LoanRequestSignatureLink::query()->sole();
 
     $this->get(
         route('loan-requests.sign.co-maker.show', $fixture['token']),
@@ -493,6 +494,8 @@ test('public co-maker signing page only exposes the required review details', fu
         ->where('status', 'ready')
         ->where('signing.borrower_name', 'Borrower Member')
         ->where('signing.co_maker_name', 'Co Maker')
+        ->where('signing.role_label', 'Co-maker 1')
+        ->where('signing.expires_at', $link->expires_at?->toDateTimeString())
         ->has('signing.loan_type')
         ->has('signing.requested_amount')
         ->has('signing.requested_term')
@@ -503,6 +506,12 @@ test('public co-maker signing page only exposes the required review details', fu
         ->has('signing.employer_business_address')
         ->has('signing.current_position')
         ->has('signing.nature_of_business')
+        ->missing('signing.borrower_address')
+        ->missing('signing.borrower_contact_number')
+        ->missing('signing.account_balances')
+        ->missing('signing.savings_data')
+        ->missing('signing.private_documents')
+        ->missing('signing.admin_notes')
         ->missing('signing.signature_path')
         ->missing('signing.token_hash'));
 });
@@ -580,6 +589,33 @@ test('valid co-maker signatures store the signature path and signed at timestamp
     expect($link->user_agent)->not->toBeNull();
 
     Storage::disk('public')->assertExists((string) $person?->signature_path);
+});
+
+test('successful co-maker signing shows the public confirmation state', function () {
+    Storage::fake('public');
+
+    $fixture = createPublicSignatureLinkFixture('confirmation-token');
+
+    $this->from(route('loan-requests.sign.co-maker.show', $fixture['token']))
+        ->post(route('loan-requests.sign.co-maker.store', $fixture['token']), [
+            'consent' => true,
+            'signature_data' => signatureLinkSampleSignatureDataUrl('one'),
+        ])
+        ->assertRedirect(route('loan-requests.sign.co-maker.show', [
+            'token' => $fixture['token'],
+            'signed' => 1,
+        ]));
+
+    $this->get(route('loan-requests.sign.co-maker.show', [
+        'token' => $fixture['token'],
+        'signed' => 1,
+    ]))->assertInertia(fn (Assert $page) => $page
+        ->component('public/loan-request-co-maker-signature')
+        ->where('status', 'signed')
+        ->where('recentlySigned', true)
+        ->where('signing.co_maker_name', 'Co Maker')
+        ->where('signing.borrower_name', 'Borrower Member')
+        ->where('signing.role_label', 'Co-maker 1'));
 });
 
 test('in-person co-maker signatures on the member device are saved and allow submission', function () {
