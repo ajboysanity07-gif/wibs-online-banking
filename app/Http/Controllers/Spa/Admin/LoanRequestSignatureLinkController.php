@@ -55,6 +55,11 @@ class LoanRequestSignatureLinkController extends Controller
                     'url' => $generated['signing_url'],
                     'expires_at' => $generated['link']->expires_at?->toDateTimeString(),
                 ],
+                'signing_url' => $generated['signing_url'],
+                'expires_at' => $generated['link']->expires_at?->toDateTimeString(),
+                'status' => LoanRequestSignatureLinkService::STATE_LINK_ACTIVE,
+                'role' => $resolvedRole->value,
+                'loan_request_person_id' => $generated['link']->loan_request_person_id,
             ],
         ]);
     }

@@ -199,6 +199,16 @@ function validLoanRequestPayload(array $overrides = []): array
     return array_replace_recursive($payload, $overrides);
 }
 
+function blankLoanRequestPersonPayload(bool $includeApplicantFields = false): array
+{
+    $section = $includeApplicantFields ? 'applicant' : 'co_maker_1';
+
+    return array_fill_keys(
+        array_keys(validLoanRequestPayload()[$section]),
+        '',
+    );
+}
+
 function extractTokenFromUrl(string $url): string
 {
     $path = parse_url($url, PHP_URL_PATH);
@@ -311,12 +321,21 @@ test('owners can generate active co-maker signing links', function () {
             LoanRequestPersonRole::CoMakerOne->value,
         )
         ->assertJsonPath(
+            'data.role',
+            LoanRequestPersonRole::CoMakerOne->value,
+        )
+        ->assertJsonPath('data.status', 'link_active')
+        ->assertJsonPath(
             'data.signing_url',
             $response->json('data.signingLink.signing_url'),
         )
         ->assertJsonPath(
             'data.expires_at',
             $response->json('data.signingLink.expires_at'),
+        )
+        ->assertJsonPath(
+            'data.loan_request_person_id',
+            $response->json('data.signingLink.loan_request_person_id'),
         );
 
     $loanRequest = LoanRequest::query()->sole();
@@ -335,11 +354,12 @@ test('owners can generate active co-maker signing links', function () {
     expect($link->expires_at)->not->toBeNull();
 });
 
-test('co-maker signing link generation returns signing_url without requiring undertaking acceptance or the other co-maker', function () {
+test('co-maker signing link generation accepts blank non-target sections and returns the top-level signing payload', function () {
     $user = createApprovedMemberForSignatureLinkTests('000801AA');
     $payload = validLoanRequestPayload();
     unset($payload['undertaking_accepted']);
-    $payload['co_maker_2'] = [];
+    $payload['applicant'] = blankLoanRequestPersonPayload(true);
+    $payload['co_maker_2'] = blankLoanRequestPersonPayload();
 
     $response = $this
         ->actingAs($user)
@@ -353,10 +373,29 @@ test('co-maker signing link generation returns signing_url without requiring und
     $response
         ->assertOk()
         ->assertJsonPath(
+            'data.role',
+            LoanRequestPersonRole::CoMakerOne->value,
+        )
+        ->assertJsonPath('data.status', 'link_active')
+        ->assertJsonPath(
             'data.signingLink.signing_url',
             $response->json('data.signing_url'),
         )
+        ->assertJsonPath(
+            'data.signingLink.loan_request_person_id',
+            $response->json('data.loan_request_person_id'),
+        )
         ->assertJsonPath('data.coMakerOneSignature.state', 'link_active');
+
+    $token = extractTokenFromUrl(
+        (string) $response->json('data.signingLink.signing_url'),
+    );
+
+    $this->get(route('loan-requests.sign.co-maker.show', $token))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('public/loan-request-co-maker-signature')
+            ->where('status', 'ready')
+            ->where('signing.borrower_name', 'Loan Member'));
 });
 
 test('regenerating a co-maker signing link revokes the previous active unsigned link', function () {
@@ -506,6 +545,15 @@ test('signed co-maker signing links cannot be reused', function () {
         ])
         ->assertRedirect(route('loan-requests.sign.co-maker.show', $fixture['token']))
         ->assertSessionHasErrors('link');
+});
+
+test('loan request people expose public signature urls for stored images', function () {
+    $person = LoanRequestPerson::factory()->create([
+        'signature_path' => 'storage/app/public/loan-requests/signatures/sample.jpg',
+    ]);
+
+    expect($person->signature_url)
+        ->toBe(url('/storage/loan-requests/signatures/sample.jpg'));
 });
 
 test('valid co-maker signatures store the signature path and signed at timestamp', function () {

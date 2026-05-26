@@ -21,7 +21,7 @@ class LoanRequestSignatureStorage
         }
 
         $path = 'loan-requests/signatures/'.Str::uuid().'.png';
-        Storage::disk('public')->put($path, $image);
+        Storage::disk('public')->put($path, $image, 'public');
 
         return $path;
     }

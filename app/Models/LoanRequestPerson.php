@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class LoanRequestPerson extends Model
 {
@@ -56,6 +57,13 @@ class LoanRequestPerson extends Model
         'payday',
     ];
 
+    /**
+     * @var list<string>
+     */
+    protected $appends = [
+        'signature_url',
+    ];
+
     public function loanRequest(): BelongsTo
     {
         return $this->belongsTo(LoanRequest::class);
@@ -64,6 +72,27 @@ class LoanRequestPerson extends Model
     public function signatureLinks(): HasMany
     {
         return $this->hasMany(LoanRequestSignatureLink::class);
+    }
+
+    public function getSignatureUrlAttribute(): ?string
+    {
+        $path = trim((string) $this->signature_path);
+
+        if ($path === '') {
+            return null;
+        }
+
+        $normalizedPath = str_replace('\\', '/', $path);
+        $normalizedPath = preg_replace(
+            '#^(?:/?storage/app/public/|/?public/storage/|/?storage/)#',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+        $normalizedPath = ltrim($normalizedPath, '/');
+
+        return $normalizedPath !== ''
+            ? Storage::disk('public')->url($normalizedPath)
+            : null;
     }
 
     public function composedBirthplace(): string

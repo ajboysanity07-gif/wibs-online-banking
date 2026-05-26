@@ -43,6 +43,7 @@ export type LoanRequestPersonData = {
     gross_monthly_income: string | null;
     payday: string | null;
     signature_path: string | null;
+    signature_url?: string | null;
 };
 
 export type LoanRequestReviewer = {

@@ -50,6 +50,9 @@ class LoanRequestSignatureLinkController extends Controller
                 'signingLink' => $result['signingLink'],
                 'signing_url' => $result['signingLink']['signing_url'],
                 'expires_at' => $result['signingLink']['expires_at'],
+                'status' => $result['signingLink']['status'],
+                'role' => $result['signingLink']['role'],
+                'loan_request_person_id' => $result['signingLink']['loan_request_person_id'],
             ],
         ]);
     }

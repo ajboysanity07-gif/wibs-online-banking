@@ -19,7 +19,6 @@ import { LoanRequestWizardActions } from '@/components/loan-request/loan-request
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { useClipboard } from '@/hooks/use-clipboard';
 import AppLayout from '@/layouts/app-layout';
 import api, { getApiErrorMessage, mapValidationErrors } from '@/lib/api';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
@@ -55,6 +54,17 @@ type Props = {
 
 type SignatureRole = 'co_maker_1' | 'co_maker_2';
 type SignatureMethod = 'in_person' | 'share_link';
+type SignatureLinkResponsePayload = {
+    loanRequest: LoanRequestDraft;
+    coMakerOneSignature: LoanRequestCoMakerSignatureState;
+    coMakerTwoSignature: LoanRequestCoMakerSignatureState;
+    signingLink?: LoanRequestGeneratedSignatureLink;
+    signing_url?: string;
+    expires_at?: string | null;
+    status?: 'link_active';
+    role?: SignatureRole;
+    loan_request_person_id?: number;
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Overview', href: clientDashboard().url },
@@ -208,6 +218,31 @@ const signatureFieldByRole: Record<
 > = {
     co_maker_1: 'co_maker_1_signature_data',
     co_maker_2: 'co_maker_2_signature_data',
+};
+
+const normalizeGeneratedSignatureLink = (
+    payload?: SignatureLinkResponsePayload,
+): LoanRequestGeneratedSignatureLink | null => {
+    if (payload?.signingLink) {
+        return payload.signingLink;
+    }
+
+    if (
+        !payload?.signing_url ||
+        payload.role === undefined ||
+        typeof payload.loan_request_person_id !== 'number'
+    ) {
+        return null;
+    }
+
+    return {
+        role: payload.role,
+        loan_request_person_id: payload.loan_request_person_id,
+        status: payload.status ?? 'link_active',
+        signing_url: payload.signing_url,
+        url: payload.signing_url,
+        expires_at: payload.expires_at ?? null,
+    };
 };
 
 const toPersonForm = (
@@ -379,7 +414,6 @@ export default function LoanRequestPage({
     const [signatureActionRole, setSignatureActionRole] =
         useState<SignatureRole | null>(null);
     const [isRefreshingSignatures, setIsRefreshingSignatures] = useState(false);
-    const [, copyToClipboard] = useClipboard();
 
     const initialFormData = useMemo<LoanRequestFormData>(
         () => ({
@@ -665,15 +699,11 @@ export default function LoanRequestPage({
                 form.data,
             );
             const payload = response.data?.data as
-                | {
-                      loanRequest: LoanRequestDraft;
-                      coMakerOneSignature: LoanRequestCoMakerSignatureState;
-                      coMakerTwoSignature: LoanRequestCoMakerSignatureState;
-                      signingLink: LoanRequestGeneratedSignatureLink;
-                  }
+                | SignatureLinkResponsePayload
                 | undefined;
+            const signingLink = normalizeGeneratedSignatureLink(payload);
 
-            if (!payload) {
+            if (!payload || !signingLink) {
                 throw new Error('Unable to generate the signature link.');
             }
 
@@ -682,7 +712,7 @@ export default function LoanRequestPage({
             setCoMakerTwoSignatureState(payload.coMakerTwoSignature);
             setGeneratedLinks((current) => ({
                 ...current,
-                [role]: payload.signingLink,
+                [role]: signingLink,
             }));
             setSelectedSigningMethods((current) => ({
                 ...current,
@@ -704,6 +734,14 @@ export default function LoanRequestPage({
                 );
 
                 applyValidationErrors(validationErrors);
+                showErrorToast(
+                    null,
+                    getApiErrorMessage(
+                        error,
+                        'Please review the highlighted fields before generating the signing link.',
+                    ),
+                    { id: `loan-request-signature-link-${role}` },
+                );
 
                 return;
             }
@@ -734,17 +772,20 @@ export default function LoanRequestPage({
             return;
         }
 
-        const copied = await copyToClipboard(link.signing_url);
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            try {
+                await navigator.clipboard.writeText(link.signing_url);
+                showSuccessToast('Signing link copied.', {
+                    id: `loan-request-signature-copy-${role}`,
+                });
 
-        if (copied) {
-            showSuccessToast('Signing link copied.', {
-                id: `loan-request-signature-copy-${role}`,
-            });
-
-            return;
+                return;
+            } catch {
+                // Fall through to the error toast below.
+            }
         }
 
-        showErrorToast(null, 'Unable to copy the signing link.', {
+        showErrorToast(null, 'Unable to copy signing link.', {
             id: `loan-request-signature-copy-${role}`,
         });
     };

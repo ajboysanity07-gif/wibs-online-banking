@@ -125,9 +125,9 @@ export default function SignaturePadField({
             return;
         }
 
-        setSignatureData(
-            signaturePad.getTrimmedCanvas().toDataURL('image/png'),
-        );
+        const canvas = signaturePad.getCanvas();
+
+        setSignatureData(canvas.toDataURL('image/png'));
     };
 
     const handleClear = (): void => {

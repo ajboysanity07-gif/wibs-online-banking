@@ -93,9 +93,10 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             'typecode' => $loanTypeRules,
             'requested_amount' => ['required', 'numeric', 'min:1'],
             'requested_term' => ['required', 'integer', 'min:1', 'max:360'],
-            'loan_purpose' => ['required', 'string', 'max:255'],
+            'loan_purpose' => ['sometimes', 'nullable', 'string', 'max:255'],
             'availment_status' => [
-                'required',
+                'sometimes',
+                'nullable',
                 'string',
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
@@ -103,7 +104,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             'co_maker_1_signature_data' => $this->signatureDataRules(),
             'co_maker_2_signature_data' => $this->signatureDataRules(),
             'undertaking_accepted' => ['sometimes', 'boolean'],
-            ...$this->requiredPersonRules('applicant', true, true),
+            ...$this->optionalPersonRules('applicant', true, true),
             ...$this->coMakerRules('co_maker_1', $targetRole, LoanRequestPersonRole::CoMakerOne),
             ...$this->coMakerRules('co_maker_2', $targetRole, LoanRequestPersonRole::CoMakerTwo),
         ];

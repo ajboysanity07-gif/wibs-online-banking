@@ -31,5 +31,10 @@ test('loan request co-maker signing UI exposes in-person and remote signing flow
     assert.match(stepsFile, /Edit details and require a new signature/);
     assert.match(pageFile, /co_maker_1_signature_data/);
     assert.match(pageFile, /co_maker_2_signature_data/);
+    assert.match(pageFile, /navigator\.clipboard\.writeText/);
+    assert.match(
+        pageFile,
+        /Please review the highlighted fields before generating the signing link\./,
+    );
     assert.match(pageFile, /LoanRequestWizardActions/);
 });

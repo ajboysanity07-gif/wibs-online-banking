@@ -352,6 +352,7 @@ class LoanRequestSignatureLinkService
         return LoanRequestSignatureLink::query()
             ->with([
                 'loanRequest.applicant',
+                'loanRequest.user.wmaster',
                 'loanRequestPerson',
             ])
             ->where('token_hash', hash('sha256', $token))
@@ -433,7 +434,10 @@ class LoanRequestSignatureLinkService
         $applicant = $loanRequest?->applicant;
 
         return [
-            'borrower_name' => $this->displayName($applicant),
+            'borrower_name' => $this->resolveBorrowerName(
+                $loanRequest,
+                $applicant,
+            ),
             'loan_type' => $loanRequest?->loan_type_label_snapshot
                 ?: $loanRequest?->typecode,
             'requested_amount' => $loanRequest?->requested_amount,
@@ -452,6 +456,29 @@ class LoanRequestSignatureLinkService
                     : LoanRequestPersonRole::CoMakerOne,
             ),
         ];
+    }
+
+    private function resolveBorrowerName(
+        ?LoanRequest $loanRequest,
+        ?LoanRequestPerson $applicant,
+    ): string {
+        $applicantName = $this->displayName($applicant);
+
+        if ($applicantName !== '--') {
+            return $applicantName;
+        }
+
+        $memberName = trim(
+            (string) $loanRequest?->user?->wmaster?->displayName(),
+        );
+
+        if ($memberName !== '') {
+            return $memberName;
+        }
+
+        $userName = trim((string) $loanRequest?->user?->name);
+
+        return $userName !== '' ? $userName : '--';
     }
 
     private function displayName(?LoanRequestPerson $person): string
