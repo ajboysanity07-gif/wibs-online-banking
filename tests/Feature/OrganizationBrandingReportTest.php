@@ -46,6 +46,107 @@ test('loan request report renders uploaded header design when available', functi
     expect($html)->toContain('src="data:image/png;base64,'.base64_encode('header').'"');
 });
 
+test('loan security agreement report renders uploaded header design when available', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('branding/report-headers/header.png', 'header');
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Acme Cooperative',
+        'report_header_design_path' => 'branding/report-headers/header.png',
+    ]);
+
+    $branding = app(OrganizationSettingsService::class)->branding();
+
+    $html = view('reports.loan-security-agreement', [
+        'organization' => [
+            'company_name' => $branding['companyName'],
+        ],
+        'loan' => [
+            'type' => 'SALARY LOAN',
+            'approved_amount' => '25,000.00',
+            'approved_date' => 'May 22, 2026',
+            'approved_term_label' => '12 months',
+        ],
+        'applicant' => [
+            'full_name' => 'Loan Member',
+            'address' => 'Sample Street, Sample City, Sample Province',
+            'signature_data' => null,
+        ],
+        'reviewer' => [
+            'name' => 'Annabelle M. Amora',
+            'position' => 'Authorized Representative',
+        ],
+        'reportHeader' => $branding['reportHeader'],
+        'reportTypography' => $branding['reportTypography'],
+        'organizationLogoDataUri' => null,
+        'placeOfSigning' => 'Sample City, Sample Province',
+    ])->render();
+
+    expect($html)->toContain('class="report-header-design"');
+    expect($html)->toContain('src="data:image/png;base64,'.base64_encode('header').'"');
+    expect($html)->toContain('Loan Security Agreement');
+});
+
+test('loan security agreement report underlines inserted values and keeps signature names above labels', function () {
+    $html = view('reports.loan-security-agreement', [
+        'organization' => [
+            'company_name' => 'Acme Cooperative',
+        ],
+        'loan' => [
+            'type' => 'SALARY LOAN',
+            'approved_amount' => '25,000.00',
+            'approved_date' => 'May 22, 2026',
+            'approved_term_label' => '12 months',
+        ],
+        'applicant' => [
+            'full_name' => 'Helario B. Tejero',
+            'address' => 'Banahao, Lianga, Surigao del Sur',
+            'signature_data' => null,
+        ],
+        'reviewer' => [
+            'name' => 'Annabelle M. Amora',
+            'position' => 'Authorized Representative',
+        ],
+        'reportHeader' => [
+            'designData' => null,
+        ],
+        'organizationLogoDataUri' => null,
+        'placeOfSigning' => 'Lianga, Surigao del Sur',
+    ])->render();
+
+    expect($html)
+        ->toContain('size: 8.5in 11in;')
+        ->toContain('margin: .75in 1in 1in 1in;')
+        ->toContain('<span class="agreement-fill">Helario B. Tejero</span>')
+        ->toContain('<span class="agreement-fill">Banahao, Lianga, Surigao del Sur</span>')
+        ->toContain('<span class="agreement-fill">SALARY LOAN</span>')
+        ->toContain('Acme Cooperative')
+        ->toContain('Annabelle M. Amora, Authorized Representative')
+        ->toContain('this 22 day of')
+        ->toContain('May, 2026 at')
+        ->toContain('class="signature-layout"')
+        ->toContain('width: 76%;')
+        ->toContain('margin: 20pt auto 0;')
+        ->toContain('class="signature-column signature-column--left"')
+        ->toContain('class="signature-column signature-column--right"')
+        ->toContain('<div class="signature-label">Borrower</div>')
+        ->toContain('<div class="signature-label">Lender</div>')
+        ->not->toContain('This Agreement pertains to the Borrower')
+        ->not->toContain('approved amount')
+        ->not->toContain('payable over')
+        ->not->toContain('<span class="agreement-fill">Acme Cooperative</span>')
+        ->not->toContain('<span class="agreement-fill">Annabelle M. Amora, Authorized Representative</span>')
+        ->not->toContain('class="signature-meta"');
+
+    $signatureSection = strstr($html, '<table class="signature-layout">');
+
+    expect($signatureSection)->not->toBeFalse();
+    expect(strpos($signatureSection, 'Helario B. Tejero'))
+        ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Borrower</div>'));
+    expect(strpos($signatureSection, 'Annabelle M. Amora'))
+        ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Lender</div>'));
+});
+
 test('loan payments report renders uploaded header design when available', function () {
     Storage::fake('public');
     Storage::disk('public')->put('branding/report-headers/header.png', 'header');

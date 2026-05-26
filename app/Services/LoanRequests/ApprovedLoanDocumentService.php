@@ -6,15 +6,16 @@ use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
+use App\Models\Wmaster;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
-use App\Services\LoanRequests\PdfFieldMaps\LoanSecurityAgreementPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use NumberFormatter;
 use RuntimeException;
@@ -25,9 +26,21 @@ use ZipArchive;
 
 class ApprovedLoanDocumentService
 {
+    private const GREPALIFE_IMAGE_TEMPLATE_PAGES = [
+        [
+            'image' => 'grepalife-page-1.png',
+            'width' => 216.0,
+            'height' => 279.0,
+        ],
+        [
+            'image' => 'grepalife-page-2.png',
+            'width' => 216.0,
+            'height' => 279.0,
+        ],
+    ];
+
     private const PDF_TEMPLATE_FILENAMES = [
         'grepalife' => 'grepalife.pdf',
-        'loan_security_agreement' => 'loan-security-agreement.pdf',
         'undertaking_barangay' => 'undertaking-barangay-officials.pdf',
         'affidavit_undertaking' => 'affidavit-undertaking.pdf',
         'authorization' => 'authorization.pdf',
@@ -56,7 +69,7 @@ class ApprovedLoanDocumentService
     private const DOWNLOAD_DOCUMENT_NAMES = [
         'application_form' => 'application-form-%s.pdf',
         'grepalife' => 'grepalife-%s.pdf',
-        'loan_security_agreement' => 'loan-security-agreement-%s.pdf',
+        'loan_security_agreement' => '%s Loan Request Agreement.pdf',
         'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
         'affidavit_undertaking' => 'affidavit-undertaking-%s.pdf',
         'authorization' => 'authorization-%s.pdf',
@@ -66,10 +79,11 @@ class ApprovedLoanDocumentService
     public function __construct(
         private LoanRequestPdfService $loanRequestPdfService,
         private OrganizationSettingsService $organizationSettingsService,
+        private LoanSecurityAgreementPdfService $loanSecurityAgreementPdfService,
+        private ApprovedLoanImageTemplatePdfService $approvedLoanImageTemplatePdfService,
         private ApprovedLoanPdfTemplateService $approvedLoanPdfTemplateService,
         private ApprovedLoanExcelTemplateService $approvedLoanExcelTemplateService,
         private GrepalifePdfFieldMap $grepalifePdfFieldMap,
-        private LoanSecurityAgreementPdfFieldMap $loanSecurityAgreementPdfFieldMap,
         private UndertakingBarangayPdfFieldMap $undertakingBarangayPdfFieldMap,
         private AffidavitUndertakingPdfFieldMap $affidavitUndertakingPdfFieldMap,
         private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
@@ -77,7 +91,7 @@ class ApprovedLoanDocumentService
 
     public function applicationForm(LoanRequest $loanRequest): Response
     {
-        $loanRequest->loadMissing('people', 'reviewedBy', 'user');
+        $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
 
         $workingDirectory = $this->makeWorkingDirectory($loanRequest);
         $applicationFormPdfPath = $workingDirectory
@@ -105,10 +119,10 @@ class ApprovedLoanDocumentService
     public function grepalife(LoanRequest $loanRequest): Response
     {
         $this->ensureApproved($loanRequest);
-        $loanRequest->loadMissing('people', 'reviewedBy', 'user');
+        $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
 
-        return $this->approvedLoanPdfTemplateService->renderResponse(
-            self::PDF_TEMPLATE_FILENAMES['grepalife'],
+        return $this->approvedLoanImageTemplatePdfService->renderResponse(
+            self::GREPALIFE_IMAGE_TEMPLATE_PAGES,
             $this->buildDownloadFilename('grepalife', $loanRequest),
             $this->buildDocumentData($loanRequest),
             $this->grepalifePdfFieldMap,
@@ -123,11 +137,9 @@ class ApprovedLoanDocumentService
             'loan_security_agreement',
             'application/pdf',
             function (string $outputPath, array $documentData): void {
-                $this->approvedLoanPdfTemplateService->generate(
-                    self::PDF_TEMPLATE_FILENAMES['loan_security_agreement'],
+                $this->loanSecurityAgreementPdfService->generate(
                     $outputPath,
                     $documentData,
-                    $this->loanSecurityAgreementPdfFieldMap,
                 );
             },
         );
@@ -203,7 +215,7 @@ class ApprovedLoanDocumentService
     public function packageZip(LoanRequest $loanRequest): Response
     {
         $this->ensureApproved($loanRequest);
-        $loanRequest->loadMissing('people', 'reviewedBy', 'user');
+        $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
 
         $workingDirectory = $this->makeWorkingDirectory($loanRequest);
         $documentDirectory = $workingDirectory.DIRECTORY_SEPARATOR.'documents';
@@ -221,17 +233,15 @@ class ApprovedLoanDocumentService
             $planOfPaymentPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['plan_of_payment'];
 
             $this->loanRequestPdfService->saveToPath($loanRequest, $applicationFormPath);
-            $this->approvedLoanPdfTemplateService->generate(
-                self::PDF_TEMPLATE_FILENAMES['grepalife'],
+            $this->approvedLoanImageTemplatePdfService->generate(
+                self::GREPALIFE_IMAGE_TEMPLATE_PAGES,
                 $grepalifePath,
                 $documentData,
                 $this->grepalifePdfFieldMap,
             );
-            $this->approvedLoanPdfTemplateService->generate(
-                self::PDF_TEMPLATE_FILENAMES['loan_security_agreement'],
+            $this->loanSecurityAgreementPdfService->generate(
                 $loanSecurityAgreementPath,
                 $documentData,
-                $this->loanSecurityAgreementPdfFieldMap,
             );
             $this->approvedLoanPdfTemplateService->generate(
                 self::PDF_TEMPLATE_FILENAMES['undertaking_barangay'],
@@ -295,7 +305,7 @@ class ApprovedLoanDocumentService
         callable $generator,
     ): Response {
         $this->ensureApproved($loanRequest);
-        $loanRequest->loadMissing('people', 'reviewedBy', 'user');
+        $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
 
         $workingDirectory = $this->makeWorkingDirectory($loanRequest);
         $outputPath = $workingDirectory
@@ -385,6 +395,7 @@ class ApprovedLoanDocumentService
         $applicant = $this->resolvePerson($loanRequest, LoanRequestPersonRole::Applicant);
         $coMakerOne = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerOne);
         $coMakerTwo = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerTwo);
+        $memberRecord = $this->resolveMemberWmaster($loanRequest);
         $branding = $this->organizationSettingsService->branding();
         $approvedAt = $loanRequest->reviewed_at instanceof Carbon
             ? $loanRequest->reviewed_at
@@ -397,9 +408,25 @@ class ApprovedLoanDocumentService
         return [
             'organization' => [
                 'company_name' => $this->normalizeText($branding['companyName'] ?? null),
+                'support_contact_name' => $this->normalizeText(
+                    $branding['supportContactName'] ?? null,
+                ),
+                'logo_data_uri' => $this->organizationSettingsService->logoDataUri(),
+                'report_header' => is_array($branding['reportHeader'] ?? null)
+                    ? $branding['reportHeader']
+                    : [],
+                'report_typography' => is_array(
+                    $branding['reportTypography'] ?? null,
+                )
+                    ? $branding['reportTypography']
+                    : [],
             ],
             'reviewer' => [
-                'name' => $this->normalizeText($loanRequest->reviewedBy?->name),
+                'name' => $this->normalizeText(
+                    $loanRequest->reviewedBy?->adminProfile?->fullname,
+                )
+                    ?? $this->normalizeText($loanRequest->reviewedBy?->name)
+                    ?? $this->normalizeText($branding['supportContactName'] ?? null),
                 'position' => null,
             ],
             'loan' => [
@@ -434,6 +461,7 @@ class ApprovedLoanDocumentService
             'applicant' => $this->personDocumentData($applicant, $loanRequest),
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
             'co_maker_two' => $this->personDocumentData($coMakerTwo, $loanRequest),
+            'beneficiaries' => $this->beneficiaryDocumentData($memberRecord),
         ];
     }
 
@@ -444,6 +472,15 @@ class ApprovedLoanDocumentService
         ?LoanRequestPerson $person,
         LoanRequest $loanRequest,
     ): array {
+        $composedBirthplace = $this->normalizeText($person?->composedBirthplace());
+        $composedAddress = $this->normalizeText($person?->composedAddress());
+        $composedOfficeAddress = $this->normalizeText(
+            $person?->composedEmployerBusinessAddress(),
+        );
+        $addressLine = $this->normalizeText($person?->address1) ?? $composedAddress;
+        $officeAddress = $this->normalizeText($person?->employer_business_address1)
+            ?? $composedOfficeAddress;
+
         return [
             'full_name' => $this->personFullName($person),
             'first_name' => $this->normalizeText($person?->first_name),
@@ -453,14 +490,158 @@ class ApprovedLoanDocumentService
             'age' => $this->formatAge($person),
             'civil_status' => $this->normalizeText($person?->civil_status),
             'nationality' => 'FILIPINO',
-            'address' => $this->normalizeText($person?->composedAddress()),
+            'place_of_birth' => $composedBirthplace,
+            'place_of_birth_city' => $this->normalizeText($person?->birthplace_city),
+            'place_of_birth_province' => $this->normalizeText(
+                $person?->birthplace_province,
+            ),
+            'address' => $composedAddress,
+            'address_line' => $addressLine,
+            'address_city' => $this->normalizeText($person?->address2),
+            'address_province' => $this->normalizeText($person?->address3),
+            'address_country' => null,
+            'address_zip' => null,
             'mobile' => $this->normalizeText($person?->cell_no),
+            'home_phone' => null,
+            'work_phone' => $this->normalizeText($person?->telephone_no),
             'email' => $this->normalizeText($loanRequest->user?->email),
             'employer_or_business' => $this->normalizeText($person?->employer_business_name),
+            'office_address' => $officeAddress,
+            'office_city' => $this->normalizeText($person?->employer_business_address2),
+            'office_province' => $this->normalizeText(
+                $person?->employer_business_address3,
+            ),
+            'office_country' => null,
+            'office_zip' => null,
             'position_or_designation' => $this->normalizeText($person?->current_position),
+            'nature_of_business' => $this->normalizeText($person?->nature_of_business),
+            'years_in_work_business' => $this->normalizeText(
+                $person?->years_in_work_business,
+            ),
             'payday' => $this->normalizePaydayValue($person?->payday),
             'signature_path' => $this->normalizeText($person?->signature_path),
         ];
+    }
+
+    private function resolveMemberWmaster(LoanRequest $loanRequest): ?Wmaster
+    {
+        if (! Schema::hasTable('wmaster')) {
+            return null;
+        }
+
+        $loanRequest->loadMissing('user');
+
+        $user = $loanRequest->user;
+
+        if ($user !== null) {
+            $user->loadMissing('wmaster');
+
+            if ($user->wmaster instanceof Wmaster) {
+                return $user->wmaster;
+            }
+        }
+
+        $acctno = trim((string) ($loanRequest->acctno ?? $user?->acctno ?? ''));
+
+        if ($acctno === '') {
+            return null;
+        }
+
+        return Wmaster::query()->where('acctno', $acctno)->first();
+    }
+
+    /**
+     * @return array<int, array{name: string, birthdate: string|null, relationship: null}>
+     */
+    private function beneficiaryDocumentData(?Wmaster $memberRecord): array
+    {
+        if (! $memberRecord instanceof Wmaster) {
+            return [];
+        }
+
+        $linkedBeneficiaries = $this->resolveLinkedBeneficiaryMembers($memberRecord);
+        $beneficiaries = [];
+
+        for ($slot = 1; $slot <= 3; $slot++) {
+            $directName = $this->normalizeText(
+                $this->stringAttribute($memberRecord, 'beneficiary'.$slot),
+            );
+
+            if ($directName !== null) {
+                $beneficiaries[] = [
+                    'name' => $directName,
+                    'birthdate' => $this->formatShortDateValue(
+                        $memberRecord->getAttribute('ben'.$slot.'_bday'),
+                    ),
+                    'relationship' => null,
+                ];
+
+                continue;
+            }
+
+            $linkedAcctno = trim(
+                (string) $memberRecord->getAttribute('ben'.$slot.'_acctno'),
+            );
+
+            if ($linkedAcctno === '') {
+                continue;
+            }
+
+            $linkedBeneficiary = $linkedBeneficiaries[$linkedAcctno] ?? null;
+
+            if (! $linkedBeneficiary instanceof Wmaster) {
+                continue;
+            }
+
+            $linkedName = $this->normalizeText($linkedBeneficiary->displayName());
+
+            if ($linkedName === null) {
+                continue;
+            }
+
+            $beneficiaries[] = [
+                'name' => $linkedName,
+                'birthdate' => $this->formatShortDateValue($linkedBeneficiary->birthday),
+                'relationship' => null,
+            ];
+        }
+
+        return array_slice($beneficiaries, 0, 3);
+    }
+
+    /**
+     * @return array<string, Wmaster>
+     */
+    private function resolveLinkedBeneficiaryMembers(Wmaster $memberRecord): array
+    {
+        $acctnos = [];
+
+        for ($slot = 1; $slot <= 3; $slot++) {
+            $acctno = trim((string) $memberRecord->getAttribute('ben'.$slot.'_acctno'));
+
+            if ($acctno !== '') {
+                $acctnos[] = $acctno;
+            }
+        }
+
+        $acctnos = array_values(array_unique($acctnos));
+
+        if ($acctnos === []) {
+            return [];
+        }
+
+        return Wmaster::query()
+            ->whereIn('acctno', $acctnos)
+            ->get()
+            ->keyBy(fn (Wmaster $beneficiary): string => trim((string) $beneficiary->acctno))
+            ->all();
+    }
+
+    private function stringAttribute(Wmaster $memberRecord, string $attribute): ?string
+    {
+        $value = $memberRecord->getAttribute($attribute);
+
+        return is_string($value) ? $value : null;
     }
 
     private function normalizeNumericValue(float|int|string|null $value): float|int|null
@@ -508,6 +689,29 @@ class ApprovedLoanDocumentService
 
         try {
             return Carbon::parse($date)->format('F d, Y');
+        } catch (Throwable) {
+            return $date;
+        }
+    }
+
+    private function formatShortDateValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if ($value instanceof CarbonInterface) {
+            return $value->format('m/d/Y');
+        }
+
+        $date = trim((string) $value);
+
+        if ($date === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($date)->format('m/d/Y');
         } catch (Throwable) {
             return $date;
         }
