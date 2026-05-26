@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Banknote,
     BookOpen,
+    CreditCard,
     FileText,
     Folder,
     LayoutGrid,
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard as workspaceDashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
+import { index as onlinePaymentsIndex } from '@/routes/admin/online-payments';
 import {
     index as requestsIndex,
     reported as reportedRequests,
@@ -105,6 +107,12 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
         title: 'Reported Requests',
         href: reportedRequests(),
         icon: FileText,
+    },
+    {
+        title: 'Online payments',
+        href: onlinePaymentsIndex(),
+        icon: CreditCard,
+        match: 'section',
     },
     ...(isSuperadmin
         ? [

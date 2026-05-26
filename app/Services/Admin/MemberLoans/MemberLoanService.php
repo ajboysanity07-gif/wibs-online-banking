@@ -30,6 +30,7 @@ class MemberLoanService
      *     loan: \App\Models\Wlnmaster,
      *     summary: array{
      *         balance: float,
+     *         recommendedPayment: ?float,
      *         nextPaymentDate: ?string,
      *         lastPaymentDate: ?string
      *     },
@@ -56,6 +57,7 @@ class MemberLoanService
      *     loan: \App\Models\Wlnmaster,
      *     summary: array{
      *         balance: float,
+     *         recommendedPayment: ?float,
      *         nextPaymentDate: ?string,
      *         lastPaymentDate: ?string
      *     },
@@ -247,6 +249,7 @@ class MemberLoanService
      *     loan: \App\Models\Wlnmaster,
      *     summary: array{
      *         balance: float,
+     *         recommendedPayment: ?float,
      *         nextPaymentDate: ?string,
      *         lastPaymentDate: ?string
      *     },
@@ -298,12 +301,15 @@ class MemberLoanService
     }
 
     /**
-     * @return array{balance: float, nextPaymentDate: ?string, lastPaymentDate: ?string}
+     * @return array{balance: float, recommendedPayment: ?float, nextPaymentDate: ?string, lastPaymentDate: ?string}
      */
     private function buildSummary(string $acctno, Wlnmaster $loan): array
     {
         return [
             'balance' => (float) ($loan->balance ?? 0),
+            'recommendedPayment' => $this->repository->getNextPaymentAmount(
+                $loan->lnnumber,
+            ),
             'nextPaymentDate' => $this->repository->getNextPaymentDate(
                 $loan->lnnumber,
             ),

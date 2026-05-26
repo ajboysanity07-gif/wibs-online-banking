@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CalendarClock, CreditCard } from 'lucide-react';
+import { CalendarClock, CreditCard, WalletCards } from 'lucide-react';
 import { useMemo } from 'react';
 import {
     MemberMobileCard,
@@ -43,7 +43,7 @@ const loanTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-16', cellClassName: 'w-20' },
-    { headerClassName: 'w-12', cellClassName: 'h-8 w-28', align: 'right' },
+    { headerClassName: 'w-12', cellClassName: 'h-8 w-40', align: 'right' },
 ];
 
 const MobileLoanCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
@@ -51,7 +51,7 @@ const MobileLoanCardSkeletonList = ({ rows = 4 }: { rows?: number }) => (
         {Array.from({ length: rows }).map((_, index) => (
             <MemberMobileCardSkeleton
                 key={`loan-card-skeleton-${index}`}
-                actionCount={2}
+                actionCount={3}
             />
         ))}
     </div>
@@ -138,6 +138,18 @@ const MobileLoanCard = ({
                     disabled={!canNavigate || !loan.lnnumber}
                     className="w-full sm:w-auto"
                 />
+                <LoanActionButton
+                    href={paymentsHref}
+                    label="Pay Now"
+                    icon={WalletCards}
+                    disabled={
+                        !canNavigate ||
+                        !loan.lnnumber ||
+                        !loan.balance ||
+                        loan.balance <= 0
+                    }
+                    className="w-full sm:w-auto"
+                />
             </div>
         }
     />
@@ -222,6 +234,17 @@ export function MemberLoanRecordsCard({
                                     !canNavigate || !row.original.lnnumber
                                 }
                             />
+                            <LoanActionButton
+                                href={paymentsHref}
+                                label="Pay Now"
+                                icon={WalletCards}
+                                disabled={
+                                    !canNavigate ||
+                                    !row.original.lnnumber ||
+                                    !row.original.balance ||
+                                    row.original.balance <= 0
+                                }
+                            />
                         </div>
                     );
                 },
@@ -271,7 +294,7 @@ export function MemberLoanRecordsCard({
                     <DataTable
                         columns={columns}
                         data={items}
-                        className="min-w-[980px]"
+                        className="min-w-[1080px]"
                         emptyMessage={loanEmptyMessage}
                     />
                 </div>
