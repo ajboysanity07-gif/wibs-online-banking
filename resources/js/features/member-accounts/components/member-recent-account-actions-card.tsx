@@ -48,7 +48,13 @@ const accountActionsSkeletonColumns = (
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     ...(showActions
-        ? [{ headerClassName: 'w-12', cellClassName: 'h-8 w-20', align: 'right' }]
+        ? [
+              {
+                  headerClassName: 'w-12',
+                  cellClassName: 'h-8 w-20',
+                  align: 'right' as const,
+              },
+          ]
         : []),
 ];
 

@@ -156,7 +156,8 @@ export type PaymongoLoanPaymentMethod =
     | 'gcash'
     | 'maya'
     | 'qrph'
-    | 'online_banking';
+    | 'online_banking'
+    | 'card';
 
 export type PaymongoPaymentStatus =
     | 'pending'

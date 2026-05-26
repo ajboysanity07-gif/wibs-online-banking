@@ -3,10 +3,13 @@
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\MemberApplicationProfile;
+use App\Models\PaymongoLoanPayment;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -91,6 +94,70 @@ beforeEach(function () {
         });
     }
 });
+
+/**
+ * @param  array<string, mixed>  $memberOverrides
+ */
+function createApprovedClientUser(
+    string $acctno,
+    array $memberOverrides = [],
+): User {
+    $user = User::factory()->create([
+        'acctno' => $acctno,
+    ]);
+
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert(array_merge([
+        'acctno' => $acctno,
+        'bname' => 'Member, Client',
+        'fname' => 'Client',
+        'lname' => 'Member',
+        'birthday' => '1992-01-15',
+        'address' => '100 Member Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Staff',
+    ], $memberOverrides));
+
+    return $user;
+}
+
+/**
+ * @param  array<string, mixed>  $loanOverrides
+ * @param  array<string, mixed>  $securityOverrides
+ */
+function seedLoanSecurityPaymentAccounts(
+    User $user,
+    array $loanOverrides = [],
+    array $securityOverrides = [],
+): void {
+    DB::table('wlnmaster')->insert(array_merge([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-SEC-001',
+        'lntype' => 'Regular',
+        'principal' => 1500,
+        'balance' => 1200,
+        'lastmove' => Carbon::parse('2026-05-01 08:00:00')->toDateTimeString(),
+        'initial' => 1500,
+    ], $loanOverrides));
+
+    DB::table('wsvmaster')->insert(array_merge([
+        'acctno' => $user->acctno,
+        'svnumber' => 'SV-SEC-001',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 1000,
+        'wbalance' => 1000,
+        'lastmove' => Carbon::parse('2026-05-01 08:00:00')->toDateTimeString(),
+    ], $securityOverrides));
+}
 
 test('approved client can view the dashboard profile page', function () {
     $user = User::factory()->create([
@@ -476,6 +543,16 @@ test('approved client can view the loan payments page', function () {
         'principal' => 1500,
         'balance' => 1200,
     ]);
+    DB::table('wsvmaster')->insert([
+        'acctno' => $user->acctno,
+        'svnumber' => 'SV-703',
+        'svtype' => 'Regular',
+        'typecode' => '01',
+        'mortuary' => 0,
+        'balance' => 950,
+        'wbalance' => 950,
+        'lastmove' => Carbon::parse('2026-05-03 09:00:00')->toDateTimeString(),
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -487,8 +564,421 @@ test('approved client can view the loan payments page', function () {
             ->component('client/loan-payments')
             ->has('member')
             ->has('summary')
+            ->has('securityPayment')
             ->has('payments')
-            ->where('loan.lnnumber', 'LN-703'));
+            ->where('loan.lnnumber', 'LN-703')
+            ->where('securityPayment.svnumber', 'SV-703')
+            ->where('securityPayment.currentBalance', 950)
+            ->where('securityPayment.minimumBalance', 500)
+            ->where('securityPayment.maxPayable', 450));
+});
+
+test('client can pay a loan from security while leaving exactly 500', function () {
+    $user = createApprovedClientUser('000713', [
+        'bname' => 'Member, Iris',
+        'fname' => 'Iris',
+    ]);
+
+    seedLoanSecurityPaymentAccounts($user, [
+        'lnnumber' => 'LN-713',
+        'balance' => 800,
+    ], [
+        'svnumber' => 'SV-713',
+        'balance' => 1000,
+        'wbalance' => 1000,
+    ]);
+
+    $movedAt = Carbon::parse('2026-05-19 09:45:00');
+    Carbon::setTestNow($movedAt);
+
+    try {
+        $response = $this
+            ->actingAs($user)
+            ->from(route('client.loan-payments', ['loanNumber' => 'LN-713']))
+            ->post(route('client.loan-payments.security', [
+                'loanNumber' => 'LN-713',
+            ]), [
+                'amount' => 500,
+            ]);
+
+        $response
+            ->assertRedirect(route('client.loan-payments', ['loanNumber' => 'LN-713']))
+            ->assertInertiaFlash(
+                'status',
+                'Loan payment of 500.00 from loan security was applied successfully.',
+            );
+
+        expect((float) DB::table('wlnmaster')
+            ->where('acctno', $user->acctno)
+            ->where('lnnumber', 'LN-713')
+            ->value('balance'))->toBe(300.0);
+        expect(DB::table('wlnmaster')
+            ->where('acctno', $user->acctno)
+            ->where('lnnumber', 'LN-713')
+            ->value('lastmove'))->toBe($movedAt->toDateTimeString());
+        expect((float) DB::table('wsvmaster')
+            ->where('acctno', $user->acctno)
+            ->where('svnumber', 'SV-713')
+            ->value('balance'))->toBe(500.0);
+        expect((float) DB::table('wsvmaster')
+            ->where('acctno', $user->acctno)
+            ->where('svnumber', 'SV-713')
+            ->value('wbalance'))->toBe(500.0);
+        expect(DB::table('wsvmaster')
+            ->where('acctno', $user->acctno)
+            ->where('svnumber', 'SV-713')
+            ->value('lastmove'))->toBe($movedAt->toDateTimeString());
+
+        $loanLedger = DB::table('wlnled')
+            ->where('acctno', $user->acctno)
+            ->where('lnnumber', 'LN-713')
+            ->first();
+        $securityLedger = DB::table('wsavled')
+            ->where('acctno', $user->acctno)
+            ->where('svnumber', 'SV-713')
+            ->first();
+
+        expect($loanLedger)->not->toBeNull();
+        expect((float) $loanLedger->payments)->toBe(500.0);
+        expect((float) $loanLedger->balance)->toBe(300.0);
+        expect((float) $loanLedger->principal)->toBe(0.0);
+        expect($loanLedger->date_in)->toBe($movedAt->toDateTimeString());
+
+        expect($securityLedger)->not->toBeNull();
+        expect((float) $securityLedger->withdrawal)->toBe(500.0);
+        expect((float) $securityLedger->balance)->toBe(500.0);
+        expect((float) $securityLedger->deposit)->toBe(0.0);
+        expect($securityLedger->date_in)->toBe($movedAt->toDateTimeString());
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('client loan security payment is capped at the remaining loan balance', function () {
+    $user = createApprovedClientUser('000714', [
+        'bname' => 'Member, June',
+        'fname' => 'June',
+    ]);
+
+    seedLoanSecurityPaymentAccounts($user, [
+        'lnnumber' => 'LN-714',
+        'balance' => 250,
+    ], [
+        'svnumber' => 'SV-714',
+        'balance' => 1000,
+        'wbalance' => 1000,
+    ]);
+
+    $movedAt = Carbon::parse('2026-05-19 10:15:00');
+    Carbon::setTestNow($movedAt);
+
+    try {
+        $response = $this
+            ->actingAs($user)
+            ->from(route('client.loan-payments', ['loanNumber' => 'LN-714']))
+            ->post(route('client.loan-payments.security', [
+                'loanNumber' => 'LN-714',
+            ]), [
+                'amount' => 400,
+            ]);
+
+        $response
+            ->assertRedirect(route('client.loan-payments', ['loanNumber' => 'LN-714']))
+            ->assertInertiaFlash(
+                'status',
+                'Loan payment of 250.00 from loan security was applied successfully.',
+            );
+
+        expect((float) DB::table('wlnmaster')
+            ->where('acctno', $user->acctno)
+            ->where('lnnumber', 'LN-714')
+            ->value('balance'))->toBe(0.0);
+        expect((float) DB::table('wsvmaster')
+            ->where('acctno', $user->acctno)
+            ->where('svnumber', 'SV-714')
+            ->value('wbalance'))->toBe(750.0);
+
+        $loanLedger = DB::table('wlnled')
+            ->where('acctno', $user->acctno)
+            ->where('lnnumber', 'LN-714')
+            ->first();
+        $securityLedger = DB::table('wsavled')
+            ->where('acctno', $user->acctno)
+            ->where('svnumber', 'SV-714')
+            ->first();
+
+        expect($loanLedger)->not->toBeNull();
+        expect((float) $loanLedger->payments)->toBe(250.0);
+        expect((float) $loanLedger->balance)->toBe(0.0);
+        expect($loanLedger->date_in)->toBe($movedAt->toDateTimeString());
+
+        expect($securityLedger)->not->toBeNull();
+        expect((float) $securityLedger->withdrawal)->toBe(250.0);
+        expect((float) $securityLedger->balance)->toBe(750.0);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('client cannot pay a loan from security below the 500 minimum', function () {
+    $user = createApprovedClientUser('000715', [
+        'bname' => 'Member, Kai',
+        'fname' => 'Kai',
+    ]);
+
+    seedLoanSecurityPaymentAccounts($user, [
+        'lnnumber' => 'LN-715',
+        'balance' => 1000,
+    ], [
+        'svnumber' => 'SV-715',
+        'balance' => 900,
+        'wbalance' => 900,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->from(route('client.loan-payments', ['loanNumber' => 'LN-715']))
+        ->post(route('client.loan-payments.security', [
+            'loanNumber' => 'LN-715',
+        ]), [
+            'amount' => 450,
+        ]);
+
+    $response
+        ->assertRedirect(route('client.loan-payments', ['loanNumber' => 'LN-715']))
+        ->assertInvalid([
+            'amount' => 'maximum payable from loan security is 400.00',
+        ]);
+
+    expect((float) DB::table('wlnmaster')
+        ->where('acctno', $user->acctno)
+        ->where('lnnumber', 'LN-715')
+        ->value('balance'))->toBe(1000.0);
+    expect((float) DB::table('wsvmaster')
+        ->where('acctno', $user->acctno)
+        ->where('svnumber', 'SV-715')
+        ->value('wbalance'))->toBe(900.0);
+    expect(DB::table('wlnled')
+        ->where('acctno', $user->acctno)
+        ->where('lnnumber', 'LN-715')
+        ->count())->toBe(0);
+    expect(DB::table('wsavled')
+        ->where('acctno', $user->acctno)
+        ->where('svnumber', 'SV-715')
+        ->count())->toBe(0);
+});
+
+test('client loan security payment validates the amount field', function (
+    string $acctno,
+    array $payload,
+    string $message,
+) {
+    $user = createApprovedClientUser($acctno);
+
+    seedLoanSecurityPaymentAccounts($user, [
+        'lnnumber' => 'LN-'.$acctno,
+    ], [
+        'svnumber' => 'SV-'.$acctno,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->from(route('client.loan-payments', ['loanNumber' => 'LN-'.$acctno]))
+        ->post(route('client.loan-payments.security', [
+            'loanNumber' => 'LN-'.$acctno,
+        ]), $payload);
+
+    $response
+        ->assertRedirect(route('client.loan-payments', ['loanNumber' => 'LN-'.$acctno]))
+        ->assertInvalid([
+            'amount' => $message,
+        ]);
+})->with([
+    'missing amount' => ['000716', [], 'Enter an amount to pay from loan security.'],
+    'non-numeric amount' => ['000717', ['amount' => 'abc'], 'Amount must be a valid number.'],
+    'non-positive amount' => ['000718', ['amount' => 0], 'Enter an amount greater than zero.'],
+]);
+
+test('client can start a paymongo checkout for a loan payment', function () {
+    config()->set('services.paymongo.secret_key', 'paymongo_test_secret');
+    config()->set('services.paymongo.base_url', 'https://api.paymongo.com/v1');
+    config()->set(
+        'services.paymongo.success_url',
+        'https://example.test/client/payments/paymongo/{payment}/success',
+    );
+    config()->set(
+        'services.paymongo.cancel_url',
+        'https://example.test/client/payments/paymongo/{payment}/cancel',
+    );
+
+    Http::fake([
+        'https://api.paymongo.com/v1/checkout_sessions' => Http::response([
+            'data' => [
+                'id' => 'cs_test_719',
+                'type' => 'checkout_session',
+                'attributes' => [
+                    'checkout_url' => 'https://checkout.paymongo.com/cs_test_719',
+                    'status' => 'active',
+                    'reference_number' => 'PM-719',
+                    'payment_method_types' => ['paymaya'],
+                    'payment_intent' => [
+                        'id' => 'pi_test_719',
+                    ],
+                    'expires_at' => 1778036400,
+                ],
+            ],
+        ]),
+    ]);
+
+    $user = createApprovedClientUser('000719');
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-719',
+        'lntype' => 'Regular',
+        'principal' => 1500,
+        'balance' => 1200,
+        'lastmove' => Carbon::parse('2026-05-01 08:00:00')->toDateTimeString(),
+        'initial' => 1500,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->postJson(route('client.loan-payments.paymongo.store', [
+            'loanNumber' => 'LN-719',
+        ]), [
+            'amount' => '400.00',
+            'payment_method' => 'maya',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath(
+            'checkout_url',
+            'https://checkout.paymongo.com/cs_test_719',
+        )
+        ->assertJsonPath('payment_method', 'maya')
+        ->assertJsonPath('base_amount', 400);
+
+    $payment = PaymongoLoanPayment::query()->first();
+
+    expect($payment)->not->toBeNull();
+    expect($payment?->loan_number)->toBe('LN-719');
+    expect($payment?->payment_method)->toBe('maya');
+    expect($payment?->status)->toBe(PaymongoLoanPayment::STATUS_PENDING);
+    expect($payment?->provider_checkout_session_id)->toBe('cs_test_719');
+    expect($payment?->provider_payment_intent_id)->toBe('pi_test_719');
+
+    Http::assertSent(function (HttpRequest $request) use ($payment): bool {
+        $payload = $request->data();
+
+        return $request->method() === 'POST'
+            && $request->url() === 'https://api.paymongo.com/v1/checkout_sessions'
+            && data_get($payload, 'data.attributes.payment_method_types.0') === 'paymaya'
+            && data_get($payload, 'data.attributes.line_items.0.amount') === 40000
+            && data_get($payload, 'data.attributes.metadata.local_payment_id') === $payment?->getKey();
+    });
+});
+
+test('client paymongo checkout rejects amounts above the outstanding balance', function () {
+    $user = createApprovedClientUser('000720');
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $user->acctno,
+        'lnnumber' => 'LN-720',
+        'lntype' => 'Regular',
+        'principal' => 900,
+        'balance' => 300,
+        'lastmove' => Carbon::parse('2026-05-01 08:00:00')->toDateTimeString(),
+        'initial' => 900,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->postJson(route('client.loan-payments.paymongo.store', [
+            'loanNumber' => 'LN-720',
+        ]), [
+            'amount' => '400.00',
+            'payment_method' => 'gcash',
+        ]);
+
+    $response
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['amount']);
+
+    expect($response->json('errors.amount.0'))
+        ->toBe('Loan payment amount cannot exceed the outstanding balance.');
+    expect(PaymongoLoanPayment::query()->count())->toBe(0);
+});
+
+test('client paymongo success redirects back with a status message', function () {
+    $user = createApprovedClientUser('000721');
+
+    $payment = PaymongoLoanPayment::query()->create([
+        'user_id' => $user->getKey(),
+        'acctno' => $user->acctno,
+        'loan_number' => 'LN-721',
+        'currency' => 'PHP',
+        'payment_method' => 'gcash',
+        'payment_method_label' => 'GCash',
+        'payment_method_type' => 'gcash',
+        'base_amount_cents' => 100000,
+        'service_fee_cents' => 2562,
+        'gross_amount_cents' => 102562,
+        'status' => PaymongoLoanPayment::STATUS_PAID,
+        'provider' => 'paymongo',
+        'metadata' => [],
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-payments.paymongo.success', [
+            'payment' => $payment,
+        ]));
+
+    $response
+        ->assertRedirect(route('client.loan-payments', [
+            'loanNumber' => 'LN-721',
+        ]))
+        ->assertInertiaFlash(
+            'status',
+            'Payment confirmed. It will be reconciled against your loan account.',
+        );
+});
+
+test('client paymongo cancellation redirects back and marks the payment cancelled', function () {
+    $user = createApprovedClientUser('000722');
+
+    $payment = PaymongoLoanPayment::query()->create([
+        'user_id' => $user->getKey(),
+        'acctno' => $user->acctno,
+        'loan_number' => 'LN-722',
+        'currency' => 'PHP',
+        'payment_method' => 'gcash',
+        'payment_method_label' => 'GCash',
+        'payment_method_type' => 'gcash',
+        'base_amount_cents' => 100000,
+        'service_fee_cents' => 2562,
+        'gross_amount_cents' => 102562,
+        'status' => PaymongoLoanPayment::STATUS_PENDING,
+        'provider' => 'paymongo',
+        'metadata' => [],
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-payments.paymongo.cancel', [
+            'payment' => $payment,
+        ]));
+
+    $response
+        ->assertRedirect(route('client.loan-payments', [
+            'loanNumber' => 'LN-722',
+        ]))
+        ->assertInertiaFlash('status', 'PayMongo checkout was cancelled.');
+
+    expect($payment->refresh()->status)
+        ->toBe(PaymongoLoanPayment::STATUS_CANCELLED);
 });
 
 test('client can export loan payments as csv', function () {

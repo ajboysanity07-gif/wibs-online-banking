@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 use RuntimeException;
 use Throwable;
 
@@ -98,9 +99,11 @@ class PaymongoLoanPaymentController extends Controller
             ? 'Payment confirmed. It will be reconciled against your loan account.'
             : 'Payment is being processed. We will update your record once PayMongo confirms it.';
 
-        return redirect()
-            ->route('client.loan-payments', $payment->loan_number)
-            ->with('status', $message);
+        Inertia::flash('status', $message);
+
+        return redirect()->route('client.loan-payments', [
+            'loanNumber' => $payment->loan_number,
+        ]);
     }
 
     public function cancel(
@@ -124,9 +127,11 @@ class PaymongoLoanPaymentController extends Controller
             ])->save();
         }
 
-        return redirect()
-            ->route('client.loan-payments', $payment->loan_number)
-            ->with('status', 'PayMongo checkout was cancelled.');
+        Inertia::flash('status', 'PayMongo checkout was cancelled.');
+
+        return redirect()->route('client.loan-payments', [
+            'loanNumber' => $payment->loan_number,
+        ]);
     }
 
     private function ensurePaymentBelongsToUser(

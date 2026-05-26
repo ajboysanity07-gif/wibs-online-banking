@@ -254,6 +254,13 @@ Route::get('client/loans/{loanNumber}/payments', ClientMemberLoanPaymentsControl
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments');
 
+Route::post(
+    'client/loans/{loanNumber}/payments/security',
+    [ClientMemberLoanPaymentsController::class, 'payWithSecurity'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.security');
+
 Route::post('client/loans/{loanNumber}/paymongo/checkout', PayMongoCheckoutController::class)
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments.paymongo.checkout');

@@ -1,7 +1,8 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
 import {
     Banknote,
     CalendarCheck,
+    CheckCircle2,
     Clock,
     CreditCard,
     Download,
@@ -13,11 +14,13 @@ import {
     MemberDetailSupportingCard,
 } from '@/components/member-detail-summary-cards';
 import { MemberLoanDetailHeader } from '@/components/member-loan-detail-header';
+import { MemberLoanPaymentCard } from '@/components/member-loan-payment-card';
 import { MemberLoanPaymentsFiltersCard } from '@/components/member-loan-payments-filters-card';
 import { MemberLoanPaymentsRecordsCard } from '@/components/member-loan-payments-records-card';
-import { SectionHeader } from '@/components/section-header';
 import { PageShell } from '@/components/page-shell';
+import { SectionHeader } from '@/components/section-header';
 import { SurfaceCard } from '@/components/surface-card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,6 +41,7 @@ import type {
     MemberLoan,
     MemberLoanPaymentsFilters,
     MemberLoanPaymentsResponse,
+    MemberLoanSecurityPaymentSummary,
     MemberLoanSummary,
 } from '@/types/admin';
 
@@ -50,6 +54,7 @@ type Props = {
     member: MemberSummary;
     loan: MemberLoan;
     summary: MemberLoanSummary;
+    securityPayment: MemberLoanSecurityPaymentSummary;
     payments: MemberLoanPaymentsResponse;
 };
 
@@ -68,8 +73,10 @@ export default function LoanPayments({
     member,
     loan,
     summary,
+    securityPayment,
     payments,
 }: Props) {
+    const page = usePage();
     const loanNumber = loan.lnnumber ?? null;
     const perPage = payments.meta.perPage;
 
@@ -97,7 +104,7 @@ export default function LoanPayments({
         nextPage: number,
         nextFilters: MemberLoanPaymentsFilters,
     ) => {
-        if (!loanNumber) {
+        if (! loanNumber) {
             return;
         }
 
@@ -122,7 +129,7 @@ export default function LoanPayments({
     };
 
     const handlePageChange = (nextPage: number) => {
-        if (nextPage === meta.page || !filtersReady) {
+        if (nextPage === meta.page || ! filtersReady) {
             return;
         }
 
@@ -215,6 +222,10 @@ export default function LoanPayments({
             ? summary.recommended_payment.toFixed(2)
             : '';
     const canCheckout = Boolean(loanNumber && summary.balance > 0);
+    const flashStatus =
+        typeof page.flash.status === 'string' && page.flash.status.trim() !== ''
+            ? page.flash.status
+            : null;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -232,7 +243,7 @@ export default function LoanPayments({
                     backToProfileHref={backToProfileHref}
                 />
 
-                {!member.acctno || !loanNumber ? (
+                {! member.acctno || ! loanNumber ? (
                     <MemberAccountAlert
                         title="Loan not available"
                         description="This member needs a valid loan number and account number before payments can be displayed."
@@ -281,11 +292,31 @@ export default function LoanPayments({
                     </div>
                 )}
 
-                <SurfaceCard variant="default" padding="md" className="space-y-5">
+                {flashStatus ? (
+                    <Alert className="border-emerald-500/25 bg-emerald-500/8 text-emerald-900 dark:text-emerald-100">
+                        <CheckCircle2 className="size-4" />
+                        <AlertTitle>Payment update</AlertTitle>
+                        <AlertDescription>{flashStatus}</AlertDescription>
+                    </Alert>
+                ) : null}
+
+                <MemberLoanPaymentCard
+                    loanNumber={loanNumber}
+                    loanBalance={summary.balance}
+                    securityPayment={securityPayment}
+                />
+
+                <SurfaceCard
+                    variant="default"
+                    padding="md"
+                    className="space-y-5"
+                >
                     <SectionHeader
                         title="Make a Payment"
                         description="Pay with GCash, QR Ph, Maya, or Online Banking"
-                        actions={<CreditCard className="h-5 w-5 text-muted-foreground" />}
+                        actions={
+                            <CreditCard className="h-5 w-5 text-muted-foreground" />
+                        }
                         titleClassName="text-base font-semibold"
                     />
 
@@ -306,9 +337,12 @@ export default function LoanPayments({
                                 {recommendedPayment}
                             </p>
                         </div>
-                        <Form {...paymongoCheckout.form(loanNumber ?? '')}>
+                        <Form
+                            {...paymongoCheckout.form(loanNumber ?? '')}
+                            className="space-y-3"
+                        >
                             {({ errors, processing }) => (
-                                <div className="space-y-3">
+                                <>
                                     <div className="space-y-2">
                                         <Label htmlFor="online-payment-amount">
                                             Amount
@@ -323,7 +357,7 @@ export default function LoanPayments({
                                             step="0.01"
                                             placeholder="0.00"
                                             defaultValue={defaultPaymentAmount}
-                                            disabled={!canCheckout || processing}
+                                            disabled={! canCheckout || processing}
                                             aria-invalid={Boolean(errors.amount)}
                                         />
                                         {errors.amount ? (
@@ -335,19 +369,20 @@ export default function LoanPayments({
                                     <Button
                                         type="submit"
                                         className="w-full"
-                                        disabled={!canCheckout || processing}
+                                        disabled={! canCheckout || processing}
                                     >
                                         <CreditCard />
                                         {processing
                                             ? 'Opening checkout...'
                                             : 'Continue to Secure Checkout'}
                                     </Button>
-                                </div>
+                                </>
                             )}
                         </Form>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        Pay with GCash, QR Ph, Maya, or Online Banking. You will be redirected to PayMongo’s secure checkout page.
+                        Pay with GCash, QR Ph, Maya, or Online Banking. You
+                        will be redirected to PayMongo's secure checkout page.
                     </p>
                 </SurfaceCard>
 
@@ -366,7 +401,7 @@ export default function LoanPayments({
                             <Button
                                 asChild
                                 size="sm"
-                                disabled={!filtersReady || !loanNumber}
+                                disabled={! filtersReady || ! loanNumber}
                             >
                                 <a href={buildExportUrl(true)}>
                                     <Download />
@@ -377,7 +412,7 @@ export default function LoanPayments({
                                 asChild
                                 size="sm"
                                 variant="outline"
-                                disabled={!filtersReady || !loanNumber}
+                                disabled={! filtersReady || ! loanNumber}
                             >
                                 <a
                                     href={buildPrintUrl()}
