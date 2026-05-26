@@ -42,6 +42,18 @@ class LoanRequestStoreRequest extends FormRequest
             $payload[$key] = $this->normalizePersonLocationFields($person);
         }
 
+        $payload['applicant_signature_data'] = $this->normalizeSignatureData(
+            $this->input('applicant_signature_data'),
+        );
+        $payload['co_maker_1_signature_data'] = $this->normalizeSignatureData(
+            $this->input('co_maker_1_signature_data')
+                ?? $this->input('co_maker_one_signature_data'),
+        );
+        $payload['co_maker_2_signature_data'] = $this->normalizeSignatureData(
+            $this->input('co_maker_2_signature_data')
+                ?? $this->input('co_maker_two_signature_data'),
+        );
+
         $this->merge($payload);
     }
 
@@ -83,8 +95,8 @@ class LoanRequestStoreRequest extends FormRequest
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
             'applicant_signature_data' => $this->signatureDataRules(),
-            'co_maker_one_signature_data' => $this->signatureDataRules(),
-            'co_maker_two_signature_data' => $this->signatureDataRules(),
+            'co_maker_1_signature_data' => $this->signatureDataRules(),
+            'co_maker_2_signature_data' => $this->signatureDataRules(),
             'undertaking_accepted' => ['accepted'],
             ...$this->personRules('applicant', true, true),
             ...$this->personRules('co_maker_1', false, false),
@@ -261,6 +273,17 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         $trimmed = trim((string) $value);
+
+        return $trimmed !== '' ? $trimmed : null;
+    }
+
+    private function normalizeSignatureData(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
 
         return $trimmed !== '' ? $trimmed : null;
     }

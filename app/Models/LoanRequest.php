@@ -94,6 +94,11 @@ class LoanRequest extends Model
         return $this->hasMany(LoanRequestPerson::class);
     }
 
+    public function signatureLinks(): HasMany
+    {
+        return $this->hasMany(LoanRequestSignatureLink::class);
+    }
+
     public function applicant(): HasOne
     {
         return $this->hasOne(LoanRequestPerson::class)

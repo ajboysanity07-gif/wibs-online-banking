@@ -99,6 +99,13 @@ export type MemberLoanPayment = {
     transaction_no: string | number | null;
 };
 
+export type MemberLoanSecurityPaymentSummary = {
+    svnumber: string | null;
+    currentBalance: number | null;
+    minimumBalance: number | null;
+    maxPayable: number | null;
+};
+
 export type MemberLoanPaymentsFilters = {
     range: 'current_month' | 'current_year' | 'last_30_days' | 'all' | 'custom';
     start: string | null;

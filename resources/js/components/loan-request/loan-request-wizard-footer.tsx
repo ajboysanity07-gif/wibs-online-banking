@@ -12,7 +12,7 @@ type Props = {
     disablePrimary?: boolean;
 };
 
-export function LoanRequestWizardFooter({
+export function LoanRequestWizardActions({
     isFirstStep,
     isLastStep,
     onBack,
@@ -24,60 +24,58 @@ export function LoanRequestWizardFooter({
     disablePrimary = false,
 }: Props) {
     return (
-        <div className="sticky bottom-0 z-20 border-t border-border/60 bg-background/90 px-4 py-4 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-6 sm:py-5">
-            <div className="mx-auto w-full max-w-5xl">
-                <div className="grid gap-4 sm:grid-cols-3 sm:items-center">
-                    <div className="flex justify-start">
+        <div className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="order-3 flex sm:order-1">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full sm:w-auto"
+                        onClick={onBack}
+                        disabled={isFirstStep || isSavingDraft || isSubmitting}
+                    >
+                        Back
+                    </Button>
+                </div>
+                <div className="order-2 flex sm:order-2 sm:ml-auto sm:mr-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={onSaveDraft}
+                        disabled={isSavingDraft || isSubmitting}
+                    >
+                        Save draft
+                    </Button>
+                </div>
+                <div className="order-1 flex sm:order-3">
+                    {isLastStep ? (
                         <Button
                             type="button"
-                            variant="ghost"
-                            onClick={onBack}
+                            className="w-full sm:w-auto"
+                            onClick={onSubmit}
                             disabled={
-                                isFirstStep || isSavingDraft || isSubmitting
+                                disablePrimary || isSavingDraft || isSubmitting
                             }
                         >
-                            Back
+                            Submit for Review
                         </Button>
-                    </div>
-                    <div className="flex justify-start sm:justify-center">
+                    ) : (
                         <Button
                             type="button"
-                            variant="outline"
-                            onClick={onSaveDraft}
-                            disabled={isSavingDraft || isSubmitting}
+                            className="w-full sm:w-auto"
+                            onClick={onNext}
+                            disabled={
+                                disablePrimary || isSavingDraft || isSubmitting
+                            }
                         >
-                            Save draft
+                            Next
                         </Button>
-                    </div>
-                    <div className="flex justify-start sm:justify-end">
-                        {isLastStep ? (
-                            <Button
-                                type="button"
-                                onClick={onSubmit}
-                                disabled={
-                                    disablePrimary ||
-                                    isSavingDraft ||
-                                    isSubmitting
-                                }
-                            >
-                                Submit application
-                            </Button>
-                        ) : (
-                            <Button
-                                type="button"
-                                onClick={onNext}
-                                disabled={
-                                    disablePrimary ||
-                                    isSavingDraft ||
-                                    isSubmitting
-                                }
-                            >
-                                Next
-                            </Button>
-                        )}
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
     );
 }
+
+export const LoanRequestWizardFooter = LoanRequestWizardActions;

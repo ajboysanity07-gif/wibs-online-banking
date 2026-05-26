@@ -26,6 +26,10 @@ const statusLabel = (status?: LoanRequestStatusValue | null): string => {
         return 'Draft';
     }
 
+    if (status === 'pending_co_maker_signatures') {
+        return 'Pending Co-maker Signatures';
+    }
+
     if (status === 'under_review') {
         return 'Under review';
     }
@@ -61,13 +65,21 @@ const statusVariant = (status?: LoanRequestStatusValue | null) => {
     return 'outline';
 };
 
+const statusClassName = (status?: LoanRequestStatusValue | null): string => {
+    if (status === 'pending_co_maker_signatures') {
+        return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200';
+    }
+
+    return '';
+};
+
 export function LoanRequestStatusBadge({ status, className }: Props) {
     const resolvedStatus = normalizeStatus(status);
 
     return (
         <Badge
             variant={statusVariant(resolvedStatus)}
-            className={cn(className)}
+            className={cn(statusClassName(resolvedStatus), className)}
         >
             {statusLabel(resolvedStatus)}
         </Badge>

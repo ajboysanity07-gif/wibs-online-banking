@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanRequestPersonRole;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
-class LoanRequestDraftRequest extends FormRequest
+class LoanRequestGenerateSignatureLinkRequest extends FormRequest
 {
     private const HOUSING_STATUS_OPTIONS = ['OWNED', 'RENT'];
 
@@ -74,7 +75,7 @@ class LoanRequestDraftRequest extends FormRequest
      */
     public function rules(): array
     {
-        $loanTypeRules = ['sometimes', 'string', 'max:255'];
+        $loanTypeRules = ['required', 'string', 'max:255'];
 
         if (Schema::hasTable('wlntype')) {
             if (Schema::hasColumn('wlntype', 'typecode')) {
@@ -84,13 +85,17 @@ class LoanRequestDraftRequest extends FormRequest
             }
         }
 
+        $targetRole = LoanRequestPersonRole::tryFrom(
+            (string) $this->route('role'),
+        );
+
         return [
             'typecode' => $loanTypeRules,
-            'requested_amount' => ['sometimes', 'numeric', 'min:0'],
-            'requested_term' => ['sometimes', 'integer', 'min:0', 'max:360'],
-            'loan_purpose' => ['sometimes', 'string', 'max:255'],
+            'requested_amount' => ['required', 'numeric', 'min:1'],
+            'requested_term' => ['required', 'integer', 'min:1', 'max:360'],
+            'loan_purpose' => ['required', 'string', 'max:255'],
             'availment_status' => [
-                'sometimes',
+                'required',
                 'string',
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
@@ -98,16 +103,97 @@ class LoanRequestDraftRequest extends FormRequest
             'co_maker_1_signature_data' => $this->signatureDataRules(),
             'co_maker_2_signature_data' => $this->signatureDataRules(),
             'undertaking_accepted' => ['sometimes', 'boolean'],
-            ...$this->personRules('applicant', true, true),
-            ...$this->personRules('co_maker_1', false, false),
-            ...$this->personRules('co_maker_2', false, false),
+            ...$this->requiredPersonRules('applicant', true, true),
+            ...$this->coMakerRules('co_maker_1', $targetRole, LoanRequestPersonRole::CoMakerOne),
+            ...$this->coMakerRules('co_maker_2', $targetRole, LoanRequestPersonRole::CoMakerTwo),
         ];
     }
 
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
-    private function personRules(
+    private function coMakerRules(
+        string $prefix,
+        ?LoanRequestPersonRole $targetRole,
+        LoanRequestPersonRole $currentRole,
+    ): array {
+        if ($targetRole === $currentRole) {
+            return $this->requiredPersonRules($prefix, false, false);
+        }
+
+        return $this->optionalPersonRules($prefix, false, false);
+    }
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function requiredPersonRules(
+        string $prefix,
+        bool $includeSpouse,
+        bool $includeChildren,
+    ): array {
+        $rules = [
+            "{$prefix}.first_name" => ['required', 'string', 'max:255'],
+            "{$prefix}.last_name" => ['required', 'string', 'max:255'],
+            "{$prefix}.middle_name" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.nickname" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.birthdate" => ['required', 'date'],
+            "{$prefix}.birthplace_city" => ['required', 'string', 'max:255'],
+            "{$prefix}.birthplace_province" => ['required', 'string', 'max:255'],
+            "{$prefix}.address1" => ['required', 'string', 'max:255'],
+            "{$prefix}.address2" => ['required', 'string', 'max:255'],
+            "{$prefix}.address3" => ['required', 'string', 'max:255'],
+            "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
+            "{$prefix}.housing_status" => [
+                'required',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ],
+            "{$prefix}.cell_no" => ['required', 'string', 'digits:11'],
+            "{$prefix}.civil_status" => [
+                'required',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ],
+            "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
+            "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_name" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_address1" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_address2" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_address3" => ['required', 'string', 'max:255'],
+            "{$prefix}.telephone_no" => ['nullable', 'string', 'max:20'],
+            "{$prefix}.current_position" => ['required', 'string', 'max:255'],
+            "{$prefix}.nature_of_business" => ['required', 'string', 'max:255'],
+            "{$prefix}.years_in_work_business" => ['required', 'string', 'max:255'],
+            "{$prefix}.gross_monthly_income" => ['required', 'numeric', 'min:0'],
+            "{$prefix}.payday" => [
+                'required',
+                'string',
+                Rule::in(self::PAYDAY_OPTIONS),
+            ],
+        ];
+
+        if ($includeChildren) {
+            $rules["{$prefix}.number_of_children"] = [
+                'required',
+                'integer',
+                'min:0',
+            ];
+        }
+
+        if ($includeSpouse) {
+            $rules["{$prefix}.spouse_name"] = ['nullable', 'string', 'max:255'];
+            $rules["{$prefix}.spouse_age"] = ['nullable', 'integer', 'min:18', 'max:120'];
+            $rules["{$prefix}.spouse_cell_no"] = ['nullable', 'string', 'digits:11'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function optionalPersonRules(
         string $prefix,
         bool $includeSpouse,
         bool $includeChildren,

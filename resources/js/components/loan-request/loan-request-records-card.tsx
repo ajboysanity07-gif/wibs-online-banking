@@ -90,7 +90,10 @@ const resolveAmount = (request: LoanRequestListItem): string => {
 };
 
 const resolveTimestamp = (request: LoanRequestListItem): string => {
-    if (request.status === 'draft') {
+    if (
+        request.status === 'draft' ||
+        request.status === 'pending_co_maker_signatures'
+    ) {
         return formatDateTime(request.updated_at);
     }
 
@@ -114,11 +117,23 @@ const LoanRequestMobileCard = ({
 }: {
     request: LoanRequestListItem;
 }) => {
-    const isDraft = request.status === 'draft';
-    const actionHref = isDraft
+    const isEditableRequest =
+        request.status === 'draft' ||
+        request.status === 'pending_co_maker_signatures';
+    const actionHref = isEditableRequest
         ? loanRequestCreate().url
         : loanRequestShow(request.id).url;
-    const actionLabel = isDraft ? 'Resume draft' : 'View request';
+    const actionLabel = isEditableRequest
+        ? request.status === 'draft'
+            ? 'Resume draft'
+            : 'Continue request'
+        : 'View request';
+    const timestampLabel =
+        request.status === 'draft'
+            ? 'Last saved'
+            : request.status === 'pending_co_maker_signatures'
+              ? 'Updated'
+              : 'Submitted';
 
     return (
         <MemberMobileCard
@@ -141,7 +156,7 @@ const LoanRequestMobileCard = ({
                     ),
                 },
                 {
-                    label: isDraft ? 'Last saved' : 'Submitted',
+                    label: timestampLabel,
                     value: resolveTimestamp(request),
                 },
             ]}
@@ -202,12 +217,17 @@ export function LoanRequestRecordsCard({
                 id: 'actions',
                 header: '',
                 cell: ({ row }) => {
-                    const isDraft = row.original.status === 'draft';
-                    const actionHref = isDraft
+                    const isEditableRequest =
+                        row.original.status === 'draft' ||
+                        row.original.status ===
+                            'pending_co_maker_signatures';
+                    const actionHref = isEditableRequest
                         ? loanRequestCreate().url
                         : loanRequestShow(row.original.id).url;
-                    const actionLabel = isDraft
-                        ? 'Resume draft'
+                    const actionLabel = isEditableRequest
+                        ? row.original.status === 'draft'
+                            ? 'Resume draft'
+                            : 'Continue request'
                         : 'View request';
 
                     return (
@@ -227,7 +247,7 @@ export function LoanRequestRecordsCard({
     return (
         <MemberRecordsCard
             title="Loan requests"
-            description="Track your draft, submitted, approved, declined, and cancelled applications."
+            description="Track drafts, pending co-maker signatures, review-ready requests, and final decisions."
             headerAccessory={
                 <Button asChild size="sm" variant="outline">
                     <Link href={loanRequestCreate().url}>Request loan</Link>

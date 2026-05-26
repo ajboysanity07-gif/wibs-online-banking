@@ -48,6 +48,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 type AdminStatusFilter =
     | 'all'
+    | 'pending_co_maker_signatures'
     | 'under_review'
     | 'approved'
     | 'declined'
@@ -55,6 +56,7 @@ type AdminStatusFilter =
     | 'reported';
 
 const statusLabels: Record<Exclude<AdminStatusFilter, 'all'>, string> = {
+    pending_co_maker_signatures: 'Pending Co-maker Signatures',
     under_review: 'Under review',
     approved: 'Approved',
     declined: 'Declined',
@@ -64,6 +66,10 @@ const statusLabels: Record<Exclude<AdminStatusFilter, 'all'>, string> = {
 
 const statusOptions: Array<LoanRequestStatusFilterOption<AdminStatusFilter>> = [
     { value: 'all', label: 'All' },
+    {
+        value: 'pending_co_maker_signatures',
+        label: 'Pending Co-maker Signatures',
+    },
     { value: 'under_review', label: 'Under review' },
     { value: 'approved', label: 'Approved' },
     { value: 'declined', label: 'Declined' },
@@ -262,6 +268,11 @@ export default function RequestsPage() {
     const summaryCounts = useMemo(
         () => ({
             total: totalResults,
+            pendingCoMakerSignatures: items.filter(
+                (item) =>
+                    normalizeStatus(item.status) ===
+                    'pending_co_maker_signatures',
+            ).length,
             underReview: items.filter(
                 (item) => normalizeStatus(item.status) === 'under_review',
             ).length,
@@ -303,7 +314,7 @@ export default function RequestsPage() {
                 <LoanRequestPageHero
                     kicker="Requests"
                     title="Loan Requests"
-                    description="Review member submissions, monitor status updates, and open full request details for printing or PDF export."
+                    description="Review pending signatures, monitor review-ready submissions, and open full request details for printing or PDF export."
                     badges={
                         <>
                             <Badge variant="secondary">
@@ -327,6 +338,12 @@ export default function RequestsPage() {
                 <LoanRequestSummaryCards
                     items={[
                         { label: 'Total', value: summaryCounts.total },
+                        {
+                            label: 'Pending signatures',
+                            value: summaryCounts.pendingCoMakerSignatures,
+                            emphasisClassName:
+                                'text-orange-600 dark:text-orange-400',
+                        },
                         {
                             label: 'Under review',
                             value: summaryCounts.underReview,

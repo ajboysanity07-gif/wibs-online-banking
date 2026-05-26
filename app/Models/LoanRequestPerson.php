@@ -7,6 +7,7 @@ use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LoanRequestPerson extends Model
 {
@@ -58,6 +59,11 @@ class LoanRequestPerson extends Model
     public function loanRequest(): BelongsTo
     {
         return $this->belongsTo(LoanRequest::class);
+    }
+
+    public function signatureLinks(): HasMany
+    {
+        return $this->hasMany(LoanRequestSignatureLink::class);
     }
 
     public function composedBirthplace(): string

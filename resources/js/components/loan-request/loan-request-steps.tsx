@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link2, RefreshCcw } from 'lucide-react';
 import { NumericFormat } from 'react-number-format';
 import InputError from '@/components/input-error';
 import {
@@ -7,6 +8,9 @@ import {
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import SignaturePadField from '@/components/signature-pad-field';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,10 +26,14 @@ import {
     composeAddress,
     composeBirthplace,
     formatCurrency,
+    formatDateTime,
     formatDisplayText,
 } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 import type {
+    LoanRequestCoMakerSignatureState,
     LoanRequestFormData,
+    LoanRequestGeneratedSignatureLink,
     LoanRequestMemberSummary,
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
@@ -33,6 +41,9 @@ import type {
 } from '@/types/loan-requests';
 
 const AVAILMENT_OPTIONS = ['New', 'Re-Loan', 'Restructured'] as const;
+
+type SignatureRole = 'co_maker_1' | 'co_maker_2';
+type SignatureMethod = 'in_person' | 'share_link';
 
 type LoanDetailField =
     | 'typecode'
@@ -239,10 +250,20 @@ type CoMakerStepProps = {
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
-    signatureName: string;
-    signatureLabel: string;
+    signatureState: LoanRequestCoMakerSignatureState;
+    isSignatureRequired: boolean;
+    isLocked: boolean;
+    selectedSigningMethod?: SignatureMethod;
+    generatedLink?: LoanRequestGeneratedSignatureLink;
+    isGeneratingSignatureLink: boolean;
     signatureData: string;
+    signatureError?: string;
+    signatureDataError?: string;
+    onSelectSigningMethod: (method: SignatureMethod) => void;
     onSignatureChange: (value: string) => void;
+    onEnableSignedEditing: () => void;
+    onGenerateSignatureLink: () => void;
+    onCopySignatureLink: () => void;
 };
 
 export function LoanRequestCoMakerStep({
@@ -252,34 +273,103 @@ export function LoanRequestCoMakerStep({
     values,
     errors,
     onChange,
-    signatureName,
-    signatureLabel,
+    signatureState,
+    isSignatureRequired,
+    isLocked,
+    selectedSigningMethod,
+    generatedLink,
+    isGeneratingSignatureLink,
     signatureData,
+    signatureError,
+    signatureDataError,
+    onSelectSigningMethod,
     onSignatureChange,
+    onEnableSignedEditing,
+    onGenerateSignatureLink,
+    onCopySignatureLink,
 }: CoMakerStepProps) {
+    const signatureStatus = describeCoMakerSignatureStatus(
+        signatureState,
+        isSignatureRequired,
+    );
+
     return (
         <LoanRequestSectionCard title={title} description={description}>
-            <LoanRequestPersonalFields
-                prefix={prefix}
-                values={values}
-                errors={errors}
-                onChange={onChange}
-            />
+            {isLocked ? (
+                <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100">
+                    <AlertTitle>Signed co-maker details are locked</AlertTitle>
+                    <AlertDescription className="space-y-3">
+                        <p>
+                            This co-maker is already confirmed. Unlock the
+                            proposed details only if you need to make a change
+                            and require a new co-maker signature.
+                        </p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full sm:w-auto"
+                            onClick={onEnableSignedEditing}
+                        >
+                            Edit details and require a new signature
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+
+            <fieldset
+                disabled={isLocked}
+                className={cn('space-y-7', isLocked && 'opacity-80')}
+            >
+                <LoanRequestPersonalFields
+                    prefix={prefix}
+                    values={values}
+                    errors={errors}
+                    onChange={onChange}
+                />
+                <Separator className="bg-border/40" />
+                <LoanRequestWorkFields
+                    prefix={prefix}
+                    values={values}
+                    errors={errors}
+                    onChange={onChange}
+                />
+            </fieldset>
             <Separator className="bg-border/40" />
-            <LoanRequestWorkFields
-                prefix={prefix}
-                values={values}
-                errors={errors}
-                onChange={onChange}
-            />
-            <Separator className="bg-border/40" />
-            <SignaturePadField
-                name={signatureName}
-                label={signatureLabel}
-                value={signatureData}
-                error={errors[signatureName]}
-                onChange={onSignatureChange}
-            />
+            <Alert className="border-border/50 bg-muted/10">
+                <AlertTitle className="flex flex-wrap items-center gap-2">
+                    <span>{title} Signature</span>
+                    <Badge className={signatureStatus.badgeClassName}>
+                        {signatureStatus.label}
+                    </Badge>
+                </AlertTitle>
+                <AlertDescription className="space-y-4">
+                    <p>{signatureStatus.description}</p>
+                    {signatureState.expires_at ? (
+                        <p>
+                            Link expires {formatDateTime(signatureState.expires_at)}
+                        </p>
+                    ) : null}
+                    {signatureState.signed_at ? (
+                        <p>
+                            Confirmed {formatDateTime(signatureState.signed_at)}
+                        </p>
+                    ) : null}
+                    <CoMakerSignatureActionsContent
+                        signatureState={signatureState}
+                        isRequired={isSignatureRequired}
+                        selectedSigningMethod={selectedSigningMethod}
+                        generatedLink={generatedLink}
+                        isGenerating={isGeneratingSignatureLink}
+                        signatureData={signatureData}
+                        error={signatureError}
+                        signatureDataError={signatureDataError}
+                        onSelectSigningMethod={onSelectSigningMethod}
+                        onSignatureChange={onSignatureChange}
+                        onGenerate={onGenerateSignatureLink}
+                        onCopy={onCopySignatureLink}
+                    />
+                </AlertDescription>
+            </Alert>
         </LoanRequestSectionCard>
     );
 }
@@ -290,6 +380,22 @@ type ReviewStepProps = {
     member: LoanRequestMemberSummary;
     errors: Record<string, string | undefined>;
     onUndertakingChange: (value: boolean) => void;
+    coMakerOneSignature: LoanRequestCoMakerSignatureState;
+    coMakerTwoSignature: LoanRequestCoMakerSignatureState;
+    coMakerOneRequired: boolean;
+    coMakerTwoRequired: boolean;
+    generatedLinks: Partial<
+        Record<SignatureRole, LoanRequestGeneratedSignatureLink>
+    >;
+    coMakerOneHasPendingInPersonSignature: boolean;
+    coMakerTwoHasPendingInPersonSignature: boolean;
+    onGenerateSignatureLink: (role: SignatureRole) => void;
+    onCopySignatureLink: (role: SignatureRole) => void;
+    onRefreshSignatures: () => void;
+    isGeneratingSignatureLinkRole: SignatureRole | null;
+    isRefreshingSignatures: boolean;
+    canSubmitForReview: boolean;
+    submitDisabledMessage?: string | null;
 };
 
 type SummaryItem = {
@@ -445,12 +551,424 @@ const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
     </div>
 );
 
+type SignatureStatusDescriptor = {
+    label: string;
+    description: string;
+    badgeClassName: string;
+};
+
+const describeCoMakerSignatureStatus = (
+    signatureState: LoanRequestCoMakerSignatureState,
+    isRequired: boolean,
+): SignatureStatusDescriptor => {
+    if (!isRequired) {
+        return {
+            label: 'Proposed / Not sent',
+            description:
+                'No proposed co-maker details have been entered for this slot yet.',
+            badgeClassName:
+                'border-border/50 bg-muted/20 text-muted-foreground',
+        };
+    }
+
+    if (signatureState.state === 'signed') {
+        return {
+            label: 'Signed / Confirmed',
+            description:
+                'This co-maker reviewed the proposed details, consented, and completed their signature.',
+            badgeClassName:
+                'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+        };
+    }
+
+    if (signatureState.state === 'link_active') {
+        return {
+            label: 'Signing link active',
+            description:
+                'A secure signing link is active. The co-maker still needs to review the details, consent, and sign.',
+            badgeClassName:
+                'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200',
+        };
+    }
+
+    if (signatureState.state === 'expired') {
+        return {
+            label: 'Link expired',
+            description:
+                'The last secure signing link expired before the co-maker completed their signature.',
+            badgeClassName:
+                'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
+        };
+    }
+
+    return {
+        label: 'Proposed / Not sent',
+        description:
+            'The borrower entered proposed co-maker details, but no secure signing link has been shared yet.',
+        badgeClassName:
+            'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
+    };
+};
+
+type CoMakerSignatureActionsCardProps = {
+    title: string;
+    description: string;
+    signatureState: LoanRequestCoMakerSignatureState;
+    isRequired: boolean;
+    hasPendingInPersonSignature?: boolean;
+    generatedLink?: LoanRequestGeneratedSignatureLink;
+    isGenerating: boolean;
+    error?: string;
+    onGenerate: () => void;
+    onCopy: () => void;
+};
+
+type CoMakerSignatureActionsContentProps = {
+    signatureState: LoanRequestCoMakerSignatureState;
+    isRequired: boolean;
+    selectedSigningMethod?: SignatureMethod;
+    generatedLink?: LoanRequestGeneratedSignatureLink;
+    isGenerating: boolean;
+    signatureData: string;
+    error?: string;
+    signatureDataError?: string;
+    onSelectSigningMethod: (method: SignatureMethod) => void;
+    onSignatureChange: (value: string) => void;
+    onGenerate: () => void;
+    onCopy: () => void;
+};
+
+const CoMakerSignatureActionsContent = ({
+    signatureState,
+    isRequired,
+    selectedSigningMethod,
+    generatedLink,
+    isGenerating,
+    signatureData,
+    error,
+    signatureDataError,
+    onSelectSigningMethod,
+    onSignatureChange,
+    onGenerate,
+    onCopy,
+}: CoMakerSignatureActionsContentProps) => {
+    const canShareLink = isRequired && !signatureState.is_confirmed;
+    const canSignNow = isRequired && !signatureState.is_confirmed;
+    const hasVisibleLink =
+        generatedLink !== undefined &&
+        canShareLink &&
+        signatureState.state !== 'expired';
+    const primaryActionLabel =
+        signatureState.state === 'link_active' ||
+        signatureState.state === 'expired'
+            ? 'Regenerate link'
+            : 'Generate signing link';
+
+    return (
+        <div className="space-y-4">
+            {signatureState.is_confirmed ? (
+                <p className="text-xs text-muted-foreground">
+                    Editing the proposed co-maker details will invalidate the
+                    current confirmation and require a new co-maker signature.
+                </p>
+            ) : (
+                <>
+                    <div className="rounded-lg border border-border/50 bg-background/70 p-4">
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-foreground">
+                                Choose how this co-maker will sign.
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Only the co-maker should sign. Do not sign on
+                                behalf of another person.
+                            </p>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                            <button
+                                type="button"
+                                className={cn(
+                                    'rounded-xl border px-4 py-4 text-left transition-colors',
+                                    selectedSigningMethod === 'in_person'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-border/60 bg-muted/10 hover:border-primary/40',
+                                )}
+                                disabled={!canSignNow}
+                                onClick={() => onSelectSigningMethod('in_person')}
+                            >
+                                <span className="block text-sm font-semibold text-foreground">
+                                    Sign now on this device
+                                </span>
+                                <span className="mt-1 block text-xs text-muted-foreground">
+                                    Use this when the co-maker is physically
+                                    present with the member.
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                className={cn(
+                                    'rounded-xl border px-4 py-4 text-left transition-colors',
+                                    selectedSigningMethod === 'share_link'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-border/60 bg-muted/10 hover:border-primary/40',
+                                )}
+                                disabled={!canShareLink}
+                                onClick={() => onSelectSigningMethod('share_link')}
+                            >
+                                <span className="block text-sm font-semibold text-foreground">
+                                    Share secure signing link
+                                </span>
+                                <span className="mt-1 block text-xs text-muted-foreground">
+                                    Use this when the co-maker is not with the
+                                    member.
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {selectedSigningMethod === 'in_person' && canSignNow ? (
+                        <div className="space-y-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground">
+                                    Sign now on this device
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Only the co-maker should sign here. Do not
+                                    sign on behalf of another person.
+                                </p>
+                            </div>
+
+                            <SignaturePadField
+                                name={`${signatureState.role}_signature_data`}
+                                label="Co-maker signature"
+                                value={signatureData}
+                                error={signatureDataError}
+                                onChange={onSignatureChange}
+                            />
+
+                            <p className="text-xs text-muted-foreground">
+                                Saving the draft or submitting this request will
+                                save the in-person co-maker signature.
+                            </p>
+                        </div>
+                    ) : null}
+
+                    {selectedSigningMethod === 'share_link' && canShareLink ? (
+                        <div className="space-y-4 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
+                            {hasVisibleLink ? (
+                                <div className="space-y-2 rounded-lg border border-dashed border-border/60 bg-muted/10 p-3">
+                                    <Label
+                                        htmlFor={`${signatureState.role}_signing_link`}
+                                        className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
+                                    >
+                                        Secure signing link
+                                    </Label>
+                                    <Input
+                                        id={`${signatureState.role}_signing_link`}
+                                        value={generatedLink.signing_url}
+                                        readOnly
+                                        className="h-11 bg-background/80 text-xs sm:text-sm"
+                                    />
+                                    {generatedLink.expires_at ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            Expires{' '}
+                                            {formatDateTime(
+                                                generatedLink.expires_at,
+                                            )}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : signatureState.has_active_link ? (
+                                <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground">
+                                    For security, the full signing URL is only
+                                    shown immediately after generation. Use
+                                    Regenerate link if you need a fresh secure
+                                    link to share again.
+                                </div>
+                            ) : null}
+
+                            <div
+                                className={
+                                    hasVisibleLink
+                                        ? 'grid gap-2 sm:grid-cols-2'
+                                        : 'grid gap-2'
+                                }
+                            >
+                                {hasVisibleLink ? (
+                                    <Button
+                                        type="button"
+                                        className="h-11 w-full"
+                                        disabled={isGenerating}
+                                        onClick={onCopy}
+                                    >
+                                        <Link2 className="size-4" />
+                                        Copy link
+                                    </Button>
+                                ) : null}
+                                <Button
+                                    type="button"
+                                    variant={
+                                        hasVisibleLink ? 'outline' : 'default'
+                                    }
+                                    className="h-11 w-full"
+                                    disabled={!isRequired || isGenerating}
+                                    onClick={onGenerate}
+                                >
+                                    {signatureState.state === 'link_active' ||
+                                    signatureState.state === 'expired' ? (
+                                        <RefreshCcw className="size-4" />
+                                    ) : (
+                                        <Link2 className="size-4" />
+                                    )}
+                                    {hasVisibleLink
+                                        ? 'Regenerate link'
+                                        : primaryActionLabel}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    <InputError message={error} />
+                </>
+            )}
+        </div>
+    );
+};
+
+const CoMakerSignatureActionsCard = ({
+    title,
+    description,
+    signatureState,
+    isRequired,
+    hasPendingInPersonSignature = false,
+    generatedLink,
+    isGenerating,
+    error,
+    onGenerate,
+    onCopy,
+}: CoMakerSignatureActionsCardProps) => {
+    const signatureStatus = describeCoMakerSignatureStatus(
+        signatureState,
+        isRequired,
+    );
+
+    return (
+        <SummaryCard title={title} description={description}>
+            <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={signatureStatus.badgeClassName}>
+                        {signatureStatus.label}
+                    </Badge>
+                    {signatureState.signed_at ? (
+                        <span className="text-xs text-muted-foreground">
+                            Confirmed {formatDateTime(signatureState.signed_at)}
+                        </span>
+                    ) : null}
+                    {signatureState.expires_at ? (
+                        <span className="text-xs text-muted-foreground">
+                            Expires {formatDateTime(signatureState.expires_at)}
+                        </span>
+                    ) : null}
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                    {signatureStatus.description}
+                </p>
+
+                {hasPendingInPersonSignature ? (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-100">
+                        An in-person co-maker signature is ready on this device
+                        and will be saved when you save the draft or submit the
+                        request.
+                    </div>
+                ) : null}
+
+                {signatureState.is_confirmed || hasPendingInPersonSignature ? null : (
+                    <div className="space-y-4">
+                        {generatedLink ? (
+                            <div className="space-y-2 rounded-lg border border-dashed border-border/60 bg-muted/10 p-3">
+                                <Label
+                                    htmlFor={`${signatureState.role}_review_signing_link`}
+                                    className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
+                                >
+                                    Secure signing link
+                                </Label>
+                                <Input
+                                    id={`${signatureState.role}_review_signing_link`}
+                                    value={generatedLink.signing_url}
+                                    readOnly
+                                    className="h-11 bg-background/80 text-xs sm:text-sm"
+                                />
+                            </div>
+                        ) : null}
+
+                        <div
+                            className={
+                                generatedLink
+                                    ? 'grid gap-2 sm:grid-cols-2'
+                                    : 'grid gap-2'
+                            }
+                        >
+                            {generatedLink ? (
+                                <Button
+                                    type="button"
+                                    className="h-11 w-full"
+                                    disabled={isGenerating}
+                                    onClick={onCopy}
+                                >
+                                    <Link2 className="size-4" />
+                                    Copy link
+                                </Button>
+                            ) : null}
+                            <Button
+                                type="button"
+                                variant={generatedLink ? 'outline' : 'default'}
+                                className="h-11 w-full"
+                                disabled={!isRequired || isGenerating}
+                                onClick={onGenerate}
+                            >
+                                {signatureState.state === 'link_active' ||
+                                signatureState.state === 'expired' ? (
+                                    <RefreshCcw className="size-4" />
+                                ) : (
+                                    <Link2 className="size-4" />
+                                )}
+                                {signatureState.state === 'link_active' ||
+                                signatureState.state === 'expired'
+                                    ? 'Regenerate link'
+                                    : 'Generate signing link'}
+                            </Button>
+                        </div>
+
+                        <InputError message={error} />
+                    </div>
+                )}
+            </div>
+        </SummaryCard>
+    );
+};
+
 export function LoanRequestReviewStep({
     data,
     loanTypes,
     member,
     errors,
     onUndertakingChange,
+    coMakerOneSignature,
+    coMakerTwoSignature,
+    coMakerOneRequired,
+    coMakerTwoRequired,
+    generatedLinks,
+    coMakerOneHasPendingInPersonSignature,
+    coMakerTwoHasPendingInPersonSignature,
+    onGenerateSignatureLink,
+    onCopySignatureLink,
+    onRefreshSignatures,
+    isGeneratingSignatureLinkRole,
+    isRefreshingSignatures,
+    canSubmitForReview,
+    submitDisabledMessage = null,
 }: ReviewStepProps) {
     const loanTypeLabel =
         loanTypes.find((type) => type.typecode === data.typecode)?.label ??
@@ -623,15 +1141,30 @@ export function LoanRequestReviewStep({
             contentClassName="space-y-5"
         >
             <div className="rounded-lg border border-border/50 bg-muted/20 p-4 text-sm">
-                <p className="text-xs text-muted-foreground uppercase">
-                    Member
-                </p>
-                <p className="mt-2 font-medium">
-                    {displayText(member.name)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    Account No: {member.acctno ?? '--'}
-                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p className="text-xs text-muted-foreground uppercase">
+                            Member
+                        </p>
+                        <p className="mt-2 font-medium">
+                            {displayText(member.name)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Account No: {member.acctno ?? '--'}
+                        </p>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="self-start"
+                        disabled={isRefreshingSignatures}
+                        onClick={onRefreshSignatures}
+                    >
+                        <RefreshCcw className="size-4" />
+                        Refresh signature statuses
+                    </Button>
+                </div>
             </div>
 
             <SummaryCard
@@ -657,21 +1190,64 @@ export function LoanRequestReviewStep({
 
             <SummaryCard
                 title="Co-maker 1"
-                description="Summary for your first co-maker."
+                description="Review the proposed details for your first co-maker."
             >
                 <SummaryGrid
                     items={buildCoMakerSummary('Co-maker 1', data.co_maker_1)}
                 />
             </SummaryCard>
 
+            <CoMakerSignatureActionsCard
+                title="Co-maker 1 signature"
+                description="Share a secure signing link after you confirm the proposed details are correct."
+                signatureState={coMakerOneSignature}
+                isRequired={coMakerOneRequired}
+                hasPendingInPersonSignature={
+                    coMakerOneHasPendingInPersonSignature
+                }
+                generatedLink={generatedLinks.co_maker_1}
+                isGenerating={isGeneratingSignatureLinkRole === 'co_maker_1'}
+                error={errors['co_maker_1.signature']}
+                onGenerate={() => onGenerateSignatureLink('co_maker_1')}
+                onCopy={() => onCopySignatureLink('co_maker_1')}
+            />
+
             <SummaryCard
                 title="Co-maker 2"
-                description="Summary for your second co-maker."
+                description="Review the proposed details for your second co-maker."
             >
                 <SummaryGrid
                     items={buildCoMakerSummary('Co-maker 2', data.co_maker_2)}
                 />
             </SummaryCard>
+
+            <CoMakerSignatureActionsCard
+                title="Co-maker 2 signature"
+                description="This co-maker is only confirmed after they consent and sign through their own secure link."
+                signatureState={coMakerTwoSignature}
+                isRequired={coMakerTwoRequired}
+                hasPendingInPersonSignature={
+                    coMakerTwoHasPendingInPersonSignature
+                }
+                generatedLink={generatedLinks.co_maker_2}
+                isGenerating={isGeneratingSignatureLinkRole === 'co_maker_2'}
+                error={errors['co_maker_2.signature']}
+                onGenerate={() => onGenerateSignatureLink('co_maker_2')}
+                onCopy={() => onCopySignatureLink('co_maker_2')}
+            />
+
+            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100">
+                <AlertTitle>Submit for Review</AlertTitle>
+                <AlertDescription>
+                    <p>
+                        Submit for Review is available after all required
+                        co-makers have signed.
+                    </p>
+                    {!canSubmitForReview && submitDisabledMessage ? (
+                        <p>{submitDisabledMessage}</p>
+                    ) : null}
+                </AlertDescription>
+            </Alert>
 
             <SummaryCard
                 title="Undertaking"

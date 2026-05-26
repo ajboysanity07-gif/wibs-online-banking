@@ -50,6 +50,35 @@ export type LoanRequestReviewer = {
     name: string;
 };
 
+export type LoanRequestCoMakerSignatureStateValue =
+    | 'proposed'
+    | 'link_active'
+    | 'expired'
+    | 'signed';
+
+export type LoanRequestCoMakerSignatureState = {
+    role: 'co_maker_1' | 'co_maker_2';
+    state: LoanRequestCoMakerSignatureStateValue;
+    is_confirmed: boolean;
+    has_signature: boolean;
+    has_active_link: boolean;
+    has_expired_link: boolean;
+    loan_request_person_id: number | null;
+    signed_via: 'in_person' | 'remote' | null;
+    expires_at: string | null;
+    signed_at: string | null;
+    last_generated_at: string | null;
+};
+
+export type LoanRequestGeneratedSignatureLink = {
+    role: 'co_maker_1' | 'co_maker_2';
+    loan_request_person_id: number;
+    status: 'link_active';
+    signing_url: string;
+    url: string;
+    expires_at: string | null;
+};
+
 export type LoanRequestCorrectionReportStatus =
     | 'open'
     | 'resolved'
@@ -91,6 +120,7 @@ export type LoanRequestReadOnlyMap = Record<string, boolean>;
 
 export type LoanRequestStatusValue =
     | 'draft'
+    | 'pending_co_maker_signatures'
     | 'submitted'
     | 'under_review'
     | 'approved'
@@ -197,8 +227,8 @@ export type LoanRequestFormData = {
     availment_status: string;
     undertaking_accepted: boolean;
     applicant_signature_data?: string;
-    co_maker_one_signature_data?: string;
-    co_maker_two_signature_data?: string;
+    co_maker_1_signature_data?: string;
+    co_maker_2_signature_data?: string;
     applicant: LoanRequestPersonFormData;
     co_maker_1: LoanRequestPersonFormData;
     co_maker_2: LoanRequestPersonFormData;

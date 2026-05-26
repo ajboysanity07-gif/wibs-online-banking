@@ -157,6 +157,7 @@ const DetailRow = ({ label, value, className }: DetailRowProps) => (
 
 const statusLabels: Record<LoanRequestStatusValue, string> = {
     draft: 'Draft',
+    pending_co_maker_signatures: 'Pending Co-maker Signatures',
     submitted: 'Submitted',
     under_review: 'Under review',
     approved: 'Approved',
@@ -166,6 +167,8 @@ const statusLabels: Record<LoanRequestStatusValue, string> = {
 
 const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     draft: 'Complete the form and submit when you are ready.',
+    pending_co_maker_signatures:
+        'Required co-makers still need to review the proposed details and sign.',
     submitted: 'Your request has been submitted for review.',
     under_review: 'We are currently reviewing your request.',
     approved: 'Your request is approved. We will contact you next.',
@@ -176,6 +179,7 @@ const statusDescriptions: Record<LoanRequestStatusValue, string> = {
 
 const statusSteps: LoanRequestStatusValue[] = [
     'draft',
+    'pending_co_maker_signatures',
     'under_review',
     'approved',
     'declined',
@@ -349,9 +353,12 @@ export function LoanRequestDetailPage({
             : '--';
     const availmentStatus = displayValue(loanRequest.availment_status);
     const loanPurpose = displayText(loanRequest.loan_purpose);
-    const submittedLabel = submittedAt
-        ? `Submitted ${submittedAt}`
-        : 'Not submitted yet';
+    const submittedLabel =
+        normalizedStatus === 'pending_co_maker_signatures'
+            ? 'Waiting for co-maker signatures'
+            : submittedAt
+              ? `Submitted ${submittedAt}`
+              : 'Not submitted yet';
     const showDecision = decision?.show ?? false;
     const showDecisionForm =
         showDecision &&
@@ -1282,13 +1289,16 @@ export function LoanRequestDetailPage({
                         <CardContent className="text-sm text-muted-foreground">
                             {statusForTimeline === 'draft'
                                 ? 'Finish the application and submit to begin the review.'
-                                : statusForTimeline === 'under_review'
-                                  ? 'Our team will review your request and notify you of the outcome.'
-                                  : statusForTimeline === 'approved'
-                                    ? 'You will receive next-step instructions from the loans team.'
-                                    : statusForTimeline === 'declined'
-                                      ? 'Contact support if you would like to discuss your request.'
-                                      : 'This request remains available as read-only history.'}
+                                : statusForTimeline ===
+                                    'pending_co_maker_signatures'
+                                  ? 'Generate or resend secure co-maker links, then submit once all required co-makers have signed.'
+                                  : statusForTimeline === 'under_review'
+                                    ? 'Our team will review your request and notify you of the outcome.'
+                                    : statusForTimeline === 'approved'
+                                      ? 'You will receive next-step instructions from the loans team.'
+                                      : statusForTimeline === 'declined'
+                                        ? 'Contact support if you would like to discuss your request.'
+                                        : 'This request remains available as read-only history.'}
                         </CardContent>
                     </Card>
                 </div>

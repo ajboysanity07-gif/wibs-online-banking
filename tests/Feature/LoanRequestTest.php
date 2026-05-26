@@ -879,7 +879,7 @@ test('loan request form resumes existing draft', function () {
             ->where('coMakerTwo.payday', 'Bi-Weekly'));
 });
 
-test('loan request submissions persist snapshots', function () {
+test('loan request signature link generation persists snapshots and marks request pending', function () {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -913,8 +913,6 @@ test('loan request submissions persist snapshots', function () {
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
         'applicant_signature_data' => sampleSignatureDataUrl('one'),
-        'co_maker_one_signature_data' => sampleSignatureDataUrl('two'),
-        'co_maker_two_signature_data' => sampleSignatureDataUrl('one'),
         'undertaking_accepted' => true,
         'applicant' => [
             'first_name' => 'Loan',
@@ -1008,14 +1006,18 @@ test('loan request submissions persist snapshots', function () {
 
     $response = $this
         ->actingAs($user)
-        ->post(route('client.loan-requests.store'), $payload);
+        ->postJson(route('client.loan-requests.signature-links.store', [
+            'role' => LoanRequestPersonRole::CoMakerOne->value,
+        ]), $payload);
 
     $loanRequest = LoanRequest::query()->first();
 
-    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    $response->assertOk();
     expect($loanRequest)->not->toBeNull();
-    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
-    expect($loanRequest->submitted_at)->not->toBeNull();
+    expect($loanRequest->status)->toBe(
+        LoanRequestStatus::PendingCoMakerSignatures,
+    );
+    expect($loanRequest->submitted_at)->toBeNull();
     expect(LoanRequestPerson::query()->where('loan_request_id', $loanRequest->id)->count())
         ->toBe(3);
     $people = LoanRequestPerson::query()
@@ -1029,17 +1031,12 @@ test('loan request submissions persist snapshots', function () {
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao, Davao del Sur');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
     expect($people[LoanRequestPersonRole::Applicant->value]->signature_path)->not->toBeNull();
-    expect($people[LoanRequestPersonRole::CoMakerOne->value]->signature_path)->not->toBeNull();
-    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path)->not->toBeNull();
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->signature_path)->toBeNull();
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path)->toBeNull();
     Storage::disk('public')->assertExists(
         $people[LoanRequestPersonRole::Applicant->value]->signature_path,
     );
-    Storage::disk('public')->assertExists(
-        $people[LoanRequestPersonRole::CoMakerOne->value]->signature_path,
-    );
-    Storage::disk('public')->assertExists(
-        $people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path,
-    );
+    expect($loanRequest->signatureLinks()->count())->toBe(1);
 });
 
 test('newly submitted applicant signature replaces old signature file', function () {

@@ -161,7 +161,7 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
-        if ($this->isDraft($loanRequestRecord)) {
+        if ($this->isEditableStatus($loanRequestRecord)) {
             return redirect()->route('client.loan-requests.create');
         }
 
@@ -572,13 +572,16 @@ class LoanRequestController extends Controller
         return $status;
     }
 
-    private function isDraft(LoanRequest $loanRequest): bool
+    private function isEditableStatus(LoanRequest $loanRequest): bool
     {
         $status = $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        return $status === LoanRequestStatus::Draft->value;
+        return in_array($status, [
+            LoanRequestStatus::Draft->value,
+            LoanRequestStatus::PendingCoMakerSignatures->value,
+        ], true);
     }
 
     private function canViewPdf(LoanRequest $loanRequest): bool

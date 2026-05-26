@@ -19,8 +19,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestService
@@ -45,6 +43,8 @@ class LoanRequestService
         private SchemaCapabilities $schemaCapabilities,
         private NotificationRecipientService $notificationRecipients,
         private LoanRequestPayloadSerializer $serializer,
+        private LoanRequestSignatureLinkService $signatureLinks,
+        private LoanRequestSignatureStorage $signatureStorage,
     ) {}
 
     /**
@@ -77,9 +77,21 @@ class LoanRequestService
             $user->loadMissing('wmaster');
         }
 
-        $draft = $this->getActiveDraft($user);
+        $draft = $this->getActiveEditableRequest($user);
         $applicantReadOnly = $this->buildApplicantReadOnlyMap($user);
         $memberName = $this->resolveMemberName($user);
+        $signatureStates = $draft !== null
+            ? $this->signatureLinks->getSignatureStates($draft)
+            : [
+                'coMakerOneSignature' => $this->signatureLinks->summarizePerson(
+                    null,
+                    LoanRequestPersonRole::CoMakerOne,
+                ),
+                'coMakerTwoSignature' => $this->signatureLinks->summarizePerson(
+                    null,
+                    LoanRequestPersonRole::CoMakerTwo,
+                ),
+            ];
 
         if ($draft !== null) {
             $draft->loadMissing('people');
@@ -110,6 +122,8 @@ class LoanRequestService
             'applicant' => $applicant,
             'coMakerOne' => $coMakerOne,
             'coMakerTwo' => $coMakerTwo,
+            'coMakerOneSignature' => $signatureStates['coMakerOneSignature'],
+            'coMakerTwoSignature' => $signatureStates['coMakerTwoSignature'],
             'applicantReadOnly' => $applicantReadOnly,
             'member' => [
                 'name' => $memberName,
@@ -127,8 +141,8 @@ class LoanRequestService
      *     loan_purpose?: string|null,
      *     availment_status?: string|null,
      *     applicant_signature_data?: string|null,
-     *     co_maker_one_signature_data?: string|null,
-     *     co_maker_two_signature_data?: string|null,
+     *     co_maker_1_signature_data?: string|null,
+     *     co_maker_2_signature_data?: string|null,
      *     applicant?: array<string, mixed>,
      *     co_maker_1?: array<string, mixed>,
      *     co_maker_2?: array<string, mixed>
@@ -137,16 +151,21 @@ class LoanRequestService
     public function saveDraft(AppUser $user, array $payload): LoanRequest
     {
         return DB::transaction(function () use ($user, $payload): LoanRequest {
-            $loanRequest = $this->getActiveDraft($user);
+            $loanRequest = $this->getActiveEditableRequest($user);
 
             if ($loanRequest === null) {
                 $loanRequest = $this->initializeLoanRequest($user);
             }
 
+            $status = $this->statusValue($loanRequest)
+                === LoanRequestStatus::PendingCoMakerSignatures->value
+                ? LoanRequestStatus::PendingCoMakerSignatures
+                : LoanRequestStatus::Draft;
+
             $this->fillLoanRequest(
                 $loanRequest,
                 $payload,
-                LoanRequestStatus::Draft,
+                $status,
                 false,
             );
             $loanRequest->save();
@@ -165,8 +184,85 @@ class LoanRequestService
      *     loan_purpose: string,
      *     availment_status: string,
      *     applicant_signature_data?: string|null,
-     *     co_maker_one_signature_data?: string|null,
-     *     co_maker_two_signature_data?: string|null,
+     *     co_maker_1_signature_data?: string|null,
+     *     co_maker_2_signature_data?: string|null,
+     *     applicant: array<string, mixed>,
+     *     co_maker_1: array<string, mixed>,
+     *     co_maker_2: array<string, mixed>
+     * }  $payload
+     * @return array{
+     *     loanRequest: LoanRequest,
+     *     coMakerOneSignature: array<string, mixed>,
+     *     coMakerTwoSignature: array<string, mixed>,
+     *     signingLink: array{
+     *         role: string,
+     *         loan_request_person_id: int,
+     *         status: string,
+     *         signing_url: string,
+     *         url: string,
+     *         expires_at: string|null
+     *     }
+     * }
+     */
+    public function generateCoMakerSignatureLink(
+        AppUser $user,
+        LoanRequestPersonRole $role,
+        array $payload,
+    ): array {
+        return DB::transaction(function () use ($user, $role, $payload): array {
+            $loanRequest = $this->getActiveEditableRequest($user);
+
+            if ($loanRequest === null) {
+                $loanRequest = $this->initializeLoanRequest($user);
+            }
+
+            $this->fillLoanRequest(
+                $loanRequest,
+                $payload,
+                LoanRequestStatus::PendingCoMakerSignatures,
+                false,
+            );
+            $loanRequest->save();
+
+            $this->upsertPeopleSnapshots($loanRequest, $payload);
+
+            $loanRequest = $loanRequest->refresh();
+            $loanRequest->loadMissing('people');
+
+            $generated = $this->signatureLinks->generateForRole(
+                $loanRequest,
+                $role,
+            );
+            $signatureStates = $this->signatureLinks->getSignatureStates(
+                $loanRequest,
+            );
+
+            return [
+                'loanRequest' => $loanRequest,
+                'coMakerOneSignature' => $signatureStates['coMakerOneSignature'],
+                'coMakerTwoSignature' => $signatureStates['coMakerTwoSignature'],
+                'signingLink' => [
+                    'role' => $role->value,
+                    'loan_request_person_id' => $generated['link']->loan_request_person_id,
+                    'status' => LoanRequestSignatureLinkService::STATE_LINK_ACTIVE,
+                    'signing_url' => $generated['signing_url'],
+                    'url' => $generated['signing_url'],
+                    'expires_at' => $generated['link']->expires_at?->toDateTimeString(),
+                ],
+            ];
+        });
+    }
+
+    /**
+     * @param  array{
+     *     typecode: string,
+     *     requested_amount: string|float|int,
+     *     requested_term: int|string,
+     *     loan_purpose: string,
+     *     availment_status: string,
+     *     applicant_signature_data?: string|null,
+     *     co_maker_1_signature_data?: string|null,
+     *     co_maker_2_signature_data?: string|null,
      *     applicant: array<string, mixed>,
      *     co_maker_1: array<string, mixed>,
      *     co_maker_2: array<string, mixed>
@@ -177,13 +273,16 @@ class LoanRequestService
         $shouldNotifyAdmins = false;
 
         $loanRequest = DB::transaction(function () use ($user, $payload, &$shouldNotifyAdmins): LoanRequest {
-            $loanRequest = $this->getActiveDraft($user);
+            $loanRequest = $this->getActiveEditableRequest($user);
 
             if ($loanRequest === null) {
                 $loanRequest = $this->initializeLoanRequest($user);
             }
 
-            $wasSubmitted = $loanRequest->submitted_at !== null;
+            $wasSubmitted = in_array($this->statusValue($loanRequest), [
+                LoanRequestStatus::Submitted->value,
+                LoanRequestStatus::UnderReview->value,
+            ], true);
 
             $this->fillLoanRequest(
                 $loanRequest,
@@ -194,10 +293,16 @@ class LoanRequestService
             $loanRequest->save();
 
             $this->upsertPeopleSnapshots($loanRequest, $payload);
+            $loanRequest = $loanRequest->refresh();
+            $loanRequest->loadMissing('people');
+            $this->ensureRequiredCoMakerSignaturesPresent(
+                $loanRequest,
+                $payload,
+            );
 
             $shouldNotifyAdmins = ! $wasSubmitted;
 
-            return $loanRequest->loadMissing('people');
+            return $loanRequest;
         });
 
         if ($shouldNotifyAdmins) {
@@ -681,11 +786,14 @@ class LoanRequestService
         ];
     }
 
-    private function getActiveDraft(AppUser $user): ?LoanRequest
+    private function getActiveEditableRequest(AppUser $user): ?LoanRequest
     {
         return LoanRequest::query()
             ->where('user_id', $user->user_id)
-            ->where('status', LoanRequestStatus::Draft->value)
+            ->whereIn('status', [
+                LoanRequestStatus::Draft->value,
+                LoanRequestStatus::PendingCoMakerSignatures->value,
+            ])
             ->orderByDesc('updated_at')
             ->orderByDesc('created_at')
             ->first();
@@ -723,7 +831,10 @@ class LoanRequestService
 
         $loanRequest->status = $status;
 
-        if ($status === LoanRequestStatus::Draft) {
+        if (in_array($status, [
+            LoanRequestStatus::Draft,
+            LoanRequestStatus::PendingCoMakerSignatures,
+        ], true)) {
             $loanRequest->submitted_at = null;
         } elseif ($markSubmitted) {
             $loanRequest->submitted_at = now();
@@ -770,13 +881,21 @@ class LoanRequestService
             $loanRequest,
             LoanRequestPersonRole::CoMakerOne,
             $this->extractPersonPayload($payload, 'co_maker_1'),
-            $this->extractSignatureData($payload, 'co_maker_one_signature_data'),
+            $this->extractSignatureData(
+                $payload,
+                'co_maker_1_signature_data',
+                'co_maker_one_signature_data',
+            ),
         );
         $this->upsertPersonSnapshot(
             $loanRequest,
             LoanRequestPersonRole::CoMakerTwo,
             $this->extractPersonPayload($payload, 'co_maker_2'),
-            $this->extractSignatureData($payload, 'co_maker_two_signature_data'),
+            $this->extractSignatureData(
+                $payload,
+                'co_maker_2_signature_data',
+                'co_maker_two_signature_data',
+            ),
         );
     }
 
@@ -791,9 +910,19 @@ class LoanRequestService
         return is_array($value) ? $value : [];
     }
 
-    private function extractSignatureData(array $payload, string $key): ?string
+    private function extractSignatureData(array $payload, string ...$keys): ?string
     {
-        $value = $payload[$key] ?? null;
+        $value = null;
+
+        foreach ($keys as $key) {
+            if (! array_key_exists($key, $payload)) {
+                continue;
+            }
+
+            $value = $payload[$key];
+
+            break;
+        }
 
         if (! is_string($value)) {
             return null;
@@ -880,16 +1009,42 @@ class LoanRequestService
             ),
             'payday' => $this->normalizeOptionalString($data['payday'] ?? null),
         ];
+        $detailsChanged = $person->exists
+            ? $this->personSnapshotHasChanges($person, $attributes)
+            : false;
+
+        if ($role !== LoanRequestPersonRole::Applicant && $detailsChanged) {
+            $this->signatureLinks->revokePendingLinks($person);
+
+            if ($previousSignaturePath !== null) {
+                $this->signatureStorage->delete($previousSignaturePath);
+                $attributes['signature_path'] = null;
+
+                $status = $this->statusValue($loanRequest);
+
+                if (in_array($status, [
+                    LoanRequestStatus::Submitted->value,
+                    LoanRequestStatus::UnderReview->value,
+                ], true)) {
+                    $loanRequest->status = LoanRequestStatus::PendingCoMakerSignatures;
+                    $loanRequest->submitted_at = null;
+                    $loanRequest->reviewed_by = null;
+                    $loanRequest->reviewed_at = null;
+                    $loanRequest->save();
+                }
+            }
+        }
 
         if ($signatureData !== null) {
-            $storedSignaturePath = $this->storeSignatureData($signatureData);
+            $storedSignaturePath = $this->signatureStorage->storeBase64Png(
+                $signatureData,
+            );
 
             if ($storedSignaturePath !== null) {
-                if (
-                    $previousSignaturePath !== null
-                    && Storage::disk('public')->exists($previousSignaturePath)
-                ) {
-                    Storage::disk('public')->delete($previousSignaturePath);
+                $this->signatureStorage->delete($previousSignaturePath);
+
+                if ($role !== LoanRequestPersonRole::Applicant) {
+                    $this->signatureLinks->revokePendingLinks($person);
                 }
 
                 $attributes['signature_path'] = $storedSignaturePath;
@@ -903,25 +1058,6 @@ class LoanRequestService
         $person->save();
 
         return $person;
-    }
-
-    private function storeSignatureData(?string $data): ?string
-    {
-        if (! $data || ! str_starts_with($data, 'data:image/png;base64,')) {
-            return null;
-        }
-
-        $encoded = substr($data, strlen('data:image/png;base64,'));
-        $image = base64_decode($encoded, true);
-
-        if ($image === false) {
-            return null;
-        }
-
-        $path = 'loan-requests/signatures/'.Str::uuid().'.png';
-        Storage::disk('public')->put($path, $image);
-
-        return $path;
     }
 
     /**
@@ -1021,6 +1157,146 @@ class LoanRequestService
         }
 
         return (string) $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function personSnapshotHasChanges(
+        LoanRequestPerson $person,
+        array $attributes,
+    ): bool {
+        foreach ($attributes as $key => $value) {
+            if ($this->normalizeComparableValue($person->getAttribute($key)) !== $this->normalizeComparableValue($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function ensureRequiredCoMakerSignaturesPresent(
+        LoanRequest $loanRequest,
+        array $payload,
+    ): void {
+        $loanRequest->loadMissing('people');
+
+        $requirements = [
+            'co_maker_1' => [
+                'role' => LoanRequestPersonRole::CoMakerOne,
+                'message' => 'Co-maker 1 must sign before this request can be submitted for review.',
+            ],
+            'co_maker_2' => [
+                'role' => LoanRequestPersonRole::CoMakerTwo,
+                'message' => 'Co-maker 2 must sign before this request can be submitted for review.',
+            ],
+        ];
+        $errors = [];
+
+        foreach ($requirements as $payloadKey => $requirement) {
+            /** @var LoanRequestPersonRole $role */
+            $role = $requirement['role'];
+            $person = $loanRequest->people->first(
+                fn (LoanRequestPerson $item): bool => $item->role === $role,
+            );
+            $personPayload = $this->extractPersonPayload($payload, $payloadKey);
+
+            if (! $this->coMakerIsRequired($personPayload, $person)) {
+                continue;
+            }
+
+            $summary = $this->signatureLinks->summarizePerson($person, $role);
+
+            if (($summary['is_confirmed'] ?? false) !== true) {
+                $errors["{$payloadKey}.signature"] = $requirement['message'];
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function coMakerIsRequired(
+        array $payload,
+        ?LoanRequestPerson $person,
+    ): bool {
+        if ($this->personPayloadHasValues($payload)) {
+            return true;
+        }
+
+        if (! $person instanceof LoanRequestPerson) {
+            return false;
+        }
+
+        foreach ($person->getAttributes() as $key => $value) {
+            if (in_array($key, [
+                'id',
+                'loan_request_id',
+                'role',
+                'signature_path',
+                'created_at',
+                'updated_at',
+            ], true)) {
+                continue;
+            }
+
+            if ($this->normalizeComparableValue($value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function personPayloadHasValues(array $payload): bool
+    {
+        foreach ($payload as $value) {
+            if (is_array($value) && $this->personPayloadHasValues($value)) {
+                return true;
+            }
+
+            if ($this->normalizeComparableValue($value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeComparableValue(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        if ($value instanceof \BackedEnum) {
+            return (string) $value->value;
+        }
+
+        if ($value instanceof \UnitEnum) {
+            return $value->name;
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if (is_string($value) && str_contains($value, '.') && is_numeric($value)) {
+            return rtrim(rtrim($value, '0'), '.');
+        }
+
+        return trim((string) $value);
     }
 
     /**
@@ -1593,5 +1869,12 @@ class LoanRequestService
         }
 
         return is_numeric($value) ? (string) $value : null;
+    }
+
+    private function statusValue(LoanRequest $loanRequest): string
+    {
+        return $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
     }
 }
