@@ -1,9 +1,9 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { usePage } from '@inertiajs/react';
 import {
+    isRouteMatch,
     isWithinSectionPath,
     matchesExactPaths,
-    matchesSectionPaths,
     normalizePath,
 } from '@/lib/url-match';
 import { toUrl } from '@/lib/utils';
@@ -94,23 +94,15 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
                 ? options.matchPaths
                 : [options.href];
         const excludedTargets = options.excludeMatchPaths ?? [];
-        const resolvedExcludedTargets = excludedTargets.map(resolvePathname);
-        const shouldExclude =
-            matchesExactPaths(resolvedExcludedTargets, urlToCompare) ||
-            matchesSectionPaths(resolvedExcludedTargets, urlToCompare);
-
-        if (shouldExclude) {
-            return false;
-        }
-
         const resolvedTargets = targets.map(resolvePathname);
-        const matchStrategy = options.match ?? 'exact';
+        const resolvedExcludedTargets = excludedTargets.map(resolvePathname);
 
-        if (matchStrategy === 'section') {
-            return matchesSectionPaths(resolvedTargets, urlToCompare);
-        }
-
-        return matchesExactPaths(resolvedTargets, urlToCompare);
+        return isRouteMatch({
+            currentPath: urlToCompare,
+            targets: resolvedTargets,
+            excludedTargets: resolvedExcludedTargets,
+            match: options.match ?? 'exact',
+        });
     };
 
     const whenCurrentUrl: WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(

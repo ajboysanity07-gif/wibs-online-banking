@@ -66,3 +66,33 @@ export function matchesExactPaths(paths, currentPath) {
 export function matchesSectionPaths(basePaths, currentPath) {
     return basePaths.some((path) => isWithinSectionPath(path, currentPath));
 }
+
+/**
+ * Determine whether a navigation target matches the current path.
+ *
+ * @param {{
+ *   currentPath: string,
+ *   targets: string[],
+ *   excludedTargets?: string[],
+ *   match?: 'exact' | 'section',
+ * }} options
+ * @returns {boolean}
+ */
+export function isRouteMatch(options) {
+    const current = normalizePath(options.currentPath);
+    const targets = options.targets ?? [];
+    const excludedTargets = options.excludedTargets ?? [];
+    const shouldExclude =
+        matchesExactPaths(excludedTargets, current) ||
+        matchesSectionPaths(excludedTargets, current);
+
+    if (shouldExclude) {
+        return false;
+    }
+
+    if ((options.match ?? 'exact') === 'section') {
+        return matchesSectionPaths(targets, current);
+    }
+
+    return matchesExactPaths(targets, current);
+}

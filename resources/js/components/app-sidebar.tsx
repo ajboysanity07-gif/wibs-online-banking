@@ -38,12 +38,15 @@ import {
     savings as clientSavings,
 } from '@/routes/client';
 import {
-    create as loanRequestCreate,
     index as loanRequestsIndex,
 } from '@/routes/client/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
 import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
+import {
+    memberLoanRequestsNavMatchOptions,
+    memberLoansNavMatchOptions,
+} from '@/lib/member-sidebar-nav-match';
 
 type PageProps = {
     auth: Auth;
@@ -59,8 +62,7 @@ const memberNavItems: NavItem[] = [
         title: 'Loans',
         href: clientLoans(),
         icon: Banknote,
-        match: 'section',
-        excludeMatchPaths: [loanRequestsIndex()],
+        ...memberLoansNavMatchOptions,
     },
     {
         title: 'Loan Security',
@@ -72,8 +74,7 @@ const memberNavItems: NavItem[] = [
         title: 'Loan requests',
         href: loanRequestsIndex(),
         icon: FileText,
-        match: 'section',
-        matchPaths: [loanRequestsIndex(), loanRequestCreate()],
+        ...memberLoanRequestsNavMatchOptions,
     },
     {
         title: 'Settings',
