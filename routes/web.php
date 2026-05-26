@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\MemberProfileController;
 use App\Http\Controllers\Admin\MemberSavingsController;
 use App\Http\Controllers\Admin\OnlinePaymentsController;
 use App\Http\Controllers\Admin\OrganizationSettingsController;
+use App\Http\Controllers\Admin\PaymongoReconciliationController;
 use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Api\BirthplaceSearchController;
@@ -28,9 +29,11 @@ use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansContro
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
 use App\Http\Controllers\Client\OnlinePaymentStatusController;
 use App\Http\Controllers\Client\PayMongoCheckoutController;
+use App\Http\Controllers\Client\PaymongoLoanPaymentController as ClientPaymongoLoanPaymentController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationsController as NotificationsPageController;
+use App\Http\Controllers\PaymongoWebhookController as LoanPaymentPaymongoWebhookController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\LoanRequestCorrectionController as SpaLoanRequestCorrectionController;
@@ -63,6 +66,9 @@ Route::get('/', HomeController::class)->name('home');
 
 Route::post('webhooks/paymongo', PayMongoWebhookController::class)
     ->name('webhooks.paymongo');
+
+Route::post('webhooks/paymongo-loan-payments', LoanPaymentPaymongoWebhookController::class)
+    ->name('webhooks.paymongo-loan-payments');
 
 Route::middleware('guest')->group(function () {
     Route::post('register/verify', [MemberVerificationController::class, 'store'])
@@ -260,6 +266,27 @@ Route::get('client/online-payments/{onlinePayment}/failed', [OnlinePaymentStatus
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.online-payments.failed');
 
+Route::post(
+    'client/loans/{loanNumber}/payments/paymongo',
+    [ClientPaymongoLoanPaymentController::class, 'store'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.paymongo.store');
+
+Route::get(
+    'client/payments/paymongo/{payment}/success',
+    [ClientPaymongoLoanPaymentController::class, 'success'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.paymongo.success');
+
+Route::get(
+    'client/payments/paymongo/{payment}/cancel',
+    [ClientPaymongoLoanPaymentController::class, 'cancel'],
+)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-payments.paymongo.cancel');
+
 Route::get(
     'client/loans/{loanNumber}/payments/print',
     [ClientMemberLoanPaymentsController::class, 'print'],
@@ -366,6 +393,12 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
         Route::get('authorization', [AdminLoanRequestController::class, 'authorizationDocument'])
             ->name('admin.requests.documents.authorization');
     });
+
+    Route::get('paymongo-reconciliation', [PaymongoReconciliationController::class, 'index'])
+        ->name('admin.paymongo-reconciliation.index');
+
+    Route::patch('paymongo-reconciliation/{payment}', [PaymongoReconciliationController::class, 'update'])
+        ->name('admin.paymongo-reconciliation.update');
 
     Route::get('watchlist', [WatchlistController::class, 'index'])
         ->name('admin.watchlist.index');

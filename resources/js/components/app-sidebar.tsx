@@ -29,6 +29,7 @@ import {
     index as requestsIndex,
     reported as reportedRequests,
 } from '@/routes/admin/requests';
+import { index as paymongoReconciliationIndex } from '@/routes/admin/paymongo-reconciliation';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import {
@@ -111,6 +112,12 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
     {
         title: 'Online payments',
         href: onlinePaymentsIndex(),
+        icon: CreditCard,
+        match: 'section',
+    },
+    {
+        title: 'PayMongo Reconciliation',
+        href: paymongoReconciliationIndex(),
         icon: CreditCard,
         match: 'section',
     },
