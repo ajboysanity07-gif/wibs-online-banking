@@ -9,6 +9,8 @@ use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
+use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +22,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing as WorksheetDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -301,6 +304,415 @@ test('grepalife pdf includes structured applicant fields when available', functi
         ->toContain('25,000.00');
 });
 
+test('grepalife signature section uses borrower witness and organization signing data', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Maria Loan Officer',
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Wibs Cooperative',
+        'business_address1' => '123 Main Street',
+        'business_address2' => 'Tagum City',
+        'business_address3' => 'Davao del Norte',
+        'business_address' => '123 Main Street, Tagum City, Davao del Norte',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
+    $applicantSignaturePath = storeTestSignatureFile(
+        sprintf('loan-requests/signatures/%d-grepalife-applicant.png', $loanRequest->id),
+        'one',
+    );
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Juan',
+            'middle_name' => 'Paulo',
+            'last_name' => 'Cruz',
+            'employer_business_name' => 'Cruz Transport Services',
+            'signature_path' => $applicantSignaturePath,
+        ]);
+
+    $loanRequest->update([
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => '2026-05-22 10:00:00',
+        'approval_signature_id' => $approvalSignature->id,
+    ]);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
+    $fieldMap = new GrepalifePdfFieldMap;
+    $debtorSignatureField = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'applicant.signature_path',
+        'signature',
+    );
+    $debtorNameField = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'applicant.full_name',
+    );
+    $witnessSignatureField = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'reviewer.signature_path',
+        'signature',
+    );
+    $witnessNameField = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'reviewer.name',
+    );
+    $companyField = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'organization.company_name',
+    );
+    $placeOfSigningField = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'organization.business_address',
+    );
+    $dateOfSigningField = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'loan.approved_date_short',
+    );
+
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        $debtorSignatureField,
+        $documentData,
+    ))->toBe($applicantSignaturePath);
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        $debtorNameField,
+        $documentData,
+    ))->toBe('JUAN PAULO CRUZ')
+        ->not->toBe('Sample')
+        ->not->toBe('Input Data')
+        ->not->toBe('No Input Data')
+        ->not->toBe('0');
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        $witnessSignatureField,
+        $documentData,
+    ))->toBe($approvalSignature->signature_path);
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        $witnessNameField,
+        $documentData,
+    ))->toBe('MARIA LOAN OFFICER')
+        ->not->toBe('Sample')
+        ->not->toBe('Input Data')
+        ->not->toBe('No Input Data')
+        ->not->toBe('0');
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        $companyField,
+        $documentData,
+    ))->toBe('WIBS COOPERATIVE')
+        ->not->toBe('Sample')
+        ->not->toBe('Input Data')
+        ->not->toBe('No Input Data')
+        ->not->toBe('0');
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        $placeOfSigningField,
+        $documentData,
+    ))->toBe('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
+        ->not->toBe('Sample')
+        ->not->toBe('Input Data')
+        ->not->toBe('No Input Data')
+        ->not->toBe('0');
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        $dateOfSigningField,
+        $documentData,
+    ))->toBe('05/22/2026')
+        ->not->toBe('0');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $response->assertOk();
+    $pdfText = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($pdfText)
+        ->toContain('JUAN PAULO CRUZ')
+        ->toContain('MARIA LOAN OFFICER')
+        ->toContain('WIBS COOPERATIVE')
+        ->toContain('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
+        ->toContain('05/22/2026')
+        ->not->toContain('Input Data')
+        ->not->toContain('No Input Data')
+        ->not->toContain('Sample');
+});
+
+test('grepalife signature section leaves missing witness signatures and place of signing blank', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Wibs Cooperative',
+        'business_address' => null,
+        'business_address1' => null,
+        'business_address2' => null,
+        'business_address3' => null,
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Helario',
+            'middle_name' => 'Bonifacio',
+            'last_name' => 'Tejero',
+            'signature_path' => null,
+        ]);
+
+    $loanRequest->update([
+        'reviewed_by' => null,
+        'reviewed_at' => null,
+        'approval_signature_id' => null,
+    ]);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
+    $fieldMap = new GrepalifePdfFieldMap;
+
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'applicant.full_name',
+        ),
+        $documentData,
+    ))->toBe('HELARIO BONIFACIO TEJERO');
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'applicant.signature_path',
+            'signature',
+        ),
+        $documentData,
+    ))->toBeNull();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'reviewer.name',
+        ),
+        $documentData,
+    ))->toBe('');
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'reviewer.signature_path',
+            'signature',
+        ),
+        $documentData,
+    ))->toBeNull();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'organization.business_address',
+        ),
+        $documentData,
+    ))->toBe('');
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'loan.approved_date_short',
+        ),
+        $documentData,
+    ))->toBeNull();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $response->assertOk();
+    $pdfText = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($pdfText)
+        ->toContain('HELARIO BONIFACIO TEJERO')
+        ->toContain('WIBS COOPERATIVE')
+        ->not->toContain('Input Data')
+        ->not->toContain('No Input Data');
+});
+
+test('grepalife signature image resolver normalizes storage urls and public paths', function () {
+    Storage::fake('public');
+
+    $relativePath = storeTestSignatureFile(
+        'loan-requests/signatures/grepalife-resolver-test.png',
+        'one',
+    );
+    $absolutePath = Storage::disk('public')->path($relativePath);
+
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath($relativePath))
+        ->toBe($absolutePath);
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
+        Storage::disk('public')->url($relativePath),
+    ))->toBe($absolutePath);
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
+        '/storage/'.$relativePath,
+    ))->toBe($absolutePath);
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
+        'storage/'.$relativePath,
+    ))->toBe($absolutePath);
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
+        'public/storage/'.$relativePath,
+    ))->toBe($absolutePath);
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
+        'storage/app/public/'.$relativePath,
+    ))->toBe($absolutePath);
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath($absolutePath))
+        ->toBe($absolutePath);
+    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
+        '/storage/loan-requests/signatures/missing-grepalife-test.png',
+    ))->toBeNull();
+});
+
+test('grepalife pdf renders borrower and witness signatures from normalized stored paths', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Maria Loan Officer',
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Wibs Cooperative',
+        'business_address1' => '123 Main Street',
+        'business_address2' => 'Tagum City',
+        'business_address3' => 'Davao del Norte',
+        'business_address' => '123 Main Street, Tagum City, Davao del Norte',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
+    $applicant = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail();
+
+    $applicant->update([
+        'first_name' => 'Juan',
+        'middle_name' => 'Paulo',
+        'last_name' => 'Cruz',
+        'signature_path' => Storage::disk('public')->url(
+            'loan-requests/signatures/missing-grepalife-applicant.png',
+        ),
+    ]);
+
+    $approvalSignature->update([
+        'signature_path' => '/storage/loan-manager-signatures/missing-grepalife-admin.png',
+    ]);
+
+    $loanRequest->update([
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => '2026-05-22 10:00:00',
+        'approval_signature_id' => $approvalSignature->id,
+    ]);
+
+    $missingResponse = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $missingResponse->assertOk();
+    $missingImageCount = approvedLoanDocumentsPdfImageObjectCount(
+        $missingResponse,
+    );
+
+    $applicantRelativePath = storeTestSignatureFile(
+        sprintf('loan-requests/signatures/%d-grepalife-visible-applicant.png', $loanRequest->id),
+        'one',
+    );
+    $approvalRelativePath = storeTestSignatureFile(
+        sprintf(
+            'loan-manager-signatures/%d/grepalife-visible-approval.png',
+            $admin->user_id,
+        ),
+        'two',
+    );
+
+    $applicant->update([
+        'signature_path' => Storage::disk('public')->url($applicantRelativePath),
+    ]);
+
+    $approvalSignature->update([
+        'signature_path' => 'storage/app/public/'.$approvalRelativePath,
+    ]);
+
+    $presentResponse = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $presentResponse->assertOk();
+    expect(approvedLoanDocumentsPdfPageCount($presentResponse))->toBe(2);
+    expect(approvedLoanDocumentsPdfImageObjectCount($presentResponse))
+        ->toBeGreaterThan($missingImageCount);
+
+    $pdfText = approvedLoanDocumentsExtractPdfText($presentResponse);
+
+    expect($pdfText)
+        ->toContain('JUAN PAULO CRUZ')
+        ->toContain('MARIA LOAN OFFICER')
+        ->toContain('WIBS COOPERATIVE')
+        ->toContain('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
+        ->not->toContain('Input Data')
+        ->not->toContain('No Input Data');
+});
+
+test('grepalife field map includes witness signature section placements', function () {
+    $fields = collect((new GrepalifePdfFieldMap)->fields());
+
+    $witnessSignatureField = $fields->first(
+        fn (array $field): bool => ($field['page'] ?? null) === 2
+            && ($field['type'] ?? null) === 'signature'
+            && ($field['value'] ?? null) === 'reviewer.signature_path',
+    );
+    $witnessNameField = $fields->first(
+        fn (array $field): bool => ($field['page'] ?? null) === 2
+            && ($field['value'] ?? null) === 'reviewer.name',
+    );
+    $placeOfSigningField = $fields->first(
+        fn (array $field): bool => ($field['page'] ?? null) === 2
+            && ($field['value'] ?? null) === 'organization.business_address',
+    );
+
+    expect($witnessSignatureField)->not->toBeNull();
+    expect($witnessSignatureField['x'])->toBe(15.0);
+    expect($witnessSignatureField['y'])->toBe(89.0);
+    expect($witnessSignatureField['width'])->toBe(42);
+    expect($witnessSignatureField['height'])->toBe(6.0);
+    expect($witnessNameField)->not->toBeNull();
+    expect($witnessNameField['x'])->toBe(71);
+    expect($witnessNameField['y'])->toBe(91.5);
+    expect($placeOfSigningField)->not->toBeNull();
+    expect($placeOfSigningField['x'])->toBe(15.0);
+    expect($placeOfSigningField['y'])->toBe(101.5);
+    expect($placeOfSigningField['width'])->toBe(86);
+});
+
 test('grepalife field map keeps applicant values aligned with label padding', function () {
     $fields = collect((new GrepalifePdfFieldMap)->fields());
 
@@ -553,18 +965,236 @@ test('plan of payment route returns an xlsx response and generated workbook open
     expect($spreadsheet->getSheet(1)->getTitle())->toBe('Plan of Payment');
     expect($spreadsheet->getSheet(2)->getTitle())->toBe('Disclosure Statement');
     expect($spreadsheet->getSheet(3)->getTitle())->toBe('Promissory Note');
-    expect($spreadsheet->getSheet(0)->getCell('C7')->getValue())->toBe('Sample Q Member');
-    expect($spreadsheet->getSheet(0)->getCell('F7')->getValue())->toBe('Sample Enterprise');
-    expect($spreadsheet->getSheet(0)->getCell('C9')->getValue())->toBe(25000.0);
-    expect($spreadsheet->getSheet(0)->getCell('C10')->getValue())->toBeNull();
-    expect($spreadsheet->getSheet(0)->getCell('C17')->getValue())->toBe('SEMI-MONTHLY');
-    expect($spreadsheet->getSheet(0)->getCell('E17')->getValue())->toBe(24.0);
-    expect($spreadsheet->getSheet(0)->getCell('C32')->getValue())->toBe('Co A MakerOne');
-    expect($spreadsheet->getSheet(2)->getCell('M7')->getValue())->toBe($loanRequest->reference);
-    expect($spreadsheet->getSheet(3)->getCell('I8')->getValue())->not->toBe('');
+    $loanInformationSheet = $spreadsheet->getSheetByName('Loan Information');
+    $planOfPaymentSheet = $spreadsheet->getSheetByName('Plan of Payment');
+    $disclosureSheet = $spreadsheet->getSheetByName('Disclosure Statement');
+    $promissoryNoteSheet = $spreadsheet->getSheetByName('Promissory Note');
+
+    expect($loanInformationSheet)->toBeInstanceOf(Worksheet::class);
+    expect($planOfPaymentSheet)->toBeInstanceOf(Worksheet::class);
+    expect($disclosureSheet)->toBeInstanceOf(Worksheet::class);
+    expect($promissoryNoteSheet)->toBeInstanceOf(Worksheet::class);
+
+    expect($loanInformationSheet?->getCell('C7')->getValue())->toBe('Sample Q Member');
+    expect($loanInformationSheet?->getCell('F7')->getValue())->toBe('Sample Enterprise');
+    expect($loanInformationSheet?->getCell('C9')->getValue())->toBe(25000.0);
+    expect($loanInformationSheet?->getCell('C10')->getValue())->toBe(0.36);
+    expect($loanInformationSheet?->getCell('C12')->getValue())->toBe(0.05);
+    expect($loanInformationSheet?->getCell('C13')->getValue())->toBe(9000.0);
+    expect($loanInformationSheet?->getCell('C17')->getValue())->toBe('SEMI-MONTHLY');
+    expect($loanInformationSheet?->getCell('E17')->getValue())->toBe(24.0);
+    expect($loanInformationSheet?->getCell('C32')->getValue())->toBe('Co A MakerOne');
+    expect(trim((string) $loanInformationSheet?->getCell('C14')->getValue()))->toBe('');
+    expect(trim((string) $loanInformationSheet?->getCell('C18')->getValue()))->toBe('');
+    expect(trim((string) $loanInformationSheet?->getCell('H7')->getValue()))->toBe('');
+    expect(trim((string) $loanInformationSheet?->getCell('E21')->getValue()))->toBe('');
+
+    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('Sample Q Member');
+    expect($planOfPaymentSheet?->getCell('D10')->getValue())->toBe(
+        '123 Loan Street, Loan City, Loan Province',
+    );
+    expect(trim((string) $planOfPaymentSheet?->getCell('G27')->getValue()))->toBe('');
+    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('Sample Q Member');
+    expect(trim((string) $planOfPaymentSheet?->getCell('G59')->getValue()))->toBe('');
+
+    expect($disclosureSheet?->getCell('M7')->getValue())->toBe($loanRequest->reference);
+    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('Sample Q Member');
+    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('Sample Q Member');
+    expect(trim((string) $disclosureSheet?->getCell('L50')->getValue()))->toBe('');
+
+    expect($promissoryNoteSheet?->getCell('I8')->getValue())->not->toBe('');
+    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('Sample Q Member');
+    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('Co A MakerOne');
+    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('Co B MakerTwo');
     expect((string) file_get_contents(approvedLoanDocumentsDownloadedFilePath($response)))
         ->not->toContain('LibreOffice')
         ->not->toContain('soffice');
+
+    expect(
+        approvedLoanDocumentsWorksheetPrintAreaRange($loanInformationSheet),
+    )->toBe(approvedLoanDocumentsExpectedWorksheetPrintAreaRange('Loan Information'));
+
+    approvedLoanDocumentsAssertWorksheetOuterBorder(
+        $loanInformationSheet,
+        approvedLoanDocumentsExpectedLoanInformationBorderRange(
+            $loanInformationSheet,
+        ),
+    );
+
+    $workbookStrings = approvedLoanDocumentsWorkbookStringValues($spreadsheet);
+
+    expect($workbookStrings)->not->toContain(
+        'Input Data',
+        'No Input Data',
+        'DO NOT INPUT ANYTHING',
+    );
+
+    expect(
+        approvedLoanDocumentsWorksheetPrintAreaRange(
+            $spreadsheet->getSheetByName('Plan of Payment'),
+        ),
+    )->toBeNull();
+    expect(
+        approvedLoanDocumentsWorksheetPrintAreaRange(
+            $spreadsheet->getSheetByName('Disclosure Statement'),
+        ),
+    )->toBeNull();
+    expect(
+        approvedLoanDocumentsWorksheetPrintAreaRange(
+            $spreadsheet->getSheetByName('Promissory Note'),
+        ),
+    )->toBeNull();
+    expect(
+        $spreadsheet->getSheetByName('Plan of Payment')
+            ->getStyle('B15')
+            ->getBorders()
+            ->getLeft()
+            ->getBorderStyle(),
+    )->toBe(Border::BORDER_NONE);
+    expect(
+        $spreadsheet->getSheetByName('Disclosure Statement')
+            ->getStyle('A7')
+            ->getBorders()
+            ->getLeft()
+            ->getBorderStyle(),
+    )->toBe(Border::BORDER_NONE);
+    expect(
+        $spreadsheet->getSheetByName('Promissory Note')
+            ->getStyle('A12')
+            ->getBorders()
+            ->getLeft()
+            ->getBorderStyle(),
+    )->toBe(Border::BORDER_NONE);
+
+    $spreadsheet->disconnectWorksheets();
+    unset($spreadsheet);
+});
+
+test('plan of payment workbook uses real borrower co-maker and loan manager approval data', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Maria Loan Manager',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Helario',
+            'middle_name' => 'B',
+            'last_name' => 'Tejero',
+        ]);
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::CoMakerOne)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Anita',
+            'middle_name' => 'C',
+            'last_name' => 'Rivera',
+        ]);
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::CoMakerTwo)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Ben',
+            'middle_name' => 'D',
+            'last_name' => 'Santos',
+        ]);
+
+    $loanRequest->update([
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => '2026-05-22 10:00:00',
+        'approval_signature_id' => $approvalSignature->id,
+    ]);
+    createActiveAdminSignatureRecord($admin, 'one');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
+
+    $response->assertOk();
+
+    $spreadsheet = IOFactory::load(
+        approvedLoanDocumentsDownloadedFilePath($response),
+    );
+    $loanInformationSheet = $spreadsheet->getSheetByName('Loan Information');
+    $planOfPaymentSheet = $spreadsheet->getSheetByName('Plan of Payment');
+    $disclosureSheet = $spreadsheet->getSheetByName('Disclosure Statement');
+    $promissoryNoteSheet = $spreadsheet->getSheetByName('Promissory Note');
+
+    expect($loanInformationSheet)->toBeInstanceOf(Worksheet::class);
+    expect($planOfPaymentSheet)->toBeInstanceOf(Worksheet::class);
+    expect($disclosureSheet)->toBeInstanceOf(Worksheet::class);
+    expect($promissoryNoteSheet)->toBeInstanceOf(Worksheet::class);
+    expect($loanInformationSheet?->getCell('C7')->getValue())
+        ->toBe('Helario B Tejero')
+        ->not->toBe('Sample Q Member');
+    expect($loanInformationSheet?->getCell('C8')->getValue())
+        ->toBe('123 Loan Street, Loan City, Loan Province');
+    expect($loanInformationSheet?->getCell('C32')->getValue())
+        ->toBe('Anita C Rivera')
+        ->not->toBe('Co A MakerOne');
+    expect($loanInformationSheet?->getCell('C33')->getValue())
+        ->toBe('Ben D Santos')
+        ->not->toBe('Co B MakerTwo');
+    expect($loanInformationSheet?->getCell('C14')->getValue())
+        ->toBe('Maria Loan Manager')
+        ->not->toBe('0');
+    expect($loanInformationSheet?->getCell('C18')->getValue())
+        ->toBe('Maria Loan Manager')
+        ->not->toBe('0');
+    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('Helario B Tejero');
+    expect($planOfPaymentSheet?->getCell('G27')->getValue())->toBe('Maria Loan Manager');
+    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('Helario B Tejero');
+    expect($planOfPaymentSheet?->getCell('G59')->getValue())->toBe('Maria Loan Manager');
+    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('Helario B Tejero');
+    expect($disclosureSheet?->getCell('L50')->getValue())->toBe('Maria Loan Manager');
+    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('Helario B Tejero');
+    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('Helario B Tejero');
+    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('Anita C Rivera');
+    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('Ben D Santos');
+
+    $drawings = $loanInformationSheet?->getDrawingCollection();
+    $signatureDrawing = $drawings[0] ?? null;
+
+    expect($drawings)->toHaveCount(1);
+    expect($signatureDrawing)->toBeInstanceOf(WorksheetDrawing::class);
+    expect($signatureDrawing?->getName())->toBe('Loan Manager Signature');
+    expect($signatureDrawing?->getCoordinates())->toBe('D18');
+    expect(file_get_contents((string) $signatureDrawing?->getPath()))
+        ->toBe(testPngSignatureBinary('two'))
+        ->not->toBe(testPngSignatureBinary('one'));
+
+    $workbookStrings = approvedLoanDocumentsWorkbookStringValues($spreadsheet);
+
+    expect($workbookStrings)->not->toContain(
+        'Sample Q Member',
+        'Sample Address',
+        'Sample Loan',
+        'Sample Position',
+        'Sample Co-maker One',
+        'Sample Co-maker Two',
+        'Sample Co-maker One Address',
+        'Sample Co-maker Two Address',
+        'Sample Witness One',
+        'Sample Witness Two',
+        'Input Data',
+        'No Input Data',
+        'DO NOT INPUT ANYTHING',
+    );
 
     $spreadsheet->disconnectWorksheets();
     unset($spreadsheet);
@@ -851,32 +1481,23 @@ test('approved document zip contains all required files and valid generated docu
 });
 
 test('missing grepalife image template is logged and fails generation', function () {
-    $admin = User::factory()->create();
-    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-
-    File::delete(
-        approvedLoanDocumentsTemplateDirectory()
-        .DIRECTORY_SEPARATOR
-        .'images'
-        .DIRECTORY_SEPARATOR
-        .'grepalife-page-1.png',
-    );
-    File::delete(
-        storage_path(
-            'app/public/app/templates/approved-loan-documents/images/grepalife-page-1.png',
-        ),
-    );
-
     Log::spy();
-    $this->actingAs($admin);
-    $this->withoutExceptionHandling();
+    $service = app(\App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService::class);
+    $fieldMap = app(GrepalifePdfFieldMap::class);
 
-    expect(fn () => $this->get(
-        route('admin.requests.documents.grepalife', $loanRequest),
+    expect(fn () => $service->renderContent(
+        [
+            [
+                'image' => 'missing-grepalife-page-1-test.png',
+                'width' => 216.0,
+                'height' => 279.0,
+            ],
+        ],
+        [],
+        $fieldMap,
     ))->toThrow(
         \RuntimeException::class,
-        'Missing image template file: grepalife-page-1.png',
+        'Missing image template file: missing-grepalife-page-1-test.png',
     );
 
     Log::shouldHaveReceived('error')
@@ -891,21 +1512,65 @@ test('missing grepalife image template is logged and fails generation', function
                 '/',
                 (string) ($context['fallback_template_path'] ?? ''),
             );
+            $legacyPublicTemplatePath = str_replace(
+                '\\',
+                '/',
+                (string) ($context['legacy_public_template_path'] ?? ''),
+            );
 
             return $message === 'Missing approved loan image template file.'
-                && ($context['template_image'] ?? null) === 'grepalife-page-1.png'
+                && ($context['template_image'] ?? null) === 'missing-grepalife-page-1-test.png'
                 && (
                     str_contains(
                         $templatePath,
-                        'storage/app/templates/approved-loan-documents/images/grepalife-page-1.png',
+                        'storage/app/templates/approved-loan-documents/images/missing-grepalife-page-1-test.png',
                     )
                     || str_contains(
                         $fallbackTemplatePath,
-                        'storage/app/public/app/templates/approved-loan-documents/images/grepalife-page-1.png',
+                        'storage/app/public/app/templates/approved-loan-documents/images/missing-grepalife-page-1-test.png',
+                    )
+                    || str_contains(
+                        $legacyPublicTemplatePath,
+                        'storage/app/public/app/templates/approved-loan-documents/missing-grepalife-page-1-test.png',
                     )
                 );
         })
         ->once();
+});
+
+test('grepalife image templates fall back to the public template root directory', function () {
+    $service = app(\App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService::class);
+    $fieldMap = app(GrepalifePdfFieldMap::class);
+    $templateImage = 'grepalife-public-root-test-page-1.png';
+    $publicFallbackImage = approvedLoanDocumentsPublicTemplateDirectory()
+        .DIRECTORY_SEPARATOR
+        .$templateImage;
+
+    File::ensureDirectoryExists(dirname($publicFallbackImage));
+    approvedLoanDocumentsCreateTemplateImage(
+        $publicFallbackImage,
+        216,
+        279,
+        'GREPALIFE Public Root Fallback',
+    );
+
+    try {
+        $content = $service->renderContent(
+            [
+                [
+                    'image' => $templateImage,
+                    'width' => 216.0,
+                    'height' => 279.0,
+                ],
+            ],
+            [],
+            $fieldMap,
+        );
+
+        expect($content)->toBeString()->toStartWith('%PDF');
+    } finally {
+        File::delete($publicFallbackImage);
+    }
 });
 
 test('template directory backup helpers preserve grepalife public image files', function () {
@@ -1081,6 +1746,75 @@ function approvedLoanDocumentsExtractPdfText(
     $normalized = preg_replace('/ {2,}/', ' ', trim($text));
 
     return is_string($normalized) ? $normalized : trim($text);
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function approvedLoanDocumentsBuildDocumentData(LoanRequest $loanRequest): array
+{
+    $service = app(ApprovedLoanDocumentService::class);
+    $buildDocumentData = \Closure::bind(
+        fn (LoanRequest $record): array => $this->buildDocumentData($record),
+        $service,
+        ApprovedLoanDocumentService::class,
+    );
+
+    return $buildDocumentData($loanRequest);
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function approvedLoanDocumentsFindGrepalifeField(
+    GrepalifePdfFieldMap $fieldMap,
+    int $page,
+    string $value,
+    string $type = 'text',
+): array {
+    $field = collect($fieldMap->fields())->first(
+        fn (array $candidate): bool => ($candidate['page'] ?? null) === $page
+            && ($candidate['type'] ?? 'text') === $type
+            && ($candidate['value'] ?? null) === $value,
+    );
+
+    if (! is_array($field)) {
+        throw new RuntimeException('Unable to locate Grepalife field: '.$value);
+    }
+
+    return $field;
+}
+
+function approvedLoanDocumentsResolveImageTemplateFieldValue(
+    array $field,
+    array $documentData,
+): mixed {
+    $resolver = $field['value'] ?? null;
+    $value = match (true) {
+        is_callable($resolver) => $resolver($documentData),
+        is_string($resolver) => data_get($documentData, $resolver),
+        default => $resolver,
+    };
+    $transformer = $field['transform'] ?? null;
+
+    if (is_callable($transformer)) {
+        return $transformer($value);
+    }
+
+    return $value;
+}
+
+function approvedLoanDocumentsResolveSignatureAbsolutePath(
+    string $signaturePath,
+): ?string {
+    $service = app(ApprovedLoanImageTemplatePdfService::class);
+    $resolveSignaturePath = \Closure::bind(
+        fn (string $path): ?string => $this->resolveSignaturePath($path),
+        $service,
+        ApprovedLoanImageTemplatePdfService::class,
+    );
+
+    return $resolveSignaturePath($signaturePath);
 }
 
 function approvedLoanDocumentsDecodePdfStream(string $stream): string
@@ -1260,6 +1994,44 @@ function approvedLoanDocumentsDownloadedFilePath(
     return $path;
 }
 
+/**
+ * @return list<string>
+ */
+function approvedLoanDocumentsWorkbookStringValues(
+    Spreadsheet $spreadsheet,
+): array {
+    $values = [];
+
+    foreach ($spreadsheet->getWorksheetIterator() as $worksheet) {
+        $highestRow = $worksheet->getHighestRow();
+        $highestColumn = Coordinate::columnIndexFromString(
+            $worksheet->getHighestColumn(),
+        );
+
+        for ($row = 1; $row <= $highestRow; $row++) {
+            for ($column = 1; $column <= $highestColumn; $column++) {
+                $value = $worksheet->getCell(
+                    Coordinate::stringFromColumnIndex($column).$row,
+                )->getValue();
+
+                if (! is_string($value)) {
+                    continue;
+                }
+
+                $trimmed = trim($value);
+
+                if ($trimmed === '') {
+                    continue;
+                }
+
+                $values[] = $trimmed;
+            }
+        }
+    }
+
+    return $values;
+}
+
 function approvedLoanDocumentsPdfPageCount(
     \Illuminate\Testing\TestResponse $response,
 ): int {
@@ -1267,6 +2039,15 @@ function approvedLoanDocumentsPdfPageCount(
 
     return $pdf->setSourceFile(
         approvedLoanDocumentsDownloadedFilePath($response),
+    );
+}
+
+function approvedLoanDocumentsPdfImageObjectCount(
+    \Illuminate\Testing\TestResponse $response,
+): int {
+    return substr_count(
+        approvedLoanDocumentsReadDownloadedFileContent($response),
+        '/Subtype /Image',
     );
 }
 
@@ -1547,6 +2328,80 @@ function approvedLoanDocumentsExpectedWorksheetPrintAreaRange(
 }
 
 /**
+ * @return array{startColumn: string, endColumn: string, startRow: int, endRow: int}
+ */
+function approvedLoanDocumentsExpectedLoanInformationBorderRange(
+    Worksheet $worksheet,
+): array {
+    return [
+        'startColumn' => 'A',
+        'endColumn' => 'H',
+        'startRow' => 6,
+        'endRow' => $worksheet->getHighestRow(),
+    ];
+}
+
+/**
+ * @param  array{startColumn: string, endColumn: string, startRow: int, endRow: int}  $borderRange
+ */
+function approvedLoanDocumentsAssertWorksheetOuterBorder(
+    Worksheet $worksheet,
+    array $borderRange,
+): void {
+    for ($row = $borderRange['startRow']; $row <= $borderRange['endRow']; $row++) {
+        approvedLoanDocumentsAssertBorderEdge(
+            $worksheet,
+            $borderRange['startColumn'].$row,
+            'left',
+        );
+        approvedLoanDocumentsAssertBorderEdge(
+            $worksheet,
+            $borderRange['endColumn'].$row,
+            'right',
+        );
+    }
+
+    $startColumnIndex = Coordinate::columnIndexFromString(
+        $borderRange['startColumn'],
+    );
+    $endColumnIndex = Coordinate::columnIndexFromString(
+        $borderRange['endColumn'],
+    );
+
+    for ($column = $startColumnIndex; $column <= $endColumnIndex; $column++) {
+        $coordinate = Coordinate::stringFromColumnIndex($column);
+
+        approvedLoanDocumentsAssertBorderEdge(
+            $worksheet,
+            $coordinate.$borderRange['startRow'],
+            'top',
+        );
+        approvedLoanDocumentsAssertBorderEdge(
+            $worksheet,
+            $coordinate.$borderRange['endRow'],
+            'bottom',
+        );
+    }
+}
+
+function approvedLoanDocumentsAssertBorderEdge(
+    Worksheet $worksheet,
+    string $coordinate,
+    string $edge,
+): void {
+    $borders = $worksheet->getStyle($coordinate)->getBorders();
+    $border = match ($edge) {
+        'left' => $borders->getLeft(),
+        'right' => $borders->getRight(),
+        'top' => $borders->getTop(),
+        'bottom' => $borders->getBottom(),
+    };
+
+    expect($border->getBorderStyle())->toBe(Border::BORDER_MEDIUM);
+    expect(strtoupper((string) $border->getColor()->getRGB()))->toBe('000000');
+}
+
+/**
  * @return array{startColumn: string, endColumn: string}|null
  */
 function approvedLoanDocumentsUsedColumnRange(
@@ -1753,7 +2608,7 @@ function approvedLoanDocumentsSeedTemplateFilesForTests(): void
     $excelDirectory = $templateDirectory.DIRECTORY_SEPARATOR.'excel';
     $pdfDirectory = $templateDirectory.DIRECTORY_SEPARATOR.'pdf';
 
-    File::deleteDirectory($templateDirectory);
+    File::ensureDirectoryExists($templateDirectory);
     File::ensureDirectoryExists($excelDirectory);
     File::ensureDirectoryExists($pdfDirectory);
     approvedLoanDocumentsSeedGrepalifeTemplateImagesForTests();
@@ -1810,38 +2665,71 @@ function approvedLoanDocumentsSeedTemplateFilesForTests(): void
     $loanInformationSheet->setCellValue('A6', 'A. FOR DISCLOSURE STATEMENT');
     $loanInformationSheet->setCellValue('C7', 'SAMPLE BORROWER');
     $loanInformationSheet->setCellValue('F7', 'SAMPLE EMPLOYER');
+    $loanInformationSheet->setCellValue('H7', 'Input Data');
     $loanInformationSheet->setCellValue('C8', 'SAMPLE ADDRESS');
+    $loanInformationSheet->setCellValue('H8', 'Input Data');
     $loanInformationSheet->setCellValue('C9', 99999);
+    $loanInformationSheet->setCellValue('H9', 'Input Data');
     $loanInformationSheet->setCellValue('C10', 0.36);
+    $loanInformationSheet->setCellValue('H10', 'Input Data');
     $loanInformationSheet->setCellValue('C11', 10);
+    $loanInformationSheet->setCellValue('H11', 'Input Data');
     $loanInformationSheet->setCellValue('C12', 0.05);
+    $loanInformationSheet->setCellValue('H12', 'Input Data');
     $loanInformationSheet->setCellValue('C13', '=C9*C10/12*C11');
+    $loanInformationSheet->setCellValue('H13', 'No Input Data');
     $loanInformationSheet->setCellValue('C14', 'SAMPLE CERTIFIER');
     $loanInformationSheet->setCellValue('C15', 'SAMPLE POSITION');
     $loanInformationSheet->setCellValue('C16', 'SAMPLE LOAN');
     $loanInformationSheet->setCellValue('C17', 'MONTHLY');
+    $loanInformationSheet->setCellValue('D17', 'Input Data');
     $loanInformationSheet->setCellValue('E17', 10);
+    $loanInformationSheet->setCellValue('H17', 'Input Data');
     $loanInformationSheet->setCellValue('C18', 'SAMPLE MANAGER');
     $loanInformationSheet->setCellValue('C19', 10);
     $loanInformationSheet->setCellValue('C20', 1);
     $loanInformationSheet->setCellValue('C21', '=C9*C12');
+    $loanInformationSheet->setCellValue('E21', 'DO NOT INPUT ANYTHING');
     $loanInformationSheet->setCellValue('C22', '=C9/1000*C19*C20');
+    $loanInformationSheet->setCellValue('E22', 'DO NOT INPUT ANYTHING');
     $loanInformationSheet->setCellValue('C23', '=C9*2%');
+    $loanInformationSheet->setCellValue('E23', 'DO NOT INPUT ANYTHING');
     $loanInformationSheet->setCellValue('C24', '=C9*1.5/200');
+    $loanInformationSheet->setCellValue('E24', 'DO NOT INPUT ANYTHING');
     $loanInformationSheet->setCellValue('C25', 100);
+    $loanInformationSheet->setCellValue('E25', 'DO NOT INPUT ANYTHING');
     $loanInformationSheet->setCellValue('C27', '=C9/E17');
+    $loanInformationSheet->setCellValue('H27', 'No Input Data');
     $loanInformationSheet->setCellValue('C28', '=C13/E17');
+    $loanInformationSheet->setCellValue('H28', 'No Input Data');
     $loanInformationSheet->setCellValue('C29', '=C27*2%');
+    $loanInformationSheet->setCellValue('H29', 'No Input Data');
     $loanInformationSheet->setCellValue('C30', '=SUM(C27:C29)');
+    $loanInformationSheet->setCellValue('H30', 'No Input Data');
     $loanInformationSheet->setCellValue('C32', 'SAMPLE CO-MAKER 1');
+    $loanInformationSheet->setCellValue('H32', 'Input Data');
     $loanInformationSheet->setCellValue('C33', 'SAMPLE CO-MAKER 2');
+    $loanInformationSheet->setCellValue('H33', 'Input Data');
     $loanInformationSheet->setCellValue('C34', 'SAMPLE CO-MAKER 1 ADDRESS');
+    $loanInformationSheet->setCellValue('H34', 'Input Data');
     $loanInformationSheet->setCellValue('C35', 'SAMPLE CO-MAKER 2 ADDRESS');
+    $loanInformationSheet->setCellValue('H35', 'Input Data');
     $loanInformationSheet->setCellValue('C36', 300);
+    $loanInformationSheet->setCellValue('H36', 'No Input Data');
     $loanInformationSheet->setCellValue('C37', 'SAMPLE AMOUNT IN WORDS');
+    $loanInformationSheet->setCellValue('H37', 'Input Data');
     $loanInformationSheet->setCellValue('C38', 'SAMPLE RATE WORDS');
+    $loanInformationSheet->setCellValue('H38', 'Input Data');
     $loanInformationSheet->setCellValue('C39', 'MONTHLY');
+    $loanInformationSheet->setCellValue('H39', 'Input Data');
     $loanInformationSheet->setCellValue('C40', '=E17');
+    $loanInformationSheet->setCellValue('H40', 'No Input Data');
+    $loanInformationSheet->setCellValue('C41', 0.05);
+    $loanInformationSheet->setCellValue('H41', 'Input Data');
+    $loanInformationSheet->setCellValue('C42', 'SAMPLE WITNESS ONE');
+    $loanInformationSheet->setCellValue('H42', 'Input Data');
+    $loanInformationSheet->setCellValue('C43', 'SAMPLE WITNESS TWO');
+    $loanInformationSheet->setCellValue('H43', 'Input Data');
 
     $planSheet = $spreadsheet->createSheet();
     $planSheet->setTitle('Plan of Payment');
@@ -1875,6 +2763,32 @@ function approvedLoanDocumentsSeedTemplateFilesForTests(): void
     $planSheet->setCellValue('C22', '01/01/2025');
     $planSheet->setCellValue('G22', '12/31/2025');
     $planSheet->mergeCells('G22:H22');
+    $planSheet->setCellValue('A25', 'CONFORME:');
+    $planSheet->setCellValue('F25', 'APPROVED:');
+    $planSheet->setCellValue('B27', 'Sample Q Member');
+    $planSheet->setCellValue('G27', '0');
+    $planSheet->setCellValue('G28', 'Loan Manager');
+    $planSheet->setCellValue('A41', 'Name');
+    $planSheet->setCellValue('C41', ':');
+    $planSheet->setCellValue('D41', 'Sample Q Member');
+    $planSheet->setCellValue('A42', 'Address');
+    $planSheet->setCellValue('C42', ':');
+    $planSheet->setCellValue('D42', 'Sample Address');
+    $planSheet->setCellValue('A43', 'Amount of Loan');
+    $planSheet->setCellValue('C43', ':');
+    $planSheet->setCellValue('D43', 99999);
+    $planSheet->setCellValue('A44', 'Kind of Loan');
+    $planSheet->setCellValue('C44', ':');
+    $planSheet->setCellValue('D44', 'Sample Loan');
+    $planSheet->setCellValue('B47', 'MONTHLY');
+    $planSheet->setCellValue('D49', 1000);
+    $planSheet->setCellValue('D50', 500);
+    $planSheet->setCellValue('D51', 20);
+    $planSheet->setCellValue('D52', 1520);
+    $planSheet->setCellValue('C54', '01/01/2025');
+    $planSheet->setCellValue('G54', '12/31/2025');
+    $planSheet->setCellValue('B59', 'Sample Q Member');
+    $planSheet->setCellValue('G59', '0');
 
     $disclosureSheet = $spreadsheet->createSheet();
     $disclosureSheet->setTitle('Disclosure Statement');
@@ -1925,6 +2839,11 @@ function approvedLoanDocumentsSeedTemplateFilesForTests(): void
     $disclosureSheet->setCellValue('F31', "='Loan Information'!C25");
     $disclosureSheet->setCellValue('M7', 'SAMPLE-LOAN-REFERENCE');
     $disclosureSheet->setCellValue('F40', '12/31/2025');
+    $disclosureSheet->setCellValue('F41', 1234);
+    $disclosureSheet->setCellValue('D42', 10);
+    $disclosureSheet->setCellValue('L50', '0');
+    $disclosureSheet->setCellValue('L52', 'Sample Position');
+    $disclosureSheet->setCellValue('L57', 'Sample Q Member');
 
     $promissoryNoteSheet = $spreadsheet->createSheet();
     $promissoryNoteSheet->setTitle('Promissory Note');
@@ -1974,6 +2893,14 @@ function approvedLoanDocumentsSeedTemplateFilesForTests(): void
     $promissoryNoteSheet->setCellValue('L15', "='Loan Information'!C40");
     $promissoryNoteSheet->mergeCells('I8:K8');
     $promissoryNoteSheet->mergeCells('I9:K9');
+    $promissoryNoteSheet->setCellValue('B50', 'Sample Q Member');
+    $promissoryNoteSheet->setCellValue('E50', 'Sample Co-maker One');
+    $promissoryNoteSheet->setCellValue('I50', 'Sample Co-maker Two');
+    $promissoryNoteSheet->setCellValue('C53', 'Sample Address');
+    $promissoryNoteSheet->setCellValue('E53', 'Sample Co-maker One Address');
+    $promissoryNoteSheet->setCellValue('I53', 'Sample Co-maker Two Address');
+    $promissoryNoteSheet->setCellValue('B58', 'Sample Witness One');
+    $promissoryNoteSheet->setCellValue('H58', 'Sample Witness Two');
 
     IOFactory::createWriter($spreadsheet, 'Xlsx')->save(
         $excelDirectory.DIRECTORY_SEPARATOR.'plan-of-payment-disclosure-promissory-note.xlsx',
@@ -2034,36 +2961,86 @@ function approvedLoanDocumentsRestoreDirectoryForTests(
 
 function approvedLoanDocumentsBackupTemplateFilesForTests(): void
 {
-    $templateDirectory = approvedLoanDocumentsTemplateDirectory();
     $backupDirectory = approvedLoanDocumentsTemplateBackupDirectory();
-    $publicTemplateDirectory = approvedLoanDocumentsPublicTemplateDirectory();
-    $publicBackupDirectory = approvedLoanDocumentsPublicTemplateBackupDirectory();
 
-    approvedLoanDocumentsBackupDirectoryForTests(
-        $templateDirectory,
-        $backupDirectory,
-    );
-    approvedLoanDocumentsBackupDirectoryForTests(
-        $publicTemplateDirectory,
-        $publicBackupDirectory,
-    );
+    File::deleteDirectory($backupDirectory);
+    File::ensureDirectoryExists($backupDirectory);
+
+    foreach (approvedLoanDocumentsManagedTemplateFilesForTests() as $index => $sourcePath) {
+        approvedLoanDocumentsBackupFileForTests(
+            $sourcePath,
+            $backupDirectory.DIRECTORY_SEPARATOR.$index,
+        );
+    }
 }
 
 function approvedLoanDocumentsRestoreTemplateFilesAfterTests(): void
 {
-    $templateDirectory = approvedLoanDocumentsTemplateDirectory();
     $backupDirectory = approvedLoanDocumentsTemplateBackupDirectory();
-    $publicTemplateDirectory = approvedLoanDocumentsPublicTemplateDirectory();
-    $publicBackupDirectory = approvedLoanDocumentsPublicTemplateBackupDirectory();
 
-    approvedLoanDocumentsRestoreDirectoryForTests(
-        $templateDirectory,
-        $backupDirectory,
-    );
-    approvedLoanDocumentsRestoreDirectoryForTests(
-        $publicTemplateDirectory,
-        $publicBackupDirectory,
-    );
+    foreach (approvedLoanDocumentsManagedTemplateFilesForTests() as $index => $sourcePath) {
+        approvedLoanDocumentsRestoreFileForTests(
+            $sourcePath,
+            $backupDirectory.DIRECTORY_SEPARATOR.$index,
+        );
+    }
+
+    File::deleteDirectory($backupDirectory);
+}
+
+/**
+ * @return array<int, string>
+ */
+function approvedLoanDocumentsManagedTemplateFilesForTests(): array
+{
+    $imagesDirectory = approvedLoanDocumentsTemplateImagesDirectory();
+    $templateDirectory = approvedLoanDocumentsTemplateDirectory();
+
+    return [
+        $imagesDirectory.DIRECTORY_SEPARATOR.'grepalife-page-1.png',
+        $imagesDirectory.DIRECTORY_SEPARATOR.'grepalife-page-2.png',
+        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'grepalife.pdf',
+        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'loan-security-agreement.pdf',
+        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'undertaking-barangay-officials.pdf',
+        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'affidavit-undertaking.pdf',
+        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'authorization.pdf',
+        $templateDirectory.DIRECTORY_SEPARATOR.'excel'.DIRECTORY_SEPARATOR.'plan-of-payment-disclosure-promissory-note.xlsx',
+    ];
+}
+
+function approvedLoanDocumentsBackupFileForTests(
+    string $sourcePath,
+    string $backupPath,
+): void {
+    File::ensureDirectoryExists(dirname($backupPath));
+    File::delete($backupPath);
+    File::delete($backupPath.'.missing');
+
+    if (File::exists($sourcePath)) {
+        File::copy($sourcePath, $backupPath);
+
+        return;
+    }
+
+    File::put($backupPath.'.missing', '');
+}
+
+function approvedLoanDocumentsRestoreFileForTests(
+    string $sourcePath,
+    string $backupPath,
+): void {
+    $missingMarkerPath = $backupPath.'.missing';
+
+    if (File::exists($backupPath)) {
+        File::ensureDirectoryExists(dirname($sourcePath));
+        File::delete($sourcePath);
+        File::copy($backupPath, $sourcePath);
+    } elseif (File::exists($missingMarkerPath)) {
+        File::delete($sourcePath);
+    }
+
+    File::delete($backupPath);
+    File::delete($missingMarkerPath);
 }
 
 /**

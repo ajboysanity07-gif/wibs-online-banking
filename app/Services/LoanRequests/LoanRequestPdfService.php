@@ -60,7 +60,12 @@ class LoanRequestPdfService
      */
     private function buildViewData(LoanRequest $loanRequest): array
     {
-        $loanRequest->loadMissing('people', 'user');
+        $loanRequest->loadMissing(
+            'people',
+            'reviewedBy.adminProfile',
+            'approvalSignature',
+            'user',
+        );
 
         $applicant = $this->resolvePerson($loanRequest, LoanRequestPersonRole::Applicant);
         $coMakerOne = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerOne);
@@ -75,6 +80,13 @@ class LoanRequestPdfService
             'applicant' => $applicant,
             'coMakerOne' => $coMakerOne,
             'coMakerTwo' => $coMakerTwo,
+            'reviewer' => [
+                'name' => $loanRequest->reviewedBy?->adminProfile?->fullname
+                    ?? $loanRequest->reviewedBy?->name,
+                'signatureData' => $this->signatureDataUri(
+                    $loanRequest->approvalSignature?->signature_path,
+                ),
+            ],
             'companyName' => $branding['companyName'],
             'reportHeader' => $reportHeader,
             'reportTypography' => $branding['reportTypography'] ?? [],

@@ -69,6 +69,18 @@ class AppUser extends Authenticatable
         return $this->hasOne(AdminProfile::class, 'user_id', 'user_id');
     }
 
+    public function adminSignatures(): HasMany
+    {
+        return $this->hasMany(AdminSignature::class, 'user_id', 'user_id');
+    }
+
+    public function activeAdminSignature(): HasOne
+    {
+        return $this->hasOne(AdminSignature::class, 'user_id', 'user_id')
+            ->where('is_active', true)
+            ->latestOfMany();
+    }
+
     public function userProfile(): HasOne
     {
         return $this->hasOne(UserProfile::class, 'user_id', 'user_id');

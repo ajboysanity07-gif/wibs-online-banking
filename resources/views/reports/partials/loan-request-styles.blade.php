@@ -150,7 +150,8 @@
         gap: 16px;
     }
     .signature-box {
-        width: 32%;
+        flex: 1 1 0;
+        min-width: 0;
         text-align: center;
     }
     .signature-image {

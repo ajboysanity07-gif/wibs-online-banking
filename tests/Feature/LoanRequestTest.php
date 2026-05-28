@@ -1885,7 +1885,9 @@ test('admin can view loan request details page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
+        'fullname' => 'Approval Manager',
     ]);
+    $signature = createActiveAdminSignatureRecord($admin);
 
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::UnderReview,
@@ -1936,6 +1938,8 @@ test('admin can view loan request details page', function () {
             ->where('decision.canDecide', true)
             ->where('decision.canCancel', true)
             ->where('decision.isOwnRequest', false)
+            ->where('decision.approverName', 'Approval Manager')
+            ->where('decision.approvalSignatureUrl', $signature->signature_url)
             ->where('applicant.first_name', 'Loan')
             ->where('applicant.birthdate', '1990-04-10')
             ->where('applicant.housing_status', 'OWNED')
@@ -2082,6 +2086,7 @@ test('admin can approve an under review loan request', function () {
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
     ]);
+    prepareLoanRequestForApproval($loanRequest, $admin);
 
     $payload = [
         'approved_amount' => 15000,
@@ -2107,6 +2112,9 @@ test('admin can approve an under review loan request', function () {
     expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
     expect($loanRequest->reviewed_by)->toBe($admin->user_id);
     expect($loanRequest->reviewed_at)->not->toBeNull();
+    expect($loanRequest->approval_signature_id)->not->toBeNull();
+    expect($loanRequest->approval_ip_address)->not->toBeNull();
+    expect($loanRequest->approval_user_agent)->not->toBeNull();
     expect($loanRequest->approved_amount)->toBe('15000.00');
     expect($loanRequest->approved_term)->toBe(12);
     expect($loanRequest->decision_notes)->toBe('Approved for release.');
@@ -2116,6 +2124,167 @@ test('admin can approve an under review loan request', function () {
         SendLoanDecisionSmsJob::class,
         fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
     );
+});
+
+test('approval is blocked when the admin has no saved loan manager signature', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create([
+        'acctno' => '000506',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000507',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    createLoanRequestPeopleSnapshots($loanRequest);
+
+    $loanRequest->people()->each(function (LoanRequestPerson $person) use ($loanRequest): void {
+        $person->update([
+            'signature_path' => storeTestSignatureFile(
+                sprintf(
+                    'loan-requests/signatures/%d-%s.png',
+                    $loanRequest->id,
+                    $person->role instanceof LoanRequestPersonRole
+                        ? $person->role->value
+                        : (string) $person->role,
+                ),
+            ),
+        ]);
+    });
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 12000,
+            'approved_term' => 10,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('loan_manager_signature')
+        ->assertJsonPath(
+            'errors.loan_manager_signature.0',
+            'Please save your loan manager signature in Settings before approving this request.',
+        );
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    Queue::assertNothingPushed();
+});
+
+test('approval requires request signatures for borrower and co-makers', function (
+    LoanRequestPersonRole $missingRole,
+    string $errorKey,
+    string $message,
+) {
+    Queue::fake();
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000508',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    createLoanRequestPeopleSnapshots($loanRequest);
+    prepareLoanRequestForApproval($loanRequest, $admin);
+
+    $loanRequest->people()
+        ->where('role', $missingRole->value)
+        ->update(['signature_path' => null]);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 12000,
+            'approved_term' => 10,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors($errorKey)
+        ->assertJsonPath("errors.{$errorKey}.0", $message);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    Queue::assertNothingPushed();
+})->with([
+    'borrower signature missing' => [
+        LoanRequestPersonRole::Applicant,
+        'applicant_signature',
+        'Borrower signature is required before approval.',
+    ],
+    'co-maker one signature missing' => [
+        LoanRequestPersonRole::CoMakerOne,
+        'co_maker_1_signature',
+        'Co-maker 1 signature is required before approval.',
+    ],
+    'co-maker two signature missing' => [
+        LoanRequestPersonRole::CoMakerTwo,
+        'co_maker_2_signature',
+        'Co-maker 2 signature is required before approval.',
+    ],
+]);
+
+test('approval stores the active signature snapshot and does not change after replacement', function () {
+    Queue::fake();
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => '000509',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000510',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    createLoanRequestPeopleSnapshots($loanRequest);
+    prepareLoanRequestForApproval($loanRequest, $admin);
+
+    $originalSignature = $admin->fresh()->activeAdminSignature;
+
+    expect($originalSignature)->not->toBeNull();
+
+    $this
+        ->actingAs($admin)
+        ->withHeader('User-Agent', 'Loan Approval Test Agent')
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 18000,
+            'approved_term' => 18,
+        ])
+        ->assertOk();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->approval_signature_id)->toBe($originalSignature?->id);
+    expect($loanRequest->approval_ip_address)->toBe('127.0.0.1');
+    expect($loanRequest->approval_user_agent)->toBe('Loan Approval Test Agent');
+
+    $replacementSignature = createActiveAdminSignatureRecord($admin, 'two');
+
+    $loanRequest->refresh();
+
+    expect($replacementSignature->id)->not->toBe($originalSignature?->id);
+    expect($loanRequest->approval_signature_id)->toBe($originalSignature?->id);
 });
 
 test('admin can decline an under review loan request', function () {
@@ -3073,6 +3242,8 @@ test('admin corrected request can be approved after a saved correction audit exi
             false,
         );
 
+    prepareLoanRequestForApproval($corrected->fresh(), $admin);
+
     $this
         ->actingAs($admin)
         ->patchJson("/spa/admin/requests/{$corrected->id}/approve", [
@@ -3422,6 +3593,7 @@ test('loan request decisions succeed even without a phone number', function () {
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
     ]);
+    prepareLoanRequestForApproval($loanRequest, $admin);
 
     $response = $this
         ->actingAs($admin)

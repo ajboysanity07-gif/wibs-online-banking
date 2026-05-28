@@ -15,6 +15,10 @@ class OrganizationSetting extends Model
      */
     protected $fillable = [
         'company_name',
+        'business_address',
+        'business_address1',
+        'business_address2',
+        'business_address3',
         'company_logo_path',
         'logo_preset',
         'logo_mark_path',

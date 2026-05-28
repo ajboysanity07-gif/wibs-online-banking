@@ -29,6 +29,7 @@ import {
     composeAddress,
     formatCurrency,
     formatDate,
+    formatDateTime,
     formatDisplayText,
 } from '@/lib/formatters';
 import { showErrorToast } from '@/lib/toast';
@@ -195,6 +196,9 @@ type DecisionProps = {
     canDecide?: boolean;
     isProcessing?: boolean;
     blockedMessage?: string | null;
+    approverName?: string | null;
+    approvalSignatureUrl?: string | null;
+    approvalSignatureUpdatedAt?: string | null;
     onApprove?: (payload: LoanRequestApprovePayload) => void;
     onDecline?: (payload: LoanRequestDeclinePayload) => void;
 };
@@ -364,8 +368,12 @@ export function LoanRequestDetailPage({
         showDecision &&
         decision?.canDecide &&
         normalizedStatus === 'under_review';
-    const canApprove =
-        showDecisionForm && !loanRequest.requires_correction_before_approval;
+    const blockedMessage =
+        normalizedStatus === 'under_review'
+            ? (decision?.blockedMessage ?? null)
+            : null;
+    const approvalBlockedMessage = blockedMessage;
+    const canApprove = showDecisionForm && approvalBlockedMessage === null;
     const showDecisionSummary =
         showDecision &&
         (normalizedStatus === 'approved' ||
@@ -422,14 +430,6 @@ export function LoanRequestDetailPage({
         (correctedCopy?.show ?? true) &&
         typeof correctedCopy?.onCreate === 'function';
     const showCancelledNotice = normalizedStatus === 'cancelled';
-    const blockedMessage =
-        normalizedStatus === 'under_review'
-            ? (decision?.blockedMessage ?? null)
-            : null;
-    const approvalBlockedMessage =
-        loanRequest.requires_correction_before_approval
-            ? (blockedMessage ?? defaultApprovalBlockedMessage)
-            : null;
     const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [isCancellationDialogOpen, setIsCancellationDialogOpen] =
@@ -459,6 +459,10 @@ export function LoanRequestDetailPage({
     );
     const reviewedBy = loanRequest.reviewed_by?.name ?? '--';
     const reviewedAt = displayDateValue(loanRequest.reviewed_at);
+    const approvalSignerName = decision?.approverName?.trim() || '--';
+    const approvalSignatureUpdatedAt = decision?.approvalSignatureUpdatedAt
+        ? formatDateTime(decision.approvalSignatureUpdatedAt)
+        : null;
     const approvedAmountValue = displayCurrency(loanRequest.approved_amount);
     const approvedTermValue =
         loanRequest.approved_term !== null &&
@@ -1317,15 +1321,12 @@ export function LoanRequestDetailPage({
             >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Confirm Approval</DialogTitle>
+                        <DialogTitle>Approve and Sign</DialogTitle>
                         <DialogDescription>
-                            Please carefully review the loan details, applicant
-                            information, and co-maker information before
-                            approving this request. Once approved, the request
-                            details cannot be edited directly. If wrong
-                            information is found after approval, the approved
-                            request must be cancelled and an admin must create a
-                            corrected request.
+                            You are approving this loan request as{' '}
+                            {approvalSignerName}. Your saved loan manager
+                            signature will be attached to the generated loan
+                            documents.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -1345,6 +1346,35 @@ export function LoanRequestDetailPage({
                                 />
                             </div>
                         </div>
+                        <div className="rounded-xl border border-border/30 bg-card/60 p-4">
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground">
+                                    Approving admin
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {approvalSignerName}
+                                </p>
+                                {approvalSignatureUpdatedAt ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        Saved signature updated{' '}
+                                        {approvalSignatureUpdatedAt}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <div className="mt-4 flex min-h-36 items-center justify-center rounded-xl border border-dashed border-border/60 bg-white p-4">
+                                {decision?.approvalSignatureUrl ? (
+                                    <img
+                                        src={decision.approvalSignatureUrl}
+                                        alt="Saved loan manager signature"
+                                        className="max-h-24 w-full object-contain"
+                                    />
+                                ) : (
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        No saved signature preview available.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
                         <div className="flex items-start gap-3 rounded-xl border border-border/30 bg-muted/10 p-4">
                             <Checkbox
                                 id="confirm_approval"
@@ -1359,7 +1389,7 @@ export function LoanRequestDetailPage({
                             >
                                 I confirm that I have reviewed the loan details,
                                 applicant details, and co-maker details before
-                                approving.
+                                approving and signing this request.
                             </Label>
                         </div>
                     </div>
@@ -1400,7 +1430,7 @@ export function LoanRequestDetailPage({
                                 closeApprovalDialog(true);
                             }}
                         >
-                            Confirm Approval
+                            Approve and Sign
                         </Button>
                     </DialogFooter>
                 </DialogContent>

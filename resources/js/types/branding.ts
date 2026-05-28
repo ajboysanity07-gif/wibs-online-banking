@@ -28,6 +28,10 @@ export type LoanSmsTemplates = {
 
 export type BrandingGeneral = {
     companyName: string;
+    businessAddress: string | null;
+    businessAddress1: string | null;
+    businessAddress2: string | null;
+    businessAddress3: string | null;
     portalLabel: string;
     appTitle: string;
 };
@@ -67,6 +71,10 @@ export type BrandingCommunications = {
 
 export type Branding = {
     companyName: string;
+    businessAddress: string | null;
+    businessAddress1: string | null;
+    businessAddress2: string | null;
+    businessAddress3: string | null;
     portalLabel: string;
     appTitle: string;
     logoPreset: LogoPreset;

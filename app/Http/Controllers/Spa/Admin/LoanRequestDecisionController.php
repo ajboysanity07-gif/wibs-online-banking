@@ -23,10 +23,16 @@ class LoanRequestDecisionController extends Controller
         LoanRequestDecisionService $service,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
+        $payload = [
+            ...$request->validated(),
+            'approval_ip_address' => $request->ip(),
+            'approval_user_agent' => $request->userAgent(),
+        ];
+
         $updated = $service->approve(
             $loanRequest,
             $request->user(),
-            $request->validated(),
+            $payload,
         );
 
         SendLoanDecisionSmsJob::dispatch($updated->id)->afterCommit();

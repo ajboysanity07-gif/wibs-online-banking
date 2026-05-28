@@ -71,11 +71,19 @@ class LoanSecurityAgreementPdfService
                 ? $applicant['signature_path']
                 : null,
         );
+        $reviewer = $documentData['reviewer'] ?? [];
+        $reviewer = is_array($reviewer) ? $reviewer : [];
+        $reviewer['signature_data'] = $this->signatureDataUri(
+            is_string($reviewer['signature_path'] ?? null)
+                ? $reviewer['signature_path']
+                : null,
+        );
 
         return [
             ...$documentData,
             'organization' => $organization,
             'applicant' => $applicant,
+            'reviewer' => $reviewer,
             'reportHeader' => $reportHeader,
             'reportTypography' => is_array(
                 $organization['report_typography'] ?? null,
