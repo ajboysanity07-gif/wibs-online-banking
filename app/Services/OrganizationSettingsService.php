@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\OrganizationSetting;
+use App\Support\LocationComposer;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -84,6 +85,10 @@ class OrganizationSettingsService
     {
         return [
             'company_name' => $this->defaultCompanyName(),
+            'business_address' => null,
+            'business_address1' => null,
+            'business_address2' => null,
+            'business_address3' => null,
             'company_logo_path' => null,
             'logo_preset' => self::DEFAULT_LOGO_PRESET,
             'logo_mark_path' => null,
@@ -117,6 +122,7 @@ class OrganizationSettingsService
     private function mapBranding(?OrganizationSetting $setting): array
     {
         $companyName = $this->resolveCompanyName($setting?->company_name);
+        $businessAddress = $this->resolveBusinessAddress($setting);
         $portalLabel = $this->resolvePortalLabel($setting?->portal_label);
         $logoPreset = $this->resolveLogoPreset($setting?->logo_preset);
         $faviconPath = $this->normalizeValue($setting?->favicon_path);
@@ -137,6 +143,10 @@ class OrganizationSettingsService
 
         return [
             'companyName' => $companyName,
+            'businessAddress' => $businessAddress['address'],
+            'businessAddress1' => $businessAddress['address1'],
+            'businessAddress2' => $businessAddress['address2'],
+            'businessAddress3' => $businessAddress['address3'],
             'portalLabel' => $portalLabel,
             'appTitle' => $this->resolveAppTitle($companyName, $portalLabel),
             'logoPreset' => $logoPreset,
@@ -167,6 +177,10 @@ class OrganizationSettingsService
             'reportTypography' => $reportTypography,
             'general' => [
                 'companyName' => $companyName,
+                'businessAddress' => $businessAddress['address'],
+                'businessAddress1' => $businessAddress['address1'],
+                'businessAddress2' => $businessAddress['address2'],
+                'businessAddress3' => $businessAddress['address3'],
                 'portalLabel' => $portalLabel,
                 'appTitle' => $this->resolveAppTitle($companyName, $portalLabel),
             ],
@@ -209,6 +223,45 @@ class OrganizationSettingsService
             'communications' => [
                 'loanSmsTemplates' => $loanSmsTemplates,
             ],
+        ];
+    }
+
+    /**
+     * @return array{
+     *     address: string|null,
+     *     address1: string|null,
+     *     address2: string|null,
+     *     address3: string|null
+     * }
+     */
+    private function resolveBusinessAddress(?OrganizationSetting $setting): array
+    {
+        $address1 = $this->normalizeValue($setting?->business_address1);
+        $address2 = $this->normalizeValue($setting?->business_address2);
+        $address3 = $this->normalizeValue($setting?->business_address3);
+        $legacyAddress = $this->normalizeValue($setting?->business_address);
+
+        if (
+            $address1 === null
+            && $address2 === null
+            && $address3 === null
+            && $legacyAddress !== null
+        ) {
+            $parsed = LocationComposer::parseLegacyAddress($legacyAddress);
+            $address1 = $parsed['address1'];
+            $address2 = $parsed['address2'];
+            $address3 = $parsed['address3'];
+        }
+
+        $address = $address1 !== null || $address2 !== null || $address3 !== null
+            ? LocationComposer::compose($address1, $address2, $address3)
+            : $legacyAddress;
+
+        return [
+            'address' => $address !== '' ? $address : null,
+            'address1' => $address1,
+            'address2' => $address2,
+            'address3' => $address3,
         ];
     }
 

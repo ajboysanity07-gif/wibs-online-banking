@@ -53,6 +53,7 @@ test('approved loan request sends a database notification', function () {
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
     ]);
+    prepareLoanRequestForApproval($loanRequest, $admin);
 
     $payload = [
         'approved_amount' => 15000,
@@ -658,6 +659,7 @@ test('admin-only loan request owners are not notified', function () {
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
     ]);
+    prepareLoanRequestForApproval($loanRequest, $admin);
 
     $payload = [
         'approved_amount' => 12000,

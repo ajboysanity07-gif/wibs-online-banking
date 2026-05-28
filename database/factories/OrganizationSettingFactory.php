@@ -19,6 +19,10 @@ class OrganizationSettingFactory extends Factory
     {
         return [
             'company_name' => fake()->company(),
+            'business_address' => null,
+            'business_address1' => null,
+            'business_address2' => null,
+            'business_address3' => null,
             'company_logo_path' => null,
             'logo_preset' => null,
             'logo_mark_path' => null,

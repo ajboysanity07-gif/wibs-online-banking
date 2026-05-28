@@ -12,6 +12,7 @@
     $approvedDate = trim((string) ($loan['approved_date'] ?? ''));
     $reviewerName = trim((string) ($reviewer['name'] ?? ''));
     $reviewerTitle = trim((string) ($reviewer['position'] ?? ''));
+    $reviewerSignatureData = $reviewer['signature_data'] ?? null;
     $lenderSignatureName = $reviewerName !== '' ? $reviewerName : $companyName;
     $lenderRepresentationClause = $reviewerName !== ''
         ? trim($reviewerName.($reviewerTitle !== '' ? ', '.$reviewerTitle : ''))
@@ -318,7 +319,15 @@
                     </td>
                     <td class="signature-column signature-column--right">
                         <div class="signature-block">
-                            <div class="signature-art"></div>
+                            <div class="signature-art">
+                                @if ($reviewerSignatureData)
+                                    <img
+                                        src="{{ $reviewerSignatureData }}"
+                                        alt="Lender signature"
+                                        class="signature-image"
+                                    />
+                                @endif
+                            </div>
                             <div class="signature-name">
                                 {{ $lenderSignatureName !== '' ? $lenderSignatureName : ' ' }}
                             </div>

@@ -14,6 +14,10 @@ test('branding falls back to defaults when no settings exist', function () {
     $templates = $service->loanSmsTemplates();
 
     expect($branding['companyName'])->toBe('Acme');
+    expect($branding['businessAddress'])->toBeNull();
+    expect($branding['businessAddress1'])->toBeNull();
+    expect($branding['businessAddress2'])->toBeNull();
+    expect($branding['businessAddress3'])->toBeNull();
     expect($branding['portalLabel'])->toBe('Member Portal');
     expect($branding['appTitle'])->toBe('Member Portal - Acme');
     expect($branding['logoPreset'])->toBe(
@@ -57,6 +61,10 @@ test('branding uses stored organization settings when available', function () {
 
     OrganizationSetting::factory()->create([
         'company_name' => 'Acme Corp',
+        'business_address' => 'Head Office, Tagum City, Davao del Norte',
+        'business_address1' => 'Head Office',
+        'business_address2' => 'Tagum City',
+        'business_address3' => 'Davao del Norte',
         'logo_preset' => OrganizationSettingsService::LOGO_PRESET_MARK,
         'portal_label' => 'Acme Portal',
         'favicon_path' => 'branding/favicon.ico',
@@ -83,6 +91,11 @@ test('branding uses stored organization settings when available', function () {
     $branding = app(OrganizationSettingsService::class)->branding();
 
     expect($branding['companyName'])->toBe('Acme Corp');
+    expect($branding['businessAddress'])
+        ->toBe('Head Office, Tagum City, Davao del Norte');
+    expect($branding['businessAddress1'])->toBe('Head Office');
+    expect($branding['businessAddress2'])->toBe('Tagum City');
+    expect($branding['businessAddress3'])->toBe('Davao del Norte');
     expect($branding['portalLabel'])->toBe('Acme Portal');
     expect($branding['appTitle'])->toBe('Acme Portal - Acme Corp');
     expect($branding['logoPreset'])->toBe(

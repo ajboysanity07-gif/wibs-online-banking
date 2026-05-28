@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing as WorksheetDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -36,6 +37,15 @@ class ApprovedLoanExcelTemplateService
     private const HEADER_OFFSET_Y_PIXELS = 4;
 
     private const HEADER_BOTTOM_SPACING_PIXELS = 20;
+
+    /**
+     * @var list<string>
+     */
+    private const TEMPLATE_HELPER_PLACEHOLDERS = [
+        'input data',
+        'no input data',
+        'do not input anything',
+    ];
 
     /**
      * @var array<int, array{0: float, 1: float}>
@@ -65,6 +75,26 @@ class ApprovedLoanExcelTemplateService
             'startColumn' => 'A',
             'endColumn' => 'K',
         ],
+    ];
+
+    /**
+     * @var array{startColumn: string, endColumn: string, startRow: int}
+     */
+    private const LOAN_INFORMATION_FORM_RANGE = [
+        'startColumn' => 'A',
+        'endColumn' => 'H',
+        'startRow' => 6,
+    ];
+
+    /**
+     * @var array{worksheet: string, coordinate: string, offsetX: int, offsetY: int, height: int}
+     */
+    private const LOAN_MANAGER_SIGNATURE_PLACEMENT = [
+        'worksheet' => 'Loan Information',
+        'coordinate' => 'D18',
+        'offsetX' => 6,
+        'offsetY' => 0,
+        'height' => 26,
     ];
 
     /**
@@ -99,11 +129,14 @@ class ApprovedLoanExcelTemplateService
         try {
             $this->applyMappedCells($spreadsheet, $documentData);
             $this->replaceTemplateTokens($spreadsheet, $documentData);
+            $this->clearTemplateHelperPlaceholders($spreadsheet);
             $this->prepareWorksheetLayouts($spreadsheet);
             $temporaryHeaderImagePath = $this->insertReportHeaderImages(
                 $spreadsheet,
                 $documentData,
             );
+            $this->insertLoanManagerSignatureImage($spreadsheet, $documentData);
+            $this->finalizeLoanInformationWorksheetLayout($spreadsheet);
             File::ensureDirectoryExists(dirname($outputPath));
             IOFactory::createWriter($spreadsheet, 'Xlsx')->save($outputPath);
         } finally {
@@ -261,6 +294,40 @@ class ApprovedLoanExcelTemplateService
         return $updated;
     }
 
+    private function clearTemplateHelperPlaceholders(
+        Spreadsheet $spreadsheet,
+    ): void {
+        foreach ($spreadsheet->getWorksheetIterator() as $worksheet) {
+            $highestRow = $worksheet->getHighestRow();
+            $highestColumnIndex = Coordinate::columnIndexFromString(
+                $worksheet->getHighestColumn(),
+            );
+
+            for ($row = 1; $row <= $highestRow; $row++) {
+                for ($column = 1; $column <= $highestColumnIndex; $column++) {
+                    $coordinate = Coordinate::stringFromColumnIndex($column).$row;
+                    $value = $worksheet->getCell($coordinate)->getValue();
+
+                    if (! is_string($value)) {
+                        continue;
+                    }
+
+                    $normalizedValue = strtolower(trim($value));
+
+                    if (! in_array($normalizedValue, self::TEMPLATE_HELPER_PLACEHOLDERS, true)) {
+                        continue;
+                    }
+
+                    $worksheet->setCellValueExplicit(
+                        $coordinate,
+                        '',
+                        DataType::TYPE_STRING,
+                    );
+                }
+            }
+        }
+    }
+
     private function resolveTemplatePath(string $templateFilename): string
     {
         $templatePath = storage_path(
@@ -283,6 +350,53 @@ class ApprovedLoanExcelTemplateService
                 $this->preparePromissoryNoteWorksheetLayout($worksheet);
             }
         }
+    }
+
+    private function finalizeLoanInformationWorksheetLayout(
+        Spreadsheet $spreadsheet,
+    ): void {
+        $worksheet = $spreadsheet->getSheetByName('Loan Information');
+
+        if (! $worksheet instanceof Worksheet) {
+            return;
+        }
+
+        $this->ensureWorksheetPrintArea($worksheet);
+        $this->applyLoanInformationOuterBorder($worksheet);
+    }
+
+    /**
+     * @param  array<string, mixed>  $documentData
+     */
+    private function insertLoanManagerSignatureImage(
+        Spreadsheet $spreadsheet,
+        array $documentData,
+    ): void {
+        $relativePath = trim((string) data_get($documentData, 'reviewer.signature_path', ''));
+
+        if ($relativePath === '' || ! Storage::disk('public')->exists($relativePath)) {
+            return;
+        }
+
+        $worksheet = $spreadsheet->getSheetByName(
+            self::LOAN_MANAGER_SIGNATURE_PLACEMENT['worksheet'],
+        );
+
+        if (! $worksheet instanceof Worksheet) {
+            return;
+        }
+
+        $drawing = new WorksheetDrawing;
+        $drawing->setName('Loan Manager Signature');
+        $drawing->setDescription('Loan manager signature used for approval');
+        $drawing->setPath(Storage::disk('public')->path($relativePath));
+        $drawing->setCoordinates(
+            self::LOAN_MANAGER_SIGNATURE_PLACEMENT['coordinate'],
+        );
+        $drawing->setOffsetX(self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetX']);
+        $drawing->setOffsetY(self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetY']);
+        $drawing->setHeight(self::LOAN_MANAGER_SIGNATURE_PLACEMENT['height']);
+        $drawing->setWorksheet($worksheet);
     }
 
     private function preparePromissoryNoteWorksheetLayout(Worksheet $worksheet): void
@@ -427,6 +541,92 @@ class ApprovedLoanExcelTemplateService
         $pageSetup->setFitToWidth(1);
         $pageSetup->setFitToHeight(0);
         $pageSetup->setFitToPage(true);
+    }
+
+    private function applyLoanInformationOuterBorder(Worksheet $worksheet): void
+    {
+        $outlineStyle = [
+            'borderStyle' => Border::BORDER_MEDIUM,
+            'color' => ['rgb' => '000000'],
+        ];
+
+        $borderRanges = $this->resolveLoanInformationOuterBorderRanges($worksheet);
+
+        $worksheet->getStyle($borderRanges['fullRange'])->applyFromArray([
+            'borders' => [
+                'outline' => $outlineStyle,
+            ],
+        ]);
+
+        foreach ([
+            'leftRange' => 'left',
+            'rightRange' => 'right',
+            'topRange' => 'top',
+            'bottomRange' => 'bottom',
+        ] as $rangeKey => $edge) {
+            $worksheet->getStyle($borderRanges[$rangeKey])->applyFromArray([
+                'borders' => [
+                    $edge => $outlineStyle,
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * @return array{
+     *     fullRange: string,
+     *     leftRange: string,
+     *     rightRange: string,
+     *     topRange: string,
+     *     bottomRange: string
+     * }
+     */
+    private function resolveLoanInformationOuterBorderRanges(
+        Worksheet $worksheet,
+    ): array {
+        $columnRange = self::LOAN_INFORMATION_FORM_RANGE;
+        $endRow = $worksheet->getHighestRow();
+        $startColumn = $columnRange['startColumn'];
+        $endColumn = $columnRange['endColumn'];
+        $startRow = $columnRange['startRow'];
+
+        return [
+            'fullRange' => sprintf(
+                '%s%d:%s%d',
+                $startColumn,
+                $startRow,
+                $endColumn,
+                $endRow,
+            ),
+            'leftRange' => sprintf(
+                '%s%d:%s%d',
+                $startColumn,
+                $startRow,
+                $startColumn,
+                $endRow,
+            ),
+            'rightRange' => sprintf(
+                '%s%d:%s%d',
+                $endColumn,
+                $startRow,
+                $endColumn,
+                $endRow,
+            ),
+            'topRange' => sprintf(
+                '%s%d:%s%d',
+                $startColumn,
+                $startRow,
+                $endColumn,
+                $startRow,
+            ),
+            'bottomRange' => sprintf(
+                '%s%d:%s%d',
+                $startColumn,
+                $endRow,
+                $endColumn,
+                $endRow,
+            ),
+        ];
     }
 
     /**

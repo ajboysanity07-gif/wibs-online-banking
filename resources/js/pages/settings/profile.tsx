@@ -11,6 +11,7 @@ import { LocationAutocompleteInput } from '@/components/location-autocomplete-in
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
 } from '@/components/profile/profile-image-crop-modal';
+import SignaturePadField from '@/components/signature-pad-field';
 import { SurfaceCard } from '@/components/surface-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -32,6 +33,7 @@ import { useLocationSearch } from '@/hooks/use-location-search';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { createCroppedImageFile } from '@/lib/image-crop';
+import { formatDateTime } from '@/lib/formatters';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -50,6 +52,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 type AdminProfileSummary = {
     fullname: string | null;
     profilePicUrl: string | null;
+};
+
+type LoanManagerSignatureSummary = {
+    previewUrl: string | null;
+    updatedAt: string | null;
 };
 
 type MemberRecord = {
@@ -110,6 +117,7 @@ type Props = {
     mustVerifyEmail: boolean;
     status?: string;
     adminProfile?: AdminProfileSummary | null;
+    loanManagerSignature?: LoanManagerSignatureSummary | null;
     memberRecord?: MemberRecord | null;
     memberApplicationProfile?: MemberApplicationProfileData | null;
     profileCompletion?: ProfileCompletion | null;
@@ -380,6 +388,7 @@ export default function Profile({
     mustVerifyEmail,
     status,
     adminProfile = null,
+    loanManagerSignature = null,
     memberRecord = null,
     memberApplicationProfile = null,
     profileCompletion = null,
@@ -548,6 +557,15 @@ export default function Profile({
             : null;
     const showOnboardingSteps = onboarding && hasMemberAccess;
     const showStepperNav = availableTabs.length > 1;
+    const [loanManagerSignatureData, setLoanManagerSignatureData] =
+        useState('');
+    const hasSavedLoanManagerSignature =
+        (loanManagerSignature?.previewUrl ?? '').trim() !== '';
+    const loanManagerSignatureUpdatedAt =
+        loanManagerSignature?.updatedAt !== null &&
+        loanManagerSignature?.updatedAt !== undefined
+            ? formatDateTime(loanManagerSignature.updatedAt)
+            : null;
 
     useEffect(() => {
         if (!profilePhotoPreview) {
@@ -2471,6 +2489,151 @@ export default function Profile({
                                             )}
                                         </Form>
                                     </div>
+
+                                    {adminProfile ? (
+                                        <SurfaceCard
+                                            variant="muted"
+                                            padding="md"
+                                            className="space-y-6"
+                                        >
+                                            <div className="space-y-1">
+                                                <h3 className="text-base font-semibold tracking-tight">
+                                                    Loan Manager Signature
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    This signature will be used
+                                                    only when you approve a
+                                                    loan request. You will
+                                                    still be asked to confirm
+                                                    approval before it is
+                                                    attached to generated loan
+                                                    documents.
+                                                </p>
+                                            </div>
+
+                                            <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
+                                                <AlertTitle>
+                                                    Use only your own signature
+                                                </AlertTitle>
+                                                <AlertDescription>
+                                                    Only draw your own
+                                                    signature. This will be
+                                                    used when you approve loan
+                                                    requests.
+                                                </AlertDescription>
+                                            </Alert>
+
+                                            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
+                                                <Form
+                                                    {...ProfileController.updateLoanManagerSignature.form()}
+                                                    options={{
+                                                        preserveScroll: true,
+                                                    }}
+                                                    onSuccess={() => {
+                                                        setLoanManagerSignatureData(
+                                                            '',
+                                                        );
+                                                        showSuccessToast(
+                                                            'Loan manager signature saved.',
+                                                            {
+                                                                id: 'loan-manager-signature-update',
+                                                            },
+                                                        );
+                                                    }}
+                                                    onError={(formErrors) => {
+                                                        showErrorToast(
+                                                            formErrors,
+                                                            'Unable to save the loan manager signature.',
+                                                            {
+                                                                id: 'loan-manager-signature-update',
+                                                            },
+                                                        );
+                                                    }}
+                                                    className="space-y-4"
+                                                >
+                                                    {({
+                                                        processing,
+                                                        errors: formErrors,
+                                                    }) => (
+                                                        <>
+                                                            <SignaturePadField
+                                                                name="signature_data"
+                                                                label={
+                                                                    hasSavedLoanManagerSignature
+                                                                        ? 'Replace signature'
+                                                                        : 'Draw signature'
+                                                                }
+                                                                value={
+                                                                    loanManagerSignatureData
+                                                                }
+                                                                error={
+                                                                    formErrors.signature_data
+                                                                }
+                                                                clearLabel="Clear and redraw"
+                                                                onChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    setLoanManagerSignatureData(
+                                                                        value,
+                                                                    )
+                                                                }
+                                                            />
+
+                                                            <div className="flex justify-end">
+                                                                <Button
+                                                                    type="submit"
+                                                                    disabled={
+                                                                        processing ||
+                                                                        loanManagerSignatureData.trim() ===
+                                                                            ''
+                                                                    }
+                                                                >
+                                                                    {hasSavedLoanManagerSignature
+                                                                        ? 'Replace signature'
+                                                                        : 'Save signature'}
+                                                                </Button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </Form>
+
+                                                <div className="space-y-3 rounded-2xl border border-border/40 bg-background/80 p-5">
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-semibold text-foreground">
+                                                            Current signature
+                                                            preview
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {loanManagerSignatureUpdatedAt
+                                                                ? `Last updated ${loanManagerSignatureUpdatedAt}`
+                                                                : 'No saved signature yet.'}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex min-h-48 items-center justify-center rounded-xl border border-dashed border-border/60 bg-white p-4">
+                                                        {hasSavedLoanManagerSignature ? (
+                                                            <img
+                                                                src={
+                                                                    loanManagerSignature?.previewUrl ??
+                                                                    ''
+                                                                }
+                                                                alt="Loan manager signature preview"
+                                                                className="max-h-32 w-full object-contain"
+                                                            />
+                                                        ) : (
+                                                            <p className="text-center text-sm text-muted-foreground">
+                                                                Save your
+                                                                signature to
+                                                                preview it
+                                                                here before
+                                                                approving loan
+                                                                requests.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </SurfaceCard>
+                                    ) : null}
 
                                     <ProfileImageCropModal
                                         isOpen={showProfilePhotoCropModal}

@@ -22,6 +22,8 @@
         return 'field field--tightest';
     };
     $reportHeader = $reportHeader ?? [];
+    $reviewerName = $displayText($reviewer['name'] ?? '');
+    $reviewerSignatureData = $reviewer['signatureData'] ?? null;
 @endphp
 
 <div class="page">
@@ -73,7 +75,7 @@
             <td class="field"></td>
             <td class="label">Approved By:</td>
 
-            <td class="field"></td>
+            <td class="{{ $fitFieldClass($reviewerName) }}">{{ $reviewerName }}</td>
         </tr>
         </table>
     </div>
@@ -471,6 +473,14 @@
                 @endif
                 <div class="signature-line"></div>
                 <div class="signature-label">Co-maker 2</div>
+            </div>
+
+            <div class="signature-box">
+                @if (! empty($reviewerSignatureData))
+                    <img src="{{ $reviewerSignatureData }}" class="signature-image" alt="Loan manager signature" />
+                @endif
+                <div class="signature-line"></div>
+                <div class="signature-label">Loan Manager / Approved By</div>
             </div>
         </div>
     </div>

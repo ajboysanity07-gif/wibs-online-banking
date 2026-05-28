@@ -67,7 +67,7 @@ class LoanRequestPayloadSerializer
     public function serializeLoanRequest(LoanRequest $loanRequest): array
     {
         $loanRequest->loadMissing(
-            'reviewedBy',
+            'reviewedBy.adminProfile',
             'cancelledBy',
             'correctedFrom',
             'correctedRequests',
@@ -95,7 +95,8 @@ class LoanRequestPayloadSerializer
             'reviewed_by' => $loanRequest->reviewedBy
                 ? [
                     'user_id' => $loanRequest->reviewedBy->user_id,
-                    'name' => $loanRequest->reviewedBy->name,
+                    'name' => $loanRequest->reviewedBy->adminProfile?->fullname
+                        ?? $loanRequest->reviewedBy->name,
                 ]
                 : null,
             'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),

@@ -21,6 +21,7 @@ test('superadmin can view organization branding settings page', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/organization-settings')
+            ->where('branding.businessAddress', null)
             ->where('branding.logoPreset', OrganizationSettingsService::LOGO_PRESET_MARK)
             ->where('branding.logoMarkUrl', asset('mrdinc-logo-mark.png'))
             ->where('branding.logoFullUrl', asset('mrdinc-logo.png'))
@@ -101,6 +102,34 @@ test('superadmin can update organization branding logo and name', function () {
     expect($setting->brand_accent_color)->toBe('#445566');
 
     Storage::disk('public')->assertExists($setting->favicon_path);
+});
+
+test('superadmin can update organization business address', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $response = $this->actingAs($admin)->patch(
+        route('admin.settings.organization.update'),
+        [
+            'company_name' => 'Acme Cooperative',
+            'business_address1' => '123 Main Street',
+            'business_address2' => 'Tagum City',
+            'business_address3' => 'Davao del Norte',
+        ],
+    );
+
+    $response->assertRedirect(route('admin.settings.organization'));
+
+    $setting = OrganizationSetting::query()->first();
+
+    expect($setting)->not->toBeNull();
+    expect($setting->business_address)
+        ->toBe('123 Main Street, Tagum City, Davao del Norte');
+    expect($setting->business_address1)->toBe('123 Main Street');
+    expect($setting->business_address2)->toBe('Tagum City');
+    expect($setting->business_address3)->toBe('Davao del Norte');
 });
 
 test('superadmin can update loan sms templates', function () {

@@ -47,6 +47,10 @@ class OrganizationSettingsController extends Controller
 
         $payload = Arr::only($validated, [
             'company_name',
+            'business_address',
+            'business_address1',
+            'business_address2',
+            'business_address3',
             'portal_label',
             'logo_preset',
             'support_email',

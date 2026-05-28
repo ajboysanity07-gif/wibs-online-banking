@@ -18,6 +18,9 @@ class ApprovedLoanImageTemplatePdfService
     private const PUBLIC_TEMPLATE_DIRECTORY =
         'public/app/templates/approved-loan-documents/images';
 
+    private const LEGACY_PUBLIC_TEMPLATE_DIRECTORY =
+        'public/app/templates/approved-loan-documents';
+
     /**
      * @param  array<int, array<string, mixed>>  $pages
      * @param  array<string, mixed>  $documentData
@@ -219,6 +222,7 @@ class ApprovedLoanImageTemplatePdfService
         }
 
         $value = $this->resolveValue($field['value'] ?? null, $documentData);
+        $value = $this->transformValue($field['transform'] ?? null, $value);
         $text = $this->blank(is_scalar($value) ? (string) $value : null);
 
         if ($text === '') {
@@ -375,12 +379,20 @@ class ApprovedLoanImageTemplatePdfService
             return;
         }
 
-        $pdf->Image(
+        $dimensions = $this->fitImageToBox(
             $absolutePath,
             $x,
             $y,
             $width,
             $height,
+        );
+
+        $pdf->Image(
+            $absolutePath,
+            $dimensions['x'],
+            $dimensions['y'],
+            $dimensions['width'],
+            $dimensions['height'],
             '',
             '',
             '',
@@ -418,6 +430,9 @@ class ApprovedLoanImageTemplatePdfService
             storage_path(
                 'app/'.trim(self::PUBLIC_TEMPLATE_DIRECTORY.'/'.$templateImage, '/'),
             ),
+            storage_path(
+                'app/'.trim(self::LEGACY_PUBLIC_TEMPLATE_DIRECTORY.'/'.$templateImage, '/'),
+            ),
         ];
 
         foreach ($candidatePaths as $candidatePath) {
@@ -428,8 +443,9 @@ class ApprovedLoanImageTemplatePdfService
 
         Log::error('Missing approved loan image template file.', [
             'template_image' => $templateImage,
-            'template_path' => $candidatePaths[0],
-            'fallback_template_path' => $candidatePaths[1],
+            'template_path' => $candidatePaths[0] ?? null,
+            'fallback_template_path' => $candidatePaths[1] ?? null,
+            'legacy_public_template_path' => $candidatePaths[2] ?? null,
         ]);
 
         throw new RuntimeException('Missing image template file: '.$templateImage);
@@ -437,13 +453,156 @@ class ApprovedLoanImageTemplatePdfService
 
     private function resolveSignaturePath(string $relativePath): ?string
     {
-        if (Storage::disk('public')->exists($relativePath)) {
-            return Storage::disk('public')->path($relativePath);
+        $normalizedPath = trim($relativePath);
+
+        if ($normalizedPath === '') {
+            return null;
         }
 
-        $absolutePath = storage_path('app/public/'.$relativePath);
+        if (is_file($normalizedPath)) {
+            return $normalizedPath;
+        }
 
-        return is_file($absolutePath) ? $absolutePath : null;
+        $normalizedPath = $this->normalizePublicSignaturePath($normalizedPath);
+
+        if ($normalizedPath === null) {
+            return null;
+        }
+
+        if (Storage::disk('public')->exists($normalizedPath)) {
+            return Storage::disk('public')->path($normalizedPath);
+        }
+
+        foreach ($this->signatureAbsolutePathCandidates($normalizedPath) as $absolutePath) {
+            if (is_file($absolutePath)) {
+                return $absolutePath;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizePublicSignaturePath(string $path): ?string
+    {
+        $normalizedPath = trim($path);
+
+        if ($normalizedPath === '') {
+            return null;
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $normalizedPath) === 1) {
+            $parsedPath = parse_url($normalizedPath, PHP_URL_PATH);
+            $normalizedPath = is_string($parsedPath) ? $parsedPath : '';
+        }
+
+        $normalizedPath = str_replace('\\', '/', rawurldecode($normalizedPath));
+        $normalizedPath = explode('?', $normalizedPath, 2)[0];
+        $normalizedPath = explode('#', $normalizedPath, 2)[0];
+        $normalizedPath = preg_replace(
+            '#^/?(?:storage/app/public/|public/storage/|storage/)#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+
+        foreach ([
+            '/storage/app/public/',
+            '/public/storage/',
+            '/storage/',
+        ] as $marker) {
+            $markerPosition = stripos($normalizedPath, $marker);
+
+            if ($markerPosition === false) {
+                continue;
+            }
+
+            $normalizedPath = substr(
+                $normalizedPath,
+                $markerPosition + strlen($marker),
+            );
+
+            break;
+        }
+
+        $normalizedPath = ltrim($normalizedPath, '/');
+        $normalizedPath = preg_replace(
+            '#^(?:app/public/|public/)+#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+        $normalizedPath = ltrim($normalizedPath, '/');
+
+        return $normalizedPath !== '' ? $normalizedPath : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function signatureAbsolutePathCandidates(string $relativePath): array
+    {
+        return [
+            storage_path('app/public/'.$relativePath),
+            public_path('storage/'.$relativePath),
+        ];
+    }
+
+    /**
+     * @return array{x: float, y: float, width: float, height: float}
+     */
+    private function fitImageToBox(
+        string $absolutePath,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+    ): array {
+        if ($width <= 0 || $height <= 0) {
+            return [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'height' => $height,
+            ];
+        }
+
+        $size = @getimagesize($absolutePath);
+
+        if ($size === false || ($size[0] ?? 0) <= 0 || ($size[1] ?? 0) <= 0) {
+            return [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'height' => $height,
+            ];
+        }
+
+        $imageWidth = (float) $size[0];
+        $imageHeight = (float) $size[1];
+        $imageRatio = $imageWidth / $imageHeight;
+        $boxRatio = $width / $height;
+
+        if ($imageRatio >= $boxRatio) {
+            $renderWidth = $width;
+            $renderHeight = $width / $imageRatio;
+        } else {
+            $renderHeight = $height;
+            $renderWidth = $height * $imageRatio;
+        }
+
+        return [
+            'x' => $x + (($width - $renderWidth) / 2),
+            'y' => $y + (($height - $renderHeight) / 2),
+            'width' => $renderWidth,
+            'height' => $renderHeight,
+        ];
+    }
+
+    private function transformValue(mixed $transformer, mixed $value): mixed
+    {
+        if (is_callable($transformer)) {
+            return $transformer($value);
+        }
+
+        return $value;
     }
 
     private function resolveValue(mixed $resolver, array $documentData): mixed

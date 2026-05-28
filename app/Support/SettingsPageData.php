@@ -16,10 +16,15 @@ class SettingsPageData
     {
         $schema = app(SchemaCapabilities::class);
         $user = $request->user();
-        $user?->loadMissing('adminProfile', 'memberApplicationProfile');
+        $user?->loadMissing(
+            'adminProfile',
+            'memberApplicationProfile',
+            'activeAdminSignature',
+        );
         $hasMemberAccess = $user?->hasMemberAccess() ?? false;
 
         $adminProfile = $user?->adminProfile;
+        $adminSignature = $user?->activeAdminSignature;
         $memberApplicationProfile = $user?->memberApplicationProfile;
         $twoFactorAvailable = Features::canManageTwoFactorAuthentication();
         $twoFactorEnabled = $twoFactorAvailable
@@ -183,6 +188,12 @@ class SettingsPageData
                     'profilePicUrl' => $adminProfile->profile_pic_path
                         ? Storage::disk('public')->url($adminProfile->profile_pic_path)
                         : null,
+                ]
+                : null,
+            'loanManagerSignature' => $adminSignature
+                ? [
+                    'previewUrl' => $adminSignature->signature_url,
+                    'updatedAt' => $adminSignature->updated_at?->toDateTimeString(),
                 ]
                 : null,
             'memberRecord' => $memberRecord,

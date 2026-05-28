@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Services\OrganizationSettingsService;
+use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,10 @@ class OrganizationSettingUpdateRequest extends FormRequest
     {
         return [
             'company_name' => ['required', 'string', 'max:255'],
+            'business_address' => ['nullable', 'string'],
+            'business_address1' => ['nullable', 'string', 'max:255'],
+            'business_address2' => ['nullable', 'string', 'max:255'],
+            'business_address3' => ['nullable', 'string', 'max:255'],
             'portal_label' => ['nullable', 'string', 'max:255'],
             'logo_preset' => [
                 'nullable',
@@ -138,7 +143,44 @@ class OrganizationSettingUpdateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $businessAddress1 = $this->normalizeOptionalString(
+            $this->input('business_address1'),
+        );
+        $businessAddress2 = $this->normalizeOptionalString(
+            $this->input('business_address2'),
+        );
+        $businessAddress3 = $this->normalizeOptionalString(
+            $this->input('business_address3'),
+        );
+        $legacyBusinessAddress = $this->normalizeOptionalString(
+            $this->input('business_address'),
+        );
+
+        if (
+            $businessAddress1 === null
+            && $businessAddress2 === null
+            && $businessAddress3 === null
+            && $legacyBusinessAddress !== null
+        ) {
+            $parsed = LocationComposer::parseLegacyAddress($legacyBusinessAddress);
+            $businessAddress1 = $parsed['address1'];
+            $businessAddress2 = $parsed['address2'];
+            $businessAddress3 = $parsed['address3'];
+        }
+
         $this->merge([
+            'business_address' => $businessAddress1 !== null
+                || $businessAddress2 !== null
+                || $businessAddress3 !== null
+                ? LocationComposer::compose(
+                    $businessAddress1,
+                    $businessAddress2,
+                    $businessAddress3,
+                )
+                : null,
+            'business_address1' => $businessAddress1,
+            'business_address2' => $businessAddress2,
+            'business_address3' => $businessAddress3,
             'brand_primary_color' => $this->normalizeHexColor(
                 $this->input('brand_primary_color'),
             ),
@@ -193,6 +235,9 @@ class OrganizationSettingUpdateRequest extends FormRequest
         return [
             'company_name.required' => 'Company name is required.',
             'company_name.max' => 'Company name may not be greater than 255 characters.',
+            'business_address1.max' => 'Business address line 1 may not be greater than 255 characters.',
+            'business_address2.max' => 'Business address line 2 may not be greater than 255 characters.',
+            'business_address3.max' => 'Business address line 3 may not be greater than 255 characters.',
             'portal_label.max' => 'Portal label may not be greater than 255 characters.',
             'logo_mark.max' => 'Logo mark must be 2MB or smaller.',
             'logo_mark.mimes' => 'Logo mark must be a JPG, PNG, or WebP image.',
@@ -213,5 +258,16 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'report_label_font_color.regex' => 'Label color must be a valid hex value (e.g., #1a2b3c).',
             'report_value_font_color.regex' => 'Value color must be a valid hex value (e.g., #1a2b3c).',
         ];
+    }
+
+    private function normalizeOptionalString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 }

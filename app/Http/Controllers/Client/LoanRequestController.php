@@ -167,7 +167,7 @@ class LoanRequestController extends Controller
 
         $loanRequestRecord->loadMissing(
             'people',
-            'reviewedBy',
+            'reviewedBy.adminProfile',
             'cancelledBy',
             'correctedFrom',
             'correctedRequests',
@@ -189,7 +189,8 @@ class LoanRequestController extends Controller
                 'reviewed_by' => $loanRequestRecord->reviewedBy
                     ? [
                         'user_id' => $loanRequestRecord->reviewedBy->user_id,
-                        'name' => $loanRequestRecord->reviewedBy->name,
+                        'name' => $loanRequestRecord->reviewedBy->adminProfile?->fullname
+                            ?? $loanRequestRecord->reviewedBy->name,
                     ]
                     : null,
                 'reviewed_at' => $loanRequestRecord->reviewed_at?->toDateTimeString(),

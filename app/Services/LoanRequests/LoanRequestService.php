@@ -374,6 +374,9 @@ class LoanRequestService
             $corrected->submitted_at = now();
             $corrected->reviewed_by = null;
             $corrected->reviewed_at = null;
+            $corrected->approval_signature_id = null;
+            $corrected->approval_ip_address = null;
+            $corrected->approval_user_agent = null;
             $corrected->approved_amount = null;
             $corrected->approved_term = null;
             $corrected->decision_notes = null;
@@ -1068,6 +1071,9 @@ class LoanRequestService
                     $loanRequest->submitted_at = null;
                     $loanRequest->reviewed_by = null;
                     $loanRequest->reviewed_at = null;
+                    $loanRequest->approval_signature_id = null;
+                    $loanRequest->approval_ip_address = null;
+                    $loanRequest->approval_user_agent = null;
                     $loanRequest->save();
                 }
             }

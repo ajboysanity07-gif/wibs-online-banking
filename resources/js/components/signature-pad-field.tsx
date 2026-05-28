@@ -11,6 +11,8 @@ type SignaturePadFieldProps = {
     defaultValue?: string | null;
     value?: string | null;
     onChange?: (value: string) => void;
+    clearLabel?: string;
+    description?: string;
 };
 
 const DEFAULT_CANVAS_HEIGHT = 176;
@@ -23,6 +25,8 @@ export default function SignaturePadField({
     defaultValue = null,
     value = null,
     onChange,
+    clearLabel = 'Clear',
+    description = 'Draw your signature inside the box.',
 }: SignaturePadFieldProps) {
     const signaturePadRef = useRef<ReactSignatureCanvas | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -145,13 +149,11 @@ export default function SignaturePadField({
                     size="sm"
                     onClick={handleClear}
                 >
-                    Clear
+                    {clearLabel}
                 </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-                Draw your signature inside the box.
-            </p>
+            <p className="text-xs text-muted-foreground">{description}</p>
 
             <div
                 ref={containerRef}

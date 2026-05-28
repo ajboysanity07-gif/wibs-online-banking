@@ -39,6 +39,9 @@ class LoanRequest extends Model
         'submitted_at',
         'reviewed_by',
         'reviewed_at',
+        'approval_signature_id',
+        'approval_ip_address',
+        'approval_user_agent',
         'approved_amount',
         'approved_term',
         'decision_notes',
@@ -65,6 +68,11 @@ class LoanRequest extends Model
     public function reviewedBy(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'reviewed_by', 'user_id');
+    }
+
+    public function approvalSignature(): BelongsTo
+    {
+        return $this->belongsTo(AdminSignature::class, 'approval_signature_id');
     }
 
     public function cancelledBy(): BelongsTo

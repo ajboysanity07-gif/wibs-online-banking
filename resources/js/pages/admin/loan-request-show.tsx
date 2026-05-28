@@ -58,10 +58,11 @@ type DecisionState = {
     canDecide: boolean;
     canCancel: boolean;
     isOwnRequest: boolean;
+    blockedMessage?: string | null;
+    approverName?: string | null;
+    approvalSignatureUrl?: string | null;
+    approvalSignatureUpdatedAt?: string | null;
 };
-
-const correctedRequestApprovalBlockedMessage =
-    'Please save the correction before approving this admin-corrected request.';
 
 const buildCancellationReasonPrefill = (
     report: LoanRequestCorrectionReport,
@@ -249,11 +250,7 @@ export default function LoanRequestShow({
     );
     const blockedMessage =
         currentRequest.status === 'under_review'
-            ? decision.isOwnRequest
-                ? 'You cannot decide your own loan request.'
-                : requiresCorrectionBeforeApproval
-                  ? correctedRequestApprovalBlockedMessage
-                  : null
+            ? (decision.blockedMessage ?? null)
             : null;
     const isCorrecting = correctionProcessingIds[currentRequest.id] ?? false;
     const isCreatingAdminCorrectedCopy =
@@ -560,6 +557,11 @@ export default function LoanRequestShow({
                     show: true,
                     canDecide,
                     blockedMessage,
+                    approverName: decision.approverName ?? null,
+                    approvalSignatureUrl:
+                        decision.approvalSignatureUrl ?? null,
+                    approvalSignatureUpdatedAt:
+                        decision.approvalSignatureUpdatedAt ?? null,
                     isProcessing: processingIds[currentRequest.id] ?? false,
                     onApprove: (payload) =>
                         updateDecision(currentRequest.id, 'approve', payload),

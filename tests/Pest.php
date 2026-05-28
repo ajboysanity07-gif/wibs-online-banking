@@ -1,5 +1,12 @@
 <?php
 
+use App\LoanRequestPersonRole;
+use App\Models\AdminSignature;
+use App\Models\AppUser;
+use App\Models\LoanRequest;
+use App\Models\LoanRequestPerson;
+use Illuminate\Support\Facades\Storage;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -44,4 +51,102 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+function testPngSignatureDataUrl(string $variant = 'one'): string
+{
+    $base64 = match ($variant) {
+        'two' => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAApJREFUCNdjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=',
+        default => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
+    };
+
+    return 'data:image/png;base64,'.$base64;
+}
+
+function testPngSignatureBinary(string $variant = 'one'): string
+{
+    $encoded = str_replace(
+        'data:image/png;base64,',
+        '',
+        testPngSignatureDataUrl($variant),
+    );
+    $decoded = base64_decode($encoded, true);
+
+    if ($decoded === false) {
+        throw new RuntimeException('Unable to decode test signature data.');
+    }
+
+    return $decoded;
+}
+
+function storeTestSignatureFile(string $path, string $variant = 'one'): string
+{
+    Storage::disk('public')->put($path, testPngSignatureBinary($variant));
+
+    return $path;
+}
+
+function createActiveAdminSignatureRecord(
+    AppUser $admin,
+    string $variant = 'one',
+): AdminSignature {
+    $path = storeTestSignatureFile(
+        sprintf(
+            'loan-manager-signatures/%d/%s-%s.png',
+            $admin->user_id,
+            $variant,
+            uniqid('', true),
+        ),
+        $variant,
+    );
+
+    AdminSignature::query()
+        ->where('user_id', $admin->user_id)
+        ->update(['is_active' => false]);
+
+    return AdminSignature::factory()->create([
+        'user_id' => $admin->user_id,
+        'signature_path' => $path,
+        'is_active' => true,
+    ]);
+}
+
+function prepareLoanRequestForApproval(
+    LoanRequest $loanRequest,
+    AppUser $admin,
+): void {
+    createActiveAdminSignatureRecord($admin);
+
+    $loanRequest->loadMissing('people');
+
+    foreach ([
+        LoanRequestPersonRole::Applicant,
+        LoanRequestPersonRole::CoMakerOne,
+        LoanRequestPersonRole::CoMakerTwo,
+    ] as $role) {
+        $person = $loanRequest->people
+            ->first(fn (LoanRequestPerson $item): bool => $item->role === $role);
+
+        if ($person === null) {
+            $person = LoanRequestPerson::factory()
+                ->forLoanRequest($loanRequest)
+                ->role($role)
+                ->create();
+        }
+
+        $person->update([
+            'signature_path' => storeTestSignatureFile(
+                sprintf(
+                    'loan-requests/signatures/%d-%s.png',
+                    $loanRequest->id,
+                    $role->value,
+                ),
+                match ($role) {
+                    LoanRequestPersonRole::Applicant => 'one',
+                    LoanRequestPersonRole::CoMakerOne => 'two',
+                    LoanRequestPersonRole::CoMakerTwo => 'one',
+                },
+            ),
+        ]);
+    }
 }

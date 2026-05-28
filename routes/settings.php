@@ -12,6 +12,10 @@ Route::middleware(['auth', 'approved'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('settings/profile/loan-manager-signature', [
+        ProfileController::class,
+        'updateLoanManagerSignature',
+    ])->name('profile.loan-manager-signature.update');
 });
 
 Route::middleware(['auth', 'approved', 'verified'])->group(function () {

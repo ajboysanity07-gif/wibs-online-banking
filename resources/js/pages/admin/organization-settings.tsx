@@ -1079,6 +1079,81 @@ export default function OrganizationSettings() {
                                                             }
                                                         />
                                                     </div>
+                                                    <div className="grid gap-3 md:col-span-2">
+                                                        <div className="space-y-1">
+                                                            <Label>
+                                                                Business address
+                                                            </Label>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Used as the
+                                                                place of signing
+                                                                in Grepalife
+                                                                documents.
+                                                            </p>
+                                                        </div>
+                                                        <div className="grid gap-4 md:grid-cols-3">
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="business_address1">
+                                                                    Address line
+                                                                    1
+                                                                </Label>
+                                                                <Input
+                                                                    id="business_address1"
+                                                                    name="business_address1"
+                                                                    defaultValue={
+                                                                        branding.businessAddress1 ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="Street / building"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.business_address1
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="business_address2">
+                                                                    Address line
+                                                                    2
+                                                                </Label>
+                                                                <Input
+                                                                    id="business_address2"
+                                                                    name="business_address2"
+                                                                    defaultValue={
+                                                                        branding.businessAddress2 ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="City / municipality"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.business_address2
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="business_address3">
+                                                                    Address line
+                                                                    3
+                                                                </Label>
+                                                                <Input
+                                                                    id="business_address3"
+                                                                    name="business_address3"
+                                                                    defaultValue={
+                                                                        branding.businessAddress3 ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="Province"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.business_address3
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     <div className="grid gap-2 md:col-span-2">
                                                         <Label>
                                                             App title preview

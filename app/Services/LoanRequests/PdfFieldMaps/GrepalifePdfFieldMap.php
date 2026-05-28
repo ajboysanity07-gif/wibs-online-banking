@@ -268,6 +268,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'width' => 94,
                 'line_height' => 2.2,
                 'value' => 'organization.company_name',
+                'transform' => $this->upperTransform(),
             ],
             [
                 'page' => 1,
@@ -428,6 +429,27 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'width' => 118,
                 'line_height' => 2.5,
                 'value' => 'applicant.full_name',
+                'transform' => $this->upperTransform(),
+            ],
+            [
+                'type' => 'signature',
+                'page' => 2,
+                'x' => 15.0,
+                'y' => 89.0,
+                'width' => 42,
+                'height' => 6.0,
+                'value' => 'reviewer.signature_path',
+            ],
+            [
+                'page' => 2,
+                'x' => 71,
+                'y' => 91.5,
+                'size' => 7.0,
+                'width' => 62,
+                'line_height' => 2.3,
+                'align' => 'L',
+                'value' => 'reviewer.name',
+                'transform' => $this->upperTransform(),
             ],
             [
                 'page' => 2,
@@ -438,6 +460,18 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'line_height' => 2.3,
                 'align' => 'L',
                 'value' => 'organization.company_name',
+                'transform' => $this->upperTransform(),
+            ],
+            [
+                'page' => 2,
+                'x' => 15.0,
+                'y' => 101.5,
+                'size' => 7.0,
+                'width' => 86,
+                'line_height' => 2.3,
+                'align' => 'L',
+                'value' => 'organization.business_address',
+                'transform' => $this->upperTransform(),
             ],
             [
                 'page' => 2,
@@ -502,5 +536,17 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 || data_get($documentData, 'loan.type') !== null
                 || data_get($documentData, 'loan.approved_amount') !== null;
         };
+    }
+
+    private function upper(?string $value): string
+    {
+        return mb_strtoupper(trim((string) $value));
+    }
+
+    private function upperTransform(): callable
+    {
+        return fn (mixed $value): string => $this->upper(
+            is_scalar($value) ? (string) $value : null,
+        );
     }
 }

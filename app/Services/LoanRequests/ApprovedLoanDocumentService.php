@@ -26,6 +26,20 @@ use ZipArchive;
 
 class ApprovedLoanDocumentService
 {
+    private const DEFAULT_INTEREST_RATE_PER_ANNUM = 0.36;
+
+    private const DEFAULT_SERVICE_CHARGE_RATE = 0.05;
+
+    private const DEFAULT_INSURANCE_RATE = 1.0;
+
+    private const DEFAULT_LOAN_SECURITY_RATE = 0.02;
+
+    private const DEFAULT_DOCUMENTARY_STAMP_RATE = 0.0075;
+
+    private const DEFAULT_NOTARIAL_FEE = 100.0;
+
+    private const DEFAULT_PENALTY_RATE_PER_MONTH = 0.05;
+
     private const GREPALIFE_IMAGE_TEMPLATE_PAGES = [
         [
             'image' => 'grepalife-page-1.png',
@@ -91,7 +105,12 @@ class ApprovedLoanDocumentService
 
     public function applicationForm(LoanRequest $loanRequest): Response
     {
-        $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
+        $loanRequest->loadMissing(
+            'people',
+            'reviewedBy.adminProfile',
+            'approvalSignature',
+            'user',
+        );
 
         $workingDirectory = $this->makeWorkingDirectory($loanRequest);
         $applicationFormPdfPath = $workingDirectory
@@ -119,7 +138,12 @@ class ApprovedLoanDocumentService
     public function grepalife(LoanRequest $loanRequest): Response
     {
         $this->ensureApproved($loanRequest);
-        $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
+        $loanRequest->loadMissing(
+            'people',
+            'reviewedBy.adminProfile',
+            'approvalSignature',
+            'user',
+        );
 
         return $this->approvedLoanImageTemplatePdfService->renderResponse(
             self::GREPALIFE_IMAGE_TEMPLATE_PAGES,
@@ -215,7 +239,12 @@ class ApprovedLoanDocumentService
     public function packageZip(LoanRequest $loanRequest): Response
     {
         $this->ensureApproved($loanRequest);
-        $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
+        $loanRequest->loadMissing(
+            'people',
+            'reviewedBy.adminProfile',
+            'approvalSignature',
+            'user',
+        );
 
         $workingDirectory = $this->makeWorkingDirectory($loanRequest);
         $documentDirectory = $workingDirectory.DIRECTORY_SEPARATOR.'documents';
@@ -392,22 +421,114 @@ class ApprovedLoanDocumentService
      */
     private function buildDocumentData(LoanRequest $loanRequest): array
     {
+        $loanRequest->loadMissing(
+            'people',
+            'reviewedBy.adminProfile',
+            'approvalSignature',
+            'user',
+        );
+
         $applicant = $this->resolvePerson($loanRequest, LoanRequestPersonRole::Applicant);
         $coMakerOne = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerOne);
         $coMakerTwo = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerTwo);
         $memberRecord = $this->resolveMemberWmaster($loanRequest);
         $branding = $this->organizationSettingsService->branding();
-        $approvedAt = $loanRequest->reviewed_at instanceof Carbon
-            ? $loanRequest->reviewed_at
-            : now();
+        $approvedAt = $this->resolveReviewedAt($loanRequest);
         $approvedTerm = $this->normalizeIntegerValue($loanRequest->approved_term);
         $approvedAmountRaw = $this->normalizeNumericValue($loanRequest->approved_amount);
         $paymentMode = $this->resolveWorkbookPaymentMode($applicant);
+        $reviewerName = $this->normalizeText(
+            $loanRequest->reviewedBy?->adminProfile?->fullname,
+        ) ?? $this->normalizeText($loanRequest->reviewedBy?->name);
+        $reviewerPosition = $reviewerName !== null ? 'Loan Manager' : null;
+        $supportContactName = $this->normalizeText(
+            $branding['supportContactName'] ?? null,
+        );
+        $amortizationCount = $this->resolveAmortizationCount(
+            $approvedTerm,
+            $paymentMode,
+        );
         $maturityDate = $this->resolveMaturityDate($approvedAt, $approvedTerm);
+        $interestRateRaw = self::DEFAULT_INTEREST_RATE_PER_ANNUM;
+        $serviceChargeRateRaw = self::DEFAULT_SERVICE_CHARGE_RATE;
+        $insuranceRateRaw = self::DEFAULT_INSURANCE_RATE;
+        $insuranceTerm = $approvedTerm !== null ? min($approvedTerm, 12) : null;
+        $interestNotDeductedRaw = $this->roundCurrency(
+            $approvedAmountRaw !== null && $approvedTerm !== null
+                ? ($approvedAmountRaw * $interestRateRaw / 12) * $approvedTerm
+                : null,
+        );
+        $serviceChargeAmountRaw = $this->roundCurrency(
+            $approvedAmountRaw !== null
+                ? $approvedAmountRaw * $serviceChargeRateRaw
+                : null,
+        );
+        $insurancePremiumRaw = $this->roundCurrency(
+            $approvedAmountRaw !== null && $insuranceTerm !== null
+                ? ($approvedAmountRaw / 1000) * $insuranceTerm * $insuranceRateRaw
+                : null,
+        );
+        $loanSecurityAmountRaw = $this->roundCurrency(
+            $approvedAmountRaw !== null
+                ? $approvedAmountRaw * self::DEFAULT_LOAN_SECURITY_RATE
+                : null,
+        );
+        $documentaryStampAmountRaw = $this->roundCurrency(
+            $approvedAmountRaw !== null
+                ? $approvedAmountRaw * self::DEFAULT_DOCUMENTARY_STAMP_RATE
+                : null,
+        );
+        $notarialFeeRaw = self::DEFAULT_NOTARIAL_FEE;
+        $principalAmortizationRaw = $this->roundCurrency(
+            $approvedAmountRaw !== null && $amortizationCount !== null && $amortizationCount > 0
+                ? $approvedAmountRaw / $amortizationCount
+                : null,
+        );
+        $interestAmortizationRaw = $this->roundCurrency(
+            $interestNotDeductedRaw !== null && $amortizationCount !== null && $amortizationCount > 0
+                ? $interestNotDeductedRaw / $amortizationCount
+                : null,
+        );
+        $loanSecurityAmortizationRaw = $this->roundCurrency(
+            $principalAmortizationRaw !== null
+                ? $principalAmortizationRaw * self::DEFAULT_LOAN_SECURITY_RATE
+                : null,
+        );
+        $amortizationTotalRaw = $this->roundCurrency(
+            $this->sumAmounts(
+                $principalAmortizationRaw,
+                $interestAmortizationRaw,
+                $loanSecurityAmortizationRaw,
+            ),
+        );
+        $financeChargeTotalRaw = $this->roundCurrency(
+            $this->sumAmounts($interestNotDeductedRaw, $serviceChargeAmountRaw),
+        );
+        $nonFinanceChargeTotalRaw = $this->roundCurrency(
+            $this->sumAmounts(
+                $insurancePremiumRaw,
+                $loanSecurityAmountRaw,
+                $documentaryStampAmountRaw,
+                $notarialFeeRaw,
+            ),
+        );
+        $deductionsTotalRaw = $this->roundCurrency(
+            $this->sumAmounts($financeChargeTotalRaw, $nonFinanceChargeTotalRaw),
+        );
+        $netProceedsRaw = $this->roundCurrency(
+            $approvedAmountRaw !== null && $deductionsTotalRaw !== null
+                ? $approvedAmountRaw - $deductionsTotalRaw
+                : null,
+        );
+        $witnessOneName = $supportContactName ?? $reviewerName;
+        $witnessTwoName = $reviewerName ?? $supportContactName;
 
         return [
             'organization' => [
                 'company_name' => $this->normalizeText($branding['companyName'] ?? null),
+                'business_address' => $this->normalizeText(
+                    $branding['businessAddress'] ?? null,
+                ),
                 'support_contact_name' => $this->normalizeText(
                     $branding['supportContactName'] ?? null,
                 ),
@@ -422,16 +543,18 @@ class ApprovedLoanDocumentService
                     : [],
             ],
             'reviewer' => [
-                'name' => $this->normalizeText(
-                    $loanRequest->reviewedBy?->adminProfile?->fullname,
-                )
-                    ?? $this->normalizeText($loanRequest->reviewedBy?->name)
-                    ?? $this->normalizeText($branding['supportContactName'] ?? null),
-                'position' => null,
+                'name' => $reviewerName,
+                'position' => $reviewerPosition,
+                'signature_path' => $this->normalizeText(
+                    $loanRequest->approvalSignature?->signature_path,
+                ),
+                'witness_one_name' => $witnessOneName,
+                'witness_two_name' => $witnessTwoName,
             ],
             'loan' => [
                 'reference' => $loanRequest->reference,
-                'type' => $this->normalizeText($loanRequest->loan_type_label_snapshot),
+                'type' => $this->normalizeText($loanRequest->loan_type_label_snapshot)
+                    ?? $this->normalizeText($loanRequest->typecode),
                 'requested_amount' => $this->formatCurrencyValue($loanRequest->requested_amount),
                 'requested_amount_raw' => $this->normalizeNumericValue($loanRequest->requested_amount),
                 'approved_amount' => $this->formatCurrencyValue($loanRequest->approved_amount),
@@ -442,21 +565,33 @@ class ApprovedLoanDocumentService
                 'approved_term_label' => $loanRequest->approved_term !== null
                     ? $loanRequest->approved_term.' months'
                     : null,
-                'amortization_count' => $this->resolveAmortizationCount(
-                    $approvedTerm,
-                    $paymentMode,
-                ),
+                'amortization_count' => $amortizationCount,
                 'payment_mode_workbook' => $paymentMode,
                 'purpose' => $this->normalizeText($loanRequest->loan_purpose),
-                'approved_date' => $approvedAt->format('F d, Y'),
-                'approved_date_short' => $approvedAt->format('m/d/Y'),
+                'approved_date' => $approvedAt?->format('F d, Y'),
+                'approved_date_short' => $approvedAt?->format('m/d/Y'),
                 'maturity_date_short' => $maturityDate?->format('m/d/Y'),
                 'term_days' => $approvedTerm !== null ? $approvedTerm * 30 : null,
-                'insurance_term' => $approvedTerm !== null ? min($approvedTerm, 12) : null,
-                'interest_rate_raw' => null,
-                'service_charge_rate_raw' => null,
-                'insurance_rate_raw' => null,
-                'interest_rate_words' => null,
+                'insurance_term' => $insuranceTerm,
+                'interest_rate_raw' => $interestRateRaw,
+                'service_charge_rate_raw' => $serviceChargeRateRaw,
+                'insurance_rate_raw' => $insuranceRateRaw,
+                'interest_rate_words' => $this->formatPercentWords($interestRateRaw),
+                'interest_not_deducted_raw' => $interestNotDeductedRaw,
+                'service_charge_amount_raw' => $serviceChargeAmountRaw,
+                'insurance_premium_raw' => $insurancePremiumRaw,
+                'loan_security_amount_raw' => $loanSecurityAmountRaw,
+                'documentary_stamp_amount_raw' => $documentaryStampAmountRaw,
+                'notarial_fee_raw' => $notarialFeeRaw,
+                'finance_charge_total_raw' => $financeChargeTotalRaw,
+                'non_finance_charge_total_raw' => $nonFinanceChargeTotalRaw,
+                'deductions_total_raw' => $deductionsTotalRaw,
+                'net_proceeds_raw' => $netProceedsRaw,
+                'amortization_principal_raw' => $principalAmortizationRaw,
+                'amortization_interest_raw' => $interestAmortizationRaw,
+                'amortization_loan_security_raw' => $loanSecurityAmortizationRaw,
+                'amortization_total_raw' => $amortizationTotalRaw,
+                'penalty_rate_raw' => self::DEFAULT_PENALTY_RATE_PER_MONTH,
             ],
             'applicant' => $this->personDocumentData($applicant, $loanRequest),
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
@@ -501,6 +636,7 @@ class ApprovedLoanDocumentService
             'address_province' => $this->normalizeText($person?->address3),
             'address_country' => null,
             'address_zip' => null,
+            'contact_number' => $this->normalizeText($person?->cell_no),
             'mobile' => $this->normalizeText($person?->cell_no),
             'home_phone' => null,
             'work_phone' => $this->normalizeText($person?->telephone_no),
@@ -807,14 +943,37 @@ class ApprovedLoanDocumentService
     }
 
     private function resolveMaturityDate(
-        CarbonInterface $approvedAt,
+        ?CarbonInterface $approvedAt,
         ?int $approvedTerm,
     ): ?CarbonInterface {
-        if ($approvedTerm === null || $approvedTerm <= 0) {
+        if (
+            $approvedAt === null
+            || $approvedTerm === null
+            || $approvedTerm <= 0
+        ) {
             return null;
         }
 
         return $approvedAt->copy()->addMonthsNoOverflow($approvedTerm);
+    }
+
+    private function resolveReviewedAt(LoanRequest $loanRequest): ?CarbonInterface
+    {
+        if ($loanRequest->reviewed_at instanceof CarbonInterface) {
+            return $loanRequest->reviewed_at;
+        }
+
+        $reviewedAt = trim((string) $loanRequest->reviewed_at);
+
+        if ($reviewedAt === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($reviewedAt);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function formatCurrencyWords(float|int|string|null $value): ?string
@@ -854,6 +1013,64 @@ class ApprovedLoanDocumentService
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function formatPercentWords(float|int|string|null $value): ?string
+    {
+        if ($value === null || ! is_numeric((string) $value)) {
+            return null;
+        }
+
+        $percentage = round((float) $value * 100, 2);
+        $percentageLabel = fmod($percentage, 1.0) === 0.0
+            ? number_format($percentage, 0, '.', '')
+            : number_format($percentage, 2, '.', '');
+
+        if (! class_exists(NumberFormatter::class)) {
+            return $percentageLabel.' PERCENT ('.$percentageLabel.'%)';
+        }
+
+        try {
+            $formatter = new NumberFormatter('en', NumberFormatter::SPELLOUT);
+            $formatted = $formatter->format((int) round($percentage));
+
+            if (! is_string($formatted) || trim($formatted) === '') {
+                return $percentageLabel.' PERCENT ('.$percentageLabel.'%)';
+            }
+
+            $words = strtoupper(str_replace('-', ' ', $formatted));
+            $words = preg_replace('/\s+/', ' ', $words);
+
+            return trim((string) $words).' PERCENT ('.$percentageLabel.'%)';
+        } catch (Throwable) {
+            return $percentageLabel.' PERCENT ('.$percentageLabel.'%)';
+        }
+    }
+
+    private function sumAmounts(float|int|null ...$values): ?float
+    {
+        $sum = 0.0;
+        $hasValue = false;
+
+        foreach ($values as $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            $sum += (float) $value;
+            $hasValue = true;
+        }
+
+        return $hasValue ? $sum : null;
+    }
+
+    private function roundCurrency(float|int|null $value): ?float
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return round((float) $value, 2);
     }
 
     private function personFullName(?LoanRequestPerson $person): ?string
