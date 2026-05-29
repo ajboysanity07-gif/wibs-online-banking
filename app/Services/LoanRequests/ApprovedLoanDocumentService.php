@@ -542,6 +542,15 @@ class ApprovedLoanDocumentService
                 'business_address' => $this->normalizeText(
                     $branding['businessAddress'] ?? null,
                 ),
+                'business_address1' => $this->normalizeText(
+                    $branding['businessAddress1'] ?? null,
+                ),
+                'business_address2' => $this->normalizeText(
+                    $branding['businessAddress2'] ?? null,
+                ),
+                'business_address3' => $this->normalizeText(
+                    $branding['businessAddress3'] ?? null,
+                ),
                 'support_contact_name' => $this->normalizeText(
                     $branding['supportContactName'] ?? null,
                 ),

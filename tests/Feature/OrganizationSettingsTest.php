@@ -96,6 +96,11 @@ test('branding uses stored organization settings when available', function () {
     expect($branding['businessAddress1'])->toBe('Head Office');
     expect($branding['businessAddress2'])->toBe('Tagum City');
     expect($branding['businessAddress3'])->toBe('Davao del Norte');
+    expect($branding['general']['businessAddress'])
+        ->toBe('Head Office, Tagum City, Davao del Norte');
+    expect($branding['general']['businessAddress1'])->toBe('Head Office');
+    expect($branding['general']['businessAddress2'])->toBe('Tagum City');
+    expect($branding['general']['businessAddress3'])->toBe('Davao del Norte');
     expect($branding['portalLabel'])->toBe('Acme Portal');
     expect($branding['appTitle'])->toBe('Acme Portal - Acme Corp');
     expect($branding['logoPreset'])->toBe(
@@ -132,6 +137,31 @@ test('branding uses stored organization settings when available', function () {
         ->toBe('Approved {loan_reference}.');
     expect($branding['communications']['loanSmsTemplates']['declined'])
         ->toBe('Declined {loan_reference}.');
+});
+
+test('organization setting fillable includes business address fields', function () {
+    $fillable = (new OrganizationSetting)->getFillable();
+
+    expect($fillable)->toContain('business_address');
+    expect($fillable)->toContain('business_address1');
+    expect($fillable)->toContain('business_address2');
+    expect($fillable)->toContain('business_address3');
+});
+
+test('branding composes business address cleanly when some parts are missing', function () {
+    OrganizationSetting::factory()->create([
+        'business_address' => null,
+        'business_address1' => null,
+        'business_address2' => 'Lianga',
+        'business_address3' => 'Surigao del Sur',
+    ]);
+
+    $branding = app(OrganizationSettingsService::class)->branding();
+
+    expect($branding['businessAddress'])->toBe('Lianga, Surigao del Sur');
+    expect($branding['businessAddress'])->not->toContain(',,');
+    expect($branding['general']['businessAddress'])
+        ->toBe('Lianga, Surigao del Sur');
 });
 
 test('loan sms templates fall back to defaults when blank', function () {

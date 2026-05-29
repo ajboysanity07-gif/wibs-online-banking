@@ -202,6 +202,10 @@ test('loan security agreement pdf includes borrower and agreement details', func
     ]);
     OrganizationSetting::factory()->create([
         'company_name' => 'Acme Cooperative',
+        'business_address' => 'Poblacion, Tagum City, Davao del Norte',
+        'business_address1' => 'Poblacion',
+        'business_address2' => 'Tagum City',
+        'business_address3' => 'Davao del Norte',
         'support_contact_name' => 'Annabelle M. Amora',
     ]);
 
@@ -243,6 +247,7 @@ test('loan security agreement pdf includes borrower and agreement details', func
         ->toContain('LOANSECURITYAGREEMENT')
         ->toContain('ACMECOOPERATIVE')
         ->toContain('HELARIOB.TEJERO')
+        ->toContain('POBLACION,TAGUMCITY,DAVAODELNORTE')
         ->toContain('SALARYLOAN')
         ->toContain('22DAYOFMAY,2026')
         ->not->toContain('25,000.00');
@@ -428,6 +433,14 @@ test('grepalife signature section uses borrower witness and organization signing
         ->not->toBe('Input Data')
         ->not->toBe('No Input Data')
         ->not->toBe('0');
+    expect(data_get($documentData, 'organization.business_address'))
+        ->toBe('123 Main Street, Tagum City, Davao del Norte');
+    expect(data_get($documentData, 'organization.business_address1'))
+        ->toBe('123 Main Street');
+    expect(data_get($documentData, 'organization.business_address2'))
+        ->toBe('Tagum City');
+    expect(data_get($documentData, 'organization.business_address3'))
+        ->toBe('Davao del Norte');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         $dateOfSigningField,
         $documentData,
@@ -532,6 +545,10 @@ test('grepalife signature section leaves missing witness signatures and place of
         ),
         $documentData,
     ))->toBe('');
+    expect(data_get($documentData, 'organization.business_address'))->toBeNull();
+    expect(data_get($documentData, 'organization.business_address1'))->toBeNull();
+    expect(data_get($documentData, 'organization.business_address2'))->toBeNull();
+    expect(data_get($documentData, 'organization.business_address3'))->toBeNull();
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
