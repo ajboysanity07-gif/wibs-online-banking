@@ -6,6 +6,7 @@ import FontPicker from 'react-fontpicker-ts';
 import 'react-fontpicker-ts/dist/index.css';
 import OrganizationSettingsController from '@/actions/App/Http/Controllers/Admin/OrganizationSettingsController';
 import InputError from '@/components/input-error';
+import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
 import { SectionHeader } from '@/components/section-header';
@@ -21,22 +22,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBranding } from '@/hooks/use-branding';
+import { useLocationSearch } from '@/hooks/use-location-search';
+import { composeAddress } from '@/lib/formatters';
 import AppLayout from '@/layouts/app-layout';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { dashboard } from '@/routes/admin';
+import { cities, provinces } from '@/routes/api/locations';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { mrdincTheme } from '@/theme/clients/mrdinc';
-import type {
-    BreadcrumbItem,
-    LogoPreset,
-} from '@/types';
+import type { BreadcrumbItem, LogoPreset } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -158,6 +154,9 @@ const normalizeHexInputValue = (value: string | null | undefined): string => {
     return normalized ?? value.trim();
 };
 
+const normalizeLocationValue = (value: string | null | undefined): string =>
+    value?.trim().toLowerCase() ?? '';
+
 const resolveAppTitlePreview = (
     companyName: string,
     portalLabel: string,
@@ -190,7 +189,9 @@ const resolveMessagePrefix = (
 
     if (normalizedPortal && normalizedCompany) {
         if (
-            normalizedPortal.toLowerCase().includes(normalizedCompany.toLowerCase())
+            normalizedPortal
+                .toLowerCase()
+                .includes(normalizedCompany.toLowerCase())
         ) {
             return normalizedPortal;
         }
@@ -201,7 +202,10 @@ const resolveMessagePrefix = (
     return normalizedPortal || normalizedCompany;
 };
 
-const resolveOfficeName = (companyName: string, portalLabel: string): string => {
+const resolveOfficeName = (
+    companyName: string,
+    portalLabel: string,
+): string => {
     const normalizedCompany = companyName.trim();
 
     if (normalizedCompany !== '') {
@@ -317,6 +321,22 @@ export default function OrganizationSettings() {
     const [portalLabelValue, setPortalLabelValue] = useState(
         branding.portalLabel,
     );
+    const [businessAddress1Value, setBusinessAddress1Value] = useState(
+        branding.businessAddress1 ?? '',
+    );
+    const [selectedBusinessCityProvince, setSelectedBusinessCityProvince] =
+        useState<string | null>(branding.businessAddress3);
+    const businessProvinceSearch = useLocationSearch({
+        initialQuery: branding.businessAddress3 ?? '',
+        searchUrl: provinces.url(),
+    });
+    const businessCitySearch = useLocationSearch({
+        initialQuery: branding.businessAddress2 ?? '',
+        searchUrl: cities.url(),
+        params: {
+            province: businessProvinceSearch.query.trim() || undefined,
+        },
+    });
     const [reportLabelFontFamily, setReportLabelFontFamily] = useState(
         branding.reportTypography.label.family,
     );
@@ -375,15 +395,17 @@ export default function OrganizationSettings() {
     );
     const [reportValueColorTouched, setReportValueColorTouched] =
         useState(false);
-    const [loanSmsApprovedTemplate, setLoanSmsApprovedTemplate] = useState(() =>
-        branding.communications?.loanSmsTemplates?.approved
-            ? branding.communications.loanSmsTemplates.approved
-            : DEFAULT_LOAN_SMS_APPROVED_TEMPLATE,
+    const [loanSmsApprovedTemplate, setLoanSmsApprovedTemplate] = useState(
+        () =>
+            branding.communications?.loanSmsTemplates?.approved
+                ? branding.communications.loanSmsTemplates.approved
+                : DEFAULT_LOAN_SMS_APPROVED_TEMPLATE,
     );
-    const [loanSmsDeclinedTemplate, setLoanSmsDeclinedTemplate] = useState(() =>
-        branding.communications?.loanSmsTemplates?.declined
-            ? branding.communications.loanSmsTemplates.declined
-            : DEFAULT_LOAN_SMS_DECLINED_TEMPLATE,
+    const [loanSmsDeclinedTemplate, setLoanSmsDeclinedTemplate] = useState(
+        () =>
+            branding.communications?.loanSmsTemplates?.declined
+                ? branding.communications.loanSmsTemplates.declined
+                : DEFAULT_LOAN_SMS_DECLINED_TEMPLATE,
     );
     const primaryInputValue = brandPrimaryTouched
         ? brandPrimaryValue
@@ -450,6 +472,11 @@ export default function OrganizationSettings() {
     const officeNamePreview = resolveOfficeName(
         companyNamePreview,
         portalLabelPreview,
+    );
+    const businessAddressPreview = composeAddress(
+        businessAddress1Value,
+        businessCitySearch.query,
+        businessProvinceSearch.query,
     );
     const loanSmsApprovedTemplateValue =
         loanSmsApprovedTemplate.trim() !== ''
@@ -824,6 +851,29 @@ export default function OrganizationSettings() {
         }
     };
 
+    const clearBusinessCity = () => {
+        businessCitySearch.setSelectedValue('');
+        setSelectedBusinessCityProvince(null);
+    };
+
+    const syncBusinessCityForProvince = (nextProvince: string) => {
+        if (
+            businessCitySearch.query.trim() === '' ||
+            selectedBusinessCityProvince === null
+        ) {
+            return;
+        }
+
+        if (
+            normalizeLocationValue(nextProvince) ===
+            normalizeLocationValue(selectedBusinessCityProvince)
+        ) {
+            return;
+        }
+
+        clearBusinessCity();
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Organization settings" />
@@ -837,27 +887,27 @@ export default function OrganizationSettings() {
                         <>
                             <Badge
                                 variant="outline"
-                                className="text-[10px] uppercase tracking-[0.2em]"
+                                className="text-[10px] tracking-[0.2em] uppercase"
                             >
                                 Preset: {logoPresetLabel}
                             </Badge>
                             <Badge
                                 variant="outline"
-                                className="text-[10px] uppercase tracking-[0.2em]"
+                                className="text-[10px] tracking-[0.2em] uppercase"
                             >
                                 Live preview
                             </Badge>
                             {hasChanges ? (
                                 <Badge
                                     variant="outline"
-                                    className="border-primary/40 text-[10px] uppercase tracking-[0.2em] text-primary"
+                                    className="border-primary/40 text-[10px] tracking-[0.2em] text-primary uppercase"
                                 >
                                     Unsaved changes
                                 </Badge>
                             ) : (
                                 <Badge
                                     variant="secondary"
-                                    className="text-[10px] uppercase tracking-[0.2em]"
+                                    className="text-[10px] tracking-[0.2em] uppercase"
                                 >
                                     Up to date
                                 </Badge>
@@ -867,7 +917,11 @@ export default function OrganizationSettings() {
                 />
 
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start xl:grid-cols-[minmax(0,1fr)_420px]">
-                    <SurfaceCard variant="default" padding="lg" className="space-y-8">
+                    <SurfaceCard
+                        variant="default"
+                        padding="lg"
+                        className="space-y-8"
+                    >
                         <SectionHeader
                             title="Organization settings"
                             description="Update identity, visual assets, report design, and communications sent to members."
@@ -1004,167 +1058,251 @@ export default function OrganizationSettings() {
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
-                                                variant="muted"
-                                                padding="md"
-                                                className="space-y-6"
-                                            >
-                                                <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold tracking-tight">
-                                                        General
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Company name, portal
-                                                        label, and the app title
-                                                        shown to members.
-                                                    </p>
-                                                </div>
-
-                                                <div className="grid gap-6 md:grid-cols-2">
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="company_name">
-                                                            Company name
-                                                        </Label>
-                                                        <Input
-                                                            id="company_name"
-                                                            name="company_name"
-                                                            value={
-                                                                companyNameValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setCompanyNameValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                            placeholder="Company name"
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.company_name
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="portal_label">
-                                                            Portal label
-                                                        </Label>
-                                                        <Input
-                                                            id="portal_label"
-                                                            name="portal_label"
-                                                            value={
-                                                                portalLabelValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setPortalLabelValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                            placeholder="Member Portal"
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.portal_label
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div className="grid gap-3 md:col-span-2">
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
                                                         <div className="space-y-1">
-                                                            <Label>
-                                                                Business address
-                                                            </Label>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Used as the
-                                                                place of signing
-                                                                in Grepalife
-                                                                documents.
+                                                            <h3 className="text-base font-semibold tracking-tight">
+                                                                General
+                                                            </h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Company name,
+                                                                portal label,
+                                                                and the app
+                                                                title shown to
+                                                                members.
                                                             </p>
                                                         </div>
-                                                        <div className="grid gap-4 md:grid-cols-3">
+
+                                                        <div className="grid gap-6 md:grid-cols-2">
                                                             <div className="grid gap-2">
-                                                                <Label htmlFor="business_address1">
-                                                                    Address line
-                                                                    1
+                                                                <Label htmlFor="company_name">
+                                                                    Company name
                                                                 </Label>
                                                                 <Input
-                                                                    id="business_address1"
-                                                                    name="business_address1"
-                                                                    defaultValue={
-                                                                        branding.businessAddress1 ??
-                                                                        ''
+                                                                    id="company_name"
+                                                                    name="company_name"
+                                                                    value={
+                                                                        companyNameValue
                                                                     }
-                                                                    placeholder="Street / building"
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) => {
+                                                                        setCompanyNameValue(
+                                                                            event
+                                                                                .target
+                                                                                .value,
+                                                                        );
+                                                                        setHasChanges(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                    placeholder="Company name"
                                                                 />
                                                                 <InputError
                                                                     message={
-                                                                        formErrors.business_address1
+                                                                        formErrors.company_name
                                                                     }
                                                                 />
                                                             </div>
+
                                                             <div className="grid gap-2">
-                                                                <Label htmlFor="business_address2">
-                                                                    Address line
-                                                                    2
+                                                                <Label htmlFor="portal_label">
+                                                                    Portal label
                                                                 </Label>
                                                                 <Input
-                                                                    id="business_address2"
-                                                                    name="business_address2"
-                                                                    defaultValue={
-                                                                        branding.businessAddress2 ??
-                                                                        ''
+                                                                    id="portal_label"
+                                                                    name="portal_label"
+                                                                    value={
+                                                                        portalLabelValue
                                                                     }
-                                                                    placeholder="City / municipality"
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) => {
+                                                                        setPortalLabelValue(
+                                                                            event
+                                                                                .target
+                                                                                .value,
+                                                                        );
+                                                                        setHasChanges(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                    placeholder="Member Portal"
                                                                 />
                                                                 <InputError
                                                                     message={
-                                                                        formErrors.business_address2
+                                                                        formErrors.portal_label
                                                                     }
                                                                 />
                                                             </div>
-                                                            <div className="grid gap-2">
-                                                                <Label htmlFor="business_address3">
-                                                                    Address line
-                                                                    3
+                                                            <div className="grid gap-3 md:col-span-2">
+                                                                <div className="space-y-1">
+                                                                    <Label>
+                                                                        Business
+                                                                        address
+                                                                    </Label>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        This
+                                                                        address
+                                                                        is used
+                                                                        as the
+                                                                        official
+                                                                        place of
+                                                                        signing
+                                                                        in
+                                                                        generated
+                                                                        loan
+                                                                        documents.
+                                                                    </p>
+                                                                </div>
+                                                                <div className="grid gap-4 md:grid-cols-3">
+                                                                    <div className="grid gap-2 md:col-span-3">
+                                                                        <Label htmlFor="business_address1">
+                                                                            Street
+                                                                            /
+                                                                            Barangay
+                                                                            /
+                                                                            Office
+                                                                            address
+                                                                        </Label>
+                                                                        <Input
+                                                                            id="business_address1"
+                                                                            name="business_address1"
+                                                                            value={
+                                                                                businessAddress1Value
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setBusinessAddress1Value(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                            placeholder="Street / Barangay / Office address"
+                                                                        />
+                                                                        <InputError
+                                                                            message={
+                                                                                formErrors.business_address1
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="business_address2">
+                                                                            City
+                                                                            /
+                                                                            Municipality
+                                                                        </Label>
+                                                                        <LocationAutocompleteInput
+                                                                            id="business_address2"
+                                                                            name="business_address2"
+                                                                            search={
+                                                                                businessCitySearch
+                                                                            }
+                                                                            placeholder="Select city or municipality"
+                                                                            inputClassName="w-full"
+                                                                            loadingMessage="Searching city suggestions..."
+                                                                            errorMessage="City suggestions are temporarily unavailable."
+                                                                            onValueChange={() => {
+                                                                                setSelectedBusinessCityProvince(
+                                                                                    null,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                            onSelect={(
+                                                                                suggestion,
+                                                                            ) => {
+                                                                                setSelectedBusinessCityProvince(
+                                                                                    suggestion.province,
+                                                                                );
+
+                                                                                if (
+                                                                                    suggestion.province
+                                                                                ) {
+                                                                                    businessProvinceSearch.setSelectedValue(
+                                                                                        suggestion.province,
+                                                                                    );
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <InputError
+                                                                            message={
+                                                                                formErrors.business_address2
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="business_address3">
+                                                                            Province
+                                                                        </Label>
+                                                                        <LocationAutocompleteInput
+                                                                            id="business_address3"
+                                                                            name="business_address3"
+                                                                            search={
+                                                                                businessProvinceSearch
+                                                                            }
+                                                                            placeholder="Select province"
+                                                                            inputClassName="w-full"
+                                                                            loadingMessage="Searching province suggestions..."
+                                                                            errorMessage="Province suggestions are temporarily unavailable."
+                                                                            promptMessage="Type at least 2 characters to search provinces."
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                syncBusinessCityForProvince(
+                                                                                    value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                            onSelect={(
+                                                                                suggestion,
+                                                                            ) => {
+                                                                                syncBusinessCityForProvince(
+                                                                                    suggestion.value,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                        <InputError
+                                                                            message={
+                                                                                formErrors.business_address3
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="grid gap-2 md:col-span-2">
+                                                                <Label>
+                                                                    Business
+                                                                    address
+                                                                    preview
                                                                 </Label>
-                                                                <Input
-                                                                    id="business_address3"
-                                                                    name="business_address3"
-                                                                    defaultValue={
-                                                                        branding.businessAddress3 ??
-                                                                        ''
-                                                                    }
-                                                                    placeholder="Province"
-                                                                />
-                                                                <InputError
-                                                                    message={
-                                                                        formErrors.business_address3
-                                                                    }
-                                                                />
+                                                                <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2 text-sm text-muted-foreground">
+                                                                    {businessAddressPreview ||
+                                                                        '--'}
+                                                                </div>
+                                                            </div>
+                                                            <div className="grid gap-2 md:col-span-2">
+                                                                <Label>
+                                                                    App title
+                                                                    preview
+                                                                </Label>
+                                                                <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2 text-sm text-muted-foreground">
+                                                                    {appTitlePreview ||
+                                                                        '--'}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="grid gap-2 md:col-span-2">
-                                                        <Label>
-                                                            App title preview
-                                                        </Label>
-                                                        <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2 text-sm text-muted-foreground">
-                                                            {appTitlePreview ||
-                                                                '--'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </SurfaceCard>
+                                                    </SurfaceCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -1173,472 +1311,491 @@ export default function OrganizationSettings() {
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
-                                                variant="muted"
-                                                padding="md"
-                                                className="space-y-6"
-                                            >
-                                                <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold tracking-tight">
-                                                        Brand assets
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Choose the primary logo
-                                                        and portal icon used
-                                                        throughout the member
-                                                        experience.
-                                                    </p>
-                                                </div>
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-1">
+                                                            <h3 className="text-base font-semibold tracking-tight">
+                                                                Brand assets
+                                                            </h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Choose the
+                                                                primary logo and
+                                                                portal icon used
+                                                                throughout the
+                                                                member
+                                                                experience.
+                                                            </p>
+                                                        </div>
 
-                                                <div className="grid gap-6">
-                                                    <div className="space-y-4 rounded-2xl border border-border/30 bg-background/60 p-4">
-                                                        <Label className="text-sm font-semibold">
-                                                            Primary logo
-                                                        </Label>
-                                                        <div
-                                                            role="radiogroup"
-                                                            aria-label="Primary logo selection"
-                                                            className="grid gap-4 md:grid-cols-2"
-                                                        >
-                                                            {LOGO_PRESET_OPTIONS.map(
-                                                                (option) => {
-                                                                    const isSelected =
-                                                                        logoPreset ===
-                                                                        option.value;
-                                                                    const isMark =
-                                                                        option.value ===
-                                                                        'mark';
-                                                                    const previewUrl =
-                                                                        isMark
-                                                                            ? logoMarkPreviewUrl
-                                                                            : logoFullPreviewUrl;
-                                                                    const isDefault =
-                                                                        isMark
-                                                                            ? logoMarkIsDefault
-                                                                            : logoFullIsDefault;
-                                                                    const isReset =
-                                                                        isMark
-                                                                            ? logoMarkReset
-                                                                            : logoFullReset;
-                                                                    const hasPreview =
-                                                                        isMark
-                                                                            ? Boolean(
-                                                                                  logoMarkPreview,
-                                                                              )
-                                                                            : Boolean(
-                                                                                  logoFullPreview,
-                                                                              );
-                                                                    const optionId = `logo-preset-${option.value}`;
+                                                        <div className="grid gap-6">
+                                                            <div className="space-y-4 rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                                <Label className="text-sm font-semibold">
+                                                                    Primary logo
+                                                                </Label>
+                                                                <div
+                                                                    role="radiogroup"
+                                                                    aria-label="Primary logo selection"
+                                                                    className="grid gap-4 md:grid-cols-2"
+                                                                >
+                                                                    {LOGO_PRESET_OPTIONS.map(
+                                                                        (
+                                                                            option,
+                                                                        ) => {
+                                                                            const isSelected =
+                                                                                logoPreset ===
+                                                                                option.value;
+                                                                            const isMark =
+                                                                                option.value ===
+                                                                                'mark';
+                                                                            const previewUrl =
+                                                                                isMark
+                                                                                    ? logoMarkPreviewUrl
+                                                                                    : logoFullPreviewUrl;
+                                                                            const isDefault =
+                                                                                isMark
+                                                                                    ? logoMarkIsDefault
+                                                                                    : logoFullIsDefault;
+                                                                            const isReset =
+                                                                                isMark
+                                                                                    ? logoMarkReset
+                                                                                    : logoFullReset;
+                                                                            const hasPreview =
+                                                                                isMark
+                                                                                    ? Boolean(
+                                                                                          logoMarkPreview,
+                                                                                      )
+                                                                                    : Boolean(
+                                                                                          logoFullPreview,
+                                                                                      );
+                                                                            const optionId = `logo-preset-${option.value}`;
 
-                                                                return (
-                                                                    <div
-                                                                        key={
-                                                                            option.value
-                                                                        }
-                                                                        className={`group flex flex-col gap-4 rounded-2xl border p-5 transition-colors focus-within:ring-2 focus-within:ring-primary/40 focus-within:outline-none ${
-                                                                            isSelected
-                                                                                ? 'border-primary/60 bg-primary/5 shadow-sm shadow-primary/10'
-                                                                                : 'border-border/40 bg-card/50 hover:border-primary/40 hover:bg-muted/30'
-                                                                        }`}
-                                                                    >
-                                                                        <input
-                                                                            id={
-                                                                                optionId
-                                                                            }
-                                                                            type="radio"
-                                                                            name="logo_preset"
-                                                                            value={
-                                                                                option.value
-                                                                            }
-                                                                            checked={
-                                                                                isSelected
-                                                                            }
-                                                                            onChange={() => {
-                                                                                setLogoPreset(
-                                                                                    option.value,
-                                                                                );
-                                                                                setHasChanges(
-                                                                                    true,
-                                                                                );
-                                                                            }}
-                                                                            className="sr-only"
-                                                                        />
-                                                                        <label
-                                                                            htmlFor={
-                                                                                optionId
-                                                                            }
-                                                                            className="grid cursor-pointer gap-4"
-                                                                        >
-                                                                            <div className="flex items-start justify-between gap-3">
-                                                                                <div className="space-y-1">
-                                                                                    <p className="text-sm font-semibold">
-                                                                                        {
-                                                                                            option.label
+                                                                            return (
+                                                                                <div
+                                                                                    key={
+                                                                                        option.value
+                                                                                    }
+                                                                                    className={`group flex flex-col gap-4 rounded-2xl border p-5 transition-colors focus-within:ring-2 focus-within:ring-primary/40 focus-within:outline-none ${
+                                                                                        isSelected
+                                                                                            ? 'border-primary/60 bg-primary/5 shadow-sm shadow-primary/10'
+                                                                                            : 'border-border/40 bg-card/50 hover:border-primary/40 hover:bg-muted/30'
+                                                                                    }`}
+                                                                                >
+                                                                                    <input
+                                                                                        id={
+                                                                                            optionId
                                                                                         }
-                                                                                    </p>
-                                                                                    <p className="text-xs text-muted-foreground">
-                                                                                        {
-                                                                                            option.description
+                                                                                        type="radio"
+                                                                                        name="logo_preset"
+                                                                                        value={
+                                                                                            option.value
                                                                                         }
-                                                                                    </p>
+                                                                                        checked={
+                                                                                            isSelected
+                                                                                        }
+                                                                                        onChange={() => {
+                                                                                            setLogoPreset(
+                                                                                                option.value,
+                                                                                            );
+                                                                                            setHasChanges(
+                                                                                                true,
+                                                                                            );
+                                                                                        }}
+                                                                                        className="sr-only"
+                                                                                    />
+                                                                                    <label
+                                                                                        htmlFor={
+                                                                                            optionId
+                                                                                        }
+                                                                                        className="grid cursor-pointer gap-4"
+                                                                                    >
+                                                                                        <div className="flex items-start justify-between gap-3">
+                                                                                            <div className="space-y-1">
+                                                                                                <p className="text-sm font-semibold">
+                                                                                                    {
+                                                                                                        option.label
+                                                                                                    }
+                                                                                                </p>
+                                                                                                <p className="text-xs text-muted-foreground">
+                                                                                                    {
+                                                                                                        option.description
+                                                                                                    }
+                                                                                                </p>
+                                                                                            </div>
+                                                                                            {isSelected ? (
+                                                                                                <Badge
+                                                                                                    variant="secondary"
+                                                                                                    className="text-[10px] tracking-[0.2em] uppercase"
+                                                                                                >
+                                                                                                    Selected
+                                                                                                </Badge>
+                                                                                            ) : (
+                                                                                                <Badge
+                                                                                                    variant="outline"
+                                                                                                    className="text-[10px] tracking-[0.2em] uppercase"
+                                                                                                >
+                                                                                                    Select
+                                                                                                </Badge>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className="flex h-20 items-center justify-center rounded-xl border border-border/40 bg-muted/30">
+                                                                                            <img
+                                                                                                src={
+                                                                                                    previewUrl
+                                                                                                }
+                                                                                                alt={`${branding.appTitle} ${option.label}`}
+                                                                                                className={`w-auto object-contain ${
+                                                                                                    option.value ===
+                                                                                                    'full'
+                                                                                                        ? 'h-14'
+                                                                                                        : 'h-12'
+                                                                                                }`}
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                                                                            <Badge
+                                                                                                variant={
+                                                                                                    isDefault
+                                                                                                        ? 'secondary'
+                                                                                                        : 'outline'
+                                                                                                }
+                                                                                                className="text-[10px] tracking-[0.2em] uppercase"
+                                                                                            >
+                                                                                                {isDefault
+                                                                                                    ? 'Default asset'
+                                                                                                    : 'Custom asset'}
+                                                                                            </Badge>
+                                                                                            {isReset ? (
+                                                                                                <Badge
+                                                                                                    variant="outline"
+                                                                                                    className="border-primary/40 text-[10px] tracking-[0.2em] text-primary uppercase"
+                                                                                                >
+                                                                                                    Reset
+                                                                                                    after
+                                                                                                    save
+                                                                                                </Badge>
+                                                                                            ) : null}
+                                                                                        </div>
+                                                                                    </label>
+                                                                                    <div className="flex flex-wrap gap-2">
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            variant="outline"
+                                                                                            size="sm"
+                                                                                            onClick={(
+                                                                                                event,
+                                                                                            ) => {
+                                                                                                event.preventDefault();
+                                                                                                event.stopPropagation();
+                                                                                                if (
+                                                                                                    isMark
+                                                                                                ) {
+                                                                                                    logoMarkInputRef.current?.click();
+                                                                                                } else {
+                                                                                                    logoFullInputRef.current?.click();
+                                                                                                }
+                                                                                            }}
+                                                                                        >
+                                                                                            {isMark
+                                                                                                ? 'Change logo mark'
+                                                                                                : 'Change logo full'}
+                                                                                        </Button>
+                                                                                        {hasPreview ? (
+                                                                                            <Button
+                                                                                                type="button"
+                                                                                                variant="ghost"
+                                                                                                size="sm"
+                                                                                                onClick={(
+                                                                                                    event,
+                                                                                                ) => {
+                                                                                                    event.preventDefault();
+                                                                                                    event.stopPropagation();
+                                                                                                    if (
+                                                                                                        isMark
+                                                                                                    ) {
+                                                                                                        clearLogoMarkPreview();
+                                                                                                    } else {
+                                                                                                        clearLogoFullPreview();
+                                                                                                    }
+                                                                                                }}
+                                                                                            >
+                                                                                                Remove
+                                                                                                selection
+                                                                                            </Button>
+                                                                                        ) : null}
+                                                                                        {!isDefault ||
+                                                                                        isReset ? (
+                                                                                            <Button
+                                                                                                type="button"
+                                                                                                variant="ghost"
+                                                                                                size="sm"
+                                                                                                onClick={(
+                                                                                                    event,
+                                                                                                ) => {
+                                                                                                    event.preventDefault();
+                                                                                                    event.stopPropagation();
+                                                                                                    if (
+                                                                                                        isMark
+                                                                                                    ) {
+                                                                                                        if (
+                                                                                                            isReset
+                                                                                                        ) {
+                                                                                                            keepCurrentLogoMark();
+                                                                                                        } else {
+                                                                                                            resetLogoMarkToDefault();
+                                                                                                        }
+                                                                                                    } else if (
+                                                                                                        isReset
+                                                                                                    ) {
+                                                                                                        keepCurrentLogoFull();
+                                                                                                    } else {
+                                                                                                        resetLogoFullToDefault();
+                                                                                                    }
+                                                                                                }}
+                                                                                            >
+                                                                                                {isReset
+                                                                                                    ? 'Keep current asset'
+                                                                                                    : 'Reset to default'}
+                                                                                            </Button>
+                                                                                        ) : null}
+                                                                                    </div>
+                                                                                    <input
+                                                                                        ref={
+                                                                                            isMark
+                                                                                                ? logoMarkInputRef
+                                                                                                : logoFullInputRef
+                                                                                        }
+                                                                                        type="file"
+                                                                                        name={
+                                                                                            isMark
+                                                                                                ? 'logo_mark'
+                                                                                                : 'logo_full'
+                                                                                        }
+                                                                                        accept="image/png,image/jpeg,image/webp"
+                                                                                        aria-label={
+                                                                                            isMark
+                                                                                                ? 'Upload logo mark'
+                                                                                                : 'Upload full logo'
+                                                                                        }
+                                                                                        className="sr-only"
+                                                                                        onChange={
+                                                                                            isMark
+                                                                                                ? handleLogoMarkChange
+                                                                                                : handleLogoFullChange
+                                                                                        }
+                                                                                    />
+                                                                                    {isMark &&
+                                                                                    logoMarkReset ? (
+                                                                                        <input
+                                                                                            type="hidden"
+                                                                                            name="logo_mark_reset"
+                                                                                            value="1"
+                                                                                        />
+                                                                                    ) : null}
+                                                                                    {!isMark &&
+                                                                                    logoFullReset ? (
+                                                                                        <input
+                                                                                            type="hidden"
+                                                                                            name="logo_full_reset"
+                                                                                            value="1"
+                                                                                        />
+                                                                                    ) : null}
+                                                                                    <InputError
+                                                                                        message={
+                                                                                            isMark
+                                                                                                ? formErrors.logo_mark
+                                                                                                : formErrors.logo_full
+                                                                                        }
+                                                                                    />
                                                                                 </div>
-                                                                                {isSelected ? (
-                                                                                    <Badge
-                                                                                        variant="secondary"
-                                                                                        className="text-[10px] uppercase tracking-[0.2em]"
-                                                                                    >
-                                                                                        Selected
-                                                                                    </Badge>
-                                                                                ) : (
-                                                                                    <Badge
-                                                                                        variant="outline"
-                                                                                        className="text-[10px] uppercase tracking-[0.2em]"
-                                                                                    >
-                                                                                        Select
-                                                                                    </Badge>
-                                                                                )}
-                                                                            </div>
-                                                                            <div className="flex h-20 items-center justify-center rounded-xl border border-border/40 bg-muted/30">
+                                                                            );
+                                                                        },
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    The selected
+                                                                    logo appears
+                                                                    on member
+                                                                    forms,
+                                                                    navigation,
+                                                                    and reports.
+                                                                </p>
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.logo_preset
+                                                                    }
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-4 rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                                                    <div className="space-y-1">
+                                                                        <Label htmlFor="favicon">
+                                                                            Portal
+                                                                            icon
+                                                                        </Label>
+                                                                        <p className="text-sm text-muted-foreground">
+                                                                            Used
+                                                                            in
+                                                                            browser
+                                                                            tabs
+                                                                            and
+                                                                            compact
+                                                                            app
+                                                                            surfaces.
+                                                                        </p>
+                                                                    </div>
+                                                                    {faviconReset ? (
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            className="text-[10px] tracking-[0.2em] uppercase"
+                                                                        >
+                                                                            Default
+                                                                        </Badge>
+                                                                    ) : hasStoredFavicon ||
+                                                                      faviconPreview ? (
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            className="text-[10px] tracking-[0.2em] uppercase"
+                                                                        >
+                                                                            Custom
+                                                                        </Badge>
+                                                                    ) : null}
+                                                                </div>
+                                                                <div className="rounded-2xl border border-border/30 bg-muted/20 p-4">
+                                                                    <div className="flex flex-wrap items-center justify-between gap-4">
+                                                                        <div className="flex flex-wrap items-center gap-4">
+                                                                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/60 bg-background">
                                                                                 <img
                                                                                     src={
-                                                                                        previewUrl
+                                                                                        faviconPreviewUrl
                                                                                     }
-                                                                                    alt={`${branding.appTitle} ${option.label}`}
-                                                                                    className={`w-auto object-contain ${
-                                                                                        option.value ===
-                                                                                        'full'
-                                                                                            ? 'h-14'
-                                                                                            : 'h-12'
-                                                                                    }`}
+                                                                                    alt={`${branding.appTitle} icon`}
+                                                                                    className="h-7 w-7 object-contain"
                                                                                 />
                                                                             </div>
-                                                                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                                                                <Badge
-                                                                                    variant={
-                                                                                        isDefault
-                                                                                            ? 'secondary'
-                                                                                            : 'outline'
-                                                                                    }
-                                                                                    className="text-[10px] uppercase tracking-[0.2em]"
-                                                                                >
-                                                                                    {isDefault
-                                                                                        ? 'Default asset'
-                                                                                        : 'Custom asset'}
-                                                                                </Badge>
-                                                                                {isReset ? (
-                                                                                    <Badge
-                                                                                        variant="outline"
-                                                                                        className="border-primary/40 text-[10px] uppercase tracking-[0.2em] text-primary"
-                                                                                    >
-                                                                                        Reset after save
-                                                                                    </Badge>
-                                                                                ) : null}
+                                                                            <div className="flex items-center gap-2">
+                                                                                {ICON_PREVIEW_SIZES.map(
+                                                                                    (
+                                                                                        size,
+                                                                                    ) => (
+                                                                                        <div
+                                                                                            key={
+                                                                                                size
+                                                                                            }
+                                                                                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background"
+                                                                                        >
+                                                                                            <img
+                                                                                                src={
+                                                                                                    faviconPreviewUrl
+                                                                                                }
+                                                                                                alt={`${branding.appTitle} ${size}px`}
+                                                                                                className="object-contain"
+                                                                                                style={{
+                                                                                                    width: size,
+                                                                                                    height: size,
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+                                                                                    ),
+                                                                                )}
                                                                             </div>
-                                                                        </label>
+                                                                        </div>
                                                                         <div className="flex flex-wrap gap-2">
                                                                             <Button
                                                                                 type="button"
-                                                                                    variant="outline"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() =>
+                                                                                    faviconInputRef.current?.click()
+                                                                                }
+                                                                            >
+                                                                                Upload
+                                                                                icon
+                                                                            </Button>
+                                                                            {faviconPreview ? (
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
                                                                                     size="sm"
-                                                                                    onClick={(
-                                                                                        event,
-                                                                                    ) => {
-                                                                                        event.preventDefault();
-                                                                                        event.stopPropagation();
-                                                                                        if (
-                                                                                            isMark
-                                                                                        ) {
-                                                                                            logoMarkInputRef.current?.click();
-                                                                                        } else {
-                                                                                            logoFullInputRef.current?.click();
-                                                                                        }
-                                                                                    }}
-                                                                                >
-                                                                                    {isMark
-                                                                                        ? 'Change logo mark'
-                                                                                        : 'Change logo full'}
-                                                                                </Button>
-                                                                                {hasPreview ? (
-                                                                                    <Button
-                                                                                        type="button"
-                                                                                        variant="ghost"
-                                                                                        size="sm"
-                                                                                        onClick={(
-                                                                                            event,
-                                                                                        ) => {
-                                                                                            event.preventDefault();
-                                                                                            event.stopPropagation();
-                                                                                            if (
-                                                                                                isMark
-                                                                                            ) {
-                                                                                                clearLogoMarkPreview();
-                                                                                            } else {
-                                                                                                clearLogoFullPreview();
-                                                                                            }
-                                                                                        }}
-                                                                                    >
-                                                                                        Remove
-                                                                                        selection
-                                                                                    </Button>
-                                                                                ) : null}
-                                                                                {!isDefault ||
-                                                                                isReset ? (
-                                                                                    <Button
-                                                                                        type="button"
-                                                                                        variant="ghost"
-                                                                                        size="sm"
-                                                                                        onClick={(
-                                                                                            event,
-                                                                                        ) => {
-                                                                                            event.preventDefault();
-                                                                                            event.stopPropagation();
-                                                                                            if (
-                                                                                                isMark
-                                                                                            ) {
-                                                                                                if (
-                                                                                                    isReset
-                                                                                                ) {
-                                                                                                    keepCurrentLogoMark();
-                                                                                                } else {
-                                                                                                    resetLogoMarkToDefault();
-                                                                                                }
-                                                                                            } else if (
-                                                                                                isReset
-                                                                                            ) {
-                                                                                                keepCurrentLogoFull();
-                                                                                            } else {
-                                                                                                resetLogoFullToDefault();
-                                                                                            }
-                                                                                        }}
-                                                                                    >
-                                                                                        {isReset
-                                                                                            ? 'Keep current asset'
-                                                                                            : 'Reset to default'}
-                                                                                    </Button>
-                                                                                ) : null}
-                                                                            </div>
-                                                                            <input
-                                                                                ref={
-                                                                                    isMark
-                                                                                        ? logoMarkInputRef
-                                                                                        : logoFullInputRef
-                                                                                }
-                                                                                type="file"
-                                                                                name={
-                                                                                    isMark
-                                                                                        ? 'logo_mark'
-                                                                                        : 'logo_full'
-                                                                                }
-                                                                                accept="image/png,image/jpeg,image/webp"
-                                                                                aria-label={
-                                                                                    isMark
-                                                                                        ? 'Upload logo mark'
-                                                                                        : 'Upload full logo'
-                                                                                }
-                                                                                className="sr-only"
-                                                                                onChange={
-                                                                                    isMark
-                                                                                        ? handleLogoMarkChange
-                                                                                        : handleLogoFullChange
-                                                                                }
-                                                                            />
-                                                                            {isMark &&
-                                                                            logoMarkReset ? (
-                                                                                <input
-                                                                                    type="hidden"
-                                                                                    name="logo_mark_reset"
-                                                                                    value="1"
-                                                                                />
-                                                                            ) : null}
-                                                                            {!isMark &&
-                                                                            logoFullReset ? (
-                                                                                <input
-                                                                                    type="hidden"
-                                                                                    name="logo_full_reset"
-                                                                                    value="1"
-                                                                                />
-                                                                            ) : null}
-                                                                            <InputError
-                                                                                message={
-                                                                                    isMark
-                                                                                        ? formErrors.logo_mark
-                                                                                        : formErrors.logo_full
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                    );
-                                                                },
-                                                            )}
-                                                        </div>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            The selected logo
-                                                            appears on member
-                                                            forms, navigation,
-                                                            and reports.
-                                                        </p>
-                                                        <InputError
-                                                            message={
-                                                                formErrors.logo_preset
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <div className="space-y-4 rounded-2xl border border-border/30 bg-background/60 p-4">
-                                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                                            <div className="space-y-1">
-                                                                <Label htmlFor="favicon">
-                                                                    Portal icon
-                                                                </Label>
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    Used in
-                                                                    browser tabs
-                                                                    and compact
-                                                                    app
-                                                                    surfaces.
-                                                                </p>
-                                                            </div>
-                                                            {faviconReset ? (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="text-[10px] uppercase tracking-[0.2em]"
-                                                                >
-                                                                    Default
-                                                                </Badge>
-                                                            ) : hasStoredFavicon ||
-                                                              faviconPreview ? (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="text-[10px] uppercase tracking-[0.2em]"
-                                                                >
-                                                                    Custom
-                                                                </Badge>
-                                                            ) : null}
-                                                        </div>
-                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4">
-                                                            <div className="flex flex-wrap items-center justify-between gap-4">
-                                                                <div className="flex flex-wrap items-center gap-4">
-                                                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/60 bg-background">
-                                                                        <img
-                                                                            src={
-                                                                                faviconPreviewUrl
-                                                                            }
-                                                                            alt={`${branding.appTitle} icon`}
-                                                                            className="h-7 w-7 object-contain"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {ICON_PREVIEW_SIZES.map(
-                                                                            (
-                                                                                size,
-                                                                            ) => (
-                                                                                <div
-                                                                                    key={
-                                                                                        size
+                                                                                    onClick={
+                                                                                        clearFaviconPreview
                                                                                     }
-                                                                                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background"
                                                                                 >
-                                                                                    <img
-                                                                                        src={
-                                                                                            faviconPreviewUrl
-                                                                                        }
-                                                                                        alt={`${branding.appTitle} ${size}px`}
-                                                                                        className="object-contain"
-                                                                                        style={{
-                                                                                            width: size,
-                                                                                            height: size,
-                                                                                        }}
-                                                                                    />
-                                                                                </div>
-                                                                            ),
-                                                                        )}
+                                                                                    Remove
+                                                                                    selection
+                                                                                </Button>
+                                                                            ) : null}
+                                                                            {hasStoredFavicon ||
+                                                                            faviconReset ? (
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={
+                                                                                        faviconReset
+                                                                                            ? keepCurrentFavicon
+                                                                                            : resetFaviconToDefault
+                                                                                    }
+                                                                                >
+                                                                                    {faviconReset
+                                                                                        ? 'Keep current icon'
+                                                                                        : 'Reset to default'}
+                                                                                </Button>
+                                                                            ) : null}
+                                                                        </div>
                                                                     </div>
+                                                                    <p className="mt-3 text-xs text-muted-foreground">
+                                                                        Upload a
+                                                                        JPG,
+                                                                        PNG,
+                                                                        WebP, or
+                                                                        ICO
+                                                                        image
+                                                                        (max
+                                                                        1MB).
+                                                                    </p>
                                                                 </div>
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() =>
-                                                                            faviconInputRef.current?.click()
-                                                                        }
-                                                                    >
-                                                                        Upload
+                                                                {faviconReset ? (
+                                                                    <p className="text-xs text-primary">
+                                                                        Default
                                                                         icon
-                                                                    </Button>
-                                                                    {faviconPreview ? (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={
-                                                                                clearFaviconPreview
-                                                                            }
-                                                                        >
-                                                                            Remove
-                                                                            selection
-                                                                        </Button>
-                                                                    ) : null}
-                                                                    {hasStoredFavicon ||
-                                                                    faviconReset ? (
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={
-                                                                                faviconReset
-                                                                                    ? keepCurrentFavicon
-                                                                                    : resetFaviconToDefault
-                                                                            }
-                                                                        >
-                                                                            {faviconReset
-                                                                                ? 'Keep current icon'
-                                                                                : 'Reset to default'}
-                                                                        </Button>
-                                                                    ) : null}
-                                                                </div>
+                                                                        will be
+                                                                        used
+                                                                        after
+                                                                        saving.
+                                                                    </p>
+                                                                ) : null}
+                                                                <input
+                                                                    id="favicon"
+                                                                    ref={
+                                                                        faviconInputRef
+                                                                    }
+                                                                    name="favicon"
+                                                                    type="file"
+                                                                    accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon"
+                                                                    aria-label="Upload portal icon"
+                                                                    className="sr-only"
+                                                                    onChange={
+                                                                        handleFaviconChange
+                                                                    }
+                                                                />
+                                                                {faviconReset ? (
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="favicon_reset"
+                                                                        value="1"
+                                                                    />
+                                                                ) : null}
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.favicon
+                                                                    }
+                                                                />
                                                             </div>
-                                                            <p className="mt-3 text-xs text-muted-foreground">
-                                                                Upload a JPG,
-                                                                PNG, WebP, or
-                                                                ICO image (max
-                                                                1MB).
-                                                            </p>
                                                         </div>
-                                                        {faviconReset ? (
-                                                            <p className="text-xs text-primary">
-                                                                Default icon
-                                                                will be used
-                                                                after saving.
-                                                            </p>
-                                                        ) : null}
-                                                        <input
-                                                            id="favicon"
-                                                            ref={
-                                                                faviconInputRef
-                                                            }
-                                                            name="favicon"
-                                                            type="file"
-                                                            accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon"
-                                                            aria-label="Upload portal icon"
-                                                            className="sr-only"
-                                                            onChange={
-                                                                handleFaviconChange
-                                                            }
-                                                        />
-                                                        {faviconReset ? (
-                                                            <input
-                                                                type="hidden"
-                                                                name="favicon_reset"
-                                                                value="1"
-                                                            />
-                                                        ) : null}
-                                                        <InputError
-                                                            message={
-                                                                formErrors.favicon
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </SurfaceCard>
+                                                    </SurfaceCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -1647,736 +1804,824 @@ export default function OrganizationSettings() {
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
-                                                variant="muted"
-                                                padding="md"
-                                                className="space-y-6"
-                                            >
-                                                <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold tracking-tight">
-                                                        Reports &amp; documents
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Upload a single report
-                                                        header design and manage
-                                                        report body typography
-                                                        for generated
-                                                        documents.
-                                                    </p>
-                                                </div>
-
-                                                <div className="space-y-1">
-    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-        Report header design
-    </p>
-</div>
-
-<div className="space-y-6 rounded-2xl border border-border/30 bg-background/60 p-4">
-    <div className="space-y-1">
-        <p className="text-sm font-semibold">
-            Uploaded report header
-        </p>
-        <p className="text-xs text-muted-foreground">
-            Upload one JPG, PNG, or WebP image used at the top of generated documents.
-        </p>
-    </div>
-
-    <div className="flex h-28 items-center justify-center rounded-xl border border-border/40 bg-muted/20 p-3">
-        {reportHeaderDesignPreviewUrl ? (
-            <img
-                src={reportHeaderDesignPreviewUrl}
-                alt="Report header design preview"
-                className="h-full w-full object-contain"
-            />
-        ) : (
-            <p className="text-center text-xs text-muted-foreground">
-                No report header design uploaded yet.
-            </p>
-        )}
-    </div>
-
-    <div className="flex flex-wrap items-center gap-2">
-        <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => reportHeaderDesignInputRef.current?.click()}
-        >
-            Upload header design
-        </Button>
-        {reportHeaderDesignPreview ? (
-            <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={clearReportHeaderDesignPreview}
-            >
-                Remove selection
-            </Button>
-        ) : null}
-        {hasStoredReportHeaderDesign || reportHeaderDesignReset ? (
-            <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                    if (reportHeaderDesignReset) {
-                        keepCurrentReportHeaderDesign();
-                        return;
-                    }
-
-                    resetReportHeaderDesignToDefault();
-                }}
-            >
-                {reportHeaderDesignReset
-                    ? 'Keep current design'
-                    : 'Reset to default'}
-            </Button>
-        ) : null}
-    </div>
-
-    <p className="text-xs text-muted-foreground">
-        Upload a JPG, PNG, or WebP image (max 4MB).
-    </p>
-
-    <input
-        ref={reportHeaderDesignInputRef}
-        type="file"
-        name="report_header_design"
-        accept="image/png,image/jpeg,image/webp"
-        aria-label="Upload report header design"
-        className="sr-only"
-        onChange={handleReportHeaderDesignChange}
-    />
-    {reportHeaderDesignReset ? (
-        <input
-            type="hidden"
-            name="report_header_design_reset"
-            value="1"
-        />
-    ) : null}
-    <InputError message={formErrors.report_header_design} />
-</div>
-
-<div className="space-y-1">
-    <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-        Report body typography
-    </p>
-</div>
-
-                                            <div className="grid gap-6 lg:grid-cols-2">
-                                                <div className="space-y-4 rounded-xl border border-border/60 bg-muted/30 p-4">
-                                                    <div className="space-y-1">
-                                                        <p className="text-sm font-semibold">
-                                                            Label font
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Applies to report
-                                                            field labels.
-                                                        </p>
-                                                    </div>
-                                                    <FontPicker
-                                                        defaultValue={
-                                                            reportLabelFontFamilyResolved
-                                                        }
-                                                        inputId="report-label-font"
-                                                        loadFonts={
-                                                            reportLabelFontFamilyResolved
-                                                        }
-                                                        autoLoad
-                                                        mode="combo"
-                                                        value={(nextFont) => {
-                                                            setReportLabelFontFamily(
-                                                                normalizeFontFamily(
-                                                                    nextFont,
-                                                                ),
-                                                            );
-                                                            setHasChanges(true);
-                                                        }}
-                                                    />
-                                                    <div className="grid gap-3 sm:grid-cols-3">
-                                                        <div className="grid gap-2">
-                                                            <Label>
-                                                                Weight
-                                                            </Label>
-                                                            <Select
-                                                                value={
-                                                                    reportLabelFontWeight ||
-                                                                    undefined
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) => {
-                                                                    setReportLabelFontWeight(
-                                                                        value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Weight" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {REPORT_FONT_WEIGHT_OPTIONS.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectContent>
-                                                            </Select>
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-1">
+                                                            <h3 className="text-base font-semibold tracking-tight">
+                                                                Reports &amp;
+                                                                documents
+                                                            </h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Upload a single
+                                                                report header
+                                                                design and
+                                                                manage report
+                                                                body typography
+                                                                for generated
+                                                                documents.
+                                                            </p>
                                                         </div>
-                                                        <div className="grid gap-2">
-                                                            <Label>Style</Label>
-                                                            <Select
-                                                                value={
-                                                                    reportLabelFontVariant ||
-                                                                    undefined
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) => {
-                                                                    setReportLabelFontVariant(
-                                                                        value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Style" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {REPORT_FONT_STYLE_OPTIONS.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectContent>
-                                                            </Select>
+
+                                                        <div className="space-y-1">
+                                                            <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                                                Report header
+                                                                design
+                                                            </p>
                                                         </div>
-                                                        <div className="grid gap-2">
-                                                            <Label htmlFor="report_label_font_size">
-                                                                Size
-                                                            </Label>
-                                                            <Input
-                                                                id="report_label_font_size"
-                                                                name="report_label_font_size"
-                                                                type="number"
-                                                                min={6}
-                                                                max={24}
-                                                                value={
-                                                                    reportLabelFontSize
+
+                                                        <div className="space-y-6 rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                            <div className="space-y-1">
+                                                                <p className="text-sm font-semibold">
+                                                                    Uploaded
+                                                                    report
+                                                                    header
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    Upload one
+                                                                    JPG, PNG, or
+                                                                    WebP image
+                                                                    used at the
+                                                                    top of
+                                                                    generated
+                                                                    documents.
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="flex h-28 items-center justify-center rounded-xl border border-border/40 bg-muted/20 p-3">
+                                                                {reportHeaderDesignPreviewUrl ? (
+                                                                    <img
+                                                                        src={
+                                                                            reportHeaderDesignPreviewUrl
+                                                                        }
+                                                                        alt="Report header design preview"
+                                                                        className="h-full w-full object-contain"
+                                                                    />
+                                                                ) : (
+                                                                    <p className="text-center text-xs text-muted-foreground">
+                                                                        No
+                                                                        report
+                                                                        header
+                                                                        design
+                                                                        uploaded
+                                                                        yet.
+                                                                    </p>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        reportHeaderDesignInputRef.current?.click()
+                                                                    }
+                                                                >
+                                                                    Upload
+                                                                    header
+                                                                    design
+                                                                </Button>
+                                                                {reportHeaderDesignPreview ? (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={
+                                                                            clearReportHeaderDesignPreview
+                                                                        }
+                                                                    >
+                                                                        Remove
+                                                                        selection
+                                                                    </Button>
+                                                                ) : null}
+                                                                {hasStoredReportHeaderDesign ||
+                                                                reportHeaderDesignReset ? (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            if (
+                                                                                reportHeaderDesignReset
+                                                                            ) {
+                                                                                keepCurrentReportHeaderDesign();
+                                                                                return;
+                                                                            }
+
+                                                                            resetReportHeaderDesignToDefault();
+                                                                        }}
+                                                                    >
+                                                                        {reportHeaderDesignReset
+                                                                            ? 'Keep current design'
+                                                                            : 'Reset to default'}
+                                                                    </Button>
+                                                                ) : null}
+                                                            </div>
+
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Upload a JPG,
+                                                                PNG, or WebP
+                                                                image (max 4MB).
+                                                            </p>
+
+                                                            <input
+                                                                ref={
+                                                                    reportHeaderDesignInputRef
                                                                 }
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setReportLabelFontSize(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
+                                                                type="file"
+                                                                name="report_header_design"
+                                                                accept="image/png,image/jpeg,image/webp"
+                                                                aria-label="Upload report header design"
+                                                                className="sr-only"
+                                                                onChange={
+                                                                    handleReportHeaderDesignChange
+                                                                }
+                                                            />
+                                                            {reportHeaderDesignReset ? (
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_header_design_reset"
+                                                                    value="1"
+                                                                />
+                                                            ) : null}
+                                                            <InputError
+                                                                message={
+                                                                    formErrors.report_header_design
+                                                                }
                                                             />
                                                         </div>
-                                                    </div>
-                                                    <input
-                                                        type="hidden"
-                                                        name="report_label_font_family"
-                                                        value={
-                                                            reportLabelFontFamily
-                                                        }
-                                                    />
-                                                    <input
-                                                        type="hidden"
-                                                        name="report_label_font_variant"
-                                                        value={
-                                                            reportLabelFontVariant
-                                                        }
-                                                    />
-                                                    <input
-                                                        type="hidden"
-                                                        name="report_label_font_weight"
-                                                        value={
-                                                            reportLabelFontWeight
-                                                        }
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            formErrors.report_label_font_family ??
-                                                            formErrors.report_label_font_variant ??
-                                                            formErrors.report_label_font_weight ??
-                                                            formErrors.report_label_font_size
-                                                        }
-                                                    />
-                                                </div>
 
-                                                <div className="space-y-4 rounded-xl border border-border/60 bg-muted/30 p-4">
-                                                    <div className="space-y-1">
-                                                        <p className="text-sm font-semibold">
-                                                            Value font
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Applies to report
-                                                            field values.
-                                                        </p>
-                                                    </div>
-                                                    <FontPicker
-                                                        defaultValue={
-                                                            reportValueFontFamilyResolved
-                                                        }
-                                                        inputId="report-value-font"
-                                                        loadFonts={
-                                                            reportValueFontFamilyResolved
-                                                        }
-                                                        autoLoad
-                                                        mode="combo"
-                                                        value={(nextFont) => {
-                                                            setReportValueFontFamily(
-                                                                normalizeFontFamily(
-                                                                    nextFont,
-                                                                ),
-                                                            );
-                                                            setHasChanges(true);
-                                                        }}
-                                                    />
-                                                    <div className="grid gap-3 sm:grid-cols-3">
-                                                        <div className="grid gap-2">
-                                                            <Label>
-                                                                Weight
-                                                            </Label>
-                                                            <Select
-                                                                value={
-                                                                    reportValueFontWeight ||
-                                                                    undefined
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) => {
-                                                                    setReportValueFontWeight(
-                                                                        value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Weight" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {REPORT_FONT_WEIGHT_OPTIONS.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectContent>
-                                                            </Select>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                                                Report body
+                                                                typography
+                                                            </p>
                                                         </div>
-                                                        <div className="grid gap-2">
-                                                            <Label>Style</Label>
-                                                            <Select
-                                                                value={
-                                                                    reportValueFontVariant ||
-                                                                    undefined
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) => {
-                                                                    setReportValueFontVariant(
-                                                                        value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Style" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {REPORT_FONT_STYLE_OPTIONS.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectContent>
-                                                            </Select>
+
+                                                        <div className="grid gap-6 lg:grid-cols-2">
+                                                            <div className="space-y-4 rounded-xl border border-border/60 bg-muted/30 p-4">
+                                                                <div className="space-y-1">
+                                                                    <p className="text-sm font-semibold">
+                                                                        Label
+                                                                        font
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Applies
+                                                                        to
+                                                                        report
+                                                                        field
+                                                                        labels.
+                                                                    </p>
+                                                                </div>
+                                                                <FontPicker
+                                                                    defaultValue={
+                                                                        reportLabelFontFamilyResolved
+                                                                    }
+                                                                    inputId="report-label-font"
+                                                                    loadFonts={
+                                                                        reportLabelFontFamilyResolved
+                                                                    }
+                                                                    autoLoad
+                                                                    mode="combo"
+                                                                    value={(
+                                                                        nextFont,
+                                                                    ) => {
+                                                                        setReportLabelFontFamily(
+                                                                            normalizeFontFamily(
+                                                                                nextFont,
+                                                                            ),
+                                                                        );
+                                                                        setHasChanges(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                <div className="grid gap-3 sm:grid-cols-3">
+                                                                    <div className="grid gap-2">
+                                                                        <Label>
+                                                                            Weight
+                                                                        </Label>
+                                                                        <Select
+                                                                            value={
+                                                                                reportLabelFontWeight ||
+                                                                                undefined
+                                                                            }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setReportLabelFontWeight(
+                                                                                    value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger>
+                                                                                <SelectValue placeholder="Weight" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {REPORT_FONT_WEIGHT_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option.value
+                                                                                            }
+                                                                                            value={
+                                                                                                option.value
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option.label
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label>
+                                                                            Style
+                                                                        </Label>
+                                                                        <Select
+                                                                            value={
+                                                                                reportLabelFontVariant ||
+                                                                                undefined
+                                                                            }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setReportLabelFontVariant(
+                                                                                    value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger>
+                                                                                <SelectValue placeholder="Style" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {REPORT_FONT_STYLE_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option.value
+                                                                                            }
+                                                                                            value={
+                                                                                                option.value
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option.label
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="report_label_font_size">
+                                                                            Size
+                                                                        </Label>
+                                                                        <Input
+                                                                            id="report_label_font_size"
+                                                                            name="report_label_font_size"
+                                                                            type="number"
+                                                                            min={
+                                                                                6
+                                                                            }
+                                                                            max={
+                                                                                24
+                                                                            }
+                                                                            value={
+                                                                                reportLabelFontSize
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setReportLabelFontSize(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_label_font_family"
+                                                                    value={
+                                                                        reportLabelFontFamily
+                                                                    }
+                                                                />
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_label_font_variant"
+                                                                    value={
+                                                                        reportLabelFontVariant
+                                                                    }
+                                                                />
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_label_font_weight"
+                                                                    value={
+                                                                        reportLabelFontWeight
+                                                                    }
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.report_label_font_family ??
+                                                                        formErrors.report_label_font_variant ??
+                                                                        formErrors.report_label_font_weight ??
+                                                                        formErrors.report_label_font_size
+                                                                    }
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-4 rounded-xl border border-border/60 bg-muted/30 p-4">
+                                                                <div className="space-y-1">
+                                                                    <p className="text-sm font-semibold">
+                                                                        Value
+                                                                        font
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Applies
+                                                                        to
+                                                                        report
+                                                                        field
+                                                                        values.
+                                                                    </p>
+                                                                </div>
+                                                                <FontPicker
+                                                                    defaultValue={
+                                                                        reportValueFontFamilyResolved
+                                                                    }
+                                                                    inputId="report-value-font"
+                                                                    loadFonts={
+                                                                        reportValueFontFamilyResolved
+                                                                    }
+                                                                    autoLoad
+                                                                    mode="combo"
+                                                                    value={(
+                                                                        nextFont,
+                                                                    ) => {
+                                                                        setReportValueFontFamily(
+                                                                            normalizeFontFamily(
+                                                                                nextFont,
+                                                                            ),
+                                                                        );
+                                                                        setHasChanges(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                />
+                                                                <div className="grid gap-3 sm:grid-cols-3">
+                                                                    <div className="grid gap-2">
+                                                                        <Label>
+                                                                            Weight
+                                                                        </Label>
+                                                                        <Select
+                                                                            value={
+                                                                                reportValueFontWeight ||
+                                                                                undefined
+                                                                            }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setReportValueFontWeight(
+                                                                                    value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger>
+                                                                                <SelectValue placeholder="Weight" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {REPORT_FONT_WEIGHT_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option.value
+                                                                                            }
+                                                                                            value={
+                                                                                                option.value
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option.label
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label>
+                                                                            Style
+                                                                        </Label>
+                                                                        <Select
+                                                                            value={
+                                                                                reportValueFontVariant ||
+                                                                                undefined
+                                                                            }
+                                                                            onValueChange={(
+                                                                                value,
+                                                                            ) => {
+                                                                                setReportValueFontVariant(
+                                                                                    value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger>
+                                                                                <SelectValue placeholder="Style" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {REPORT_FONT_STYLE_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option.value
+                                                                                            }
+                                                                                            value={
+                                                                                                option.value
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option.label
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="report_value_font_size">
+                                                                            Size
+                                                                        </Label>
+                                                                        <Input
+                                                                            id="report_value_font_size"
+                                                                            name="report_value_font_size"
+                                                                            type="number"
+                                                                            min={
+                                                                                6
+                                                                            }
+                                                                            max={
+                                                                                24
+                                                                            }
+                                                                            value={
+                                                                                reportValueFontSize
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setReportValueFontSize(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                                setHasChanges(
+                                                                                    true,
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_value_font_family"
+                                                                    value={
+                                                                        reportValueFontFamily
+                                                                    }
+                                                                />
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_value_font_variant"
+                                                                    value={
+                                                                        reportValueFontVariant
+                                                                    }
+                                                                />
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="report_value_font_weight"
+                                                                    value={
+                                                                        reportValueFontWeight
+                                                                    }
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.report_value_font_family ??
+                                                                        formErrors.report_value_font_variant ??
+                                                                        formErrors.report_value_font_weight ??
+                                                                        formErrors.report_value_font_size
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
-                                                        <div className="grid gap-2">
-                                                            <Label htmlFor="report_value_font_size">
-                                                                Size
-                                                            </Label>
-                                                            <Input
-                                                                id="report_value_font_size"
-                                                                name="report_value_font_size"
-                                                                type="number"
-                                                                min={6}
-                                                                max={24}
-                                                                value={
-                                                                    reportValueFontSize
-                                                                }
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setReportValueFontSize(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            />
+
+                                                        <div className="space-y-1">
+                                                            <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                                                Colors
+                                                            </p>
                                                         </div>
-                                                    </div>
-                                                    <input
-                                                        type="hidden"
-                                                        name="report_value_font_family"
-                                                        value={
-                                                            reportValueFontFamily
-                                                        }
-                                                    />
-                                                    <input
-                                                        type="hidden"
-                                                        name="report_value_font_variant"
-                                                        value={
-                                                            reportValueFontVariant
-                                                        }
-                                                    />
-                                                    <input
-                                                        type="hidden"
-                                                        name="report_value_font_weight"
-                                                        value={
-                                                            reportValueFontWeight
-                                                        }
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            formErrors.report_value_font_family ??
-                                                            formErrors.report_value_font_variant ??
-                                                            formErrors.report_value_font_weight ??
-                                                            formErrors.report_value_font_size
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
 
-                                            <div className="space-y-1">
-                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                                    Colors
-                                                </p>
-                                            </div>
+                                                        <div className="grid gap-6 lg:grid-cols-3">
+                                                            <div className="grid gap-3">
+                                                                <Label htmlFor="report_label_font_color">
+                                                                    Label font
+                                                                    color
+                                                                </Label>
+                                                                <p
+                                                                    id={
+                                                                        reportLabelColorHelpId
+                                                                    }
+                                                                    className="text-sm text-muted-foreground"
+                                                                >
+                                                                    Applies to
+                                                                    report field
+                                                                    labels.
+                                                                    Default:{' '}
+                                                                    {
+                                                                        DEFAULT_REPORT_LABEL_COLOR
+                                                                    }
+                                                                    .
+                                                                </p>
+                                                                <div className="flex flex-wrap items-center gap-3">
+                                                                    <input
+                                                                        id="report_label_font_color_picker"
+                                                                        type="color"
+                                                                        value={
+                                                                            reportLabelColorSwatch
+                                                                        }
+                                                                        aria-label="Report label font color picker"
+                                                                        aria-describedby={
+                                                                            reportLabelColorHelpId
+                                                                        }
+                                                                        className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setReportLabelColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setReportLabelColorValue(
+                                                                                event.target.value.toLowerCase(),
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <Input
+                                                                        id="report_label_font_color"
+                                                                        name="report_label_font_color"
+                                                                        value={
+                                                                            reportLabelColorInputValue
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setReportLabelColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setReportLabelColorValue(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
+                                                                        }}
+                                                                        onBlur={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setReportLabelColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setReportLabelColorValue(
+                                                                                normalizeHexInputValue(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                ),
+                                                                            );
+                                                                        }}
+                                                                        placeholder={
+                                                                            DEFAULT_REPORT_LABEL_COLOR
+                                                                        }
+                                                                        inputMode="text"
+                                                                        autoCapitalize="none"
+                                                                        autoCorrect="off"
+                                                                        spellCheck={
+                                                                            false
+                                                                        }
+                                                                        maxLength={
+                                                                            7
+                                                                        }
+                                                                        className="w-32 font-mono"
+                                                                        aria-invalid={
+                                                                            reportLabelColorInvalid
+                                                                        }
+                                                                        aria-describedby={
+                                                                            reportLabelColorHelpId
+                                                                        }
+                                                                    />
+                                                                    <div
+                                                                        className="h-9 w-9 rounded-md border border-border bg-muted"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                reportLabelColorSwatch,
+                                                                        }}
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            setReportLabelColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setReportLabelColorValue(
+                                                                                DEFAULT_REPORT_LABEL_COLOR,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        Reset
+                                                                    </Button>
+                                                                </div>
+                                                                <InputError
+                                                                    message={
+                                                                        reportLabelColorError
+                                                                    }
+                                                                />
+                                                            </div>
 
-                                            <div className="grid gap-6 lg:grid-cols-3">
-                                                <div className="grid gap-3">
-                                                    <Label htmlFor="report_label_font_color">
-                                                        Label font color
-                                                    </Label>
-                                                    <p
-                                                        id={
-                                                            reportLabelColorHelpId
-                                                        }
-                                                        className="text-sm text-muted-foreground"
-                                                    >
-                                                        Applies to report field
-                                                        labels. Default:{' '}
-                                                        {
-                                                            DEFAULT_REPORT_LABEL_COLOR
-                                                        }
-                                                        .
-                                                    </p>
-                                                    <div className="flex flex-wrap items-center gap-3">
-                                                        <input
-                                                            id="report_label_font_color_picker"
-                                                            type="color"
-                                                            value={
-                                                                reportLabelColorSwatch
-                                                            }
-                                                            aria-label="Report label font color picker"
-                                                            aria-describedby={
-                                                                reportLabelColorHelpId
-                                                            }
-                                                            className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportLabelColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportLabelColorValue(
-                                                                    event.target.value.toLowerCase(),
-                                                                );
-                                                            }}
-                                                        />
-                                                        <Input
-                                                            id="report_label_font_color"
-                                                            name="report_label_font_color"
-                                                            value={
-                                                                reportLabelColorInputValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportLabelColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportLabelColorValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                            }}
-                                                            onBlur={(event) => {
-                                                                setReportLabelColorTouched(
-                                                                    true,
-                                                                );
-                                                                setReportLabelColorValue(
-                                                                    normalizeHexInputValue(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    ),
-                                                                );
-                                                            }}
-                                                            placeholder={
-                                                                DEFAULT_REPORT_LABEL_COLOR
-                                                            }
-                                                            inputMode="text"
-                                                            autoCapitalize="none"
-                                                            autoCorrect="off"
-                                                            spellCheck={false}
-                                                            maxLength={7}
-                                                            className="w-32 font-mono"
-                                                            aria-invalid={
-                                                                reportLabelColorInvalid
-                                                            }
-                                                            aria-describedby={
-                                                                reportLabelColorHelpId
-                                                            }
-                                                        />
-                                                        <div
-                                                            className="h-9 w-9 rounded-md border border-border bg-muted"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    reportLabelColorSwatch,
-                                                            }}
-                                                            aria-hidden="true"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setReportLabelColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportLabelColorValue(
-                                                                    DEFAULT_REPORT_LABEL_COLOR,
-                                                                );
-                                                            }}
-                                                        >
-                                                            Reset
-                                                        </Button>
-                                                    </div>
-                                                    <InputError
-                                                        message={
-                                                            reportLabelColorError
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-3">
-                                                    <Label htmlFor="report_value_font_color">
-                                                        Value font color
-                                                    </Label>
-                                                    <p
-                                                        id={
-                                                            reportValueColorHelpId
-                                                        }
-                                                        className="text-sm text-muted-foreground"
-                                                    >
-                                                        Applies to report field
-                                                        values. Default:{' '}
-                                                        {
-                                                            DEFAULT_REPORT_VALUE_COLOR
-                                                        }
-                                                        .
-                                                    </p>
-                                                    <div className="flex flex-wrap items-center gap-3">
-                                                        <input
-                                                            id="report_value_font_color_picker"
-                                                            type="color"
-                                                            value={
-                                                                reportValueColorSwatch
-                                                            }
-                                                            aria-label="Report value font color picker"
-                                                            aria-describedby={
-                                                                reportValueColorHelpId
-                                                            }
-                                                            className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportValueColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportValueColorValue(
-                                                                    event.target.value.toLowerCase(),
-                                                                );
-                                                            }}
-                                                        />
-                                                        <Input
-                                                            id="report_value_font_color"
-                                                            name="report_value_font_color"
-                                                            value={
-                                                                reportValueColorInputValue
-                                                            }
-                                                            onChange={(
-                                                                event,
-                                                            ) => {
-                                                                setReportValueColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportValueColorValue(
-                                                                    event.target
-                                                                        .value,
-                                                                );
-                                                            }}
-                                                            onBlur={(event) => {
-                                                                setReportValueColorTouched(
-                                                                    true,
-                                                                );
-                                                                setReportValueColorValue(
-                                                                    normalizeHexInputValue(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    ),
-                                                                );
-                                                            }}
-                                                            placeholder={
-                                                                DEFAULT_REPORT_VALUE_COLOR
-                                                            }
-                                                            inputMode="text"
-                                                            autoCapitalize="none"
-                                                            autoCorrect="off"
-                                                            spellCheck={false}
-                                                            maxLength={7}
-                                                            className="w-32 font-mono"
-                                                            aria-invalid={
-                                                                reportValueColorInvalid
-                                                            }
-                                                            aria-describedby={
-                                                                reportValueColorHelpId
-                                                            }
-                                                        />
-                                                        <div
-                                                            className="h-9 w-9 rounded-md border border-border bg-muted"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    reportValueColorSwatch,
-                                                            }}
-                                                            aria-hidden="true"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setReportValueColorTouched(
-                                                                    true,
-                                                                );
-                                                                setHasChanges(
-                                                                    true,
-                                                                );
-                                                                setReportValueColorValue(
-                                                                    DEFAULT_REPORT_VALUE_COLOR,
-                                                                );
-                                                            }}
-                                                        >
-                                                            Reset
-                                                        </Button>
-                                                    </div>
-                                                    <InputError
-                                                        message={
-                                                            reportValueColorError
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-                                            </SurfaceCard>
+                                                            <div className="grid gap-3">
+                                                                <Label htmlFor="report_value_font_color">
+                                                                    Value font
+                                                                    color
+                                                                </Label>
+                                                                <p
+                                                                    id={
+                                                                        reportValueColorHelpId
+                                                                    }
+                                                                    className="text-sm text-muted-foreground"
+                                                                >
+                                                                    Applies to
+                                                                    report field
+                                                                    values.
+                                                                    Default:{' '}
+                                                                    {
+                                                                        DEFAULT_REPORT_VALUE_COLOR
+                                                                    }
+                                                                    .
+                                                                </p>
+                                                                <div className="flex flex-wrap items-center gap-3">
+                                                                    <input
+                                                                        id="report_value_font_color_picker"
+                                                                        type="color"
+                                                                        value={
+                                                                            reportValueColorSwatch
+                                                                        }
+                                                                        aria-label="Report value font color picker"
+                                                                        aria-describedby={
+                                                                            reportValueColorHelpId
+                                                                        }
+                                                                        className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setReportValueColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setReportValueColorValue(
+                                                                                event.target.value.toLowerCase(),
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <Input
+                                                                        id="report_value_font_color"
+                                                                        name="report_value_font_color"
+                                                                        value={
+                                                                            reportValueColorInputValue
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setReportValueColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setReportValueColorValue(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
+                                                                        }}
+                                                                        onBlur={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setReportValueColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setReportValueColorValue(
+                                                                                normalizeHexInputValue(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                ),
+                                                                            );
+                                                                        }}
+                                                                        placeholder={
+                                                                            DEFAULT_REPORT_VALUE_COLOR
+                                                                        }
+                                                                        inputMode="text"
+                                                                        autoCapitalize="none"
+                                                                        autoCorrect="off"
+                                                                        spellCheck={
+                                                                            false
+                                                                        }
+                                                                        maxLength={
+                                                                            7
+                                                                        }
+                                                                        className="w-32 font-mono"
+                                                                        aria-invalid={
+                                                                            reportValueColorInvalid
+                                                                        }
+                                                                        aria-describedby={
+                                                                            reportValueColorHelpId
+                                                                        }
+                                                                    />
+                                                                    <div
+                                                                        className="h-9 w-9 rounded-md border border-border bg-muted"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                reportValueColorSwatch,
+                                                                        }}
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            setReportValueColorTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setReportValueColorValue(
+                                                                                DEFAULT_REPORT_VALUE_COLOR,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        Reset
+                                                                    </Button>
+                                                                </div>
+                                                                <InputError
+                                                                    message={
+                                                                        reportValueColorError
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </SurfaceCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -2385,271 +2630,285 @@ export default function OrganizationSettings() {
                                                     className="mt-0"
                                                 >
                                                     <SurfaceCard
-                                                variant="muted"
-                                                padding="md"
-                                                className="space-y-6"
-                                            >
-                                                <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold tracking-tight">
-                                                        Brand colors
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Applied to primary and
-                                                        accent UI colors across
-                                                        the portal after save.
-                                                    </p>
-                                                </div>
-
-                                                <div className="grid gap-6 md:grid-cols-2">
-                                                    <div className="grid gap-3">
-                                                        <Label htmlFor="brand_primary_color">
-                                                            Brand primary color
-                                                        </Label>
-                                                        <p
-                                                            id={
-                                                                brandPrimaryHelpId
-                                                            }
-                                                            className="text-sm text-muted-foreground"
-                                                        >
-                                                            Used for primary
-                                                            actions. Default:{' '}
-                                                            {
-                                                                DEFAULT_BRAND_PRIMARY
-                                                            }
-                                                            .
-                                                        </p>
-                                                        <div className="flex flex-wrap items-center gap-3">
-                                                            <input
-                                                                id="brand_primary_color_picker"
-                                                                type="color"
-                                                                value={
-                                                                    primarySwatch
-                                                                }
-                                                                aria-label="Brand primary color picker"
-                                                                aria-describedby={
-                                                                    brandPrimaryHelpId
-                                                                }
-                                                                className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setBrandPrimaryTouched(
-                                                                        true,
-                                                                    );
-                                                                    setBrandPrimaryValue(
-                                                                        event.target.value.toLowerCase(),
-                                                                    );
-                                                                }}
-                                                            />
-                                                            <Input
-                                                                id="brand_primary_color"
-                                                                name="brand_primary_color"
-                                                                value={
-                                                                    primaryInputValue
-                                                                }
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setBrandPrimaryTouched(
-                                                                        true,
-                                                                    );
-                                                                    setBrandPrimaryValue(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    );
-                                                                }}
-                                                                onBlur={(
-                                                                    event,
-                                                                ) => {
-                                                                    setBrandPrimaryTouched(
-                                                                        true,
-                                                                    );
-                                                                    setBrandPrimaryValue(
-                                                                        normalizeHexInputValue(
-                                                                            event
-                                                                                .target
-                                                                                .value,
-                                                                        ),
-                                                                    );
-                                                                }}
-                                                                placeholder={
-                                                                    DEFAULT_BRAND_PRIMARY
-                                                                }
-                                                                inputMode="text"
-                                                                autoCapitalize="none"
-                                                                autoCorrect="off"
-                                                                spellCheck={
-                                                                    false
-                                                                }
-                                                                maxLength={7}
-                                                                className="w-32 font-mono"
-                                                                aria-invalid={
-                                                                    primaryInvalid
-                                                                }
-                                                                aria-describedby={
-                                                                    brandPrimaryHelpId
-                                                                }
-                                                            />
-                                                            <div
-                                                                className="h-9 w-9 rounded-md border border-border bg-muted"
-                                                                style={{
-                                                                    backgroundColor:
-                                                                        primarySwatch,
-                                                                }}
-                                                                aria-hidden="true"
-                                                            />
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    setBrandPrimaryTouched(
-                                                                        true,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                    setBrandPrimaryValue(
-                                                                        DEFAULT_BRAND_PRIMARY,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                Reset
-                                                            </Button>
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-1">
+                                                            <h3 className="text-base font-semibold tracking-tight">
+                                                                Brand colors
+                                                            </h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Applied to
+                                                                primary and
+                                                                accent UI colors
+                                                                across the
+                                                                portal after
+                                                                save.
+                                                            </p>
                                                         </div>
-                                                        <InputError
-                                                            message={
-                                                                primaryError
-                                                            }
-                                                        />
-                                                    </div>
 
-                                                    <div className="grid gap-3">
-                                                        <Label htmlFor="brand_accent_color">
-                                                            Brand accent color
-                                                        </Label>
-                                                        <p
-                                                            id={
-                                                                brandAccentHelpId
-                                                            }
-                                                            className="text-sm text-muted-foreground"
-                                                        >
-                                                            Used for accents and
-                                                            highlights. Default:{' '}
-                                                            {
-                                                                DEFAULT_BRAND_ACCENT
-                                                            }
-                                                            .
-                                                        </p>
-                                                        <div className="flex flex-wrap items-center gap-3">
-                                                            <input
-                                                                id="brand_accent_color_picker"
-                                                                type="color"
-                                                                value={
-                                                                    accentSwatch
-                                                                }
-                                                                aria-label="Brand accent color picker"
-                                                                aria-describedby={
-                                                                    brandAccentHelpId
-                                                                }
-                                                                className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setBrandAccentTouched(
-                                                                        true,
-                                                                    );
-                                                                    setBrandAccentValue(
-                                                                        event.target.value.toLowerCase(),
-                                                                    );
-                                                                }}
-                                                            />
-                                                            <Input
-                                                                id="brand_accent_color"
-                                                                name="brand_accent_color"
-                                                                value={
-                                                                    accentInputValue
-                                                                }
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setBrandAccentTouched(
-                                                                        true,
-                                                                    );
-                                                                    setBrandAccentValue(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    );
-                                                                }}
-                                                                onBlur={(
-                                                                    event,
-                                                                ) => {
-                                                                    setBrandAccentTouched(
-                                                                        true,
-                                                                    );
-                                                                    setBrandAccentValue(
-                                                                        normalizeHexInputValue(
-                                                                            event
-                                                                                .target
-                                                                                .value,
-                                                                        ),
-                                                                    );
-                                                                }}
-                                                                placeholder={
-                                                                    DEFAULT_BRAND_ACCENT
-                                                                }
-                                                                inputMode="text"
-                                                                autoCapitalize="none"
-                                                                autoCorrect="off"
-                                                                spellCheck={
-                                                                    false
-                                                                }
-                                                                maxLength={7}
-                                                                className="w-32 font-mono"
-                                                                aria-invalid={
-                                                                    accentInvalid
-                                                                }
-                                                                aria-describedby={
-                                                                    brandAccentHelpId
-                                                                }
-                                                            />
-                                                            <div
-                                                                className="h-9 w-9 rounded-md border border-border bg-muted"
-                                                                style={{
-                                                                    backgroundColor:
-                                                                        accentSwatch,
-                                                                }}
-                                                                aria-hidden="true"
-                                                            />
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    setBrandAccentTouched(
-                                                                        true,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                    setBrandAccentValue(
-                                                                        DEFAULT_BRAND_ACCENT,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                Reset
-                                                            </Button>
+                                                        <div className="grid gap-6 md:grid-cols-2">
+                                                            <div className="grid gap-3">
+                                                                <Label htmlFor="brand_primary_color">
+                                                                    Brand
+                                                                    primary
+                                                                    color
+                                                                </Label>
+                                                                <p
+                                                                    id={
+                                                                        brandPrimaryHelpId
+                                                                    }
+                                                                    className="text-sm text-muted-foreground"
+                                                                >
+                                                                    Used for
+                                                                    primary
+                                                                    actions.
+                                                                    Default:{' '}
+                                                                    {
+                                                                        DEFAULT_BRAND_PRIMARY
+                                                                    }
+                                                                    .
+                                                                </p>
+                                                                <div className="flex flex-wrap items-center gap-3">
+                                                                    <input
+                                                                        id="brand_primary_color_picker"
+                                                                        type="color"
+                                                                        value={
+                                                                            primarySwatch
+                                                                        }
+                                                                        aria-label="Brand primary color picker"
+                                                                        aria-describedby={
+                                                                            brandPrimaryHelpId
+                                                                        }
+                                                                        className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setBrandPrimaryTouched(
+                                                                                true,
+                                                                            );
+                                                                            setBrandPrimaryValue(
+                                                                                event.target.value.toLowerCase(),
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <Input
+                                                                        id="brand_primary_color"
+                                                                        name="brand_primary_color"
+                                                                        value={
+                                                                            primaryInputValue
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setBrandPrimaryTouched(
+                                                                                true,
+                                                                            );
+                                                                            setBrandPrimaryValue(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
+                                                                        }}
+                                                                        onBlur={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setBrandPrimaryTouched(
+                                                                                true,
+                                                                            );
+                                                                            setBrandPrimaryValue(
+                                                                                normalizeHexInputValue(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                ),
+                                                                            );
+                                                                        }}
+                                                                        placeholder={
+                                                                            DEFAULT_BRAND_PRIMARY
+                                                                        }
+                                                                        inputMode="text"
+                                                                        autoCapitalize="none"
+                                                                        autoCorrect="off"
+                                                                        spellCheck={
+                                                                            false
+                                                                        }
+                                                                        maxLength={
+                                                                            7
+                                                                        }
+                                                                        className="w-32 font-mono"
+                                                                        aria-invalid={
+                                                                            primaryInvalid
+                                                                        }
+                                                                        aria-describedby={
+                                                                            brandPrimaryHelpId
+                                                                        }
+                                                                    />
+                                                                    <div
+                                                                        className="h-9 w-9 rounded-md border border-border bg-muted"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                primarySwatch,
+                                                                        }}
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            setBrandPrimaryTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setBrandPrimaryValue(
+                                                                                DEFAULT_BRAND_PRIMARY,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        Reset
+                                                                    </Button>
+                                                                </div>
+                                                                <InputError
+                                                                    message={
+                                                                        primaryError
+                                                                    }
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid gap-3">
+                                                                <Label htmlFor="brand_accent_color">
+                                                                    Brand accent
+                                                                    color
+                                                                </Label>
+                                                                <p
+                                                                    id={
+                                                                        brandAccentHelpId
+                                                                    }
+                                                                    className="text-sm text-muted-foreground"
+                                                                >
+                                                                    Used for
+                                                                    accents and
+                                                                    highlights.
+                                                                    Default:{' '}
+                                                                    {
+                                                                        DEFAULT_BRAND_ACCENT
+                                                                    }
+                                                                    .
+                                                                </p>
+                                                                <div className="flex flex-wrap items-center gap-3">
+                                                                    <input
+                                                                        id="brand_accent_color_picker"
+                                                                        type="color"
+                                                                        value={
+                                                                            accentSwatch
+                                                                        }
+                                                                        aria-label="Brand accent color picker"
+                                                                        aria-describedby={
+                                                                            brandAccentHelpId
+                                                                        }
+                                                                        className="h-9 w-9 cursor-pointer rounded-md border border-border bg-transparent p-0"
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setBrandAccentTouched(
+                                                                                true,
+                                                                            );
+                                                                            setBrandAccentValue(
+                                                                                event.target.value.toLowerCase(),
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <Input
+                                                                        id="brand_accent_color"
+                                                                        name="brand_accent_color"
+                                                                        value={
+                                                                            accentInputValue
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setBrandAccentTouched(
+                                                                                true,
+                                                                            );
+                                                                            setBrandAccentValue(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
+                                                                        }}
+                                                                        onBlur={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setBrandAccentTouched(
+                                                                                true,
+                                                                            );
+                                                                            setBrandAccentValue(
+                                                                                normalizeHexInputValue(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                ),
+                                                                            );
+                                                                        }}
+                                                                        placeholder={
+                                                                            DEFAULT_BRAND_ACCENT
+                                                                        }
+                                                                        inputMode="text"
+                                                                        autoCapitalize="none"
+                                                                        autoCorrect="off"
+                                                                        spellCheck={
+                                                                            false
+                                                                        }
+                                                                        maxLength={
+                                                                            7
+                                                                        }
+                                                                        className="w-32 font-mono"
+                                                                        aria-invalid={
+                                                                            accentInvalid
+                                                                        }
+                                                                        aria-describedby={
+                                                                            brandAccentHelpId
+                                                                        }
+                                                                    />
+                                                                    <div
+                                                                        className="h-9 w-9 rounded-md border border-border bg-muted"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                accentSwatch,
+                                                                        }}
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            setBrandAccentTouched(
+                                                                                true,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                            setBrandAccentValue(
+                                                                                DEFAULT_BRAND_ACCENT,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        Reset
+                                                                    </Button>
+                                                                </div>
+                                                                <InputError
+                                                                    message={
+                                                                        accentError
+                                                                    }
+                                                                />
+                                                            </div>
                                                         </div>
-                                                        <InputError
-                                                            message={
-                                                                accentError
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </SurfaceCard>
+                                                    </SurfaceCard>
                                                 </TabsContent>
 
                                                 <TabsContent
@@ -2658,241 +2917,257 @@ export default function OrganizationSettings() {
                                                     className="mt-0 space-y-6"
                                                 >
                                                     <SurfaceCard
-                                                variant="muted"
-                                                padding="md"
-                                                className="space-y-6"
-                                            >
-                                                <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold tracking-tight">
-                                                        Contact &amp; communications
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Support contact details
-                                                        shown on the welcome and
-                                                        sign-in screens.
-                                                    </p>
-                                                </div>
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-1">
+                                                            <h3 className="text-base font-semibold tracking-tight">
+                                                                Contact &amp;
+                                                                communications
+                                                            </h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Support contact
+                                                                details shown on
+                                                                the welcome and
+                                                                sign-in screens.
+                                                            </p>
+                                                        </div>
 
-                                                <div className="grid gap-6 md:grid-cols-2">
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="support_contact_name">
-                                                            Support contact name
-                                                        </Label>
-                                                        <Input
-                                                            id="support_contact_name"
-                                                            name="support_contact_name"
-                                                            defaultValue={
-                                                                branding.supportContactName ??
-                                                                ''
-                                                            }
-                                                            placeholder="Support Team"
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.support_contact_name
-                                                            }
-                                                        />
-                                                    </div>
+                                                        <div className="grid gap-6 md:grid-cols-2">
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="support_contact_name">
+                                                                    Support
+                                                                    contact name
+                                                                </Label>
+                                                                <Input
+                                                                    id="support_contact_name"
+                                                                    name="support_contact_name"
+                                                                    defaultValue={
+                                                                        branding.supportContactName ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="Support Team"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.support_contact_name
+                                                                    }
+                                                                />
+                                                            </div>
 
-                                                    <div className="grid gap-2">
-                                                        <Label htmlFor="support_email">
-                                                            Support email
-                                                        </Label>
-                                                        <Input
-                                                            id="support_email"
-                                                            name="support_email"
-                                                            type="email"
-                                                            defaultValue={
-                                                                branding.supportEmail ??
-                                                                ''
-                                                            }
-                                                            placeholder="support@company.com"
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.support_email
-                                                            }
-                                                        />
-                                                    </div>
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="support_email">
+                                                                    Support
+                                                                    email
+                                                                </Label>
+                                                                <Input
+                                                                    id="support_email"
+                                                                    name="support_email"
+                                                                    type="email"
+                                                                    defaultValue={
+                                                                        branding.supportEmail ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="support@company.com"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.support_email
+                                                                    }
+                                                                />
+                                                            </div>
 
-                                                    <div className="grid gap-2 md:col-span-2">
-                                                        <Label htmlFor="support_phone">
-                                                            Support phone
-                                                        </Label>
-                                                        <Input
-                                                            id="support_phone"
-                                                            name="support_phone"
-                                                            type="tel"
-                                                            defaultValue={
-                                                                branding.supportPhone ??
-                                                                ''
-                                                            }
-                                                            placeholder="+63 900 000 0000"
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                formErrors.support_phone
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </SurfaceCard>
+                                                            <div className="grid gap-2 md:col-span-2">
+                                                                <Label htmlFor="support_phone">
+                                                                    Support
+                                                                    phone
+                                                                </Label>
+                                                                <Input
+                                                                    id="support_phone"
+                                                                    name="support_phone"
+                                                                    type="tel"
+                                                                    defaultValue={
+                                                                        branding.supportPhone ??
+                                                                        ''
+                                                                    }
+                                                                    placeholder="+63 900 000 0000"
+                                                                />
+                                                                <InputError
+                                                                    message={
+                                                                        formErrors.support_phone
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </SurfaceCard>
 
-                                            <SurfaceCard
-                                                variant="muted"
-                                                padding="md"
-                                                className="space-y-6"
-                                            >
-                                                <div className="space-y-1">
-                                                    <h3 className="text-base font-semibold tracking-tight">
-                                                        Loan SMS templates
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Customize the approval
-                                                        and decline SMS messages
-                                                        sent to members after
-                                                        decisions.
-                                                    </p>
-                                                </div>
+                                                    <SurfaceCard
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-1">
+                                                            <h3 className="text-base font-semibold tracking-tight">
+                                                                Loan SMS
+                                                                templates
+                                                            </h3>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Customize the
+                                                                approval and
+                                                                decline SMS
+                                                                messages sent to
+                                                                members after
+                                                                decisions.
+                                                            </p>
+                                                        </div>
 
-                                                <div className="grid gap-6">
-                                                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
-                                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                            Available
-                                                            placeholders
-                                                        </p>
-                                                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                                            {LOAN_SMS_PLACEHOLDERS.map(
-                                                                (item) => (
-                                                                    <div
-                                                                        key={
-                                                                            item.token
+                                                        <div className="grid gap-6">
+                                                            <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                                                    Available
+                                                                    placeholders
+                                                                </p>
+                                                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                                    {LOAN_SMS_PLACEHOLDERS.map(
+                                                                        (
+                                                                            item,
+                                                                        ) => (
+                                                                            <div
+                                                                                key={
+                                                                                    item.token
+                                                                                }
+                                                                                className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-background px-3 py-2 text-xs"
+                                                                            >
+                                                                                <span className="font-mono text-foreground">
+                                                                                    {
+                                                                                        item.token
+                                                                                    }
+                                                                                </span>
+                                                                                <span className="text-muted-foreground">
+                                                                                    {
+                                                                                        item.label
+                                                                                    }
+                                                                                </span>
+                                                                            </div>
+                                                                        ),
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="grid gap-6 lg:grid-cols-2">
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor="loan_sms_approved_template">
+                                                                        Approved
+                                                                        SMS
+                                                                        template
+                                                                    </Label>
+                                                                    <textarea
+                                                                        id="loan_sms_approved_template"
+                                                                        name="loan_sms_approved_template"
+                                                                        className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                                        placeholder="Leave blank to use the default template."
+                                                                        value={
+                                                                            loanSmsApprovedTemplate
                                                                         }
-                                                                        className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-background px-3 py-2 text-xs"
-                                                                    >
-                                                                        <span className="font-mono text-foreground">
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setLoanSmsApprovedTemplate(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Leave
+                                                                        blank to
+                                                                        use the
+                                                                        default
+                                                                        template.
+                                                                    </p>
+                                                                    <InputError
+                                                                        message={
+                                                                            formErrors.loan_sms_approved_template
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor="loan_sms_declined_template">
+                                                                        Declined
+                                                                        SMS
+                                                                        template
+                                                                    </Label>
+                                                                    <textarea
+                                                                        id="loan_sms_declined_template"
+                                                                        name="loan_sms_declined_template"
+                                                                        className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                                        placeholder="Leave blank to use the default template."
+                                                                        value={
+                                                                            loanSmsDeclinedTemplate
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) => {
+                                                                            setLoanSmsDeclinedTemplate(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            );
+                                                                            setHasChanges(
+                                                                                true,
+                                                                            );
+                                                                        }}
+                                                                    />
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Leave
+                                                                        blank to
+                                                                        use the
+                                                                        default
+                                                                        template.
+                                                                    </p>
+                                                                    <InputError
+                                                                        message={
+                                                                            formErrors.loan_sms_declined_template
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
+                                                                <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                                                    Preview
+                                                                </p>
+                                                                <div className="mt-3 space-y-4 text-sm">
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                                                            Approved
+                                                                        </p>
+                                                                        <p className="text-sm text-foreground">
                                                                             {
-                                                                                item.token
+                                                                                loanSmsApprovedPreview
                                                                             }
-                                                                        </span>
-                                                                        <span className="text-muted-foreground">
-                                                                            {
-                                                                                item.label
-                                                                            }
-                                                                        </span>
+                                                                        </p>
                                                                     </div>
-                                                                ),
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid gap-6 lg:grid-cols-2">
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor="loan_sms_approved_template">
-                                                                Approved SMS
-                                                                template
-                                                            </Label>
-                                                            <textarea
-                                                                id="loan_sms_approved_template"
-                                                                name="loan_sms_approved_template"
-                                                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[120px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                                                                placeholder="Leave blank to use the default template."
-                                                                value={
-                                                                    loanSmsApprovedTemplate
-                                                                }
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setLoanSmsApprovedTemplate(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            />
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Leave blank to
-                                                                use the default
-                                                                template.
-                                                            </p>
-                                                            <InputError
-                                                                message={
-                                                                    formErrors.loan_sms_approved_template
-                                                                }
-                                                            />
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor="loan_sms_declined_template">
-                                                                Declined SMS
-                                                                template
-                                                            </Label>
-                                                            <textarea
-                                                                id="loan_sms_declined_template"
-                                                                name="loan_sms_declined_template"
-                                                                className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[120px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                                                                placeholder="Leave blank to use the default template."
-                                                                value={
-                                                                    loanSmsDeclinedTemplate
-                                                                }
-                                                                onChange={(
-                                                                    event,
-                                                                ) => {
-                                                                    setLoanSmsDeclinedTemplate(
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    );
-                                                                    setHasChanges(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                            />
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Leave blank to
-                                                                use the default
-                                                                template.
-                                                            </p>
-                                                            <InputError
-                                                                message={
-                                                                    formErrors.loan_sms_declined_template
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="rounded-2xl border border-border/30 bg-background/60 p-4">
-                                                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                            Preview
-                                                        </p>
-                                                        <div className="mt-3 space-y-4 text-sm">
-                                                            <div className="space-y-1">
-                                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                                    Approved
-                                                                </p>
-                                                                <p className="text-sm text-foreground">
-                                                                    {
-                                                                        loanSmsApprovedPreview
-                                                                    }
-                                                                </p>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                                    Declined
-                                                                </p>
-                                                                <p className="text-sm text-foreground">
-                                                                    {
-                                                                        loanSmsDeclinedPreview
-                                                                    }
-                                                                </p>
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                                                            Declined
+                                                                        </p>
+                                                                        <p className="text-sm text-foreground">
+                                                                            {
+                                                                                loanSmsDeclinedPreview
+                                                                            }
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            </SurfaceCard>
+                                                    </SurfaceCard>
                                                 </TabsContent>
                                             </Tabs>
 
@@ -2902,14 +3177,14 @@ export default function OrganizationSettings() {
                                                         {hasChanges ? (
                                                             <Badge
                                                                 variant="outline"
-                                                                className="border-primary/40 text-[10px] uppercase tracking-[0.2em] text-primary"
+                                                                className="border-primary/40 text-[10px] tracking-[0.2em] text-primary uppercase"
                                                             >
                                                                 Unsaved changes
                                                             </Badge>
                                                         ) : (
                                                             <Badge
                                                                 variant="secondary"
-                                                                className="text-[10px] uppercase tracking-[0.2em]"
+                                                                className="text-[10px] tracking-[0.2em] uppercase"
                                                             >
                                                                 Up to date
                                                             </Badge>
@@ -2949,7 +3224,7 @@ export default function OrganizationSettings() {
                             >
                                 <SectionHeader
                                     title="Live preview"
-                                    description="Review how the portal and reports will look before saving changes."
+                                    description="Review how the portal, signing address, and reports will look before saving changes."
                                     titleClassName="text-base font-semibold"
                                 />
                                 <div className="space-y-6 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-2">
@@ -2982,8 +3257,19 @@ export default function OrganizationSettings() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            </div>
                                         </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                            Official place of signing
+                                        </p>
+                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4">
+                                            <p className="text-sm text-foreground">
+                                                {businessAddressPreview || '--'}
+                                            </p>
+                                        </div>
+                                    </div>
 
                                     <div className="space-y-2">
                                         <p className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
@@ -3027,7 +3313,7 @@ export default function OrganizationSettings() {
                                                         className="h-24 w-full object-contain"
                                                     />
                                                 ) : (
-                                                    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                                    <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase">
                                                         Application form
                                                     </div>
                                                 )}

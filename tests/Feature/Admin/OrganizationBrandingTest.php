@@ -22,6 +22,9 @@ test('superadmin can view organization branding settings page', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/organization-settings')
             ->where('branding.businessAddress', null)
+            ->where('branding.businessAddress1', null)
+            ->where('branding.businessAddress2', null)
+            ->where('branding.businessAddress3', null)
             ->where('branding.logoPreset', OrganizationSettingsService::LOGO_PRESET_MARK)
             ->where('branding.logoMarkUrl', asset('mrdinc-logo-mark.png'))
             ->where('branding.logoFullUrl', asset('mrdinc-logo.png'))
@@ -114,9 +117,9 @@ test('superadmin can update organization business address', function () {
         route('admin.settings.organization.update'),
         [
             'company_name' => 'Acme Cooperative',
-            'business_address1' => '123 Main Street',
-            'business_address2' => 'Tagum City',
-            'business_address3' => 'Davao del Norte',
+            'business_address1' => '  Poblacion  ',
+            'business_address2' => '  Lianga ',
+            'business_address3' => ' Surigao del Sur  ',
         ],
     );
 
@@ -126,10 +129,32 @@ test('superadmin can update organization business address', function () {
 
     expect($setting)->not->toBeNull();
     expect($setting->business_address)
-        ->toBe('123 Main Street, Tagum City, Davao del Norte');
-    expect($setting->business_address1)->toBe('123 Main Street');
-    expect($setting->business_address2)->toBe('Tagum City');
-    expect($setting->business_address3)->toBe('Davao del Norte');
+        ->toBe('Poblacion, Lianga, Surigao del Sur');
+    expect($setting->business_address1)->toBe('Poblacion');
+    expect($setting->business_address2)->toBe('Lianga');
+    expect($setting->business_address3)->toBe('Surigao del Sur');
+});
+
+test('organization settings page shares structured business address fields', function () {
+    $admin = AppUser::factory()->create();
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    OrganizationSetting::factory()->create([
+        'business_address' => 'Poblacion, Lianga, Surigao del Sur',
+        'business_address1' => 'Poblacion',
+        'business_address2' => 'Lianga',
+        'business_address3' => 'Surigao del Sur',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.settings.organization'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('branding.businessAddress', 'Poblacion, Lianga, Surigao del Sur')
+            ->where('branding.businessAddress1', 'Poblacion')
+            ->where('branding.businessAddress2', 'Lianga')
+            ->where('branding.businessAddress3', 'Surigao del Sur'));
 });
 
 test('superadmin can update loan sms templates', function () {

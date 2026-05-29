@@ -76,6 +76,25 @@ test('organization settings uses the shared page hero', async () => {
     assert.match(file, /<SectionHeader/);
 });
 
+test('organization settings uses structured business address autocomplete fields', async () => {
+    const file = await readFile(
+        resolve(
+            'resources',
+            'js',
+            'pages',
+            'admin',
+            'organization-settings.tsx',
+        ),
+        'utf8',
+    );
+
+    assert.match(file, /LocationAutocompleteInput/);
+    assert.match(file, /useLocationSearch/);
+    assert.match(file, /composeAddress/);
+    assert.match(file, /business_address2/);
+    assert.match(file, /business_address3/);
+});
+
 test('member profile links loan actions to the payments page', async () => {
     const file = await readFile(
         resolve('resources', 'js', 'pages', 'admin', 'member-profile.tsx'),
