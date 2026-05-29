@@ -162,7 +162,6 @@ export default function SignaturePadField({
                 {SignatureCanvasComponent ? (
                     <SignatureCanvasComponent
                         ref={signaturePadRef}
-                        backgroundColor="rgb(255,255,255)"
                         penColor="rgb(17,24,39)"
                         onEnd={handleSignatureEnd}
                         canvasProps={{

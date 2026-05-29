@@ -2,21 +2,25 @@
 
 namespace App\Services\LoanRequests;
 
+use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class LoanRequestSignatureStorage
 {
+    public function __construct(
+        private SignaturePngService $signaturePngService,
+    ) {}
+
     public function storeBase64Png(?string $data): ?string
     {
-        if (! is_string($data) || ! str_starts_with($data, 'data:image/png;base64,')) {
+        if (! is_string($data)) {
             return null;
         }
 
-        $encoded = substr($data, strlen('data:image/png;base64,'));
-        $image = base64_decode($encoded, true);
+        $image = $this->signaturePngService->normalizeBase64Png($data);
 
-        if ($image === false) {
+        if (! is_string($image) || $image === '') {
             return null;
         }
 

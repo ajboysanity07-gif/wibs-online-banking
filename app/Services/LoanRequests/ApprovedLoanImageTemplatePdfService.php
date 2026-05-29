@@ -3,6 +3,7 @@
 namespace App\Services\LoanRequests;
 
 use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
+use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,10 @@ class ApprovedLoanImageTemplatePdfService
 
     private const LEGACY_PUBLIC_TEMPLATE_DIRECTORY =
         'public/app/templates/approved-loan-documents';
+
+    public function __construct(
+        private SignaturePngService $signaturePngService,
+    ) {}
 
     /**
      * @param  array<int, array<string, mixed>>  $pages
@@ -379,33 +384,41 @@ class ApprovedLoanImageTemplatePdfService
             return;
         }
 
-        $dimensions = $this->fitImageToBox(
-            $absolutePath,
-            $x,
-            $y,
-            $width,
-            $height,
-        );
+        $overlayImage = $this->signaturePngService->prepareOverlayImage($absolutePath);
 
-        $pdf->Image(
-            $absolutePath,
-            $dimensions['x'],
-            $dimensions['y'],
-            $dimensions['width'],
-            $dimensions['height'],
-            '',
-            '',
-            '',
-            false,
-            300,
-            '',
-            false,
-            false,
-            0,
-            false,
-            false,
-            false,
-        );
+        try {
+            $dimensions = $this->fitImageToBox(
+                $overlayImage['path'],
+                $x,
+                $y,
+                $width,
+                $height,
+            );
+
+            $pdf->Image(
+                $overlayImage['path'],
+                $dimensions['x'],
+                $dimensions['y'],
+                $dimensions['width'],
+                $dimensions['height'],
+                '',
+                '',
+                '',
+                false,
+                300,
+                '',
+                false,
+                false,
+                0,
+                false,
+                false,
+                false,
+            );
+        } finally {
+            if (($overlayImage['temporary'] ?? false) === true) {
+                File::delete($overlayImage['path']);
+            }
+        }
     }
 
     public function blank(?string $value): string
@@ -466,6 +479,8 @@ class ApprovedLoanImageTemplatePdfService
         $normalizedPath = $this->normalizePublicSignaturePath($normalizedPath);
 
         if ($normalizedPath === null) {
+            $this->logUnresolvedSignaturePath($relativePath, null, []);
+
             return null;
         }
 
@@ -473,11 +488,19 @@ class ApprovedLoanImageTemplatePdfService
             return Storage::disk('public')->path($normalizedPath);
         }
 
-        foreach ($this->signatureAbsolutePathCandidates($normalizedPath) as $absolutePath) {
+        $candidatePaths = $this->signatureAbsolutePathCandidates($normalizedPath);
+
+        foreach ($candidatePaths as $absolutePath) {
             if (is_file($absolutePath)) {
                 return $absolutePath;
             }
         }
+
+        $this->logUnresolvedSignaturePath(
+            $relativePath,
+            $normalizedPath,
+            $candidatePaths,
+        );
 
         return null;
     }
@@ -543,6 +566,25 @@ class ApprovedLoanImageTemplatePdfService
             storage_path('app/public/'.$relativePath),
             public_path('storage/'.$relativePath),
         ];
+    }
+
+    /**
+     * @param  list<string>  $candidatePaths
+     */
+    private function logUnresolvedSignaturePath(
+        string $signaturePath,
+        ?string $normalizedPath,
+        array $candidatePaths,
+    ): void {
+        Log::warning('Signature file could not be resolved for approved loan PDF.', [
+            'signature_path' => $signaturePath,
+            'normalized_signature_path' => $normalizedPath,
+            'checked_public_disk_path' => $normalizedPath !== null
+                ? Storage::disk('public')->path($normalizedPath)
+                : null,
+            'checked_storage_path' => $candidatePaths[0] ?? null,
+            'checked_public_storage_path' => $candidatePaths[1] ?? null,
+        ]);
     }
 
     /**

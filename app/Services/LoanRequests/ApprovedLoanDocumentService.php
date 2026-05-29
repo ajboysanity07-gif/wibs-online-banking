@@ -108,6 +108,7 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
+            'reviewedBy.activeAdminSignature',
             'approvalSignature',
             'user',
         );
@@ -141,6 +142,7 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
+            'reviewedBy.activeAdminSignature',
             'approvalSignature',
             'user',
         );
@@ -242,6 +244,7 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
+            'reviewedBy.activeAdminSignature',
             'approvalSignature',
             'user',
         );
@@ -424,6 +427,7 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
+            'reviewedBy.activeAdminSignature',
             'approvalSignature',
             'user',
         );
@@ -440,6 +444,15 @@ class ApprovedLoanDocumentService
         $reviewerName = $this->normalizeText(
             $loanRequest->reviewedBy?->adminProfile?->fullname,
         ) ?? $this->normalizeText($loanRequest->reviewedBy?->name);
+        $reviewerSignaturePath = $this->normalizeSignaturePath(
+            is_string($loanRequest->getAttribute('approval_signature_path'))
+                ? $loanRequest->getAttribute('approval_signature_path')
+                : null,
+        ) ?? $this->normalizeSignaturePath(
+            $loanRequest->approvalSignature?->signature_path,
+        ) ?? $this->normalizeSignaturePath(
+            $loanRequest->reviewedBy?->activeAdminSignature?->signature_path,
+        );
         $reviewerPosition = $reviewerName !== null ? 'Loan Manager' : null;
         $supportContactName = $this->normalizeText(
             $branding['supportContactName'] ?? null,
@@ -545,9 +558,7 @@ class ApprovedLoanDocumentService
             'reviewer' => [
                 'name' => $reviewerName,
                 'position' => $reviewerPosition,
-                'signature_path' => $this->normalizeText(
-                    $loanRequest->approvalSignature?->signature_path,
-                ),
+                'signature_path' => $reviewerSignaturePath,
                 'witness_one_name' => $witnessOneName,
                 'witness_two_name' => $witnessTwoName,
             ],
@@ -655,7 +666,7 @@ class ApprovedLoanDocumentService
                 $person?->years_in_work_business,
             ),
             'payday' => $this->normalizePaydayValue($person?->payday),
-            'signature_path' => $this->normalizeText($person?->signature_path),
+            'signature_path' => $this->normalizeSignaturePath($person?->signature_path),
         ];
     }
 
@@ -879,6 +890,58 @@ class ApprovedLoanDocumentService
         $trimmed = trim($value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    private function normalizeSignaturePath(?string $value): ?string
+    {
+        $normalizedPath = $this->normalizeText($value);
+
+        if ($normalizedPath === null) {
+            return null;
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $normalizedPath) === 1) {
+            $parsedPath = parse_url($normalizedPath, PHP_URL_PATH);
+            $normalizedPath = is_string($parsedPath) ? $parsedPath : '';
+        }
+
+        $normalizedPath = str_replace('\\', '/', rawurldecode($normalizedPath));
+        $normalizedPath = explode('?', $normalizedPath, 2)[0];
+        $normalizedPath = explode('#', $normalizedPath, 2)[0];
+        $normalizedPath = preg_replace(
+            '#^/?(?:storage/app/public/|public/storage/|storage/)#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+
+        foreach ([
+            '/storage/app/public/',
+            '/public/storage/',
+            '/storage/',
+        ] as $marker) {
+            $markerPosition = stripos($normalizedPath, $marker);
+
+            if ($markerPosition === false) {
+                continue;
+            }
+
+            $normalizedPath = substr(
+                $normalizedPath,
+                $markerPosition + strlen($marker),
+            );
+
+            break;
+        }
+
+        $normalizedPath = ltrim($normalizedPath, '/');
+        $normalizedPath = preg_replace(
+            '#^(?:app/public/|public/)+#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+        $normalizedPath = ltrim($normalizedPath, '/');
+
+        return $normalizedPath !== '' ? $normalizedPath : null;
     }
 
     private function normalizePaydayValue(?string $value): ?string

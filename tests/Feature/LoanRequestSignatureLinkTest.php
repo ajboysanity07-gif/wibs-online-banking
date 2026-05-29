@@ -591,6 +591,33 @@ test('valid co-maker signatures store the signature path and signed at timestamp
     Storage::disk('public')->assertExists((string) $person?->signature_path);
 });
 
+test('stored co-maker signature png is cleaned for transparent document overlays', function () {
+    Storage::fake('public');
+
+    $fixture = createPublicSignatureLinkFixture('transparent-token');
+
+    $this->from(route('loan-requests.sign.co-maker.show', $fixture['token']))
+        ->post(route('loan-requests.sign.co-maker.store', $fixture['token']), [
+            'consent' => true,
+            'signature_data' => testOpaqueWhiteSignatureDataUrl(),
+        ])
+        ->assertRedirect(route('loan-requests.sign.co-maker.show', [
+            'token' => $fixture['token'],
+            'signed' => 1,
+        ]));
+
+    $person = $fixture['person']->fresh();
+
+    expect($person?->signature_path)->not->toBeNull();
+
+    $storedBinary = Storage::disk('public')->get((string) $person?->signature_path);
+    $storedDimensions = pngDimensions($storedBinary);
+
+    expect(pngHasTransparency($storedBinary))->toBeTrue();
+    expect($storedDimensions['width'])->toBeLessThan(160);
+    expect($storedDimensions['height'])->toBeLessThan(60);
+});
+
 test('successful co-maker signing shows the public confirmation state', function () {
     Storage::fake('public');
 

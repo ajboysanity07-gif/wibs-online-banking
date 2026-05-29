@@ -79,6 +79,84 @@ function testPngSignatureBinary(string $variant = 'one'): string
     return $decoded;
 }
 
+function testOpaqueWhiteSignatureBinary(): string
+{
+    if (! function_exists('imagecreatetruecolor')) {
+        throw new RuntimeException('GD is required to build opaque signature fixtures.');
+    }
+
+    $image = imagecreatetruecolor(160, 60);
+    $white = imagecolorallocate($image, 255, 255, 255);
+    $ink = imagecolorallocate($image, 17, 24, 39);
+    imagefill($image, 0, 0, $white);
+    imagesetthickness($image, 4);
+    imageline($image, 28, 36, 82, 20, $ink);
+    imageline($image, 80, 20, 110, 42, $ink);
+    imageline($image, 108, 42, 136, 16, $ink);
+
+    ob_start();
+    imagepng($image);
+    $binary = (string) ob_get_clean();
+    imagedestroy($image);
+
+    return $binary;
+}
+
+function testOpaqueWhiteSignatureDataUrl(): string
+{
+    return 'data:image/png;base64,'.base64_encode(testOpaqueWhiteSignatureBinary());
+}
+
+function pngHasTransparency(string $pngBinary): bool
+{
+    if (! function_exists('imagecreatefromstring')) {
+        throw new RuntimeException('GD is required to inspect PNG transparency.');
+    }
+
+    $image = @imagecreatefromstring($pngBinary);
+
+    if (! $image instanceof GdImage) {
+        throw new RuntimeException('Unable to decode PNG image for inspection.');
+    }
+
+    try {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        for ($y = 0; $y < $height; $y++) {
+            for ($x = 0; $x < $width; $x++) {
+                $rgba = imagecolorat($image, $x, $y);
+                $alpha = ($rgba >> 24) & 0x7F;
+
+                if ($alpha > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    } finally {
+        imagedestroy($image);
+    }
+}
+
+/**
+ * @return array{width: int, height: int}
+ */
+function pngDimensions(string $pngBinary): array
+{
+    $size = getimagesizefromstring($pngBinary);
+
+    if ($size === false) {
+        throw new RuntimeException('Unable to determine PNG dimensions.');
+    }
+
+    return [
+        'width' => (int) ($size[0] ?? 0),
+        'height' => (int) ($size[1] ?? 0),
+    ];
+}
+
 function storeTestSignatureFile(string $path, string $variant = 'one'): string
 {
     Storage::disk('public')->put($path, testPngSignatureBinary($variant));

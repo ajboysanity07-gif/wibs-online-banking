@@ -588,6 +588,153 @@ test('grepalife signature image resolver normalizes storage urls and public path
     ))->toBeNull();
 });
 
+test('grepalife document data normalizes applicant and reviewer signature paths', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Maria Loan Officer',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
+    $approvalSignatureRelativePath = (string) $approvalSignature->signature_path;
+    $applicantSignaturePath = storeTestSignatureFile(
+        sprintf('loan-requests/signatures/%d-grepalife-normalized-applicant.png', $loanRequest->id),
+        'one',
+    );
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'signature_path' => Storage::disk('public')->url($applicantSignaturePath),
+        ]);
+
+    $approvalSignature->update([
+        'signature_path' => 'storage/app/public/'.$approvalSignatureRelativePath,
+    ]);
+
+    $loanRequest->update([
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => '2026-05-22 10:00:00',
+        'approval_signature_id' => $approvalSignature->id,
+    ]);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect(data_get($documentData, 'applicant.signature_path'))
+        ->toBe($applicantSignaturePath);
+    expect(data_get($documentData, 'reviewer.signature_path'))
+        ->toBe($approvalSignatureRelativePath);
+});
+
+test('grepalife document data falls back to reviewer active signature when approval snapshot is missing', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Maria Loan Officer',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $activeSignature = createActiveAdminSignatureRecord($admin, 'two');
+
+    $loanRequest->update([
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => '2026-05-22 10:00:00',
+        'approval_signature_id' => null,
+    ]);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect(data_get($documentData, 'reviewer.signature_path'))
+        ->toBe($activeSignature->signature_path);
+});
+
+test('missing grepalife signature files log warnings without failing pdf generation', function () {
+    Log::spy();
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Maria Loan Officer',
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Wibs Cooperative',
+        'business_address1' => '123 Main Street',
+        'business_address2' => 'Tagum City',
+        'business_address3' => 'Davao del Norte',
+        'business_address' => '123 Main Street, Tagum City, Davao del Norte',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
+    $missingApplicantPath = Storage::disk('public')->url(
+        'loan-requests/signatures/missing-grepalife-applicant-warning.png',
+    );
+    $missingReviewerPath = '/storage/loan-manager-signatures/missing-grepalife-reviewer-warning.png';
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'signature_path' => $missingApplicantPath,
+        ]);
+
+    $approvalSignature->update([
+        'signature_path' => $missingReviewerPath,
+    ]);
+
+    $loanRequest->update([
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => '2026-05-22 10:00:00',
+        'approval_signature_id' => $approvalSignature->id,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $response->assertOk();
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'Signature file could not be resolved for approved loan PDF.'
+                && ($context['signature_path'] ?? null) === 'loan-requests/signatures/missing-grepalife-applicant-warning.png'
+                && ($context['normalized_signature_path'] ?? null) === 'loan-requests/signatures/missing-grepalife-applicant-warning.png'
+                && str_contains(
+                    str_replace('\\', '/', (string) ($context['checked_storage_path'] ?? '')),
+                    'storage/app/public/loan-requests/signatures/missing-grepalife-applicant-warning.png',
+                );
+        })
+        ->once();
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'Signature file could not be resolved for approved loan PDF.'
+                && ($context['signature_path'] ?? null) === 'loan-manager-signatures/missing-grepalife-reviewer-warning.png'
+                && ($context['normalized_signature_path'] ?? null) === 'loan-manager-signatures/missing-grepalife-reviewer-warning.png'
+                && str_contains(
+                    str_replace('\\', '/', (string) ($context['checked_storage_path'] ?? '')),
+                    'storage/app/public/loan-manager-signatures/missing-grepalife-reviewer-warning.png',
+                );
+        })
+        ->once();
+});
+
 test('grepalife pdf renders borrower and witness signatures from normalized stored paths', function () {
     Storage::fake('public');
 
@@ -685,6 +832,11 @@ test('grepalife pdf renders borrower and witness signatures from normalized stor
 test('grepalife field map includes witness signature section placements', function () {
     $fields = collect((new GrepalifePdfFieldMap)->fields());
 
+    $debtorSignatureField = $fields->first(
+        fn (array $field): bool => ($field['page'] ?? null) === 2
+            && ($field['type'] ?? null) === 'signature'
+            && ($field['value'] ?? null) === 'applicant.signature_path',
+    );
     $witnessSignatureField = $fields->first(
         fn (array $field): bool => ($field['page'] ?? null) === 2
             && ($field['type'] ?? null) === 'signature'
@@ -699,11 +851,16 @@ test('grepalife field map includes witness signature section placements', functi
             && ($field['value'] ?? null) === 'organization.business_address',
     );
 
+    expect($debtorSignatureField)->not->toBeNull();
+    expect($debtorSignatureField['x'])->toBe(14.0);
+    expect($debtorSignatureField['y'])->toBe(82.7);
+    expect($debtorSignatureField['width'])->toBe(44);
+    expect($debtorSignatureField['height'])->toBe(6.2);
     expect($witnessSignatureField)->not->toBeNull();
-    expect($witnessSignatureField['x'])->toBe(15.0);
-    expect($witnessSignatureField['y'])->toBe(89.0);
-    expect($witnessSignatureField['width'])->toBe(42);
-    expect($witnessSignatureField['height'])->toBe(6.0);
+    expect($witnessSignatureField['x'])->toBe(14.0);
+    expect($witnessSignatureField['y'])->toBe(91.7);
+    expect($witnessSignatureField['width'])->toBe(44);
+    expect($witnessSignatureField['height'])->toBe(6.2);
     expect($witnessNameField)->not->toBeNull();
     expect($witnessNameField['x'])->toBe(71);
     expect($witnessNameField['y'])->toBe(91.5);
@@ -711,6 +868,28 @@ test('grepalife field map includes witness signature section placements', functi
     expect($placeOfSigningField['x'])->toBe(15.0);
     expect($placeOfSigningField['y'])->toBe(101.5);
     expect($placeOfSigningField['width'])->toBe(86);
+});
+
+test('grepalife signature rendering preserves aspect ratio and centers the image in the box', function () {
+    Storage::fake('public');
+
+    $relativePath = 'loan-requests/signatures/grepalife-fit-box.png';
+    Storage::disk('public')->put(
+        $relativePath,
+        approvedLoanDocumentsCreateSizedTransparentSignatureBinary(300, 30),
+    );
+    $absolutePath = Storage::disk('public')->path($relativePath);
+    $service = app(ApprovedLoanImageTemplatePdfService::class);
+    $dimensions = \Closure::bind(
+        fn (): array => $this->fitImageToBox($absolutePath, 14.0, 91.7, 44.0, 6.2),
+        $service,
+        $service,
+    )();
+
+    expect($dimensions['x'])->toBe(14.0);
+    expect($dimensions['width'])->toBe(44.0);
+    expect(round($dimensions['height'], 1))->toBe(4.4);
+    expect(round($dimensions['y'], 1))->toBe(92.6);
 });
 
 test('grepalife field map keeps applicant values aligned with label padding', function () {
@@ -3072,4 +3251,59 @@ function approvedLoanDocumentsOpenZipEntriesFromResponse(
     $archive->close();
 
     return $entries;
+}
+
+function approvedLoanDocumentsCreateSizedTransparentSignatureBinary(
+    int $width,
+    int $height,
+): string {
+    if (! function_exists('imagecreatetruecolor')) {
+        throw new RuntimeException('GD is required to build signature fixtures.');
+    }
+
+    $image = imagecreatetruecolor($width, $height);
+    imagealphablending($image, false);
+    imagesavealpha($image, true);
+    imagefilledrectangle(
+        $image,
+        0,
+        0,
+        $width,
+        $height,
+        imagecolorallocatealpha($image, 255, 255, 255, 127),
+    );
+
+    $ink = imagecolorallocatealpha($image, 17, 24, 39, 0);
+    imagesetthickness($image, max(2, (int) round($height / 5)));
+    imageline(
+        $image,
+        max(4, (int) round($width * 0.05)),
+        (int) round($height * 0.7),
+        (int) round($width * 0.42),
+        (int) round($height * 0.25),
+        $ink,
+    );
+    imageline(
+        $image,
+        (int) round($width * 0.4),
+        (int) round($height * 0.28),
+        (int) round($width * 0.68),
+        (int) round($height * 0.72),
+        $ink,
+    );
+    imageline(
+        $image,
+        (int) round($width * 0.66),
+        (int) round($height * 0.72),
+        (int) round($width * 0.92),
+        (int) round($height * 0.18),
+        $ink,
+    );
+
+    ob_start();
+    imagepng($image);
+    $binary = (string) ob_get_clean();
+    imagedestroy($image);
+
+    return $binary;
 }

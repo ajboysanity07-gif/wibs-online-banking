@@ -50,6 +50,37 @@ test('admin can save a loan manager signature from settings', function () {
             ));
 });
 
+test('saved loan manager signature png is cleaned for transparent document overlays', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Loan Manager Admin',
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->post(route('profile.loan-manager-signature.update'), [
+            'signature_data' => testOpaqueWhiteSignatureDataUrl(),
+        ])
+        ->assertRedirect(route('profile.edit'));
+
+    $signature = AdminSignature::query()
+        ->where('user_id', $admin->user_id)
+        ->where('is_active', true)
+        ->sole();
+
+    $storedBinary = Storage::disk('public')->get($signature->signature_path);
+    $storedDimensions = pngDimensions($storedBinary);
+
+    expect(pngHasTransparency($storedBinary))->toBeTrue();
+    expect($storedDimensions['width'])->toBeLessThan(160);
+    expect($storedDimensions['height'])->toBeLessThan(60);
+});
+
 test('empty loan manager signature cannot be saved', function () {
     $admin = User::factory()->create([
         'acctno' => null,
