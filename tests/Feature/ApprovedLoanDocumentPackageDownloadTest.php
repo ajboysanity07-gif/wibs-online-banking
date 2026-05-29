@@ -11,6 +11,7 @@ use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService;
+use App\Services\LoanRequests\DocumentSignaturePlacement;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -873,11 +874,21 @@ test('grepalife field map includes witness signature section placements', functi
     expect($debtorSignatureField['y'])->toBe(82.7);
     expect($debtorSignatureField['width'])->toBe(44);
     expect($debtorSignatureField['height'])->toBe(6.2);
+    expect($debtorSignatureField['scale'])->toBe(2.0);
+    expect($debtorSignatureField['max_width'])->toBe(68.0);
+    expect($debtorSignatureField['max_height'])->toBe(11.5);
+    expect($debtorSignatureField['offset_x'])->toBe(-2.0);
+    expect($debtorSignatureField['offset_y'])->toBe(-1.0);
     expect($witnessSignatureField)->not->toBeNull();
     expect($witnessSignatureField['x'])->toBe(14.0);
     expect($witnessSignatureField['y'])->toBe(91.7);
     expect($witnessSignatureField['width'])->toBe(44);
     expect($witnessSignatureField['height'])->toBe(6.2);
+    expect($witnessSignatureField['scale'])->toBe(2.0);
+    expect($witnessSignatureField['max_width'])->toBe(68.0);
+    expect($witnessSignatureField['max_height'])->toBe(11.5);
+    expect($witnessSignatureField['offset_x'])->toBe(-2.0);
+    expect($witnessSignatureField['offset_y'])->toBe(-1.0);
     expect($witnessNameField)->not->toBeNull();
     expect($witnessNameField['x'])->toBe(71);
     expect($witnessNameField['y'])->toBe(91.5);
@@ -887,26 +898,45 @@ test('grepalife field map includes witness signature section placements', functi
     expect($placeOfSigningField['width'])->toBe(86);
 });
 
-test('grepalife signature rendering preserves aspect ratio and centers the image in the box', function () {
-    Storage::fake('public');
-
-    $relativePath = 'loan-requests/signatures/grepalife-fit-box.png';
-    Storage::disk('public')->put(
-        $relativePath,
-        approvedLoanDocumentsCreateSizedTransparentSignatureBinary(300, 30),
+test('signature placement helper applies the shared scale factor while preserving aspect ratio and centering', function () {
+    $placement = app(DocumentSignaturePlacement::class)->calculateFromDimensions(
+        300.0,
+        30.0,
+        14.0,
+        91.7,
+        44.0,
+        6.2,
     );
-    $absolutePath = Storage::disk('public')->path($relativePath);
-    $service = app(ApprovedLoanImageTemplatePdfService::class);
-    $dimensions = \Closure::bind(
-        fn (): array => $this->fitImageToBox($absolutePath, 14.0, 91.7, 44.0, 6.2),
-        $service,
-        $service,
-    )();
 
-    expect($dimensions['x'])->toBe(14.0);
-    expect($dimensions['width'])->toBe(44.0);
-    expect(round($dimensions['height'], 1))->toBe(4.4);
-    expect(round($dimensions['y'], 1))->toBe(92.6);
+    expect($placement['x'])->toBe(-8.0);
+    expect($placement['width'])->toBe(88.0);
+    expect($placement['height'])->toBe(8.8);
+    expect($placement['y'])->toBe(90.4);
+});
+
+test('grepalife signature placement overrides keep enlarged signatures inside the signing area', function () {
+    $fieldMap = new GrepalifePdfFieldMap;
+    $field = approvedLoanDocumentsFindGrepalifeField(
+        $fieldMap,
+        2,
+        'applicant.signature_path',
+        'signature',
+    );
+    $placement = app(DocumentSignaturePlacement::class)->calculateFromDimensions(
+        300.0,
+        30.0,
+        (float) $field['x'],
+        (float) $field['y'],
+        (float) $field['width'],
+        (float) $field['height'],
+        approvedLoanDocumentsSignaturePlacementOptions($field),
+    );
+
+    expect($placement['x'])->toBe(0.0);
+    expect($placement['width'])->toBe(68.0);
+    expect($placement['height'])->toBe(6.8);
+    expect($placement['y'])->toBe(81.4);
+    expect($placement['x'] + $placement['width'])->toBeLessThan(71.0);
 });
 
 test('grepalife field map keeps applicant values aligned with label padding', function () {
@@ -1370,9 +1400,13 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
     expect($signatureDrawing)->toBeInstanceOf(WorksheetDrawing::class);
     expect($signatureDrawing?->getName())->toBe('Loan Manager Signature');
     expect($signatureDrawing?->getCoordinates())->toBe('D18');
+    expect($signatureDrawing?->getWidth())->toBeGreaterThan(100);
+    expect($signatureDrawing?->getHeight())->toBeGreaterThan(40);
     expect(file_get_contents((string) $signatureDrawing?->getPath()))
         ->toBe(testPngSignatureBinary('two'))
         ->not->toBe(testPngSignatureBinary('one'));
+    expect((float) $loanInformationSheet?->getRowDimension(18)->getRowHeight())
+        ->toBeGreaterThan(35.0);
 
     $workbookStrings = approvedLoanDocumentsWorkbookStringValues($spreadsheet);
 
@@ -3270,57 +3304,23 @@ function approvedLoanDocumentsOpenZipEntriesFromResponse(
     return $entries;
 }
 
-function approvedLoanDocumentsCreateSizedTransparentSignatureBinary(
-    int $width,
-    int $height,
-): string {
-    if (! function_exists('imagecreatetruecolor')) {
-        throw new RuntimeException('GD is required to build signature fixtures.');
-    }
-
-    $image = imagecreatetruecolor($width, $height);
-    imagealphablending($image, false);
-    imagesavealpha($image, true);
-    imagefilledrectangle(
-        $image,
-        0,
-        0,
-        $width,
-        $height,
-        imagecolorallocatealpha($image, 255, 255, 255, 127),
-    );
-
-    $ink = imagecolorallocatealpha($image, 17, 24, 39, 0);
-    imagesetthickness($image, max(2, (int) round($height / 5)));
-    imageline(
-        $image,
-        max(4, (int) round($width * 0.05)),
-        (int) round($height * 0.7),
-        (int) round($width * 0.42),
-        (int) round($height * 0.25),
-        $ink,
-    );
-    imageline(
-        $image,
-        (int) round($width * 0.4),
-        (int) round($height * 0.28),
-        (int) round($width * 0.68),
-        (int) round($height * 0.72),
-        $ink,
-    );
-    imageline(
-        $image,
-        (int) round($width * 0.66),
-        (int) round($height * 0.72),
-        (int) round($width * 0.92),
-        (int) round($height * 0.18),
-        $ink,
-    );
-
-    ob_start();
-    imagepng($image);
-    $binary = (string) ob_get_clean();
-    imagedestroy($image);
-
-    return $binary;
+/**
+ * @param  array<string, mixed>  $field
+ * @return array{
+ *     scale?: float|int|null,
+ *     max_width?: float|int|null,
+ *     max_height?: float|int|null,
+ *     offset_x?: float|int|null,
+ *     offset_y?: float|int|null
+ * }
+ */
+function approvedLoanDocumentsSignaturePlacementOptions(array $field): array
+{
+    return array_filter([
+        'scale' => $field['scale'] ?? null,
+        'max_width' => $field['max_width'] ?? null,
+        'max_height' => $field['max_height'] ?? null,
+        'offset_x' => $field['offset_x'] ?? null,
+        'offset_y' => $field['offset_y'] ?? null,
+    ], static fn (mixed $value): bool => $value !== null);
 }

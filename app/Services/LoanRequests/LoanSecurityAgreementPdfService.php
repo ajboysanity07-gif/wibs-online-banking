@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\Services\SignaturePngService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -10,6 +11,10 @@ use Throwable;
 
 class LoanSecurityAgreementPdfService
 {
+    public function __construct(
+        private SignaturePngService $signaturePngService,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $documentData
      */
@@ -186,6 +191,11 @@ class LoanSecurityAgreementPdfService
 
         $contents = Storage::disk('public')->get($path);
         $mimeType = $this->resolveImageMimeType($path);
+
+        if ($mimeType === 'image/png') {
+            $contents = $this->signaturePngService->normalizePngBinary($contents)
+                ?? $contents;
+        }
 
         return sprintf(
             'data:%s;base64,%s',

@@ -191,13 +191,13 @@
                 display: flex;
                 align-items: flex-end;
                 justify-content: center;
-                height: 18pt;
-                margin-bottom: 4pt;
+                height: 36pt;
+                margin-bottom: 6pt;
             }
 
             .signature-image {
                 max-width: 100%;
-                max-height: 18pt;
+                max-height: 36pt;
                 object-fit: contain;
             }
 
