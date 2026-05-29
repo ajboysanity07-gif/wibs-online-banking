@@ -24,6 +24,7 @@ class ApprovedLoanImageTemplatePdfService
 
     public function __construct(
         private SignaturePngService $signaturePngService,
+        private DocumentSignaturePlacement $signaturePlacement,
     ) {}
 
     /**
@@ -309,6 +310,7 @@ class ApprovedLoanImageTemplatePdfService
             (float) ($field['width'] ?? 0),
             (float) ($field['height'] ?? 0),
             is_string($relativePath) ? $relativePath : null,
+            $this->signaturePlacementOptions($field),
         );
     }
 
@@ -373,6 +375,7 @@ class ApprovedLoanImageTemplatePdfService
         float $width,
         float $height,
         ?string $signaturePath,
+        array $placementOptions = [],
     ): void {
         if ($signaturePath === null || trim($signaturePath) === '') {
             return;
@@ -393,6 +396,7 @@ class ApprovedLoanImageTemplatePdfService
                 $y,
                 $width,
                 $height,
+                $placementOptions,
             );
 
             $pdf->Image(
@@ -596,46 +600,37 @@ class ApprovedLoanImageTemplatePdfService
         float $y,
         float $width,
         float $height,
+        array $placementOptions = [],
     ): array {
-        if ($width <= 0 || $height <= 0) {
-            return [
-                'x' => $x,
-                'y' => $y,
-                'width' => $width,
-                'height' => $height,
-            ];
-        }
+        return $this->signaturePlacement->calculateFromImagePath(
+            $absolutePath,
+            $x,
+            $y,
+            $width,
+            $height,
+            $placementOptions,
+        );
+    }
 
-        $size = @getimagesize($absolutePath);
-
-        if ($size === false || ($size[0] ?? 0) <= 0 || ($size[1] ?? 0) <= 0) {
-            return [
-                'x' => $x,
-                'y' => $y,
-                'width' => $width,
-                'height' => $height,
-            ];
-        }
-
-        $imageWidth = (float) $size[0];
-        $imageHeight = (float) $size[1];
-        $imageRatio = $imageWidth / $imageHeight;
-        $boxRatio = $width / $height;
-
-        if ($imageRatio >= $boxRatio) {
-            $renderWidth = $width;
-            $renderHeight = $width / $imageRatio;
-        } else {
-            $renderHeight = $height;
-            $renderWidth = $height * $imageRatio;
-        }
-
-        return [
-            'x' => $x + (($width - $renderWidth) / 2),
-            'y' => $y + (($height - $renderHeight) / 2),
-            'width' => $renderWidth,
-            'height' => $renderHeight,
-        ];
+    /**
+     * @param  array<string, mixed>  $field
+     * @return array{
+     *     scale?: float|int|null,
+     *     max_width?: float|int|null,
+     *     max_height?: float|int|null,
+     *     offset_x?: float|int|null,
+     *     offset_y?: float|int|null
+     * }
+     */
+    private function signaturePlacementOptions(array $field): array
+    {
+        return array_filter([
+            'scale' => $field['scale'] ?? null,
+            'max_width' => $field['max_width'] ?? null,
+            'max_height' => $field['max_height'] ?? null,
+            'offset_x' => $field['offset_x'] ?? null,
+            'offset_y' => $field['offset_y'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null);
     }
 
     private function transformValue(mixed $transformer, mixed $value): mixed

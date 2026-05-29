@@ -46,6 +46,41 @@ test('loan request report renders uploaded header design when available', functi
     expect($html)->toContain('src="data:image/png;base64,'.base64_encode('header').'"');
 });
 
+test('loan request report reserves larger signature image boxes', function () {
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $html = view('reports.loan-request', [
+        'loanRequest' => $loanRequest,
+        'applicant' => [
+            'signatureData' => 'data:image/png;base64,signature',
+        ],
+        'coMakerOne' => [
+            'signatureData' => null,
+        ],
+        'coMakerTwo' => [
+            'signatureData' => null,
+        ],
+        'reviewer' => [
+            'signatureData' => null,
+        ],
+        'companyName' => 'Acme Cooperative',
+        'reportHeader' => [
+            'companyName' => 'Acme Cooperative',
+            'designData' => null,
+        ],
+        'reportTypography' => [],
+        'generatedAt' => Carbon::now(),
+    ])->render();
+
+    expect($html)
+        ->toContain('class="signature-art"')
+        ->toContain('height: 84px;')
+        ->toContain('max-height: 84px;')
+        ->toContain('alt="Applicant signature"');
+});
+
 test('loan security agreement report renders uploaded header design when available', function () {
     Storage::fake('public');
     Storage::disk('public')->put('branding/report-headers/header.png', 'header');
@@ -127,6 +162,8 @@ test('loan security agreement report underlines inserted values and keeps signat
         ->toContain('class="signature-layout"')
         ->toContain('width: 76%;')
         ->toContain('margin: 20pt auto 0;')
+        ->toContain('height: 36pt;')
+        ->toContain('max-height: 36pt;')
         ->toContain('class="signature-column signature-column--left"')
         ->toContain('class="signature-column signature-column--right"')
         ->toContain('<div class="signature-label">Borrower</div>')

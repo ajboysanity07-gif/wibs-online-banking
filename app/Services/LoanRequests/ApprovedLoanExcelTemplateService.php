@@ -3,6 +3,7 @@
 namespace App\Services\LoanRequests;
 
 use App\Services\LoanRequests\ExcelCellMaps\PlanOfPaymentDisclosurePromissoryNoteExcelCellMap;
+use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -87,14 +88,26 @@ class ApprovedLoanExcelTemplateService
     ];
 
     /**
-     * @var array{worksheet: string, coordinate: string, offsetX: int, offsetY: int, height: int}
+     * @var array{
+     *     worksheet: string,
+     *     coordinate: string,
+     *     offsetX: int,
+     *     offsetY: int,
+     *     width: int,
+     *     height: int,
+     *     maxWidth: int,
+     *     maxHeight: int
+     * }
      */
     private const LOAN_MANAGER_SIGNATURE_PLACEMENT = [
         'worksheet' => 'Loan Information',
         'coordinate' => 'D18',
         'offsetX' => 6,
         'offsetY' => 0,
+        'width' => 70,
         'height' => 26,
+        'maxWidth' => 140,
+        'maxHeight' => 52,
     ];
 
     /**
@@ -115,6 +128,8 @@ class ApprovedLoanExcelTemplateService
 
     public function __construct(
         private PlanOfPaymentDisclosurePromissoryNoteExcelCellMap $cellMap,
+        private SignaturePngService $signaturePngService,
+        private DocumentSignaturePlacement $signaturePlacement,
     ) {}
 
     public function generate(
@@ -125,6 +140,7 @@ class ApprovedLoanExcelTemplateService
         $templatePath = $this->resolveTemplatePath($templateFilename);
         $spreadsheet = IOFactory::load($templatePath);
         $temporaryHeaderImagePath = null;
+        $temporarySignatureImagePath = null;
 
         try {
             $this->applyMappedCells($spreadsheet, $documentData);
@@ -135,13 +151,20 @@ class ApprovedLoanExcelTemplateService
                 $spreadsheet,
                 $documentData,
             );
-            $this->insertLoanManagerSignatureImage($spreadsheet, $documentData);
+            $temporarySignatureImagePath = $this->insertLoanManagerSignatureImage(
+                $spreadsheet,
+                $documentData,
+            );
             $this->finalizeLoanInformationWorksheetLayout($spreadsheet);
             File::ensureDirectoryExists(dirname($outputPath));
             IOFactory::createWriter($spreadsheet, 'Xlsx')->save($outputPath);
         } finally {
             if (is_string($temporaryHeaderImagePath) && $temporaryHeaderImagePath !== '') {
                 File::delete($temporaryHeaderImagePath);
+            }
+
+            if (is_string($temporarySignatureImagePath) && $temporarySignatureImagePath !== '') {
+                File::delete($temporarySignatureImagePath);
             }
 
             $spreadsheet->disconnectWorksheets();
@@ -371,11 +394,11 @@ class ApprovedLoanExcelTemplateService
     private function insertLoanManagerSignatureImage(
         Spreadsheet $spreadsheet,
         array $documentData,
-    ): void {
+    ): ?string {
         $relativePath = trim((string) data_get($documentData, 'reviewer.signature_path', ''));
 
         if ($relativePath === '' || ! Storage::disk('public')->exists($relativePath)) {
-            return;
+            return null;
         }
 
         $worksheet = $spreadsheet->getSheetByName(
@@ -383,20 +406,61 @@ class ApprovedLoanExcelTemplateService
         );
 
         if (! $worksheet instanceof Worksheet) {
-            return;
+            return null;
         }
 
+        $overlayImage = $this->signaturePngService->prepareOverlayImage(
+            Storage::disk('public')->path($relativePath),
+        );
+        $placement = $this->signaturePlacement->calculateFromImagePath(
+            $overlayImage['path'],
+            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetX'],
+            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetY'],
+            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['width'],
+            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['height'],
+            [
+                'max_width' => self::LOAN_MANAGER_SIGNATURE_PLACEMENT['maxWidth'],
+                'max_height' => self::LOAN_MANAGER_SIGNATURE_PLACEMENT['maxHeight'],
+            ],
+        );
         $drawing = new WorksheetDrawing;
         $drawing->setName('Loan Manager Signature');
         $drawing->setDescription('Loan manager signature used for approval');
-        $drawing->setPath(Storage::disk('public')->path($relativePath));
+        $drawing->setPath($overlayImage['path']);
         $drawing->setCoordinates(
             self::LOAN_MANAGER_SIGNATURE_PLACEMENT['coordinate'],
         );
-        $drawing->setOffsetX(self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetX']);
-        $drawing->setOffsetY(self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetY']);
-        $drawing->setHeight(self::LOAN_MANAGER_SIGNATURE_PLACEMENT['height']);
+        $drawing->setOffsetX((int) round($placement['x']));
+        $drawing->setOffsetY((int) round($placement['y']));
+        $drawing->setWidth((int) round($placement['width']));
         $drawing->setWorksheet($worksheet);
+        $this->ensureLoanManagerSignatureRowSpace(
+            $worksheet,
+            $placement['height'],
+        );
+
+        return ($overlayImage['temporary'] ?? false) === true
+            ? $overlayImage['path']
+            : null;
+    }
+
+    private function ensureLoanManagerSignatureRowSpace(
+        Worksheet $worksheet,
+        float $requiredHeightPixels,
+    ): void {
+        [, $rowNumber] = Coordinate::coordinateFromString(
+            self::LOAN_MANAGER_SIGNATURE_PLACEMENT['coordinate'],
+        );
+        $currentHeight = (float) $worksheet
+            ->getRowDimension($rowNumber)
+            ->getRowHeight();
+        $targetHeight = SharedDrawing::pixelsToPoints(
+            (int) ceil($requiredHeightPixels + 6),
+        );
+
+        if ($currentHeight <= 0 || $currentHeight < $targetHeight) {
+            $worksheet->getRowDimension($rowNumber)->setRowHeight($targetHeight);
+        }
     }
 
     private function preparePromissoryNoteWorksheetLayout(Worksheet $worksheet): void

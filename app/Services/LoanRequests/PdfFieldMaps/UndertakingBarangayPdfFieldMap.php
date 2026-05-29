@@ -58,6 +58,10 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'y' => 225,
                 'width' => 44,
                 'height' => 16,
+                'scale' => 2.0,
+                'max_width' => 72,
+                'max_height' => 24,
+                'offset_y' => -4,
                 'value' => 'applicant.signature_path',
             ],
         ];

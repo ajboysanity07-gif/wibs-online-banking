@@ -144,9 +144,10 @@
         margin: 0 0 6px;
     }
     .signature-row {
-        margin-top: 48px;
+        margin-top: 56px;
         display: flex;
         justify-content: space-between;
+        align-items: flex-end;
         gap: 16px;
     }
     .signature-box {
@@ -154,12 +155,19 @@
         min-width: 0;
         text-align: center;
     }
+    .signature-art {
+        height: 84px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        margin-bottom: 6px;
+    }
     .signature-image {
-        height: 42px;
+        max-height: 84px;
         max-width: 100%;
         object-fit: contain;
         display: block;
-        margin: 0 auto 4px;
+        margin: 0 auto;
     }
     .signature-line {
         border-top: 1px solid #111;

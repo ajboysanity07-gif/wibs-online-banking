@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestPersonRole;
 use App\Models\LoanRequest;
 use App\Services\OrganizationSettingsService;
+use App\Services\SignaturePngService;
 use App\Support\LocationComposer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
@@ -19,6 +20,7 @@ class LoanRequestPdfService
 {
     public function __construct(
         private OrganizationSettingsService $brandingService,
+        private SignaturePngService $signaturePngService,
     ) {}
 
     public function render(LoanRequest $loanRequest, bool $download = false): Response
@@ -138,6 +140,11 @@ class LoanRequestPdfService
 
         $contents = Storage::disk('public')->get($path);
         $mime = Storage::disk('public')->mimeType($path) ?: 'image/png';
+
+        if (strtolower($mime) === 'image/png') {
+            $contents = $this->signaturePngService->normalizePngBinary($contents)
+                ?? $contents;
+        }
 
         return 'data:'.$mime.';base64,'.base64_encode($contents);
     }
