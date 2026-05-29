@@ -3,6 +3,7 @@
 namespace App\Services\LoanRequests;
 
 use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
+use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +15,10 @@ use Throwable;
 class ApprovedLoanPdfTemplateService
 {
     private const TEMPLATE_DIRECTORY = 'templates/approved-loan-documents/pdf';
+
+    public function __construct(
+        private SignaturePngService $signaturePngService,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $documentData
@@ -319,25 +324,41 @@ class ApprovedLoanPdfTemplateService
             return;
         }
 
-        $pdf->Image(
-            $absolutePath,
-            $x,
-            $y,
-            $width,
-            $height,
-            '',
-            '',
-            '',
-            false,
-            300,
-            '',
-            false,
-            false,
-            0,
-            false,
-            false,
-            false,
-        );
+        $overlayImage = $this->signaturePngService->prepareOverlayImage($absolutePath);
+
+        try {
+            $dimensions = $this->fitImageToBox(
+                $overlayImage['path'],
+                $x,
+                $y,
+                $width,
+                $height,
+            );
+
+            $pdf->Image(
+                $overlayImage['path'],
+                $dimensions['x'],
+                $dimensions['y'],
+                $dimensions['width'],
+                $dimensions['height'],
+                '',
+                '',
+                '',
+                false,
+                300,
+                '',
+                false,
+                false,
+                0,
+                false,
+                false,
+                false,
+            );
+        } finally {
+            if (($overlayImage['temporary'] ?? false) === true) {
+                File::delete($overlayImage['path']);
+            }
+        }
     }
 
     public function blank(?string $value): string
@@ -380,6 +401,57 @@ class ApprovedLoanPdfTemplateService
         }
 
         return $templatePath;
+    }
+
+    /**
+     * @return array{x: float, y: float, width: float, height: float}
+     */
+    private function fitImageToBox(
+        string $absolutePath,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+    ): array {
+        if ($width <= 0 || $height <= 0) {
+            return [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'height' => $height,
+            ];
+        }
+
+        $size = @getimagesize($absolutePath);
+
+        if ($size === false || ($size[0] ?? 0) <= 0 || ($size[1] ?? 0) <= 0) {
+            return [
+                'x' => $x,
+                'y' => $y,
+                'width' => $width,
+                'height' => $height,
+            ];
+        }
+
+        $imageWidth = (float) $size[0];
+        $imageHeight = (float) $size[1];
+        $imageRatio = $imageWidth / $imageHeight;
+        $boxRatio = $width / $height;
+
+        if ($imageRatio >= $boxRatio) {
+            $renderWidth = $width;
+            $renderHeight = $width / $imageRatio;
+        } else {
+            $renderHeight = $height;
+            $renderWidth = $height * $imageRatio;
+        }
+
+        return [
+            'x' => $x + (($width - $renderWidth) / 2),
+            'y' => $y + (($height - $renderHeight) / 2),
+            'width' => $renderWidth,
+            'height' => $renderHeight,
+        ];
     }
 
     private function resolveValue(mixed $resolver, array $documentData): mixed

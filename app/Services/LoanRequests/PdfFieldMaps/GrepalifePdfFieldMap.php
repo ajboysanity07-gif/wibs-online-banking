@@ -415,10 +415,10 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'type' => 'signature',
                 'page' => 2,
-                'x' => 15.0,
-                'y' => 80.0,
-                'width' => 42,
-                'height' => 7.0,
+                'x' => 14.0,
+                'y' => 82.7,
+                'width' => 44,
+                'height' => 6.2,
                 'value' => 'applicant.signature_path',
             ],
             [
@@ -434,10 +434,10 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'type' => 'signature',
                 'page' => 2,
-                'x' => 15.0,
-                'y' => 89.0,
-                'width' => 42,
-                'height' => 6.0,
+                'x' => 14.0,
+                'y' => 91.7,
+                'width' => 44,
+                'height' => 6.2,
                 'value' => 'reviewer.signature_path',
             ],
             [

@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\AdminSignature;
 use App\Models\AppUser;
+use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -12,6 +13,10 @@ use Throwable;
 
 class AdminSignatureService
 {
+    public function __construct(
+        private SignaturePngService $signaturePngService,
+    ) {}
+
     public function saveForUser(
         AppUser $user,
         string $signatureData,
@@ -55,14 +60,9 @@ class AdminSignatureService
 
     private function storeBase64Png(AppUser $user, string $signatureData): string
     {
-        if (! str_starts_with($signatureData, 'data:image/png;base64,')) {
-            throw new RuntimeException('Loan manager signature must be a PNG data URL.');
-        }
+        $decoded = $this->signaturePngService->normalizeBase64Png($signatureData);
 
-        $encoded = substr($signatureData, strlen('data:image/png;base64,'));
-        $decoded = base64_decode($encoded, true);
-
-        if ($decoded === false || $decoded === '') {
+        if (! is_string($decoded) || $decoded === '') {
             throw new RuntimeException('Loan manager signature could not be decoded.');
         }
 
