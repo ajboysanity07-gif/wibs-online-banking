@@ -76,12 +76,16 @@ test('loan request report reserves larger signature image boxes', function () {
 
     expect($html)
         ->toContain('class="signature-art"')
-        ->toContain('height: 84px;')
-        ->toContain('max-height: 84px;')
+        ->toContain('class="signature-signing-area"')
+        ->toContain('min-height: 108px;')
+        ->toContain('bottom: 20px;')
+        ->toContain('height: 72px;')
+        ->toContain('max-width: 126%;')
+        ->toContain('max-height: 72px;')
         ->toContain('alt="Applicant signature"');
 });
 
-test('loan request report shows approved term labels and printed signature names', function () {
+test('loan request report overlaps signatures onto printed names while keeping labels clear', function () {
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::Approved,
         'approved_term' => 6,
@@ -122,6 +126,10 @@ test('loan request report shows approved term labels and printed signature names
 
     expect($html)
         ->toContain('<td class="field">6 months</td>')
+        ->toContain('position: absolute;')
+        ->toContain('z-index: 2;')
+        ->toContain('padding-top: 52px;')
+        ->toContain('overflow: visible;')
         ->toContain('<div class="signature-name">Juan Santos Dela Cruz</div>')
         ->toContain('<div class="signature-name">Maria Lopez Reyes</div>')
         ->toContain('<div class="signature-name">Pedro Santos Cruz</div>')
@@ -135,6 +143,14 @@ test('loan request report shows approved term labels and printed signature names
         ->toContain('alt="Co-maker 2 signature"')
         ->toContain('alt="Loan manager signature"')
         ->toContain('data:image/png;base64,loan-manager-signature');
+
+    $signatureSection = strstr($html, '<div class="signature-row">');
+
+    expect($signatureSection)->not->toBeFalse();
+    expect(strpos($signatureSection, 'data:image/png;base64,applicant-signature'))
+        ->toBeLessThan(strpos($signatureSection, '<div class="signature-name">Juan Santos Dela Cruz</div>'));
+    expect(strpos($signatureSection, 'data:image/png;base64,loan-manager-signature'))
+        ->toBeLessThan(strpos($signatureSection, '<div class="signature-name">Annabelle M. Amora</div>'));
 });
 
 test('loan security agreement report renders uploaded header design when available', function () {

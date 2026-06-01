@@ -1154,45 +1154,53 @@ test('loan request print preview includes signature data uris', function () {
         'user_id' => $user->user_id,
     ]);
 
-    $applicantSignaturePath = 'loan-requests/signatures/applicant.png';
-    $coMakerOneSignaturePath = 'loan-requests/signatures/co-maker-one.png';
-    $coMakerTwoSignaturePath = 'loan-requests/signatures/co-maker-two.png';
-    Storage::disk('public')->put(
-        $applicantSignaturePath,
-        sampleSignatureBinary('one'),
+    $reviewer = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $reviewer->user_id,
+    ]);
+
+    $reviewerSignature = createActiveAdminSignatureRecord($reviewer, 'two');
+    $applicantSignaturePath = storeTestSignatureFile(
+        'loan-requests/signatures/applicant.png',
+        'one',
     );
-    Storage::disk('public')->put(
-        $coMakerOneSignaturePath,
-        sampleSignatureBinary('two'),
+    $coMakerOneSignaturePath = storeTestSignatureFile(
+        'loan-requests/signatures/co-maker-one.png',
+        'two',
     );
-    Storage::disk('public')->put(
-        $coMakerTwoSignaturePath,
-        sampleSignatureBinary('one'),
+    $coMakerTwoSignaturePath = storeTestSignatureFile(
+        'loan-requests/signatures/co-maker-two.png',
+        'one',
     );
+    $reviewerSignature->update([
+        'signature_path' => '/public/storage/'.$reviewerSignature->signature_path,
+    ]);
 
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
             'status' => LoanRequestStatus::Approved,
             'submitted_at' => now(),
+            'reviewed_by' => $reviewer->user_id,
+            'approval_signature_id' => $reviewerSignature->id,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
         ->create([
-            'signature_path' => $applicantSignaturePath,
+            'signature_path' => Storage::disk('public')->url($applicantSignaturePath),
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerOne)
         ->create([
-            'signature_path' => $coMakerOneSignaturePath,
+            'signature_path' => 'storage/app/public/'.$coMakerOneSignaturePath,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerTwo)
         ->create([
-            'signature_path' => $coMakerTwoSignaturePath,
+            'signature_path' => '/storage/'.$coMakerTwoSignaturePath,
         ]);
 
     $response = $this
@@ -1201,6 +1209,107 @@ test('loan request print preview includes signature data uris', function () {
 
     $response->assertOk();
     $response->assertSee('data:image/png;base64,', false);
+});
+
+test('loan request print preview normalizes stored signature paths for all signer images', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $reviewer = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $reviewer->user_id,
+        'fullname' => 'ANNABELLE M. AMORA',
+    ]);
+
+    $reviewerSignature = createActiveAdminSignatureRecord($reviewer, 'two');
+
+    $applicantSignaturePath = storeTestSignatureFile(
+        'loan-requests/signatures/normalized-applicant.png',
+        'one',
+    );
+    $coMakerOneSignaturePath = storeTestSignatureFile(
+        'loan-requests/signatures/normalized-co-maker-one.png',
+        'two',
+    );
+    $coMakerTwoSignaturePath = storeTestSignatureFile(
+        'loan-requests/signatures/normalized-co-maker-two.png',
+        'one',
+    );
+
+    $reviewerSignature->update([
+        'signature_path' => '/public/storage/'.$reviewerSignature->signature_path,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::Approved,
+            'submitted_at' => now(),
+            'approved_term' => 6,
+            'reviewed_by' => $reviewer->user_id,
+            'approval_signature_id' => $reviewerSignature->id,
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'JUAN',
+            'middle_name' => 'SANTOS',
+            'last_name' => 'DELA CRUZ',
+            'signature_path' => Storage::disk('public')->url($applicantSignaturePath),
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'first_name' => 'MARIA',
+            'middle_name' => 'LOPEZ',
+            'last_name' => 'REYES',
+            'signature_path' => 'storage/app/public/'.$coMakerOneSignaturePath,
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'first_name' => 'PEDRO',
+            'middle_name' => 'SANTOS',
+            'last_name' => 'CRUZ',
+            'signature_path' => '/storage/'.$coMakerTwoSignaturePath,
+        ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.print', $loanRequest));
+
+    $response->assertOk();
+    $response->assertSee('6 months');
+    $response->assertSee('Annabelle M. Amora');
+    $response->assertSee('alt="Applicant signature"', false);
+    $response->assertSee('alt="Co-maker 1 signature"', false);
+    $response->assertSee('alt="Co-maker 2 signature"', false);
+    $response->assertSee('alt="Loan manager signature"', false);
+
+    $html = $response->getContent();
+
+    expect($html)->not->toBeFalse();
+    expect(substr_count((string) $html, 'data:image/png;base64,'))->toBe(4);
 });
 
 test('loan request submission validates housing status values', function () {

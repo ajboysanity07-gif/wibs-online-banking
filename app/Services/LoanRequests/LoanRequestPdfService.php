@@ -65,6 +65,7 @@ class LoanRequestPdfService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
+            'reviewedBy.activeAdminSignature',
             'approvalSignature',
             'user',
         );
@@ -76,6 +77,15 @@ class LoanRequestPdfService
         $reportHeader = $branding['reportHeader'] ?? [];
         $reportHeader['companyName'] = $branding['companyName'] ?? '';
         $reportHeader['designData'] = $reportHeader['designData'] ?? null;
+        $reviewerSignatureData = $this->signatureDataUri(
+            is_string($loanRequest->getAttribute('approval_signature_path'))
+                ? $loanRequest->getAttribute('approval_signature_path')
+                : null,
+        ) ?? $this->signatureDataUri(
+            $loanRequest->approvalSignature?->signature_path,
+        ) ?? $this->signatureDataUri(
+            $loanRequest->reviewedBy?->activeAdminSignature?->signature_path,
+        );
 
         return [
             'loanRequest' => $loanRequest,
@@ -85,10 +95,9 @@ class LoanRequestPdfService
             'reviewer' => [
                 'name' => $loanRequest->reviewedBy?->adminProfile?->fullname
                     ?? $loanRequest->reviewedBy?->name,
-                'signatureData' => $this->signatureDataUri(
-                    $loanRequest->approvalSignature?->signature_path,
-                ),
+                'signatureData' => $reviewerSignatureData,
             ],
+            'reviewerSignatureData' => $reviewerSignatureData,
             'companyName' => $branding['companyName'],
             'reportHeader' => $reportHeader,
             'reportTypography' => $branding['reportTypography'] ?? [],
@@ -134,12 +143,15 @@ class LoanRequestPdfService
 
     private function signatureDataUri(?string $path): ?string
     {
-        if (! $path || ! Storage::disk('public')->exists($path)) {
+        $normalizedPath = $this->normalizeSignaturePath($path);
+
+        if ($normalizedPath === null || ! Storage::disk('public')->exists($normalizedPath)) {
             return null;
         }
 
-        $contents = Storage::disk('public')->get($path);
-        $mime = Storage::disk('public')->mimeType($path) ?: 'image/png';
+        $contents = Storage::disk('public')->get($normalizedPath);
+        $mime = Storage::disk('public')->mimeType($normalizedPath)
+            ?: $this->resolveImageMimeType($normalizedPath);
 
         if (strtolower($mime) === 'image/png') {
             $contents = $this->signaturePngService->normalizePngBinary($contents)
@@ -147,6 +159,81 @@ class LoanRequestPdfService
         }
 
         return 'data:'.$mime.';base64,'.base64_encode($contents);
+    }
+
+    private function resolveImageMimeType(string $path): string
+    {
+        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            default => 'image/png',
+        };
+    }
+
+    private function normalizeSignaturePath(?string $value): ?string
+    {
+        $normalizedPath = $this->blank($value);
+
+        if ($normalizedPath === null) {
+            return null;
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $normalizedPath) === 1) {
+            $parsedPath = parse_url($normalizedPath, PHP_URL_PATH);
+            $normalizedPath = is_string($parsedPath) ? $parsedPath : '';
+        }
+
+        $normalizedPath = str_replace('\\', '/', rawurldecode($normalizedPath));
+        $normalizedPath = explode('?', $normalizedPath, 2)[0];
+        $normalizedPath = explode('#', $normalizedPath, 2)[0];
+        $normalizedPath = preg_replace(
+            '#^/?(?:storage/app/public/|public/storage/|storage/)#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+
+        foreach ([
+            '/storage/app/public/',
+            '/public/storage/',
+            '/storage/',
+        ] as $marker) {
+            $markerPosition = stripos($normalizedPath, $marker);
+
+            if ($markerPosition === false) {
+                continue;
+            }
+
+            $normalizedPath = substr(
+                $normalizedPath,
+                $markerPosition + strlen($marker),
+            );
+
+            break;
+        }
+
+        $normalizedPath = ltrim($normalizedPath, '/');
+        $normalizedPath = preg_replace(
+            '#^(?:app/public/|public/)+#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+        $normalizedPath = ltrim($normalizedPath, '/');
+
+        return $normalizedPath !== '' ? $normalizedPath : null;
+    }
+
+    private function blank(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 
     /**
