@@ -1998,6 +1998,11 @@ test('missing grepalife image template is logged and fails generation', function
 
     Log::shouldHaveReceived('error')
         ->withArgs(function (string $message, array $context): bool {
+            $resourceTemplatePath = str_replace(
+                '\\',
+                '/',
+                (string) ($context['resource_template_path'] ?? ''),
+            );
             $templatePath = str_replace(
                 '\\',
                 '/',
@@ -2018,6 +2023,10 @@ test('missing grepalife image template is logged and fails generation', function
                 && ($context['template_image'] ?? null) === 'missing-grepalife-page-1-test.png'
                 && (
                     str_contains(
+                        $resourceTemplatePath,
+                        'resources/templates/approved-loan-documents/images/missing-grepalife-page-1-test.png',
+                    )
+                    || str_contains(
                         $templatePath,
                         'storage/app/templates/approved-loan-documents/images/missing-grepalife-page-1-test.png',
                     )
@@ -2032,6 +2041,27 @@ test('missing grepalife image template is logged and fails generation', function
                 );
         })
         ->once();
+});
+
+test('grepalife route uses version controlled resource template images when storage copies are missing', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    File::delete(approvedLoanDocumentsTemplateImagesDirectory().DIRECTORY_SEPARATOR.'grepalife-page-1.png');
+    File::delete(approvedLoanDocumentsTemplateImagesDirectory().DIRECTORY_SEPARATOR.'grepalife-page-2.png');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $content = approvedLoanDocumentsReadDownloadedFileContent($response);
+
+    $response->assertOk();
+    $response->assertHeaderContains('content-type', 'application/pdf');
+    expect($content)
+        ->toStartWith('%PDF')
+        ->toContain('/Subtype /Image');
 });
 
 test('grepalife image templates fall back to the public template root directory', function () {

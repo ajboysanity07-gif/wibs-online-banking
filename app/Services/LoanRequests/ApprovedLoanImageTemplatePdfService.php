@@ -14,6 +14,9 @@ use Throwable;
 
 class ApprovedLoanImageTemplatePdfService
 {
+    private const RESOURCE_TEMPLATE_DIRECTORY =
+        'templates/approved-loan-documents/images';
+
     private const TEMPLATE_DIRECTORY = 'templates/approved-loan-documents/images';
 
     private const PUBLIC_TEMPLATE_DIRECTORY =
@@ -443,6 +446,9 @@ class ApprovedLoanImageTemplatePdfService
         }
 
         $candidatePaths = [
+            resource_path(
+                trim(self::RESOURCE_TEMPLATE_DIRECTORY.'/'.$templateImage, '/'),
+            ),
             storage_path('app/'.trim(self::TEMPLATE_DIRECTORY.'/'.$templateImage, '/')),
             storage_path(
                 'app/'.trim(self::PUBLIC_TEMPLATE_DIRECTORY.'/'.$templateImage, '/'),
@@ -460,9 +466,10 @@ class ApprovedLoanImageTemplatePdfService
 
         Log::error('Missing approved loan image template file.', [
             'template_image' => $templateImage,
-            'template_path' => $candidatePaths[0] ?? null,
-            'fallback_template_path' => $candidatePaths[1] ?? null,
-            'legacy_public_template_path' => $candidatePaths[2] ?? null,
+            'resource_template_path' => $candidatePaths[0] ?? null,
+            'template_path' => $candidatePaths[1] ?? null,
+            'fallback_template_path' => $candidatePaths[2] ?? null,
+            'legacy_public_template_path' => $candidatePaths[3] ?? null,
         ]);
 
         throw new RuntimeException('Missing image template file: '.$templateImage);
