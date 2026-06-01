@@ -228,11 +228,7 @@ class LoanRequestService
             );
             $loanRequest->save();
 
-            $this->upsertCoMakerSignatureLinkSnapshot(
-                $loanRequest,
-                $role,
-                $payload,
-            );
+            $this->upsertPeopleSnapshots($loanRequest, $payload);
 
             $loanRequest = $loanRequest->refresh();
             $loanRequest->loadMissing('people');
@@ -913,33 +909,6 @@ class LoanRequestService
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function upsertCoMakerSignatureLinkSnapshot(
-        LoanRequest $loanRequest,
-        LoanRequestPersonRole $role,
-        array $payload,
-    ): void {
-        [$payloadKey, $signatureDataKeys] = match ($role) {
-            LoanRequestPersonRole::CoMakerOne => [
-                'co_maker_1',
-                ['co_maker_1_signature_data', 'co_maker_one_signature_data'],
-            ],
-            LoanRequestPersonRole::CoMakerTwo => [
-                'co_maker_2',
-                ['co_maker_2_signature_data', 'co_maker_two_signature_data'],
-            ],
-            default => throw ValidationException::withMessages([
-                'role' => 'Only co-maker signature links may be generated.',
-            ]),
-        };
-
-        $this->upsertPersonSnapshot(
-            $loanRequest,
-            $role,
-            $this->extractPersonPayload($payload, $payloadKey),
-            $this->extractSignatureData($payload, ...$signatureDataKeys),
-        );
-    }
-
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>

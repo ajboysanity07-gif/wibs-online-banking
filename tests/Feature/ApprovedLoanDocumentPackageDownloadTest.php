@@ -291,10 +291,13 @@ test('grepalife pdf includes structured applicant fields when available', functi
         ->get(route('admin.requests.documents.grepalife', $loanRequest));
 
     $content = approvedLoanDocumentsReadDownloadedFileContent($response);
+    $pdfText = approvedLoanDocumentsExtractPdfText($response);
 
     $response->assertOk();
     $response->assertHeaderContains('content-type', 'application/pdf');
     expect($content)
+        ->toStartWith('%PDF');
+    expect($pdfText)
         ->toContain('BIRTH CITY, BIRTH PROVINCE')
         ->toContain('18 SAMPLE STREET')
         ->toContain('SAMPLE CITY')
@@ -991,7 +994,7 @@ test('grepalife field map keeps applicant values aligned with label padding', fu
     $amountField = $fields->first(
         fn (array $field): bool => ($field['page'] ?? null) === 1
             && ($field['value'] ?? null) === 'loan.approved_amount'
-            && ($field['y'] ?? null) === 117.2,
+            && ($field['y'] ?? null) === 119.8,
     );
     $existingLoanYesField = $fields->first(
         fn (array $field): bool => ($field['page'] ?? null) === 1
@@ -1020,30 +1023,30 @@ test('grepalife field map keeps applicant values aligned with label padding', fu
             && ($field['value'] ?? null) === 'loan.approved_date_short',
     );
 
-    expect($lastNameField['x'])->toBe(15.8);
-    expect($firstNameField['x'])->toBe(15.8);
-    expect($middleNameField['x'])->toBe(15.8);
-    expect($nationalityField['x'])->toBe(15.0);
-    expect($birthdateField['x'])->toBe(126.0);
+    expect((float) $lastNameField['x'])->toBe(11.8);
+    expect((float) $firstNameField['x'])->toBe(11.8);
+    expect((float) $middleNameField['x'])->toBe(11.8);
+    expect((float) $nationalityField['x'])->toBe(11.8);
+    expect((float) $birthdateField['x'])->toBe(100.0);
     expect($birthdateField['align'] ?? 'L')->toBe('C');
-    expect($natureOfBusinessField['y'])->toBe(92.8);
-    expect($yearsInWorkField['x'])->toBe(148.0);
-    expect($yearsInWorkField['y'])->toBe(92.8);
-    expect($workPhoneField['y'])->toBe(110.8);
-    expect($mobileField['y'])->toBe(110.8);
-    expect($emailField['y'])->toBe(110.8);
-    expect($termField['y'])->toBe(117.2);
+    expect((float) $natureOfBusinessField['y'])->toBe(94.0);
+    expect((float) $yearsInWorkField['x'])->toBe(155.5);
+    expect((float) $yearsInWorkField['y'])->toBe(94.0);
+    expect((float) $workPhoneField['y'])->toBe(111.5);
+    expect((float) $mobileField['y'])->toBe(111.5);
+    expect((float) $emailField['y'])->toBe(111.5);
+    expect((float) $termField['y'])->toBe(119.8);
     expect($termField['align'] ?? 'L')->toBe('C');
-    expect($amountField['y'])->toBe(117.2);
+    expect((float) $amountField['y'])->toBe(119.8);
     expect($amountField['align'] ?? 'L')->toBe('C');
-    expect($existingLoanYesField['x'])->toBe(68.8);
+    expect((float) $existingLoanYesField['x'])->toBe(68.5);
     expect($existingLoanDateField['align'] ?? 'L')->toBe('C');
-    expect($beneficiaryNameField['x'])->toBe(15.0);
+    expect((float) $beneficiaryNameField['x'])->toBe(15.0);
     expect($beneficiaryBirthdateField['align'] ?? 'L')->toBe('C');
-    expect($pageTwoCompanyField['x'])->toBe(126.8);
-    expect($pageTwoCompanyField['y'])->toBe(88.6);
+    expect((float) $pageTwoCompanyField['x'])->toBe(141.5);
+    expect((float) $pageTwoCompanyField['y'])->toBe(91.5);
     expect($pageTwoCompanyField['align'] ?? 'L')->toBe('L');
-    expect($pageTwoDateField['x'])->toBe(103.8);
+    expect((float) $pageTwoDateField['x'])->toBe(108.8);
     expect($pageTwoDateField['align'] ?? 'L')->toBe('L');
 });
 
@@ -2146,7 +2149,7 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
             'route' => 'admin.requests.documents.loan-security-agreement',
             'filename' => $loanRequest->reference.' Loan Request Agreement.pdf',
             'disposition' => 'attachment',
-            'page_count' => 1,
+            'page_count' => 2,
         ],
         [
             'route' => 'admin.requests.documents.undertaking-barangay',

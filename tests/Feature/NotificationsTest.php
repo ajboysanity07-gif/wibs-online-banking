@@ -1018,6 +1018,9 @@ function notificationLoanRequestPayload(): array
         'requested_term' => 12,
         'loan_purpose' => 'Home improvement',
         'availment_status' => 'New',
+        'applicant_signature_data' => testPngSignatureDataUrl('one'),
+        'co_maker_1_signature_data' => testPngSignatureDataUrl('two'),
+        'co_maker_2_signature_data' => testPngSignatureDataUrl('one'),
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',
