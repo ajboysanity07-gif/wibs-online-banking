@@ -173,8 +173,18 @@
         border-top: 1px solid #111;
         height: 1px;
     }
+    .signature-name {
+        min-height: 11px;
+        margin-top: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     .signature-label {
-        margin-top: 6px;
+        margin-top: 2px;
         font-size: 9px;
         font-weight: 600;
     }
