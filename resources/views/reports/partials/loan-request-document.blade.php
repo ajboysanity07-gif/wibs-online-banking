@@ -468,52 +468,59 @@
 
         <div class="signature-row">
             <div class="signature-box">
-                <div class="signature-art">
-                    @if (! empty($applicant['signatureData']))
-                        <img src="{{ $applicant['signatureData'] }}" class="signature-image" alt="Applicant signature" />
-                    @endif
+                <div class="signature-signing-area">
+                    <div class="signature-art">
+                        @if (! empty($applicant['signatureData']))
+                            <img src="{{ $applicant['signatureData'] }}" class="signature-image" alt="Applicant signature" />
+                        @endif
+                    </div>
+                    <div class="signature-name">{{ $applicantName !== '' ? $applicantName : ' ' }}</div>
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Member / Applicant</div>
                 </div>
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ $applicantName }}</div>
-                <div class="signature-label">Member / Applicant</div>
             </div>
 
             <div class="signature-box">
-                <div class="signature-art">
-                    @if (! empty($coMakerOne['signatureData']))
-                        <img src="{{ $coMakerOne['signatureData'] }}" class="signature-image" alt="Co-maker 1 signature" />
-                    @endif
+                <div class="signature-signing-area">
+                    <div class="signature-art">
+                        @if (! empty($coMakerOne['signatureData']))
+                            <img src="{{ $coMakerOne['signatureData'] }}" class="signature-image" alt="Co-maker 1 signature" />
+                        @endif
+                    </div>
+                    <div class="signature-name">{{ $coMakerOneName !== '' ? $coMakerOneName : ' ' }}</div>
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Co-maker 1</div>
                 </div>
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ $coMakerOneName }}</div>
-                <div class="signature-label">Co-maker 1</div>
             </div>
 
             <div class="signature-box">
-                <div class="signature-art">
-                    @if (! empty($coMakerTwo['signatureData']))
-                        <img src="{{ $coMakerTwo['signatureData'] }}" class="signature-image" alt="Co-maker 2 signature" />
-                    @endif
+                <div class="signature-signing-area">
+                    <div class="signature-art">
+                        @if (! empty($coMakerTwo['signatureData']))
+                            <img src="{{ $coMakerTwo['signatureData'] }}" class="signature-image" alt="Co-maker 2 signature" />
+                        @endif
+                    </div>
+                    <div class="signature-name">{{ $coMakerTwoName !== '' ? $coMakerTwoName : ' ' }}</div>
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Co-maker 2</div>
                 </div>
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ $coMakerTwoName }}</div>
-                <div class="signature-label">Co-maker 2</div>
             </div>
 
             <div class="signature-box">
-                <div class="signature-art">
-                    @if (! empty($reviewerSignatureData))
-                        <img src="{{ $reviewerSignatureData }}" class="signature-image" alt="Loan manager signature" />
-                    @endif
+                <div class="signature-signing-area">
+                    <div class="signature-art">
+                        @if (! empty($reviewerSignatureData))
+                            <img src="{{ $reviewerSignatureData }}" class="signature-image" alt="Loan manager signature" />
+                        @endif
+                    </div>
+                    <div class="signature-name">{{ $loanManagerName !== '' ? $loanManagerName : ' ' }}</div>
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Loan Manager / Approved By</div>
                 </div>
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ $loanManagerName }}</div>
-                <div class="signature-label">Loan Manager / Approved By</div>
             </div>
         </div>
     </div>
 </div>
-
 
 
 

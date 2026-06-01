@@ -144,38 +144,59 @@
         margin: 0 0 6px;
     }
     .signature-row {
-        margin-top: 56px;
+        margin-top: 44px;
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        gap: 16px;
+        align-items: flex-start;
+        gap: 12px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        overflow: visible;
     }
     .signature-box {
         flex: 1 1 0;
         min-width: 0;
         text-align: center;
+        overflow: visible;
+    }
+    .signature-signing-area {
+        position: relative;
+        min-height: 108px;
+        overflow: visible;
     }
     .signature-art {
-        height: 84px;
+        position: absolute;
+        right: -6px;
+        left: -6px;
+        bottom: 20px;
+        height: 72px;
         display: flex;
         align-items: flex-end;
         justify-content: center;
-        margin-bottom: 6px;
+        z-index: 2;
+        overflow: visible;
     }
     .signature-image {
-        max-height: 84px;
-        max-width: 100%;
-        object-fit: contain;
         display: block;
         margin: 0 auto;
+        width: auto;
+        max-width: 126%;
+        max-height: 72px;
+        object-fit: contain;
     }
     .signature-line {
-        border-top: 1px solid #111;
-        height: 1px;
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        margin: 0 0 4px;
+        border-bottom: 1px solid #111;
     }
     .signature-name {
-        min-height: 11px;
-        margin-top: 4px;
+        position: relative;
+        z-index: 1;
+        min-height: 14px;
+        margin-bottom: 2px;
+        padding-top: 52px;
         font-size: 9px;
         font-weight: 600;
         line-height: 1.2;
@@ -184,8 +205,10 @@
         text-overflow: ellipsis;
     }
     .signature-label {
-        margin-top: 2px;
+        position: relative;
+        z-index: 1;
         font-size: 9px;
         font-weight: 600;
+        line-height: 1.2;
     }
 </style>
