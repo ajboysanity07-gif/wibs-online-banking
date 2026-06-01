@@ -1201,7 +1201,7 @@ test('plan of payment route returns an xlsx response and generated workbook open
     expect($disclosureSheet)->toBeInstanceOf(Worksheet::class);
     expect($promissoryNoteSheet)->toBeInstanceOf(Worksheet::class);
 
-    expect($loanInformationSheet?->getCell('C7')->getValue())->toBe('Sample Q Member');
+    expect($loanInformationSheet?->getCell('C7')->getValue())->toBe('SAMPLE Q MEMBER');
     expect($loanInformationSheet?->getCell('F7')->getValue())->toBe('Sample Enterprise');
     expect($loanInformationSheet?->getCell('C9')->getValue())->toBe(25000.0);
     expect($loanInformationSheet?->getCell('C10')->getValue())->toBe(0.36);
@@ -1209,29 +1209,29 @@ test('plan of payment route returns an xlsx response and generated workbook open
     expect($loanInformationSheet?->getCell('C13')->getValue())->toBe(9000.0);
     expect($loanInformationSheet?->getCell('C17')->getValue())->toBe('SEMI-MONTHLY');
     expect($loanInformationSheet?->getCell('E17')->getValue())->toBe(24.0);
-    expect($loanInformationSheet?->getCell('C32')->getValue())->toBe('Co A MakerOne');
+    expect($loanInformationSheet?->getCell('C32')->getValue())->toBe('CO A MAKERONE');
     expect(trim((string) $loanInformationSheet?->getCell('C14')->getValue()))->toBe('');
     expect(trim((string) $loanInformationSheet?->getCell('C18')->getValue()))->toBe('');
     expect(trim((string) $loanInformationSheet?->getCell('H7')->getValue()))->toBe('');
     expect(trim((string) $loanInformationSheet?->getCell('E21')->getValue()))->toBe('');
 
-    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('Sample Q Member');
+    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('SAMPLE Q MEMBER');
     expect($planOfPaymentSheet?->getCell('D10')->getValue())->toBe(
         '123 Loan Street, Loan City, Loan Province',
     );
     expect(trim((string) $planOfPaymentSheet?->getCell('G27')->getValue()))->toBe('');
-    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('Sample Q Member');
+    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('SAMPLE Q MEMBER');
     expect(trim((string) $planOfPaymentSheet?->getCell('G59')->getValue()))->toBe('');
 
     expect($disclosureSheet?->getCell('M7')->getValue())->toBe($loanRequest->reference);
-    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('Sample Q Member');
-    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('Sample Q Member');
+    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('SAMPLE Q MEMBER');
+    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('SAMPLE Q MEMBER');
     expect(trim((string) $disclosureSheet?->getCell('L50')->getValue()))->toBe('');
 
     expect($promissoryNoteSheet?->getCell('I8')->getValue())->not->toBe('');
-    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('Sample Q Member');
-    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('Co A MakerOne');
-    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('Co B MakerTwo');
+    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('SAMPLE Q MEMBER');
+    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('CO A MAKERONE');
+    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('CO B MAKERTWO');
     expect((string) file_get_contents(approvedLoanDocumentsDownloadedFilePath($response)))
         ->not->toContain('LibreOffice')
         ->not->toContain('soffice');
@@ -1309,6 +1309,18 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
     $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
+    $applicantSignaturePath = storeTestSignatureFile(
+        sprintf('loan-requests/signatures/%d-excel-applicant.png', $loanRequest->id),
+        'one',
+    );
+    $coMakerOneSignaturePath = storeTestSignatureFile(
+        sprintf('loan-requests/signatures/%d-excel-co-maker-one.png', $loanRequest->id),
+        'two',
+    );
+    $coMakerTwoSignaturePath = storeTestSignatureFile(
+        sprintf('loan-requests/signatures/%d-excel-co-maker-two.png', $loanRequest->id),
+        'one',
+    );
 
     LoanRequestPerson::query()
         ->where('loan_request_id', $loanRequest->id)
@@ -1318,6 +1330,7 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
             'first_name' => 'Helario',
             'middle_name' => 'B',
             'last_name' => 'Tejero',
+            'signature_path' => $applicantSignaturePath,
         ]);
 
     LoanRequestPerson::query()
@@ -1328,6 +1341,7 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
             'first_name' => 'Anita',
             'middle_name' => 'C',
             'last_name' => 'Rivera',
+            'signature_path' => $coMakerOneSignaturePath,
         ]);
 
     LoanRequestPerson::query()
@@ -1338,6 +1352,7 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
             'first_name' => 'Ben',
             'middle_name' => 'D',
             'last_name' => 'Santos',
+            'signature_path' => $coMakerTwoSignaturePath,
         ]);
 
     $loanRequest->update([
@@ -1366,47 +1381,202 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
     expect($disclosureSheet)->toBeInstanceOf(Worksheet::class);
     expect($promissoryNoteSheet)->toBeInstanceOf(Worksheet::class);
     expect($loanInformationSheet?->getCell('C7')->getValue())
-        ->toBe('Helario B Tejero')
+        ->toBe('HELARIO B TEJERO')
         ->not->toBe('Sample Q Member');
     expect($loanInformationSheet?->getCell('C8')->getValue())
         ->toBe('123 Loan Street, Loan City, Loan Province');
     expect($loanInformationSheet?->getCell('C32')->getValue())
-        ->toBe('Anita C Rivera')
+        ->toBe('ANITA C RIVERA')
         ->not->toBe('Co A MakerOne');
     expect($loanInformationSheet?->getCell('C33')->getValue())
-        ->toBe('Ben D Santos')
+        ->toBe('BEN D SANTOS')
         ->not->toBe('Co B MakerTwo');
     expect($loanInformationSheet?->getCell('C14')->getValue())
-        ->toBe('Maria Loan Manager')
+        ->toBe('MARIA LOAN MANAGER')
         ->not->toBe('0');
     expect($loanInformationSheet?->getCell('C18')->getValue())
-        ->toBe('Maria Loan Manager')
+        ->toBe('MARIA LOAN MANAGER')
         ->not->toBe('0');
-    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('Helario B Tejero');
-    expect($planOfPaymentSheet?->getCell('G27')->getValue())->toBe('Maria Loan Manager');
-    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('Helario B Tejero');
-    expect($planOfPaymentSheet?->getCell('G59')->getValue())->toBe('Maria Loan Manager');
-    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('Helario B Tejero');
-    expect($disclosureSheet?->getCell('L50')->getValue())->toBe('Maria Loan Manager');
-    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('Helario B Tejero');
-    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('Helario B Tejero');
-    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('Anita C Rivera');
-    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('Ben D Santos');
+    expect($loanInformationSheet?->getCell('C42')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($loanInformationSheet?->getCell('C43')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('HELARIO B TEJERO');
+    expect($planOfPaymentSheet?->getCell('G27')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('HELARIO B TEJERO');
+    expect($planOfPaymentSheet?->getCell('G59')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('HELARIO B TEJERO');
+    expect($disclosureSheet?->getCell('L50')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('HELARIO B TEJERO');
+    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('HELARIO B TEJERO');
+    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('ANITA C RIVERA');
+    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('BEN D SANTOS');
+    expect($promissoryNoteSheet?->getCell('B58')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($promissoryNoteSheet?->getCell('H58')->getValue())->toBe('MARIA LOAN MANAGER');
 
-    $drawings = $loanInformationSheet?->getDrawingCollection();
-    $signatureDrawing = $drawings[0] ?? null;
+    $loanInformationDrawings = collect($loanInformationSheet?->getDrawingCollection() ?? [])
+        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
+    $planOfPaymentDrawings = collect($planOfPaymentSheet?->getDrawingCollection() ?? [])
+        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
+    $disclosureDrawings = collect($disclosureSheet?->getDrawingCollection() ?? [])
+        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
+    $promissoryNoteDrawings = collect($promissoryNoteSheet?->getDrawingCollection() ?? [])
+        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
 
-    expect($drawings)->toHaveCount(1);
-    expect($signatureDrawing)->toBeInstanceOf(WorksheetDrawing::class);
-    expect($signatureDrawing?->getName())->toBe('Loan Manager Signature');
-    expect($signatureDrawing?->getCoordinates())->toBe('D18');
-    expect($signatureDrawing?->getWidth())->toBeGreaterThan(100);
-    expect($signatureDrawing?->getHeight())->toBeGreaterThan(40);
-    expect(file_get_contents((string) $signatureDrawing?->getPath()))
-        ->toBe(testPngSignatureBinary('two'))
-        ->not->toBe(testPngSignatureBinary('one'));
+    $loanInformationSignature = $loanInformationDrawings->get(
+        'Loan Information Loan Manager Signature',
+    );
+    $planBorrowerSignature = $planOfPaymentDrawings->get(
+        'Plan of Payment Borrower Signature',
+    );
+    $planLoanManagerSignature = $planOfPaymentDrawings->get(
+        'Plan of Payment Loan Manager Signature',
+    );
+    $planBorrowerSignatureCopy = $planOfPaymentDrawings->get(
+        'Plan of Payment Borrower Signature Copy',
+    );
+    $planLoanManagerSignatureCopy = $planOfPaymentDrawings->get(
+        'Plan of Payment Loan Manager Signature Copy',
+    );
+    $disclosureLoanManagerSignature = $disclosureDrawings->get(
+        'Disclosure Statement Loan Manager Signature',
+    );
+    $disclosureBorrowerSignature = $disclosureDrawings->get(
+        'Disclosure Statement Borrower Signature',
+    );
+    $promissoryBorrowerSignature = $promissoryNoteDrawings->get(
+        'Promissory Note Borrower Signature',
+    );
+    $promissoryCoMakerOneSignature = $promissoryNoteDrawings->get(
+        'Promissory Note Co-maker 1 Signature',
+    );
+    $promissoryCoMakerTwoSignature = $promissoryNoteDrawings->get(
+        'Promissory Note Co-maker 2 Signature',
+    );
+    $loanInformationSignatureContents = file_get_contents(
+        (string) $loanInformationSignature?->getPath(),
+    );
+    $planBorrowerSignatureContents = file_get_contents(
+        (string) $planBorrowerSignature?->getPath(),
+    );
+    $planLoanManagerSignatureContents = file_get_contents(
+        (string) $planLoanManagerSignature?->getPath(),
+    );
+    $planBorrowerSignatureCopyContents = file_get_contents(
+        (string) $planBorrowerSignatureCopy?->getPath(),
+    );
+    $planLoanManagerSignatureCopyContents = file_get_contents(
+        (string) $planLoanManagerSignatureCopy?->getPath(),
+    );
+    $disclosureLoanManagerSignatureContents = file_get_contents(
+        (string) $disclosureLoanManagerSignature?->getPath(),
+    );
+    $disclosureBorrowerSignatureContents = file_get_contents(
+        (string) $disclosureBorrowerSignature?->getPath(),
+    );
+    $promissoryBorrowerSignatureContents = file_get_contents(
+        (string) $promissoryBorrowerSignature?->getPath(),
+    );
+    $promissoryCoMakerOneSignatureContents = file_get_contents(
+        (string) $promissoryCoMakerOneSignature?->getPath(),
+    );
+    $promissoryCoMakerTwoSignatureContents = file_get_contents(
+        (string) $promissoryCoMakerTwoSignature?->getPath(),
+    );
+
+    expect($loanInformationDrawings)->toHaveCount(1);
+    expect($planOfPaymentDrawings)->toHaveCount(4);
+    expect($disclosureDrawings)->toHaveCount(2);
+    expect($promissoryNoteDrawings)->toHaveCount(3);
+    expect($loanInformationSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $loanInformationSignature?->getCoordinates(), '18'))
+        ->toBeTrue();
+    expect($loanInformationSignature?->getDescription())
+        ->toBe('Loan manager approval signature for the loan information sheet');
+    expect((int) $loanInformationSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect($loanInformationSignatureContents)->toBeString()->not->toBe('');
     expect((float) $loanInformationSheet?->getRowDimension(18)->getRowHeight())
+        ->toBeGreaterThan(40.0);
+    expect($planBorrowerSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $planBorrowerSignature?->getCoordinates(), '27'))
+        ->toBeTrue();
+    expect($planBorrowerSignature?->getDescription())
+        ->toBe('Borrower conforme signature for the plan of payment sheet');
+    expect((int) $planBorrowerSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect($planBorrowerSignatureContents)->toBeString()->not->toBe('');
+    expect($planLoanManagerSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $planLoanManagerSignature?->getCoordinates(), '27'))
+        ->toBeTrue();
+    expect($planLoanManagerSignature?->getDescription())
+        ->toBe('Loan manager approval signature for the plan of payment sheet');
+    expect((int) $planLoanManagerSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect($planBorrowerSignatureCopy)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $planBorrowerSignatureCopy?->getCoordinates(), '59'))
+        ->toBeTrue();
+    expect((int) $planBorrowerSignatureCopy?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect($planLoanManagerSignatureCopy)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $planLoanManagerSignatureCopy?->getCoordinates(), '59'))
+        ->toBeTrue();
+    expect((int) $planLoanManagerSignatureCopy?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect((float) $planOfPaymentSheet?->getRowDimension(27)->getRowHeight())
         ->toBeGreaterThan(35.0);
+    expect((float) $planOfPaymentSheet?->getRowDimension(59)->getRowHeight())
+        ->toBeGreaterThan(35.0);
+    expect($disclosureLoanManagerSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $disclosureLoanManagerSignature?->getCoordinates(), '50'))
+        ->toBeTrue();
+    expect($disclosureLoanManagerSignature?->getDescription())
+        ->toBe('Loan manager certification signature for the disclosure statement sheet');
+    expect((int) $disclosureLoanManagerSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect($disclosureBorrowerSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $disclosureBorrowerSignature?->getCoordinates(), '57'))
+        ->toBeTrue();
+    expect($disclosureBorrowerSignature?->getDescription())
+        ->toBe('Borrower acknowledgment signature for the disclosure statement sheet');
+    expect((int) $disclosureBorrowerSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect((float) $disclosureSheet?->getRowDimension(50)->getRowHeight())
+        ->toBeGreaterThan(35.0);
+    expect((float) $disclosureSheet?->getRowDimension(57)->getRowHeight())
+        ->toBeGreaterThan(35.0);
+    expect($promissoryBorrowerSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $promissoryBorrowerSignature?->getCoordinates(), '50'))
+        ->toBeTrue();
+    expect($promissoryBorrowerSignature?->getDescription())
+        ->toBe('Borrower signature for the promissory note sheet');
+    expect((int) $promissoryBorrowerSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect($promissoryCoMakerOneSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $promissoryCoMakerOneSignature?->getCoordinates(), '50'))
+        ->toBeTrue();
+    expect($promissoryCoMakerOneSignature?->getDescription())
+        ->toBe('Co-maker 1 signature for the promissory note sheet');
+    expect((int) $promissoryCoMakerOneSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect($promissoryCoMakerTwoSignature)->toBeInstanceOf(WorksheetDrawing::class);
+    expect(str_ends_with((string) $promissoryCoMakerTwoSignature?->getCoordinates(), '50'))
+        ->toBeTrue();
+    expect($promissoryCoMakerTwoSignature?->getDescription())
+        ->toBe('Co-maker 2 signature for the promissory note sheet');
+    expect((int) $promissoryCoMakerTwoSignature?->getOffsetY())
+        ->toBeGreaterThan(0);
+    expect((float) $promissoryNoteSheet?->getRowDimension(50)->getRowHeight())
+        ->toBeGreaterThan(34.0);
+    expect($loanInformationSignatureContents)
+        ->toBe($planLoanManagerSignatureContents)
+        ->toBe($planLoanManagerSignatureCopyContents)
+        ->toBe($disclosureLoanManagerSignatureContents)
+        ->toBe($promissoryCoMakerOneSignatureContents);
+    expect($planBorrowerSignatureContents)
+        ->toBe($planBorrowerSignatureCopyContents)
+        ->toBe($disclosureBorrowerSignatureContents)
+        ->toBe($promissoryBorrowerSignatureContents)
+        ->toBe($promissoryCoMakerTwoSignatureContents);
+    expect($loanInformationSignatureContents)->not->toBe($planBorrowerSignatureContents);
 
     $workbookStrings = approvedLoanDocumentsWorkbookStringValues($spreadsheet);
 
@@ -1425,6 +1595,99 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
         'No Input Data',
         'DO NOT INPUT ANYTHING',
     );
+
+    $spreadsheet->disconnectWorksheets();
+    unset($spreadsheet);
+});
+
+test('plan of payment workbook skips missing signature files without failing export', function () {
+    Log::spy();
+    Storage::fake('public');
+
+    $admin = User::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Maria Loan Manager',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
+    $missingApplicantPath = Storage::disk('public')->url(
+        'loan-requests/signatures/missing-excel-applicant.png',
+    );
+    $missingCoMakerOnePath = 'loan-requests/signatures/missing-excel-co-maker-one.png';
+    $missingCoMakerTwoPath = '/storage/loan-requests/signatures/missing-excel-co-maker-two.png';
+    $missingReviewerPath = '/storage/loan-manager-signatures/missing-excel-reviewer.png';
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'signature_path' => $missingApplicantPath,
+        ]);
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::CoMakerOne)
+        ->firstOrFail()
+        ->update([
+            'signature_path' => $missingCoMakerOnePath,
+        ]);
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::CoMakerTwo)
+        ->firstOrFail()
+        ->update([
+            'signature_path' => $missingCoMakerTwoPath,
+        ]);
+
+    $approvalSignature->update([
+        'signature_path' => $missingReviewerPath,
+    ]);
+
+    $loanRequest->update([
+        'reviewed_by' => $admin->user_id,
+        'reviewed_at' => '2026-05-22 10:00:00',
+        'approval_signature_id' => $approvalSignature->id,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
+
+    $response->assertOk();
+
+    $spreadsheet = IOFactory::load(
+        approvedLoanDocumentsDownloadedFilePath($response),
+    );
+
+    foreach ([
+        'Loan Information',
+        'Plan of Payment',
+        'Disclosure Statement',
+        'Promissory Note',
+    ] as $worksheetTitle) {
+        $worksheet = $spreadsheet->getSheetByName($worksheetTitle);
+
+        expect($worksheet)->toBeInstanceOf(Worksheet::class);
+        expect($worksheet?->getDrawingCollection())->toHaveCount(0);
+    }
+
+    foreach ([
+        'loan-requests/signatures/missing-excel-applicant.png',
+        'loan-requests/signatures/missing-excel-co-maker-one.png',
+        'loan-requests/signatures/missing-excel-co-maker-two.png',
+        'loan-manager-signatures/missing-excel-reviewer.png',
+    ] as $expectedPath) {
+        Log::shouldHaveReceived('warning')
+            ->withArgs(function (string $message, array $context) use ($expectedPath): bool {
+                return $message === 'Signature file could not be resolved for approved loan workbook.'
+                    && ($context['normalized_signature_path'] ?? null) === $expectedPath;
+            })
+            ->once();
+    }
 
     $spreadsheet->disconnectWorksheets();
     unset($spreadsheet);
@@ -1557,7 +1820,7 @@ test('plan of payment workbook includes a centered uploaded report header design
     }
 
     $firstSheet = $spreadsheet->getSheet(0);
-    expect($firstSheet->getCell('C7')->getValue())->toBe('Sample Q Member');
+    expect($firstSheet->getCell('C7')->getValue())->toBe('SAMPLE Q MEMBER');
     expect($spreadsheet->getSheet(2)->getCell('M7')->getValue())->toBe(
         $loanRequest->reference,
     );

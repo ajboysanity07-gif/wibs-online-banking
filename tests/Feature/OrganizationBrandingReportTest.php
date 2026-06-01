@@ -122,7 +122,7 @@ test('loan security agreement report renders uploaded header design when availab
     expect($html)->toContain('Loan Security Agreement');
 });
 
-test('loan security agreement report underlines inserted values and keeps signature names above labels', function () {
+test('loan security agreement report overlaps signatures onto printed names while keeping labels clear', function () {
     $html = view('reports.loan-security-agreement', [
         'organization' => [
             'company_name' => 'Acme Cooperative',
@@ -136,11 +136,12 @@ test('loan security agreement report underlines inserted values and keeps signat
         'applicant' => [
             'full_name' => 'Helario B. Tejero',
             'address' => 'Banahao, Lianga, Surigao del Sur',
-            'signature_data' => null,
+            'signature_data' => testPngSignatureDataUrl('one'),
         ],
         'reviewer' => [
             'name' => 'Annabelle M. Amora',
             'position' => 'Authorized Representative',
+            'signature_data' => testPngSignatureDataUrl('two'),
         ],
         'reportHeader' => [
             'designData' => null,
@@ -162,12 +163,25 @@ test('loan security agreement report underlines inserted values and keeps signat
         ->toContain('class="signature-layout"')
         ->toContain('width: 76%;')
         ->toContain('margin: 20pt auto 0;')
-        ->toContain('height: 36pt;')
-        ->toContain('max-height: 36pt;')
-        ->toContain('class="signature-column signature-column--left"')
-        ->toContain('class="signature-column signature-column--right"')
+        ->toContain('class="signature-block signature-block--borrower"')
+        ->toContain('class="signature-block signature-block--lender"')
+        ->toContain('class="signature-signing-area signature-signing-area--borrower"')
+        ->toContain('class="signature-signing-area signature-signing-area--lender"')
+        ->toContain('min-height: 72pt;')
+        ->toContain('bottom: 18pt;')
+        ->toContain('height: 48pt;')
+        ->toContain('height: 46pt;')
+        ->toContain('padding-top: 34pt;')
+        ->toContain('padding-top: 33pt;')
+        ->toContain('max-width: 114%;')
+        ->toContain('max-width: 112%;')
+        ->toContain('z-index: 2;')
         ->toContain('<div class="signature-label">Borrower</div>')
         ->toContain('<div class="signature-label">Lender</div>')
+        ->toContain('alt="Borrower signature"')
+        ->toContain('alt="Lender signature"')
+        ->toContain(testPngSignatureDataUrl('one'))
+        ->toContain(testPngSignatureDataUrl('two'))
         ->not->toContain('This Agreement pertains to the Borrower')
         ->not->toContain('approved amount')
         ->not->toContain('payable over')
@@ -178,6 +192,17 @@ test('loan security agreement report underlines inserted values and keeps signat
     $signatureSection = strstr($html, '<table class="signature-layout">');
 
     expect($signatureSection)->not->toBeFalse();
+    expect($html)->toContain(<<<'CSS'
+.signature-line {
+                z-index: 1;
+                width: 100%;
+CSS);
+    expect($html)->toContain(<<<'CSS'
+.signature-label {
+                z-index: 1;
+                font-size: 10pt;
+                font-weight: 400;
+CSS);
     expect(strpos($signatureSection, 'Helario B. Tejero'))
         ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Borrower</div>'));
     expect(strpos($signatureSection, 'Annabelle M. Amora'))
