@@ -81,6 +81,62 @@ test('loan request report reserves larger signature image boxes', function () {
         ->toContain('alt="Applicant signature"');
 });
 
+test('loan request report shows approved term labels and printed signature names', function () {
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_term' => 6,
+    ]);
+
+    $html = view('reports.loan-request', [
+        'loanRequest' => $loanRequest,
+        'applicant' => [
+            'first_name' => 'JUAN',
+            'middle_name' => 'SANTOS',
+            'last_name' => 'DELA CRUZ',
+            'signatureData' => 'data:image/png;base64,applicant-signature',
+        ],
+        'coMakerOne' => [
+            'first_name' => 'MARIA',
+            'middle_name' => 'LOPEZ',
+            'last_name' => 'REYES',
+            'signatureData' => 'data:image/png;base64,co-maker-one-signature',
+        ],
+        'coMakerTwo' => [
+            'first_name' => 'PEDRO',
+            'middle_name' => 'SANTOS',
+            'last_name' => 'CRUZ',
+            'signatureData' => 'data:image/png;base64,co-maker-two-signature',
+        ],
+        'reviewer' => [
+            'name' => 'ANNABELLE M. AMORA',
+        ],
+        'reviewerSignatureData' => 'data:image/png;base64,loan-manager-signature',
+        'companyName' => 'Acme Cooperative',
+        'reportHeader' => [
+            'companyName' => 'Acme Cooperative',
+            'designData' => null,
+        ],
+        'reportTypography' => [],
+        'generatedAt' => Carbon::now(),
+    ])->render();
+
+    expect($html)
+        ->toContain('<td class="field">6 months</td>')
+        ->toContain('<div class="signature-name">Juan Santos Dela Cruz</div>')
+        ->toContain('<div class="signature-name">Maria Lopez Reyes</div>')
+        ->toContain('<div class="signature-name">Pedro Santos Cruz</div>')
+        ->toContain('<div class="signature-name">Annabelle M. Amora</div>')
+        ->toContain('<div class="signature-label">Member / Applicant</div>')
+        ->toContain('<div class="signature-label">Co-maker 1</div>')
+        ->toContain('<div class="signature-label">Co-maker 2</div>')
+        ->toContain('<div class="signature-label">Loan Manager / Approved By</div>')
+        ->toContain('alt="Applicant signature"')
+        ->toContain('alt="Co-maker 1 signature"')
+        ->toContain('alt="Co-maker 2 signature"')
+        ->toContain('alt="Loan manager signature"')
+        ->toContain('data:image/png;base64,loan-manager-signature');
+});
+
 test('loan security agreement report renders uploaded header design when available', function () {
     Storage::fake('public');
     Storage::disk('public')->put('branding/report-headers/header.png', 'header');

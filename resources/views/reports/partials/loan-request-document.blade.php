@@ -21,9 +21,25 @@
         }
         return 'field field--tightest';
     };
+    $buildFullName = function (array $person) use ($displayText): string {
+        $fullName = trim(implode(' ', array_filter([
+            $person['first_name'] ?? '',
+            $person['middle_name'] ?? '',
+            $person['last_name'] ?? '',
+        ], static fn (mixed $part): bool => trim((string) $part) !== '')));
+
+        return $displayText($fullName);
+    };
     $reportHeader = $reportHeader ?? [];
-    $reviewerName = $displayText($reviewer['name'] ?? '');
-    $reviewerSignatureData = $reviewer['signatureData'] ?? null;
+    $approvedTermLabel = $loanRequest->approved_term === null
+        || trim((string) $loanRequest->approved_term) === ''
+        ? ''
+        : $displayText(trim((string) $loanRequest->approved_term).' months');
+    $applicantName = $buildFullName($applicant);
+    $coMakerOneName = $buildFullName($coMakerOne);
+    $coMakerTwoName = $buildFullName($coMakerTwo);
+    $loanManagerName = $displayText(trim((string) ($reviewer['name'] ?? '')));
+    $reviewerSignatureData = $reviewerSignatureData ?? ($reviewer['signatureData'] ?? null);
 @endphp
 
 <div class="page">
@@ -52,7 +68,7 @@
             <td class="{{ $fitFieldClass($formatCurrency($loanRequest->approved_amount)) }}">{{ $formatCurrency($loanRequest->approved_amount) }}</td>
             <td class="label">Approved Loan Term/Duration:</td>
 
-            <td class="{{ $fitFieldClass($loanRequest->approved_term ?? '') }}">{{ $loanRequest->approved_term ?? '' }}</td>
+            <td class="{{ $fitFieldClass($approvedTermLabel) }}">{{ $approvedTermLabel }}</td>
         </tr>
         <tr class="row-line">
             <td class="label">Loan Type:</td>
@@ -75,7 +91,7 @@
             <td class="field"></td>
             <td class="label">Approved By:</td>
 
-            <td class="{{ $fitFieldClass($reviewerName) }}">{{ $reviewerName }}</td>
+            <td class="{{ $fitFieldClass($loanManagerName) }}">{{ $loanManagerName }}</td>
         </tr>
         </table>
     </div>
@@ -458,6 +474,7 @@
                     @endif
                 </div>
                 <div class="signature-line"></div>
+                <div class="signature-name">{{ $applicantName }}</div>
                 <div class="signature-label">Member / Applicant</div>
             </div>
 
@@ -468,6 +485,7 @@
                     @endif
                 </div>
                 <div class="signature-line"></div>
+                <div class="signature-name">{{ $coMakerOneName }}</div>
                 <div class="signature-label">Co-maker 1</div>
             </div>
 
@@ -478,6 +496,7 @@
                     @endif
                 </div>
                 <div class="signature-line"></div>
+                <div class="signature-name">{{ $coMakerTwoName }}</div>
                 <div class="signature-label">Co-maker 2</div>
             </div>
 
@@ -488,6 +507,7 @@
                     @endif
                 </div>
                 <div class="signature-line"></div>
+                <div class="signature-name">{{ $loanManagerName }}</div>
                 <div class="signature-label">Loan Manager / Approved By</div>
             </div>
         </div>
