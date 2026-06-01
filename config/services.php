@@ -40,14 +40,4 @@ return [
         'base_url' => env('SEMAPHORE_BASE_URL', 'https://api.semaphore.co/api/v4/messages'),
         'sender_name' => env('SEMAPHORE_SENDER_NAME'),
     ],
-
-    'paymongo' => [
-        'secret_key' => env('PAYMONGO_SECRET_KEY'),
-        'public_key' => env('PAYMONGO_PUBLIC_KEY'),
-        'webhook_secret' => env('PAYMONGO_WEBHOOK_SECRET'),
-        'base_url' => env('PAYMONGO_BASE_URL', 'https://api.paymongo.com/v1'),
-        'success_url' => env('PAYMONGO_SUCCESS_URL', env('APP_URL').'/client/payments/paymongo/{payment}/success'),
-        'cancel_url' => env('PAYMONGO_CANCEL_URL', env('APP_URL').'/client/payments/paymongo/{payment}/cancel'),
-    ],
-
 ];

@@ -18,7 +18,6 @@ class MemberLoanSummaryResource extends JsonResource
 
         return [
             'balance' => $this->castNumber(data_get($resource, 'balance')),
-            'recommended_payment' => $this->castNullableNumber(data_get($resource, 'recommendedPayment')),
             'next_payment_date' => data_get($resource, 'nextPaymentDate'),
             'last_payment_date' => data_get($resource, 'lastPaymentDate'),
         ];
@@ -28,15 +27,6 @@ class MemberLoanSummaryResource extends JsonResource
     {
         if ($value === null || $value === '') {
             return 0.0;
-        }
-
-        return (float) $value;
-    }
-
-    private function castNullableNumber(mixed $value): ?float
-    {
-        if ($value === null || $value === '') {
-            return null;
         }
 
         return (float) $value;

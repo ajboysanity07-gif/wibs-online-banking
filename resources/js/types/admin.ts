@@ -65,7 +65,6 @@ export type DashboardSummary = {
 
 export type MemberLoanSummary = {
     balance: number;
-    recommended_payment: number | null;
     next_payment_date: string | null;
     last_payment_date: string | null;
 };
@@ -99,13 +98,6 @@ export type MemberLoanPayment = {
     transaction_no: string | number | null;
 };
 
-export type MemberLoanSecurityPaymentSummary = {
-    svnumber: string | null;
-    currentBalance: number | null;
-    minimumBalance: number | null;
-    maxPayable: number | null;
-};
-
 export type MemberLoanPaymentsFilters = {
     range: 'current_month' | 'current_year' | 'last_30_days' | 'all' | 'custom';
     start: string | null;
@@ -117,110 +109,6 @@ export type MemberLoanPaymentsResponse =
         filters: MemberLoanPaymentsFilters;
         openingBalance?: number | null;
         closingBalance?: number | null;
-    };
-
-export type OnlinePaymentStatus =
-    | 'pending'
-    | 'paid'
-    | 'failed'
-    | 'expired'
-    | 'cancelled'
-    | 'posted';
-
-export type OnlinePayment = {
-    id: number;
-    member_name: string | null;
-    acctno: string | null;
-    loan_number: string | null;
-    amount: number;
-    currency: string;
-    provider: string;
-    provider_checkout_id: string | null;
-    provider_payment_id: string | null;
-    reference_number: string | null;
-    status: OnlinePaymentStatus;
-    paid_at: string | null;
-    posted_at: string | null;
-    posted_by: string | null;
-    created_at: string | null;
-    updated_at: string | null;
-    raw_payload?: unknown;
-};
-
-export type OnlinePaymentsFilters = {
-    status: OnlinePaymentStatus | null;
-    start: string | null;
-    end: string | null;
-    loan_number: string | null;
-    acctno: string | null;
-    reference_number: string | null;
-    perPage: number;
-};
-
-export type OnlinePaymentsResponse = PaginatedResponse<OnlinePayment>;
-
-export type PaymongoLoanPaymentMethod =
-    | 'gcash'
-    | 'maya'
-    | 'qrph'
-    | 'online_banking'
-    | 'card';
-
-export type PaymongoPaymentStatus =
-    | 'pending'
-    | 'paid'
-    | 'failed'
-    | 'cancelled'
-    | 'expired';
-
-export type PaymongoPaymentStatusFilter = PaymongoPaymentStatus | 'all';
-
-export type PaymongoReconciliationStatus = 'unreconciled' | 'reconciled';
-
-export type PaymongoReconciliationStatusFilter =
-    | PaymongoReconciliationStatus
-    | 'all';
-
-export type PaymongoReconciliationPayment = {
-    id: string;
-    paid_at: string | null;
-    acctno: string;
-    loan_number: string;
-    base_amount: number;
-    service_fee: number;
-    gross_amount: number;
-    payment_method: string;
-    payment_method_label: string | null;
-    provider_reference_number: string | null;
-    status: PaymongoPaymentStatus;
-    reconciliation_status: PaymongoReconciliationStatus;
-    desktop_reference_no: string | null;
-    official_receipt_no: string | null;
-    reconciliation_notes: string | null;
-    reconciled_at: string | null;
-    reconciled_by: {
-        id: number;
-        name: string;
-    } | null;
-};
-
-export type PaymongoReconciliationFilters = {
-    status: PaymongoPaymentStatusFilter;
-    reconciliation_status: PaymongoReconciliationStatusFilter;
-    search: string | null;
-};
-
-export type PaymongoReconciliationSummary = {
-    paid_unreconciled_count: number;
-    reconciled_count: number;
-    total_loan_payments: number;
-    total_service_fees: number;
-};
-
-export type PaymongoReconciliationResponse =
-    PaginatedResponse<PaymongoReconciliationPayment> & {
-        filters: PaymongoReconciliationFilters;
-        summary: PaymongoReconciliationSummary;
     };
 
 export type MemberSummary = {

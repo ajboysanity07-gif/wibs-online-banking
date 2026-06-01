@@ -5,12 +5,10 @@ namespace App\Http\Controllers\Client;
 use App\Domains\MemberAccounts\Resources\MemberLoanResource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\MemberLoanPaymentsRequest;
-use App\Http\Requests\Client\MemberLoanSecurityPaymentRequest;
 use App\Http\Resources\Admin\MemberLoanPaymentResource;
 use App\Http\Resources\Admin\MemberLoanSummaryResource;
 use App\Services\Admin\MemberLoans\MemberLoanExportService;
 use App\Services\Admin\MemberLoans\MemberLoanService;
-use App\Services\Client\MemberLoanSecurityPaymentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Schema;
@@ -24,7 +22,6 @@ class MemberLoanPaymentsController extends Controller
         MemberLoanPaymentsRequest $request,
         string $loanNumber,
         MemberLoanService $service,
-        MemberLoanSecurityPaymentService $securityPaymentService,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -87,9 +84,6 @@ class MemberLoanPaymentsController extends Controller
         $summaryPayload = $this->sanitizePayload(
             (new MemberLoanSummaryResource($payload['summary']))->resolve(),
         );
-        $securityPaymentPayload = $this->sanitizePayload(
-            $securityPaymentService->getPaymentPanelData($user),
-        );
         $paymentsPayload = $this->sanitizePayload([
             'items' => MemberLoanPaymentResource::collection(
                 $paginator->items(),
@@ -109,7 +103,6 @@ class MemberLoanPaymentsController extends Controller
             'member' => $memberPayload,
             'loan' => $loanPayload,
             'summary' => $summaryPayload,
-            'securityPayment' => $securityPaymentPayload,
             'payments' => $paymentsPayload,
         ]);
     }
@@ -138,38 +131,6 @@ class MemberLoanPaymentsController extends Controller
             $request->query('start'),
             $request->query('end'),
         );
-    }
-
-    public function payWithSecurity(
-        MemberLoanSecurityPaymentRequest $request,
-        string $loanNumber,
-        MemberLoanSecurityPaymentService $service,
-    ): RedirectResponse {
-        $user = $request->user();
-
-        if ($user === null) {
-            return redirect()->route('login');
-        }
-
-        $user->loadMissing('userProfile', 'adminProfile');
-
-        if ($user->isAdminOnly()) {
-            return redirect()->route('admin.dashboard');
-        }
-
-        $result = $service->pay(
-            $user,
-            $loanNumber,
-            (float) $request->validated('amount'),
-        );
-
-        return Inertia::flash(
-            'status',
-            sprintf(
-                'Loan payment of %s from loan security was applied successfully.',
-                number_format($result['appliedAmount'], 2, '.', ','),
-            ),
-        )->back();
     }
 
     private function sanitizePayload(mixed $value): mixed

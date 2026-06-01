@@ -8,9 +8,7 @@ use App\Http\Controllers\Admin\MemberLoanScheduleController;
 use App\Http\Controllers\Admin\MemberLoansController;
 use App\Http\Controllers\Admin\MemberProfileController;
 use App\Http\Controllers\Admin\MemberSavingsController;
-use App\Http\Controllers\Admin\OnlinePaymentsController;
 use App\Http\Controllers\Admin\OrganizationSettingsController;
-use App\Http\Controllers\Admin\PaymongoReconciliationController;
 use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Api\BirthplaceSearchController;
@@ -28,13 +26,9 @@ use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemb
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
 use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
-use App\Http\Controllers\Client\OnlinePaymentStatusController;
-use App\Http\Controllers\Client\PayMongoCheckoutController;
-use App\Http\Controllers\Client\PaymongoLoanPaymentController as ClientPaymongoLoanPaymentController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NotificationsController as NotificationsPageController;
-use App\Http\Controllers\PaymongoWebhookController as LoanPaymentPaymongoWebhookController;
 use App\Http\Controllers\PublicLoanRequestCoMakerSignatureController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
@@ -62,16 +56,9 @@ use App\Http\Controllers\Spa\PasswordRecoveryPhoneOtpController as SpaPasswordRe
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneResetController as SpaPasswordRecoveryPhoneResetController;
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneVerificationController as SpaPasswordRecoveryPhoneVerificationController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
-use App\Http\Controllers\Webhooks\PayMongoWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
-
-Route::post('webhooks/paymongo', PayMongoWebhookController::class)
-    ->name('webhooks.paymongo');
-
-Route::post('webhooks/paymongo-loan-payments', LoanPaymentPaymongoWebhookController::class)
-    ->name('webhooks.paymongo-loan-payments');
 
 Route::get(
     'loan-requests/sign/co-maker/{token}',
@@ -278,46 +265,6 @@ Route::get('client/loans/{loanNumber}/payments', ClientMemberLoanPaymentsControl
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-payments');
 
-Route::post(
-    'client/loans/{loanNumber}/payments/security',
-    [ClientMemberLoanPaymentsController::class, 'payWithSecurity'],
-)
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.loan-payments.security');
-
-Route::post('client/loans/{loanNumber}/paymongo/checkout', PayMongoCheckoutController::class)
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.loan-payments.paymongo.checkout');
-
-Route::get('client/online-payments/{onlinePayment}/success', [OnlinePaymentStatusController::class, 'success'])
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.online-payments.success');
-
-Route::get('client/online-payments/{onlinePayment}/failed', [OnlinePaymentStatusController::class, 'failed'])
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.online-payments.failed');
-
-Route::post(
-    'client/loans/{loanNumber}/payments/paymongo',
-    [ClientPaymongoLoanPaymentController::class, 'store'],
-)
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.loan-payments.paymongo.store');
-
-Route::get(
-    'client/payments/paymongo/{payment}/success',
-    [ClientPaymongoLoanPaymentController::class, 'success'],
-)
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.loan-payments.paymongo.success');
-
-Route::get(
-    'client/payments/paymongo/{payment}/cancel',
-    [ClientPaymongoLoanPaymentController::class, 'cancel'],
-)
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.loan-payments.paymongo.cancel');
-
 Route::get(
     'client/loans/{loanNumber}/payments/print',
     [ClientMemberLoanPaymentsController::class, 'print'],
@@ -353,15 +300,6 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
 
     Route::get('dashboard', [AdminDashboardController::class, 'index'])
         ->name('admin.dashboard');
-
-    Route::get('online-payments', [OnlinePaymentsController::class, 'index'])
-        ->name('admin.online-payments.index');
-
-    Route::get('online-payments/{onlinePayment}', [OnlinePaymentsController::class, 'show'])
-        ->name('admin.online-payments.show');
-
-    Route::post('online-payments/{onlinePayment}/post', [OnlinePaymentsController::class, 'post'])
-        ->name('admin.online-payments.post');
 
     Route::get('members/{user}', [MemberProfileController::class, 'show'])
         ->name('admin.members.show');
@@ -424,12 +362,6 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
         Route::get('authorization', [AdminLoanRequestController::class, 'authorizationDocument'])
             ->name('admin.requests.documents.authorization');
     });
-
-    Route::get('paymongo-reconciliation', [PaymongoReconciliationController::class, 'index'])
-        ->name('admin.paymongo-reconciliation.index');
-
-    Route::patch('paymongo-reconciliation/{payment}', [PaymongoReconciliationController::class, 'update'])
-        ->name('admin.paymongo-reconciliation.update');
 
     Route::get('watchlist', [WatchlistController::class, 'index'])
         ->name('admin.watchlist.index');
