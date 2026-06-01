@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\Services\LoanRequests\ExcelCellMaps\PlanOfPaymentDisclosurePromissoryNoteExcelCellMap;
 use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -88,26 +89,167 @@ class ApprovedLoanExcelTemplateService
     ];
 
     /**
-     * @var array{
-     *     worksheet: string,
-     *     coordinate: string,
-     *     offsetX: int,
-     *     offsetY: int,
-     *     width: int,
-     *     height: int,
-     *     maxWidth: int,
-     *     maxHeight: int
-     * }
+     * @var array<string, list<array<string, int|string|float|null>>>
      */
-    private const LOAN_MANAGER_SIGNATURE_PLACEMENT = [
-        'worksheet' => 'Loan Information',
-        'coordinate' => 'D18',
-        'offsetX' => 6,
-        'offsetY' => 0,
-        'width' => 70,
-        'height' => 26,
-        'maxWidth' => 140,
-        'maxHeight' => 52,
+    private const WORKBOOK_SIGNATURE_PLACEMENTS = [
+        'Loan Information' => [
+            [
+                'name' => 'Loan Information Loan Manager Signature',
+                'description' => 'Loan manager approval signature for the loan information sheet',
+                'source' => 'reviewer.signature_path',
+                'coordinate' => 'D18',
+                'startColumn' => 'D',
+                'endColumn' => 'H',
+                'width' => 120,
+                'height' => 24,
+                'maxWidth' => 150,
+                'maxHeight' => 46,
+                'offsetX' => 6,
+                'offsetY' => 12,
+                'rowHeight' => 44.0,
+            ],
+        ],
+        'Plan of Payment' => [
+            [
+                'name' => 'Plan of Payment Borrower Signature',
+                'description' => 'Borrower conforme signature for the plan of payment sheet',
+                'source' => 'applicant.signature_path',
+                'coordinate' => 'B27',
+                'startColumn' => 'B',
+                'endColumn' => 'D',
+                'width' => 120,
+                'height' => 24,
+                'maxWidth' => 118,
+                'maxHeight' => 44,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 36.0,
+            ],
+            [
+                'name' => 'Plan of Payment Loan Manager Signature',
+                'description' => 'Loan manager approval signature for the plan of payment sheet',
+                'source' => 'reviewer.signature_path',
+                'coordinate' => 'G27',
+                'startColumn' => 'G',
+                'endColumn' => 'I',
+                'width' => 120,
+                'height' => 24,
+                'maxWidth' => 118,
+                'maxHeight' => 44,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 36.0,
+            ],
+            [
+                'name' => 'Plan of Payment Borrower Signature Copy',
+                'description' => 'Borrower conforme signature for the lower plan of payment section',
+                'source' => 'applicant.signature_path',
+                'coordinate' => 'B59',
+                'startColumn' => 'B',
+                'endColumn' => 'D',
+                'width' => 120,
+                'height' => 24,
+                'maxWidth' => 118,
+                'maxHeight' => 44,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 36.0,
+            ],
+            [
+                'name' => 'Plan of Payment Loan Manager Signature Copy',
+                'description' => 'Loan manager approval signature for the lower plan of payment section',
+                'source' => 'reviewer.signature_path',
+                'coordinate' => 'G59',
+                'startColumn' => 'G',
+                'endColumn' => 'I',
+                'width' => 120,
+                'height' => 24,
+                'maxWidth' => 118,
+                'maxHeight' => 44,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 36.0,
+            ],
+        ],
+        'Disclosure Statement' => [
+            [
+                'name' => 'Disclosure Statement Loan Manager Signature',
+                'description' => 'Loan manager certification signature for the disclosure statement sheet',
+                'source' => 'reviewer.signature_path',
+                'coordinate' => 'L50',
+                'startColumn' => 'L',
+                'endColumn' => 'N',
+                'width' => 120,
+                'height' => 24,
+                'maxWidth' => 118,
+                'maxHeight' => 44,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 36.0,
+            ],
+            [
+                'name' => 'Disclosure Statement Borrower Signature',
+                'description' => 'Borrower acknowledgment signature for the disclosure statement sheet',
+                'source' => 'applicant.signature_path',
+                'coordinate' => 'L57',
+                'startColumn' => 'L',
+                'endColumn' => 'N',
+                'width' => 120,
+                'height' => 24,
+                'maxWidth' => 118,
+                'maxHeight' => 44,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 36.0,
+            ],
+        ],
+        'Promissory Note' => [
+            [
+                'name' => 'Promissory Note Borrower Signature',
+                'description' => 'Borrower signature for the promissory note sheet',
+                'source' => 'applicant.signature_path',
+                'coordinate' => 'B50',
+                'startColumn' => 'B',
+                'endColumn' => 'C',
+                'width' => 112,
+                'height' => 22,
+                'maxWidth' => 112,
+                'maxHeight' => 42,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 35.0,
+            ],
+            [
+                'name' => 'Promissory Note Co-maker 1 Signature',
+                'description' => 'Co-maker 1 signature for the promissory note sheet',
+                'source' => 'co_maker_one.signature_path',
+                'coordinate' => 'E50',
+                'startColumn' => 'E',
+                'endColumn' => 'G',
+                'width' => 112,
+                'height' => 22,
+                'maxWidth' => 112,
+                'maxHeight' => 42,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 35.0,
+            ],
+            [
+                'name' => 'Promissory Note Co-maker 2 Signature',
+                'description' => 'Co-maker 2 signature for the promissory note sheet',
+                'source' => 'co_maker_two.signature_path',
+                'coordinate' => 'I50',
+                'startColumn' => 'I',
+                'endColumn' => 'K',
+                'width' => 112,
+                'height' => 22,
+                'maxWidth' => 112,
+                'maxHeight' => 42,
+                'offsetX' => 0,
+                'offsetY' => 12,
+                'rowHeight' => 35.0,
+            ],
+        ],
     ];
 
     /**
@@ -139,8 +281,7 @@ class ApprovedLoanExcelTemplateService
     ): void {
         $templatePath = $this->resolveTemplatePath($templateFilename);
         $spreadsheet = IOFactory::load($templatePath);
-        $temporaryHeaderImagePath = null;
-        $temporarySignatureImagePath = null;
+        $temporaryImagePaths = [];
 
         try {
             $this->applyMappedCells($spreadsheet, $documentData);
@@ -151,20 +292,23 @@ class ApprovedLoanExcelTemplateService
                 $spreadsheet,
                 $documentData,
             );
-            $temporarySignatureImagePath = $this->insertLoanManagerSignatureImage(
-                $spreadsheet,
-                $documentData,
-            );
+
+            if (is_string($temporaryHeaderImagePath) && $temporaryHeaderImagePath !== '') {
+                $temporaryImagePaths[] = $temporaryHeaderImagePath;
+            }
+
+            $temporaryImagePaths = [
+                ...$temporaryImagePaths,
+                ...$this->insertSignatureImages($spreadsheet, $documentData),
+            ];
             $this->finalizeLoanInformationWorksheetLayout($spreadsheet);
             File::ensureDirectoryExists(dirname($outputPath));
             IOFactory::createWriter($spreadsheet, 'Xlsx')->save($outputPath);
         } finally {
-            if (is_string($temporaryHeaderImagePath) && $temporaryHeaderImagePath !== '') {
-                File::delete($temporaryHeaderImagePath);
-            }
-
-            if (is_string($temporarySignatureImagePath) && $temporarySignatureImagePath !== '') {
-                File::delete($temporarySignatureImagePath);
+            foreach (array_unique($temporaryImagePaths) as $temporaryImagePath) {
+                if (is_string($temporaryImagePath) && $temporaryImagePath !== '') {
+                    File::delete($temporaryImagePath);
+                }
             }
 
             $spreadsheet->disconnectWorksheets();
@@ -391,76 +535,277 @@ class ApprovedLoanExcelTemplateService
     /**
      * @param  array<string, mixed>  $documentData
      */
-    private function insertLoanManagerSignatureImage(
+    private function insertSignatureImages(
         Spreadsheet $spreadsheet,
         array $documentData,
-    ): ?string {
-        $relativePath = trim((string) data_get($documentData, 'reviewer.signature_path', ''));
+    ): array {
+        $temporaryPaths = [];
+        $resolvedPathCache = [];
+        $overlayImageCache = [];
 
-        if ($relativePath === '' || ! Storage::disk('public')->exists($relativePath)) {
-            return null;
+        foreach (self::WORKBOOK_SIGNATURE_PLACEMENTS as $worksheetTitle => $placements) {
+            $worksheet = $spreadsheet->getSheetByName($worksheetTitle);
+
+            if (! $worksheet instanceof Worksheet) {
+                continue;
+            }
+
+            foreach ($placements as $placement) {
+                $source = is_string($placement['source'] ?? null)
+                    ? $placement['source']
+                    : null;
+
+                if ($source === null) {
+                    continue;
+                }
+
+                $signaturePath = data_get($documentData, $source);
+                $relativePath = is_string($signaturePath)
+                    ? trim($signaturePath)
+                    : null;
+
+                if ($relativePath === null || $relativePath === '') {
+                    continue;
+                }
+
+                $cacheKey = $source.'|'.$relativePath;
+
+                if (! array_key_exists($cacheKey, $resolvedPathCache)) {
+                    $resolvedPathCache[$cacheKey] = $this->resolveSignatureImagePath(
+                        $relativePath,
+                    );
+                }
+
+                $absolutePath = $resolvedPathCache[$cacheKey];
+
+                if (! is_string($absolutePath) || $absolutePath === '') {
+                    continue;
+                }
+
+                if (! array_key_exists($absolutePath, $overlayImageCache)) {
+                    $overlayImageCache[$absolutePath] = $this->signaturePngService
+                        ->prepareOverlayImage($absolutePath);
+
+                    if (($overlayImageCache[$absolutePath]['temporary'] ?? false) === true) {
+                        $temporaryPaths[] = $overlayImageCache[$absolutePath]['path'];
+                    }
+                }
+
+                $this->insertSignatureDrawing(
+                    $spreadsheet,
+                    $worksheet,
+                    $overlayImageCache[$absolutePath]['path'],
+                    $placement,
+                );
+            }
         }
 
-        $worksheet = $spreadsheet->getSheetByName(
-            self::LOAN_MANAGER_SIGNATURE_PLACEMENT['worksheet'],
-        );
-
-        if (! $worksheet instanceof Worksheet) {
-            return null;
-        }
-
-        $overlayImage = $this->signaturePngService->prepareOverlayImage(
-            Storage::disk('public')->path($relativePath),
-        );
-        $placement = $this->signaturePlacement->calculateFromImagePath(
-            $overlayImage['path'],
-            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetX'],
-            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['offsetY'],
-            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['width'],
-            (float) self::LOAN_MANAGER_SIGNATURE_PLACEMENT['height'],
-            [
-                'max_width' => self::LOAN_MANAGER_SIGNATURE_PLACEMENT['maxWidth'],
-                'max_height' => self::LOAN_MANAGER_SIGNATURE_PLACEMENT['maxHeight'],
-            ],
-        );
-        $drawing = new WorksheetDrawing;
-        $drawing->setName('Loan Manager Signature');
-        $drawing->setDescription('Loan manager signature used for approval');
-        $drawing->setPath($overlayImage['path']);
-        $drawing->setCoordinates(
-            self::LOAN_MANAGER_SIGNATURE_PLACEMENT['coordinate'],
-        );
-        $drawing->setOffsetX((int) round($placement['x']));
-        $drawing->setOffsetY((int) round($placement['y']));
-        $drawing->setWidth((int) round($placement['width']));
-        $drawing->setWorksheet($worksheet);
-        $this->ensureLoanManagerSignatureRowSpace(
-            $worksheet,
-            $placement['height'],
-        );
-
-        return ($overlayImage['temporary'] ?? false) === true
-            ? $overlayImage['path']
-            : null;
+        return array_values(array_unique($temporaryPaths));
     }
 
-    private function ensureLoanManagerSignatureRowSpace(
+    /**
+     * @param  array<string, int|string|float|null>  $placement
+     */
+    private function insertSignatureDrawing(
+        Spreadsheet $spreadsheet,
         Worksheet $worksheet,
-        float $requiredHeightPixels,
+        string $overlayImagePath,
+        array $placement,
     ): void {
-        [, $rowNumber] = Coordinate::coordinateFromString(
-            self::LOAN_MANAGER_SIGNATURE_PLACEMENT['coordinate'],
+        $coordinate = is_string($placement['coordinate'] ?? null)
+            ? $placement['coordinate']
+            : null;
+        $startColumn = is_string($placement['startColumn'] ?? null)
+            ? $placement['startColumn']
+            : null;
+        $endColumn = is_string($placement['endColumn'] ?? null)
+            ? $placement['endColumn']
+            : null;
+
+        if ($coordinate === null || $startColumn === null || $endColumn === null) {
+            return;
+        }
+
+        [, $rowNumber] = Coordinate::coordinateFromString($coordinate);
+        $placementWidth = $this->columnRangeWidthInPixels(
+            $worksheet,
+            $spreadsheet,
+            $startColumn,
+            $endColumn,
         );
-        $currentHeight = (float) $worksheet
-            ->getRowDimension($rowNumber)
-            ->getRowHeight();
+        $fallbackWidth = is_numeric($placement['width'] ?? null)
+            ? (float) $placement['width']
+            : 0.0;
+        $containerWidth = $placementWidth > 0
+            ? (float) $placementWidth
+            : $fallbackWidth;
+        $containerHeight = is_numeric($placement['height'] ?? null)
+            ? (float) $placement['height']
+            : 0.0;
+
+        if ($containerWidth <= 0 || $containerHeight <= 0) {
+            return;
+        }
+
+        $dimensions = $this->signaturePlacement->calculateFromImagePath(
+            $overlayImagePath,
+            0.0,
+            0.0,
+            $containerWidth,
+            $containerHeight,
+            $this->signatureDrawingPlacementOptions($placement),
+        );
+        $anchor = $this->resolveDrawingAnchor(
+            $worksheet,
+            $spreadsheet,
+            $startColumn,
+            $endColumn,
+            max(0, (int) round($dimensions['x'])),
+        );
+        $drawing = new WorksheetDrawing;
+        $drawing->setName((string) ($placement['name'] ?? 'Workbook Signature'));
+        $drawing->setDescription(
+            (string) ($placement['description'] ?? 'Workbook signature image'),
+        );
+        $drawing->setPath($overlayImagePath);
+        $drawing->setResizeProportional(true);
+        $drawing->setCoordinates($anchor['column'].$rowNumber);
+        $drawing->setOffsetX($anchor['offset']);
+        $drawing->setOffsetY((int) round($dimensions['y']));
+        $drawing->setWidth((int) round($dimensions['width']));
+        $drawing->setWorksheet($worksheet);
+        $this->ensureSignatureRowSpace(
+            $worksheet,
+            $coordinate,
+            $dimensions['height'],
+            is_numeric($placement['rowHeight'] ?? null)
+                ? (float) $placement['rowHeight']
+                : null,
+        );
+    }
+
+    private function ensureSignatureRowSpace(
+        Worksheet $worksheet,
+        string $coordinate,
+        float $requiredHeightPixels,
+        ?float $minimumHeightPoints = null,
+    ): void {
+        [, $rowNumber] = Coordinate::coordinateFromString($coordinate);
         $targetHeight = SharedDrawing::pixelsToPoints(
             (int) ceil($requiredHeightPixels + 6),
         );
 
-        if ($currentHeight <= 0 || $currentHeight < $targetHeight) {
-            $worksheet->getRowDimension($rowNumber)->setRowHeight($targetHeight);
+        if ($minimumHeightPoints !== null && $minimumHeightPoints > 0) {
+            $targetHeight = max($targetHeight, $minimumHeightPoints);
         }
+
+        $this->ensureMinimumRowHeight($worksheet, $rowNumber, $targetHeight);
+    }
+
+    private function resolveSignatureImagePath(?string $relativePath): ?string
+    {
+        $signaturePath = trim((string) $relativePath);
+
+        if ($signaturePath === '') {
+            return null;
+        }
+
+        $normalizedPath = $this->normalizeSignatureImagePath($signaturePath);
+
+        if ($normalizedPath !== '' && is_file($normalizedPath)) {
+            return $normalizedPath;
+        }
+
+        if ($normalizedPath !== '' && Storage::disk('public')->exists($normalizedPath)) {
+            return Storage::disk('public')->path($normalizedPath);
+        }
+
+        $storagePath = storage_path('app/public/'.ltrim($normalizedPath, '/'));
+
+        if ($normalizedPath !== '' && is_file($storagePath)) {
+            return $storagePath;
+        }
+
+        Log::warning('Signature file could not be resolved for approved loan workbook.', [
+            'signature_path' => $signaturePath,
+            'normalized_signature_path' => $normalizedPath,
+            'checked_storage_path' => $storagePath,
+        ]);
+
+        return null;
+    }
+
+    private function normalizeSignatureImagePath(string $path): string
+    {
+        $normalizedPath = trim($path);
+
+        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $normalizedPath) === 1) {
+            $parsedPath = parse_url($normalizedPath, PHP_URL_PATH);
+            $normalizedPath = is_string($parsedPath) ? $parsedPath : '';
+        }
+
+        $normalizedPath = str_replace('\\', '/', rawurldecode($normalizedPath));
+        $normalizedPath = explode('?', $normalizedPath, 2)[0];
+        $normalizedPath = explode('#', $normalizedPath, 2)[0];
+
+        if (preg_match('#^(?:[a-z]:/|/)#i', $normalizedPath) === 1) {
+            return $normalizedPath;
+        }
+
+        $normalizedPath = preg_replace(
+            '#^/?(?:storage/app/public/|public/storage/|storage/)#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+
+        foreach ([
+            '/storage/app/public/',
+            '/public/storage/',
+            '/storage/',
+        ] as $marker) {
+            $markerPosition = stripos($normalizedPath, $marker);
+
+            if ($markerPosition === false) {
+                continue;
+            }
+
+            $normalizedPath = substr(
+                $normalizedPath,
+                $markerPosition + strlen($marker),
+            );
+
+            break;
+        }
+
+        $normalizedPath = ltrim($normalizedPath, '/');
+        $normalizedPath = preg_replace(
+            '#^(?:app/public/|public/)+#i',
+            '',
+            $normalizedPath,
+        ) ?? $normalizedPath;
+
+        return ltrim($normalizedPath, '/');
+    }
+
+    /**
+     * @param  array<string, int|string|float|null>  $placement
+     * @return array{
+     *     scale?: float|int|null,
+     *     max_width?: float|int|null,
+     *     max_height?: float|int|null,
+     *     offset_x?: float|int|null,
+     *     offset_y?: float|int|null
+     * }
+     */
+    private function signatureDrawingPlacementOptions(array $placement): array
+    {
+        return array_filter([
+            'scale' => $placement['scale'] ?? null,
+            'max_width' => $placement['maxWidth'] ?? null,
+            'max_height' => $placement['maxHeight'] ?? null,
+            'offset_x' => $placement['offsetX'] ?? null,
+            'offset_y' => $placement['offsetY'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null);
     }
 
     private function preparePromissoryNoteWorksheetLayout(Worksheet $worksheet): void

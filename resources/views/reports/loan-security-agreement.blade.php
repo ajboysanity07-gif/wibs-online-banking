@@ -13,6 +13,7 @@
     $reviewerName = trim((string) ($reviewer['name'] ?? ''));
     $reviewerTitle = trim((string) ($reviewer['position'] ?? ''));
     $reviewerSignatureData = $reviewer['signature_data'] ?? null;
+    $lenderSignatureData = $reviewerSignatureData;
     $lenderSignatureName = $reviewerName !== '' ? $reviewerName : $companyName;
     $lenderRepresentationClause = $reviewerName !== ''
         ? trim($reviewerName.($reviewerTitle !== '' ? ', '.$reviewerTitle : ''))
@@ -187,40 +188,89 @@
                 width: 100%;
             }
 
+            .signature-signing-area {
+                position: relative;
+                min-height: 72pt;
+            }
+
             .signature-art {
+                position: absolute;
+                right: 0;
+                left: 0;
                 display: flex;
                 align-items: flex-end;
                 justify-content: center;
-                height: 36pt;
-                margin-bottom: 6pt;
+                z-index: 2;
+            }
+
+            .signature-art--borrower {
+                bottom: 18pt;
+                height: 48pt;
+            }
+
+            .signature-art--lender {
+                bottom: 18pt;
+                height: 46pt;
             }
 
             .signature-image {
-                max-width: 100%;
-                max-height: 36pt;
+                display: block;
+                width: auto;
                 object-fit: contain;
             }
 
+            .signature-image--borrower {
+                max-width: 114%;
+                max-height: 48pt;
+            }
+
+            .signature-image--lender {
+                max-width: 112%;
+                max-height: 46pt;
+            }
+
+            .signature-name,
+            .signature-line,
+            .signature-label {
+                position: relative;
+            }
+
             .signature-name {
+                z-index: 1;
                 min-height: 14pt;
                 margin-bottom: 2pt;
+                padding-top: 34pt;
                 font-size: 11pt;
                 font-weight: 700;
                 text-align: center;
             }
 
             .signature-line {
-                width: 78%;
-                margin: 0 auto 3pt;
+                z-index: 1;
+                width: 100%;
+                margin: 0 0 3pt;
                 border-bottom: 0.8pt solid #111111;
             }
 
             .signature-label {
+                z-index: 1;
                 font-size: 10pt;
-                font-weight: 700;
+                font-weight: 400;
                 letter-spacing: 0.04em;
                 text-align: center;
                 text-transform: uppercase;
+            }
+
+            .signature-block--lender .signature-name {
+                padding-top: 33pt;
+            }
+
+            .signature-block--lender .signature-label {
+                margin-top: 1pt;
+            }
+
+            .signature-block--borrower .signature-label {
+                margin-top: 1pt;
             }
         </style>
     </head>
@@ -300,39 +350,43 @@
             <table class="signature-layout">
                 <tr>
                     <td class="signature-column signature-column--left">
-                        <div class="signature-block">
-                            <div class="signature-art">
-                                @if ($borrowerSignatureData)
-                                    <img
-                                        src="{{ $borrowerSignatureData }}"
-                                        alt="Borrower signature"
-                                        class="signature-image"
-                                    />
-                                @endif
+                        <div class="signature-block signature-block--borrower">
+                            <div class="signature-signing-area signature-signing-area--borrower">
+                                <div class="signature-art signature-art--borrower">
+                                    @if ($borrowerSignatureData)
+                                        <img
+                                            src="{{ $borrowerSignatureData }}"
+                                            alt="Borrower signature"
+                                            class="signature-image signature-image--borrower"
+                                        />
+                                    @endif
+                                </div>
+                                <div class="signature-name">
+                                    {{ $borrowerName !== '' ? $borrowerName : ' ' }}
+                                </div>
+                                <div class="signature-line"></div>
+                                <div class="signature-label">Borrower</div>
                             </div>
-                            <div class="signature-name">
-                                {{ $borrowerName !== '' ? $borrowerName : ' ' }}
-                            </div>
-                            <div class="signature-line"></div>
-                            <div class="signature-label">Borrower</div>
                         </div>
                     </td>
                     <td class="signature-column signature-column--right">
-                        <div class="signature-block">
-                            <div class="signature-art">
-                                @if ($reviewerSignatureData)
-                                    <img
-                                        src="{{ $reviewerSignatureData }}"
-                                        alt="Lender signature"
-                                        class="signature-image"
-                                    />
-                                @endif
+                        <div class="signature-block signature-block--lender">
+                            <div class="signature-signing-area signature-signing-area--lender">
+                                <div class="signature-art signature-art--lender">
+                                    @if ($lenderSignatureData)
+                                        <img
+                                            src="{{ $lenderSignatureData }}"
+                                            alt="Lender signature"
+                                            class="signature-image signature-image--lender"
+                                        />
+                                    @endif
+                                </div>
+                                <div class="signature-name">
+                                    {{ $lenderSignatureName !== '' ? $lenderSignatureName : ' ' }}
+                                </div>
+                                <div class="signature-line"></div>
+                                <div class="signature-label">Lender</div>
                             </div>
-                            <div class="signature-name">
-                                {{ $lenderSignatureName !== '' ? $lenderSignatureName : ' ' }}
-                            </div>
-                            <div class="signature-line"></div>
-                            <div class="signature-label">Lender</div>
                         </div>
                     </td>
                 </tr>
