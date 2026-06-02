@@ -24,10 +24,6 @@ class LoanRequestDecisionService
 
     private const BORROWER_SIGNATURE_REQUIRED_MESSAGE = 'Borrower signature is required before approval.';
 
-    private const CO_MAKER_ONE_SIGNATURE_REQUIRED_MESSAGE = 'Co-maker 1 signature is required before approval.';
-
-    private const CO_MAKER_TWO_SIGNATURE_REQUIRED_MESSAGE = 'Co-maker 2 signature is required before approval.';
-
     private const LOAN_MANAGER_SIGNATURE_REQUIRED_MESSAGE = 'Please save your loan manager signature in Settings before approving this request.';
 
     public function __construct(
@@ -363,22 +359,6 @@ class LoanRequestDecisionService
             )
         ) {
             $errors['applicant_signature'] = self::BORROWER_SIGNATURE_REQUIRED_MESSAGE;
-        }
-
-        if (
-            ! $this->personHasSignature(
-                $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerOne),
-            )
-        ) {
-            $errors['co_maker_1_signature'] = self::CO_MAKER_ONE_SIGNATURE_REQUIRED_MESSAGE;
-        }
-
-        if (
-            ! $this->personHasSignature(
-                $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerTwo),
-            )
-        ) {
-            $errors['co_maker_2_signature'] = self::CO_MAKER_TWO_SIGNATURE_REQUIRED_MESSAGE;
         }
 
         if ($actor->activeAdminSignature === null) {

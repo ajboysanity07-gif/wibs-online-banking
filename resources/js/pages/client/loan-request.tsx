@@ -39,6 +39,8 @@ import type {
 } from '@/types/loan-requests';
 
 const loanRequestsIndexHref = loanRequestsIndex().url;
+const MISSING_CO_MAKER_SIGNATURE_REMINDER =
+    'Reminder: One or more co-maker signatures are missing. The co-makers must sign the printed application form during loan release.';
 
 type Props = {
     loanTypes: LoanTypeOption[];
@@ -472,21 +474,23 @@ export default function LoanRequestPage({
         (form.data.co_maker_1_signature_data ?? '').trim() !== '';
     const coMakerTwoHasPendingInPersonSignature =
         (form.data.co_maker_2_signature_data ?? '').trim() !== '';
-    const coMakerOneReadyForSubmit =
+    const applicantHasSignature =
+        (form.data.applicant_signature_data ?? '').trim() !== '' ||
+        Boolean(applicant?.signature_path);
+    const coMakerOneHasSignature =
         !coMakerOneRequired ||
         effectiveCoMakerOneSignatureState.is_confirmed ||
         coMakerOneHasPendingInPersonSignature;
-    const coMakerTwoReadyForSubmit =
+    const coMakerTwoHasSignature =
         !coMakerTwoRequired ||
         effectiveCoMakerTwoSignatureState.is_confirmed ||
         coMakerTwoHasPendingInPersonSignature;
-    const canSubmitForReview =
-        hasLoanTypes && coMakerOneReadyForSubmit && coMakerTwoReadyForSubmit;
-    const submitDisabledMessage = coMakerOneNeedsResign || coMakerTwoNeedsResign
-        ? 'A signed co-maker detail was changed. Save the updated proposed details, then collect a fresh co-maker signature before submitting.'
-        : !canSubmitForReview
-          ? 'Submit for Review is available after all required co-makers have signed.'
-          : null;
+    const hasMissingCoMakerSignatures =
+        !coMakerOneHasSignature || !coMakerTwoHasSignature;
+    const canSubmitForReview = hasLoanTypes && applicantHasSignature;
+    const submitDisabledMessage = !applicantHasSignature
+        ? 'Member / Applicant signature is required before submitting.'
+        : null;
     const coMakerOneFieldsLocked =
         coMakerOneSignatureState.is_confirmed &&
         !coMakerOneNeedsResign &&
@@ -810,6 +814,14 @@ export default function LoanRequestPage({
     };
 
     const handleSubmit = () => {
+        if (
+            hasMissingCoMakerSignatures &&
+            typeof window !== 'undefined' &&
+            !window.confirm(MISSING_CO_MAKER_SIGNATURE_REMINDER)
+        ) {
+            return;
+        }
+
         setActiveAction('submit');
         form.post(LoanRequestController.store().url, {
             onSuccess: () => {
@@ -859,9 +871,10 @@ export default function LoanRequestPage({
                             </h1>
                             <p className="max-w-2xl text-sm text-muted-foreground">
                                 Complete the application form, save a draft at
-                                any time, and use secure signing links to
-                                collect required co-maker consent before admin
-                                review.
+                                any time, and optionally collect co-maker
+                                signatures online. Missing co-maker signatures
+                                can be completed on the printed application
+                                form during loan release.
                             </p>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 <span className="rounded-full bg-muted/30 px-2 py-1">
@@ -983,7 +996,7 @@ export default function LoanRequestPage({
                         >
                             <LoanRequestCoMakerStep
                                 title="Co-maker 1"
-                                description="Add the proposed details for your first co-maker. The co-maker is only confirmed after personally reviewing, consenting, and signing."
+                                description="Add the proposed details for your first co-maker. Online co-maker signatures are optional, and any missing signature can be completed on the printed application form during loan release."
                                 prefix="co_maker_1"
                                 values={form.data.co_maker_1}
                                 errors={form.errors}
@@ -1039,7 +1052,7 @@ export default function LoanRequestPage({
                         >
                             <LoanRequestCoMakerStep
                                 title="Co-maker 2"
-                                description="Add the proposed details for your second co-maker. The co-maker is only confirmed after personally reviewing, consenting, and signing."
+                                description="Add the proposed details for your second co-maker. Online co-maker signatures are optional, and any missing signature can be completed on the printed application form during loan release."
                                 prefix="co_maker_2"
                                 values={form.data.co_maker_2}
                                 errors={form.errors}
@@ -1116,6 +1129,9 @@ export default function LoanRequestPage({
                                 }
                                 coMakerTwoHasPendingInPersonSignature={
                                     coMakerTwoHasPendingInPersonSignature
+                                }
+                                hasMissingCoMakerSignatures={
+                                    hasMissingCoMakerSignatures
                                 }
                                 onRefreshSignatures={handleRefreshSignatures}
                                 isGeneratingSignatureLinkRole={

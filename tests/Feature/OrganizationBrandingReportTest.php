@@ -85,6 +85,54 @@ test('loan request report reserves larger signature image boxes', function () {
         ->toContain('alt="Applicant signature"');
 });
 
+test('loan request report keeps co-maker names and blank signature lines when online signatures are missing', function () {
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $html = view('reports.loan-request', [
+        'loanRequest' => $loanRequest,
+        'applicant' => [
+            'first_name' => 'JUAN',
+            'middle_name' => 'SANTOS',
+            'last_name' => 'DELA CRUZ',
+            'signatureData' => 'data:image/png;base64,applicant-signature',
+        ],
+        'coMakerOne' => [
+            'first_name' => 'MARIA',
+            'middle_name' => 'LOPEZ',
+            'last_name' => 'REYES',
+            'signatureData' => null,
+        ],
+        'coMakerTwo' => [
+            'first_name' => 'PEDRO',
+            'middle_name' => 'SANTOS',
+            'last_name' => 'CRUZ',
+            'signatureData' => null,
+        ],
+        'reviewer' => [
+            'name' => 'ANNABELLE M. AMORA',
+        ],
+        'reviewerSignatureData' => null,
+        'companyName' => 'Acme Cooperative',
+        'reportHeader' => [
+            'companyName' => 'Acme Cooperative',
+            'designData' => null,
+        ],
+        'reportTypography' => [],
+        'generatedAt' => Carbon::now(),
+    ])->render();
+
+    expect($html)
+        ->toContain('<div class="signature-name">Maria Lopez Reyes</div>')
+        ->toContain('<div class="signature-name">Pedro Santos Cruz</div>')
+        ->toContain('<div class="signature-label">Co-maker 1</div>')
+        ->toContain('<div class="signature-label">Co-maker 2</div>')
+        ->toContain('<div class="signature-line"></div>')
+        ->not->toContain('alt="Co-maker 1 signature"')
+        ->not->toContain('alt="Co-maker 2 signature"');
+});
+
 test('loan request report overlaps signatures onto printed names while keeping labels clear', function () {
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::Approved,
