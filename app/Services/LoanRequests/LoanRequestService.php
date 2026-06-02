@@ -299,10 +299,6 @@ class LoanRequestService
             $this->upsertPeopleSnapshots($loanRequest, $payload);
             $loanRequest = $loanRequest->refresh();
             $loanRequest->loadMissing('people');
-            $this->ensureRequiredCoMakerSignaturesPresent(
-                $loanRequest,
-                $payload,
-            );
 
             $shouldNotifyAdmins = ! $wasSubmitted;
 
@@ -1181,101 +1177,6 @@ class LoanRequestService
     ): bool {
         foreach ($attributes as $key => $value) {
             if ($this->normalizeComparableValue($person->getAttribute($key)) !== $this->normalizeComparableValue($value)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function ensureRequiredCoMakerSignaturesPresent(
-        LoanRequest $loanRequest,
-        array $payload,
-    ): void {
-        $loanRequest->loadMissing('people');
-
-        $requirements = [
-            'co_maker_1' => [
-                'role' => LoanRequestPersonRole::CoMakerOne,
-                'message' => 'Co-maker 1 must sign before this request can be submitted for review.',
-            ],
-            'co_maker_2' => [
-                'role' => LoanRequestPersonRole::CoMakerTwo,
-                'message' => 'Co-maker 2 must sign before this request can be submitted for review.',
-            ],
-        ];
-        $errors = [];
-
-        foreach ($requirements as $payloadKey => $requirement) {
-            /** @var LoanRequestPersonRole $role */
-            $role = $requirement['role'];
-            $person = $loanRequest->people->first(
-                fn (LoanRequestPerson $item): bool => $item->role === $role,
-            );
-            $personPayload = $this->extractPersonPayload($payload, $payloadKey);
-
-            if (! $this->coMakerIsRequired($personPayload, $person)) {
-                continue;
-            }
-
-            $summary = $this->signatureLinks->summarizePerson($person, $role);
-
-            if (($summary['is_confirmed'] ?? false) !== true) {
-                $errors["{$payloadKey}.signature"] = $requirement['message'];
-            }
-        }
-
-        if ($errors !== []) {
-            throw ValidationException::withMessages($errors);
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function coMakerIsRequired(
-        array $payload,
-        ?LoanRequestPerson $person,
-    ): bool {
-        if ($this->personPayloadHasValues($payload)) {
-            return true;
-        }
-
-        if (! $person instanceof LoanRequestPerson) {
-            return false;
-        }
-
-        foreach ($person->getAttributes() as $key => $value) {
-            if (in_array($key, [
-                'id',
-                'loan_request_id',
-                'role',
-                'signature_path',
-                'created_at',
-                'updated_at',
-            ], true)) {
-                continue;
-            }
-
-            if ($this->normalizeComparableValue($value) !== '') {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function personPayloadHasValues(array $payload): bool
-    {
-        foreach ($payload as $value) {
-            if (is_array($value) && $this->personPayloadHasValues($value)) {
-                return true;
-            }
-
-            if ($this->normalizeComparableValue($value) !== '') {
                 return true;
             }
         }

@@ -677,6 +677,23 @@ test('in-person co-maker signatures on the member device are saved and allow sub
     Storage::disk('public')->assertExists((string) $coMakerTwo->signature_path);
 });
 
+test('loan requests still require the applicant signature before submission', function () {
+    $user = createApprovedMemberForSignatureLinkTests('000804B');
+    $payload = validLoanRequestPayload([
+        'applicant_signature_data' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('client.loan-requests.create'))
+        ->post(route('client.loan-requests.store'), $payload)
+        ->assertRedirect(route('client.loan-requests.create'))
+        ->assertSessionHasErrors([
+            'applicant_signature_data' => 'Please draw your member / applicant signature before submitting.',
+        ]);
+
+    expect(LoanRequest::query()->count())->toBe(0);
+});
+
 test('invalid base64 co-maker signatures are rejected', function () {
     $fixture = createPublicSignatureLinkFixture('invalid-png-token');
 
@@ -689,7 +706,7 @@ test('invalid base64 co-maker signatures are rejected', function () {
         ->assertSessionHasErrors('signature_data');
 });
 
-test('loan requests cannot move to under review while required co-maker signatures are missing', function () {
+test('loan requests can move to under review while co-maker signatures are still missing', function () {
     Storage::fake('public');
 
     $user = createApprovedMemberForSignatureLinkTests('000802');
@@ -723,17 +740,13 @@ test('loan requests cannot move to under review while required co-maker signatur
     $loanRequest = LoanRequest::query()->sole();
 
     $this->actingAs($user)
-        ->from(route('client.loan-requests.create'))
         ->post(route('client.loan-requests.store'), $payload)
-        ->assertRedirect(route('client.loan-requests.create'))
-        ->assertSessionHasErrors('co_maker_2.signature');
+        ->assertRedirect(route('client.loan-requests.show', $loanRequest));
 
     $loanRequest->refresh();
 
-    expect($loanRequest->status)->toBe(
-        LoanRequestStatus::PendingCoMakerSignatures,
-    );
-    expect($loanRequest->submitted_at)->toBeNull();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->submitted_at)->not->toBeNull();
 });
 
 test('loan requests can move to pending co-maker signatures while waiting for external signing', function () {
@@ -829,7 +842,7 @@ test('loan requests can move to under review after all required co-maker signatu
     expect($loanRequest->submitted_at)->not->toBeNull();
 });
 
-test('signed co-maker details cannot be changed without invalidating the signature', function () {
+test('signed co-maker details can be changed, submitted, and later signed manually on paper', function () {
     Storage::fake('public');
 
     $user = createApprovedMemberForSignatureLinkTests('000805');
@@ -889,8 +902,13 @@ test('signed co-maker details cannot be changed without invalidating the signatu
     Storage::disk('public')->assertMissing((string) $originalSignaturePath);
 
     $this->actingAs($user)
-        ->from(route('client.loan-requests.create'))
         ->post(route('client.loan-requests.store'), $updatedPayload)
-        ->assertRedirect(route('client.loan-requests.create'))
-        ->assertSessionHasErrors('co_maker_1.signature');
+        ->assertRedirect(route('client.loan-requests.show', $loanRequest));
+
+    $loanRequest->refresh();
+    $person->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->submitted_at)->not->toBeNull();
+    expect($person->signature_path)->toBeNull();
 });

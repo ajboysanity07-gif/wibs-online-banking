@@ -29,9 +29,23 @@ test('loan request co-maker signing UI exposes in-person and remote signing flow
     assert.match(stepsFile, /Regenerate link/);
     assert.match(stepsFile, /Signed co-maker details are locked/);
     assert.match(stepsFile, /Edit details and require a new signature/);
+    assert.match(stepsFile, /Co-maker signatures are optional online\./);
+    assert.match(
+        stepsFile,
+        /be required to sign the printed application form during/,
+    );
+    assert.match(stepsFile, /loan release\./);
+    assert.match(
+        stepsFile,
+        /Member \/ Applicant Signature \(Required\)/,
+    );
     assert.match(pageFile, /co_maker_1_signature_data/);
     assert.match(pageFile, /co_maker_2_signature_data/);
     assert.match(pageFile, /navigator\.clipboard\.writeText/);
+    assert.match(
+        pageFile,
+        /Reminder: One or more co-maker signatures are missing\. The co-makers must sign the printed application form during loan release\./,
+    );
     assert.match(
         pageFile,
         /Please review the highlighted fields before generating the signing link\./,

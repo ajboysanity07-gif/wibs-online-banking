@@ -234,7 +234,8 @@ export function LoanRequestApplicantWorkStep({
             <Separator className="bg-border/40" />
             <SignaturePadField
                 name="applicant_signature_data"
-                label="Member / Applicant Signature"
+                label="Member / Applicant Signature (Required)"
+                description="Draw your signature inside the box. This signature is required before you can submit."
                 value={signatureData}
                 error={errors.applicant_signature_data}
                 onChange={(nextValue) => onSignatureChange?.(nextValue)}
@@ -354,6 +355,11 @@ export function LoanRequestCoMakerStep({
                             Confirmed {formatDateTime(signatureState.signed_at)}
                         </p>
                     ) : null}
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-100">
+                        Co-maker signatures are optional online. Co-makers will
+                        be required to sign the printed application form during
+                        loan release.
+                    </div>
                     <CoMakerSignatureActionsContent
                         signatureState={signatureState}
                         isRequired={isSignatureRequired}
@@ -389,6 +395,7 @@ type ReviewStepProps = {
     >;
     coMakerOneHasPendingInPersonSignature: boolean;
     coMakerTwoHasPendingInPersonSignature: boolean;
+    hasMissingCoMakerSignatures: boolean;
     onGenerateSignatureLink: (role: SignatureRole) => void;
     onCopySignatureLink: (role: SignatureRole) => void;
     onRefreshSignatures: () => void;
@@ -962,6 +969,7 @@ export function LoanRequestReviewStep({
     generatedLinks,
     coMakerOneHasPendingInPersonSignature,
     coMakerTwoHasPendingInPersonSignature,
+    hasMissingCoMakerSignatures,
     onGenerateSignatureLink,
     onCopySignatureLink,
     onRefreshSignatures,
@@ -1199,7 +1207,7 @@ export function LoanRequestReviewStep({
 
             <CoMakerSignatureActionsCard
                 title="Co-maker 1 signature"
-                description="Share a secure signing link after you confirm the proposed details are correct."
+                description="Collect an online signature only if the co-maker is available now. Otherwise, the printed application form can be signed during loan release."
                 signatureState={coMakerOneSignature}
                 isRequired={coMakerOneRequired}
                 hasPendingInPersonSignature={
@@ -1223,7 +1231,7 @@ export function LoanRequestReviewStep({
 
             <CoMakerSignatureActionsCard
                 title="Co-maker 2 signature"
-                description="This co-maker is only confirmed after they consent and sign through their own secure link."
+                description="Collect an online signature only if the co-maker is available now. Otherwise, the printed application form can be signed during loan release."
                 signatureState={coMakerTwoSignature}
                 isRequired={coMakerTwoRequired}
                 hasPendingInPersonSignature={
@@ -1237,12 +1245,21 @@ export function LoanRequestReviewStep({
             />
 
             <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100">
-                <AlertTitle>Submit for Review</AlertTitle>
+                <AlertTitle>Submission reminders</AlertTitle>
                 <AlertDescription>
-                    <p>
-                        Submit for Review is available after all required
-                        co-makers have signed.
-                    </p>
+                    {hasMissingCoMakerSignatures ? (
+                        <p>
+                            Reminder: One or more co-maker signatures are
+                            missing. The co-makers must sign the printed
+                            application form during loan release.
+                        </p>
+                    ) : (
+                        <p>
+                            Co-maker signatures are optional online. If you
+                            collected them already, they will be included in the
+                            generated application form.
+                        </p>
+                    )}
                     {!canSubmitForReview && submitDisabledMessage ? (
                         <p>{submitDisabledMessage}</p>
                     ) : null}

@@ -2288,7 +2288,7 @@ test('approval is blocked when the admin has no saved loan manager signature', f
     Queue::assertNothingPushed();
 });
 
-test('approval requires request signatures for borrower and co-makers', function (
+test('approval requires the borrower signature', function (
     LoanRequestPersonRole $missingRole,
     string $errorKey,
     string $message,
@@ -2335,17 +2335,51 @@ test('approval requires request signatures for borrower and co-makers', function
         'applicant_signature',
         'Borrower signature is required before approval.',
     ],
-    'co-maker one signature missing' => [
-        LoanRequestPersonRole::CoMakerOne,
-        'co_maker_1_signature',
-        'Co-maker 1 signature is required before approval.',
-    ],
-    'co-maker two signature missing' => [
-        LoanRequestPersonRole::CoMakerTwo,
-        'co_maker_2_signature',
-        'Co-maker 2 signature is required before approval.',
-    ],
 ]);
+
+test('approval allows missing co-maker signatures when they will be signed on the printed form', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create([
+        'acctno' => '000508A',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    createLoanRequestPeopleSnapshots($loanRequest);
+    prepareLoanRequestForApproval($loanRequest, $admin);
+
+    $loanRequest->people()
+        ->whereIn('role', [
+            LoanRequestPersonRole::CoMakerOne->value,
+            LoanRequestPersonRole::CoMakerTwo->value,
+        ])
+        ->update(['signature_path' => null]);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 12000,
+            'approved_term' => 10,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    Queue::assertPushed(
+        SendLoanDecisionSmsJob::class,
+        fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
+    );
+});
 
 test('approval stores the active signature snapshot and does not change after replacement', function () {
     Queue::fake();
