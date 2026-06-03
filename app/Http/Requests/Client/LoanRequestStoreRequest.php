@@ -2,14 +2,11 @@
 
 namespace App\Http\Requests\Client;
 
-use App\LoanRequestStatus;
-use App\Models\LoanRequest;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
 
 class LoanRequestStoreRequest extends FormRequest
 {
@@ -44,18 +41,6 @@ class LoanRequestStoreRequest extends FormRequest
 
             $payload[$key] = $this->normalizePersonLocationFields($person);
         }
-
-        $payload['applicant_signature_data'] = $this->normalizeSignatureData(
-            $this->input('applicant_signature_data'),
-        );
-        $payload['co_maker_1_signature_data'] = $this->normalizeSignatureData(
-            $this->input('co_maker_1_signature_data')
-                ?? $this->input('co_maker_one_signature_data'),
-        );
-        $payload['co_maker_2_signature_data'] = $this->normalizeSignatureData(
-            $this->input('co_maker_2_signature_data')
-                ?? $this->input('co_maker_two_signature_data'),
-        );
 
         $this->merge($payload);
     }
@@ -97,9 +82,6 @@ class LoanRequestStoreRequest extends FormRequest
                 'string',
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
-            'applicant_signature_data' => $this->signatureDataRules(),
-            'co_maker_1_signature_data' => $this->signatureDataRules(),
-            'co_maker_2_signature_data' => $this->signatureDataRules(),
             'undertaking_accepted' => ['accepted'],
             ...$this->personRules('applicant', true, true),
             ...$this->personRules('co_maker_1', false, false),
@@ -113,39 +95,8 @@ class LoanRequestStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'applicant_signature_data.starts_with' => 'Please provide a valid PNG signature.',
-            'co_maker_1_signature_data.starts_with' => 'Co-maker 1 signature is optional online, but if provided it must be a valid PNG signature.',
-            'co_maker_2_signature_data.starts_with' => 'Co-maker 2 signature is optional online, but if provided it must be a valid PNG signature.',
             'undertaking_accepted.accepted' => 'Please confirm the undertaking.',
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            if (! $this->applicantSignatureExists()) {
-                $validator->errors()->add(
-                    'applicant_signature_data',
-                    'Please draw your member / applicant signature before submitting.',
-                );
-            }
-
-            $this->validateSignatureField(
-                $validator,
-                'applicant_signature_data',
-                'Please provide a valid PNG signature.',
-            );
-            $this->validateSignatureField(
-                $validator,
-                'co_maker_1_signature_data',
-                'Co-maker 1 signature is optional online, but if provided it must be a valid PNG signature.',
-            );
-            $this->validateSignatureField(
-                $validator,
-                'co_maker_2_signature_data',
-                'Co-maker 2 signature is optional online, but if provided it must be a valid PNG signature.',
-            );
-        });
     }
 
     /**
@@ -212,19 +163,6 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         return $rules;
-    }
-
-    /**
-     * @return array<int, ValidationRule|string>
-     */
-    private function signatureDataRules(): array
-    {
-        return [
-            'nullable',
-            'string',
-            'starts_with:data:image/png;base64,',
-            'max:2800000',
-        ];
     }
 
     /**
@@ -309,73 +247,5 @@ class LoanRequestStoreRequest extends FormRequest
         $trimmed = trim((string) $value);
 
         return $trimmed !== '' ? $trimmed : null;
-    }
-
-    private function normalizeSignatureData(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $trimmed = trim($value);
-
-        return $trimmed !== '' ? $trimmed : null;
-    }
-
-    private function applicantSignatureExists(): bool
-    {
-        if ($this->normalizeOptionalString($this->input('applicant_signature_data')) !== null) {
-            return true;
-        }
-
-        $user = $this->user();
-
-        if ($user === null) {
-            return false;
-        }
-
-        $loanRequest = LoanRequest::query()
-            ->where('user_id', $user->user_id)
-            ->whereIn('status', [
-                LoanRequestStatus::Draft->value,
-                LoanRequestStatus::PendingCoMakerSignatures->value,
-            ])
-            ->with('applicant')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('created_at')
-            ->first();
-
-        return $loanRequest !== null
-            && $this->normalizeOptionalString($loanRequest->applicant?->signature_path) !== null;
-    }
-
-    private function validateSignatureField(
-        Validator $validator,
-        string $field,
-        string $message,
-    ): void {
-        $signatureData = $this->input($field);
-
-        if (! is_string($signatureData) || trim($signatureData) === '') {
-            return;
-        }
-
-        $encoded = substr($signatureData, strlen('data:image/png;base64,'));
-        $decoded = base64_decode($encoded, true);
-
-        if ($decoded === false || $decoded === '') {
-            $validator->errors()->add($field, $message);
-
-            return;
-        }
-
-        $imageMetadata = @getimagesizefromstring($decoded);
-
-        if (
-            ! is_array($imageMetadata)
-            || ($imageMetadata['mime'] ?? null) !== 'image/png'
-        ) {
-            $validator->errors()->add($field, $message);
-        }
     }
 }

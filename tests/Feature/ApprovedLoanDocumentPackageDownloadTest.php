@@ -11,7 +11,6 @@ use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService;
-use App\Services\LoanRequests\DocumentSignaturePlacement;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -313,7 +312,7 @@ test('grepalife pdf includes structured applicant fields when available', functi
         ->toContain('25,000.00');
 });
 
-test('grepalife signature section uses borrower witness and organization signing data', function () {
+test('grepalife signature section keeps printed names and blank signature areas on main', function () {
     Storage::fake('public');
 
     $admin = User::factory()->create([
@@ -347,7 +346,6 @@ test('grepalife signature section uses borrower witness and organization signing
             'first_name' => 'Juan',
             'middle_name' => 'Paulo',
             'last_name' => 'Cruz',
-            'employer_business_name' => 'Cruz Transport Services',
             'signature_path' => $applicantSignaturePath,
         ]);
 
@@ -359,97 +357,52 @@ test('grepalife signature section uses borrower witness and organization signing
 
     $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
     $fieldMap = new GrepalifePdfFieldMap;
-    $debtorSignatureField = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'applicant.signature_path',
-        'signature',
-    );
-    $debtorNameField = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'applicant.full_name',
-    );
-    $witnessSignatureField = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'reviewer.signature_path',
-        'signature',
-    );
-    $witnessNameField = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'reviewer.name',
-    );
-    $companyField = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'organization.company_name',
-    );
-    $placeOfSigningField = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'organization.business_address',
-    );
-    $dateOfSigningField = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'loan.approved_date_short',
-    );
 
+    expect(data_get($documentData, 'applicant.signature_path'))->toBeNull();
+    expect(data_get($documentData, 'reviewer.signature_path'))->toBeNull();
+    expect(collect($fieldMap->fields())->contains(
+        fn (array $field): bool => ($field['type'] ?? null) === 'signature',
+    ))->toBeFalse();
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        $debtorSignatureField,
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'applicant.full_name',
+        ),
         $documentData,
-    ))->toBe($applicantSignaturePath);
+    ))->toBe('JUAN PAULO CRUZ');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        $debtorNameField,
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'reviewer.name',
+        ),
         $documentData,
-    ))->toBe('JUAN PAULO CRUZ')
-        ->not->toBe('Sample')
-        ->not->toBe('Input Data')
-        ->not->toBe('No Input Data')
-        ->not->toBe('0');
+    ))->toBe('MARIA LOAN OFFICER');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        $witnessSignatureField,
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'organization.company_name',
+        ),
         $documentData,
-    ))->toBe($approvalSignature->signature_path);
+    ))->toBe('WIBS COOPERATIVE');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        $witnessNameField,
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'organization.business_address',
+        ),
         $documentData,
-    ))->toBe('MARIA LOAN OFFICER')
-        ->not->toBe('Sample')
-        ->not->toBe('Input Data')
-        ->not->toBe('No Input Data')
-        ->not->toBe('0');
+    ))->toBe('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        $companyField,
+        approvedLoanDocumentsFindGrepalifeField(
+            $fieldMap,
+            2,
+            'loan.approved_date_short',
+        ),
         $documentData,
-    ))->toBe('WIBS COOPERATIVE')
-        ->not->toBe('Sample')
-        ->not->toBe('Input Data')
-        ->not->toBe('No Input Data')
-        ->not->toBe('0');
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        $placeOfSigningField,
-        $documentData,
-    ))->toBe('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
-        ->not->toBe('Sample')
-        ->not->toBe('Input Data')
-        ->not->toBe('No Input Data')
-        ->not->toBe('0');
-    expect(data_get($documentData, 'organization.business_address'))
-        ->toBe('123 Main Street, Tagum City, Davao del Norte');
-    expect(data_get($documentData, 'organization.business_address1'))
-        ->toBe('123 Main Street');
-    expect(data_get($documentData, 'organization.business_address2'))
-        ->toBe('Tagum City');
-    expect(data_get($documentData, 'organization.business_address3'))
-        ->toBe('Davao del Norte');
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        $dateOfSigningField,
-        $documentData,
-    ))->toBe('05/22/2026')
-        ->not->toBe('0');
+    ))->toBe('05/22/2026');
 
     $response = $this
         ->actingAs($admin)
@@ -465,11 +418,10 @@ test('grepalife signature section uses borrower witness and organization signing
         ->toContain('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
         ->toContain('05/22/2026')
         ->not->toContain('Input Data')
-        ->not->toContain('No Input Data')
-        ->not->toContain('Sample');
+        ->not->toContain('No Input Data');
 });
 
-test('grepalife signature section leaves missing witness signatures and place of signing blank', function () {
+test('grepalife signature section leaves witness and place of signing blank when unavailable', function () {
     Storage::fake('public');
 
     $admin = User::factory()->create();
@@ -495,7 +447,7 @@ test('grepalife signature section leaves missing witness signatures and place of
             'first_name' => 'Helario',
             'middle_name' => 'Bonifacio',
             'last_name' => 'Tejero',
-            'signature_path' => null,
+            'signature_path' => 'loan-requests/signatures/legacy-ignored.png',
         ]);
 
     $loanRequest->update([
@@ -507,6 +459,8 @@ test('grepalife signature section leaves missing witness signatures and place of
     $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
     $fieldMap = new GrepalifePdfFieldMap;
 
+    expect(data_get($documentData, 'applicant.signature_path'))->toBeNull();
+    expect(data_get($documentData, 'reviewer.signature_path'))->toBeNull();
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
@@ -519,15 +473,6 @@ test('grepalife signature section leaves missing witness signatures and place of
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
             2,
-            'applicant.signature_path',
-            'signature',
-        ),
-        $documentData,
-    ))->toBeNull();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        approvedLoanDocumentsFindGrepalifeField(
-            $fieldMap,
-            2,
             'reviewer.name',
         ),
         $documentData,
@@ -536,23 +481,10 @@ test('grepalife signature section leaves missing witness signatures and place of
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
             2,
-            'reviewer.signature_path',
-            'signature',
-        ),
-        $documentData,
-    ))->toBeNull();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
-        approvedLoanDocumentsFindGrepalifeField(
-            $fieldMap,
-            2,
             'organization.business_address',
         ),
         $documentData,
     ))->toBe('');
-    expect(data_get($documentData, 'organization.business_address'))->toBeNull();
-    expect(data_get($documentData, 'organization.business_address1'))->toBeNull();
-    expect(data_get($documentData, 'organization.business_address2'))->toBeNull();
-    expect(data_get($documentData, 'organization.business_address3'))->toBeNull();
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
@@ -574,372 +506,6 @@ test('grepalife signature section leaves missing witness signatures and place of
         ->toContain('WIBS COOPERATIVE')
         ->not->toContain('Input Data')
         ->not->toContain('No Input Data');
-});
-
-test('grepalife signature image resolver normalizes storage urls and public paths', function () {
-    Storage::fake('public');
-
-    $relativePath = storeTestSignatureFile(
-        'loan-requests/signatures/grepalife-resolver-test.png',
-        'one',
-    );
-    $absolutePath = Storage::disk('public')->path($relativePath);
-
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath($relativePath))
-        ->toBe($absolutePath);
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
-        Storage::disk('public')->url($relativePath),
-    ))->toBe($absolutePath);
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
-        '/storage/'.$relativePath,
-    ))->toBe($absolutePath);
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
-        'storage/'.$relativePath,
-    ))->toBe($absolutePath);
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
-        'public/storage/'.$relativePath,
-    ))->toBe($absolutePath);
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
-        'storage/app/public/'.$relativePath,
-    ))->toBe($absolutePath);
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath($absolutePath))
-        ->toBe($absolutePath);
-    expect(approvedLoanDocumentsResolveSignatureAbsolutePath(
-        '/storage/loan-requests/signatures/missing-grepalife-test.png',
-    ))->toBeNull();
-});
-
-test('grepalife document data normalizes applicant and reviewer signature paths', function () {
-    Storage::fake('public');
-
-    $admin = User::factory()->create([
-        'acctno' => null,
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-        'fullname' => 'Maria Loan Officer',
-    ]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
-    $approvalSignatureRelativePath = (string) $approvalSignature->signature_path;
-    $applicantSignaturePath = storeTestSignatureFile(
-        sprintf('loan-requests/signatures/%d-grepalife-normalized-applicant.png', $loanRequest->id),
-        'one',
-    );
-
-    LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::Applicant)
-        ->firstOrFail()
-        ->update([
-            'signature_path' => Storage::disk('public')->url($applicantSignaturePath),
-        ]);
-
-    $approvalSignature->update([
-        'signature_path' => 'storage/app/public/'.$approvalSignatureRelativePath,
-    ]);
-
-    $loanRequest->update([
-        'reviewed_by' => $admin->user_id,
-        'reviewed_at' => '2026-05-22 10:00:00',
-        'approval_signature_id' => $approvalSignature->id,
-    ]);
-
-    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
-
-    expect(data_get($documentData, 'applicant.signature_path'))
-        ->toBe($applicantSignaturePath);
-    expect(data_get($documentData, 'reviewer.signature_path'))
-        ->toBe($approvalSignatureRelativePath);
-});
-
-test('grepalife document data falls back to reviewer active signature when approval snapshot is missing', function () {
-    Storage::fake('public');
-
-    $admin = User::factory()->create([
-        'acctno' => null,
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-        'fullname' => 'Maria Loan Officer',
-    ]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    $activeSignature = createActiveAdminSignatureRecord($admin, 'two');
-
-    $loanRequest->update([
-        'reviewed_by' => $admin->user_id,
-        'reviewed_at' => '2026-05-22 10:00:00',
-        'approval_signature_id' => null,
-    ]);
-
-    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
-
-    expect(data_get($documentData, 'reviewer.signature_path'))
-        ->toBe($activeSignature->signature_path);
-});
-
-test('missing grepalife signature files log warnings without failing pdf generation', function () {
-    Log::spy();
-    Storage::fake('public');
-
-    $admin = User::factory()->create([
-        'acctno' => null,
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-        'fullname' => 'Maria Loan Officer',
-    ]);
-
-    OrganizationSetting::factory()->create([
-        'company_name' => 'Wibs Cooperative',
-        'business_address1' => '123 Main Street',
-        'business_address2' => 'Tagum City',
-        'business_address3' => 'Davao del Norte',
-        'business_address' => '123 Main Street, Tagum City, Davao del Norte',
-    ]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
-    $missingApplicantPath = Storage::disk('public')->url(
-        'loan-requests/signatures/missing-grepalife-applicant-warning.png',
-    );
-    $missingReviewerPath = '/storage/loan-manager-signatures/missing-grepalife-reviewer-warning.png';
-
-    LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::Applicant)
-        ->firstOrFail()
-        ->update([
-            'signature_path' => $missingApplicantPath,
-        ]);
-
-    $approvalSignature->update([
-        'signature_path' => $missingReviewerPath,
-    ]);
-
-    $loanRequest->update([
-        'reviewed_by' => $admin->user_id,
-        'reviewed_at' => '2026-05-22 10:00:00',
-        'approval_signature_id' => $approvalSignature->id,
-    ]);
-
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.grepalife', $loanRequest));
-
-    $response->assertOk();
-
-    Log::shouldHaveReceived('warning')
-        ->withArgs(function (string $message, array $context): bool {
-            return $message === 'Signature file could not be resolved for approved loan PDF.'
-                && ($context['signature_path'] ?? null) === 'loan-requests/signatures/missing-grepalife-applicant-warning.png'
-                && ($context['normalized_signature_path'] ?? null) === 'loan-requests/signatures/missing-grepalife-applicant-warning.png'
-                && str_contains(
-                    str_replace('\\', '/', (string) ($context['checked_storage_path'] ?? '')),
-                    'storage/app/public/loan-requests/signatures/missing-grepalife-applicant-warning.png',
-                );
-        })
-        ->once();
-
-    Log::shouldHaveReceived('warning')
-        ->withArgs(function (string $message, array $context): bool {
-            return $message === 'Signature file could not be resolved for approved loan PDF.'
-                && ($context['signature_path'] ?? null) === 'loan-manager-signatures/missing-grepalife-reviewer-warning.png'
-                && ($context['normalized_signature_path'] ?? null) === 'loan-manager-signatures/missing-grepalife-reviewer-warning.png'
-                && str_contains(
-                    str_replace('\\', '/', (string) ($context['checked_storage_path'] ?? '')),
-                    'storage/app/public/loan-manager-signatures/missing-grepalife-reviewer-warning.png',
-                );
-        })
-        ->once();
-});
-
-test('grepalife pdf renders borrower and witness signatures from normalized stored paths', function () {
-    Storage::fake('public');
-
-    $admin = User::factory()->create([
-        'acctno' => null,
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-        'fullname' => 'Maria Loan Officer',
-    ]);
-
-    OrganizationSetting::factory()->create([
-        'company_name' => 'Wibs Cooperative',
-        'business_address1' => '123 Main Street',
-        'business_address2' => 'Tagum City',
-        'business_address3' => 'Davao del Norte',
-        'business_address' => '123 Main Street, Tagum City, Davao del Norte',
-    ]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
-    $applicant = LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::Applicant)
-        ->firstOrFail();
-
-    $applicant->update([
-        'first_name' => 'Juan',
-        'middle_name' => 'Paulo',
-        'last_name' => 'Cruz',
-        'signature_path' => Storage::disk('public')->url(
-            'loan-requests/signatures/missing-grepalife-applicant.png',
-        ),
-    ]);
-
-    $approvalSignature->update([
-        'signature_path' => '/storage/loan-manager-signatures/missing-grepalife-admin.png',
-    ]);
-
-    $loanRequest->update([
-        'reviewed_by' => $admin->user_id,
-        'reviewed_at' => '2026-05-22 10:00:00',
-        'approval_signature_id' => $approvalSignature->id,
-    ]);
-
-    $missingResponse = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.grepalife', $loanRequest));
-
-    $missingResponse->assertOk();
-    $missingImageCount = approvedLoanDocumentsPdfImageObjectCount(
-        $missingResponse,
-    );
-
-    $applicantRelativePath = storeTestSignatureFile(
-        sprintf('loan-requests/signatures/%d-grepalife-visible-applicant.png', $loanRequest->id),
-        'one',
-    );
-    $approvalRelativePath = storeTestSignatureFile(
-        sprintf(
-            'loan-manager-signatures/%d/grepalife-visible-approval.png',
-            $admin->user_id,
-        ),
-        'two',
-    );
-
-    $applicant->update([
-        'signature_path' => Storage::disk('public')->url($applicantRelativePath),
-    ]);
-
-    $approvalSignature->update([
-        'signature_path' => 'storage/app/public/'.$approvalRelativePath,
-    ]);
-
-    $presentResponse = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.grepalife', $loanRequest));
-
-    $presentResponse->assertOk();
-    expect(approvedLoanDocumentsPdfPageCount($presentResponse))->toBe(2);
-    expect(approvedLoanDocumentsPdfImageObjectCount($presentResponse))
-        ->toBeGreaterThan($missingImageCount);
-
-    $pdfText = approvedLoanDocumentsExtractPdfText($presentResponse);
-
-    expect($pdfText)
-        ->toContain('JUAN PAULO CRUZ')
-        ->toContain('MARIA LOAN OFFICER')
-        ->toContain('WIBS COOPERATIVE')
-        ->toContain('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
-        ->not->toContain('Input Data')
-        ->not->toContain('No Input Data');
-});
-
-test('grepalife field map includes witness signature section placements', function () {
-    $fields = collect((new GrepalifePdfFieldMap)->fields());
-
-    $debtorSignatureField = $fields->first(
-        fn (array $field): bool => ($field['page'] ?? null) === 2
-            && ($field['type'] ?? null) === 'signature'
-            && ($field['value'] ?? null) === 'applicant.signature_path',
-    );
-    $witnessSignatureField = $fields->first(
-        fn (array $field): bool => ($field['page'] ?? null) === 2
-            && ($field['type'] ?? null) === 'signature'
-            && ($field['value'] ?? null) === 'reviewer.signature_path',
-    );
-    $witnessNameField = $fields->first(
-        fn (array $field): bool => ($field['page'] ?? null) === 2
-            && ($field['value'] ?? null) === 'reviewer.name',
-    );
-    $placeOfSigningField = $fields->first(
-        fn (array $field): bool => ($field['page'] ?? null) === 2
-            && ($field['value'] ?? null) === 'organization.business_address',
-    );
-
-    expect($debtorSignatureField)->not->toBeNull();
-    expect($debtorSignatureField['x'])->toBe(14.0);
-    expect($debtorSignatureField['y'])->toBe(82.7);
-    expect($debtorSignatureField['width'])->toBe(44);
-    expect($debtorSignatureField['height'])->toBe(6.2);
-    expect($debtorSignatureField['scale'])->toBe(2.0);
-    expect($debtorSignatureField['max_width'])->toBe(68.0);
-    expect($debtorSignatureField['max_height'])->toBe(11.5);
-    expect($debtorSignatureField['offset_x'])->toBe(-2.0);
-    expect($debtorSignatureField['offset_y'])->toBe(-1.0);
-    expect($witnessSignatureField)->not->toBeNull();
-    expect($witnessSignatureField['x'])->toBe(14.0);
-    expect($witnessSignatureField['y'])->toBe(91.7);
-    expect($witnessSignatureField['width'])->toBe(44);
-    expect($witnessSignatureField['height'])->toBe(6.2);
-    expect($witnessSignatureField['scale'])->toBe(2.0);
-    expect($witnessSignatureField['max_width'])->toBe(68.0);
-    expect($witnessSignatureField['max_height'])->toBe(11.5);
-    expect($witnessSignatureField['offset_x'])->toBe(-2.0);
-    expect($witnessSignatureField['offset_y'])->toBe(-1.0);
-    expect($witnessNameField)->not->toBeNull();
-    expect($witnessNameField['x'])->toBe(71);
-    expect($witnessNameField['y'])->toBe(91.5);
-    expect($placeOfSigningField)->not->toBeNull();
-    expect($placeOfSigningField['x'])->toBe(15.0);
-    expect($placeOfSigningField['y'])->toBe(101.5);
-    expect($placeOfSigningField['width'])->toBe(86);
-});
-
-test('signature placement helper applies the shared scale factor while preserving aspect ratio and centering', function () {
-    $placement = app(DocumentSignaturePlacement::class)->calculateFromDimensions(
-        300.0,
-        30.0,
-        14.0,
-        91.7,
-        44.0,
-        6.2,
-    );
-
-    expect($placement['x'])->toBe(-8.0);
-    expect($placement['width'])->toBe(88.0);
-    expect($placement['height'])->toBe(8.8);
-    expect($placement['y'])->toBe(90.4);
-});
-
-test('grepalife signature placement overrides keep enlarged signatures inside the signing area', function () {
-    $fieldMap = new GrepalifePdfFieldMap;
-    $field = approvedLoanDocumentsFindGrepalifeField(
-        $fieldMap,
-        2,
-        'applicant.signature_path',
-        'signature',
-    );
-    $placement = app(DocumentSignaturePlacement::class)->calculateFromDimensions(
-        300.0,
-        30.0,
-        (float) $field['x'],
-        (float) $field['y'],
-        (float) $field['width'],
-        (float) $field['height'],
-        approvedLoanDocumentsSignaturePlacementOptions($field),
-    );
-
-    expect($placement['x'])->toBe(0.0);
-    expect($placement['width'])->toBe(68.0);
-    expect($placement['height'])->toBe(6.8);
-    expect($placement['y'])->toBe(81.4);
-    expect($placement['x'] + $placement['width'])->toBeLessThan(71.0);
 });
 
 test('grepalife field map keeps applicant values aligned with label padding', function () {
@@ -1299,7 +865,7 @@ test('plan of payment route returns an xlsx response and generated workbook open
     unset($spreadsheet);
 });
 
-test('plan of payment workbook uses real borrower co-maker and loan manager approval data', function () {
+test('plan of payment workbook keeps printed names and no signature drawings on main', function () {
     Storage::fake('public');
 
     $admin = User::factory()->create([
@@ -1415,171 +981,15 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
     expect($promissoryNoteSheet?->getCell('B58')->getValue())->toBe('MARIA LOAN MANAGER');
     expect($promissoryNoteSheet?->getCell('H58')->getValue())->toBe('MARIA LOAN MANAGER');
 
-    $loanInformationDrawings = collect($loanInformationSheet?->getDrawingCollection() ?? [])
-        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
-    $planOfPaymentDrawings = collect($planOfPaymentSheet?->getDrawingCollection() ?? [])
-        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
-    $disclosureDrawings = collect($disclosureSheet?->getDrawingCollection() ?? [])
-        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
-    $promissoryNoteDrawings = collect($promissoryNoteSheet?->getDrawingCollection() ?? [])
-        ->keyBy(fn (WorksheetDrawing $drawing): string => $drawing->getName());
-
-    $loanInformationSignature = $loanInformationDrawings->get(
-        'Loan Information Loan Manager Signature',
-    );
-    $planBorrowerSignature = $planOfPaymentDrawings->get(
-        'Plan of Payment Borrower Signature',
-    );
-    $planLoanManagerSignature = $planOfPaymentDrawings->get(
-        'Plan of Payment Loan Manager Signature',
-    );
-    $planBorrowerSignatureCopy = $planOfPaymentDrawings->get(
-        'Plan of Payment Borrower Signature Copy',
-    );
-    $planLoanManagerSignatureCopy = $planOfPaymentDrawings->get(
-        'Plan of Payment Loan Manager Signature Copy',
-    );
-    $disclosureLoanManagerSignature = $disclosureDrawings->get(
-        'Disclosure Statement Loan Manager Signature',
-    );
-    $disclosureBorrowerSignature = $disclosureDrawings->get(
-        'Disclosure Statement Borrower Signature',
-    );
-    $promissoryBorrowerSignature = $promissoryNoteDrawings->get(
-        'Promissory Note Borrower Signature',
-    );
-    $promissoryCoMakerOneSignature = $promissoryNoteDrawings->get(
-        'Promissory Note Co-maker 1 Signature',
-    );
-    $promissoryCoMakerTwoSignature = $promissoryNoteDrawings->get(
-        'Promissory Note Co-maker 2 Signature',
-    );
-    $loanInformationSignatureContents = file_get_contents(
-        (string) $loanInformationSignature?->getPath(),
-    );
-    $planBorrowerSignatureContents = file_get_contents(
-        (string) $planBorrowerSignature?->getPath(),
-    );
-    $planLoanManagerSignatureContents = file_get_contents(
-        (string) $planLoanManagerSignature?->getPath(),
-    );
-    $planBorrowerSignatureCopyContents = file_get_contents(
-        (string) $planBorrowerSignatureCopy?->getPath(),
-    );
-    $planLoanManagerSignatureCopyContents = file_get_contents(
-        (string) $planLoanManagerSignatureCopy?->getPath(),
-    );
-    $disclosureLoanManagerSignatureContents = file_get_contents(
-        (string) $disclosureLoanManagerSignature?->getPath(),
-    );
-    $disclosureBorrowerSignatureContents = file_get_contents(
-        (string) $disclosureBorrowerSignature?->getPath(),
-    );
-    $promissoryBorrowerSignatureContents = file_get_contents(
-        (string) $promissoryBorrowerSignature?->getPath(),
-    );
-    $promissoryCoMakerOneSignatureContents = file_get_contents(
-        (string) $promissoryCoMakerOneSignature?->getPath(),
-    );
-    $promissoryCoMakerTwoSignatureContents = file_get_contents(
-        (string) $promissoryCoMakerTwoSignature?->getPath(),
-    );
-
-    expect($loanInformationDrawings)->toHaveCount(1);
-    expect($planOfPaymentDrawings)->toHaveCount(4);
-    expect($disclosureDrawings)->toHaveCount(2);
-    expect($promissoryNoteDrawings)->toHaveCount(3);
-    expect($loanInformationSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $loanInformationSignature?->getCoordinates(), '18'))
-        ->toBeTrue();
-    expect($loanInformationSignature?->getDescription())
-        ->toBe('Loan manager approval signature for the loan information sheet');
-    expect((int) $loanInformationSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect($loanInformationSignatureContents)->toBeString()->not->toBe('');
-    expect((float) $loanInformationSheet?->getRowDimension(18)->getRowHeight())
-        ->toBeGreaterThan(40.0);
-    expect($planBorrowerSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $planBorrowerSignature?->getCoordinates(), '27'))
-        ->toBeTrue();
-    expect($planBorrowerSignature?->getDescription())
-        ->toBe('Borrower conforme signature for the plan of payment sheet');
-    expect((int) $planBorrowerSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect($planBorrowerSignatureContents)->toBeString()->not->toBe('');
-    expect($planLoanManagerSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $planLoanManagerSignature?->getCoordinates(), '27'))
-        ->toBeTrue();
-    expect($planLoanManagerSignature?->getDescription())
-        ->toBe('Loan manager approval signature for the plan of payment sheet');
-    expect((int) $planLoanManagerSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect($planBorrowerSignatureCopy)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $planBorrowerSignatureCopy?->getCoordinates(), '59'))
-        ->toBeTrue();
-    expect((int) $planBorrowerSignatureCopy?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect($planLoanManagerSignatureCopy)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $planLoanManagerSignatureCopy?->getCoordinates(), '59'))
-        ->toBeTrue();
-    expect((int) $planLoanManagerSignatureCopy?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect((float) $planOfPaymentSheet?->getRowDimension(27)->getRowHeight())
-        ->toBeGreaterThan(35.0);
-    expect((float) $planOfPaymentSheet?->getRowDimension(59)->getRowHeight())
-        ->toBeGreaterThan(35.0);
-    expect($disclosureLoanManagerSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $disclosureLoanManagerSignature?->getCoordinates(), '50'))
-        ->toBeTrue();
-    expect($disclosureLoanManagerSignature?->getDescription())
-        ->toBe('Loan manager certification signature for the disclosure statement sheet');
-    expect((int) $disclosureLoanManagerSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect($disclosureBorrowerSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $disclosureBorrowerSignature?->getCoordinates(), '57'))
-        ->toBeTrue();
-    expect($disclosureBorrowerSignature?->getDescription())
-        ->toBe('Borrower acknowledgment signature for the disclosure statement sheet');
-    expect((int) $disclosureBorrowerSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect((float) $disclosureSheet?->getRowDimension(50)->getRowHeight())
-        ->toBeGreaterThan(35.0);
-    expect((float) $disclosureSheet?->getRowDimension(57)->getRowHeight())
-        ->toBeGreaterThan(35.0);
-    expect($promissoryBorrowerSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $promissoryBorrowerSignature?->getCoordinates(), '50'))
-        ->toBeTrue();
-    expect($promissoryBorrowerSignature?->getDescription())
-        ->toBe('Borrower signature for the promissory note sheet');
-    expect((int) $promissoryBorrowerSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect($promissoryCoMakerOneSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $promissoryCoMakerOneSignature?->getCoordinates(), '50'))
-        ->toBeTrue();
-    expect($promissoryCoMakerOneSignature?->getDescription())
-        ->toBe('Co-maker 1 signature for the promissory note sheet');
-    expect((int) $promissoryCoMakerOneSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect($promissoryCoMakerTwoSignature)->toBeInstanceOf(WorksheetDrawing::class);
-    expect(str_ends_with((string) $promissoryCoMakerTwoSignature?->getCoordinates(), '50'))
-        ->toBeTrue();
-    expect($promissoryCoMakerTwoSignature?->getDescription())
-        ->toBe('Co-maker 2 signature for the promissory note sheet');
-    expect((int) $promissoryCoMakerTwoSignature?->getOffsetY())
-        ->toBeGreaterThan(0);
-    expect((float) $promissoryNoteSheet?->getRowDimension(50)->getRowHeight())
-        ->toBeGreaterThan(34.0);
-    expect($loanInformationSignatureContents)
-        ->toBe($planLoanManagerSignatureContents)
-        ->toBe($planLoanManagerSignatureCopyContents)
-        ->toBe($disclosureLoanManagerSignatureContents)
-        ->toBe($promissoryCoMakerOneSignatureContents);
-    expect($planBorrowerSignatureContents)
-        ->toBe($planBorrowerSignatureCopyContents)
-        ->toBe($disclosureBorrowerSignatureContents)
-        ->toBe($promissoryBorrowerSignatureContents)
-        ->toBe($promissoryCoMakerTwoSignatureContents);
-    expect($loanInformationSignatureContents)->not->toBe($planBorrowerSignatureContents);
+    foreach ([
+        $loanInformationSheet,
+        $planOfPaymentSheet,
+        $disclosureSheet,
+        $promissoryNoteSheet,
+    ] as $worksheet) {
+        expect($worksheet)->toBeInstanceOf(Worksheet::class);
+        expect($worksheet?->getDrawingCollection())->toHaveCount(0);
+    }
 
     $workbookStrings = approvedLoanDocumentsWorkbookStringValues($spreadsheet);
 
@@ -1598,99 +1008,6 @@ test('plan of payment workbook uses real borrower co-maker and loan manager appr
         'No Input Data',
         'DO NOT INPUT ANYTHING',
     );
-
-    $spreadsheet->disconnectWorksheets();
-    unset($spreadsheet);
-});
-
-test('plan of payment workbook skips missing signature files without failing export', function () {
-    Log::spy();
-    Storage::fake('public');
-
-    $admin = User::factory()->create([
-        'acctno' => null,
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-        'fullname' => 'Maria Loan Manager',
-    ]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
-    $missingApplicantPath = Storage::disk('public')->url(
-        'loan-requests/signatures/missing-excel-applicant.png',
-    );
-    $missingCoMakerOnePath = 'loan-requests/signatures/missing-excel-co-maker-one.png';
-    $missingCoMakerTwoPath = '/storage/loan-requests/signatures/missing-excel-co-maker-two.png';
-    $missingReviewerPath = '/storage/loan-manager-signatures/missing-excel-reviewer.png';
-
-    LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::Applicant)
-        ->firstOrFail()
-        ->update([
-            'signature_path' => $missingApplicantPath,
-        ]);
-    LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::CoMakerOne)
-        ->firstOrFail()
-        ->update([
-            'signature_path' => $missingCoMakerOnePath,
-        ]);
-    LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::CoMakerTwo)
-        ->firstOrFail()
-        ->update([
-            'signature_path' => $missingCoMakerTwoPath,
-        ]);
-
-    $approvalSignature->update([
-        'signature_path' => $missingReviewerPath,
-    ]);
-
-    $loanRequest->update([
-        'reviewed_by' => $admin->user_id,
-        'reviewed_at' => '2026-05-22 10:00:00',
-        'approval_signature_id' => $approvalSignature->id,
-    ]);
-
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
-
-    $response->assertOk();
-
-    $spreadsheet = IOFactory::load(
-        approvedLoanDocumentsDownloadedFilePath($response),
-    );
-
-    foreach ([
-        'Loan Information',
-        'Plan of Payment',
-        'Disclosure Statement',
-        'Promissory Note',
-    ] as $worksheetTitle) {
-        $worksheet = $spreadsheet->getSheetByName($worksheetTitle);
-
-        expect($worksheet)->toBeInstanceOf(Worksheet::class);
-        expect($worksheet?->getDrawingCollection())->toHaveCount(0);
-    }
-
-    foreach ([
-        'loan-requests/signatures/missing-excel-applicant.png',
-        'loan-requests/signatures/missing-excel-co-maker-one.png',
-        'loan-requests/signatures/missing-excel-co-maker-two.png',
-        'loan-manager-signatures/missing-excel-reviewer.png',
-    ] as $expectedPath) {
-        Log::shouldHaveReceived('warning')
-            ->withArgs(function (string $message, array $context) use ($expectedPath): bool {
-                return $message === 'Signature file could not be resolved for approved loan workbook.'
-                    && ($context['normalized_signature_path'] ?? null) === $expectedPath;
-            })
-            ->once();
-    }
 
     $spreadsheet->disconnectWorksheets();
     unset($spreadsheet);

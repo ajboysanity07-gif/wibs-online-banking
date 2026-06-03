@@ -45,12 +45,10 @@ class LoanRequestController extends Controller
             'isOwnRequest' => false,
             'blockedMessage' => null,
             'approverName' => null,
-            'approvalSignatureUrl' => null,
-            'approvalSignatureUpdatedAt' => null,
         ];
 
         if ($actor instanceof AppUser) {
-            $actor->loadMissing('adminProfile', 'activeAdminSignature');
+            $actor->loadMissing('adminProfile');
 
             $decision = [
                 'canDecide' => $decisionService->canDecide(
@@ -70,8 +68,6 @@ class LoanRequestController extends Controller
                     $actor,
                 ),
                 'approverName' => $actor->adminProfile?->fullname ?? $actor->name,
-                'approvalSignatureUrl' => $actor->activeAdminSignature?->signature_url,
-                'approvalSignatureUpdatedAt' => $actor->activeAdminSignature?->updated_at?->toDateTimeString(),
             ];
         }
 

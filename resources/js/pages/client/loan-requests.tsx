@@ -31,7 +31,6 @@ type Props = {
 type StatusFilter =
     | 'all'
     | 'draft'
-    | 'pending_co_maker_signatures'
     | 'under_review'
     | 'approved'
     | 'declined'
@@ -40,10 +39,6 @@ type StatusFilter =
 const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
     { value: 'all', label: 'All' },
     { value: 'draft', label: 'Draft' },
-    {
-        value: 'pending_co_maker_signatures',
-        label: 'Pending Co-maker Signatures',
-    },
     { value: 'under_review', label: 'Under review' },
     { value: 'approved', label: 'Approved' },
     { value: 'declined', label: 'Declined' },
@@ -55,6 +50,10 @@ const normalizeStatus = (
 ): LoanRequestStatusValue | null => {
     if (status === 'submitted') {
         return 'under_review';
+    }
+
+    if (status === 'pending_co_maker_signatures') {
+        return 'draft';
     }
 
     return status;
@@ -98,11 +97,6 @@ export default function LoanRequestsPage({
             total: items.length,
             draft: items.filter((item) => normalizeStatus(item.status) === 'draft')
                 .length,
-            pendingCoMakerSignatures: items.filter(
-                (item) =>
-                    normalizeStatus(item.status) ===
-                    'pending_co_maker_signatures',
-            ).length,
             underReview: items.filter(
                 (item) => normalizeStatus(item.status) === 'under_review',
             ).length,
@@ -162,7 +156,7 @@ export default function LoanRequestsPage({
                 <LoanRequestPageHero
                     kicker="Loan applications"
                     title="Loan Requests"
-                    description="Track drafts, pending co-maker signatures, review-ready requests, and final loan decisions."
+                    description="Track drafts, review-ready requests, and final loan decisions."
                     cta={
                         <Button asChild>
                             <Link href={loanRequestCreate().url}>
@@ -183,12 +177,6 @@ export default function LoanRequestsPage({
                             value: summaryCounts.draft,
                             emphasisClassName:
                                 'text-amber-600 dark:text-amber-400',
-                        },
-                        {
-                            label: 'Pending signatures',
-                            value: summaryCounts.pendingCoMakerSignatures,
-                            emphasisClassName:
-                                'text-orange-600 dark:text-orange-400',
                         },
                         {
                             label: 'Under review',

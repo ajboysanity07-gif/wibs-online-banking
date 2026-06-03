@@ -90,6 +90,7 @@ class RequestsService
                 $query->whereIn('status', [
                     LoanRequestStatus::UnderReview->value,
                     LoanRequestStatus::Submitted->value,
+                    LoanRequestStatus::PendingCoMakerSignatures->value,
                 ]);
             } else {
                 $query->where('status', $status);
@@ -248,7 +249,10 @@ class RequestsService
             ? $request->status->value
             : (string) $request->status;
 
-        if ($status === LoanRequestStatus::Submitted->value) {
+        if (in_array($status, [
+            LoanRequestStatus::Submitted->value,
+            LoanRequestStatus::PendingCoMakerSignatures->value,
+        ], true)) {
             $status = LoanRequestStatus::UnderReview->value;
         }
         $submittedAt = $request->submitted_at?->toDateTimeString()

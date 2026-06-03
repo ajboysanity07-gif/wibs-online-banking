@@ -60,8 +60,6 @@ type DecisionState = {
     isOwnRequest: boolean;
     blockedMessage?: string | null;
     approverName?: string | null;
-    approvalSignatureUrl?: string | null;
-    approvalSignatureUpdatedAt?: string | null;
 };
 
 const buildCancellationReasonPrefill = (
@@ -558,10 +556,6 @@ export default function LoanRequestShow({
                     canDecide,
                     blockedMessage,
                     approverName: decision.approverName ?? null,
-                    approvalSignatureUrl:
-                        decision.approvalSignatureUrl ?? null,
-                    approvalSignatureUpdatedAt:
-                        decision.approvalSignatureUpdatedAt ?? null,
                     isProcessing: processingIds[currentRequest.id] ?? false,
                     onApprove: (payload) =>
                         updateDecision(currentRequest.id, 'approve', payload),

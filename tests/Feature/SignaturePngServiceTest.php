@@ -43,13 +43,3 @@ test('signature png service prepares cleaned overlay image variants', function (
 
     File::delete($overlayImage['path']);
 });
-
-test('signature pad field keeps a white container without forcing a white exported canvas background', function () {
-    $componentPath = resource_path('js/components/signature-pad-field.tsx');
-    $componentSource = File::get($componentPath);
-
-    expect($componentSource)
-        ->toContain('className="w-full rounded-md border border-input bg-white p-2"')
-        ->toContain("canvas.toDataURL('image/png')")
-        ->not->toContain('backgroundColor="rgb(255,255,255)"');
-});

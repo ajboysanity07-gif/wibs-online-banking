@@ -227,9 +227,6 @@ export type LoanRequestFormData = {
     loan_purpose: string;
     availment_status: string;
     undertaking_accepted: boolean;
-    applicant_signature_data?: string;
-    co_maker_1_signature_data?: string;
-    co_maker_2_signature_data?: string;
     applicant: LoanRequestPersonFormData;
     co_maker_1: LoanRequestPersonFormData;
     co_maker_2: LoanRequestPersonFormData;

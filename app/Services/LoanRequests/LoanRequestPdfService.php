@@ -65,8 +65,6 @@ class LoanRequestPdfService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
-            'reviewedBy.activeAdminSignature',
-            'approvalSignature',
             'user',
         );
 
@@ -77,15 +75,6 @@ class LoanRequestPdfService
         $reportHeader = $branding['reportHeader'] ?? [];
         $reportHeader['companyName'] = $branding['companyName'] ?? '';
         $reportHeader['designData'] = $reportHeader['designData'] ?? null;
-        $reviewerSignatureData = $this->signatureDataUri(
-            is_string($loanRequest->getAttribute('approval_signature_path'))
-                ? $loanRequest->getAttribute('approval_signature_path')
-                : null,
-        ) ?? $this->signatureDataUri(
-            $loanRequest->approvalSignature?->signature_path,
-        ) ?? $this->signatureDataUri(
-            $loanRequest->reviewedBy?->activeAdminSignature?->signature_path,
-        );
 
         return [
             'loanRequest' => $loanRequest,
@@ -95,9 +84,9 @@ class LoanRequestPdfService
             'reviewer' => [
                 'name' => $loanRequest->reviewedBy?->adminProfile?->fullname
                     ?? $loanRequest->reviewedBy?->name,
-                'signatureData' => $reviewerSignatureData,
+                'signatureData' => null,
             ],
-            'reviewerSignatureData' => $reviewerSignatureData,
+            'reviewerSignatureData' => null,
             'companyName' => $branding['companyName'],
             'reportHeader' => $reportHeader,
             'reportTypography' => $branding['reportTypography'] ?? [],
@@ -134,9 +123,7 @@ class LoanRequestPdfService
         $person['birthplace'] = $birthplace;
         $person['address'] = $address;
         $person['employer_business_address'] = $employerBusinessAddress;
-        $person['signatureData'] = $this->signatureDataUri(
-            $person['signature_path'] ?? null,
-        );
+        $person['signatureData'] = null;
 
         return $person;
     }

@@ -90,10 +90,7 @@ const resolveAmount = (request: LoanRequestListItem): string => {
 };
 
 const resolveTimestamp = (request: LoanRequestListItem): string => {
-    if (
-        request.status === 'draft' ||
-        request.status === 'pending_co_maker_signatures'
-    ) {
+    if (request.status === 'draft') {
         return formatDateTime(request.updated_at);
     }
 
@@ -117,23 +114,12 @@ const LoanRequestMobileCard = ({
 }: {
     request: LoanRequestListItem;
 }) => {
-    const isEditableRequest =
-        request.status === 'draft' ||
-        request.status === 'pending_co_maker_signatures';
+    const isEditableRequest = request.status === 'draft';
     const actionHref = isEditableRequest
         ? loanRequestCreate().url
         : loanRequestShow(request.id).url;
-    const actionLabel = isEditableRequest
-        ? request.status === 'draft'
-            ? 'Resume draft'
-            : 'Continue request'
-        : 'View request';
-    const timestampLabel =
-        request.status === 'draft'
-            ? 'Last saved'
-            : request.status === 'pending_co_maker_signatures'
-              ? 'Updated'
-              : 'Submitted';
+    const actionLabel = isEditableRequest ? 'Resume draft' : 'View request';
+    const timestampLabel = request.status === 'draft' ? 'Last saved' : 'Submitted';
 
     return (
         <MemberMobileCard
@@ -217,17 +203,12 @@ export function LoanRequestRecordsCard({
                 id: 'actions',
                 header: '',
                 cell: ({ row }) => {
-                    const isEditableRequest =
-                        row.original.status === 'draft' ||
-                        row.original.status ===
-                            'pending_co_maker_signatures';
+                    const isEditableRequest = row.original.status === 'draft';
                     const actionHref = isEditableRequest
                         ? loanRequestCreate().url
                         : loanRequestShow(row.original.id).url;
                     const actionLabel = isEditableRequest
-                        ? row.original.status === 'draft'
-                            ? 'Resume draft'
-                            : 'Continue request'
+                        ? 'Resume draft'
                         : 'View request';
 
                     return (
@@ -247,7 +228,7 @@ export function LoanRequestRecordsCard({
     return (
         <MemberRecordsCard
             title="Loan requests"
-            description="Track drafts, pending co-maker signatures, review-ready requests, and final decisions."
+            description="Track drafts, review-ready requests, and final decisions."
             headerAccessory={
                 <Button asChild size="sm" variant="outline">
                     <Link href={loanRequestCreate().url}>Request loan</Link>

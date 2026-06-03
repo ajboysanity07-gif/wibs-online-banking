@@ -19,12 +19,10 @@ class SettingsPageData
         $user?->loadMissing(
             'adminProfile',
             'memberApplicationProfile',
-            'activeAdminSignature',
         );
         $hasMemberAccess = $user?->hasMemberAccess() ?? false;
 
         $adminProfile = $user?->adminProfile;
-        $adminSignature = $user?->activeAdminSignature;
         $memberApplicationProfile = $user?->memberApplicationProfile;
         $twoFactorAvailable = Features::canManageTwoFactorAuthentication();
         $twoFactorEnabled = $twoFactorAvailable
@@ -190,12 +188,7 @@ class SettingsPageData
                         : null,
                 ]
                 : null,
-            'loanManagerSignature' => $adminSignature
-                ? [
-                    'previewUrl' => $adminSignature->signature_url,
-                    'updatedAt' => $adminSignature->updated_at?->toDateTimeString(),
-                ]
-                : null,
+            'loanManagerSignature' => null,
             'memberRecord' => $memberRecord,
             'memberApplicationProfile' => $memberProfilePayload,
             'initialTab' => $initialTab,

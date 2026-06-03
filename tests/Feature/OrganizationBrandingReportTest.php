@@ -46,7 +46,7 @@ test('loan request report renders uploaded header design when available', functi
     expect($html)->toContain('src="data:image/png;base64,'.base64_encode('header').'"');
 });
 
-test('loan request report reserves larger signature image boxes', function () {
+test('loan request report reserves physical signature areas without digital images', function () {
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::UnderReview,
     ]);
@@ -54,7 +54,7 @@ test('loan request report reserves larger signature image boxes', function () {
     $html = view('reports.loan-request', [
         'loanRequest' => $loanRequest,
         'applicant' => [
-            'signatureData' => 'data:image/png;base64,signature',
+            'signatureData' => null,
         ],
         'coMakerOne' => [
             'signatureData' => null,
@@ -82,10 +82,15 @@ test('loan request report reserves larger signature image boxes', function () {
         ->toContain('height: 72px;')
         ->toContain('max-width: 126%;')
         ->toContain('max-height: 72px;')
-        ->toContain('alt="Applicant signature"');
+        ->not->toContain('alt="Applicant signature"')
+        ->not->toContain('alt="Co-maker 1 signature"')
+        ->not->toContain('alt="Co-maker 2 signature"')
+        ->not->toContain('alt="Loan manager signature"');
+
+    expect(substr_count($html, 'class="signature-line"'))->toBe(4);
 });
 
-test('loan request report keeps co-maker names and blank signature lines when online signatures are missing', function () {
+test('loan request report keeps printed names and blank signature lines when signatures are collected physically', function () {
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::UnderReview,
     ]);
@@ -96,7 +101,7 @@ test('loan request report keeps co-maker names and blank signature lines when on
             'first_name' => 'JUAN',
             'middle_name' => 'SANTOS',
             'last_name' => 'DELA CRUZ',
-            'signatureData' => 'data:image/png;base64,applicant-signature',
+            'signatureData' => null,
         ],
         'coMakerOne' => [
             'first_name' => 'MARIA',
@@ -124,16 +129,21 @@ test('loan request report keeps co-maker names and blank signature lines when on
     ])->render();
 
     expect($html)
+        ->toContain('<div class="signature-name">Juan Santos Dela Cruz</div>')
         ->toContain('<div class="signature-name">Maria Lopez Reyes</div>')
         ->toContain('<div class="signature-name">Pedro Santos Cruz</div>')
+        ->toContain('<div class="signature-name">Annabelle M. Amora</div>')
+        ->toContain('<div class="signature-label">Member / Applicant</div>')
         ->toContain('<div class="signature-label">Co-maker 1</div>')
         ->toContain('<div class="signature-label">Co-maker 2</div>')
         ->toContain('<div class="signature-line"></div>')
+        ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
-        ->not->toContain('alt="Co-maker 2 signature"');
+        ->not->toContain('alt="Co-maker 2 signature"')
+        ->not->toContain('alt="Loan manager signature"');
 });
 
-test('loan request report overlaps signatures onto printed names while keeping labels clear', function () {
+test('loan request report keeps approved details and blank signature lines on approved requests', function () {
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::Approved,
         'approved_term' => 6,
@@ -145,24 +155,24 @@ test('loan request report overlaps signatures onto printed names while keeping l
             'first_name' => 'JUAN',
             'middle_name' => 'SANTOS',
             'last_name' => 'DELA CRUZ',
-            'signatureData' => 'data:image/png;base64,applicant-signature',
+            'signatureData' => null,
         ],
         'coMakerOne' => [
             'first_name' => 'MARIA',
             'middle_name' => 'LOPEZ',
             'last_name' => 'REYES',
-            'signatureData' => 'data:image/png;base64,co-maker-one-signature',
+            'signatureData' => null,
         ],
         'coMakerTwo' => [
             'first_name' => 'PEDRO',
             'middle_name' => 'SANTOS',
             'last_name' => 'CRUZ',
-            'signatureData' => 'data:image/png;base64,co-maker-two-signature',
+            'signatureData' => null,
         ],
         'reviewer' => [
             'name' => 'ANNABELLE M. AMORA',
         ],
-        'reviewerSignatureData' => 'data:image/png;base64,loan-manager-signature',
+        'reviewerSignatureData' => null,
         'companyName' => 'Acme Cooperative',
         'reportHeader' => [
             'companyName' => 'Acme Cooperative',
@@ -174,10 +184,6 @@ test('loan request report overlaps signatures onto printed names while keeping l
 
     expect($html)
         ->toContain('<td class="field">6 months</td>')
-        ->toContain('position: absolute;')
-        ->toContain('z-index: 2;')
-        ->toContain('padding-top: 52px;')
-        ->toContain('overflow: visible;')
         ->toContain('<div class="signature-name">Juan Santos Dela Cruz</div>')
         ->toContain('<div class="signature-name">Maria Lopez Reyes</div>')
         ->toContain('<div class="signature-name">Pedro Santos Cruz</div>')
@@ -186,19 +192,16 @@ test('loan request report overlaps signatures onto printed names while keeping l
         ->toContain('<div class="signature-label">Co-maker 1</div>')
         ->toContain('<div class="signature-label">Co-maker 2</div>')
         ->toContain('<div class="signature-label">Loan Manager / Approved By</div>')
-        ->toContain('alt="Applicant signature"')
-        ->toContain('alt="Co-maker 1 signature"')
-        ->toContain('alt="Co-maker 2 signature"')
-        ->toContain('alt="Loan manager signature"')
-        ->toContain('data:image/png;base64,loan-manager-signature');
+        ->not->toContain('alt="Applicant signature"')
+        ->not->toContain('alt="Co-maker 1 signature"')
+        ->not->toContain('alt="Co-maker 2 signature"')
+        ->not->toContain('alt="Loan manager signature"')
+        ->not->toContain('data:image/png;base64,');
 
     $signatureSection = strstr($html, '<div class="signature-row">');
 
     expect($signatureSection)->not->toBeFalse();
-    expect(strpos($signatureSection, 'data:image/png;base64,applicant-signature'))
-        ->toBeLessThan(strpos($signatureSection, '<div class="signature-name">Juan Santos Dela Cruz</div>'));
-    expect(strpos($signatureSection, 'data:image/png;base64,loan-manager-signature'))
-        ->toBeLessThan(strpos($signatureSection, '<div class="signature-name">Annabelle M. Amora</div>'));
+    expect(substr_count((string) $signatureSection, 'class="signature-line"'))->toBe(4);
 });
 
 test('loan security agreement report renders uploaded header design when available', function () {
@@ -242,7 +245,7 @@ test('loan security agreement report renders uploaded header design when availab
     expect($html)->toContain('Loan Security Agreement');
 });
 
-test('loan security agreement report overlaps signatures onto printed names while keeping labels clear', function () {
+test('loan security agreement report keeps printed names and blank signature lines without digital images', function () {
     $html = view('reports.loan-security-agreement', [
         'organization' => [
             'company_name' => 'Acme Cooperative',
@@ -256,12 +259,12 @@ test('loan security agreement report overlaps signatures onto printed names whil
         'applicant' => [
             'full_name' => 'Helario B. Tejero',
             'address' => 'Banahao, Lianga, Surigao del Sur',
-            'signature_data' => testPngSignatureDataUrl('one'),
+            'signature_data' => null,
         ],
         'reviewer' => [
             'name' => 'Annabelle M. Amora',
             'position' => 'Authorized Representative',
-            'signature_data' => testPngSignatureDataUrl('two'),
+            'signature_data' => null,
         ],
         'reportHeader' => [
             'designData' => null,
@@ -288,20 +291,11 @@ test('loan security agreement report overlaps signatures onto printed names whil
         ->toContain('class="signature-signing-area signature-signing-area--borrower"')
         ->toContain('class="signature-signing-area signature-signing-area--lender"')
         ->toContain('min-height: 72pt;')
-        ->toContain('bottom: 18pt;')
-        ->toContain('height: 48pt;')
-        ->toContain('height: 46pt;')
-        ->toContain('padding-top: 34pt;')
-        ->toContain('padding-top: 33pt;')
-        ->toContain('max-width: 114%;')
-        ->toContain('max-width: 112%;')
-        ->toContain('z-index: 2;')
         ->toContain('<div class="signature-label">Borrower</div>')
         ->toContain('<div class="signature-label">Lender</div>')
-        ->toContain('alt="Borrower signature"')
-        ->toContain('alt="Lender signature"')
-        ->toContain(testPngSignatureDataUrl('one'))
-        ->toContain(testPngSignatureDataUrl('two'))
+        ->not->toContain('alt="Borrower signature"')
+        ->not->toContain('alt="Lender signature"')
+        ->not->toContain('data:image/png;base64,')
         ->not->toContain('This Agreement pertains to the Borrower')
         ->not->toContain('approved amount')
         ->not->toContain('payable over')
@@ -312,17 +306,7 @@ test('loan security agreement report overlaps signatures onto printed names whil
     $signatureSection = strstr($html, '<table class="signature-layout">');
 
     expect($signatureSection)->not->toBeFalse();
-    expect($html)->toContain(<<<'CSS'
-.signature-line {
-                z-index: 1;
-                width: 100%;
-CSS);
-    expect($html)->toContain(<<<'CSS'
-.signature-label {
-                z-index: 1;
-                font-size: 10pt;
-                font-weight: 400;
-CSS);
+    expect(substr_count((string) $signatureSection, 'class="signature-line"'))->toBe(2);
     expect(strpos($signatureSection, 'Helario B. Tejero'))
         ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Borrower</div>'));
     expect(strpos($signatureSection, 'Annabelle M. Amora'))

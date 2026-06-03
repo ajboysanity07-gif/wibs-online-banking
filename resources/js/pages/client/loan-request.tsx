@@ -1,9 +1,7 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import axios from 'axios';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
-import LoanRequestSignatureLinkController from '@/actions/App/Http/Controllers/Client/LoanRequestSignatureLinkController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { LoanRequestStepIndicator } from '@/components/loan-request/loan-request-step-indicator';
@@ -20,17 +18,14 @@ import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import api, { getApiErrorMessage, mapValidationErrors } from '@/lib/api';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import type { BreadcrumbItem } from '@/types';
 import type {
-    LoanRequestCoMakerSignatureState,
     LoanRequestDraft,
     LoanRequestFormData,
-    LoanRequestGeneratedSignatureLink,
     LoanRequestMemberSummary,
     LoanRequestPersonData,
     LoanRequestPersonFormData,
@@ -39,33 +34,15 @@ import type {
 } from '@/types/loan-requests';
 
 const loanRequestsIndexHref = loanRequestsIndex().url;
-const MISSING_CO_MAKER_SIGNATURE_REMINDER =
-    'Reminder: One or more co-maker signatures are missing. The co-makers must sign the printed application form during loan release.';
 
 type Props = {
     loanTypes: LoanTypeOption[];
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
-    coMakerOneSignature: LoanRequestCoMakerSignatureState;
-    coMakerTwoSignature: LoanRequestCoMakerSignatureState;
     applicantReadOnly: LoanRequestReadOnlyMap | null;
     member: LoanRequestMemberSummary;
     draft: LoanRequestDraft | null;
-};
-
-type SignatureRole = 'co_maker_1' | 'co_maker_2';
-type SignatureMethod = 'in_person' | 'share_link';
-type SignatureLinkResponsePayload = {
-    loanRequest: LoanRequestDraft;
-    coMakerOneSignature: LoanRequestCoMakerSignatureState;
-    coMakerTwoSignature: LoanRequestCoMakerSignatureState;
-    signingLink?: LoanRequestGeneratedSignatureLink;
-    signing_url?: string;
-    expires_at?: string | null;
-    status?: 'link_active';
-    role?: SignatureRole;
-    loan_request_person_id?: number;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -168,19 +145,6 @@ const toStringValue = (
     return stringValue;
 };
 
-const personHasValues = (person: LoanRequestPersonFormData): boolean =>
-    Object.values(person).some((value) => value.trim() !== '');
-
-const personFormsMatch = (
-    current: LoanRequestPersonFormData,
-    persisted: LoanRequestPersonFormData,
-): boolean =>
-    Object.keys(current).every((key) => {
-        const field = key as keyof LoanRequestPersonFormData;
-
-        return current[field] === persisted[field];
-    });
-
 const emptyPerson: LoanRequestPersonFormData = {
     first_name: '',
     middle_name: '',
@@ -212,39 +176,6 @@ const emptyPerson: LoanRequestPersonFormData = {
     years_in_work_business: '',
     gross_monthly_income: '',
     payday: '',
-};
-
-const signatureFieldByRole: Record<
-    SignatureRole,
-    'co_maker_1_signature_data' | 'co_maker_2_signature_data'
-> = {
-    co_maker_1: 'co_maker_1_signature_data',
-    co_maker_2: 'co_maker_2_signature_data',
-};
-
-const normalizeGeneratedSignatureLink = (
-    payload?: SignatureLinkResponsePayload,
-): LoanRequestGeneratedSignatureLink | null => {
-    if (payload?.signingLink) {
-        return payload.signingLink;
-    }
-
-    if (
-        !payload?.signing_url ||
-        payload.role === undefined ||
-        typeof payload.loan_request_person_id !== 'number'
-    ) {
-        return null;
-    }
-
-    return {
-        role: payload.role,
-        loan_request_person_id: payload.loan_request_person_id,
-        status: payload.status ?? 'link_active',
-        signing_url: payload.signing_url,
-        url: payload.signing_url,
-        expires_at: payload.expires_at ?? null,
-    };
 };
 
 const toPersonForm = (
@@ -312,31 +243,6 @@ const resolveStepFromErrors = (
             return;
         }
 
-        if (key === 'applicant_signature_data') {
-            stepMatches.push(2);
-            return;
-        }
-
-        if (key === 'co_maker_1_signature_data') {
-            stepMatches.push(3);
-            return;
-        }
-
-        if (key === 'co_maker_2_signature_data') {
-            stepMatches.push(4);
-            return;
-        }
-
-        if (
-            key === 'co_maker_1.signature' ||
-            key === 'co_maker_2.signature' ||
-            key === 'signature_link' ||
-            key === 'link'
-        ) {
-            stepMatches.push(5);
-            return;
-        }
-
         if (key.startsWith('co_maker_1.')) {
             stepMatches.push(3);
             return;
@@ -372,8 +278,6 @@ export default function LoanRequestPage({
     applicant,
     coMakerOne,
     coMakerTwo,
-    coMakerOneSignature,
-    coMakerTwoSignature,
     applicantReadOnly,
     member,
     draft,
@@ -389,33 +293,6 @@ export default function LoanRequestPage({
         null,
     );
     const [draftState, setDraftState] = useState<LoanRequestDraft | null>(draft);
-    const [coMakerOneSignatureState, setCoMakerOneSignatureState] =
-        useState<LoanRequestCoMakerSignatureState>(coMakerOneSignature);
-    const [coMakerTwoSignatureState, setCoMakerTwoSignatureState] =
-        useState<LoanRequestCoMakerSignatureState>(coMakerTwoSignature);
-    const [generatedLinks, setGeneratedLinks] = useState<
-        Partial<Record<SignatureRole, LoanRequestGeneratedSignatureLink>>
-    >({});
-    const [selectedSigningMethods, setSelectedSigningMethods] = useState<
-        Partial<Record<SignatureRole, SignatureMethod>>
-    >({
-        co_maker_1:
-            coMakerOneSignature.state === 'link_active' ||
-            coMakerOneSignature.state === 'expired'
-                ? 'share_link'
-                : undefined,
-        co_maker_2:
-            coMakerTwoSignature.state === 'link_active' ||
-            coMakerTwoSignature.state === 'expired'
-                ? 'share_link'
-                : undefined,
-    });
-    const [editableSignedRoles, setEditableSignedRoles] = useState<
-        Partial<Record<SignatureRole, boolean>>
-    >({});
-    const [signatureActionRole, setSignatureActionRole] =
-        useState<SignatureRole | null>(null);
-    const [isRefreshingSignatures, setIsRefreshingSignatures] = useState(false);
 
     const initialFormData = useMemo<LoanRequestFormData>(
         () => ({
@@ -425,9 +302,6 @@ export default function LoanRequestPage({
             loan_purpose: draft?.loan_purpose ?? '',
             availment_status: draft?.availment_status ?? '',
             undertaking_accepted: false,
-            applicant_signature_data: '',
-            co_maker_1_signature_data: '',
-            co_maker_2_signature_data: '',
             applicant: toPersonForm(applicant),
             co_maker_1: toPersonForm(coMakerOne),
             co_maker_2: toPersonForm(coMakerTwo),
@@ -442,366 +316,49 @@ export default function LoanRequestPage({
     const isSubmitting = form.processing && activeAction === 'submit';
     const hasLoanTypes = loanTypes.length > 0;
     const stepMeta = steps[currentStep];
-    const persistedCoMakerOne = toPersonForm(coMakerOne);
-    const persistedCoMakerTwo = toPersonForm(coMakerTwo);
-    const coMakerOneRequired = personHasValues(form.data.co_maker_1);
-    const coMakerTwoRequired = personHasValues(form.data.co_maker_2);
-    const coMakerOneNeedsResign =
-        coMakerOneSignatureState.is_confirmed &&
-        !personFormsMatch(form.data.co_maker_1, persistedCoMakerOne);
-    const coMakerTwoNeedsResign =
-        coMakerTwoSignatureState.is_confirmed &&
-        !personFormsMatch(form.data.co_maker_2, persistedCoMakerTwo);
-    const effectiveCoMakerOneSignatureState = coMakerOneNeedsResign
-        ? {
-              ...coMakerOneSignatureState,
-              state: 'proposed' as const,
-              is_confirmed: false,
-              has_signature: false,
-              signed_at: null,
-          }
-        : coMakerOneSignatureState;
-    const effectiveCoMakerTwoSignatureState = coMakerTwoNeedsResign
-        ? {
-              ...coMakerTwoSignatureState,
-              state: 'proposed' as const,
-              is_confirmed: false,
-              has_signature: false,
-              signed_at: null,
-          }
-        : coMakerTwoSignatureState;
-    const coMakerOneHasPendingInPersonSignature =
-        (form.data.co_maker_1_signature_data ?? '').trim() !== '';
-    const coMakerTwoHasPendingInPersonSignature =
-        (form.data.co_maker_2_signature_data ?? '').trim() !== '';
-    const applicantHasSignature =
-        (form.data.applicant_signature_data ?? '').trim() !== '' ||
-        Boolean(applicant?.signature_path);
-    const coMakerOneHasSignature =
-        !coMakerOneRequired ||
-        effectiveCoMakerOneSignatureState.is_confirmed ||
-        coMakerOneHasPendingInPersonSignature;
-    const coMakerTwoHasSignature =
-        !coMakerTwoRequired ||
-        effectiveCoMakerTwoSignatureState.is_confirmed ||
-        coMakerTwoHasPendingInPersonSignature;
-    const hasMissingCoMakerSignatures =
-        !coMakerOneHasSignature || !coMakerTwoHasSignature;
-    const canSubmitForReview = hasLoanTypes && applicantHasSignature;
-    const submitDisabledMessage = !applicantHasSignature
-        ? 'Member / Applicant signature is required before submitting.'
-        : null;
-    const coMakerOneFieldsLocked =
-        coMakerOneSignatureState.is_confirmed &&
-        !coMakerOneNeedsResign &&
-        editableSignedRoles.co_maker_1 !== true;
-    const coMakerTwoFieldsLocked =
-        coMakerTwoSignatureState.is_confirmed &&
-        !coMakerTwoNeedsResign &&
-        editableSignedRoles.co_maker_2 !== true;
-    const coMakerOneConfirmationError = form.errors[
-        'co_maker_1.signature' as keyof typeof form.errors
-    ] as string | undefined;
-    const coMakerTwoConfirmationError = form.errors[
-        'co_maker_2.signature' as keyof typeof form.errors
-    ] as string | undefined;
+    const canSubmitForReview = hasLoanTypes;
 
     useEffect(() => {
         setDraftState(draft);
     }, [draft]);
 
-    useEffect(() => {
-        setCoMakerOneSignatureState(coMakerOneSignature);
-
-        if (coMakerOneSignature.is_confirmed) {
-            setGeneratedLinks((current) => {
-                const next = { ...current };
-                delete next.co_maker_1;
-
-                return next;
-            });
-            form.setData('co_maker_1_signature_data', '');
-            setSelectedSigningMethods((current) => ({
-                ...current,
-                co_maker_1: undefined,
-            }));
-            setEditableSignedRoles((current) => ({
-                ...current,
-                co_maker_1: false,
-            }));
-        } else if (
-            coMakerOneSignature.state === 'link_active' ||
-            coMakerOneSignature.state === 'expired'
-        ) {
-            setSelectedSigningMethods((current) => ({
-                ...current,
-                co_maker_1: current.co_maker_1 ?? 'share_link',
-            }));
+    const handleStepChange = (step: number) => {
+        if (step === currentStep) {
+            return;
         }
-    }, [coMakerOneSignature, form]);
 
-    useEffect(() => {
-        setCoMakerTwoSignatureState(coMakerTwoSignature);
-
-        if (coMakerTwoSignature.is_confirmed) {
-            setGeneratedLinks((current) => {
-                const next = { ...current };
-                delete next.co_maker_2;
-
-                return next;
-            });
-            form.setData('co_maker_2_signature_data', '');
-            setSelectedSigningMethods((current) => ({
-                ...current,
-                co_maker_2: undefined,
-            }));
-            setEditableSignedRoles((current) => ({
-                ...current,
-                co_maker_2: false,
-            }));
-        } else if (
-            coMakerTwoSignature.state === 'link_active' ||
-            coMakerTwoSignature.state === 'expired'
-        ) {
-            setSelectedSigningMethods((current) => ({
-                ...current,
-                co_maker_2: current.co_maker_2 ?? 'share_link',
-            }));
-        }
-    }, [coMakerTwoSignature, form]);
-
-    const updatePersonField =
-        (section: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
-        (field: keyof LoanRequestPersonFormData, value: string) => {
-            if (section === 'co_maker_1' || section === 'co_maker_2') {
-                setGeneratedLinks((current) => {
-                    const next = { ...current };
-                    delete next[section];
-
-                    return next;
-                });
-            }
-
-            form.setData((current) => ({
-                ...current,
-                ...(section === 'co_maker_1' || section === 'co_maker_2'
-                    ? {
-                          [signatureFieldByRole[section]]: '',
-                      }
-                    : {}),
-                [section]: {
-                    ...current[section],
-                    [field]: value,
-                },
-            }));
-        };
-
-    const handleSelectSigningMethod = (
-        role: SignatureRole,
-        method: SignatureMethod,
-    ) => {
-        setSelectedSigningMethods((current) => ({
-            ...current,
-            [role]: method,
-        }));
-
-        if (method === 'share_link') {
-            form.setData(signatureFieldByRole[role], '');
-        }
+        setStepDirection(step > currentStep ? 'forward' : 'backward');
+        setCurrentStep(step);
     };
 
-    const handleCoMakerSignatureChange = (
-        role: SignatureRole,
-        value: string,
-    ) => {
-        form.setData(signatureFieldByRole[role], value);
-
-        if (value.trim() !== '') {
-            setSelectedSigningMethods((current) => ({
-                ...current,
-                [role]: 'in_person',
-            }));
+    const handleNextStep = () => {
+        if (currentStep >= steps.length - 1) {
+            return;
         }
+
+        handleStepChange(currentStep + 1);
     };
 
-    const handleEnableSignedCoMakerEditing = (role: SignatureRole) => {
-        setEditableSignedRoles((current) => ({
-            ...current,
-            [role]: true,
-        }));
+    const handlePreviousStep = () => {
+        if (currentStep === 0) {
+            return;
+        }
+
+        handleStepChange(currentStep - 1);
     };
 
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
         form.setData(field, value);
     };
 
-    const handleStepChange = (nextStep: number) => {
-        setCurrentStep((current) => {
-            if (nextStep === current) {
-                return current;
-            }
-
-            setStepDirection(nextStep > current ? 'forward' : 'backward');
-
-            return nextStep;
-        });
-    };
-
-    const handleNextStep = () => {
-        setCurrentStep((current) => {
-            const nextStep = Math.min(steps.length - 1, current + 1);
-            setStepDirection('forward');
-
-            return nextStep;
-        });
-    };
-
-    const handlePreviousStep = () => {
-        setCurrentStep((current) => {
-            const nextStep = Math.max(0, current - 1);
-            setStepDirection('backward');
-
-            return nextStep;
-        });
-    };
-
-    const applyValidationErrors = (errors: Record<string, string>) => {
-        Object.entries(errors).forEach(([field, message]) => {
-            form.setError(field as never, message);
-        });
-
-        const step = resolveStepFromErrors(errors);
-
-        if (step !== null) {
-            handleStepChange(step);
-        }
-    };
-
-    const handleGenerateSignatureLink = async (role: SignatureRole) => {
-        const isRequired =
-            role === 'co_maker_1' ? coMakerOneRequired : coMakerTwoRequired;
-
-        if (!isRequired) {
-            showErrorToast(
-                null,
-                role === 'co_maker_1'
-                    ? 'Enter the proposed details for Co-maker 1 before generating a signing link.'
-                    : 'Enter the proposed details for Co-maker 2 before generating a signing link.',
-                { id: `loan-request-signature-link-${role}` },
-            );
-
-            handleStepChange(role === 'co_maker_1' ? 3 : 4);
-
-            return;
-        }
-
-        setSignatureActionRole(role);
-
-        try {
-            const response = await api.post(
-                LoanRequestSignatureLinkController.store(role).url,
-                form.data,
-            );
-            const payload = response.data?.data as
-                | SignatureLinkResponsePayload
-                | undefined;
-            const signingLink = normalizeGeneratedSignatureLink(payload);
-
-            if (!payload || !signingLink) {
-                throw new Error('Unable to generate the signature link.');
-            }
-
-            setDraftState(payload.loanRequest);
-            setCoMakerOneSignatureState(payload.coMakerOneSignature);
-            setCoMakerTwoSignatureState(payload.coMakerTwoSignature);
-            setGeneratedLinks((current) => ({
-                ...current,
-                [role]: signingLink,
-            }));
-            setSelectedSigningMethods((current) => ({
-                ...current,
-                [role]: 'share_link',
-            }));
-
-            showSuccessToast(
-                'Secure signing link generated.',
-                {
-                    id: `loan-request-signature-link-${role}`,
-                },
-            );
-        } catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === 422) {
-                const validationErrors = mapValidationErrors(
-                    error.response.data?.errors as
-                        | Record<string, string[]>
-                        | undefined,
-                );
-
-                applyValidationErrors(validationErrors);
-                showErrorToast(
-                    null,
-                    getApiErrorMessage(
-                        error,
-                        'Please review the highlighted fields before generating the signing link.',
-                    ),
-                    { id: `loan-request-signature-link-${role}` },
-                );
-
-                return;
-            }
-
-            showErrorToast(
-                null,
-                getApiErrorMessage(
-                    error,
-                    'Unable to generate the co-maker signing link.',
-                ),
-                { id: `loan-request-signature-link-${role}` },
-            );
-        } finally {
-            setSignatureActionRole(null);
-        }
-    };
-
-    const handleCopySignatureLink = async (role: SignatureRole) => {
-        const link = generatedLinks[role];
-
-        if (!link) {
-            showErrorToast(
-                null,
-                'For security, links can only be copied immediately after generation. Generate a new link to share it again.',
-                { id: `loan-request-signature-copy-${role}` },
-            );
-
-            return;
-        }
-
-        if (typeof navigator !== 'undefined' && navigator.clipboard) {
-            try {
-                await navigator.clipboard.writeText(link.signing_url);
-                showSuccessToast('Signing link copied.', {
-                    id: `loan-request-signature-copy-${role}`,
-                });
-
-                return;
-            } catch {
-                // Fall through to the error toast below.
-            }
-        }
-
-        showErrorToast(null, 'Unable to copy signing link.', {
-            id: `loan-request-signature-copy-${role}`,
-        });
-    };
-
-    const handleRefreshSignatures = () => {
-        setIsRefreshingSignatures(true);
-
-        router.reload({
-            only: ['draft', 'coMakerOneSignature', 'coMakerTwoSignature'],
-            onFinish: () => setIsRefreshingSignatures(false),
-        });
-    };
+    const updatePersonField =
+        (personKey: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
+        (field: keyof LoanRequestPersonFormData, value: string) => {
+            form.setData(personKey, {
+                ...form.data[personKey],
+                [field]: value,
+            });
+        };
 
     const handleSaveDraft = () => {
         setActiveAction('draft');
@@ -814,14 +371,6 @@ export default function LoanRequestPage({
     };
 
     const handleSubmit = () => {
-        if (
-            hasMissingCoMakerSignatures &&
-            typeof window !== 'undefined' &&
-            !window.confirm(MISSING_CO_MAKER_SIGNATURE_REMINDER)
-        ) {
-            return;
-        }
-
         setActiveAction('submit');
         form.post(LoanRequestController.store().url, {
             onSuccess: () => {
@@ -837,11 +386,9 @@ export default function LoanRequestPage({
                 }
 
                 if (Object.keys(errors).length === 0) {
-                    showErrorToast(
-                        null,
-                        'Unable to submit the loan request.',
-                        { id: 'loan-request-submit' },
-                    );
+                    showErrorToast(null, 'Unable to submit the loan request.', {
+                        id: 'loan-request-submit',
+                    });
                 }
             },
             onFinish: () => setActiveAction(null),
@@ -851,10 +398,6 @@ export default function LoanRequestPage({
     const draftUpdatedAt = draftState?.updated_at
         ? formatDateTime(draftState.updated_at)
         : null;
-    const draftUpdatedLabel =
-        draftState?.status === 'pending_co_maker_signatures'
-            ? 'Updated'
-            : 'Last saved';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -870,11 +413,9 @@ export default function LoanRequestPage({
                                 Apply for a loan
                             </h1>
                             <p className="max-w-2xl text-sm text-muted-foreground">
-                                Complete the application form, save a draft at
-                                any time, and optionally collect co-maker
-                                signatures online. Missing co-maker signatures
-                                can be completed on the printed application
-                                form during loan release.
+                                Complete the application form and save a draft at
+                                any time. Signatures will be collected
+                                physically upon loan release.
                             </p>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 <span className="rounded-full bg-muted/30 px-2 py-1">
@@ -887,8 +428,7 @@ export default function LoanRequestPage({
                                         />
                                         {draftUpdatedAt ? (
                                             <span>
-                                                {draftUpdatedLabel}{' '}
-                                                {draftUpdatedAt}
+                                                Last saved {draftUpdatedAt}
                                             </span>
                                         ) : null}
                                     </>
@@ -981,12 +521,6 @@ export default function LoanRequestPage({
                                 values={form.data.applicant}
                                 errors={form.errors}
                                 onChange={updatePersonField('applicant')}
-                                signatureData={
-                                    form.data.applicant_signature_data ?? ''
-                                }
-                                onSignatureChange={(value) =>
-                                    form.setData('applicant_signature_data', value)
-                                }
                             />
                         </LoanRequestAnimatedStep>
 
@@ -996,53 +530,11 @@ export default function LoanRequestPage({
                         >
                             <LoanRequestCoMakerStep
                                 title="Co-maker 1"
-                                description="Add the proposed details for your first co-maker. Online co-maker signatures are optional, and any missing signature can be completed on the printed application form during loan release."
+                                description="Add the proposed details for your first co-maker. Signatures will be collected physically upon loan release."
                                 prefix="co_maker_1"
                                 values={form.data.co_maker_1}
                                 errors={form.errors}
                                 onChange={updatePersonField('co_maker_1')}
-                                signatureState={
-                                    effectiveCoMakerOneSignatureState
-                                }
-                                isSignatureRequired={coMakerOneRequired}
-                                isLocked={coMakerOneFieldsLocked}
-                                selectedSigningMethod={
-                                    selectedSigningMethods.co_maker_1
-                                }
-                                generatedLink={generatedLinks.co_maker_1}
-                                isGeneratingSignatureLink={
-                                    signatureActionRole === 'co_maker_1'
-                                }
-                                signatureData={
-                                    form.data.co_maker_1_signature_data ?? ''
-                                }
-                                signatureError={coMakerOneConfirmationError}
-                                signatureDataError={
-                                    form.errors.co_maker_1_signature_data
-                                }
-                                onSelectSigningMethod={(method) =>
-                                    handleSelectSigningMethod(
-                                        'co_maker_1',
-                                        method,
-                                    )
-                                }
-                                onSignatureChange={(value) =>
-                                    handleCoMakerSignatureChange(
-                                        'co_maker_1',
-                                        value,
-                                    )
-                                }
-                                onEnableSignedEditing={() =>
-                                    handleEnableSignedCoMakerEditing(
-                                        'co_maker_1',
-                                    )
-                                }
-                                onGenerateSignatureLink={() =>
-                                    handleGenerateSignatureLink('co_maker_1')
-                                }
-                                onCopySignatureLink={() =>
-                                    handleCopySignatureLink('co_maker_1')
-                                }
                             />
                         </LoanRequestAnimatedStep>
 
@@ -1052,53 +544,11 @@ export default function LoanRequestPage({
                         >
                             <LoanRequestCoMakerStep
                                 title="Co-maker 2"
-                                description="Add the proposed details for your second co-maker. Online co-maker signatures are optional, and any missing signature can be completed on the printed application form during loan release."
+                                description="Add the proposed details for your second co-maker. Signatures will be collected physically upon loan release."
                                 prefix="co_maker_2"
                                 values={form.data.co_maker_2}
                                 errors={form.errors}
                                 onChange={updatePersonField('co_maker_2')}
-                                signatureState={
-                                    effectiveCoMakerTwoSignatureState
-                                }
-                                isSignatureRequired={coMakerTwoRequired}
-                                isLocked={coMakerTwoFieldsLocked}
-                                selectedSigningMethod={
-                                    selectedSigningMethods.co_maker_2
-                                }
-                                generatedLink={generatedLinks.co_maker_2}
-                                isGeneratingSignatureLink={
-                                    signatureActionRole === 'co_maker_2'
-                                }
-                                signatureData={
-                                    form.data.co_maker_2_signature_data ?? ''
-                                }
-                                signatureError={coMakerTwoConfirmationError}
-                                signatureDataError={
-                                    form.errors.co_maker_2_signature_data
-                                }
-                                onSelectSigningMethod={(method) =>
-                                    handleSelectSigningMethod(
-                                        'co_maker_2',
-                                        method,
-                                    )
-                                }
-                                onSignatureChange={(value) =>
-                                    handleCoMakerSignatureChange(
-                                        'co_maker_2',
-                                        value,
-                                    )
-                                }
-                                onEnableSignedEditing={() =>
-                                    handleEnableSignedCoMakerEditing(
-                                        'co_maker_2',
-                                    )
-                                }
-                                onGenerateSignatureLink={() =>
-                                    handleGenerateSignatureLink('co_maker_2')
-                                }
-                                onCopySignatureLink={() =>
-                                    handleCopySignatureLink('co_maker_2')
-                                }
                             />
                         </LoanRequestAnimatedStep>
 
@@ -1111,37 +561,6 @@ export default function LoanRequestPage({
                                 loanTypes={loanTypes}
                                 member={member}
                                 errors={form.errors}
-                                coMakerOneSignature={
-                                    effectiveCoMakerOneSignatureState
-                                }
-                                coMakerTwoSignature={
-                                    effectiveCoMakerTwoSignatureState
-                                }
-                                coMakerOneRequired={coMakerOneRequired}
-                                coMakerTwoRequired={coMakerTwoRequired}
-                                generatedLinks={generatedLinks}
-                                onGenerateSignatureLink={
-                                    handleGenerateSignatureLink
-                                }
-                                onCopySignatureLink={handleCopySignatureLink}
-                                coMakerOneHasPendingInPersonSignature={
-                                    coMakerOneHasPendingInPersonSignature
-                                }
-                                coMakerTwoHasPendingInPersonSignature={
-                                    coMakerTwoHasPendingInPersonSignature
-                                }
-                                hasMissingCoMakerSignatures={
-                                    hasMissingCoMakerSignatures
-                                }
-                                onRefreshSignatures={handleRefreshSignatures}
-                                isGeneratingSignatureLinkRole={
-                                    signatureActionRole
-                                }
-                                isRefreshingSignatures={
-                                    isRefreshingSignatures
-                                }
-                                canSubmitForReview={canSubmitForReview}
-                                submitDisabledMessage={submitDisabledMessage}
                                 onUndertakingChange={(value) =>
                                     form.setData('undertaking_accepted', value)
                                 }
@@ -1157,10 +576,7 @@ export default function LoanRequestPage({
                             onSubmit={handleSubmit}
                             isSavingDraft={isSavingDraft}
                             isSubmitting={isSubmitting}
-                            disablePrimary={
-                                !hasLoanTypes ||
-                                (isLastStep && !canSubmitForReview)
-                            }
+                            disablePrimary={!hasLoanTypes}
                         />
                     </div>
 

@@ -570,6 +570,10 @@ class LoanRequestController extends Controller
             return LoanRequestStatus::UnderReview->value;
         }
 
+        if ($status === LoanRequestStatus::PendingCoMakerSignatures->value) {
+            return LoanRequestStatus::Draft->value;
+        }
+
         return $status;
     }
 

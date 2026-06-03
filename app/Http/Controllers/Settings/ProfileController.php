@@ -3,12 +3,9 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\LoanManagerSignatureUpdateRequest;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
-use App\Models\AppUser;
 use App\Models\MemberApplicationProfile;
-use App\Services\Admin\AdminSignatureService;
 use App\Support\SettingsPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ProfileController extends Controller
 {
@@ -120,21 +118,9 @@ class ProfileController extends Controller
     }
 
     public function updateLoanManagerSignature(
-        LoanManagerSignatureUpdateRequest $request,
-        AdminSignatureService $signatureService,
-    ): RedirectResponse {
-        $user = $request->user();
-
-        abort_unless($user instanceof AppUser, 403);
-
-        $signatureService->saveForUser(
-            $user,
-            $request->validated('signature_data'),
-            $request->ip(),
-            $request->userAgent(),
-        );
-
-        return to_route('profile.edit');
+        Request $request,
+    ): never {
+        abort(HttpResponse::HTTP_NOT_FOUND);
     }
 
     /**

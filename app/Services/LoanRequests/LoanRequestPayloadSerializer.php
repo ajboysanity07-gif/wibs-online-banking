@@ -215,7 +215,10 @@ class LoanRequestPayloadSerializer
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        if ($status === LoanRequestStatus::Submitted->value) {
+        if (in_array($status, [
+            LoanRequestStatus::Submitted->value,
+            LoanRequestStatus::PendingCoMakerSignatures->value,
+        ], true)) {
             return LoanRequestStatus::UnderReview->value;
         }
 

@@ -296,11 +296,6 @@ class ApprovedLoanExcelTemplateService
             if (is_string($temporaryHeaderImagePath) && $temporaryHeaderImagePath !== '') {
                 $temporaryImagePaths[] = $temporaryHeaderImagePath;
             }
-
-            $temporaryImagePaths = [
-                ...$temporaryImagePaths,
-                ...$this->insertSignatureImages($spreadsheet, $documentData),
-            ];
             $this->finalizeLoanInformationWorksheetLayout($spreadsheet);
             File::ensureDirectoryExists(dirname($outputPath));
             IOFactory::createWriter($spreadsheet, 'Xlsx')->save($outputPath);

@@ -88,9 +88,7 @@ export function LoanRequestSummaryPanel({
                         )}
                     </div>
                     <CardDescription>
-                        {draft?.status === 'pending_co_maker_signatures'
-                            ? 'Waiting for required co-maker consent and signatures.'
-                            : 'Keep your details in sync before submitting.'}
+                        Keep your details in sync before submitting.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
@@ -151,11 +149,7 @@ export function LoanRequestSummaryPanel({
                         <>
                             <Separator className="bg-border/30" />
                             <p className="text-xs text-muted-foreground">
-                                {draft?.status ===
-                                'pending_co_maker_signatures'
-                                    ? 'Updated'
-                                    : 'Last saved'}{' '}
-                                {draftUpdatedAt}
+                                Last saved {draftUpdatedAt}
                             </p>
                         </>
                     ) : null}
@@ -171,8 +165,8 @@ export function LoanRequestSummaryPanel({
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <p>Double-check your employment and income details.</p>
                     <p>
-                        Generate secure co-maker signing links from the review
-                        step once the proposed details are complete.
+                        Signatures will be collected physically upon loan
+                        release.
                     </p>
                 </CardContent>
             </Card>

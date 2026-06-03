@@ -2,12 +2,10 @@
 
 namespace App\Services\LoanRequests;
 
-use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
-use App\Models\LoanRequestPerson;
 use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use App\Support\SchemaCapabilities;
@@ -21,10 +19,6 @@ class LoanRequestDecisionService
     private const CORRECTION_REQUIRED_MESSAGE = 'Please review and save the correction before approving this admin-corrected request.';
 
     private const CORRECTION_AUDIT_UNAVAILABLE_MESSAGE = 'Correction audit history is unavailable. Please save the correction before approving this admin-corrected request.';
-
-    private const BORROWER_SIGNATURE_REQUIRED_MESSAGE = 'Borrower signature is required before approval.';
-
-    private const LOAN_MANAGER_SIGNATURE_REQUIRED_MESSAGE = 'Please save your loan manager signature in Settings before approving this request.';
 
     public function __construct(
         private LoanRequestCorrectionReportService $correctionReports,
@@ -47,16 +41,12 @@ class LoanRequestDecisionService
     ): LoanRequest {
         $this->ensureDecisionable($loanRequest, $actor);
         $this->ensureCorrectedRequestReadyForApproval($loanRequest);
-        $this->ensureApprovalRequirements($loanRequest, $actor);
-
-        $actor->loadMissing('activeAdminSignature');
-        $approvalSignature = $actor->activeAdminSignature;
 
         $loanRequest->fill([
             'status' => LoanRequestStatus::Approved,
             'reviewed_by' => $actor->user_id,
             'reviewed_at' => now(),
-            'approval_signature_id' => $approvalSignature?->id,
+            'approval_signature_id' => null,
             'approval_ip_address' => $this->normalizeOptionalText(
                 $payload['approval_ip_address'] ?? null,
             ),
@@ -196,13 +186,7 @@ class LoanRequestDecisionService
             return self::CORRECTION_REQUIRED_MESSAGE;
         }
 
-        $errors = $this->approvalRequirementErrors($loanRequest, $actor);
-
-        if ($errors === []) {
-            return null;
-        }
-
-        return array_values($errors)[0];
+        return null;
     }
 
     public function hasSavedCorrectionAfterCreation(LoanRequest $loanRequest): bool
@@ -328,49 +312,13 @@ class LoanRequestDecisionService
         }
     }
 
-    private function ensureApprovalRequirements(
-        LoanRequest $loanRequest,
-        AppUser $actor,
-    ): void {
-        $errors = $this->approvalRequirementErrors($loanRequest, $actor);
-
-        if ($errors === []) {
-            return;
-        }
-
-        throw ValidationException::withMessages($errors);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function approvalRequirementErrors(
-        LoanRequest $loanRequest,
-        AppUser $actor,
-    ): array {
-        $loanRequest->loadMissing('people');
-        $actor->loadMissing('activeAdminSignature');
-
-        $errors = [];
-
-        if (
-            ! $this->personHasSignature(
-                $this->resolvePerson($loanRequest, LoanRequestPersonRole::Applicant),
-            )
-        ) {
-            $errors['applicant_signature'] = self::BORROWER_SIGNATURE_REQUIRED_MESSAGE;
-        }
-
-        if ($actor->activeAdminSignature === null) {
-            $errors['loan_manager_signature'] = self::LOAN_MANAGER_SIGNATURE_REQUIRED_MESSAGE;
-        }
-
-        return $errors;
-    }
-
     private function isUnderReview(LoanRequest $loanRequest): bool
     {
-        return $this->statusValue($loanRequest) === LoanRequestStatus::UnderReview->value;
+        return in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::PendingCoMakerSignatures->value,
+            LoanRequestStatus::Submitted->value,
+            LoanRequestStatus::UnderReview->value,
+        ], true);
     }
 
     private function isPendingDecision(LoanRequest $loanRequest): bool
@@ -385,25 +333,6 @@ class LoanRequestDecisionService
     private function isApproved(LoanRequest $loanRequest): bool
     {
         return $this->statusValue($loanRequest) === LoanRequestStatus::Approved->value;
-    }
-
-    private function resolvePerson(
-        LoanRequest $loanRequest,
-        LoanRequestPersonRole $role,
-    ): ?LoanRequestPerson {
-        return $loanRequest->people
-            ->first(function (LoanRequestPerson $person) use ($role): bool {
-                $personRole = $person->role instanceof LoanRequestPersonRole
-                    ? $person->role->value
-                    : (string) $person->role;
-
-                return $personRole === $role->value;
-            });
-    }
-
-    private function personHasSignature(?LoanRequestPerson $person): bool
-    {
-        return $this->normalizeOptionalText($person?->signature_path) !== null;
     }
 
     private function statusValue(LoanRequest $loanRequest): string

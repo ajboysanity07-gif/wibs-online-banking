@@ -158,8 +158,8 @@ const DetailRow = ({ label, value, className }: DetailRowProps) => (
 
 const statusLabels: Record<LoanRequestStatusValue, string> = {
     draft: 'Draft',
-    pending_co_maker_signatures: 'Pending Co-maker Signatures',
     submitted: 'Submitted',
+    pending_co_maker_signatures: 'Under review',
     under_review: 'Under review',
     approved: 'Approved',
     declined: 'Declined',
@@ -168,9 +168,8 @@ const statusLabels: Record<LoanRequestStatusValue, string> = {
 
 const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     draft: 'Complete the form and submit when you are ready.',
-    pending_co_maker_signatures:
-        'Required co-makers still need to review the proposed details and sign.',
     submitted: 'Your request has been submitted for review.',
+    pending_co_maker_signatures: 'We are currently reviewing your request.',
     under_review: 'We are currently reviewing your request.',
     approved: 'Your request is approved. We will contact you next.',
     declined: 'Your request was declined. You may reapply anytime.',
@@ -180,7 +179,6 @@ const statusDescriptions: Record<LoanRequestStatusValue, string> = {
 
 const statusSteps: LoanRequestStatusValue[] = [
     'draft',
-    'pending_co_maker_signatures',
     'under_review',
     'approved',
     'declined',
@@ -197,8 +195,6 @@ type DecisionProps = {
     isProcessing?: boolean;
     blockedMessage?: string | null;
     approverName?: string | null;
-    approvalSignatureUrl?: string | null;
-    approvalSignatureUpdatedAt?: string | null;
     onApprove?: (payload: LoanRequestApprovePayload) => void;
     onDecline?: (payload: LoanRequestDeclinePayload) => void;
 };
@@ -317,7 +313,8 @@ export function LoanRequestDetailPage({
         ? formatDate(loanRequest.submitted_at)
         : null;
     const normalizedStatus =
-        loanRequest.status === 'submitted'
+        loanRequest.status === 'submitted' ||
+        loanRequest.status === 'pending_co_maker_signatures'
             ? 'under_review'
             : loanRequest.status;
     const statusForTimeline = (normalizedStatus ??
@@ -357,12 +354,9 @@ export function LoanRequestDetailPage({
             : '--';
     const availmentStatus = displayValue(loanRequest.availment_status);
     const loanPurpose = displayText(loanRequest.loan_purpose);
-    const submittedLabel =
-        normalizedStatus === 'pending_co_maker_signatures'
-            ? 'Waiting for co-maker signatures'
-            : submittedAt
-              ? `Submitted ${submittedAt}`
-              : 'Not submitted yet';
+    const submittedLabel = submittedAt
+        ? `Submitted ${submittedAt}`
+        : 'Not submitted yet';
     const showDecision = decision?.show ?? false;
     const showDecisionForm =
         showDecision &&
@@ -460,9 +454,6 @@ export function LoanRequestDetailPage({
     const reviewedBy = loanRequest.reviewed_by?.name ?? '--';
     const reviewedAt = displayDateValue(loanRequest.reviewed_at);
     const approvalSignerName = decision?.approverName?.trim() || '--';
-    const approvalSignatureUpdatedAt = decision?.approvalSignatureUpdatedAt
-        ? formatDateTime(decision.approvalSignatureUpdatedAt)
-        : null;
     const approvedAmountValue = displayCurrency(loanRequest.approved_amount);
     const approvedTermValue =
         loanRequest.approved_term !== null &&
@@ -1293,10 +1284,7 @@ export function LoanRequestDetailPage({
                         <CardContent className="text-sm text-muted-foreground">
                             {statusForTimeline === 'draft'
                                 ? 'Finish the application and submit to begin the review.'
-                                : statusForTimeline ===
-                                    'pending_co_maker_signatures'
-                                  ? 'Generate or resend secure co-maker links, then submit once all required co-makers have signed.'
-                                  : statusForTimeline === 'under_review'
+                                : statusForTimeline === 'under_review'
                                     ? 'Our team will review your request and notify you of the outcome.'
                                     : statusForTimeline === 'approved'
                                       ? 'You will receive next-step instructions from the loans team.'
@@ -1321,12 +1309,11 @@ export function LoanRequestDetailPage({
             >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Approve and Sign</DialogTitle>
+                        <DialogTitle>Approve Request</DialogTitle>
                         <DialogDescription>
                             You are approving this loan request as{' '}
-                            {approvalSignerName}. Your saved loan manager
-                            signature will be attached to the generated loan
-                            documents.
+                            {approvalSignerName}. Signatures will be collected
+                            physically upon loan release.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -1354,25 +1341,12 @@ export function LoanRequestDetailPage({
                                 <p className="text-sm text-muted-foreground">
                                     {approvalSignerName}
                                 </p>
-                                {approvalSignatureUpdatedAt ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        Saved signature updated{' '}
-                                        {approvalSignatureUpdatedAt}
-                                    </p>
-                                ) : null}
                             </div>
-                            <div className="mt-4 flex min-h-36 items-center justify-center rounded-xl border border-dashed border-border/60 bg-white p-4">
-                                {decision?.approvalSignatureUrl ? (
-                                    <img
-                                        src={decision.approvalSignatureUrl}
-                                        alt="Saved loan manager signature"
-                                        className="max-h-24 w-full object-contain"
-                                    />
-                                ) : (
-                                    <p className="text-center text-sm text-muted-foreground">
-                                        No saved signature preview available.
-                                    </p>
-                                )}
+                            <div className="mt-4 rounded-xl border border-dashed border-border/60 bg-muted/10 p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Signatures will be collected physically upon
+                                    loan release.
+                                </p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3 rounded-xl border border-border/30 bg-muted/10 p-4">
@@ -1389,7 +1363,7 @@ export function LoanRequestDetailPage({
                             >
                                 I confirm that I have reviewed the loan details,
                                 applicant details, and co-maker details before
-                                approving and signing this request.
+                                approving this request.
                             </Label>
                         </div>
                     </div>
@@ -1430,7 +1404,7 @@ export function LoanRequestDetailPage({
                                 closeApprovalDialog(true);
                             }}
                         >
-                            Approve and Sign
+                            Approve Request
                         </Button>
                     </DialogFooter>
                 </DialogContent>

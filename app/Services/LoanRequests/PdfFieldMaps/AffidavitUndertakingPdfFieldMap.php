@@ -51,19 +51,6 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'reviewer.name',
             ],
-            [
-                'type' => 'signature',
-                'page' => 1,
-                'x' => 32,
-                'y' => 223,
-                'width' => 44,
-                'height' => 16,
-                'scale' => 2.0,
-                'max_width' => 72,
-                'max_height' => 24,
-                'offset_y' => -4,
-                'value' => 'applicant.signature_path',
-            ],
         ];
     }
 }
