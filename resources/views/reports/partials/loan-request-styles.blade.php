@@ -156,7 +156,7 @@
         margin-bottom: 0;
     }
     .section-group--signature {
-        margin-top: 2px;
+        margin-top: 10px;
         page-break-inside: avoid;
         break-inside: avoid;
     }
