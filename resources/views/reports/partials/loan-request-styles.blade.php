@@ -70,9 +70,11 @@
         border-bottom: none;
         text-align: center;
         text-decoration: underline;
-        font-size: 13px;
+        font-size: 11px;
         width: 100%;
-        margin: 10px 0 0;
+        margin: 4px 0 0;
+        padding: 0;
+        letter-spacing: 0.02em;
     }
     .info-table,
     .section-table {
@@ -135,38 +137,65 @@
         margin: 0 4px 0 6px;
     }
     .undertaking {
-        font-size: 9px;
-        line-height: 1.35;
-        margin-top: 12px;
+        font-size: 9.7px;
+        line-height: 1.55;
+        margin-top: 6px;
+        padding: 0 8px 1px;
     }
     .undertaking p {
-        text-align: center;
+        text-align: justify;
         margin: 0 0 6px;
+        text-indent: 18px;
     }
-    .signature-row {
-        margin-top: 48px;
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
+    .undertaking p:last-child {
+        margin-bottom: 0;
     }
-    .signature-box {
-        width: 32%;
-        text-align: center;
+    .section-group--undertaking {
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
-    .signature-image {
-        height: 42px;
-        max-width: 100%;
-        object-fit: contain;
-        display: block;
-        margin: 0 auto 4px;
+    .section-group--signature {
+        margin-top: 6px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    .signature-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 10px 0;
+        table-layout: fixed;
+    }
+    .signature-cell {
+        width: 25%;
+        padding: 0;
+        vertical-align: top;
+    }
+    .signature-signing-space {
+        height: 28px;
+        margin: 0;
     }
     .signature-line {
-        border-top: 1px solid #111;
-        height: 1px;
+        height: 0;
+        margin: 0;
+        border-bottom: 1px solid #111;
+    }
+    .signature-name {
+        margin: 0;
+        min-height: 0;
+        font-size: 8.3px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        text-align: center;
+        word-break: break-word;
+        text-transform: uppercase;
     }
     .signature-label {
-        margin-top: 6px;
-        font-size: 9px;
+        min-height: 10px;
+        margin-top: 1px;
+        font-size: 8.3px;
         font-weight: 600;
+        line-height: 1.1;
+        text-align: center;
     }
 </style>
