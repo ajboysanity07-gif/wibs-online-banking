@@ -78,7 +78,7 @@ test('loan request report reserves physical signature areas without digital imag
         ->toContain('class="section-group section-group--signature"')
         ->toContain('class="signature-table"')
         ->toContain('class="signature-signing-space"')
-        ->toContain('height: 28px;')
+        ->toContain('height: 40px;')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')

@@ -156,7 +156,7 @@
         margin-bottom: 0;
     }
     .section-group--signature {
-        margin-top: 18px;
+        margin-top: 20px;
         page-break-inside: avoid;
         break-inside: avoid;
     }
@@ -180,7 +180,7 @@
         break-inside: avoid;
     }
     .signature-signing-space {
-        height: 28px;
+        height: 40px;
         margin: 0;
     }
     .signature-line {
