@@ -87,10 +87,10 @@ class RequestsService
 
         if ($status !== null && $status !== '') {
             if ($status === LoanRequestStatus::UnderReview->value) {
-                $query->whereIn('status', [
-                    LoanRequestStatus::UnderReview->value,
-                    LoanRequestStatus::Submitted->value,
-                ]);
+                $query->whereIn(
+                    'status',
+                    LoanRequestStatus::pendingDecisionValues(),
+                );
             } else {
                 $query->where('status', $status);
             }
@@ -244,13 +244,8 @@ class RequestsService
      */
     private function mapRequest(LoanRequest $request, bool $hasCorrectionReportsTable): array
     {
-        $status = $request->status instanceof LoanRequestStatus
-            ? $request->status->value
-            : (string) $request->status;
-
-        if ($status === LoanRequestStatus::Submitted->value) {
-            $status = LoanRequestStatus::UnderReview->value;
-        }
+        $status = LoanRequestStatus::normalizeValue($request->status)
+            ?? (string) $request->status;
         $submittedAt = $request->submitted_at?->toDateTimeString()
             ?? $request->created_at?->toDateTimeString();
         $applicant = $request->applicant;

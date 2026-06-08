@@ -286,14 +286,14 @@ class LoanRequestDecisionService
 
     private function isUnderReview(LoanRequest $loanRequest): bool
     {
-        return $this->statusValue($loanRequest) === LoanRequestStatus::UnderReview->value;
+        return LoanRequestStatus::normalizeValue($loanRequest->status)
+            === LoanRequestStatus::UnderReview->value;
     }
 
     private function isPendingDecision(LoanRequest $loanRequest): bool
     {
         return in_array($this->statusValue($loanRequest), [
-            LoanRequestStatus::Submitted->value,
-            LoanRequestStatus::UnderReview->value,
+            ...LoanRequestStatus::pendingDecisionValues(),
         ], true);
     }
 

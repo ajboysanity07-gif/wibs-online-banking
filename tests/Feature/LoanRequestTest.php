@@ -2223,6 +2223,7 @@ test('admin can cancel a pending loan request before decision', function (LoanRe
 })->with([
     'under review' => [LoanRequestStatus::UnderReview],
     'submitted' => [LoanRequestStatus::Submitted],
+    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
 ]);
 
 test('admin can cancel an approved loan request with a reason', function () {
@@ -2553,11 +2554,11 @@ test('member can cancel an under review loan request without providing a reason'
     expect($change->reason)->toBe('Cancelled by member before review decision.');
 });
 
-test('member can cancel a submitted loan request with a provided reason', function () {
+test('member can cancel a pending loan request with a provided reason', function (LoanRequestStatus $status) {
     $member = createApprovedMemberForLoanRequestTests('000734');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::Submitted,
+        'status' => $status,
         'submitted_at' => now(),
     ]);
 
@@ -2579,7 +2580,10 @@ test('member can cancel a submitted loan request with a provided reason', functi
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
     expect($loanRequest->cancellation_reason)->toBe('Found a mistake in the amount.');
-});
+})->with([
+    'submitted' => [LoanRequestStatus::Submitted],
+    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
+]);
 
 test('member cannot cancel a finalized or unavailable loan request', function (LoanRequestStatus $status) {
     $member = createApprovedMemberForLoanRequestTests('000735');

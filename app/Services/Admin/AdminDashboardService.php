@@ -74,13 +74,8 @@ class AdminDashboardService
             ->limit($limit)
             ->get()
             ->map(function (LoanRequest $request): array {
-                $status = $request->status instanceof LoanRequestStatus
-                    ? $request->status->value
-                    : (string) $request->status;
-
-                if ($status === LoanRequestStatus::Submitted->value) {
-                    $status = LoanRequestStatus::UnderReview->value;
-                }
+                $status = LoanRequestStatus::normalizeValue($request->status)
+                    ?? (string) $request->status;
                 $submittedAt = $request->submitted_at?->toDateTimeString()
                     ?? $request->created_at?->toDateTimeString();
                 $applicant = $request->applicant;
@@ -118,10 +113,7 @@ class AdminDashboardService
         }
 
         return LoanRequest::query()
-            ->whereIn('status', [
-                LoanRequestStatus::UnderReview->value,
-                LoanRequestStatus::Submitted->value,
-            ])
+            ->whereIn('status', LoanRequestStatus::pendingDecisionValues())
             ->count();
     }
 }

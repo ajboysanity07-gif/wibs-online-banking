@@ -664,9 +664,8 @@ class LoanRequestService
      */
     private function serializeRequestSummary(LoanRequest $loanRequest): array
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
+        $status = LoanRequestStatus::normalizeValue($loanRequest->status)
+            ?? (string) $loanRequest->status;
 
         return [
             'id' => $loanRequest->id,
@@ -957,9 +956,8 @@ class LoanRequestService
      */
     private function serializeLoanRequest(LoanRequest $loanRequest): array
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
+        $status = LoanRequestStatus::normalizeValue($loanRequest->status)
+            ?? (string) $loanRequest->status;
         $isDraft = $status === LoanRequestStatus::Draft->value;
 
         $typecode = $this->normalizeDraftString($loanRequest->typecode, $isDraft);

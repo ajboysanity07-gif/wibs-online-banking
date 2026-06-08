@@ -29,10 +29,7 @@ class RequestsIndexRequest extends FormRequest
             'status' => [
                 'nullable',
                 'string',
-                Rule::in(array_map(
-                    static fn (LoanRequestStatus $status) => $status->value,
-                    LoanRequestStatus::cases(),
-                )),
+                Rule::in(LoanRequestStatus::requestFilterValues()),
             ],
             'minAmount' => ['nullable', 'numeric', 'min:0'],
             'maxAmount' => ['nullable', 'numeric', 'min:0'],
