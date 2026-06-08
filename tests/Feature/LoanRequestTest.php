@@ -1136,7 +1136,7 @@ test('newly submitted applicant signature replaces old signature file', function
     Storage::disk('public')->assertExists((string) $secondSignaturePath);
 });
 
-test('loan request print preview includes signature data uris', function () {
+test('loan request print preview omits signature images even when stored signatures exist', function () {
     Storage::fake('public');
 
     $user = User::factory()->create();
@@ -1203,7 +1203,19 @@ test('loan request print preview includes signature data uris', function () {
         ->get(route('client.loan-requests.print', $loanRequest));
 
     $response->assertOk();
-    $response->assertSee('data:image/png;base64,', false);
+    $response->assertDontSee('data:image/png;base64,', false);
+    $response->assertSeeInOrder([
+        'signature-signing-space',
+        'signature-name',
+        'signature-line',
+        'signature-label',
+    ], false);
+
+    $content = $response->getContent();
+
+    expect($content)->not->toBeFalse();
+    expect(substr_count($content, 'class="signature-signing-space"'))->toBe(4);
+    expect(substr_count($content, 'class="signature-line"'))->toBe(4);
 });
 
 test('loan request submission validates housing status values', function () {

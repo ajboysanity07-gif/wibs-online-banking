@@ -7,12 +7,12 @@
 <style>
     @include('reports.partials.report-typography')
     @page {
-        size: 8.5in 13in;
-        margin: 0.5in;
+        size: 8.5in 11in;
+        margin: 0.35in;
     }
     body {
         font-family: var(--report-font-value-family);
-        font-size: 9.5px;
+        font-size: 9.2px;
         color: #111;
         margin: 0;
         -webkit-print-color-adjust: exact;
@@ -20,20 +20,20 @@
     }
     .page {
         border: 1.5px solid #111;
-        padding: 12px 12px 16px;
+        padding: 9px 9px 12px;
         box-sizing: border-box;
     }
     .report-header {
-        margin-bottom: 16px;
+        margin-bottom: 10px;
     }
     .report-header--design {
-        margin-bottom: 16px;
+        margin-bottom: 10px;
         text-align: center;
     }
     .report-header-design {
         display: block;
         width: 100%;
-        max-height: 95px;
+        max-height: 78px;
         object-fit: contain;
     }
     .report-header--fallback {
@@ -43,7 +43,7 @@
         font-family: var(--report-font-value-family);
         font-weight: 700;
         font-style: normal;
-        font-size: 12px;
+        font-size: 11px;
         color: #111;
         margin: 0;
         letter-spacing: 0.04em;
@@ -52,13 +52,13 @@
     .section-title {
         display: block;
         width: 100%;
-        margin: 10px 0 0;
+        margin: 8px 0 0;
         border-bottom: 1px solid #111;
         background: #111;
         color: #fff;
         font-weight: 700;
-        padding: 3px 6px;
-        font-size: 10px;
+        padding: 2px 5px;
+        font-size: 9.2px;
         text-transform: uppercase;
         box-sizing: border-box;
         -webkit-print-color-adjust: exact;
@@ -70,9 +70,9 @@
         border-bottom: none;
         text-align: center;
         text-decoration: underline;
-        font-size: 11px;
+        font-size: 10px;
         width: 100%;
-        margin: 4px 0 0;
+        margin: 1px 0 0;
         padding: 0;
         letter-spacing: 0.02em;
     }
@@ -85,7 +85,7 @@
     }
     .info-table td,
     .section-table td {
-        padding: 2px 3px;
+        padding: 1px 2px;
         vertical-align: bottom;
     }
     .label {
@@ -97,13 +97,13 @@
         color: var(--report-font-label-color);
         white-space: normal;
         padding-left: 0;
-        padding-right: 8px;
-        line-height: 1.1;
+        padding-right: 6px;
+        line-height: 1.05;
     }
     .row-line td {
         border-bottom: 1px solid #111;
-        padding-top: 2px;
-        padding-bottom: 2px;
+        padding-top: 1px;
+        padding-bottom: 1px;
     }
     .field {
         border-bottom: 1px solid #111;
@@ -112,7 +112,7 @@
         font-style: var(--report-font-value-style);
         font-size: var(--report-font-value-size);
         color: var(--report-font-value-color);
-        min-height: 12px;
+        min-height: 10px;
         padding-left: 1px;
     }
     .field--tight {
@@ -128,24 +128,24 @@
     }
     .checkbox {
         display: inline-block;
-        width: 10px;
-        height: 10px;
+        width: 9px;
+        height: 9px;
         border: 1px solid #111;
         text-align: center;
-        line-height: 10px;
-        font-size: 9px;
-        margin: 0 4px 0 6px;
+        line-height: 9px;
+        font-size: 8px;
+        margin: 0 3px 0 5px;
     }
     .undertaking {
-        font-size: 9.7px;
-        line-height: 1.55;
-        margin-top: 6px;
-        padding: 0 8px 1px;
+        font-size: 9.1px;
+        line-height: 1.38;
+        margin-top: 3px;
+        padding: 0 5px;
     }
     .undertaking p {
         text-align: justify;
-        margin: 0 0 6px;
-        text-indent: 18px;
+        margin: 0 0 3px;
+        text-indent: 12px;
     }
     .undertaking p:last-child {
         margin-bottom: 0;
@@ -153,25 +153,34 @@
     .section-group--undertaking {
         page-break-inside: avoid;
         break-inside: avoid;
+        margin-bottom: 0;
     }
     .section-group--signature {
-        margin-top: 6px;
+        margin-top: 18px;
         page-break-inside: avoid;
         break-inside: avoid;
     }
     .signature-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 10px 0;
+        border-spacing: 6px 0;
         table-layout: fixed;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    .signature-table tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
     .signature-cell {
         width: 25%;
         padding: 0;
         vertical-align: top;
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
     .signature-signing-space {
-        height: 28px;
+        height: 34px;
         margin: 0;
     }
     .signature-line {
@@ -182,18 +191,18 @@
     .signature-name {
         margin: 0;
         min-height: 0;
-        font-size: 8.3px;
+        font-size: 8px;
         font-weight: 700;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.03em;
         line-height: 1;
         text-align: center;
         word-break: break-word;
         text-transform: uppercase;
     }
     .signature-label {
-        min-height: 10px;
-        margin-top: 1px;
-        font-size: 8.3px;
+        min-height: 9px;
+        margin-top: 0;
+        font-size: 8px;
         font-weight: 600;
         line-height: 1.1;
         text-align: center;
