@@ -61,7 +61,7 @@ const statusVariant = (status?: LoanRequestStatusValue | null) => {
     return 'outline';
 };
 
-const statusClassName = (): string => '';
+const statusClassName = (_status?: LoanRequestStatusValue | null): string => '';
 
 export function LoanRequestStatusBadge({ status, className }: Props) {
     const resolvedStatus = normalizeStatus(status);

@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import axios, { type AxiosError } from 'axios';
+import axios, { AxiosHeaders, type AxiosError } from 'axios';
 
 const client = axios.create({
     baseURL: '/',
@@ -53,15 +53,16 @@ client.interceptors.request.use((config) => {
     const metaToken = getMetaCsrfToken();
 
     if (cookieToken) {
-        const headers = axios.AxiosHeaders.from(config.headers);
+        const headers = AxiosHeaders.from(config.headers);
         headers.delete('X-CSRF-TOKEN');
         headers.set('X-XSRF-TOKEN', cookieToken);
         config.headers = headers;
+
         return config;
     }
 
     if (metaToken) {
-        const headers = axios.AxiosHeaders.from(config.headers);
+        const headers = AxiosHeaders.from(config.headers);
         headers.set('X-CSRF-TOKEN', metaToken);
         config.headers = headers;
     }

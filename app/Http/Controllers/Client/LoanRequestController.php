@@ -562,19 +562,8 @@ class LoanRequestController extends Controller
 
     private function normalizeStatus(LoanRequest $loanRequest): string
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
-
-        if ($status === LoanRequestStatus::Submitted->value) {
-            return LoanRequestStatus::UnderReview->value;
-        }
-
-        if ($status === LoanRequestStatus::PendingCoMakerSignatures->value) {
-            return LoanRequestStatus::Draft->value;
-        }
-
-        return $status;
+        return LoanRequestStatus::memberVisibleValue($loanRequest->status)
+            ?? (string) $loanRequest->status;
     }
 
     private function isEditableStatus(LoanRequest $loanRequest): bool
@@ -591,13 +580,8 @@ class LoanRequestController extends Controller
 
     private function canViewPdf(LoanRequest $loanRequest): bool
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
-
-        if ($status === LoanRequestStatus::Submitted->value) {
-            $status = LoanRequestStatus::UnderReview->value;
-        }
+        $status = LoanRequestStatus::normalizeValue($loanRequest->status)
+            ?? (string) $loanRequest->status;
 
         return in_array($status, [
             LoanRequestStatus::UnderReview->value,

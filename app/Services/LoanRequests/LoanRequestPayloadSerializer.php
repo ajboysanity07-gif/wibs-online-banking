@@ -211,18 +211,8 @@ class LoanRequestPayloadSerializer
 
     private function normalizeStatus(LoanRequest $loanRequest): string
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
-
-        if (in_array($status, [
-            LoanRequestStatus::Submitted->value,
-            LoanRequestStatus::PendingCoMakerSignatures->value,
-        ], true)) {
-            return LoanRequestStatus::UnderReview->value;
-        }
-
-        return $status;
+        return LoanRequestStatus::normalizeValue($loanRequest->status)
+            ?? (string) $loanRequest->status;
     }
 
     private function resolveCorrectedRequest(

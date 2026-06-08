@@ -117,11 +117,8 @@ class LoanRequestCorrectionService
 
     private function isUnderReview(LoanRequest $loanRequest): bool
     {
-        $status = $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
-
-        return $status === LoanRequestStatus::UnderReview->value;
+        return LoanRequestStatus::normalizeValue($loanRequest->status)
+            === LoanRequestStatus::UnderReview->value;
     }
 
     /**

@@ -314,20 +314,17 @@ class LoanRequestDecisionService
 
     private function isUnderReview(LoanRequest $loanRequest): bool
     {
-        return in_array($this->statusValue($loanRequest), [
-            LoanRequestStatus::PendingCoMakerSignatures->value,
-            LoanRequestStatus::Submitted->value,
-            LoanRequestStatus::UnderReview->value,
-        ], true);
+        return LoanRequestStatus::normalizeValue($loanRequest->status)
+            === LoanRequestStatus::UnderReview->value;
     }
 
     private function isPendingDecision(LoanRequest $loanRequest): bool
     {
-        return in_array($this->statusValue($loanRequest), [
-            LoanRequestStatus::PendingCoMakerSignatures->value,
-            LoanRequestStatus::Submitted->value,
-            LoanRequestStatus::UnderReview->value,
-        ], true);
+        return in_array(
+            $this->statusValue($loanRequest),
+            LoanRequestStatus::pendingDecisionValues(),
+            true,
+        );
     }
 
     private function isApproved(LoanRequest $loanRequest): bool

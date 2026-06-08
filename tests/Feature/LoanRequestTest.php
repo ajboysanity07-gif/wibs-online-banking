@@ -794,7 +794,7 @@ test('clients can save a loan request draft', function () {
     expect(LoanRequest::query()->count())->toBe(1);
 });
 
-test('loan request form resumes existing draft', function () {
+test('loan request form resumes existing draft', function (LoanRequestStatus $status) {
     $user = User::factory()->create([
         'acctno' => '000713',
     ]);
@@ -818,7 +818,7 @@ test('loan request form resumes existing draft', function () {
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => LoanRequestStatus::Draft,
+            'status' => $status,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
@@ -864,6 +864,7 @@ test('loan request form resumes existing draft', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-request')
             ->where('draft.id', $loanRequest->id)
+            ->where('draft.status', LoanRequestStatus::Draft->value)
             ->where('applicant.first_name', 'Draft')
             ->where('applicant.birthplace', 'Quezon City')
             ->where('applicant.birthdate', '1990-04-10')
@@ -877,7 +878,10 @@ test('loan request form resumes existing draft', function () {
             ->where('coMakerTwo.housing_status', 'OWNED')
             ->where('coMakerTwo.civil_status', 'Widowed')
             ->where('coMakerTwo.payday', 'Bi-Weekly'));
-});
+})->with([
+    'draft' => [LoanRequestStatus::Draft],
+    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
+]);
 
 test('member can submit a loan request without digital signatures', function () {
     Storage::fake('public');
@@ -2442,6 +2446,7 @@ test('admin can cancel a pending loan request before decision', function (LoanRe
 })->with([
     'under review' => [LoanRequestStatus::UnderReview],
     'submitted' => [LoanRequestStatus::Submitted],
+    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
 ]);
 
 test('admin can cancel an approved loan request with a reason', function () {
@@ -2772,11 +2777,11 @@ test('member can cancel an under review loan request without providing a reason'
     expect($change->reason)->toBe('Cancelled by member before review decision.');
 });
 
-test('member can cancel a submitted loan request with a provided reason', function () {
+test('member can cancel a pending loan request with a provided reason', function (LoanRequestStatus $status) {
     $member = createApprovedMemberForLoanRequestTests('000734');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::Submitted,
+        'status' => $status,
         'submitted_at' => now(),
     ]);
 
@@ -2798,7 +2803,10 @@ test('member can cancel a submitted loan request with a provided reason', functi
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
     expect($loanRequest->cancellation_reason)->toBe('Found a mistake in the amount.');
-});
+})->with([
+    'submitted' => [LoanRequestStatus::Submitted],
+    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
+]);
 
 test('member cannot cancel a finalized or unavailable loan request', function (LoanRequestStatus $status) {
     $member = createApprovedMemberForLoanRequestTests('000735');
@@ -3959,7 +3967,7 @@ test('client loan requests page lists member loan requests', function () {
     $draft = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => LoanRequestStatus::Draft,
+            'status' => LoanRequestStatus::PendingCoMakerSignatures,
             'requested_amount' => 12000,
             'requested_term' => 12,
             'updated_at' => now(),
@@ -3996,7 +4004,7 @@ test('client loan requests page lists member loan requests', function () {
             ->where('loanRequests.items.1.status', LoanRequestStatus::UnderReview->value));
 });
 
-test('draft loan request details redirect to the request form', function () {
+test('editable loan request details redirect to the request form', function (LoanRequestStatus $status) {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
@@ -4018,7 +4026,7 @@ test('draft loan request details redirect to the request form', function () {
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => LoanRequestStatus::Draft,
+            'status' => $status,
         ]);
 
     $response = $this
@@ -4026,7 +4034,10 @@ test('draft loan request details redirect to the request form', function () {
         ->get(route('client.loan-requests.show', $loanRequest));
 
     $response->assertRedirect(route('client.loan-requests.create'));
-});
+})->with([
+    'draft' => [LoanRequestStatus::Draft],
+    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
+]);
 
 test('client can view submitted loan request details', function () {
     $user = User::factory()->create();

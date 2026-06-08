@@ -70,9 +70,11 @@
         border-bottom: none;
         text-align: center;
         text-decoration: underline;
-        font-size: 13px;
+        font-size: 11px;
         width: 100%;
-        margin: 10px 0 0;
+        margin: 4px 0 0;
+        padding: 0;
+        letter-spacing: 0.02em;
     }
     .info-table,
     .section-table {
@@ -135,80 +137,64 @@
         margin: 0 4px 0 6px;
     }
     .undertaking {
-        font-size: 9px;
-        line-height: 1.35;
-        margin-top: 12px;
+        font-size: 9.7px;
+        line-height: 1.55;
+        margin-top: 6px;
+        padding: 0 8px 1px;
     }
     .undertaking p {
-        text-align: center;
+        text-align: justify;
         margin: 0 0 6px;
+        text-indent: 18px;
     }
-    .signature-row {
-        margin-top: 44px;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 12px;
+    .undertaking p:last-child {
+        margin-bottom: 0;
+    }
+    .section-group--undertaking {
         page-break-inside: avoid;
         break-inside: avoid;
-        overflow: visible;
     }
-    .signature-box {
-        flex: 1 1 0;
-        min-width: 0;
-        text-align: center;
-        overflow: visible;
+    .section-group--signature {
+        margin-top: 6px;
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
-    .signature-signing-area {
-        position: relative;
-        min-height: 108px;
-        overflow: visible;
+    .signature-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 10px 0;
+        table-layout: fixed;
     }
-    .signature-art {
-        position: absolute;
-        right: -6px;
-        left: -6px;
-        bottom: 20px;
-        height: 72px;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        z-index: 2;
-        overflow: visible;
+    .signature-cell {
+        width: 25%;
+        padding: 0;
+        vertical-align: top;
     }
-    .signature-image {
-        display: block;
-        margin: 0 auto;
-        width: auto;
-        max-width: 126%;
-        max-height: 72px;
-        object-fit: contain;
+    .signature-signing-space {
+        height: 28px;
+        margin: 0;
     }
     .signature-line {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        margin: 0 0 4px;
+        height: 0;
+        margin: 0;
         border-bottom: 1px solid #111;
     }
     .signature-name {
-        position: relative;
-        z-index: 1;
-        min-height: 14px;
-        margin-bottom: 2px;
-        padding-top: 52px;
-        font-size: 9px;
-        font-weight: 600;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        margin: 0;
+        min-height: 0;
+        font-size: 8.3px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        text-align: center;
+        word-break: break-word;
     }
     .signature-label {
-        position: relative;
-        z-index: 1;
-        font-size: 9px;
+        min-height: 10px;
+        margin-top: 1px;
+        font-size: 8.3px;
         font-weight: 600;
-        line-height: 1.2;
+        line-height: 1.1;
+        text-align: center;
     }
 </style>

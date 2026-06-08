@@ -75,6 +75,26 @@ test('admin requests api does not crash when correction report table is missing'
         ->assertJsonPath('data.items.0.latest_correction_report_id', null);
 });
 
+test('admin requests api normalizes legacy pending co-maker statuses into under review', function () {
+    $admin = createRequestsApiAdmin('009002A');
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::PendingCoMakerSignatures,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?status=under_review&perPage=10&page=1')
+        ->assertOk()
+        ->assertJsonCount(1, 'data.items')
+        ->assertJsonPath('data.items.0.id', $loanRequest->id)
+        ->assertJsonPath(
+            'data.items.0.status',
+            LoanRequestStatus::UnderReview->value,
+        );
+});
+
 test('admin requests api reported filter is safely unavailable when correction report table is missing', function () {
     Schema::dropIfExists('loan_request_correction_reports');
 

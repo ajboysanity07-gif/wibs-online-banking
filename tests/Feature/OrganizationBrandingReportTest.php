@@ -75,13 +75,10 @@ test('loan request report reserves physical signature areas without digital imag
     ])->render();
 
     expect($html)
-        ->toContain('class="signature-art"')
-        ->toContain('class="signature-signing-area"')
-        ->toContain('min-height: 108px;')
-        ->toContain('bottom: 20px;')
-        ->toContain('height: 72px;')
-        ->toContain('max-width: 126%;')
-        ->toContain('max-height: 72px;')
+        ->toContain('class="section-group section-group--signature"')
+        ->toContain('class="signature-table"')
+        ->toContain('class="signature-signing-space"')
+        ->toContain('height: 28px;')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')
@@ -198,7 +195,7 @@ test('loan request report keeps approved details and blank signature lines on ap
         ->not->toContain('alt="Loan manager signature"')
         ->not->toContain('data:image/png;base64,');
 
-    $signatureSection = strstr($html, '<div class="signature-row">');
+    $signatureSection = strstr($html, '<table class="signature-table">');
 
     expect($signatureSection)->not->toBeFalse();
     expect(substr_count((string) $signatureSection, 'class="signature-line"'))->toBe(4);
