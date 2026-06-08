@@ -72,7 +72,7 @@
         text-decoration: underline;
         font-size: 11px;
         width: 100%;
-        margin: 4px 0 0;
+        margin: 2px 0 0;
         padding: 0;
         letter-spacing: 0.02em;
     }
@@ -137,15 +137,15 @@
         margin: 0 4px 0 6px;
     }
     .undertaking {
-        font-size: 9.7px;
-        line-height: 1.55;
-        margin-top: 6px;
-        padding: 0 8px 1px;
+        font-size: 9.5px;
+        line-height: 1.45;
+        margin-top: 4px;
+        padding: 0 6px;
     }
     .undertaking p {
         text-align: justify;
-        margin: 0 0 6px;
-        text-indent: 18px;
+        margin: 0 0 4px;
+        text-indent: 14px;
     }
     .undertaking p:last-child {
         margin-bottom: 0;
@@ -153,22 +153,31 @@
     .section-group--undertaking {
         page-break-inside: avoid;
         break-inside: avoid;
+        margin-bottom: 0;
     }
     .section-group--signature {
-        margin-top: 6px;
+        margin-top: 2px;
         page-break-inside: avoid;
         break-inside: avoid;
     }
     .signature-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 10px 0;
+        border-spacing: 6px 0;
         table-layout: fixed;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    .signature-table tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
     .signature-cell {
         width: 25%;
         padding: 0;
         vertical-align: top;
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
     .signature-signing-space {
         height: 28px;
@@ -182,17 +191,18 @@
     .signature-name {
         margin: 0;
         min-height: 0;
-        font-size: 8.3px;
+        font-size: 8px;
         font-weight: 700;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.03em;
         line-height: 1;
         text-align: center;
         word-break: break-word;
+        text-transform: uppercase;
     }
     .signature-label {
-        min-height: 10px;
-        margin-top: 1px;
-        font-size: 8.3px;
+        min-height: 9px;
+        margin-top: 0;
+        font-size: 8px;
         font-weight: 600;
         line-height: 1.1;
         text-align: center;
