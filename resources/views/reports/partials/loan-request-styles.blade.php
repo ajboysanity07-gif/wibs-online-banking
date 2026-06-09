@@ -196,13 +196,13 @@
     .signature-line {
         height: 0;
         margin: 0;
-        margin-top: 1px;
+        margin-top: 2px;
         border-bottom: 1px solid #111;
     }
     .signature-name {
         margin: 0;
         min-height: 0;
-        font-size: 9.5pt;
+        font-size: 9.25pt;
         font-weight: 700;
         letter-spacing: 0.02em;
         line-height: 1;
