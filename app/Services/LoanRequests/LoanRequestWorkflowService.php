@@ -17,6 +17,7 @@ class LoanRequestWorkflowService
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
         private LoanRequestDecisionService $decisionService,
+        private LoanRequestLoanConversionService $loanConversionService,
     ) {}
 
     public function startReview(
@@ -409,6 +410,79 @@ class LoanRequestWorkflowService
         return $updated;
     }
 
+    /**
+     * @return array{
+     *     loanRequest: \App\Models\LoanRequest,
+     *     loan: array{
+     *         loan_id: string,
+     *         loan_number: string,
+     *         loan_status: string,
+     *         ledger_control_no: string|null,
+     *         ledger_trans_no: string|null
+     *     }
+     * }
+     */
+    public function convertToLoan(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+        ?string $remarks = null,
+    ): array {
+        return DB::transaction(function () use (
+            $loanRequest,
+            $actor,
+            $remarks,
+        ): array {
+            $lockedLoanRequest = $this->lockLoanRequest($loanRequest);
+
+            Gate::forUser($actor)->authorize(
+                'convertToLoan',
+                $lockedLoanRequest,
+            );
+            $this->ensureStatus(
+                $lockedLoanRequest,
+                [LoanRequestStatus::Approved],
+                'Only approved requests can be converted to actual loans.',
+            );
+
+            $before = $this->snapshotForAudit($lockedLoanRequest);
+            $fromStatus = $this->statusValue($lockedLoanRequest);
+            $normalizedRemarks = $this->normalizeOptionalText($remarks);
+            $decisionNotesChanged = $normalizedRemarks !== null
+                && $normalizedRemarks !== $lockedLoanRequest->decision_notes;
+            $loanMetadata = $this->loanConversionService
+                ->createLoanForApprovedRequest($lockedLoanRequest, $actor);
+
+            $lockedLoanRequest->fill([
+                'status' => LoanRequestStatus::ConvertedToLoan,
+                'decision_notes' => $normalizedRemarks ?? $lockedLoanRequest->decision_notes,
+            ]);
+            $lockedLoanRequest->save();
+
+            $updatedLoanRequest = $this->refreshLoanRequest($lockedLoanRequest);
+
+            $this->recordWorkflowAudit(
+                $updatedLoanRequest,
+                $actor,
+                LoanRequestChange::ACTION_CONVERT_TO_LOAN,
+                $normalizedRemarks,
+                $fromStatus,
+                $this->statusValue($updatedLoanRequest),
+                array_values(array_filter([
+                    'status',
+                    $decisionNotesChanged ? 'decision_notes' : null,
+                ])),
+                $loanMetadata,
+                $before,
+                $this->snapshotForAudit($updatedLoanRequest),
+            );
+
+            return [
+                'loanRequest' => $updatedLoanRequest,
+                'loan' => $loanMetadata,
+            ];
+        }, attempts: 5);
+    }
+
     private function lockLoanRequest(LoanRequest $loanRequest): LoanRequest
     {
         return LoanRequest::query()
@@ -492,7 +566,7 @@ class LoanRequestWorkflowService
             'loan_request_id' => $loanRequest->id,
             'changed_by' => $actor->user_id,
             'action' => $action,
-            'reason' => $reason,
+            'reason' => $reason ?? '',
             'before_json' => $before,
             'after_json' => $after,
             'changed_fields_json' => $changedFields,

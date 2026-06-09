@@ -6,11 +6,71 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\Role;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 
 beforeEach(function () {
     Role::ensureWorkflowDefaults();
+
+    if (! Schema::hasTable('wlnmaster')) {
+        Schema::create('wlnmaster', function (Blueprint $table) {
+            $table->string('acctno');
+            $table->string('lnnumber')->unique();
+            $table->string('typecode')->nullable();
+            $table->string('lntype')->nullable();
+            $table->string('lnstatus')->nullable();
+            $table->decimal('principal', 12, 2)->default(0);
+            $table->decimal('balance', 12, 2)->default(0);
+            $table->dateTime('lastmove')->nullable();
+            $table->dateTime('date_in')->nullable();
+            $table->dateTime('date_start')->nullable();
+            $table->dateTime('date_mat')->nullable();
+            $table->dateTime('date_rel')->nullable();
+            $table->decimal('int_rate', 12, 4)->default(0);
+            $table->integer('term_mons')->nullable();
+            $table->decimal('amortization', 12, 2)->default(0);
+            $table->string('installment')->nullable();
+            $table->string('purpose')->nullable();
+            $table->string('remarks')->nullable();
+        });
+    }
+
+    if (! Schema::hasTable('wlnled')) {
+        Schema::create('wlnled', function (Blueprint $table) {
+            $table->string('lnstatus')->nullable();
+            $table->string('acctno');
+            $table->string('lnnumber');
+            $table->string('bname')->nullable();
+            $table->string('typecode')->nullable();
+            $table->string('lntype')->nullable();
+            $table->dateTime('date_in')->nullable();
+            $table->string('mreference')->nullable();
+            $table->string('cs_ck')->nullable();
+            $table->string('lncode')->nullable();
+            $table->decimal('principal', 12, 2)->default(0);
+            $table->decimal('payments', 12, 2)->default(0);
+            $table->decimal('balance', 12, 2)->default(0);
+            $table->decimal('debit', 12, 2)->default(0);
+            $table->decimal('credit', 12, 2)->default(0);
+            $table->decimal('unsettled', 12, 2)->default(0);
+            $table->string('transno')->nullable();
+            $table->string('controlno')->nullable();
+            $table->string('initial')->nullable();
+        });
+    }
+
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('lname')->nullable();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('bname')->nullable();
+        });
+    }
 });
 
 test('members can create and only view or resubmit their own eligible loan requests', function () {
@@ -553,6 +613,201 @@ test('loan managers can decline recommended requests through the workflow route 
     expect($change->reason)->toBe('Debt-to-income ratio is too high.');
 });
 
+test('loan managers can convert approved requests through the workflow route and create a legacy loan plus audit row', function () {
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100016A',
+    );
+
+    DB::table('wmaster')->insert([
+        'acctno' => $member->acctno,
+        'lname' => 'Cruz',
+        'fname' => 'Jamie',
+        'bname' => 'Cruz, Jamie',
+    ]);
+
+    $loanRequest = createApprovedWorkflowLoanRequest($member, [
+        'decision_notes' => 'Approved by manager.',
+    ]);
+
+    $response = $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [
+            'remarks' => 'Released to accounting.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::ConvertedToLoan->value)
+        ->assertJsonPath('data.loan.loan_status', 'ACT')
+        ->assertJsonPath('data.loan.ledger_control_no', '1')
+        ->assertJsonPath('data.loan.ledger_trans_no', '1');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::ConvertedToLoan);
+    expect($loanRequest->decision_notes)->toBe('Released to accounting.');
+
+    $legacyLoan = DB::table('wlnmaster')->first();
+
+    expect($legacyLoan)->not->toBeNull();
+    expect((string) $legacyLoan->acctno)->toBe($member->acctno);
+    expect((string) $legacyLoan->lnnumber)->toStartWith('0102-');
+    expect((string) $legacyLoan->lnstatus)->toBe('ACT');
+    expect((float) $legacyLoan->principal)->toBe(22000.0);
+    expect((float) $legacyLoan->balance)->toBe(22000.0);
+    expect((float) $legacyLoan->int_rate)->toBe(1.25);
+    expect((int) $legacyLoan->term_mons)->toBe(540);
+    expect((string) $legacyLoan->purpose)->toBe('Working capital');
+    expect((string) $legacyLoan->remarks)->toBe(sprintf('Converted from %s', $loanRequest->reference));
+
+    $ledgerEntry = DB::table('wlnled')
+        ->where('lnnumber', $legacyLoan->lnnumber)
+        ->first();
+
+    expect($ledgerEntry)->not->toBeNull();
+    expect((string) $ledgerEntry->lnstatus)->toBe('ACT');
+    expect((string) $ledgerEntry->lncode)->toBe('RL');
+    expect((string) $ledgerEntry->cs_ck)->toBe('CS');
+    expect((string) $ledgerEntry->bname)->toBe('Jamie Cruz');
+    expect((string) $ledgerEntry->mreference)->toBe($loanRequest->reference);
+    expect((float) $ledgerEntry->principal)->toBe(22000.0);
+    expect((float) $ledgerEntry->payments)->toBe(0.0);
+    expect((float) $ledgerEntry->balance)->toBe(22000.0);
+    expect((string) $ledgerEntry->controlno)->toBe('1');
+    expect((string) $ledgerEntry->transno)->toBe('1');
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->action)->toBe(LoanRequestChange::ACTION_CONVERT_TO_LOAN);
+    expect($change->changed_by)->toBe($loanManager->user_id);
+    expect($change->from_status)->toBe(LoanRequestStatus::Approved->value);
+    expect($change->to_status)->toBe(LoanRequestStatus::ConvertedToLoan->value);
+    expect($change->reason)->toBe('Released to accounting.');
+    expect($change->metadata_json['loan_number'] ?? null)->toBe($legacyLoan->lnnumber);
+    expect($change->metadata_json['loan_status'] ?? null)->toBe('ACT');
+    expect($change->metadata_json['ledger_control_no'] ?? null)->toBe('1');
+    expect($change->metadata_json['ledger_trans_no'] ?? null)->toBe('1');
+});
+
+test('admins can convert approved requests through the workflow route', function () {
+    $admin = createWorkflowAuthorizationActor(
+        [Role::ADMIN],
+        withAdminProfile: true,
+        acctno: null,
+    );
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100016B',
+    );
+
+    $loanRequest = createApprovedWorkflowLoanRequest($member, [
+        'approved_amount' => 18000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.95,
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::ConvertedToLoan->value);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::ConvertedToLoan);
+    expect(DB::table('wlnmaster')->count())->toBe(1);
+    expect(LoanRequestChange::query()->count())->toBe(1);
+});
+
+test('loan managers cannot convert non approved requests through the workflow route', function (LoanRequestStatus $status) {
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100016C',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => $status,
+        'submitted_at' => now(),
+        'approved_amount' => 22000,
+        'approved_term' => 18,
+        'approved_interest_rate' => 1.25,
+    ]);
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
+        ->assertForbidden();
+
+    expect(DB::table('wlnmaster')->count())->toBe(0);
+    expect(LoanRequestChange::query()->count())->toBe(0);
+})->with([
+    'pending review' => LoanRequestStatus::PendingReview,
+    'under review' => LoanRequestStatus::UnderReview,
+    'recommended for approval' => LoanRequestStatus::RecommendedForApproval,
+    'rejected' => LoanRequestStatus::Rejected,
+    'declined' => LoanRequestStatus::Declined,
+]);
+
+test('loan managers cannot convert the same request twice', function () {
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100016D',
+    );
+
+    $loanRequest = createApprovedWorkflowLoanRequest($member);
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
+        ->assertOk();
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
+        ->assertForbidden();
+
+    expect(DB::table('wlnmaster')->count())->toBe(1);
+    expect(LoanRequestChange::query()->count())->toBe(1);
+});
+
+test('loan managers cannot convert approved requests when a matching converted legacy loan already exists', function () {
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100016E',
+    );
+
+    $loanRequest = createApprovedWorkflowLoanRequest($member);
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => $member->acctno,
+        'lnnumber' => '0102-999999',
+        'typecode' => '02',
+        'lntype' => 'MICRO BUSINESS LOAN',
+        'lnstatus' => 'ACT',
+        'principal' => 22000,
+        'balance' => 22000,
+        'remarks' => sprintf('Converted from %s', $loanRequest->reference),
+    ]);
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('loan_request');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect(DB::table('wlnmaster')->count())->toBe(1);
+    expect(LoanRequestChange::query()->count())->toBe(0);
+});
+
 test('loan managers cannot approve non recommended requests through the workflow route', function (LoanRequestStatus $status) {
     Queue::fake();
 
@@ -604,6 +859,26 @@ test('unauthorized direct workflow route calls are blocked', function () {
     expect(LoanRequestChange::query()->count())->toBe(0);
 });
 
+test('unauthorized direct convert route calls are blocked', function () {
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100020A',
+    );
+
+    $loanRequest = createApprovedWorkflowLoanRequest($member);
+
+    $this
+        ->actingAs($member)
+        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
+        ->assertForbidden();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect(DB::table('wlnmaster')->count())->toBe(0);
+    expect(LoanRequestChange::query()->count())->toBe(0);
+});
+
 function createWorkflowAuthorizationActor(
     array $roles,
     bool $withAdminProfile = false,
@@ -633,4 +908,23 @@ function syncWorkflowAuthorizationRoles(AppUser $user, array $roles): AppUser
     $user->unsetRelation('roles');
 
     return $user->load('roles.permissions');
+}
+
+function createApprovedWorkflowLoanRequest(
+    AppUser $member,
+    array $attributes = [],
+): LoanRequest {
+    return LoanRequest::factory()->forUser($member)->create(array_merge([
+        'acctno' => $member->acctno,
+        'typecode' => '02',
+        'loan_type_label_snapshot' => 'MICRO BUSINESS LOAN',
+        'loan_purpose' => 'Working capital',
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => now()->subDay(),
+        'approved_at' => now()->subHour(),
+        'approved_amount' => 22000,
+        'approved_term' => 18,
+        'approved_interest_rate' => 1.25,
+        'decision_notes' => 'Approved by manager.',
+    ], $attributes));
 }

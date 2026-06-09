@@ -139,6 +139,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('approve');
             Route::patch('{loanRequest}/decline', [SpaLoanRequestWorkflowController::class, 'decline'])
                 ->name('decline');
+            Route::patch('{loanRequest}/convert-to-loan', [SpaLoanRequestWorkflowController::class, 'convertToLoan'])
+                ->name('convert-to-loan');
         });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {

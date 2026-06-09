@@ -19,6 +19,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_DECLINE = 'decline';
 
+    public const ACTION_CONVERT_TO_LOAN = 'convert_to_loan';
+
     public const ACTION_CANCEL_REQUEST = 'cancel_request';
 
     public const ACTION_CREATE_CORRECTED_REQUEST = 'create_corrected_request';
