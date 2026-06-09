@@ -264,7 +264,7 @@ test('loan request submission notifies admins and superadmins', function () {
     expect($data['type'])->toBe('loan_request_submitted');
     expect($data['loan_request_id'])->toBe($loanRequest->id);
     expect($data['reference'])->toBe($loanRequest->reference);
-    expect($data['status'])->toBe(LoanRequestStatus::UnderReview->value);
+    expect($data['status'])->toBe(LoanRequestStatus::PendingReview->value);
     expect($data['entity_type'])->toBe('loan_request');
     expect($data['entity_id'])->toBe($loanRequest->id);
     expect($data['message'])->toBe(

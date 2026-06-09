@@ -98,7 +98,11 @@ const formatCountLabel = (count: number, label: string): string => {
 const normalizeStatus = (
     status: LoanRequestStatusValue | null,
 ): LoanRequestStatusValue | null => {
-    if (status === 'submitted' || status === 'pending_co_maker_signatures') {
+    if (
+        status === 'submitted' ||
+        status === 'pending_review' ||
+        status === 'pending_co_maker_signatures'
+    ) {
         return 'under_review';
     }
 

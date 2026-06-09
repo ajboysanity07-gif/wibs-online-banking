@@ -31,9 +31,13 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(detailFile, /backLabel/);
     assert.match(detailFile, /sm:grid-cols-2/);
     assert.match(detailFile, /variant="ghost"/);
+    assert.match(detailFile, /loanRequest\.status === 'pending_review'/);
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
-    assert.match(clientPageFile, /\['submitted', 'under_review'\]\.includes/);
+    assert.match(
+        clientPageFile,
+        /\['submitted', 'pending_review', 'under_review'\]\.includes/,
+    );
     assert.match(clientPageFile, /Reason \(optional\)/);
     assert.match(clientPageFile, /Confirm Cancellation/);
 });

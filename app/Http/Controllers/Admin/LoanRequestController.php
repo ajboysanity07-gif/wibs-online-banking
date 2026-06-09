@@ -263,6 +263,7 @@ class LoanRequestController extends Controller
             ?? (string) $loanRequest->status;
 
         return in_array($status, [
+            LoanRequestStatus::PendingReview->value,
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::Declined->value,

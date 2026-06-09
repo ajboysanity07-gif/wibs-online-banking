@@ -292,6 +292,32 @@ test('loan officers can start review through the workflow route and create an au
     expect($change->reason)->toBe('Initial review started.');
 });
 
+test('loan officers cannot start review once a request is already under review', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100010A',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($loanOfficer)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Attempted duplicate review start.',
+        ])
+        ->assertForbidden();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->assigned_officer_id)->toBeNull();
+    expect(LoanRequestChange::query()->count())->toBe(0);
+});
+
 test('loan officers can request revision through the workflow route and create an audit row', function () {
     $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
     $member = createWorkflowAuthorizationActor(

@@ -264,7 +264,8 @@ export default function LoanRequestShow({
     const cancellationDialogEventName = `loan-request-cancel-open-${currentRequest.id}`;
     const showCancellationAction =
         decision.canCancel &&
-        (currentRequest.status === 'under_review' ||
+        (currentRequest.status === 'pending_review' ||
+            currentRequest.status === 'under_review' ||
             currentRequest.status === 'approved');
     const cancellationActionLabel =
         currentRequest.status === 'approved'

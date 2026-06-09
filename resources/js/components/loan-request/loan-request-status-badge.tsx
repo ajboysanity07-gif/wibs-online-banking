@@ -14,7 +14,11 @@ const normalizeStatus = (
         return null;
     }
 
-    if (status === 'submitted' || status === 'pending_co_maker_signatures') {
+    if (
+        status === 'submitted' ||
+        status === 'pending_review' ||
+        status === 'pending_co_maker_signatures'
+    ) {
         return 'under_review';
     }
 

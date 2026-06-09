@@ -48,7 +48,7 @@ const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
 const normalizeStatus = (
     status: LoanRequestStatusValue | null,
 ): LoanRequestStatusValue | null => {
-    if (status === 'submitted') {
+    if (status === 'submitted' || status === 'pending_review') {
         return 'under_review';
     }
 

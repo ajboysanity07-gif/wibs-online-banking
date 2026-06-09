@@ -181,13 +181,14 @@ class LoanRequestService
 
             $wasSubmitted = in_array($this->statusValue($loanRequest), [
                 LoanRequestStatus::Submitted->value,
+                LoanRequestStatus::PendingReview->value,
                 LoanRequestStatus::UnderReview->value,
             ], true);
 
             $this->fillLoanRequest(
                 $loanRequest,
                 $payload,
-                LoanRequestStatus::UnderReview,
+                LoanRequestStatus::PendingReview,
                 true,
             );
             $loanRequest->save();
@@ -505,7 +506,11 @@ class LoanRequestService
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        if ($status !== LoanRequestStatus::UnderReview->value) {
+        if (! in_array($status, [
+            LoanRequestStatus::Submitted->value,
+            LoanRequestStatus::PendingReview->value,
+            LoanRequestStatus::UnderReview->value,
+        ], true)) {
             return;
         }
 

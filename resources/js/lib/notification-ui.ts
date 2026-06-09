@@ -90,6 +90,10 @@ const formatStatusLabel = (status?: string | null): string | null => {
         return 'Under review';
     }
 
+    if (status === 'pending_review') {
+        return 'Pending review';
+    }
+
     return formatFieldLabel(status);
 };
 
@@ -174,7 +178,11 @@ const resolveChipTone = (
         return 'danger';
     }
 
-    if (status === 'under_review' || status === 'updated') {
+    if (
+        status === 'pending_review' ||
+        status === 'under_review' ||
+        status === 'updated'
+    ) {
         return 'accent';
     }
 

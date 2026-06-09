@@ -134,7 +134,9 @@ export default function LoanRequestShow({
             : null;
     const canCancelApplication =
         currentLoanRequest.status !== null &&
-        ['submitted', 'under_review'].includes(currentLoanRequest.status);
+        ['submitted', 'pending_review', 'under_review'].includes(
+            currentLoanRequest.status,
+        );
 
     const submitCorrectionReport = async (
         event: FormEvent<HTMLFormElement>,

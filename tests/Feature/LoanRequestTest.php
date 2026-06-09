@@ -882,7 +882,7 @@ test('loan request form resumes existing draft', function () {
             ->where('coMakerTwo.payday', 'Bi-Weekly'));
 });
 
-test('loan request submissions persist snapshots', function () {
+test('loan request submissions persist snapshots and enter pending review', function () {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -915,9 +915,6 @@ test('loan request submissions persist snapshots', function () {
         'requested_term' => 12,
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
-        'applicant_signature_data' => sampleSignatureDataUrl('one'),
-        'co_maker_one_signature_data' => sampleSignatureDataUrl('two'),
-        'co_maker_two_signature_data' => sampleSignatureDataUrl('one'),
         'undertaking_accepted' => true,
         'applicant' => [
             'first_name' => 'Loan',
@@ -1017,7 +1014,7 @@ test('loan request submissions persist snapshots', function () {
 
     $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
     expect($loanRequest)->not->toBeNull();
-    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
     expect($loanRequest->submitted_at)->not->toBeNull();
     expect(LoanRequestPerson::query()->where('loan_request_id', $loanRequest->id)->count())
         ->toBe(3);
@@ -1031,18 +1028,6 @@ test('loan request submissions persist snapshots', function () {
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('RENT');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao, Davao del Sur');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
-    expect($people[LoanRequestPersonRole::Applicant->value]->signature_path)->not->toBeNull();
-    expect($people[LoanRequestPersonRole::CoMakerOne->value]->signature_path)->not->toBeNull();
-    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path)->not->toBeNull();
-    Storage::disk('public')->assertExists(
-        $people[LoanRequestPersonRole::Applicant->value]->signature_path,
-    );
-    Storage::disk('public')->assertExists(
-        $people[LoanRequestPersonRole::CoMakerOne->value]->signature_path,
-    );
-    Storage::disk('public')->assertExists(
-        $people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path,
-    );
 });
 
 test('newly submitted applicant signature replaces old signature file', function () {
@@ -1462,7 +1447,7 @@ test('loan request submission validates housing status values', function () {
     $response->assertSessionHasErrors(['applicant.housing_status']);
 });
 
-test('loan request pdf endpoint responds with a pdf', function () {
+test('loan request pdf endpoint responds with a pdf for pending review requests', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
@@ -1484,7 +1469,7 @@ test('loan request pdf endpoint responds with a pdf', function () {
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => LoanRequestStatus::UnderReview,
+            'status' => LoanRequestStatus::PendingReview,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
@@ -1746,7 +1731,7 @@ test('admin requests api filters by loan type', function () {
         ->assertJsonPath('data.items.0.loan_type', 'Personal');
 });
 
-test('admin requests api filters by status and normalizes submitted requests', function () {
+test('admin requests api filters under review status and includes pending review requests', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
@@ -1761,6 +1746,10 @@ test('admin requests api filters by status and normalizes submitted requests', f
     ]);
 
     LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::PendingReview,
+    ]);
+
+    LoanRequest::factory()->create([
         'status' => LoanRequestStatus::Approved,
     ]);
 
@@ -1768,15 +1757,19 @@ test('admin requests api filters by status and normalizes submitted requests', f
         ->actingAs($admin)
         ->get('/spa/admin/requests?status=under_review');
 
-    $response->assertOk()->assertJsonCount(2, 'data.items');
+    $response->assertOk()->assertJsonCount(3, 'data.items');
 
     $statuses = collect($response->json('data.items'))
         ->pluck('status')
         ->unique()
+        ->sort()
         ->values()
         ->all();
 
-    expect($statuses)->toBe(['under_review']);
+    expect($statuses)->toBe([
+        LoanRequestStatus::PendingReview->value,
+        'under_review',
+    ]);
 });
 
 test('admin requests api filters by amount range', function () {
@@ -2348,6 +2341,7 @@ test('admin can cancel a pending loan request before decision', function (LoanRe
     expect($change->before_json['status'])->toBe($status->value);
     expect($change->after_json['status'])->toBe(LoanRequestStatus::Cancelled->value);
 })->with([
+    'pending review' => [LoanRequestStatus::PendingReview],
     'under review' => [LoanRequestStatus::UnderReview],
     'submitted' => [LoanRequestStatus::Submitted],
     'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
@@ -2708,6 +2702,7 @@ test('member can cancel a pending loan request with a provided reason', function
     expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
     expect($loanRequest->cancellation_reason)->toBe('Found a mistake in the amount.');
 })->with([
+    'pending review' => [LoanRequestStatus::PendingReview],
     'submitted' => [LoanRequestStatus::Submitted],
     'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
 ]);
@@ -3570,14 +3565,14 @@ test('loan request decisions succeed even without a phone number', function () {
     Queue::assertPushed(SendLoanDecisionSmsJob::class);
 });
 
-test('admin loan request pdf endpoint responds with a pdf', function () {
+test('admin loan request pdf endpoint responds with a pdf for pending review requests', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
 
     $loanRequest = LoanRequest::factory()->create([
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::PendingReview,
     ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)

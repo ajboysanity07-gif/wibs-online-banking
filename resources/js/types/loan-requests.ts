@@ -123,6 +123,7 @@ export type LoanRequestStatusValue =
     | 'draft'
     | 'pending_co_maker_signatures'
     | 'submitted'
+    | 'pending_review'
     | 'under_review'
     | 'approved'
     | 'declined'

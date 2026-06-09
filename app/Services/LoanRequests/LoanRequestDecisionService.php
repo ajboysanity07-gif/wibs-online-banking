@@ -258,7 +258,7 @@ class LoanRequestDecisionService
     ): void {
         if (! ($this->isApproved($loanRequest) || $this->isPendingDecision($loanRequest))) {
             throw ValidationException::withMessages([
-                'status' => 'Only pending co-maker signature, submitted, under review, or approved requests can be cancelled.',
+                'status' => 'Only pending review, pending co-maker signature, submitted, under review, or approved requests can be cancelled.',
             ]);
         }
 
@@ -285,7 +285,7 @@ class LoanRequestDecisionService
 
         if (! $this->isPendingDecision($loanRequest)) {
             throw ValidationException::withMessages([
-                'status' => 'Only pending co-maker signature, submitted, or under review requests can be cancelled.',
+                'status' => 'Only pending review, pending co-maker signature, submitted, or under review requests can be cancelled.',
             ]);
         }
     }

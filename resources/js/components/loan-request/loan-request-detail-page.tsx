@@ -159,6 +159,7 @@ const DetailRow = ({ label, value, className }: DetailRowProps) => (
 const statusLabels: Record<LoanRequestStatusValue, string> = {
     draft: 'Draft',
     submitted: 'Submitted',
+    pending_review: 'Under review',
     pending_co_maker_signatures: 'Under review',
     under_review: 'Under review',
     approved: 'Approved',
@@ -169,6 +170,7 @@ const statusLabels: Record<LoanRequestStatusValue, string> = {
 const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     draft: 'Complete the form and submit when you are ready.',
     submitted: 'Your request has been submitted for review.',
+    pending_review: 'We are currently reviewing your request.',
     pending_co_maker_signatures: 'We are currently reviewing your request.',
     under_review: 'We are currently reviewing your request.',
     approved: 'Your request is approved. We will contact you next.',
@@ -314,6 +316,7 @@ export function LoanRequestDetailPage({
         : null;
     const normalizedStatus =
         loanRequest.status === 'submitted' ||
+        loanRequest.status === 'pending_review' ||
         loanRequest.status === 'pending_co_maker_signatures'
             ? 'under_review'
             : loanRequest.status;

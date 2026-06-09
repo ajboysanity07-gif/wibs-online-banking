@@ -67,6 +67,7 @@ enum LoanRequestStatus: string
         return [
             self::PendingCoMakerSignatures->value,
             self::Submitted->value,
+            self::PendingReview->value,
             self::UnderReview->value,
         ];
     }
