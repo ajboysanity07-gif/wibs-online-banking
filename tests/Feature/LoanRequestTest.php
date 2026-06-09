@@ -1254,6 +1254,9 @@ test('loan request print preview omits signature images even when stored signatu
     expect($content)->toContain('window.print();');
     expect(substr_count($content, 'class="signature-signing-space"'))->toBe(4);
     expect(substr_count($content, 'class="signature-line"'))->toBe(4);
+    expect(
+        preg_match('/\\.signature-name\\s*\\{[^}]*font-size:\\s*10pt;/s', $content),
+    )->toBe(1);
 });
 
 test('loan request application form pdf stays on one long bond page', function () {
