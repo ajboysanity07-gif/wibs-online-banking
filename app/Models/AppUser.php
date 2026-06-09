@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -67,6 +68,18 @@ class AppUser extends Authenticatable
     public function adminProfile(): HasOne
     {
         return $this->hasOne(AdminProfile::class, 'user_id', 'user_id');
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Role::class,
+            'user_roles',
+            'user_id',
+            'role_id',
+            'user_id',
+            'id',
+        )->withTimestamps();
     }
 
     public function adminSignatures(): HasMany
@@ -257,6 +270,79 @@ class AppUser extends Authenticatable
     public function isAdminOnly(): bool
     {
         return $this->isAdmin() && ! $this->hasMemberAccess();
+    }
+
+    public function hasRole(Role|string $role): bool
+    {
+        $roleName = $role instanceof Role
+            ? $role->name
+            : trim($role);
+
+        if ($roleName === '') {
+            return false;
+        }
+
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(
+                static fn (Role $assignedRole): bool => $assignedRole->name === $roleName,
+            );
+        }
+
+        return $this->roles()
+            ->where('name', $roleName)
+            ->exists();
+    }
+
+    /**
+     * @param  array<int, Role|string>  $roles
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        $roleNames = array_values(array_unique(array_filter(array_map(
+            static fn (Role|string $role): string => trim($role instanceof Role ? $role->name : $role),
+            $roles,
+        ))));
+
+        if ($roleNames === []) {
+            return false;
+        }
+
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(
+                static fn (Role $assignedRole): bool => in_array($assignedRole->name, $roleNames, true),
+            );
+        }
+
+        return $this->roles()
+            ->whereIn('name', $roleNames)
+            ->exists();
+    }
+
+    public function hasPermission(Permission|string $permission): bool
+    {
+        $permissionName = $permission instanceof Permission
+            ? $permission->name
+            : trim($permission);
+
+        if ($permissionName === '') {
+            return false;
+        }
+
+        if ($this->relationLoaded('roles')) {
+            $this->roles->loadMissing('permissions');
+
+            return $this->roles->contains(
+                static fn (Role $role): bool => $role->permissions->contains(
+                    static fn (Permission $assignedPermission): bool => $assignedPermission->name === $permissionName,
+                ),
+            );
+        }
+
+        return $this->roles()
+            ->whereHas('permissions', function ($query) use ($permissionName): void {
+                $query->where('name', $permissionName);
+            })
+            ->exists();
     }
 
     public function getDisplayCodeAttribute(): string

@@ -24,10 +24,13 @@ class LoanRequestChange extends Model
         'loan_request_id',
         'changed_by',
         'action',
+        'from_status',
+        'to_status',
         'reason',
         'before_json',
         'after_json',
         'changed_fields_json',
+        'metadata_json',
     ];
 
     public function loanRequest(): BelongsTo
@@ -40,6 +43,11 @@ class LoanRequestChange extends Model
         return $this->belongsTo(AppUser::class, 'changed_by', 'user_id');
     }
 
+    public function actor(): BelongsTo
+    {
+        return $this->changedBy();
+    }
+
     /**
      * @return array<string, string>
      */
@@ -49,6 +57,7 @@ class LoanRequestChange extends Model
             'before_json' => 'array',
             'after_json' => 'array',
             'changed_fields_json' => 'array',
+            'metadata_json' => 'array',
         ];
     }
 }

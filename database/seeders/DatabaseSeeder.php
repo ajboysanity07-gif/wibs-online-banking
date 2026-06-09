@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(AdminUserSeeder::class);
+        $this->call(LoanWorkflowRbacSeeder::class);
         $this->call(OrganizationSettingSeeder::class);
     }
 }

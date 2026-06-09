@@ -37,14 +37,27 @@ class LoanRequest extends Model
         'availment_status',
         'status',
         'submitted_at',
+        'assigned_officer_id',
         'reviewed_by',
         'reviewed_at',
+        'review_decision',
+        'review_remarks',
+        'rejected_by',
+        'rejected_at',
+        'rejection_reason',
+        'approved_by',
+        'approved_at',
+        'approval_remarks',
         'approval_signature_id',
         'approval_ip_address',
         'approval_user_agent',
         'approved_amount',
         'approved_term',
+        'approved_interest_rate',
         'decision_notes',
+        'declined_by',
+        'declined_at',
+        'decline_reason',
         'cancelled_by',
         'cancelled_at',
         'cancellation_reason',
@@ -65,14 +78,34 @@ class LoanRequest extends Model
         return $this->hasMany(self::class, 'corrected_from_id', 'id');
     }
 
+    public function assignedOfficer(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'assigned_officer_id', 'user_id');
+    }
+
     public function reviewedBy(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'reviewed_by', 'user_id');
     }
 
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'rejected_by', 'user_id');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'approved_by', 'user_id');
+    }
+
     public function approvalSignature(): BelongsTo
     {
         return $this->belongsTo(AdminSignature::class, 'approval_signature_id');
+    }
+
+    public function declinedBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'declined_by', 'user_id');
     }
 
     public function cancelledBy(): BelongsTo
@@ -140,8 +173,12 @@ class LoanRequest extends Model
         return [
             'requested_amount' => 'decimal:2',
             'approved_amount' => 'decimal:2',
+            'approved_interest_rate' => 'decimal:4',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'rejected_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'declined_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'status' => LoanRequestStatus::class,
         ];
