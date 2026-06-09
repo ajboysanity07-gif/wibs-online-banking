@@ -21,6 +21,7 @@ class LoanRequestPdfService
     public function __construct(
         private OrganizationSettingsService $brandingService,
         private SignaturePngService $signaturePngService,
+        private OfficialLoanManagerResolver $officialLoanManagerResolver,
     ) {}
 
     public function render(LoanRequest $loanRequest, bool $download = false): Response
@@ -75,6 +76,7 @@ class LoanRequestPdfService
         $reportHeader = $branding['reportHeader'] ?? [];
         $reportHeader['companyName'] = $branding['companyName'] ?? '';
         $reportHeader['designData'] = $reportHeader['designData'] ?? null;
+        $officialLoanManager = $this->officialLoanManagerResolver->documentData();
 
         return [
             'loanRequest' => $loanRequest,
@@ -82,8 +84,8 @@ class LoanRequestPdfService
             'coMakerOne' => $coMakerOne,
             'coMakerTwo' => $coMakerTwo,
             'reviewer' => [
-                'name' => $loanRequest->reviewedBy?->adminProfile?->fullname
-                    ?? $loanRequest->reviewedBy?->name,
+                'name' => $officialLoanManager['name'],
+                'position' => $officialLoanManager['position'],
                 'signatureData' => null,
             ],
             'reviewerSignatureData' => null,

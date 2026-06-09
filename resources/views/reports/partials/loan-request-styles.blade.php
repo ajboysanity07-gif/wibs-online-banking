@@ -202,7 +202,7 @@
     .signature-name {
         margin: 0;
         min-height: 0;
-        font-size: 9.25pt;
+        font-size: 9.5pt;
         font-weight: 700;
         letter-spacing: 0.02em;
         line-height: 1;

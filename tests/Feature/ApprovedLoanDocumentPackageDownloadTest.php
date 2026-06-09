@@ -329,6 +329,7 @@ test('grepalife signature section keeps printed names and blank signature areas 
         'business_address2' => 'Tagum City',
         'business_address3' => 'Davao del Norte',
         'business_address' => '123 Main Street, Tagum City, Davao del Norte',
+        'support_contact_name' => 'Support Contact Name',
     ]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
@@ -359,7 +360,12 @@ test('grepalife signature section keeps printed names and blank signature areas 
     $fieldMap = new GrepalifePdfFieldMap;
 
     expect(data_get($documentData, 'applicant.signature_path'))->toBeNull();
+    expect($loanRequest->fresh()->reviewed_by)->toBe($admin->user_id);
     expect(data_get($documentData, 'reviewer.signature_path'))->toBeNull();
+    expect(data_get($documentData, 'reviewer.name'))->toBe('Anabelle M. Amora');
+    expect(data_get($documentData, 'reviewer.position'))->toBe('Loan Manager');
+    expect(data_get($documentData, 'reviewer.witness_one_name'))->toBe('Anabelle M. Amora');
+    expect(data_get($documentData, 'reviewer.witness_two_name'))->toBe('Anabelle M. Amora');
     expect(collect($fieldMap->fields())->contains(
         fn (array $field): bool => ($field['type'] ?? null) === 'signature',
     ))->toBeFalse();
@@ -378,7 +384,7 @@ test('grepalife signature section keeps printed names and blank signature areas 
             'reviewer.name',
         ),
         $documentData,
-    ))->toBe('MARIA LOAN OFFICER');
+    ))->toBe('ANABELLE M. AMORA');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
@@ -413,7 +419,8 @@ test('grepalife signature section keeps printed names and blank signature areas 
 
     expect($pdfText)
         ->toContain('JUAN PAULO CRUZ')
-        ->toContain('MARIA LOAN OFFICER')
+        ->toContain('ANABELLE M. AMORA')
+        ->not->toContain('MARIA LOAN OFFICER')
         ->toContain('WIBS COOPERATIVE')
         ->toContain('123 MAIN STREET, TAGUM CITY, DAVAO DEL NORTE')
         ->toContain('05/22/2026')

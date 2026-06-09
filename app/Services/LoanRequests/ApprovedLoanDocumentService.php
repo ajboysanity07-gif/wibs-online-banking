@@ -93,6 +93,7 @@ class ApprovedLoanDocumentService
     public function __construct(
         private LoanRequestPdfService $loanRequestPdfService,
         private OrganizationSettingsService $organizationSettingsService,
+        private OfficialLoanManagerResolver $officialLoanManagerResolver,
         private LoanSecurityAgreementPdfService $loanSecurityAgreementPdfService,
         private ApprovedLoanImageTemplatePdfService $approvedLoanImageTemplatePdfService,
         private ApprovedLoanPdfTemplateService $approvedLoanPdfTemplateService,
@@ -441,13 +442,9 @@ class ApprovedLoanDocumentService
         $approvedTerm = $this->normalizeIntegerValue($loanRequest->approved_term);
         $approvedAmountRaw = $this->normalizeNumericValue($loanRequest->approved_amount);
         $paymentMode = $this->resolveWorkbookPaymentMode($applicant);
-        $reviewerName = $this->normalizeText(
-            $loanRequest->reviewedBy?->adminProfile?->fullname,
-        ) ?? $this->normalizeText($loanRequest->reviewedBy?->name);
-        $reviewerPosition = $reviewerName !== null ? 'Loan Manager' : null;
-        $supportContactName = $this->normalizeText(
-            $branding['supportContactName'] ?? null,
-        );
+        $officialLoanManager = $this->officialLoanManagerResolver->documentData();
+        $reviewerName = $this->normalizeText($officialLoanManager['name']);
+        $reviewerPosition = $this->normalizeText($officialLoanManager['position']);
         $amortizationCount = $this->resolveAmortizationCount(
             $approvedTerm,
             $paymentMode,
@@ -524,8 +521,8 @@ class ApprovedLoanDocumentService
                 ? $approvedAmountRaw - $deductionsTotalRaw
                 : null,
         );
-        $witnessOneName = $supportContactName ?? $reviewerName;
-        $witnessTwoName = $reviewerName ?? $supportContactName;
+        $witnessOneName = $reviewerName;
+        $witnessTwoName = $reviewerName;
 
         return [
             'organization' => [

@@ -14,6 +14,7 @@ use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPdfService;
+use App\Services\LoanRequests\OfficialLoanManagerResolver;
 use App\Services\OrganizationSettingsService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
@@ -1148,7 +1149,7 @@ test('loan request print preview omits signature images even when stored signatu
     ]);
     AdminProfile::factory()->create([
         'user_id' => $reviewer->user_id,
-        'fullname' => 'Loan Manager',
+        'fullname' => 'System Approver',
     ]);
     DB::table('wmaster')->insert([
         'acctno' => $user->acctno,
@@ -1223,8 +1224,11 @@ test('loan request print preview omits signature images even when stored signatu
     $content = $response->getContent();
 
     expect($content)->not->toBeFalse();
+    expect($loanRequest->fresh()->reviewed_by)->toBe($reviewer->user_id);
     expect($content)->toContain('Loan Manager / Approved By');
-    expect($content)->toContain('LOAN MANAGER');
+    expect($content)->toContain('Anabelle M. Amora');
+    expect($content)->toContain('ANABELLE M. AMORA');
+    expect($content)->not->toContain('System Approver');
     expect($content)->toContain('@page {');
     expect($content)->toContain('@media print {');
     expect($content)->toContain('size: 8.5in 13in;');
@@ -1255,7 +1259,7 @@ test('loan request print preview omits signature images even when stored signatu
     expect(substr_count($content, 'class="signature-signing-space"'))->toBe(4);
     expect(substr_count($content, 'class="signature-line"'))->toBe(4);
     expect(
-        preg_match('/\\.signature-name\\s*\\{[^}]*font-size:\\s*10pt;/s', $content),
+        preg_match('/\\.signature-name\\s*\\{[^}]*font-size:\\s*9\\.5pt;/s', $content),
     )->toBe(1);
 });
 
@@ -1315,6 +1319,8 @@ test('loan request application form pdf stays on one long bond page', function (
 test('loan request pdf service defaults to long bond paper size', function () {
     $service = new LoanRequestPdfService(
         Mockery::mock(OrganizationSettingsService::class),
+        Mockery::mock(\App\Services\SignaturePngService::class),
+        new OfficialLoanManagerResolver,
     );
 
     $resolvePaperSize = new \ReflectionMethod($service, 'resolvePaperSize');

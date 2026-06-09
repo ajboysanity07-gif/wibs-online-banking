@@ -130,9 +130,7 @@
     };
     $reportHeader = $reportHeader ?? [];
     $approvedTermLabel = $formatMonths($loanRequest->approved_term);
-    $reviewerName = $loanRequest->reviewedBy?->adminProfile?->fullname
-        ?? $loanRequest->reviewedBy?->name
-        ?? '';
+    $reviewerName = $reviewer['name'] ?? '';
     $loanManagerName = $displayProperText($reviewerName);
     $loanManagerSignatureName = $formatPrintedSignatureName($reviewerName);
     $signatureBlocks = [
