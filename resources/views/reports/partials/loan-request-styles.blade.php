@@ -7,21 +7,31 @@
 <style>
     @include('reports.partials.report-typography')
     @page {
-        size: 8.5in 11in;
-        margin: 0.35in;
+        size: 8.5in 13in;
+        margin: 0.5in;
+    }
+    html,
+    body {
+        margin: 0;
+        padding: 0;
     }
     body {
         font-family: var(--report-font-value-family);
-        font-size: 9.2px;
+        font-size: 9pt;
+        line-height: 1.15;
         color: #111;
-        margin: 0;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     .page {
         border: 1.5px solid #111;
-        padding: 9px 9px 12px;
+        width: 7.5in;
+        min-height: 12in;
+        padding: 8px 10px 10px;
         box-sizing: border-box;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
     }
     .report-header {
         margin-bottom: 10px;
@@ -33,7 +43,7 @@
     .report-header-design {
         display: block;
         width: 100%;
-        max-height: 78px;
+        max-height: 75px;
         object-fit: contain;
     }
     .report-header--fallback {
@@ -43,7 +53,7 @@
         font-family: var(--report-font-value-family);
         font-weight: 700;
         font-style: normal;
-        font-size: 11px;
+        font-size: 10pt;
         color: #111;
         margin: 0;
         letter-spacing: 0.04em;
@@ -52,13 +62,13 @@
     .section-title {
         display: block;
         width: 100%;
-        margin: 8px 0 0;
+        margin: 5px 0 0;
         border-bottom: 1px solid #111;
         background: #111;
         color: #fff;
         font-weight: 700;
         padding: 2px 5px;
-        font-size: 9.2px;
+        font-size: 9pt;
         text-transform: uppercase;
         box-sizing: border-box;
         -webkit-print-color-adjust: exact;
@@ -70,9 +80,9 @@
         border-bottom: none;
         text-align: center;
         text-decoration: underline;
-        font-size: 10px;
+        font-size: 9pt;
         width: 100%;
-        margin: 1px 0 0;
+        margin: 2px 0 0;
         padding: 0;
         letter-spacing: 0.02em;
     }
@@ -92,13 +102,13 @@
         font-family: var(--report-font-label-family);
         font-weight: var(--report-font-label-weight);
         font-style: var(--report-font-label-style);
-        font-size: var(--report-font-label-size);
+        font-size: 7.5pt;
         text-transform: uppercase;
         color: var(--report-font-label-color);
         white-space: normal;
         padding-left: 0;
         padding-right: 6px;
-        line-height: 1.05;
+        line-height: 1;
     }
     .row-line td {
         border-bottom: 1px solid #111;
@@ -110,16 +120,17 @@
         font-family: var(--report-font-value-family);
         font-weight: var(--report-font-value-weight);
         font-style: var(--report-font-value-style);
-        font-size: var(--report-font-value-size);
+        font-size: 8.5pt;
         color: var(--report-font-value-color);
-        min-height: 10px;
+        min-height: 11px;
         padding-left: 1px;
+        line-height: 1.08;
     }
     .field--tight {
-        font-size: var(--report-font-value-size-tight);
+        font-size: 8.2pt;
     }
     .field--tightest {
-        font-size: var(--report-font-value-size-tightest);
+        font-size: 7.8pt;
     }
     .row-line .field {
         white-space: nowrap;
@@ -133,30 +144,29 @@
         border: 1px solid #111;
         text-align: center;
         line-height: 9px;
-        font-size: 8px;
+        font-size: 8pt;
         margin: 0 3px 0 5px;
     }
     .undertaking {
-        font-size: 9.1px;
-        line-height: 1.38;
-        margin-top: 3px;
-        padding: 0 5px;
+        font-size: 8pt;
+        line-height: 1.2;
+        margin-top: 5px;
+        padding: 0 4px;
     }
     .undertaking p {
         text-align: justify;
-        margin: 0 0 3px;
-        text-indent: 12px;
+        margin: 0 0 1px;
+        text-indent: 10px;
     }
     .undertaking p:last-child {
         margin-bottom: 0;
     }
     .section-group--undertaking {
-        page-break-inside: avoid;
-        break-inside: avoid;
         margin-bottom: 0;
+        margin-top: 10px;
     }
     .section-group--signature {
-        margin-top: 18px;
+        margin-top: 8px;
         page-break-inside: avoid;
         break-inside: avoid;
     }
@@ -180,20 +190,21 @@
         break-inside: avoid;
     }
     .signature-signing-space {
-        height: 34px;
+        height: 10px;
         margin: 0;
     }
     .signature-line {
         height: 0;
         margin: 0;
+        margin-top: 1px;
         border-bottom: 1px solid #111;
     }
     .signature-name {
         margin: 0;
         min-height: 0;
-        font-size: 8px;
+        font-size: 8.5pt;
         font-weight: 700;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.02em;
         line-height: 1;
         text-align: center;
         word-break: break-word;
@@ -202,9 +213,24 @@
     .signature-label {
         min-height: 9px;
         margin-top: 0;
-        font-size: 8px;
+        font-size: 7.5pt;
         font-weight: 600;
-        line-height: 1.1;
+        line-height: 1;
         text-align: center;
+    }
+    .section-group--signature {
+        margin-top: 80px;
+    }
+    @media print {
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+
+        .page {
+            margin: 0 auto;
+        }
     }
 </style>

@@ -13,6 +13,8 @@ use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestPdfService;
+use App\Services\OrganizationSettingsService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -1140,8 +1142,13 @@ test('loan request print preview omits signature images even when stored signatu
     Storage::fake('public');
 
     $user = User::factory()->create();
+    $reviewer = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $reviewer->user_id,
+        'fullname' => 'Loan Manager',
     ]);
     DB::table('wmaster')->insert([
         'acctno' => $user->acctno,
@@ -1178,6 +1185,8 @@ test('loan request print preview omits signature images even when stored signatu
         ->create([
             'status' => LoanRequestStatus::Approved,
             'submitted_at' => now(),
+            'reviewed_by' => $reviewer->user_id,
+            'reviewed_at' => now(),
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
@@ -1214,8 +1223,105 @@ test('loan request print preview omits signature images even when stored signatu
     $content = $response->getContent();
 
     expect($content)->not->toBeFalse();
+    expect($content)->toContain('Loan Manager / Approved By');
+    expect($content)->toContain('LOAN MANAGER');
+    expect($content)->toContain('@page {');
+    expect($content)->toContain('@media print {');
+    expect($content)->toContain('size: 8.5in 13in;');
+    expect($content)->toContain('margin: 0.5in;');
+    expect($content)->toContain('font-size: 9pt;');
+    expect($content)->toContain('display: flex;');
+    expect($content)->toContain('flex-direction: column;');
+    expect($content)->toContain('width: 7.5in;');
+    expect($content)->toContain('min-height: 12in;');
+    expect($content)->toContain('margin: 0 auto;');
+    expect($content)->toContain('padding: 8px 10px 10px;');
+    expect($content)->toContain('max-height: 75px;');
+    expect($content)->toContain('padding: 2px 5px;');
+    expect($content)->toContain('font-size: 7.5pt;');
+    expect($content)->toContain('font-size: 8.5pt;');
+    expect($content)->toContain('font-size: 8.2pt;');
+    expect($content)->toContain('font-size: 7.8pt;');
+    expect($content)->toContain('font-size: 8pt;');
+    expect($content)->toContain('line-height: 1.2;');
+    expect($content)->toContain('margin-top: 8px;');
+    expect($content)->toContain('height: 10px;');
+    expect($content)->toContain('font-size: 9pt;');
+    expect($content)->toContain('line-height: 1;');
+    expect($content)->toContain('font-size: 8pt;');
+    expect($content)->toContain('margin: 0 0 1px;');
+    expect($content)->toContain('margin-top: 1px;');
+    expect($content)->toContain('window.print();');
     expect(substr_count($content, 'class="signature-signing-space"'))->toBe(4);
     expect(substr_count($content, 'class="signature-line"'))->toBe(4);
+});
+
+test('loan request application form pdf stays on one long bond page', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+
+    $member = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $member->user_id,
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($member)
+        ->create([
+            'status' => LoanRequestStatus::Approved,
+            'submitted_at' => now(),
+        ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Juan',
+            'last_name' => 'Dela Cruz',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerOne)
+        ->create([
+            'first_name' => 'Ana',
+            'last_name' => 'Lim',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::CoMakerTwo)
+        ->create([
+            'first_name' => 'Ben',
+            'last_name' => 'Reyes',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.application-form', $loanRequest));
+
+    $response->assertOk();
+    $response->assertHeaderContains('content-type', 'application/pdf');
+
+    $pdfPath = $response->baseResponse->getFile()->getPathname();
+
+    expect((new \setasign\Fpdi\Fpdi('P', 'mm'))->setSourceFile($pdfPath))
+        ->toBe(1);
+});
+
+test('loan request pdf service defaults to long bond paper size', function () {
+    $service = new LoanRequestPdfService(
+        Mockery::mock(OrganizationSettingsService::class),
+    );
+
+    $resolvePaperSize = new \ReflectionMethod($service, 'resolvePaperSize');
+    $resolvePaperSize->setAccessible(true);
+
+    $resolveDompdfPaper = new \ReflectionMethod($service, 'resolveDompdfPaper');
+    $resolveDompdfPaper->setAccessible(true);
+
+    expect($resolvePaperSize->invoke($service))->toBe([8.5, 13.0, 'in']);
+    expect($resolveDompdfPaper->invoke($service))->toBe([0, 0, 612.0, 936.0]);
 });
 
 test('loan request submission validates housing status values', function () {
@@ -3553,6 +3659,7 @@ test('admin loan request print preview renders', function () {
     $response->assertViewIs('reports.loan-request-print');
     $response->assertSee('report-header--fallback');
     $response->assertSee('report-title');
+    $response->assertSee('window.print();', false);
 });
 
 test('admin loan request print preview normalizes uppercase text fields', function () {

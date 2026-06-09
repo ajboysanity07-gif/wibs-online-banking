@@ -130,7 +130,11 @@
     };
     $reportHeader = $reportHeader ?? [];
     $approvedTermLabel = $formatMonths($loanRequest->approved_term);
-    $loanManagerName = $displayProperText($reviewer['name'] ?? '');
+    $reviewerName = $loanRequest->reviewedBy?->adminProfile?->fullname
+        ?? $loanRequest->reviewedBy?->name
+        ?? '';
+    $loanManagerName = $displayProperText($reviewerName);
+    $loanManagerSignatureName = $formatPrintedSignatureName($reviewerName);
     $signatureBlocks = [
         [
             'name' => $formatPrintedSignatureName($extractPersonName($applicant)),
@@ -145,7 +149,7 @@
             'label' => 'Co-maker 2',
         ],
         [
-            'name' => $formatPrintedSignatureName($reviewer['name'] ?? null),
+            'name' => $loanManagerSignatureName,
             'label' => 'Loan Manager / Approved By',
         ],
     ];
@@ -591,4 +595,3 @@
         </table>
     </div>
 </div>
-
