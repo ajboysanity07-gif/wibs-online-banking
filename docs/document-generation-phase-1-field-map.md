@@ -732,3 +732,12 @@ Before implementation starts, confirm all of the following.
   - reviewer position/signature metadata
   - payment schedule rate fields
 - The best Phase 2 direction is to keep member-owned data member-owned, keep request-time snapshots authoritative for generated documents, and add document-specific storage only for data the current request model does not already own well.
+
+## Phase 1 Completion Notes
+
+- Phase 1 is documentation and planning only.
+- No production behavior should change from Phase 1.
+- Phase 2 should not begin until the missing fields and ownership rules are approved.
+- Future implementation should keep member-owned data member-owned.
+- Request snapshots should be the source for generated documents after submission.
+- Generated documents should eventually have stored records and audit logs.
