@@ -48,6 +48,7 @@ use App\Http\Controllers\Spa\Admin\MemberStatusController as SpaMemberStatusCont
 use App\Http\Controllers\Spa\Admin\RequestsController as SpaRequestsController;
 use App\Http\Controllers\Spa\Admin\WatchlistController as SpaWatchlistController;
 use App\Http\Controllers\Spa\AuthController as SpaAuthController;
+use App\Http\Controllers\Spa\LoanRequestWorkflowController as SpaLoanRequestWorkflowController;
 use App\Http\Controllers\Spa\MemberVerificationController as SpaMemberVerificationController;
 use App\Http\Controllers\Spa\NotificationsController as SpaNotificationsController;
 use App\Http\Controllers\Spa\PasswordRecoveryEmailLinkController as SpaPasswordRecoveryEmailLinkController;
@@ -121,6 +122,24 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::patch('notifications/{notification}/read', [SpaNotificationsController::class, 'markAsRead']);
         Route::patch('notifications/read-all', [SpaNotificationsController::class, 'markAllAsRead']);
     });
+
+    Route::middleware(['auth', 'verified'])
+        ->prefix('workflow/loan-requests')
+        ->name('spa.workflow.loan-requests.')
+        ->group(function () {
+            Route::patch('{loanRequest}/start-review', [SpaLoanRequestWorkflowController::class, 'startReview'])
+                ->name('start-review');
+            Route::patch('{loanRequest}/request-revision', [SpaLoanRequestWorkflowController::class, 'requestRevision'])
+                ->name('request-revision');
+            Route::patch('{loanRequest}/reject', [SpaLoanRequestWorkflowController::class, 'reject'])
+                ->name('reject');
+            Route::patch('{loanRequest}/recommend-approval', [SpaLoanRequestWorkflowController::class, 'recommendApproval'])
+                ->name('recommend-approval');
+            Route::patch('{loanRequest}/approve', [SpaLoanRequestWorkflowController::class, 'approve'])
+                ->name('approve');
+            Route::patch('{loanRequest}/decline', [SpaLoanRequestWorkflowController::class, 'decline'])
+                ->name('decline');
+        });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {
         Route::get('admin/summary', SpaAccountSummaryController::class);

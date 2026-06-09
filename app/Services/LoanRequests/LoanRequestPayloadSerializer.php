@@ -67,7 +67,11 @@ class LoanRequestPayloadSerializer
     public function serializeLoanRequest(LoanRequest $loanRequest): array
     {
         $loanRequest->loadMissing(
+            'assignedOfficer.adminProfile',
             'reviewedBy.adminProfile',
+            'rejectedBy.adminProfile',
+            'approvedBy.adminProfile',
+            'declinedBy.adminProfile',
             'cancelledBy',
             'correctedFrom',
             'correctedRequests',
@@ -92,23 +96,26 @@ class LoanRequestPayloadSerializer
             'loan_purpose' => $loanRequest->loan_purpose,
             'availment_status' => $loanRequest->availment_status,
             'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
-            'reviewed_by' => $loanRequest->reviewedBy
-                ? [
-                    'user_id' => $loanRequest->reviewedBy->user_id,
-                    'name' => $loanRequest->reviewedBy->adminProfile?->fullname
-                        ?? $loanRequest->reviewedBy->name,
-                ]
-                : null,
+            'assigned_officer_id' => $loanRequest->assigned_officer_id,
+            'assigned_officer' => $this->serializeActor($loanRequest->assignedOfficer),
+            'reviewed_by' => $this->serializeActor($loanRequest->reviewedBy),
             'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
+            'review_decision' => $loanRequest->review_decision,
+            'review_remarks' => $loanRequest->review_remarks,
+            'rejected_by' => $this->serializeActor($loanRequest->rejectedBy),
+            'rejected_at' => $loanRequest->rejected_at?->toDateTimeString(),
+            'rejection_reason' => $loanRequest->rejection_reason,
+            'approved_by' => $this->serializeActor($loanRequest->approvedBy),
+            'approved_at' => $loanRequest->approved_at?->toDateTimeString(),
+            'approval_remarks' => $loanRequest->approval_remarks,
             'approved_amount' => $loanRequest->approved_amount,
             'approved_term' => $loanRequest->approved_term,
+            'approved_interest_rate' => $loanRequest->approved_interest_rate,
             'decision_notes' => $loanRequest->decision_notes,
-            'cancelled_by' => $loanRequest->cancelledBy
-                ? [
-                    'user_id' => $loanRequest->cancelledBy->user_id,
-                    'name' => $loanRequest->cancelledBy->name,
-                ]
-                : null,
+            'declined_by' => $this->serializeActor($loanRequest->declinedBy),
+            'declined_at' => $loanRequest->declined_at?->toDateTimeString(),
+            'decline_reason' => $loanRequest->decline_reason,
+            'cancelled_by' => $this->serializeActor($loanRequest->cancelledBy),
             'cancelled_at' => $loanRequest->cancelled_at?->toDateTimeString(),
             'cancellation_reason' => $loanRequest->cancellation_reason,
             'corrected_from_id' => $loanRequest->corrected_from_id,
@@ -121,6 +128,21 @@ class LoanRequestPayloadSerializer
             'correction_saved' => $correctionSaved,
             'requires_correction_before_approval' => $requiresCorrectionBeforeApproval,
             'acctno' => $loanRequest->acctno,
+        ];
+    }
+
+    /**
+     * @return array{user_id: int, name: string}|null
+     */
+    private function serializeActor(mixed $actor): ?array
+    {
+        if (! $actor instanceof \App\Models\AppUser) {
+            return null;
+        }
+
+        return [
+            'user_id' => $actor->user_id,
+            'name' => $actor->adminProfile?->fullname ?? $actor->name,
         ];
     }
 

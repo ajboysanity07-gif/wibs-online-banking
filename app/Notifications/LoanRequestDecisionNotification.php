@@ -20,6 +20,13 @@ class LoanRequestDecisionNotification extends AbstractDatabaseNotification
         $status = $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
+        $decisionTimestamp = match ($status) {
+            LoanRequestStatus::Approved->value => $loanRequest->approved_at
+                ?? $loanRequest->reviewed_at,
+            LoanRequestStatus::Declined->value => $loanRequest->declined_at
+                ?? $loanRequest->reviewed_at,
+            default => $loanRequest->reviewed_at,
+        };
         $reference = $loanRequest->reference;
         $member = $loanRequest->user;
         $actor ??= $loanRequest->reviewedBy;
@@ -50,7 +57,7 @@ class LoanRequestDecisionNotification extends AbstractDatabaseNotification
                 'entity_type' => 'loan_request',
                 'entity_id' => $loanRequest->id,
                 'decision_notes' => $loanRequest->decision_notes,
-                'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
+                'reviewed_at' => $decisionTimestamp?->toDateTimeString(),
                 'updated_at' => $loanRequest->updated_at?->toDateTimeString(),
             ],
             NotificationPayload::member($member),

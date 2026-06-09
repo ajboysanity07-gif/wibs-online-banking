@@ -7,6 +7,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LoanRequestChange extends Model
 {
+    public const ACTION_START_REVIEW = 'start_review';
+
+    public const ACTION_REQUEST_REVISION = 'request_revision';
+
+    public const ACTION_REJECT = 'reject';
+
+    public const ACTION_RECOMMEND_APPROVAL = 'recommend_approval';
+
+    public const ACTION_APPROVE = 'approve';
+
+    public const ACTION_DECLINE = 'decline';
+
     public const ACTION_CANCEL_REQUEST = 'cancel_request';
 
     public const ACTION_CREATE_CORRECTED_REQUEST = 'create_corrected_request';

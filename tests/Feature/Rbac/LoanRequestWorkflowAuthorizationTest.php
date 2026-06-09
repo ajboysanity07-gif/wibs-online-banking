@@ -4,6 +4,7 @@ use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
 use App\Models\Role;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
@@ -254,10 +255,333 @@ test('loan managers cannot approve under review requests through the existing ad
     expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
 });
 
+test('loan officers can start review through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100010',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($loanOfficer)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Initial review started.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::UnderReview->value)
+        ->assertJsonPath('data.loanRequest.assigned_officer_id', $loanOfficer->user_id);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->assigned_officer_id)->toBe($loanOfficer->user_id);
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->action)->toBe(LoanRequestChange::ACTION_START_REVIEW);
+    expect($change->changed_by)->toBe($loanOfficer->user_id);
+    expect($change->from_status)->toBe(LoanRequestStatus::PendingReview->value);
+    expect($change->to_status)->toBe(LoanRequestStatus::UnderReview->value);
+    expect($change->reason)->toBe('Initial review started.');
+});
+
+test('loan officers can request revision through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100011',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($loanOfficer)
+        ->patchJson(route('spa.workflow.loan-requests.request-revision', $loanRequest), [
+            'remarks' => 'Please correct the employer address.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::NeedsRevision->value)
+        ->assertJsonPath('data.loanRequest.review_decision', LoanRequestStatus::NeedsRevision->value)
+        ->assertJsonPath('data.loanRequest.review_remarks', 'Please correct the employer address.');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::NeedsRevision);
+    expect($loanRequest->reviewed_by)->toBe($loanOfficer->user_id);
+    expect($loanRequest->review_decision)->toBe(LoanRequestStatus::NeedsRevision->value);
+    expect($loanRequest->review_remarks)->toBe('Please correct the employer address.');
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->action)->toBe(LoanRequestChange::ACTION_REQUEST_REVISION);
+    expect($change->from_status)->toBe(LoanRequestStatus::UnderReview->value);
+    expect($change->to_status)->toBe(LoanRequestStatus::NeedsRevision->value);
+    expect($change->reason)->toBe('Please correct the employer address.');
+});
+
+test('loan officers can reject through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100012',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($loanOfficer)
+        ->patchJson(route('spa.workflow.loan-requests.reject', $loanRequest), [
+            'rejection_reason' => 'Income documents are insufficient.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Rejected->value)
+        ->assertJsonPath('data.loanRequest.review_decision', LoanRequestStatus::Rejected->value)
+        ->assertJsonPath('data.loanRequest.rejection_reason', 'Income documents are insufficient.');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Rejected);
+    expect($loanRequest->reviewed_by)->toBe($loanOfficer->user_id);
+    expect($loanRequest->rejected_by)->toBe($loanOfficer->user_id);
+    expect($loanRequest->rejection_reason)->toBe('Income documents are insufficient.');
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->action)->toBe(LoanRequestChange::ACTION_REJECT);
+    expect($change->from_status)->toBe(LoanRequestStatus::UnderReview->value);
+    expect($change->to_status)->toBe(LoanRequestStatus::Rejected->value);
+    expect($change->reason)->toBe('Income documents are insufficient.');
+});
+
+test('loan officers can recommend approval through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100013',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($loanOfficer)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Ready for manager approval.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value)
+        ->assertJsonPath('data.loanRequest.review_decision', LoanRequestStatus::RecommendedForApproval->value)
+        ->assertJsonPath('data.loanRequest.review_remarks', 'Ready for manager approval.');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::RecommendedForApproval);
+    expect($loanRequest->reviewed_by)->toBe($loanOfficer->user_id);
+    expect($loanRequest->review_decision)->toBe(LoanRequestStatus::RecommendedForApproval->value);
+    expect($loanRequest->review_remarks)->toBe('Ready for manager approval.');
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->action)->toBe(LoanRequestChange::ACTION_RECOMMEND_APPROVAL);
+    expect($change->from_status)->toBe(LoanRequestStatus::UnderReview->value);
+    expect($change->to_status)->toBe(LoanRequestStatus::RecommendedForApproval->value);
+    expect($change->reason)->toBe('Ready for manager approval.');
+});
+
+test('loan officers cannot approve through the workflow route', function () {
+    Queue::fake();
+
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100014',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($loanOfficer)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 18000,
+            'approved_term' => 12,
+        ])
+        ->assertForbidden();
+
+    expect(LoanRequestChange::query()->count())->toBe(0);
+});
+
+test('loan managers can approve recommended requests through the workflow route and create an audit row', function () {
+    Queue::fake();
+
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100015',
+    );
+    $reviewingOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+        'reviewed_by' => $reviewingOfficer->user_id,
+        'reviewed_at' => now()->subMinute(),
+        'review_decision' => LoanRequestStatus::RecommendedForApproval->value,
+        'review_remarks' => 'Officer recommendation.',
+    ]);
+
+    $response = $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 22000,
+            'approved_term' => 18,
+            'approved_interest_rate' => 1.25,
+            'approval_remarks' => 'Approved by manager.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value)
+        ->assertJsonPath('data.loanRequest.approval_remarks', 'Approved by manager.')
+        ->assertJsonPath('data.loanRequest.decision_notes', 'Approved by manager.');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect($loanRequest->approved_by)->toBe($loanManager->user_id);
+    expect($loanRequest->approved_amount)->toBe('22000.00');
+    expect($loanRequest->approved_term)->toBe(18);
+    expect($loanRequest->approved_interest_rate)->toBe('1.2500');
+    expect($loanRequest->approval_remarks)->toBe('Approved by manager.');
+    expect($loanRequest->decision_notes)->toBe('Approved by manager.');
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->action)->toBe(LoanRequestChange::ACTION_APPROVE);
+    expect($change->from_status)->toBe(LoanRequestStatus::RecommendedForApproval->value);
+    expect($change->to_status)->toBe(LoanRequestStatus::Approved->value);
+    expect($change->reason)->toBe('Approved by manager.');
+});
+
+test('loan managers can decline recommended requests through the workflow route and create an audit row', function () {
+    Queue::fake();
+
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100016',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.decline', $loanRequest), [
+            'decline_reason' => 'Debt-to-income ratio is too high.',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Declined->value)
+        ->assertJsonPath('data.loanRequest.decline_reason', 'Debt-to-income ratio is too high.')
+        ->assertJsonPath('data.loanRequest.decision_notes', 'Debt-to-income ratio is too high.');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Declined);
+    expect($loanRequest->declined_by)->toBe($loanManager->user_id);
+    expect($loanRequest->decline_reason)->toBe('Debt-to-income ratio is too high.');
+    expect($loanRequest->decision_notes)->toBe('Debt-to-income ratio is too high.');
+
+    $change = LoanRequestChange::query()->sole();
+
+    expect($change->action)->toBe(LoanRequestChange::ACTION_DECLINE);
+    expect($change->from_status)->toBe(LoanRequestStatus::RecommendedForApproval->value);
+    expect($change->to_status)->toBe(LoanRequestStatus::Declined->value);
+    expect($change->reason)->toBe('Debt-to-income ratio is too high.');
+});
+
+test('loan managers cannot approve non recommended requests through the workflow route', function (LoanRequestStatus $status) {
+    Queue::fake();
+
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100017',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => $status,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 18000,
+            'approved_term' => 12,
+        ])
+        ->assertForbidden();
+
+    expect(LoanRequestChange::query()->count())->toBe(0);
+})->with([
+    'pending review' => LoanRequestStatus::PendingReview,
+    'under review' => LoanRequestStatus::UnderReview,
+]);
+
+test('unauthorized direct workflow route calls are blocked', function () {
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100018',
+    );
+    $owner = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100019',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($owner)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($member)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [])
+        ->assertForbidden();
+
+    expect(LoanRequestChange::query()->count())->toBe(0);
+});
+
 function createWorkflowAuthorizationActor(
     array $roles,
     bool $withAdminProfile = false,
-    ?string $acctno = '900001',
+    ?string $acctno = null,
 ): AppUser {
     $user = AppUser::factory()->create([
         'acctno' => $acctno,
