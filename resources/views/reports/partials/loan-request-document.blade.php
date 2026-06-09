@@ -81,7 +81,7 @@
             return $fallback;
         }
 
-        return number_format((float) $text, 2);
+        return '₱'.number_format((float) $text, 2);
     };
     $formatMonths = static function (mixed $value, string $fallback = '') use ($displayRawValue, $displayText): string {
         $text = $displayRawValue($value);
@@ -128,39 +128,28 @@
         }
         return 'field field--tightest';
     };
-    $buildFullName = function (array $person) use ($displayText): string {
-        $fullName = trim(implode(' ', array_filter([
-            $person['first_name'] ?? '',
-            $person['middle_name'] ?? '',
-            $person['last_name'] ?? '',
-        ], static fn (mixed $part): bool => trim((string) $part) !== '')));
-
-        return $displayText($fullName);
-    };
     $reportHeader = $reportHeader ?? [];
-    $approvedTermLabel = $loanRequest->approved_term === null
-        || trim((string) $loanRequest->approved_term) === ''
-        ? ''
-        : $displayText(trim((string) $loanRequest->approved_term).' months');
-    $applicantName = $buildFullName($applicant);
-    $coMakerOneName = $buildFullName($coMakerOne);
-    $coMakerTwoName = $buildFullName($coMakerTwo);
-    $loanManagerName = $displayText(trim((string) ($reviewer['name'] ?? '')));
+    $approvedTermLabel = $formatMonths($loanRequest->approved_term);
+    $reviewerName = $loanRequest->reviewedBy?->adminProfile?->fullname
+        ?? $loanRequest->reviewedBy?->name
+        ?? '';
+    $loanManagerName = $displayProperText($reviewerName);
+    $loanManagerSignatureName = $formatPrintedSignatureName($reviewerName);
     $signatureBlocks = [
         [
-            'name' => $applicantName,
+            'name' => $formatPrintedSignatureName($extractPersonName($applicant)),
             'label' => 'Member / Applicant',
         ],
         [
-            'name' => $coMakerOneName,
+            'name' => $formatPrintedSignatureName($extractPersonName($coMakerOne)),
             'label' => 'Co-maker 1',
         ],
         [
-            'name' => $coMakerTwoName,
+            'name' => $formatPrintedSignatureName($extractPersonName($coMakerTwo)),
             'label' => 'Co-maker 2',
         ],
         [
-            'name' => $loanManagerName,
+            'name' => $loanManagerSignatureName,
             'label' => 'Loan Manager / Approved By',
         ],
     ];

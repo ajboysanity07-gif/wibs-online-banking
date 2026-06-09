@@ -13,6 +13,8 @@ use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestPdfService;
+use App\Services\OrganizationSettingsService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -794,7 +796,7 @@ test('clients can save a loan request draft', function () {
     expect(LoanRequest::query()->count())->toBe(1);
 });
 
-test('loan request form resumes existing draft', function (LoanRequestStatus $status) {
+test('loan request form resumes existing draft', function () {
     $user = User::factory()->create([
         'acctno' => '000713',
     ]);
@@ -818,7 +820,7 @@ test('loan request form resumes existing draft', function (LoanRequestStatus $st
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => $status,
+            'status' => LoanRequestStatus::Draft,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
@@ -864,7 +866,6 @@ test('loan request form resumes existing draft', function (LoanRequestStatus $st
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/loan-request')
             ->where('draft.id', $loanRequest->id)
-            ->where('draft.status', LoanRequestStatus::Draft->value)
             ->where('applicant.first_name', 'Draft')
             ->where('applicant.birthplace', 'Quezon City')
             ->where('applicant.birthdate', '1990-04-10')
@@ -878,12 +879,9 @@ test('loan request form resumes existing draft', function (LoanRequestStatus $st
             ->where('coMakerTwo.housing_status', 'OWNED')
             ->where('coMakerTwo.civil_status', 'Widowed')
             ->where('coMakerTwo.payday', 'Bi-Weekly'));
-})->with([
-    'draft' => [LoanRequestStatus::Draft],
-    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
-]);
+});
 
-test('member can submit a loan request without digital signatures', function () {
+test('loan request submissions persist snapshots', function () {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -916,6 +914,9 @@ test('member can submit a loan request without digital signatures', function () 
         'requested_term' => 12,
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
+        'applicant_signature_data' => sampleSignatureDataUrl('one'),
+        'co_maker_one_signature_data' => sampleSignatureDataUrl('two'),
+        'co_maker_two_signature_data' => sampleSignatureDataUrl('one'),
         'undertaking_accepted' => true,
         'applicant' => [
             'first_name' => 'Loan',
@@ -1029,75 +1030,26 @@ test('member can submit a loan request without digital signatures', function () 
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('RENT');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao, Davao del Sur');
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
-    expect($people[LoanRequestPersonRole::Applicant->value]->signature_path)->toBeNull();
-    expect($people[LoanRequestPersonRole::CoMakerOne->value]->signature_path)->toBeNull();
-    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path)->toBeNull();
-    expect($loanRequest->signatureLinks()->count())->toBe(0);
+    expect($people[LoanRequestPersonRole::Applicant->value]->signature_path)->not->toBeNull();
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->signature_path)->not->toBeNull();
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path)->not->toBeNull();
+    Storage::disk('public')->assertExists(
+        $people[LoanRequestPersonRole::Applicant->value]->signature_path,
+    );
+    Storage::disk('public')->assertExists(
+        $people[LoanRequestPersonRole::CoMakerOne->value]->signature_path,
+    );
+    Storage::disk('public')->assertExists(
+        $people[LoanRequestPersonRole::CoMakerTwo->value]->signature_path,
+    );
 });
 
-test('digital signature routes are disabled on main', function () {
-    $member = User::factory()->create([
-        'acctno' => '000724',
-    ]);
-    UserProfile::factory()->approved()->create([
-        'user_id' => $member->user_id,
-    ]);
-    MemberApplicationProfile::factory()->completed()->create([
-        'user_id' => $member->user_id,
-    ]);
-    DB::table('wmaster')->insert([
-        'acctno' => $member->acctno,
-        'bname' => 'Member, Loan',
-        'fname' => 'Loan',
-        'lname' => 'Member',
-        'birthday' => '1990-04-10',
-        'address' => 'Loan Street',
-        'civilstat' => 'Single',
-        'occupation' => 'Analyst',
-    ]);
-
-    $admin = User::factory()->create([
-        'acctno' => '000725',
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-    ]);
-
-    $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::UnderReview,
-        'submitted_at' => now(),
-    ]);
-
-    $this
-        ->actingAs($member)
-        ->postJson(route('client.loan-requests.signature-links.store', [
-            'role' => LoanRequestPersonRole::CoMakerOne->value,
-        ]))
-        ->assertNotFound();
-
-    $this
-        ->actingAs($admin)
-        ->postJson("/spa/admin/requests/{$loanRequest->id}/co-makers/".LoanRequestPersonRole::CoMakerOne->value.'/signature-link')
-        ->assertNotFound();
-
-    $this
-        ->get(route('loan-requests.sign.co-maker.show', 'public-signing-token'))
-        ->assertNotFound();
-
-    $this
-        ->post(route('loan-requests.sign.co-maker.store', 'public-signing-token'))
-        ->assertNotFound();
-
-    $this
-        ->actingAs($admin)
-        ->post(route('profile.loan-manager-signature.update'))
-        ->assertNotFound();
-});
-
-test('loan request print preview omits signature images even when stored signatures exist', function () {
+test('newly submitted applicant signature replaces old signature file', function () {
     Storage::fake('public');
 
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'acctno' => '000724',
+    ]);
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
     ]);
@@ -1114,28 +1066,119 @@ test('loan request print preview omits signature images even when stored signatu
     MemberApplicationProfile::factory()->completed()->create([
         'user_id' => $user->user_id,
     ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-008',
+        'lntype' => 'Personal',
+    ]);
 
+    $payload = [
+        'typecode' => 'LN-008',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'applicant_signature_data' => sampleSignatureDataUrl('one'),
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '3 years',
+            'gross_monthly_income' => 25000,
+            'payday' => '15th & 30th',
+        ],
+    ];
+
+    $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $payload)
+        ->assertRedirect(route('client.loan-requests.create'));
+
+    $loanRequest = LoanRequest::query()->sole();
+    $firstSignaturePath = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->value('signature_path');
+
+    expect($firstSignaturePath)->not->toBeNull();
+    Storage::disk('public')->assertExists((string) $firstSignaturePath);
+
+    $payload['applicant_signature_data'] = sampleSignatureDataUrl('two');
+    $payload['loan_purpose'] = 'Tuition';
+
+    $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $payload)
+        ->assertRedirect(route('client.loan-requests.create'));
+
+    $secondSignaturePath = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->value('signature_path');
+
+    expect($secondSignaturePath)->not->toBeNull();
+    expect($secondSignaturePath)->not->toBe($firstSignaturePath);
+    Storage::disk('public')->assertMissing((string) $firstSignaturePath);
+    Storage::disk('public')->assertExists((string) $secondSignaturePath);
+});
+
+test('loan request print preview omits signature images even when stored signatures exist', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create();
     $reviewer = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
     AdminProfile::factory()->create([
         'user_id' => $reviewer->user_id,
+        'fullname' => 'Loan Manager',
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
     ]);
 
-    $reviewerSignature = createActiveAdminSignatureRecord($reviewer, 'two');
-    $applicantSignaturePath = storeTestSignatureFile(
-        'loan-requests/signatures/applicant.png',
-        'one',
+    $applicantSignaturePath = 'loan-requests/signatures/applicant.png';
+    $coMakerOneSignaturePath = 'loan-requests/signatures/co-maker-one.png';
+    $coMakerTwoSignaturePath = 'loan-requests/signatures/co-maker-two.png';
+    Storage::disk('public')->put(
+        $applicantSignaturePath,
+        sampleSignatureBinary('one'),
     );
-    $coMakerOneSignaturePath = storeTestSignatureFile(
-        'loan-requests/signatures/co-maker-one.png',
-        'two',
+    Storage::disk('public')->put(
+        $coMakerOneSignaturePath,
+        sampleSignatureBinary('two'),
     );
-    $coMakerTwoSignaturePath = storeTestSignatureFile(
-        'loan-requests/signatures/co-maker-two.png',
-        'one',
+    Storage::disk('public')->put(
+        $coMakerTwoSignaturePath,
+        sampleSignatureBinary('one'),
     );
-    $reviewerSignature->update([
-        'signature_path' => '/public/storage/'.$reviewerSignature->signature_path,
-    ]);
 
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
@@ -1143,25 +1186,25 @@ test('loan request print preview omits signature images even when stored signatu
             'status' => LoanRequestStatus::Approved,
             'submitted_at' => now(),
             'reviewed_by' => $reviewer->user_id,
-            'approval_signature_id' => $reviewerSignature->id,
+            'reviewed_at' => now(),
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
         ->create([
-            'signature_path' => Storage::disk('public')->url($applicantSignaturePath),
+            'signature_path' => $applicantSignaturePath,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerOne)
         ->create([
-            'signature_path' => 'storage/app/public/'.$coMakerOneSignaturePath,
+            'signature_path' => $coMakerOneSignaturePath,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerTwo)
         ->create([
-            'signature_path' => '/storage/'.$coMakerTwoSignaturePath,
+            'signature_path' => $coMakerTwoSignaturePath,
         ]);
 
     $response = $this
@@ -1170,119 +1213,115 @@ test('loan request print preview omits signature images even when stored signatu
 
     $response->assertOk();
     $response->assertDontSee('data:image/png;base64,', false);
-    $response->assertDontSee('alt="Applicant signature"', false);
-    $response->assertDontSee('alt="Co-maker 1 signature"', false);
-    $response->assertDontSee('alt="Co-maker 2 signature"', false);
-    $response->assertDontSee('alt="Loan manager signature"', false);
+    $response->assertSeeInOrder([
+        'signature-signing-space',
+        'signature-name',
+        'signature-line',
+        'signature-label',
+    ], false);
+
+    $content = $response->getContent();
+
+    expect($content)->not->toBeFalse();
+    expect($content)->toContain('Loan Manager / Approved By');
+    expect($content)->toContain('LOAN MANAGER');
+    expect($content)->toContain('@page {');
+    expect($content)->toContain('@media print {');
+    expect($content)->toContain('size: 8.5in 13in;');
+    expect($content)->toContain('margin: 0.5in;');
+    expect($content)->toContain('font-size: 9pt;');
+    expect($content)->toContain('display: flex;');
+    expect($content)->toContain('flex-direction: column;');
+    expect($content)->toContain('width: 7.5in;');
+    expect($content)->toContain('min-height: 12in;');
+    expect($content)->toContain('margin: 0 auto;');
+    expect($content)->toContain('padding: 8px 10px 10px;');
+    expect($content)->toContain('max-height: 75px;');
+    expect($content)->toContain('padding: 2px 5px;');
+    expect($content)->toContain('font-size: 7.5pt;');
+    expect($content)->toContain('font-size: 8.5pt;');
+    expect($content)->toContain('font-size: 8.2pt;');
+    expect($content)->toContain('font-size: 7.8pt;');
+    expect($content)->toContain('font-size: 8pt;');
+    expect($content)->toContain('line-height: 1.2;');
+    expect($content)->toContain('margin-top: 8px;');
+    expect($content)->toContain('height: 10px;');
+    expect($content)->toContain('font-size: 9pt;');
+    expect($content)->toContain('line-height: 1;');
+    expect($content)->toContain('font-size: 8pt;');
+    expect($content)->toContain('margin: 0 0 1px;');
+    expect($content)->toContain('margin-top: 1px;');
+    expect($content)->toContain('window.print();');
+    expect(substr_count($content, 'class="signature-signing-space"'))->toBe(4);
+    expect(substr_count($content, 'class="signature-line"'))->toBe(4);
 });
 
-test('loan request print preview keeps printed names and blank signature lines', function () {
-    Storage::fake('public');
-
-    $user = User::factory()->create();
-    UserProfile::factory()->approved()->create([
-        'user_id' => $user->user_id,
-    ]);
-    DB::table('wmaster')->insert([
-        'acctno' => $user->acctno,
-        'bname' => 'Member, Loan',
-        'fname' => 'Loan',
-        'lname' => 'Member',
-        'birthday' => '1990-04-10',
-        'address' => 'Loan Street',
-        'civilstat' => 'Single',
-        'occupation' => 'Analyst',
-    ]);
-    MemberApplicationProfile::factory()->completed()->create([
-        'user_id' => $user->user_id,
-    ]);
-
-    $reviewer = User::factory()->create();
+test('loan request application form pdf stays on one long bond page', function () {
+    $admin = User::factory()->create();
     AdminProfile::factory()->create([
-        'user_id' => $reviewer->user_id,
-        'fullname' => 'ANNABELLE M. AMORA',
+        'user_id' => $admin->user_id,
     ]);
 
-    $reviewerSignature = createActiveAdminSignatureRecord($reviewer, 'two');
-
-    $applicantSignaturePath = storeTestSignatureFile(
-        'loan-requests/signatures/normalized-applicant.png',
-        'one',
-    );
-    $coMakerOneSignaturePath = storeTestSignatureFile(
-        'loan-requests/signatures/normalized-co-maker-one.png',
-        'two',
-    );
-    $coMakerTwoSignaturePath = storeTestSignatureFile(
-        'loan-requests/signatures/normalized-co-maker-two.png',
-        'one',
-    );
-
-    $reviewerSignature->update([
-        'signature_path' => '/public/storage/'.$reviewerSignature->signature_path,
+    $member = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $member->user_id,
     ]);
 
     $loanRequest = LoanRequest::factory()
-        ->forUser($user)
+        ->forUser($member)
         ->create([
             'status' => LoanRequestStatus::Approved,
             'submitted_at' => now(),
-            'approved_term' => 6,
-            'reviewed_by' => $reviewer->user_id,
-            'approval_signature_id' => $reviewerSignature->id,
         ]);
+
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
         ->create([
-            'first_name' => 'JUAN',
-            'middle_name' => 'SANTOS',
-            'last_name' => 'DELA CRUZ',
-            'signature_path' => Storage::disk('public')->url($applicantSignaturePath),
+            'first_name' => 'Juan',
+            'last_name' => 'Dela Cruz',
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerOne)
         ->create([
-            'first_name' => 'MARIA',
-            'middle_name' => 'LOPEZ',
-            'last_name' => 'REYES',
-            'signature_path' => 'storage/app/public/'.$coMakerOneSignaturePath,
+            'first_name' => 'Ana',
+            'last_name' => 'Lim',
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerTwo)
         ->create([
-            'first_name' => 'PEDRO',
-            'middle_name' => 'SANTOS',
-            'last_name' => 'CRUZ',
-            'signature_path' => '/storage/'.$coMakerTwoSignaturePath,
+            'first_name' => 'Ben',
+            'last_name' => 'Reyes',
         ]);
 
     $response = $this
-        ->actingAs($user)
-        ->get(route('client.loan-requests.print', $loanRequest));
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.application-form', $loanRequest));
 
     $response->assertOk();
-    $response->assertSee('6 months');
-    $response->assertSee('Annabelle M. Amora');
-    $response->assertSee('Juan Santos Dela Cruz');
-    $response->assertSee('Maria Lopez Reyes');
-    $response->assertSee('Pedro Santos Cruz');
-    $response->assertSee('Member / Applicant');
-    $response->assertSee('Co-maker 1');
-    $response->assertSee('Co-maker 2');
-    $response->assertSee('Loan Manager / Approved By');
-    $response->assertDontSee('alt="Applicant signature"', false);
-    $response->assertDontSee('alt="Co-maker 1 signature"', false);
-    $response->assertDontSee('alt="Co-maker 2 signature"', false);
-    $response->assertDontSee('alt="Loan manager signature"', false);
+    $response->assertHeaderContains('content-type', 'application/pdf');
 
-    $html = $response->getContent();
+    $pdfPath = $response->baseResponse->getFile()->getPathname();
 
-    expect($html)->not->toBeFalse();
-    expect(substr_count((string) $html, 'class="signature-line"'))->toBe(4);
-    expect((string) $html)->not->toContain('data:image/png;base64,');
+    expect((new \setasign\Fpdi\Fpdi('P', 'mm'))->setSourceFile($pdfPath))
+        ->toBe(1);
+});
+
+test('loan request pdf service defaults to long bond paper size', function () {
+    $service = new LoanRequestPdfService(
+        Mockery::mock(OrganizationSettingsService::class),
+    );
+
+    $resolvePaperSize = new \ReflectionMethod($service, 'resolvePaperSize');
+    $resolvePaperSize->setAccessible(true);
+
+    $resolveDompdfPaper = new \ReflectionMethod($service, 'resolveDompdfPaper');
+    $resolveDompdfPaper->setAccessible(true);
+
+    expect($resolvePaperSize->invoke($service))->toBe([8.5, 13.0, 'in']);
+    expect($resolveDompdfPaper->invoke($service))->toBe([0, 0, 612.0, 936.0]);
 });
 
 test('loan request submission validates housing status values', function () {
@@ -1967,7 +2006,6 @@ test('admin can view loan request details page', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
-        'fullname' => 'Approval Manager',
     ]);
 
     $loanRequest = LoanRequest::factory()->create([
@@ -2019,7 +2057,6 @@ test('admin can view loan request details page', function () {
             ->where('decision.canDecide', true)
             ->where('decision.canCancel', true)
             ->where('decision.isOwnRequest', false)
-            ->where('decision.approverName', 'Approval Manager')
             ->where('applicant.first_name', 'Loan')
             ->where('applicant.birthdate', '1990-04-10')
             ->where('applicant.housing_status', 'OWNED')
@@ -2140,7 +2177,7 @@ test('admin loan request detail marks own requests as not decisionable', functio
             ->where('decision.isOwnRequest', true));
 });
 
-test('admin can approve an under review loan request without a saved signature', function () {
+test('admin can approve an under review loan request', function () {
     Queue::fake();
 
     if (! Schema::hasTable('wlnmaster')) {
@@ -2166,7 +2203,6 @@ test('admin can approve an under review loan request without a saved signature',
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
     ]);
-    createLoanRequestPeopleSnapshots($loanRequest);
 
     $payload = [
         'approved_amount' => 15000,
@@ -2192,9 +2228,6 @@ test('admin can approve an under review loan request without a saved signature',
     expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
     expect($loanRequest->reviewed_by)->toBe($admin->user_id);
     expect($loanRequest->reviewed_at)->not->toBeNull();
-    expect($loanRequest->approval_signature_id)->toBeNull();
-    expect($loanRequest->approval_ip_address)->not->toBeNull();
-    expect($loanRequest->approval_user_agent)->not->toBeNull();
     expect($loanRequest->approved_amount)->toBe('15000.00');
     expect($loanRequest->approved_term)->toBe(12);
     expect($loanRequest->decision_notes)->toBe('Approved for release.');
@@ -2204,144 +2237,6 @@ test('admin can approve an under review loan request without a saved signature',
         SendLoanDecisionSmsJob::class,
         fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
     );
-});
-
-test('admin can approve without borrower digital signature', function () {
-    Queue::fake();
-
-    $admin = User::factory()->create([
-        'acctno' => '000506',
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-    ]);
-
-    $member = User::factory()->create([
-        'acctno' => '000507',
-    ]);
-
-    $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::UnderReview,
-        'submitted_at' => now(),
-    ]);
-    createLoanRequestPeopleSnapshots($loanRequest);
-    prepareLoanRequestForApproval($loanRequest, $admin);
-
-    $loanRequest->people()
-        ->where('role', LoanRequestPersonRole::Applicant->value)
-        ->update(['signature_path' => null]);
-
-    $this
-        ->actingAs($admin)
-        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
-            'approved_amount' => 12000,
-            'approved_term' => 10,
-        ])
-        ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value);
-
-    $loanRequest->refresh();
-
-    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
-    expect($loanRequest->approval_signature_id)->toBeNull();
-    Queue::assertPushed(
-        SendLoanDecisionSmsJob::class,
-        fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
-    );
-});
-
-test('admin can approve pending co-maker signature records without co-maker digital signatures', function () {
-    Queue::fake();
-
-    $admin = User::factory()->create();
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-    ]);
-
-    $member = User::factory()->create([
-        'acctno' => '000508A',
-    ]);
-
-    $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::PendingCoMakerSignatures,
-        'submitted_at' => now(),
-    ]);
-    createLoanRequestPeopleSnapshots($loanRequest);
-    prepareLoanRequestForApproval($loanRequest, $admin);
-
-    $loanRequest->people()
-        ->whereIn('role', [
-            LoanRequestPersonRole::CoMakerOne->value,
-            LoanRequestPersonRole::CoMakerTwo->value,
-        ])
-        ->update(['signature_path' => null]);
-
-    $this
-        ->actingAs($admin)
-        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
-            'approved_amount' => 12000,
-            'approved_term' => 10,
-        ])
-        ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value);
-
-    $loanRequest->refresh();
-
-    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
-    expect($loanRequest->approval_signature_id)->toBeNull();
-    Queue::assertPushed(
-        SendLoanDecisionSmsJob::class,
-        fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
-    );
-});
-
-test('approval records metadata without storing a signature snapshot', function () {
-    Queue::fake();
-    Storage::fake('public');
-
-    $admin = User::factory()->create([
-        'acctno' => '000509',
-    ]);
-    AdminProfile::factory()->create([
-        'user_id' => $admin->user_id,
-    ]);
-
-    $member = User::factory()->create([
-        'acctno' => '000510',
-    ]);
-
-    $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::UnderReview,
-        'submitted_at' => now(),
-    ]);
-    createLoanRequestPeopleSnapshots($loanRequest);
-    prepareLoanRequestForApproval($loanRequest, $admin);
-
-    $originalSignature = $admin->fresh()->activeAdminSignature;
-
-    expect($originalSignature)->not->toBeNull();
-
-    $this
-        ->actingAs($admin)
-        ->withHeader('User-Agent', 'Loan Approval Test Agent')
-        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
-            'approved_amount' => 18000,
-            'approved_term' => 18,
-        ])
-        ->assertOk();
-
-    $loanRequest->refresh();
-
-    expect($loanRequest->approval_signature_id)->toBeNull();
-    expect($loanRequest->approval_ip_address)->toBe('127.0.0.1');
-    expect($loanRequest->approval_user_agent)->toBe('Loan Approval Test Agent');
-
-    $replacementSignature = createActiveAdminSignatureRecord($admin, 'two');
-
-    $loanRequest->refresh();
-
-    expect($replacementSignature->id)->not->toBe($originalSignature?->id);
-    expect($loanRequest->approval_signature_id)->toBeNull();
 });
 
 test('admin can decline an under review loan request', function () {
@@ -3303,8 +3198,6 @@ test('admin corrected request can be approved after a saved correction audit exi
             false,
         );
 
-    prepareLoanRequestForApproval($corrected->fresh(), $admin);
-
     $this
         ->actingAs($admin)
         ->patchJson("/spa/admin/requests/{$corrected->id}/approve", [
@@ -3654,7 +3547,6 @@ test('loan request decisions succeed even without a phone number', function () {
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
     ]);
-    prepareLoanRequestForApproval($loanRequest, $admin);
 
     $response = $this
         ->actingAs($admin)
@@ -3767,6 +3659,7 @@ test('admin loan request print preview renders', function () {
     $response->assertViewIs('reports.loan-request-print');
     $response->assertSee('report-header--fallback');
     $response->assertSee('report-title');
+    $response->assertSee('window.print();', false);
 });
 
 test('admin loan request print preview normalizes uppercase text fields', function () {
@@ -3967,7 +3860,7 @@ test('client loan requests page lists member loan requests', function () {
     $draft = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => LoanRequestStatus::PendingCoMakerSignatures,
+            'status' => LoanRequestStatus::Draft,
             'requested_amount' => 12000,
             'requested_term' => 12,
             'updated_at' => now(),
@@ -4004,7 +3897,7 @@ test('client loan requests page lists member loan requests', function () {
             ->where('loanRequests.items.1.status', LoanRequestStatus::UnderReview->value));
 });
 
-test('editable loan request details redirect to the request form', function (LoanRequestStatus $status) {
+test('draft loan request details redirect to the request form', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
@@ -4026,7 +3919,7 @@ test('editable loan request details redirect to the request form', function (Loa
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
-            'status' => $status,
+            'status' => LoanRequestStatus::Draft,
         ]);
 
     $response = $this
@@ -4034,10 +3927,7 @@ test('editable loan request details redirect to the request form', function (Loa
         ->get(route('client.loan-requests.show', $loanRequest));
 
     $response->assertRedirect(route('client.loan-requests.create'));
-})->with([
-    'draft' => [LoanRequestStatus::Draft],
-    'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
-]);
+});
 
 test('client can view submitted loan request details', function () {
     $user = User::factory()->create();
