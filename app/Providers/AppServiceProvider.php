@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\LoanRequest;
+use App\Policies\LoanRequestPolicy;
 use App\Services\Locations\LocationProvider;
 use App\Services\Locations\PhAddressLocationProvider;
 use App\Support\SchemaCapabilities;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -35,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(LoanRequest::class, LoanRequestPolicy::class);
         $this->configureDefaults();
         if (app()->environment('production')) {
             URL::forceScheme('https');

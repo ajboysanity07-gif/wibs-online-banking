@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\AppUser;
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -15,6 +16,17 @@ class AppUserFactory extends Factory
     protected $model = AppUser::class;
 
     protected static ?string $password;
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (AppUser $user): void {
+            if (! $user->hasMemberAccess()) {
+                return;
+            }
+
+            Role::attachNamedRole($user, Role::MEMBER);
+        });
+    }
 
     public function definition(): array
     {

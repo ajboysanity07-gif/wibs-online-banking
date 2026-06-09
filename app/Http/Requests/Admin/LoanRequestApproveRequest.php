@@ -2,17 +2,19 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\AppUser;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LoanRequestApproveRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return $this->user()?->adminProfile !== null;
+        $user = $this->user();
+
+        return $user instanceof AppUser
+            && $this->loanRequest !== null
+            && $user->can('approve', $this->loanRequest);
     }
 
     /**

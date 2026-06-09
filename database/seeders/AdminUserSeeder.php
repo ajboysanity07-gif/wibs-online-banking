@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\AdminProfile;
 use App\Models\AppUser;
+use App\Models\Role;
 use App\Models\UserProfile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\App;
@@ -71,6 +72,7 @@ class AdminUserSeeder extends Seeder
                 'access_level' => AdminProfile::ACCESS_LEVEL_ADMIN,
             ],
         );
+        Role::attachNamedRole($admin, Role::ADMIN);
 
         $this->command?->info(
             sprintf(

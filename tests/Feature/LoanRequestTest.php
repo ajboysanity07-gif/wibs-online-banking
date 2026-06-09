@@ -2950,8 +2950,7 @@ test('admins cannot decide their own loan request by user id', function () {
         ]);
 
     $response
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('decision');
+        ->assertForbidden();
 
     $loanRequest->refresh();
 
@@ -2986,8 +2985,7 @@ test('admins cannot decide their own loan request by account number', function (
         ]);
 
     $response
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('decision');
+        ->assertForbidden();
 
     $loanRequest->refresh();
 
@@ -3016,8 +3014,7 @@ test('loan requests not under review cannot be decided', function () {
         ]);
 
     $response
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('status');
+        ->assertForbidden();
 
     $loanRequest->refresh();
 

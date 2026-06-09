@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\AppUser;
+use App\Models\Role;
 use App\Models\UserProfile;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Validator;
@@ -45,6 +46,8 @@ class CreateNewUser implements CreatesNewUsers
             'acctno' => $verification['acctno'],
             'password' => $input['password'],
         ]);
+
+        Role::attachNamedRole($user, Role::MEMBER);
 
         UserProfile::create([
             'user_id' => $user->user_id,

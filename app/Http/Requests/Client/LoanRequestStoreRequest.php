@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Client;
 
+use App\Models\AppUser;
+use App\Models\LoanRequest;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -45,14 +47,12 @@ class LoanRequestStoreRequest extends FormRequest
         $this->merge($payload);
     }
 
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         $user = $this->user();
 
-        return $user !== null && $user->hasMemberAccess();
+        return $user instanceof AppUser
+            && $user->can('create', LoanRequest::class);
     }
 
     /**

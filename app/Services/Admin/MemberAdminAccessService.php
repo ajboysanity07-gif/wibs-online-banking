@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\AdminProfile;
 use App\Models\AppUser;
+use App\Models\Role;
 use App\Notifications\AdminAccessAuditNotification;
 use App\Notifications\AdminAccessChangedNotification;
 use App\Services\Notifications\NotificationRecipientService;
@@ -46,6 +47,7 @@ class MemberAdminAccessService
                 ['user_id' => $user->user_id],
                 $adminProfileData,
             );
+            Role::attachNamedRole($user, Role::ADMIN);
 
             return $this->loadMember($user->refresh());
         });
@@ -80,6 +82,7 @@ class MemberAdminAccessService
             AdminProfile::query()
                 ->where('user_id', $user->user_id)
                 ->delete();
+            Role::detachNamedRole($user, Role::ADMIN);
 
             return $this->loadMember($user->refresh());
         });

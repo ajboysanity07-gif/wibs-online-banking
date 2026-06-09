@@ -2,6 +2,7 @@
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Models\AppUser;
+use App\Models\Role;
 
 use function Pest\Laravel\mock;
 
@@ -34,6 +35,7 @@ test('new users can register after verification', function () {
     expect($user->userProfile)->not->toBeNull();
     expect($user->userProfile->status)->toBe('active');
     expect($user->memberApplicationProfile)->toBeNull();
+    expect($user->hasRole(Role::MEMBER))->toBeTrue();
 });
 
 test('registration requires member verification', function () {
@@ -99,6 +101,7 @@ test('spa registration succeeds with matching passwords', function () {
     expect($user->userProfile)->not->toBeNull();
     expect($user->userProfile->status)->toBe('active');
     expect($user->memberApplicationProfile)->toBeNull();
+    expect($user->hasRole(Role::MEMBER))->toBeTrue();
 });
 
 test('spa registration rejects mismatched password confirmation', function () {

@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\AdminProfile;
 use App\Models\AppUser;
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -11,6 +12,17 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class AdminProfileFactory extends Factory
 {
+    public function configure(): static
+    {
+        return $this->afterCreating(function (AdminProfile $adminProfile): void {
+            $adminProfile->loadMissing('appUser');
+
+            if ($adminProfile->appUser instanceof AppUser) {
+                Role::attachNamedRole($adminProfile->appUser, Role::ADMIN);
+            }
+        });
+    }
+
     /**
      * Define the model's default state.
      *

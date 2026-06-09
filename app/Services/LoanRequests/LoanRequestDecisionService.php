@@ -10,6 +10,7 @@ use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use App\Support\SchemaCapabilities;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestDecisionService
@@ -39,7 +40,7 @@ class LoanRequestDecisionService
         AppUser $actor,
         array $payload,
     ): LoanRequest {
-        $this->ensureDecisionable($loanRequest, $actor);
+        Gate::forUser($actor)->authorize('approve', $loanRequest);
         $this->ensureCorrectedRequestReadyForApproval($loanRequest);
 
         $loanRequest->fill([
@@ -70,7 +71,7 @@ class LoanRequestDecisionService
         AppUser $actor,
         ?string $decisionNotes = null,
     ): LoanRequest {
-        $this->ensureDecisionable($loanRequest, $actor);
+        Gate::forUser($actor)->authorize('decline', $loanRequest);
 
         $loanRequest->fill([
             'status' => LoanRequestStatus::Declined,
@@ -129,11 +130,8 @@ class LoanRequestDecisionService
 
     public function canDecide(LoanRequest $loanRequest, AppUser $actor): bool
     {
-        if (! $this->isUnderReview($loanRequest)) {
-            return false;
-        }
-
-        return ! $this->isSelfDecision($loanRequest, $actor);
+        return Gate::forUser($actor)->allows('approve', $loanRequest)
+            || Gate::forUser($actor)->allows('decline', $loanRequest);
     }
 
     public function canCancel(LoanRequest $loanRequest, AppUser $actor): bool
@@ -167,7 +165,7 @@ class LoanRequestDecisionService
             return false;
         }
 
-        if (! $this->isUnderReview($loanRequest)) {
+        if (! $this->isApprovalCandidate($loanRequest)) {
             return false;
         }
 
@@ -182,7 +180,10 @@ class LoanRequestDecisionService
             return 'You cannot decide your own loan request.';
         }
 
-        if ($this->requiresSavedCorrectionBeforeApproval($loanRequest)) {
+        if (
+            Gate::forUser($actor)->allows('approve', $loanRequest)
+            && $this->requiresSavedCorrectionBeforeApproval($loanRequest)
+        ) {
             return self::CORRECTION_REQUIRED_MESSAGE;
         }
 
@@ -234,7 +235,7 @@ class LoanRequestDecisionService
             return;
         }
 
-        if (! $this->isUnderReview($loanRequest)) {
+        if (! $this->isApprovalCandidate($loanRequest)) {
             return;
         }
 
@@ -297,25 +298,16 @@ class LoanRequestDecisionService
          */
     }
 
-    private function ensureDecisionable(LoanRequest $loanRequest, AppUser $actor): void
-    {
-        if (! $this->isUnderReview($loanRequest)) {
-            throw ValidationException::withMessages([
-                'status' => 'Only under review requests can be decided.',
-            ]);
-        }
-
-        if ($this->isSelfDecision($loanRequest, $actor)) {
-            throw ValidationException::withMessages([
-                'decision' => 'You cannot decide your own loan request.',
-            ]);
-        }
-    }
-
     private function isUnderReview(LoanRequest $loanRequest): bool
     {
         return LoanRequestStatus::normalizeValue($loanRequest->status)
             === LoanRequestStatus::UnderReview->value;
+    }
+
+    private function isApprovalCandidate(LoanRequest $loanRequest): bool
+    {
+        return $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value
+            || $this->isUnderReview($loanRequest);
     }
 
     private function isPendingDecision(LoanRequest $loanRequest): bool
