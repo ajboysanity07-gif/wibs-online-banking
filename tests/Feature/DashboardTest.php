@@ -3,6 +3,7 @@
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\MemberApplicationProfile;
+use App\Models\Role;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -121,6 +122,26 @@ test('hybrid users see the workspace chooser dashboard', function () {
             ->where('auth.hasMemberAccess', true)
             ->where('auth.isHybrid', true)
             ->where('auth.experience', 'user-admin'));
+});
+
+test('staff-only workflow users are redirected to the staff review queue', function () {
+    Role::ensureWorkflowDefaults();
+
+    $loanOfficer = User::factory()->create([
+        'acctno' => null,
+    ]);
+
+    $loanOfficer->roles()->sync(
+        Role::query()
+            ->where('name', Role::LOAN_OFFICER)
+            ->pluck('id')
+            ->all(),
+    );
+
+    $this->actingAs($loanOfficer);
+
+    $this->get(route('dashboard'))
+        ->assertRedirect(route('staff.loan-requests.index'));
 });
 
 test('completed profiles can access the dashboard without a complete verified record', function () {

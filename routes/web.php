@@ -56,7 +56,9 @@ use App\Http\Controllers\Spa\PasswordRecoveryLookupController as SpaPasswordReco
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneOtpController as SpaPasswordRecoveryPhoneOtpController;
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneResetController as SpaPasswordRecoveryPhoneResetController;
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneVerificationController as SpaPasswordRecoveryPhoneVerificationController;
+use App\Http\Controllers\Spa\Staff\RequestsController as SpaStaffRequestsController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
+use App\Http\Controllers\Staff\LoanRequestController as StaffLoanRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -142,6 +144,11 @@ Route::prefix('spa')->middleware('web')->group(function () {
             Route::patch('{loanRequest}/convert-to-loan', [SpaLoanRequestWorkflowController::class, 'convertToLoan'])
                 ->name('convert-to-loan');
         });
+
+    Route::middleware(['auth', 'verified', 'loan-workflow-staff'])->group(function () {
+        Route::get('staff/loan-requests', SpaStaffRequestsController::class)
+            ->name('spa.staff.loan-requests.index');
+    });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {
         Route::get('admin/summary', SpaAccountSummaryController::class);
@@ -315,6 +322,42 @@ Route::get('pending-approval', [PendingApprovalController::class, 'index'])
 Route::get('notifications', NotificationsPageController::class)
     ->middleware(['auth', 'verified'])
     ->name('notifications');
+
+Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])->group(function () {
+    Route::get('loan-requests', [StaffLoanRequestController::class, 'index'])
+        ->name('staff.loan-requests.index');
+
+    Route::get('loan-requests/{loanRequest}', [StaffLoanRequestController::class, 'show'])
+        ->name('staff.loan-requests.show');
+
+    Route::get('loan-requests/{loanRequest}/pdf', [StaffLoanRequestController::class, 'pdf'])
+        ->name('staff.loan-requests.pdf');
+
+    Route::get('loan-requests/{loanRequest}/print', [StaffLoanRequestController::class, 'print'])
+        ->name('staff.loan-requests.print');
+
+    Route::get(
+        'loan-requests/{loanRequest}/approved-documents',
+        [StaffLoanRequestController::class, 'approvedDocuments'],
+    )->name('staff.loan-requests.approved-documents');
+
+    Route::prefix('loan-requests/{loanRequest}/documents')->group(function () {
+        Route::get('application-form', [StaffLoanRequestController::class, 'applicationFormDocument'])
+            ->name('staff.loan-requests.documents.application-form');
+        Route::get('grepalife', [StaffLoanRequestController::class, 'grepalifeDocument'])
+            ->name('staff.loan-requests.documents.grepalife');
+        Route::get('loan-security-agreement', [StaffLoanRequestController::class, 'loanSecurityAgreementDocument'])
+            ->name('staff.loan-requests.documents.loan-security-agreement');
+        Route::get('plan-of-payment', [StaffLoanRequestController::class, 'planOfPaymentDocument'])
+            ->name('staff.loan-requests.documents.plan-of-payment');
+        Route::get('undertaking-barangay', [StaffLoanRequestController::class, 'undertakingBarangayDocument'])
+            ->name('staff.loan-requests.documents.undertaking-barangay');
+        Route::get('affidavit-undertaking', [StaffLoanRequestController::class, 'affidavitUndertakingDocument'])
+            ->name('staff.loan-requests.documents.affidavit-undertaking');
+        Route::get('authorization', [StaffLoanRequestController::class, 'authorizationDocument'])
+            ->name('staff.loan-requests.documents.authorization');
+    });
+});
 
 Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(function () {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');

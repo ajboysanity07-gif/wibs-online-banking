@@ -3,8 +3,11 @@
 namespace App\Services\Admin;
 
 use App\LoanRequestStatus;
+use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
+use App\Models\Role;
+use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -13,6 +16,10 @@ class RequestsService
     public const UNAVAILABLE_MESSAGE = 'Requests module coming soon.';
 
     public const REPORTED_REQUESTS_UNAVAILABLE_MESSAGE = 'Reported requests are unavailable until correction report migrations are run.';
+
+    public function __construct(
+        private LoanWorkflowWorkspaceService $workspaceService,
+    ) {}
 
     /**
      * @return \Illuminate\Support\Collection<int, array<string, mixed>>
@@ -144,6 +151,106 @@ class RequestsService
      *     available:bool,
      *     message:?string,
      *     paginator:?\Illuminate\Pagination\LengthAwarePaginator,
+     *     loanTypes:array<int, string>,
+     *     openCorrectionReports:int
+     * }
+     */
+    public function getPaginatedForWorkflowUser(
+        AppUser $user,
+        string $search,
+        int $perPage,
+        int $page,
+        ?string $loanType = null,
+        ?string $status = null,
+        ?float $minAmount = null,
+        ?float $maxAmount = null,
+        ?bool $reported = null,
+    ): array {
+        if (! $this->hasRequestsTable()) {
+            return [
+                'items' => collect(),
+                'available' => false,
+                'message' => self::UNAVAILABLE_MESSAGE,
+                'paginator' => null,
+                'loanTypes' => [],
+                'openCorrectionReports' => 0,
+            ];
+        }
+
+        $hasCorrectionReportsTable = $this->hasCorrectionReportsTable();
+        $query = $this->baseQuery();
+        $this->workspaceService->applyVisibleScope($query, $user);
+
+        if ($hasCorrectionReportsTable) {
+            $query->with('latestOpenCorrectionReport.user');
+            $this->applyOpenCorrectionReportMetadata($query);
+        }
+
+        $this->applyRequestsSearch($query, $search);
+
+        if ($loanType !== null && $loanType !== '') {
+            $query->where('loan_type_label_snapshot', $loanType);
+        }
+
+        if ($status !== null && $status !== '') {
+            if ($status === LoanRequestStatus::UnderReview->value) {
+                $query->whereIn(
+                    'status',
+                    [
+                        LoanRequestStatus::PendingCoMakerSignatures->value,
+                        LoanRequestStatus::Submitted->value,
+                        LoanRequestStatus::UnderReview->value,
+                    ],
+                );
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        if ($minAmount !== null) {
+            $query->where('requested_amount', '>=', $minAmount);
+        }
+
+        if ($maxAmount !== null) {
+            $query->where('requested_amount', '<=', $maxAmount);
+        }
+
+        $reportedUnavailable = ! $hasCorrectionReportsTable && $reported === true;
+
+        if ($reported !== null && $hasCorrectionReportsTable) {
+            $this->applyReportedFilter($query, $reported);
+        }
+
+        if ($reportedUnavailable) {
+            $query->whereRaw('1 = 0');
+        }
+
+        $perPage = max(1, min($perPage, 50));
+        $page = max(1, $page);
+        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return [
+            'items' => $paginator->getCollection()
+                ->map(fn (LoanRequest $request) => $this->mapRequest(
+                    $request,
+                    $hasCorrectionReportsTable,
+                )),
+            'available' => ! $reportedUnavailable,
+            'message' => $reportedUnavailable
+                ? self::REPORTED_REQUESTS_UNAVAILABLE_MESSAGE
+                : null,
+            'paginator' => $paginator,
+            'loanTypes' => $this->getLoanTypeOptionsForWorkflowUser($user),
+            'openCorrectionReports' => $this->countOpenCorrectionReports($user),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     items:\Illuminate\Support\Collection<int, array<string, mixed>>,
+     *     available:bool,
+     *     message:?string,
+     *     paginator:?\Illuminate\Pagination\LengthAwarePaginator,
      *     openCorrectionReports:int
      * }
      */
@@ -235,6 +342,31 @@ class RequestsService
             ->where('status', '!=', LoanRequestStatus::Draft->value)
             ->whereNotNull('loan_type_label_snapshot')
             ->where('loan_type_label_snapshot', '!=', '')
+            ->select('loan_type_label_snapshot')
+            ->distinct()
+            ->orderBy('loan_type_label_snapshot')
+            ->pluck('loan_type_label_snapshot')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getLoanTypeOptionsForWorkflowUser(AppUser $user): array
+    {
+        if (! $this->hasRequestsTable()) {
+            return [];
+        }
+
+        $query = LoanRequest::query()
+            ->where('status', '!=', LoanRequestStatus::Draft->value)
+            ->whereNotNull('loan_type_label_snapshot')
+            ->where('loan_type_label_snapshot', '!=', '');
+
+        $this->workspaceService->applyVisibleScope($query, $user);
+
+        return $query
             ->select('loan_type_label_snapshot')
             ->distinct()
             ->orderBy('loan_type_label_snapshot')
@@ -449,15 +581,26 @@ class RequestsService
         return null;
     }
 
-    private function countOpenCorrectionReports(): int
+    private function countOpenCorrectionReports(?AppUser $user = null): int
     {
         if (! $this->hasCorrectionReportsTable()) {
             return 0;
         }
 
-        return LoanRequestCorrectionReport::query()
-            ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
-            ->count();
+        $query = LoanRequestCorrectionReport::query()
+            ->where('status', LoanRequestCorrectionReport::STATUS_OPEN);
+
+        if ($user instanceof AppUser && ! $user->hasRole(Role::ADMIN)) {
+            $visibleLoanRequests = LoanRequest::query()->select('id');
+            $this->workspaceService->applyVisibleScope(
+                $visibleLoanRequests,
+                $user,
+            );
+
+            $query->whereIn('loan_request_id', $visibleLoanRequests);
+        }
+
+        return $query->count();
     }
 
     private function normalizeDateTime(mixed $value): ?string

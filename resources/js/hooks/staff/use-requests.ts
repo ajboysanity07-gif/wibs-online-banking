@@ -5,6 +5,6 @@ export type RequestsParams = Omit<RequestQueueParams, 'workspace'>;
 export function useRequests(params: RequestsParams) {
     return useRequestQueue({
         ...params,
-        workspace: 'admin',
+        workspace: 'staff',
     });
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use App\Services\OrganizationSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -92,14 +93,18 @@ class HandleInertiaRequests extends Middleware
      *     hasMemberAccess: bool,
      *     isAdminOnly: bool,
      *     isHybrid: bool,
-     *     experience: mixed
+     *     experience: mixed,
+     *     canAccessLoanWorkflow: bool,
+     *     loanWorkflowRoles: array<int, string>,
+     *     loanWorkflowPermissions: array<int, string>
      * }
      */
     private function resolveAuth(Request $request): array
     {
         try {
             $user = $request->user();
-            $user?->loadMissing('adminProfile', 'userProfile');
+            $user?->loadMissing('adminProfile', 'userProfile', 'roles.permissions');
+            $workspaceService = app(LoanWorkflowWorkspaceService::class);
 
             return [
                 'user' => $user?->withoutRelations(),
@@ -109,6 +114,9 @@ class HandleInertiaRequests extends Middleware
                 'isAdminOnly' => $user?->isAdminOnly() ?? false,
                 'isHybrid' => $user?->isHybrid() ?? false,
                 'experience' => $user?->experienceType(),
+                'canAccessLoanWorkflow' => $workspaceService->canAccess($user),
+                'loanWorkflowRoles' => $workspaceService->workflowRoles($user),
+                'loanWorkflowPermissions' => $workspaceService->workflowPermissions($user),
             ];
         } catch (Throwable $exception) {
             Log::warning('Inertia shared auth resolution failed. Using guest auth state.', [
@@ -134,7 +142,10 @@ class HandleInertiaRequests extends Middleware
      *     hasMemberAccess: bool,
      *     isAdminOnly: bool,
      *     isHybrid: bool,
-     *     experience: mixed
+     *     experience: mixed,
+     *     canAccessLoanWorkflow: bool,
+     *     loanWorkflowRoles: array<int, string>,
+     *     loanWorkflowPermissions: array<int, string>
      * }
      */
     private function guestAuthState(): array
@@ -147,6 +158,9 @@ class HandleInertiaRequests extends Middleware
             'isAdminOnly' => false,
             'isHybrid' => false,
             'experience' => null,
+            'canAccessLoanWorkflow' => false,
+            'loanWorkflowRoles' => [],
+            'loanWorkflowPermissions' => [],
         ];
     }
 }

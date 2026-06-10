@@ -25,21 +25,39 @@ test('loan request status badge exposes the expanded workflow labels', async () 
     }
 });
 
-test('admin requests page keeps pending review distinct and exposes workflow filters', async () => {
-    const file = await readSource([
+test('loan request queue surfaces keep pending review distinct and expose workflow filters', async () => {
+    const queueFile = await readSource([
+        'resources',
+        'js',
+        'components',
+        'loan-request',
+        'loan-request-queue-page.tsx',
+    ]);
+    const adminPageFile = await readSource([
         'resources',
         'js',
         'pages',
         'admin',
         'requests.tsx',
     ]);
+    const staffPageFile = await readSource([
+        'resources',
+        'js',
+        'pages',
+        'staff',
+        'loan-requests.tsx',
+    ]);
 
-    assert.match(file, /pending_review/);
-    assert.match(file, /needs_revision/);
-    assert.match(file, /recommended_for_approval/);
-    assert.match(file, /rejected/);
-    assert.match(file, /converted_to_loan/);
-    assert.doesNotMatch(file, /status === 'pending_review' \|\|/);
+    assert.match(queueFile, /pending_review/);
+    assert.match(queueFile, /needs_revision/);
+    assert.match(queueFile, /recommended_for_approval/);
+    assert.match(queueFile, /rejected/);
+    assert.match(queueFile, /converted_to_loan/);
+    assert.match(queueFile, /reported/);
+    assert.doesNotMatch(queueFile, /status === 'pending_review' \|\|/);
+    assert.match(adminPageFile, /workspace="admin"/);
+    assert.match(staffPageFile, /workspace="staff"/);
+    assert.match(staffPageFile, /buildStaffLoanRequestQueueStatusOptions/);
 });
 
 test('client loan request pages surface revision and conversion workflow states', async () => {

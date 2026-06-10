@@ -1,3 +1,5 @@
+import type { LoanRequestWorkflowPermission } from './loan-requests';
+
 export type User = {
     id: number;
     name: string;
@@ -12,6 +14,8 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type LoanWorkflowRole = 'admin' | 'loan_officer' | 'loan_manager';
+
 export type Auth = {
     user: User;
     isAdmin: boolean;
@@ -20,6 +24,9 @@ export type Auth = {
     isAdminOnly: boolean;
     isHybrid: boolean;
     experience?: 'superadmin' | 'user' | 'user-admin' | 'admin-only';
+    canAccessLoanWorkflow: boolean;
+    loanWorkflowRoles: LoanWorkflowRole[];
+    loanWorkflowPermissions: LoanRequestWorkflowPermission[];
 };
 
 export type TwoFactorSetupData = {

@@ -37,6 +37,7 @@ import {
 import {
     index as loanRequestsIndex,
 } from '@/routes/client/loan-requests';
+import { index as staffLoanRequestsIndex } from '@/routes/staff/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
 import type { Auth, NavItem } from '@/types';
 import AppLogo from './app-logo';
@@ -118,6 +119,16 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
         : []),
 ];
 
+const staffNavItems: NavItem[] = [
+    {
+        title: 'Loan Workflow',
+        href: staffLoanRequestsIndex(),
+        icon: FileText,
+        match: 'section',
+        matchPaths: [staffLoanRequestsIndex(), '/staff/loan-requests'],
+    },
+];
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -135,21 +146,27 @@ export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
     const hasMemberAccess = auth.hasMemberAccess;
     const showAdminNav = auth.isAdmin;
+    const showStaffNav = auth.canAccessLoanWorkflow;
     const showMemberNav = hasMemberAccess;
     const adminItems = showAdminNav
         ? adminNavItems(auth.isSuperadmin)
         : [];
+    const staffItems = showStaffNav ? staffNavItems : [];
     const memberItems = showMemberNav ? memberNavItems : [];
     const adminLabel = 'Admin Workspace';
+    const staffLabel = 'Loan Workflow';
     const memberLabel = 'My Account';
     const adminGroupStorageKey = 'sidebar-admin-workspace-collapsed';
+    const staffGroupStorageKey = 'sidebar-loan-workflow-collapsed';
     const memberGroupStorageKey = 'sidebar-my-account-collapsed';
     const homeLink =
         auth.experience === 'user-admin'
             ? workspaceDashboard()
             : auth.isAdmin
               ? adminDashboard()
-              : clientDashboard();
+              : auth.canAccessLoanWorkflow
+                ? staffLoanRequestsIndex()
+                : clientDashboard();
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -171,6 +188,13 @@ export function AppSidebar() {
                         items={adminItems}
                         label={adminLabel}
                         collapsibleStorageKey={adminGroupStorageKey}
+                    />
+                )}
+                {showStaffNav && (
+                    <NavMain
+                        items={staffItems}
+                        label={staffLabel}
+                        collapsibleStorageKey={staffGroupStorageKey}
                     />
                 )}
                 {showMemberNav && (

@@ -144,6 +144,10 @@ export type LoanRequestWorkflowPermission =
     | 'loan.decline'
     | 'loan.convert_to_loan';
 
+export type LoanRequestWorkflowContext = {
+    isOwnRequest: boolean;
+};
+
 export type LoanRequestDetail = {
     id: number;
     reference: string;

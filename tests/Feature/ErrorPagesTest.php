@@ -58,6 +58,9 @@ test('error page shared props bypass db-backed branding and auth lookups', funct
         'isAdminOnly' => false,
         'isHybrid' => false,
         'experience' => null,
+        'canAccessLoanWorkflow' => false,
+        'loanWorkflowRoles' => [],
+        'loanWorkflowPermissions' => [],
     ]);
 });
 

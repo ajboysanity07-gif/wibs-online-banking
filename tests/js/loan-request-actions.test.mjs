@@ -28,6 +28,10 @@ test('loan request actions group document buttons and separate navigation', asyn
         resolve('resources', 'js', 'pages', 'admin', 'loan-request-show.tsx'),
         'utf8',
     );
+    const staffPageFile = await readFile(
+        resolve('resources', 'js', 'pages', 'staff', 'loan-request-show.tsx'),
+        'utf8',
+    );
     const clientPageFile = await readFile(
         resolve('resources', 'js', 'pages', 'client', 'loan-request-show.tsx'),
         'utf8',
@@ -48,6 +52,10 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
     assert.match(adminPageFile, /workflowPermissions/);
+    assert.match(staffPageFile, /LoanRequestDetailPage/);
+    assert.match(staffPageFile, /useLoanRequestWorkflow/);
+    assert.match(staffPageFile, /Back to workflow queue/);
+    assert.match(staffPageFile, /convertToLoan/);
     assert.match(
         clientPageFile,
         /\['submitted', 'pending_review', 'under_review'\]\.includes/,
