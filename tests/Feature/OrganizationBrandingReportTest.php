@@ -78,7 +78,9 @@ test('loan request report reserves physical signature areas without digital imag
         ->toContain('class="section-group section-group--signature"')
         ->toContain('class="signature-table"')
         ->toContain('class="signature-signing-space"')
-        ->toContain('height: 40px;')
+        ->toContain('height: 10px;')
+        ->toContain('class="signature-name"')
+        ->toContain('ANNABELLE M. AMORA')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')
@@ -126,14 +128,17 @@ test('loan request report keeps printed names and blank signature lines when sig
     ])->render();
 
     expect($html)
-        ->toContain('<div class="signature-name">Juan Santos Dela Cruz</div>')
-        ->toContain('<div class="signature-name">Maria Lopez Reyes</div>')
-        ->toContain('<div class="signature-name">Pedro Santos Cruz</div>')
-        ->toContain('<div class="signature-name">Annabelle M. Amora</div>')
+        ->toContain('class="signature-name signature-name--tight"')
+        ->toContain('JUAN SANTOS DELA CRUZ')
+        ->toContain('MARIA LOPEZ REYES')
+        ->toContain('PEDRO SANTOS CRUZ')
+        ->toContain('ANNABELLE M. AMORA')
         ->toContain('<div class="signature-label">Member / Applicant</div>')
         ->toContain('<div class="signature-label">Co-maker 1</div>')
         ->toContain('<div class="signature-label">Co-maker 2</div>')
         ->toContain('<div class="signature-line"></div>')
+        ->not->toContain('ANNABELLE MONGADO AMORA')
+        ->not->toContain('<div class="signature-name">N/A</div>')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')
@@ -181,14 +186,17 @@ test('loan request report keeps approved details and blank signature lines on ap
 
     expect($html)
         ->toContain('<td class="field">6 months</td>')
-        ->toContain('<div class="signature-name">Juan Santos Dela Cruz</div>')
-        ->toContain('<div class="signature-name">Maria Lopez Reyes</div>')
-        ->toContain('<div class="signature-name">Pedro Santos Cruz</div>')
-        ->toContain('<div class="signature-name">Annabelle M. Amora</div>')
+        ->toContain('class="signature-name signature-name--tight"')
+        ->toContain('JUAN SANTOS DELA CRUZ')
+        ->toContain('MARIA LOPEZ REYES')
+        ->toContain('PEDRO SANTOS CRUZ')
+        ->toContain('ANNABELLE M. AMORA')
         ->toContain('<div class="signature-label">Member / Applicant</div>')
         ->toContain('<div class="signature-label">Co-maker 1</div>')
         ->toContain('<div class="signature-label">Co-maker 2</div>')
         ->toContain('<div class="signature-label">Loan Manager / Approved By</div>')
+        ->not->toContain('ANNABELLE MONGADO AMORA')
+        ->not->toContain('<div class="signature-name">N/A</div>')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')
@@ -199,6 +207,55 @@ test('loan request report keeps approved details and blank signature lines on ap
 
     expect($signatureSection)->not->toBeFalse();
     expect(substr_count((string) $signatureSection, 'class="signature-line"'))->toBe(4);
+});
+
+test('loan request report keeps long signature names on one line with shrink classes', function () {
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+    ]);
+
+    $html = view('reports.loan-request', [
+        'loanRequest' => $loanRequest,
+        'applicant' => [
+            'first_name' => 'JULIUS',
+            'middle_name' => 'CARLO G.',
+            'last_name' => 'DE GRACIA',
+            'signatureData' => null,
+        ],
+        'coMakerOne' => [
+            'first_name' => 'MARIA',
+            'middle_name' => 'LOPEZ',
+            'last_name' => 'REYES',
+            'signatureData' => null,
+        ],
+        'coMakerTwo' => [
+            'first_name' => 'PEDRO',
+            'middle_name' => 'SANTOS',
+            'last_name' => 'CRUZ',
+            'signatureData' => null,
+        ],
+        'reviewer' => [
+            'name' => 'ANNABELLE M. AMORA',
+        ],
+        'reviewerSignatureData' => null,
+        'companyName' => 'Acme Cooperative',
+        'reportHeader' => [
+            'companyName' => 'Acme Cooperative',
+            'designData' => null,
+        ],
+        'reportTypography' => [],
+        'generatedAt' => Carbon::now(),
+    ])->render();
+
+    expect($html)
+        ->toContain('white-space: nowrap;')
+        ->toContain('word-break: normal;')
+        ->toContain('overflow-wrap: normal;')
+        ->toContain('.signature-name--tight {')
+        ->toContain('.signature-name--tighter {')
+        ->toContain('.signature-name--tightest {')
+        ->toContain('class="signature-name signature-name--tighter"')
+        ->toContain('JULIUS CARLO G. DE GRACIA');
 });
 
 test('loan security agreement report renders uploaded header design when available', function () {

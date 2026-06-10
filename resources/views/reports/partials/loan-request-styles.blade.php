@@ -173,7 +173,7 @@
     .signature-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 6px 0;
+        border-spacing: 3px 0;
         table-layout: fixed;
         page-break-inside: avoid;
         break-inside: avoid;
@@ -207,8 +207,22 @@
         letter-spacing: 0.02em;
         line-height: 1;
         text-align: center;
-        word-break: break-word;
+        white-space: nowrap;
+        word-break: normal;
+        overflow-wrap: normal;
         text-transform: uppercase;
+    }
+    .signature-name--tight {
+        font-size: 8.4pt;
+        letter-spacing: 0;
+    }
+    .signature-name--tighter {
+        font-size: 7.4pt;
+        letter-spacing: -0.02em;
+    }
+    .signature-name--tightest {
+        font-size: 6.6pt;
+        letter-spacing: -0.04em;
     }
     .signature-label {
         min-height: 9px;
