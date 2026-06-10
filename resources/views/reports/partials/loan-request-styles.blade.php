@@ -213,7 +213,7 @@
     .signature-label {
         min-height: 9px;
         margin-top: 0;
-        font-size: 7.5pt;
+        font-size: 8.5pt;
         font-weight: 600;
         line-height: 1;
         text-align: center;
