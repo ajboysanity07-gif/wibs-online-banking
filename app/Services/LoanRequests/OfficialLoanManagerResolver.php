@@ -4,7 +4,7 @@ namespace App\Services\LoanRequests;
 
 final class OfficialLoanManagerResolver
 {
-    private const NAME = 'Anabelle M. Amora';
+    private const NAME = 'Annabelle M. Amora';
 
     private const POSITION = 'Loan Manager';
 

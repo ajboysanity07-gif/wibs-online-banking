@@ -131,8 +131,12 @@
     $reportHeader = $reportHeader ?? [];
     $approvedTermLabel = $formatMonths($loanRequest->approved_term);
     $reviewerName = $reviewer['name'] ?? '';
-    $loanManagerName = $displayProperText($reviewerName);
-    $loanManagerSignatureName = $formatPrintedSignatureName($reviewerName);
+    $officialLoanManagerName = app(\App\Services\LoanRequests\OfficialLoanManagerResolver::class)->name();
+    $loanManagerSourceName = $normalizeValue($reviewerName) !== ''
+        ? $reviewerName
+        : $officialLoanManagerName;
+    $loanManagerName = $displayProperText($loanManagerSourceName);
+    $loanManagerSignatureName = $formatPrintedSignatureName($loanManagerSourceName);
     $signatureBlocks = [
         [
             'name' => $formatPrintedSignatureName($extractPersonName($applicant)),

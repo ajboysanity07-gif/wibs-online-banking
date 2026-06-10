@@ -1226,8 +1226,10 @@ test('loan request print preview omits signature images even when stored signatu
     expect($content)->not->toBeFalse();
     expect($loanRequest->fresh()->reviewed_by)->toBe($reviewer->user_id);
     expect($content)->toContain('Loan Manager / Approved By');
-    expect($content)->toContain('Anabelle M. Amora');
-    expect($content)->toContain('ANABELLE M. AMORA');
+    expect($content)->toContain('Annabelle M. Amora');
+    expect($content)->toContain('ANNABELLE M. AMORA');
+    expect($content)->not->toContain('ANNABELLE MONGADO AMORA');
+    expect($content)->not->toContain('N/A');
     expect($content)->not->toContain('System Approver');
     expect($content)->toContain('@page {');
     expect($content)->toContain('@media print {');
