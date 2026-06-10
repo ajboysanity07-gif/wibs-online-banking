@@ -100,7 +100,8 @@ export default function LoanRequestShow({
     }).url;
     const printHref = loanRequestPrint(loanRequest.id).url;
     const approvedDocumentHrefs =
-        currentLoanRequest.status === 'approved'
+        currentLoanRequest.status === 'approved' ||
+        currentLoanRequest.status === 'converted_to_loan'
             ? {
                   applicationForm: loanRequestApplicationFormDocument(
                       currentLoanRequest.id,

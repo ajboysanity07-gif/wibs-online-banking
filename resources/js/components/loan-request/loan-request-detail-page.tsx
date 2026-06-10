@@ -2,6 +2,10 @@ import { Link } from '@inertiajs/react';
 import { Ban, Calendar, Download, PencilLine, Printer } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
+import {
+    LoanRequestWorkflowActions,
+    type LoanRequestWorkflowProps,
+} from '@/components/loan-request/loan-request-workflow-actions';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -55,6 +59,7 @@ type Props = {
     cancellation?: CancellationProps;
     correction?: CorrectionProps;
     correctedCopy?: CorrectedCopyProps;
+    workflow?: LoanRequestWorkflowProps;
 };
 
 type ApprovedDocumentHrefs = {
@@ -159,32 +164,120 @@ const DetailRow = ({ label, value, className }: DetailRowProps) => (
 const statusLabels: Record<LoanRequestStatusValue, string> = {
     draft: 'Draft',
     submitted: 'Submitted',
-    pending_review: 'Under review',
-    pending_co_maker_signatures: 'Under review',
+    pending_review: 'Pending Review',
+    pending_co_maker_signatures: 'Pending Co-Maker Signatures',
     under_review: 'Under review',
+    needs_revision: 'Needs Revision',
+    recommended_for_approval: 'Recommended for Approval',
+    rejected: 'Rejected',
     approved: 'Approved',
     declined: 'Declined',
+    converted_to_loan: 'Converted to Loan',
     cancelled: 'Cancelled',
 };
 
 const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     draft: 'Complete the form and submit when you are ready.',
-    submitted: 'Your request has been submitted for review.',
-    pending_review: 'We are currently reviewing your request.',
-    pending_co_maker_signatures: 'We are currently reviewing your request.',
-    under_review: 'We are currently reviewing your request.',
-    approved: 'Your request is approved. We will contact you next.',
-    declined: 'Your request was declined. You may reapply anytime.',
+    submitted: 'This legacy request has already been submitted for review.',
+    pending_review: 'This request is waiting for a loan officer to start the review.',
+    pending_co_maker_signatures:
+        'This request is still waiting for the required co-maker signatures.',
+    under_review: 'A loan officer is actively reviewing this request.',
+    needs_revision:
+        'The member needs to revise the request before review can continue.',
+    recommended_for_approval:
+        'The officer review is complete and the request is waiting for manager approval.',
+    rejected: 'This request was rejected during officer review.',
+    approved: 'This request is approved and can now be converted into a loan.',
+    declined: 'This request was declined after manager review.',
+    converted_to_loan:
+        'This request has already been converted into an actual loan record.',
     cancelled:
         'This request was cancelled and remains available as read-only history.',
 };
 
-const statusSteps: LoanRequestStatusValue[] = [
-    'draft',
-    'under_review',
-    'approved',
-    'declined',
-];
+const resolveTimelineSteps = (
+    status: LoanRequestStatusValue,
+    showApprovedCancellationHistory: boolean,
+): LoanRequestStatusValue[] => {
+    if (status === 'needs_revision') {
+        return ['draft', 'pending_review', 'under_review', 'needs_revision'];
+    }
+
+    if (status === 'rejected') {
+        return ['draft', 'pending_review', 'under_review', 'rejected'];
+    }
+
+    if (status === 'declined') {
+        return [
+            'draft',
+            'pending_review',
+            'under_review',
+            'recommended_for_approval',
+            'declined',
+        ];
+    }
+
+    if (status === 'recommended_for_approval') {
+        return [
+            'draft',
+            'pending_review',
+            'under_review',
+            'recommended_for_approval',
+        ];
+    }
+
+    if (status === 'approved') {
+        return [
+            'draft',
+            'pending_review',
+            'under_review',
+            'recommended_for_approval',
+            'approved',
+        ];
+    }
+
+    if (status === 'converted_to_loan') {
+        return [
+            'draft',
+            'pending_review',
+            'under_review',
+            'recommended_for_approval',
+            'approved',
+            'converted_to_loan',
+        ];
+    }
+
+    if (status === 'cancelled') {
+        return showApprovedCancellationHistory
+            ? [
+                  'draft',
+                  'pending_review',
+                  'under_review',
+                  'approved',
+                  'cancelled',
+              ]
+            : ['draft', 'pending_review', 'under_review', 'cancelled'];
+    }
+
+    if (status === 'submitted') {
+        return ['draft', 'submitted'];
+    }
+
+    if (status === 'pending_co_maker_signatures') {
+        return ['draft', 'pending_co_maker_signatures'];
+    }
+
+    if (status === 'pending_review') {
+        return ['draft', 'pending_review'];
+    }
+
+    if (status === 'under_review') {
+        return ['draft', 'pending_review', 'under_review'];
+    }
+
+    return ['draft'];
+};
 
 type SummaryStatProps = {
     label: string;
@@ -310,43 +403,35 @@ export function LoanRequestDetailPage({
     cancellation,
     correction,
     correctedCopy,
+    workflow,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
         : null;
-    const normalizedStatus =
-        loanRequest.status === 'submitted' ||
-        loanRequest.status === 'pending_review' ||
-        loanRequest.status === 'pending_co_maker_signatures'
-            ? 'under_review'
-            : loanRequest.status;
-    const statusForTimeline = (normalizedStatus ??
-        'draft') as LoanRequestStatusValue;
+    const statusValue = (loanRequest.status ?? 'draft') as LoanRequestStatusValue;
     const showApprovedCancellationHistory =
-        normalizedStatus === 'cancelled' &&
-        (loanRequest.reviewed_at !== null ||
+        statusValue === 'cancelled' &&
+        (loanRequest.approved_by !== null ||
             loanRequest.approved_amount !== null ||
             loanRequest.approved_term !== null);
-    const timelineSteps =
-        statusForTimeline === 'cancelled'
-            ? ([
-                  'draft',
-                  'under_review',
-                  ...(showApprovedCancellationHistory ? ['approved'] : []),
-                  'cancelled',
-              ] as LoanRequestStatusValue[])
-            : statusSteps;
+    const timelineSteps = resolveTimelineSteps(
+        statusValue,
+        showApprovedCancellationHistory,
+    );
     const currentStatusIndex = Math.max(
         0,
-        timelineSteps.indexOf(statusForTimeline),
+        timelineSteps.indexOf(statusValue),
     );
     const canDownloadPdf =
-        normalizedStatus === 'under_review' ||
-        normalizedStatus === 'approved' ||
-        normalizedStatus === 'declined' ||
-        normalizedStatus === 'cancelled';
+        statusValue === 'submitted' ||
+        statusValue === 'pending_review' ||
+        statusValue === 'under_review' ||
+        statusValue === 'approved' ||
+        statusValue === 'converted_to_loan' ||
+        statusValue === 'declined' ||
+        statusValue === 'cancelled';
     const showCorrectionAction =
-        normalizedStatus === 'under_review' && (correction?.show ?? false);
+        statusValue === 'under_review' && (correction?.show ?? false);
     const amount = displayCurrency(loanRequest.requested_amount);
     const loanTypeLabel = displayText(loanRequest.loan_type_label_snapshot);
     const requestedTerm =
@@ -360,27 +445,32 @@ export function LoanRequestDetailPage({
     const submittedLabel = submittedAt
         ? `Submitted ${submittedAt}`
         : 'Not submitted yet';
-    const showDecision = decision?.show ?? false;
     const showDecisionForm =
-        showDecision &&
+        (decision?.show ?? false) &&
         decision?.canDecide &&
-        normalizedStatus === 'under_review';
+        statusValue === 'under_review';
     const blockedMessage =
-        normalizedStatus === 'under_review'
-            ? (decision?.blockedMessage ?? null)
-            : null;
+        statusValue === 'under_review' ? (decision?.blockedMessage ?? null) : null;
     const approvalBlockedMessage = blockedMessage;
     const canApprove = showDecisionForm && approvalBlockedMessage === null;
     const showDecisionSummary =
-        showDecision &&
-        (normalizedStatus === 'approved' ||
-            normalizedStatus === 'declined' ||
-            normalizedStatus === 'cancelled');
+        statusValue === 'needs_revision' ||
+        statusValue === 'recommended_for_approval' ||
+        statusValue === 'rejected' ||
+        statusValue === 'approved' ||
+        statusValue === 'declined' ||
+        statusValue === 'converted_to_loan' ||
+        statusValue === 'cancelled' ||
+        loanRequest.reviewed_by !== null ||
+        (loanRequest.review_remarks ?? '').trim() !== '' ||
+        loanRequest.approved_by !== null ||
+        loanRequest.declined_by !== null;
     const showCancellationAction =
         (cancellation?.show ?? false) &&
         typeof cancellation?.onSubmit === 'function';
     const showApprovedDocuments =
-        normalizedStatus === 'approved' && approvedDocumentHrefs !== null;
+        (statusValue === 'approved' || statusValue === 'converted_to_loan') &&
+        approvedDocumentHrefs !== null;
     const showDownloadPdfAction = canDownloadPdf && !showApprovedDocuments;
     const showPrintAction = canDownloadPdf;
     const approvedDocumentItems = showApprovedDocuments
@@ -415,18 +505,18 @@ export function LoanRequestDetailPage({
                   href: approvedDocumentHrefs.affidavitUndertaking,
                   format: 'PDF',
               },
-              {
-                  label: 'Authorization PDF',
-                  href: approvedDocumentHrefs.authorization,
-                  format: 'PDF',
-              },
+               {
+                   label: 'Authorization PDF',
+                   href: approvedDocumentHrefs.authorization,
+                   format: 'PDF',
+               },
           ]
         : [];
     const showCorrectedCopyAction =
-        normalizedStatus === 'cancelled' &&
+        statusValue === 'cancelled' &&
         (correctedCopy?.show ?? true) &&
         typeof correctedCopy?.onCreate === 'function';
-    const showCancelledNotice = normalizedStatus === 'cancelled';
+    const showCancelledNotice = statusValue === 'cancelled';
     const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [isCancellationDialogOpen, setIsCancellationDialogOpen] =
@@ -456,7 +546,15 @@ export function LoanRequestDetailPage({
     );
     const reviewedBy = loanRequest.reviewed_by?.name ?? '--';
     const reviewedAt = displayDateValue(loanRequest.reviewed_at);
+    const assignedOfficer = loanRequest.assigned_officer?.name ?? '--';
+    const reviewDecisionValue = displayText(loanRequest.review_decision);
+    const reviewRemarksValue = displayText(loanRequest.review_remarks);
+    const rejectedBy = loanRequest.rejected_by?.name ?? '--';
+    const rejectedAt = displayDateValue(loanRequest.rejected_at);
+    const rejectionReasonValue = displayText(loanRequest.rejection_reason);
     const approvalSignerName = decision?.approverName?.trim() || '--';
+    const approvedBy = loanRequest.approved_by?.name ?? '--';
+    const approvedAt = displayDateValue(loanRequest.approved_at);
     const approvedAmountValue = displayCurrency(loanRequest.approved_amount);
     const approvedTermValue =
         loanRequest.approved_term !== null &&
@@ -464,7 +562,14 @@ export function LoanRequestDetailPage({
         `${loanRequest.approved_term}`.trim() !== ''
             ? `${loanRequest.approved_term} months`
             : '--';
+    const approvedInterestRateValue = displayValue(
+        loanRequest.approved_interest_rate,
+    );
+    const approvalRemarksValue = displayText(loanRequest.approval_remarks);
     const decisionNotesValue = displayText(loanRequest.decision_notes);
+    const declinedBy = loanRequest.declined_by?.name ?? '--';
+    const declinedAt = displayDateValue(loanRequest.declined_at);
+    const declineReasonValue = displayText(loanRequest.decline_reason);
     const cancelledBy = loanRequest.cancelled_by?.name ?? '--';
     const cancelledAt = displayDateValue(loanRequest.cancelled_at);
     const cancellationReasonValue = displayText(
@@ -476,6 +581,23 @@ export function LoanRequestDetailPage({
     const correctedRequestStatus = displayText(
         loanRequest.corrected_request_status,
     );
+
+    useEffect(() => {
+        const nextAmount =
+            loanRequest.approved_amount ?? loanRequest.requested_amount ?? '';
+        const nextTerm =
+            loanRequest.approved_term ?? loanRequest.requested_term ?? '';
+
+        setApprovedAmount(`${nextAmount}`.trim() !== '' ? `${nextAmount}` : '');
+        setApprovedTerm(`${nextTerm}`.trim() !== '' ? `${nextTerm}` : '');
+        setDecisionNotes(loanRequest.decision_notes ?? '');
+    }, [
+        loanRequest.approved_amount,
+        loanRequest.approved_term,
+        loanRequest.decision_notes,
+        loanRequest.requested_amount,
+        loanRequest.requested_term,
+    ]);
 
     const closeApprovalDialog = (force = false) => {
         if (decision?.isProcessing && !force) {
@@ -620,7 +742,7 @@ export function LoanRequestDetailPage({
                             <span>{submittedLabel}</span>
                         </div>
                         <p className="max-w-2xl text-sm text-muted-foreground">
-                            Review the submitted snapshot of your loan request,
+                            Review the submitted snapshot of this loan request,
                             including the applicant and co-maker details used
                             for evaluation.
                         </p>
@@ -844,7 +966,7 @@ export function LoanRequestDetailPage({
                                 />
                             </div>
                             <CardDescription>
-                                {statusDescriptions[statusForTimeline]}
+                                {statusDescriptions[statusValue]}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -859,8 +981,7 @@ export function LoanRequestDetailPage({
                                 />
                                 <div className="space-y-5">
                                     {timelineSteps.map((status, index) => {
-                                        const isCurrent =
-                                            status === statusForTimeline;
+                                        const isCurrent = status === statusValue;
                                         const isComplete =
                                             index < currentStatusIndex;
 
@@ -898,7 +1019,7 @@ export function LoanRequestDetailPage({
                                                         <p className="text-xs text-muted-foreground">
                                                             {
                                                                 statusDescriptions[
-                                                                    statusForTimeline
+                                                                    statusValue
                                                                 ]
                                                             }
                                                         </p>
@@ -910,20 +1031,21 @@ export function LoanRequestDetailPage({
                                 </div>
                             </div>
                             <div className="rounded-lg border border-border/30 bg-muted/10 p-3 text-xs text-muted-foreground">
-                                Status updates are based on the data you
-                                submitted for review.
+                                Workflow actions stay in sync with the current
+                                request status and your server-side access.
                             </div>
                         </CardContent>
                     </Card>
 
-                    {showDecision ? (
+                    {showDecisionForm || showDecisionSummary ? (
                         <Card className="border-border/30 bg-card/50 shadow-sm">
                             <CardHeader>
                                 <CardTitle className="text-base">
-                                    Decision
+                                    Workflow details
                                 </CardTitle>
                                 <CardDescription>
-                                    Capture the approval or decline details.
+                                    Review the latest workflow notes and
+                                    decision details for this request.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -1025,16 +1147,18 @@ export function LoanRequestDetailPage({
                                                 'Only requests under review can be decided.'}
                                         </p>
                                     </>
-                                ) : showDecisionSummary ? (
+                                ) : (
                                     <div className="space-y-3 text-sm">
                                         <DetailRow
                                             label="Status"
-                                            value={
-                                                statusLabels[
-                                                    statusForTimeline
-                                                ] ?? '--'
-                                            }
+                                            value={statusLabels[statusValue] ?? '--'}
                                         />
+                                        {loanRequest.assigned_officer !== null ? (
+                                            <DetailRow
+                                                label="Assigned officer"
+                                                value={assignedOfficer}
+                                            />
+                                        ) : null}
                                         <DetailRow
                                             label="Reviewed by"
                                             value={reviewedBy}
@@ -1043,10 +1167,52 @@ export function LoanRequestDetailPage({
                                             label="Reviewed at"
                                             value={reviewedAt}
                                         />
-                                        {statusForTimeline === 'approved' ||
-                                        (statusForTimeline === 'cancelled' &&
+                                        {loanRequest.review_decision ? (
+                                            <DetailRow
+                                                label="Review decision"
+                                                value={reviewDecisionValue}
+                                            />
+                                        ) : null}
+                                        {loanRequest.review_remarks ? (
+                                            <DetailRow
+                                                label={
+                                                    statusValue ===
+                                                    'needs_revision'
+                                                        ? 'Revision remarks'
+                                                        : 'Review remarks'
+                                                }
+                                                value={reviewRemarksValue}
+                                            />
+                                        ) : null}
+                                        {statusValue === 'rejected' ? (
+                                            <>
+                                                <DetailRow
+                                                    label="Rejected by"
+                                                    value={rejectedBy}
+                                                />
+                                                <DetailRow
+                                                    label="Rejected at"
+                                                    value={rejectedAt}
+                                                />
+                                                <DetailRow
+                                                    label="Rejection reason"
+                                                    value={rejectionReasonValue}
+                                                />
+                                            </>
+                                        ) : null}
+                                        {statusValue === 'approved' ||
+                                        statusValue === 'converted_to_loan' ||
+                                        (statusValue === 'cancelled' &&
                                             showApprovedCancellationHistory) ? (
                                             <>
+                                                <DetailRow
+                                                    label="Approved by"
+                                                    value={approvedBy}
+                                                />
+                                                <DetailRow
+                                                    label="Approved at"
+                                                    value={approvedAt}
+                                                />
                                                 <DetailRow
                                                     label="Approved amount"
                                                     value={approvedAmountValue}
@@ -1055,13 +1221,48 @@ export function LoanRequestDetailPage({
                                                     label="Approved term"
                                                     value={approvedTermValue}
                                                 />
+                                                {loanRequest.approved_interest_rate !==
+                                                null ? (
+                                                    <DetailRow
+                                                        label="Approved interest rate"
+                                                        value={
+                                                            approvedInterestRateValue
+                                                        }
+                                                    />
+                                                ) : null}
+                                                {loanRequest.approval_remarks ? (
+                                                    <DetailRow
+                                                        label="Approval remarks"
+                                                        value={
+                                                            approvalRemarksValue
+                                                        }
+                                                    />
+                                                ) : null}
                                             </>
                                         ) : null}
-                                        <DetailRow
-                                            label="Decision notes"
-                                            value={decisionNotesValue}
-                                        />
-                                        {statusForTimeline === 'cancelled' ? (
+                                        {loanRequest.decision_notes ? (
+                                            <DetailRow
+                                                label="Decision notes"
+                                                value={decisionNotesValue}
+                                            />
+                                        ) : null}
+                                        {statusValue === 'declined' ? (
+                                            <>
+                                                <DetailRow
+                                                    label="Declined by"
+                                                    value={declinedBy}
+                                                />
+                                                <DetailRow
+                                                    label="Declined at"
+                                                    value={declinedAt}
+                                                />
+                                                <DetailRow
+                                                    label="Decline reason"
+                                                    value={declineReasonValue}
+                                                />
+                                            </>
+                                        ) : null}
+                                        {statusValue === 'cancelled' ? (
                                             <>
                                                 <DetailRow
                                                     label="Cancelled by"
@@ -1080,11 +1281,6 @@ export function LoanRequestDetailPage({
                                             </>
                                         ) : null}
                                     </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        {blockedMessage ??
-                                            'Decision details will appear once the request is reviewed.'}
-                                    </p>
                                 )}
                             </CardContent>
                         </Card>
@@ -1136,6 +1332,10 @@ export function LoanRequestDetailPage({
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
+                            <LoanRequestWorkflowActions
+                                loanRequest={loanRequest}
+                                workflow={workflow}
+                            />
                             {showPrintAction ? (
                                 <div className="space-y-3">
                                     <Button
@@ -1230,7 +1430,7 @@ export function LoanRequestDetailPage({
                             {showCancellationAction ? (
                                 <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                                     <p className="text-xs font-semibold tracking-wide text-destructive uppercase">
-                                        {normalizedStatus === 'approved'
+                                        {statusValue === 'approved'
                                             ? 'Danger zone'
                                             : 'Application action'}
                                     </p>
@@ -1285,15 +1485,26 @@ export function LoanRequestDetailPage({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            {statusForTimeline === 'draft'
+                            {statusValue === 'draft'
                                 ? 'Finish the application and submit to begin the review.'
-                                : statusForTimeline === 'under_review'
-                                    ? 'Our team will review your request and notify you of the outcome.'
-                                    : statusForTimeline === 'approved'
-                                      ? 'You will receive next-step instructions from the loans team.'
-                                      : statusForTimeline === 'declined'
-                                        ? 'Contact support if you would like to discuss your request.'
-                                        : 'This request remains available as read-only history.'}
+                                : statusValue === 'pending_review'
+                                  ? 'A loan officer can now pick this request up and start the review.'
+                                  : statusValue === 'under_review'
+                                    ? 'The request is under active review by a loan officer.'
+                                    : statusValue === 'needs_revision'
+                                      ? 'The member needs to update the request before it can continue.'
+                                      : statusValue ===
+                                          'recommended_for_approval'
+                                        ? 'A loan manager can now approve or decline this request.'
+                                        : statusValue === 'approved'
+                                          ? 'The request can now be converted into an actual loan.'
+                                          : statusValue ===
+                                              'converted_to_loan'
+                                            ? 'The request is already linked to a created loan record.'
+                                            : statusValue === 'declined' ||
+                                                statusValue === 'rejected'
+                                              ? 'Contact support if you need to discuss the final decision.'
+                                              : 'This request remains available as read-only history.'}
                         </CardContent>
                     </Card>
                 </div>

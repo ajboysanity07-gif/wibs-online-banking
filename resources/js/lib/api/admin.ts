@@ -1,5 +1,14 @@
 import type { AxiosResponse } from 'axios';
 import client from '@/lib/api/client';
+import {
+    approve as workflowApproveRoute,
+    convertToLoan as workflowConvertToLoanRoute,
+    decline as workflowDeclineRoute,
+    recommendApproval as workflowRecommendApprovalRoute,
+    reject as workflowRejectRoute,
+    requestRevision as workflowRequestRevisionRoute,
+    startReview as workflowStartReviewRoute,
+} from '@/routes/spa/workflow/loan-requests';
 import type {
     DashboardSummary,
     MemberAccountActionsResponse,
@@ -20,6 +29,8 @@ import type {
     LoanRequestCorrectionPayload,
     LoanRequestCorrectionResult,
     LoanRequestDetail,
+    LoanRequestPersonData,
+    LoanRequestWorkflowResult,
 } from '@/types/loan-requests';
 
 type ApiResponse<T> = {
@@ -101,6 +112,46 @@ type LoanRequestAdminCorrectedCopyResult = {
         reference: string;
         url: string;
     };
+};
+
+type LoanRequestWorkflowStartReviewPayload = {
+    remarks?: string | null;
+};
+
+type LoanRequestWorkflowRequestRevisionPayload = {
+    remarks: string;
+};
+
+type LoanRequestWorkflowRejectPayload = {
+    rejection_reason: string;
+};
+
+type LoanRequestWorkflowRecommendApprovalPayload = {
+    review_remarks?: string | null;
+};
+
+type LoanRequestWorkflowApprovePayload = {
+    approved_amount: number | string;
+    approved_term: number | string;
+    approved_interest_rate?: number | string | null;
+    approval_remarks?: string | null;
+};
+
+type LoanRequestWorkflowDeclinePayload = {
+    decline_reason: string;
+};
+
+type LoanRequestWorkflowConvertPayload = {
+    remarks?: string | null;
+};
+
+type LoanRequestWorkflowResponse = {
+    loanRequest: LoanRequestDetail;
+    applicant: LoanRequestPersonData | null;
+    coMakerOne: LoanRequestPersonData | null;
+    coMakerTwo: LoanRequestPersonData | null;
+    correctionReports: LoanRequestCorrectionReport[];
+    loan?: Record<string, unknown> | null;
 };
 
 export const adminApi = {
@@ -249,6 +300,83 @@ export const adminApi = {
             ApiResponse<LoanRequestAdminCorrectedCopyResult>
         >(
             `/spa/admin/requests/${loanRequestId}/admin-corrected-copy`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async startLoanRequestReview(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowStartReviewPayload = {},
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowStartReviewRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async requestLoanRequestRevision(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowRequestRevisionPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowRequestRevisionRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async rejectLoanRequestForWorkflow(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowRejectPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowRejectRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async recommendLoanRequestApproval(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowRecommendApprovalPayload = {},
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowRecommendApprovalRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async approveLoanRequestForWorkflow(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowApprovePayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowApproveRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async declineLoanRequestForWorkflow(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowDeclinePayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowDeclineRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async convertLoanRequestToLoan(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowConvertPayload = {},
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowConvertToLoanRoute(loanRequestId).url,
             payload,
         );
 

@@ -26,6 +26,7 @@ import { useCancelLoanRequest } from '@/hooks/admin/use-cancel-loan-request';
 import { useCorrectLoanRequest } from '@/hooks/admin/use-correct-loan-request';
 import { useCreateAdminCorrectedLoanRequest } from '@/hooks/admin/use-create-admin-corrected-loan-request';
 import { useDismissLoanRequestCorrectionReport } from '@/hooks/admin/use-dismiss-loan-request-correction-report';
+import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import { useUpdateLoanRequestDecision } from '@/hooks/admin/use-update-loan-request-decision';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
@@ -50,6 +51,7 @@ import type {
     LoanRequestCorrectionReport,
     LoanRequestCorrectionPayload,
     LoanRequestDetail,
+    LoanRequestWorkflowPermission,
     LoanRequestPersonData,
     LoanTypeOption,
 } from '@/types/loan-requests';
@@ -92,6 +94,7 @@ type Props = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
     decision: DecisionState;
+    workflowPermissions: LoanRequestWorkflowPermission[];
     loanTypes: LoanTypeOption[];
     correctionReports: LoanRequestCorrectionReport[];
     openCorrectionReportCancellationReason: string | null;
@@ -104,6 +107,7 @@ export default function LoanRequestShow({
     coMakerOne,
     coMakerTwo,
     decision,
+    workflowPermissions,
     loanTypes,
     correctionReports,
     openCorrectionReportCancellationReason,
@@ -140,6 +144,27 @@ export default function LoanRequestShow({
     );
     const { updateDecision, processingIds } = useUpdateLoanRequestDecision({
         onUpdated: (updated) => setCurrentRequest(updated),
+    });
+    const { 
+        startReview,
+        requestRevision,
+        rejectLoanRequest,
+        recommendApproval,
+        approveLoanRequest,
+        declineLoanRequest,
+        convertToLoan,
+        processingIds: workflowProcessingIds,
+    } = useLoanRequestWorkflow({
+        onUpdated: (result) => {
+            setCurrentRequest(result.loanRequest);
+            setCurrentApplicant(result.applicant);
+            setCurrentCoMakerOne(result.coMakerOne);
+            setCurrentCoMakerTwo(result.coMakerTwo);
+            setCurrentCorrectionReports(result.correctionReports);
+            setCancellationReasonPrefill(
+                resolveCancellationReasonPrefill(result.correctionReports),
+            );
+        },
     });
     const {
         correctLoanRequest,
@@ -210,7 +235,8 @@ export default function LoanRequestShow({
     }).url;
     const printHref = requestsPrint(currentRequest.id).url;
     const approvedDocumentHrefs =
-        currentRequest.status === 'approved'
+        currentRequest.status === 'approved' ||
+        currentRequest.status === 'converted_to_loan'
             ? {
                   applicationForm: requestsApplicationFormDocument(
                       currentRequest.id,
@@ -234,8 +260,41 @@ export default function LoanRequestShow({
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;
+    const hasWorkflowPermission = (
+        permission: LoanRequestWorkflowPermission,
+    ): boolean => workflowPermissions.includes(permission);
     const canDecide =
         currentRequest.status === 'under_review' && decision.canDecide;
+    const canStartReview =
+        !decision.isOwnRequest &&
+        currentRequest.status === 'pending_review' &&
+        hasWorkflowPermission('loan.review');
+    const canRequestRevision =
+        !decision.isOwnRequest &&
+        (currentRequest.status === 'pending_review' ||
+            currentRequest.status === 'under_review') &&
+        hasWorkflowPermission('loan.request_revision');
+    const canReject =
+        !decision.isOwnRequest &&
+        (currentRequest.status === 'pending_review' ||
+            currentRequest.status === 'under_review') &&
+        hasWorkflowPermission('loan.reject');
+    const canRecommendApproval =
+        !decision.isOwnRequest &&
+        currentRequest.status === 'under_review' &&
+        hasWorkflowPermission('loan.recommend_approval');
+    const canWorkflowApprove =
+        !decision.isOwnRequest &&
+        currentRequest.status === 'recommended_for_approval' &&
+        hasWorkflowPermission('loan.approve');
+    const canWorkflowDecline =
+        !decision.isOwnRequest &&
+        currentRequest.status === 'recommended_for_approval' &&
+        hasWorkflowPermission('loan.decline');
+    const canConvertToLoan =
+        !decision.isOwnRequest &&
+        currentRequest.status === 'approved' &&
+        hasWorkflowPermission('loan.convert_to_loan');
     const canCorrect =
         currentRequest.status === 'under_review' && !decision.isOwnRequest;
     const requiresCorrectionBeforeApproval =
@@ -251,6 +310,8 @@ export default function LoanRequestShow({
             ? (decision.blockedMessage ?? null)
             : null;
     const isCorrecting = correctionProcessingIds[currentRequest.id] ?? false;
+    const isWorkflowProcessing =
+        workflowProcessingIds[currentRequest.id] ?? false;
     const isCreatingAdminCorrectedCopy =
         adminCorrectedCopyProcessingIds[currentRequest.id] ?? false;
     const correctedRequestHref =
@@ -581,6 +642,76 @@ export default function LoanRequestShow({
                             cancellation_reason:
                                 payload.cancellation_reason ?? '',
                         }),
+                }}
+                workflow={{
+                    startReview: canStartReview
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  startReview(currentRequest.id, payload),
+                          }
+                        : undefined,
+                    requestRevision: canRequestRevision
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  requestRevision(currentRequest.id, payload),
+                          }
+                        : undefined,
+                    reject: canReject
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  rejectLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    recommendApproval: canRecommendApproval
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  recommendApproval(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    approve: canWorkflowApprove
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  approveLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    decline: canWorkflowDecline
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  declineLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    convertToLoan: canConvertToLoan
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  convertToLoan(currentRequest.id, payload),
+                          }
+                        : undefined,
                 }}
             />
             <AdminLoanRequestCorrectionDialog

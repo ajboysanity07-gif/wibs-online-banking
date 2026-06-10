@@ -31,24 +31,34 @@ type Props = {
 type StatusFilter =
     | 'all'
     | 'draft'
+    | 'pending_review'
     | 'under_review'
+    | 'needs_revision'
+    | 'recommended_for_approval'
     | 'approved'
     | 'declined'
+    | 'rejected'
+    | 'converted_to_loan'
     | 'cancelled';
 
 const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
     { value: 'all', label: 'All' },
     { value: 'draft', label: 'Draft' },
+    { value: 'pending_review', label: 'Pending Review' },
     { value: 'under_review', label: 'Under review' },
+    { value: 'needs_revision', label: 'Needs Revision' },
+    { value: 'recommended_for_approval', label: 'Recommended for Approval' },
     { value: 'approved', label: 'Approved' },
     { value: 'declined', label: 'Declined' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'converted_to_loan', label: 'Converted to Loan' },
     { value: 'cancelled', label: 'Cancelled' },
 ];
 
 const normalizeStatus = (
     status: LoanRequestStatusValue | null,
 ): LoanRequestStatusValue | null => {
-    if (status === 'submitted' || status === 'pending_review') {
+    if (status === 'submitted') {
         return 'under_review';
     }
 
@@ -97,14 +107,22 @@ export default function LoanRequestsPage({
             total: items.length,
             draft: items.filter((item) => normalizeStatus(item.status) === 'draft')
                 .length,
+            pendingReview: items.filter(
+                (item) => normalizeStatus(item.status) === 'pending_review',
+            ).length,
             underReview: items.filter(
                 (item) => normalizeStatus(item.status) === 'under_review',
             ).length,
-            approved: items.filter(
-                (item) => normalizeStatus(item.status) === 'approved',
+            needsRevision: items.filter(
+                (item) => normalizeStatus(item.status) === 'needs_revision',
             ).length,
-            declinedOrCancelled: items.filter((item) =>
-                ['declined', 'cancelled'].includes(
+            approvedOrConverted: items.filter((item) =>
+                ['approved', 'converted_to_loan'].includes(
+                    normalizeStatus(item.status) ?? '',
+                ),
+            ).length,
+            closed: items.filter((item) =>
+                ['declined', 'rejected', 'cancelled'].includes(
                     normalizeStatus(item.status) ?? '',
                 ),
             ).length,
@@ -156,7 +174,7 @@ export default function LoanRequestsPage({
                 <LoanRequestPageHero
                     kicker="Loan applications"
                     title="Loan Requests"
-                    description="Track drafts, review-ready requests, and final loan decisions."
+                    description="Track drafts, queued reviews, requests that need revision, and final loan decisions."
                     cta={
                         <Button asChild>
                             <Link href={loanRequestCreate().url}>
@@ -179,22 +197,34 @@ export default function LoanRequestsPage({
                                 'text-amber-600 dark:text-amber-400',
                         },
                         {
+                            label: 'Pending Review',
+                            value: summaryCounts.pendingReview,
+                            emphasisClassName:
+                                'text-orange-600 dark:text-orange-400',
+                        },
+                        {
                             label: 'Under review',
                             value: summaryCounts.underReview,
                             emphasisClassName:
                                 'text-sky-600 dark:text-sky-400',
                         },
                         {
-                            label: 'Approved',
-                            value: summaryCounts.approved,
+                            label: 'Needs Revision',
+                            value: summaryCounts.needsRevision,
+                            emphasisClassName:
+                                'text-rose-600 dark:text-rose-400',
+                        },
+                        {
+                            label: 'Approved/Converted',
+                            value: summaryCounts.approvedOrConverted,
                             emphasisClassName:
                                 'text-emerald-600 dark:text-emerald-400',
                         },
                         {
-                            label: 'Cancelled/Declined',
-                            value: summaryCounts.declinedOrCancelled,
+                            label: 'Closed',
+                            value: summaryCounts.closed,
                             emphasisClassName:
-                                'text-rose-600 dark:text-rose-400',
+                                'text-slate-600 dark:text-slate-300',
                         },
                     ]}
                 />

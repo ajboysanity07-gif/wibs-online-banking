@@ -14,6 +14,16 @@ test('loan request actions group document buttons and separate navigation', asyn
         ),
         'utf8',
     );
+    const workflowActionsFile = await readFile(
+        resolve(
+            'resources',
+            'js',
+            'components',
+            'loan-request',
+            'loan-request-workflow-actions.tsx',
+        ),
+        'utf8',
+    );
     const adminPageFile = await readFile(
         resolve('resources', 'js', 'pages', 'admin', 'loan-request-show.tsx'),
         'utf8',
@@ -31,9 +41,13 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(detailFile, /backLabel/);
     assert.match(detailFile, /sm:grid-cols-2/);
     assert.match(detailFile, /variant="ghost"/);
-    assert.match(detailFile, /loanRequest\.status === 'pending_review'/);
+    assert.match(workflowActionsFile, /Start Review/);
+    assert.match(workflowActionsFile, /Request Revision/);
+    assert.match(workflowActionsFile, /Recommend Approval/);
+    assert.match(workflowActionsFile, /Convert to Loan/);
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
+    assert.match(adminPageFile, /workflowPermissions/);
     assert.match(
         clientPageFile,
         /\['submitted', 'pending_review', 'under_review'\]\.includes/,

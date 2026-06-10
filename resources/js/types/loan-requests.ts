@@ -125,9 +125,24 @@ export type LoanRequestStatusValue =
     | 'submitted'
     | 'pending_review'
     | 'under_review'
+    | 'needs_revision'
+    | 'recommended_for_approval'
+    | 'rejected'
     | 'approved'
     | 'declined'
+    | 'converted_to_loan'
     | 'cancelled';
+
+export type LoanRequestWorkflowPermission =
+    | 'loan.view'
+    | 'loan.create'
+    | 'loan.review'
+    | 'loan.request_revision'
+    | 'loan.reject'
+    | 'loan.recommend_approval'
+    | 'loan.approve'
+    | 'loan.decline'
+    | 'loan.convert_to_loan';
 
 export type LoanRequestDetail = {
     id: number;
@@ -140,11 +155,25 @@ export type LoanRequestDetail = {
     loan_purpose: string | null;
     availment_status: string | null;
     submitted_at: string | null;
+    assigned_officer_id: number | null;
+    assigned_officer: LoanRequestReviewer | null;
     reviewed_by: LoanRequestReviewer | null;
     reviewed_at: string | null;
+    review_decision: string | null;
+    review_remarks: string | null;
+    rejected_by: LoanRequestReviewer | null;
+    rejected_at: string | null;
+    rejection_reason: string | null;
+    approved_by: LoanRequestReviewer | null;
+    approved_at: string | null;
+    approval_remarks: string | null;
     approved_amount: number | string | null;
     approved_term: number | string | null;
+    approved_interest_rate: number | string | null;
     decision_notes: string | null;
+    declined_by: LoanRequestReviewer | null;
+    declined_at: string | null;
+    decline_reason: string | null;
     cancelled_by: LoanRequestReviewer | null;
     cancelled_at: string | null;
     cancellation_reason: string | null;
@@ -245,4 +274,9 @@ export type LoanRequestCorrectionResult = {
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
+};
+
+export type LoanRequestWorkflowResult = LoanRequestCorrectionResult & {
+    correctionReports: LoanRequestCorrectionReport[];
+    loan?: Record<string, unknown> | null;
 };

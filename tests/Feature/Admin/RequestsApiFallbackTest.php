@@ -95,6 +95,41 @@ test('admin requests api normalizes legacy pending co-maker statuses into under 
         );
 });
 
+test('admin requests api keeps pending review separate from the under review filter', function () {
+    $admin = createRequestsApiAdmin('009002B');
+
+    $pendingReview = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now(),
+    ]);
+    $underReview = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?status=pending_review&perPage=10&page=1')
+        ->assertOk()
+        ->assertJsonCount(1, 'data.items')
+        ->assertJsonPath('data.items.0.id', $pendingReview->id)
+        ->assertJsonPath(
+            'data.items.0.status',
+            LoanRequestStatus::PendingReview->value,
+        );
+
+    $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?status=under_review&perPage=10&page=1')
+        ->assertOk()
+        ->assertJsonCount(1, 'data.items')
+        ->assertJsonPath('data.items.0.id', $underReview->id)
+        ->assertJsonMissing([
+            'id' => $pendingReview->id,
+            'status' => LoanRequestStatus::PendingReview->value,
+        ]);
+});
+
 test('admin requests api reported filter is safely unavailable when correction report table is missing', function () {
     Schema::dropIfExists('loan_request_correction_reports');
 

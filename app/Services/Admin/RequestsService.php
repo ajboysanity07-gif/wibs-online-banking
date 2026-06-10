@@ -89,7 +89,11 @@ class RequestsService
             if ($status === LoanRequestStatus::UnderReview->value) {
                 $query->whereIn(
                     'status',
-                    LoanRequestStatus::pendingDecisionValues(),
+                    [
+                        LoanRequestStatus::PendingCoMakerSignatures->value,
+                        LoanRequestStatus::Submitted->value,
+                        LoanRequestStatus::UnderReview->value,
+                    ],
                 );
             } else {
                 $query->where('status', $status);

@@ -48,7 +48,7 @@ class LoanRequestController extends Controller
         ];
 
         if ($actor instanceof AppUser) {
-            $actor->loadMissing('adminProfile');
+            $actor->loadMissing('adminProfile', 'roles.permissions');
 
             $decision = [
                 'canDecide' => $decisionService->canDecide(
@@ -77,6 +77,7 @@ class LoanRequestController extends Controller
         $payload = $this->sanitizePayload([
             ...$serializer->serializeDetail($loanRequestRecord),
             'decision' => $decision,
+            'workflowPermissions' => $this->resolveWorkflowPermissions($actor),
             'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
             'correctionReports' => $serializer->serializeCorrectionReports(
                 $correctionReportSource,
@@ -139,7 +140,7 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
-        if (! $this->isApproved($loanRequestRecord)) {
+        if (! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -169,7 +170,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -182,7 +183,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -195,7 +196,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -208,7 +209,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -221,7 +222,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -234,7 +235,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -266,18 +267,22 @@ class LoanRequestController extends Controller
             LoanRequestStatus::PendingReview->value,
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
             LoanRequestStatus::Declined->value,
             LoanRequestStatus::Cancelled->value,
         ], true);
     }
 
-    private function isApproved(LoanRequest $loanRequest): bool
+    private function hasApprovedDocumentsStatus(LoanRequest $loanRequest): bool
     {
         $status = $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        return $status === LoanRequestStatus::Approved->value;
+        return in_array($status, [
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
+        ], true);
     }
 
     private function resolveCorrectionReportSource(
@@ -309,6 +314,23 @@ class LoanRequestController extends Controller
             $latestOpenReport->issue_description,
             $latestOpenReport->correct_information,
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveWorkflowPermissions(?AppUser $actor): array
+    {
+        if (! $actor instanceof AppUser) {
+            return [];
+        }
+
+        return $actor->roles
+            ->flatMap(static fn ($role) => $role->permissions->pluck('name'))
+            ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function sanitizePayload(mixed $value): mixed

@@ -11,6 +11,8 @@ use App\Models\LoanRequestCorrectionReport;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -2009,6 +2011,8 @@ test('admin can view loan request details page', function () {
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::ensureWorkflowDefaults();
+    Role::attachNamedRole($admin, Role::LOAN_OFFICER);
 
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::UnderReview,
@@ -2059,6 +2063,9 @@ test('admin can view loan request details page', function () {
             ->where('decision.canDecide', true)
             ->where('decision.canCancel', true)
             ->where('decision.isOwnRequest', false)
+            ->where('workflowPermissions', fn ($permissions): bool => collect($permissions)->contains(
+                Permission::LOAN_REVIEW,
+            ))
             ->where('applicant.first_name', 'Loan')
             ->where('applicant.birthdate', '1990-04-10')
             ->where('applicant.housing_status', 'OWNED')
@@ -3974,6 +3981,64 @@ test('client can view submitted loan request details', function () {
             ->where('loanRequest.reference', $loanRequest->reference)
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
             ->where('applicant.first_name', 'Sample'));
+});
+
+test('client can view revision remarks for needs revision workflow requests', function () {
+    $user = User::factory()->create([
+        'acctno' => '000730A',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Revision',
+        'fname' => 'Revision',
+        'lname' => 'Member',
+        'birthday' => '1991-04-10',
+        'address' => 'Revision Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $reviewer = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $reviewer->user_id,
+        'fullname' => 'Loan Officer Review',
+    ]);
+
+    $loanRequest = LoanRequest::factory()
+        ->forUser($user)
+        ->create([
+            'status' => LoanRequestStatus::NeedsRevision,
+            'submitted_at' => now(),
+            'reviewed_by' => $reviewer->user_id,
+            'reviewed_at' => now()->subHour(),
+            'review_decision' => 'request_revision',
+            'review_remarks' => 'Please correct the employer address before review continues.',
+        ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'first_name' => 'Sample',
+        ]);
+
+    $this
+        ->actingAs($user)
+        ->get(route('client.loan-requests.show', $loanRequest))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request-show')
+            ->where('loanRequest.status', LoanRequestStatus::NeedsRevision->value)
+            ->where(
+                'loanRequest.review_remarks',
+                'Please correct the employer address before review continues.',
+            )
+            ->where('loanRequest.reviewed_by.name', 'Loan Officer Review'));
 });
 
 test('client cannot view another member loan request details', function () {

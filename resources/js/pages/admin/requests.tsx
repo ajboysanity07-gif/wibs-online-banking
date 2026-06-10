@@ -48,25 +48,40 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 type AdminStatusFilter =
     | 'all'
+    | 'pending_review'
     | 'under_review'
+    | 'needs_revision'
+    | 'recommended_for_approval'
+    | 'rejected'
     | 'approved'
     | 'declined'
+    | 'converted_to_loan'
     | 'cancelled'
     | 'reported';
 
 const statusLabels: Record<Exclude<AdminStatusFilter, 'all'>, string> = {
+    pending_review: 'Pending Review',
     under_review: 'Under review',
+    needs_revision: 'Needs Revision',
+    recommended_for_approval: 'Recommended for Approval',
+    rejected: 'Rejected',
     approved: 'Approved',
     declined: 'Declined',
+    converted_to_loan: 'Converted to Loan',
     cancelled: 'Cancelled',
     reported: 'Reported',
 };
 
 const statusOptions: Array<LoanRequestStatusFilterOption<AdminStatusFilter>> = [
     { value: 'all', label: 'All' },
+    { value: 'pending_review', label: 'Pending Review' },
     { value: 'under_review', label: 'Under review' },
+    { value: 'needs_revision', label: 'Needs Revision' },
+    { value: 'recommended_for_approval', label: 'Recommended for Approval' },
+    { value: 'rejected', label: 'Rejected' },
     { value: 'approved', label: 'Approved' },
     { value: 'declined', label: 'Declined' },
+    { value: 'converted_to_loan', label: 'Converted to Loan' },
     { value: 'cancelled', label: 'Cancelled' },
     { value: 'reported', label: 'Reported' },
 ];
@@ -98,11 +113,7 @@ const formatCountLabel = (count: number, label: string): string => {
 const normalizeStatus = (
     status: LoanRequestStatusValue | null,
 ): LoanRequestStatusValue | null => {
-    if (
-        status === 'submitted' ||
-        status === 'pending_review' ||
-        status === 'pending_co_maker_signatures'
-    ) {
+    if (status === 'submitted' || status === 'pending_co_maker_signatures') {
         return 'under_review';
     }
 
@@ -266,17 +277,30 @@ export default function RequestsPage() {
     const summaryCounts = useMemo(
         () => ({
             total: totalResults,
+            pendingReview: items.filter(
+                (item) => normalizeStatus(item.status) === 'pending_review',
+            ).length,
             underReview: items.filter(
                 (item) => normalizeStatus(item.status) === 'under_review',
+            ).length,
+            needsRevision: items.filter(
+                (item) => normalizeStatus(item.status) === 'needs_revision',
+            ).length,
+            recommended: items.filter(
+                (item) =>
+                    normalizeStatus(item.status) ===
+                    'recommended_for_approval',
             ).length,
             approved: items.filter(
                 (item) => normalizeStatus(item.status) === 'approved',
             ).length,
-            cancelled: items.filter(
-                (item) => normalizeStatus(item.status) === 'cancelled',
+            converted: items.filter(
+                (item) => normalizeStatus(item.status) === 'converted_to_loan',
             ).length,
-            declined: items.filter(
-                (item) => normalizeStatus(item.status) === 'declined',
+            declinedOrRejected: items.filter((item) =>
+                ['declined', 'rejected'].includes(
+                    normalizeStatus(item.status) ?? '',
+                ),
             ).length,
             reported: items.filter(
                 (item) => item.has_open_correction_report,
@@ -332,10 +356,28 @@ export default function RequestsPage() {
                     items={[
                         { label: 'Total', value: summaryCounts.total },
                         {
+                            label: 'Pending Review',
+                            value: summaryCounts.pendingReview,
+                            emphasisClassName:
+                                'text-amber-600 dark:text-amber-400',
+                        },
+                        {
                             label: 'Under review',
                             value: summaryCounts.underReview,
                             emphasisClassName:
                                 'text-sky-600 dark:text-sky-400',
+                        },
+                        {
+                            label: 'Needs Revision',
+                            value: summaryCounts.needsRevision,
+                            emphasisClassName:
+                                'text-orange-600 dark:text-orange-400',
+                        },
+                        {
+                            label: 'Recommended',
+                            value: summaryCounts.recommended,
+                            emphasisClassName:
+                                'text-indigo-600 dark:text-indigo-400',
                         },
                         {
                             label: 'Approved',
@@ -344,15 +386,16 @@ export default function RequestsPage() {
                                 'text-emerald-600 dark:text-emerald-400',
                         },
                         {
-                            label: 'Cancelled',
-                            value: summaryCounts.cancelled,
-                            emphasisClassName: 'text-rose-600 dark:text-rose-400',
+                            label: 'Converted',
+                            value: summaryCounts.converted,
+                            emphasisClassName:
+                                'text-teal-600 dark:text-teal-400',
                         },
                         {
-                            label: 'Declined',
-                            value: summaryCounts.declined,
+                            label: 'Declined/Rejected',
+                            value: summaryCounts.declinedOrRejected,
                             emphasisClassName:
-                                'text-orange-600 dark:text-orange-400',
+                                'text-rose-600 dark:text-rose-400',
                         },
                         {
                             label: 'Reported',

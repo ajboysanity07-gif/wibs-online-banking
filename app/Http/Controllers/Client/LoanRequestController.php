@@ -137,6 +137,7 @@ class LoanRequestController extends Controller
 
     public function show(
         Request $request,
+        LoanRequestPayloadSerializer $serializer,
         int $loanRequest,
     ): Response|RedirectResponse {
         $user = $request->user();
@@ -167,65 +168,24 @@ class LoanRequestController extends Controller
 
         $loanRequestRecord->loadMissing(
             'people',
+            'assignedOfficer.adminProfile',
             'reviewedBy.adminProfile',
+            'rejectedBy.adminProfile',
+            'approvedBy.adminProfile',
+            'declinedBy.adminProfile',
             'cancelledBy',
             'correctedFrom',
             'correctedRequests',
         );
         $correctedRequest = $this->resolveCorrectedRequest($loanRequestRecord);
+        $detail = $serializer->serializeDetail($loanRequestRecord);
+        $detail['loanRequest']['status'] = $this->normalizeStatus($loanRequestRecord);
+        $detail['loanRequest']['corrected_request_status'] = $correctedRequest !== null
+            ? $this->normalizeStatus($correctedRequest)
+            : null;
 
         $payload = $this->sanitizePayload([
-            'loanRequest' => [
-                'id' => $loanRequestRecord->id,
-                'reference' => $loanRequestRecord->reference,
-                'status' => $this->normalizeStatus($loanRequestRecord),
-                'typecode' => $loanRequestRecord->typecode,
-                'loan_type_label_snapshot' => $loanRequestRecord->loan_type_label_snapshot,
-                'requested_amount' => $loanRequestRecord->requested_amount,
-                'requested_term' => $loanRequestRecord->requested_term,
-                'loan_purpose' => $loanRequestRecord->loan_purpose,
-                'availment_status' => $loanRequestRecord->availment_status,
-                'submitted_at' => $loanRequestRecord->submitted_at?->toDateTimeString(),
-                'reviewed_by' => $loanRequestRecord->reviewedBy
-                    ? [
-                        'user_id' => $loanRequestRecord->reviewedBy->user_id,
-                        'name' => $loanRequestRecord->reviewedBy->adminProfile?->fullname
-                            ?? $loanRequestRecord->reviewedBy->name,
-                    ]
-                    : null,
-                'reviewed_at' => $loanRequestRecord->reviewed_at?->toDateTimeString(),
-                'approved_amount' => $loanRequestRecord->approved_amount,
-                'approved_term' => $loanRequestRecord->approved_term,
-                'decision_notes' => $loanRequestRecord->decision_notes,
-                'cancelled_by' => $loanRequestRecord->cancelledBy
-                    ? [
-                        'user_id' => $loanRequestRecord->cancelledBy->user_id,
-                        'name' => $loanRequestRecord->cancelledBy->name,
-                    ]
-                    : null,
-                'cancelled_at' => $loanRequestRecord->cancelled_at?->toDateTimeString(),
-                'cancellation_reason' => $loanRequestRecord->cancellation_reason,
-                'corrected_from_id' => $loanRequestRecord->corrected_from_id,
-                'corrected_from_reference' => $loanRequestRecord->correctedFrom?->reference,
-                'corrected_request_id' => $correctedRequest?->id,
-                'corrected_request_reference' => $correctedRequest?->reference,
-                'corrected_request_status' => $correctedRequest !== null
-                    ? $this->normalizeStatus($correctedRequest)
-                    : null,
-                'acctno' => $loanRequestRecord->acctno,
-            ],
-            'applicant' => $this->serializePerson(
-                $loanRequestRecord,
-                LoanRequestPersonRole::Applicant,
-            ),
-            'coMakerOne' => $this->serializePerson(
-                $loanRequestRecord,
-                LoanRequestPersonRole::CoMakerOne,
-            ),
-            'coMakerTwo' => $this->serializePerson(
-                $loanRequestRecord,
-                LoanRequestPersonRole::CoMakerTwo,
-            ),
+            ...$detail,
             'hasOpenCorrectionReport' => $loanRequestRecord
                 ->correctionReports()
                 ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
@@ -382,7 +342,7 @@ class LoanRequestController extends Controller
             'approved-documents',
         );
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -587,18 +547,22 @@ class LoanRequestController extends Controller
             LoanRequestStatus::PendingReview->value,
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
             LoanRequestStatus::Declined->value,
             LoanRequestStatus::Cancelled->value,
         ], true);
     }
 
-    private function isApproved(LoanRequest $loanRequest): bool
+    private function hasApprovedDocumentsStatus(LoanRequest $loanRequest): bool
     {
         $status = $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        return $status === LoanRequestStatus::Approved->value;
+        return in_array($status, [
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
+        ], true);
     }
 
     private function resolveApprovedDocumentLoanRequest(
@@ -624,7 +588,7 @@ class LoanRequestController extends Controller
             $context,
         );
 
-        if ($loanRequestRecord === null || ! $this->isApproved($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
             abort(404);
         }
 
