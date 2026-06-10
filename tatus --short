@@ -1,0 +1,13 @@
+[1mdiff --git a/resources/views/reports/partials/loan-request-styles.blade.php b/resources/views/reports/partials/loan-request-styles.blade.php[m
+[1mindex de80ab3..0c6e345 100644[m
+[1m--- a/resources/views/reports/partials/loan-request-styles.blade.php[m
+[1m+++ b/resources/views/reports/partials/loan-request-styles.blade.php[m
+[36m@@ -202,7 +202,7 @@[m
+     .signature-name {[m
+         margin: 0;[m
+         min-height: 0;[m
+[31m-        font-size: 9.25pt;[m
+[32m+[m[32m        font-size: 8.5pt;[m
+         font-weight: 700;[m
+         letter-spacing: 0.02em;[m
+         line-height: 1;[m
