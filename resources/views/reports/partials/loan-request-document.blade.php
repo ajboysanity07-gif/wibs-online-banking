@@ -128,6 +128,24 @@
         }
         return 'field field--tightest';
     };
+    $fitSignatureNameClass = function ($value): string {
+        $text = trim(strip_tags((string) $value));
+        $length = mb_strlen($text);
+
+        if ($length <= 18) {
+            return 'signature-name';
+        }
+
+        if ($length <= 24) {
+            return 'signature-name signature-name--tight';
+        }
+
+        if ($length <= 30) {
+            return 'signature-name signature-name--tighter';
+        }
+
+        return 'signature-name signature-name--tightest';
+    };
     $reportHeader = $reportHeader ?? [];
     $approvedTermLabel = $formatMonths($loanRequest->approved_term);
     $reviewerName = $reviewer['name'] ?? '';
@@ -588,7 +606,9 @@
                 @foreach ($signatureBlocks as $signatureBlock)
                     <td class="signature-cell">
                         <div class="signature-signing-space"></div>
-                        <div class="signature-name">{{ $signatureBlock['name'] }}</div>
+                        <div class="{{ $fitSignatureNameClass($signatureBlock['name']) }}">
+                            {{ $signatureBlock['name'] }}
+                        </div>
                         <div class="signature-line"></div>
                         <div class="signature-label">{{ $signatureBlock['label'] }}</div>
                     </td>
