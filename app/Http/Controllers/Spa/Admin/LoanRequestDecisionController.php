@@ -41,6 +41,7 @@ class LoanRequestDecisionController extends Controller
             'ok' => true,
             'data' => [
                 'loanRequest' => $serializer->serializeLoanRequest($updated),
+                'auditTrail' => $serializer->serializeAuditTrail($updated),
                 'correctionReports' => $serializer->serializeCorrectionReports(
                     $updated,
                 ),
@@ -67,6 +68,7 @@ class LoanRequestDecisionController extends Controller
             'ok' => true,
             'data' => [
                 'loanRequest' => $serializer->serializeLoanRequest($updated),
+                'auditTrail' => $serializer->serializeAuditTrail($updated),
                 'correctionReports' => $serializer->serializeCorrectionReports(
                     $updated,
                 ),
@@ -91,6 +93,7 @@ class LoanRequestDecisionController extends Controller
             'ok' => true,
             'data' => [
                 'loanRequest' => $serializer->serializeLoanRequest($updated),
+                'auditTrail' => $serializer->serializeAuditTrail($updated),
                 'correctionReports' => $serializer->serializeCorrectionReports(
                     $updated,
                 ),

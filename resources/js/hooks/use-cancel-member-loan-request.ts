@@ -2,7 +2,7 @@ import type { AxiosResponse } from 'axios';
 import { useCallback, useState } from 'react';
 import client from '@/lib/api/client';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
-import type { LoanRequestDetail } from '@/types/loan-requests';
+import type { LoanRequestMemberCancellationResult } from '@/types/loan-requests';
 
 type ApiResponse<T> = {
     ok: boolean;
@@ -11,10 +11,6 @@ type ApiResponse<T> = {
 
 type LoanRequestCancellationPayload = {
     cancellation_reason?: string | null;
-};
-
-type LoanRequestCancellationResult = {
-    loanRequest: LoanRequestDetail;
 };
 
 const unwrap = <T>(response: AxiosResponse<ApiResponse<T>>): T => {
@@ -26,7 +22,7 @@ const unwrap = <T>(response: AxiosResponse<ApiResponse<T>>): T => {
 };
 
 type CancelMemberLoanRequestOptions = {
-    onUpdated?: (loanRequest: LoanRequestDetail) => void;
+    onUpdated?: (result: LoanRequestMemberCancellationResult) => void;
 };
 
 export function useCancelMemberLoanRequest(
@@ -50,7 +46,7 @@ export function useCancelMemberLoanRequest(
 
             try {
                 const response = await client.patch<
-                    ApiResponse<LoanRequestCancellationResult>
+                    ApiResponse<LoanRequestMemberCancellationResult>
                 >(`/client/loans/requests/${loanRequestId}/cancel`, payload);
 
                 const result = unwrap(response);
@@ -58,9 +54,9 @@ export function useCancelMemberLoanRequest(
                 showSuccessToast('Loan request cancelled successfully.', {
                     id: toastId,
                 });
-                options?.onUpdated?.(result.loanRequest);
+                options?.onUpdated?.(result);
 
-                return result.loanRequest;
+                return result;
             } catch (error) {
                 showErrorToast(error, 'Failed to cancel loan request.', {
                     id: toastId,

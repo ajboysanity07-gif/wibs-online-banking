@@ -171,6 +171,7 @@ class LoanRequestWorkflowController extends Controller
             'ok' => true,
             'data' => [
                 ...$serializer->serializeDetail($loanRequest),
+                'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
                 'correctionReports' => $serializer->serializeCorrectionReports(
                     $loanRequest,
                 ),

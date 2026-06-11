@@ -4,11 +4,14 @@ namespace App\Services\LoanRequests;
 
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
 use App\Models\LoanRequestCorrectionReport;
 use App\Models\LoanRequestPerson;
 use App\Support\LocationComposer;
 use DateTimeInterface;
+use Illuminate\Support\Str;
 
 class LoanRequestPayloadSerializer
 {
@@ -26,6 +29,61 @@ class LoanRequestPayloadSerializer
         '15th & 30th',
         'Bi-Weekly',
         'Monthly',
+    ];
+
+    private const AUDIT_ACTION_LABELS = [
+        'submitted' => 'Submitted',
+        LoanRequestChange::ACTION_START_REVIEW => 'Review Started',
+        LoanRequestChange::ACTION_REQUEST_REVISION => 'Revision Requested',
+        LoanRequestChange::ACTION_REJECT => 'Rejected',
+        LoanRequestChange::ACTION_RECOMMEND_APPROVAL => 'Recommended for Approval',
+        LoanRequestChange::ACTION_APPROVE => 'Approved',
+        LoanRequestChange::ACTION_DECLINE => 'Declined',
+        LoanRequestChange::ACTION_CONVERT_TO_LOAN => 'Converted to Loan',
+        LoanRequestChange::ACTION_CANCEL_REQUEST => 'Cancelled',
+        LoanRequestChange::ACTION_CANCEL_APPROVED_REQUEST => 'Cancelled',
+        LoanRequestChange::ACTION_CREATE_CORRECTED_REQUEST => 'Corrected Request Created',
+        LoanRequestChange::ACTION_ADMIN_CREATE_CORRECTED_REQUEST => 'Admin-Corrected Request Created',
+        LoanRequestChange::ACTION_ADMIN_UPDATE_CORRECTED_REQUEST_DETAILS => 'Corrected Request Updated',
+    ];
+
+    private const AUDIT_STATUS_LABELS = [
+        LoanRequestStatus::Draft->value => 'Draft',
+        LoanRequestStatus::PendingCoMakerSignatures->value => 'Pending Co-Maker Signatures',
+        LoanRequestStatus::Submitted->value => 'Submitted',
+        LoanRequestStatus::PendingReview->value => 'Pending Review',
+        LoanRequestStatus::UnderReview->value => 'Under Review',
+        LoanRequestStatus::NeedsRevision->value => 'Needs Revision',
+        LoanRequestStatus::RecommendedForApproval->value => 'Recommended for Approval',
+        LoanRequestStatus::Rejected->value => 'Rejected',
+        LoanRequestStatus::Approved->value => 'Approved',
+        LoanRequestStatus::Declined->value => 'Declined',
+        LoanRequestStatus::ConvertedToLoan->value => 'Converted to Loan',
+        LoanRequestStatus::Cancelled->value => 'Cancelled',
+    ];
+
+    private const MEMBER_VISIBLE_AUDIT_ACTIONS = [
+        'submitted',
+        LoanRequestChange::ACTION_START_REVIEW,
+        LoanRequestChange::ACTION_REQUEST_REVISION,
+        LoanRequestChange::ACTION_REJECT,
+        LoanRequestChange::ACTION_RECOMMEND_APPROVAL,
+        LoanRequestChange::ACTION_APPROVE,
+        LoanRequestChange::ACTION_DECLINE,
+        LoanRequestChange::ACTION_CONVERT_TO_LOAN,
+    ];
+
+    private const MEMBER_VISIBLE_REASON_ACTIONS = [
+        LoanRequestChange::ACTION_REQUEST_REVISION,
+        LoanRequestChange::ACTION_REJECT,
+        LoanRequestChange::ACTION_DECLINE,
+    ];
+
+    private const AUDIT_METADATA_LABELS = [
+        'loan_number' => 'Loan Number',
+        'loan_status' => 'Loan Status',
+        'ledger_control_no' => 'Ledger Control No.',
+        'ledger_trans_no' => 'Ledger Transaction No.',
     ];
 
     public function __construct(
@@ -59,6 +117,22 @@ class LoanRequestPayloadSerializer
                 LoanRequestPersonRole::CoMakerTwo,
             ),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function serializeAuditTrail(LoanRequest $loanRequest): array
+    {
+        return $this->buildAuditTrail($loanRequest, false);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function serializeMemberAuditTrail(LoanRequest $loanRequest): array
+    {
+        return $this->buildAuditTrail($loanRequest, true);
     }
 
     /**
@@ -144,6 +218,503 @@ class LoanRequestPayloadSerializer
             'user_id' => $actor->user_id,
             'name' => $actor->adminProfile?->fullname ?? $actor->name,
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildAuditTrail(
+        LoanRequest $loanRequest,
+        bool $memberSafe,
+    ): array {
+        $loanRequest->loadMissing(
+            'user',
+            'assignedOfficer.adminProfile',
+            'reviewedBy.adminProfile',
+            'rejectedBy.adminProfile',
+            'approvedBy.adminProfile',
+            'declinedBy.adminProfile',
+        );
+
+        $changes = $loanRequest->changes()
+            ->with('changedBy.adminProfile')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        $entries = array_merge(
+            $this->buildSyntheticAuditEntries($loanRequest, $changes->all(), $memberSafe),
+            $changes
+                ->map(
+                    fn (LoanRequestChange $change): ?array => $this
+                        ->serializeAuditChange($change, $memberSafe),
+                )
+                ->filter()
+                ->values()
+                ->all(),
+        );
+
+        usort($entries, function (array $left, array $right): int {
+            $leftCreatedAt = $left['created_at'] ?? null;
+            $rightCreatedAt = $right['created_at'] ?? null;
+
+            if ($leftCreatedAt !== $rightCreatedAt) {
+                if ($leftCreatedAt === null) {
+                    return 1;
+                }
+
+                if ($rightCreatedAt === null) {
+                    return -1;
+                }
+
+                return strcmp($leftCreatedAt, $rightCreatedAt);
+            }
+
+            return ($left['sort_order'] ?? 0) <=> ($right['sort_order'] ?? 0);
+        });
+
+        return array_values(array_map(static function (array $entry): array {
+            unset($entry['sort_order']);
+
+            return $entry;
+        }, $entries));
+    }
+
+    /**
+     * @param  list<LoanRequestChange>  $changes
+     * @return list<array<string, mixed>>
+     */
+    private function buildSyntheticAuditEntries(
+        LoanRequest $loanRequest,
+        array $changes,
+        bool $memberSafe,
+    ): array {
+        $entries = [];
+        $sortOrder = 0;
+
+        $submissionEntry = $this->buildSubmittedAuditEntry(
+            $loanRequest,
+            $memberSafe,
+            $sortOrder++,
+        );
+
+        if ($submissionEntry !== null) {
+            $entries[] = $submissionEntry;
+        }
+
+        foreach (
+            $this->buildLegacyStatusFallbackEntries(
+                $loanRequest,
+                $changes,
+                $memberSafe,
+                $sortOrder,
+            ) as $entry
+        ) {
+            $entries[] = $entry;
+            $sortOrder++;
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param  list<LoanRequestChange>  $changes
+     * @return list<array<string, mixed>>
+     */
+    private function buildLegacyStatusFallbackEntries(
+        LoanRequest $loanRequest,
+        array $changes,
+        bool $memberSafe,
+        int $startingSortOrder,
+    ): array {
+        $status = $this->rawStatusValue($loanRequest->status);
+        $entries = [];
+        $sortOrder = $startingSortOrder;
+
+        if (
+            $status === LoanRequestStatus::UnderReview->value
+            && ! $this->hasAuditAction($changes, LoanRequestChange::ACTION_START_REVIEW, LoanRequestStatus::UnderReview->value)
+        ) {
+            $entries[] = $this->buildAuditEntry(
+                id: sprintf('fallback-start-review-%d', $loanRequest->id),
+                action: LoanRequestChange::ACTION_START_REVIEW,
+                actor: $memberSafe
+                    ? null
+                    : $this->serializeAuditActor(
+                        $loanRequest->assignedOfficer ?? $loanRequest->reviewedBy,
+                    ),
+                fromStatus: null,
+                toStatus: LoanRequestStatus::UnderReview->value,
+                reason: null,
+                createdAt: $loanRequest->reviewed_at?->toDateTimeString()
+                    ?? $loanRequest->submitted_at?->toDateTimeString(),
+                metadata: [],
+                sortOrder: $sortOrder++,
+            );
+        }
+
+        if (
+            $status === LoanRequestStatus::NeedsRevision->value
+            && ! $this->hasAuditAction($changes, LoanRequestChange::ACTION_REQUEST_REVISION, LoanRequestStatus::NeedsRevision->value)
+        ) {
+            $entries[] = $this->buildAuditEntry(
+                id: sprintf('fallback-needs-revision-%d', $loanRequest->id),
+                action: LoanRequestChange::ACTION_REQUEST_REVISION,
+                actor: $memberSafe ? null : $this->serializeAuditActor($loanRequest->reviewedBy),
+                fromStatus: null,
+                toStatus: LoanRequestStatus::NeedsRevision->value,
+                reason: $this->resolveAuditReason(
+                    LoanRequestChange::ACTION_REQUEST_REVISION,
+                    $loanRequest->review_remarks,
+                    $memberSafe,
+                ),
+                createdAt: $loanRequest->reviewed_at?->toDateTimeString(),
+                metadata: [],
+                sortOrder: $sortOrder++,
+            );
+        }
+
+        if (
+            $status === LoanRequestStatus::Rejected->value
+            && ! $this->hasAuditAction($changes, LoanRequestChange::ACTION_REJECT, LoanRequestStatus::Rejected->value)
+        ) {
+            $entries[] = $this->buildAuditEntry(
+                id: sprintf('fallback-rejected-%d', $loanRequest->id),
+                action: LoanRequestChange::ACTION_REJECT,
+                actor: $memberSafe
+                    ? null
+                    : $this->serializeAuditActor(
+                        $loanRequest->rejectedBy ?? $loanRequest->reviewedBy,
+                    ),
+                fromStatus: null,
+                toStatus: LoanRequestStatus::Rejected->value,
+                reason: $this->resolveAuditReason(
+                    LoanRequestChange::ACTION_REJECT,
+                    $loanRequest->rejection_reason,
+                    $memberSafe,
+                ),
+                createdAt: $loanRequest->rejected_at?->toDateTimeString()
+                    ?? $loanRequest->reviewed_at?->toDateTimeString(),
+                metadata: [],
+                sortOrder: $sortOrder++,
+            );
+        }
+
+        $hasRecommendationEvidence = $loanRequest->review_decision === LoanRequestStatus::RecommendedForApproval->value
+            || $this->hasAuditAction(
+                $changes,
+                LoanRequestChange::ACTION_RECOMMEND_APPROVAL,
+                LoanRequestStatus::RecommendedForApproval->value,
+            );
+
+        if (
+            in_array($status, [
+                LoanRequestStatus::RecommendedForApproval->value,
+                LoanRequestStatus::Approved->value,
+                LoanRequestStatus::Declined->value,
+                LoanRequestStatus::ConvertedToLoan->value,
+            ], true)
+            && $hasRecommendationEvidence
+            && ! $this->hasAuditAction($changes, LoanRequestChange::ACTION_RECOMMEND_APPROVAL, LoanRequestStatus::RecommendedForApproval->value)
+        ) {
+            $entries[] = $this->buildAuditEntry(
+                id: sprintf('fallback-recommended-%d', $loanRequest->id),
+                action: LoanRequestChange::ACTION_RECOMMEND_APPROVAL,
+                actor: $memberSafe ? null : $this->serializeAuditActor($loanRequest->reviewedBy),
+                fromStatus: null,
+                toStatus: LoanRequestStatus::RecommendedForApproval->value,
+                reason: $this->resolveAuditReason(
+                    LoanRequestChange::ACTION_RECOMMEND_APPROVAL,
+                    $loanRequest->review_remarks,
+                    $memberSafe,
+                ),
+                createdAt: $loanRequest->reviewed_at?->toDateTimeString(),
+                metadata: [],
+                sortOrder: $sortOrder++,
+            );
+        }
+
+        if (
+            in_array($status, [
+                LoanRequestStatus::Approved->value,
+                LoanRequestStatus::ConvertedToLoan->value,
+            ], true)
+            && ! $this->hasAuditAction($changes, LoanRequestChange::ACTION_APPROVE, LoanRequestStatus::Approved->value)
+        ) {
+            $entries[] = $this->buildAuditEntry(
+                id: sprintf('fallback-approved-%d', $loanRequest->id),
+                action: LoanRequestChange::ACTION_APPROVE,
+                actor: $memberSafe
+                    ? null
+                    : $this->serializeAuditActor(
+                        $loanRequest->approvedBy ?? $loanRequest->reviewedBy,
+                    ),
+                fromStatus: null,
+                toStatus: LoanRequestStatus::Approved->value,
+                reason: $this->resolveAuditReason(
+                    LoanRequestChange::ACTION_APPROVE,
+                    $loanRequest->approval_remarks ?? $loanRequest->decision_notes,
+                    $memberSafe,
+                ),
+                createdAt: $loanRequest->approved_at?->toDateTimeString()
+                    ?? $loanRequest->reviewed_at?->toDateTimeString(),
+                metadata: [],
+                sortOrder: $sortOrder++,
+            );
+        }
+
+        if (
+            $status === LoanRequestStatus::Declined->value
+            && ! $this->hasAuditAction($changes, LoanRequestChange::ACTION_DECLINE, LoanRequestStatus::Declined->value)
+        ) {
+            $entries[] = $this->buildAuditEntry(
+                id: sprintf('fallback-declined-%d', $loanRequest->id),
+                action: LoanRequestChange::ACTION_DECLINE,
+                actor: $memberSafe
+                    ? null
+                    : $this->serializeAuditActor(
+                        $loanRequest->declinedBy ?? $loanRequest->reviewedBy,
+                    ),
+                fromStatus: null,
+                toStatus: LoanRequestStatus::Declined->value,
+                reason: $this->resolveAuditReason(
+                    LoanRequestChange::ACTION_DECLINE,
+                    $loanRequest->decline_reason ?? $loanRequest->decision_notes,
+                    $memberSafe,
+                ),
+                createdAt: $loanRequest->declined_at?->toDateTimeString()
+                    ?? $loanRequest->reviewed_at?->toDateTimeString(),
+                metadata: [],
+                sortOrder: $sortOrder++,
+            );
+        }
+
+        if (
+            $status === LoanRequestStatus::ConvertedToLoan->value
+            && ! $this->hasAuditAction($changes, LoanRequestChange::ACTION_CONVERT_TO_LOAN, LoanRequestStatus::ConvertedToLoan->value)
+        ) {
+            $entries[] = $this->buildAuditEntry(
+                id: sprintf('fallback-converted-%d', $loanRequest->id),
+                action: LoanRequestChange::ACTION_CONVERT_TO_LOAN,
+                actor: $memberSafe ? null : $this->serializeAuditActor($loanRequest->approvedBy),
+                fromStatus: null,
+                toStatus: LoanRequestStatus::ConvertedToLoan->value,
+                reason: $this->resolveAuditReason(
+                    LoanRequestChange::ACTION_CONVERT_TO_LOAN,
+                    $loanRequest->decision_notes,
+                    $memberSafe,
+                ),
+                createdAt: null,
+                metadata: [],
+                sortOrder: $sortOrder++,
+            );
+        }
+
+        return $entries;
+    }
+
+    private function buildSubmittedAuditEntry(
+        LoanRequest $loanRequest,
+        bool $memberSafe,
+        int $sortOrder,
+    ): ?array {
+        if ($loanRequest->submitted_at === null) {
+            return null;
+        }
+
+        return $this->buildAuditEntry(
+            id: sprintf('submitted-%d', $loanRequest->id),
+            action: 'submitted',
+            actor: $memberSafe ? null : $this->serializeAuditActor($loanRequest->user),
+            fromStatus: LoanRequestStatus::Draft->value,
+            toStatus: null,
+            reason: null,
+            createdAt: $loanRequest->submitted_at->toDateTimeString(),
+            metadata: [],
+            sortOrder: $sortOrder,
+        );
+    }
+
+    private function hasAuditAction(
+        array $changes,
+        string $action,
+        ?string $toStatus = null,
+    ): bool {
+        foreach ($changes as $change) {
+            if (! $change instanceof LoanRequestChange) {
+                continue;
+            }
+
+            if ($change->action !== $action) {
+                continue;
+            }
+
+            if ($toStatus === null) {
+                return true;
+            }
+
+            if ($this->rawStatusValue($change->to_status) === $toStatus) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function serializeAuditChange(
+        LoanRequestChange $change,
+        bool $memberSafe,
+    ): ?array {
+        if (
+            $memberSafe
+            && ! in_array($change->action, self::MEMBER_VISIBLE_AUDIT_ACTIONS, true)
+        ) {
+            return null;
+        }
+
+        $change->loadMissing('changedBy.adminProfile');
+
+        return $this->buildAuditEntry(
+            id: (string) $change->id,
+            action: $change->action,
+            actor: $memberSafe ? null : $this->serializeAuditActor($change->changedBy),
+            fromStatus: $this->rawStatusValue($change->from_status),
+            toStatus: $this->rawStatusValue($change->to_status),
+            reason: $this->resolveAuditReason(
+                $change->action,
+                $change->reason,
+                $memberSafe,
+            ),
+            createdAt: $change->created_at?->toDateTimeString(),
+            metadata: $this->serializeAuditMetadata(
+                $change->metadata_json,
+                $memberSafe,
+            ),
+            sortOrder: (int) $change->id + 10_000,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     * @return list<array{key: string, label: string, value: string}>
+     */
+    private function serializeAuditMetadata(
+        ?array $metadata,
+        bool $memberSafe,
+    ): array {
+        if ($memberSafe || ! is_array($metadata)) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach (self::AUDIT_METADATA_LABELS as $key => $label) {
+            $value = $metadata[$key] ?? null;
+
+            if (! is_scalar($value)) {
+                continue;
+            }
+
+            $normalizedValue = trim((string) $value);
+
+            if ($normalizedValue === '') {
+                continue;
+            }
+
+            $items[] = [
+                'key' => $key,
+                'label' => $label,
+                'value' => $normalizedValue,
+            ];
+        }
+
+        return $items;
+    }
+
+    private function resolveAuditReason(
+        string $action,
+        ?string $reason,
+        bool $memberSafe,
+    ): ?string {
+        $normalizedReason = $this->normalizeOptionalString($reason);
+
+        if ($normalizedReason === null) {
+            return null;
+        }
+
+        if (! $memberSafe) {
+            return $normalizedReason;
+        }
+
+        return in_array($action, self::MEMBER_VISIBLE_REASON_ACTIONS, true)
+            ? $normalizedReason
+            : null;
+    }
+
+    /**
+     * @return array{user_id: int, name: string, acctno: string|null}|null
+     */
+    private function serializeAuditActor(?AppUser $actor): ?array
+    {
+        if (! $actor instanceof AppUser) {
+            return null;
+        }
+
+        return [
+            'user_id' => $actor->user_id,
+            'name' => $actor->adminProfile?->fullname ?? $actor->name,
+            'acctno' => $this->normalizeOptionalString($actor->acctno),
+        ];
+    }
+
+    /**
+     * @param  list<array{key: string, label: string, value: string}>  $metadata
+     * @return array<string, mixed>
+     */
+    private function buildAuditEntry(
+        string $id,
+        string $action,
+        ?array $actor,
+        ?string $fromStatus,
+        ?string $toStatus,
+        ?string $reason,
+        ?string $createdAt,
+        array $metadata,
+        int $sortOrder,
+    ): array {
+        return [
+            'id' => $id,
+            'action' => $action,
+            'action_label' => $this->resolveAuditActionLabel($action),
+            'actor' => $actor,
+            'from_status' => $fromStatus,
+            'from_status_label' => $this->resolveAuditStatusLabel($fromStatus),
+            'to_status' => $toStatus,
+            'to_status_label' => $this->resolveAuditStatusLabel($toStatus),
+            'reason' => $reason,
+            'created_at' => $createdAt,
+            'metadata' => $metadata,
+            'sort_order' => $sortOrder,
+        ];
+    }
+
+    private function resolveAuditActionLabel(string $action): string
+    {
+        return self::AUDIT_ACTION_LABELS[$action]
+            ?? Str::of($action)->replace('_', ' ')->headline()->toString();
+    }
+
+    private function resolveAuditStatusLabel(?string $status): ?string
+    {
+        if ($status === null) {
+            return null;
+        }
+
+        return self::AUDIT_STATUS_LABELS[$status]
+            ?? Str::of($status)->replace('_', ' ')->headline()->toString();
     }
 
     /**
@@ -235,6 +806,21 @@ class LoanRequestPayloadSerializer
     {
         return LoanRequestStatus::normalizeValue($loanRequest->status)
             ?? (string) $loanRequest->status;
+    }
+
+    private function rawStatusValue(mixed $status): ?string
+    {
+        if ($status instanceof LoanRequestStatus) {
+            return $status->value;
+        }
+
+        if (! is_string($status)) {
+            return null;
+        }
+
+        $trimmed = trim($status);
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 
     private function resolveCorrectedRequest(

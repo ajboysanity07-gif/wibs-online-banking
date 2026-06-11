@@ -21,6 +21,7 @@ import {
 } from '@/routes/staff/loan-requests/documents';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    LoanRequestAuditEntry,
     LoanRequestDetail,
     LoanRequestPersonData,
     LoanRequestWorkflowContext,
@@ -32,6 +33,7 @@ type Props = {
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
+    auditTrail: LoanRequestAuditEntry[];
     workflowPermissions: LoanRequestWorkflowPermission[];
     workflowContext: LoanRequestWorkflowContext;
 };
@@ -41,6 +43,7 @@ export default function StaffLoanRequestShow({
     applicant,
     coMakerOne,
     coMakerTwo,
+    auditTrail,
     workflowPermissions,
     workflowContext,
 }: Props) {
@@ -52,6 +55,8 @@ export default function StaffLoanRequestShow({
         useState<LoanRequestPersonData | null>(coMakerOne);
     const [currentCoMakerTwo, setCurrentCoMakerTwo] =
         useState<LoanRequestPersonData | null>(coMakerTwo);
+    const [currentAuditTrail, setCurrentAuditTrail] =
+        useState<LoanRequestAuditEntry[]>(auditTrail);
     const { 
         startReview,
         requestRevision,
@@ -67,6 +72,7 @@ export default function StaffLoanRequestShow({
             setCurrentApplicant(result.applicant);
             setCurrentCoMakerOne(result.coMakerOne);
             setCurrentCoMakerTwo(result.coMakerTwo);
+            setCurrentAuditTrail(result.auditTrail);
         },
     });
     const breadcrumbs: BreadcrumbItem[] = [
@@ -159,6 +165,8 @@ export default function StaffLoanRequestShow({
                 pdfHref={pdfHref}
                 printHref={printHref}
                 approvedDocumentHrefs={approvedDocumentHrefs}
+                auditTrail={currentAuditTrail}
+                auditTrailAudience="staff"
                 workflow={{
                     startReview: canStartReview
                         ? {

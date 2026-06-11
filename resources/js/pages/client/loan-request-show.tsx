@@ -36,6 +36,7 @@ import {
 } from '@/routes/client/loan-requests/documents';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    LoanRequestAuditEntry,
     LoanRequestDetail,
     LoanRequestPersonData,
 } from '@/types/loan-requests';
@@ -45,6 +46,7 @@ type Props = {
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
+    auditTrail: LoanRequestAuditEntry[];
     hasOpenCorrectionReport: boolean;
 };
 
@@ -53,10 +55,13 @@ export default function LoanRequestShow({
     applicant,
     coMakerOne,
     coMakerTwo,
+    auditTrail,
     hasOpenCorrectionReport,
 }: Props) {
     const [currentLoanRequest, setCurrentLoanRequest] =
         useState<LoanRequestDetail>(loanRequest);
+    const [currentAuditTrail, setCurrentAuditTrail] =
+        useState<LoanRequestAuditEntry[]>(auditTrail);
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
     const [issueDescription, setIssueDescription] = useState('');
     const [correctInformation, setCorrectInformation] = useState('');
@@ -68,7 +73,10 @@ export default function LoanRequestShow({
     );
     const { cancelLoanRequest, processingIds: cancellationProcessingIds } =
         useCancelMemberLoanRequest({
-            onUpdated: (updated) => setCurrentLoanRequest(updated),
+            onUpdated: (result) => {
+                setCurrentLoanRequest(result.loanRequest);
+                setCurrentAuditTrail(result.auditTrail);
+            },
         });
     const { submitReport, processingIds } =
         useSubmitLoanRequestCorrectionReport({
@@ -208,6 +216,8 @@ export default function LoanRequestShow({
                 printHref={printHref}
                 approvedDocumentHrefs={approvedDocumentHrefs}
                 correctedRequestHref={correctedRequestHref}
+                auditTrail={currentAuditTrail}
+                auditTrailAudience="member"
                 cancellation={{
                     show: canCancelApplication,
                     isProcessing: isCancellationSubmitting,

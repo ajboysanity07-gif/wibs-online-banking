@@ -1,18 +1,10 @@
 import { useCallback, useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
-import type {
-    LoanRequestCorrectionReport,
-    LoanRequestDetail,
-} from '@/types/loan-requests';
+import type { LoanRequestCancellationResult } from '@/types/loan-requests';
 
 export type LoanRequestCancellationPayload = {
     cancellation_reason: string;
-};
-
-export type LoanRequestCancellationResult = {
-    loanRequest: LoanRequestDetail;
-    correctionReports: LoanRequestCorrectionReport[];
 };
 
 type LoanRequestCancellationOptions = {

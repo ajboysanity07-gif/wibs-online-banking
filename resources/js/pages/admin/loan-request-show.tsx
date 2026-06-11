@@ -48,6 +48,7 @@ import {
 } from '@/routes/admin/requests/documents';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    LoanRequestAuditEntry,
     LoanRequestCorrectionReport,
     LoanRequestCorrectionPayload,
     LoanRequestDetail,
@@ -94,6 +95,7 @@ type Props = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
     decision: DecisionState;
+    auditTrail: LoanRequestAuditEntry[];
     workflowPermissions: LoanRequestWorkflowPermission[];
     loanTypes: LoanTypeOption[];
     correctionReports: LoanRequestCorrectionReport[];
@@ -107,6 +109,7 @@ export default function LoanRequestShow({
     coMakerOne,
     coMakerTwo,
     decision,
+    auditTrail,
     workflowPermissions,
     loanTypes,
     correctionReports,
@@ -123,6 +126,8 @@ export default function LoanRequestShow({
         useState<LoanRequestPersonData | null>(coMakerTwo);
     const [currentCorrectionReports, setCurrentCorrectionReports] =
         useState<LoanRequestCorrectionReport[]>(correctionReports);
+    const [currentAuditTrail, setCurrentAuditTrail] =
+        useState<LoanRequestAuditEntry[]>(auditTrail);
     const shouldAutoOpenCorrection =
         openCorrectionOnLoad &&
         loanRequest.requires_correction_before_approval &&
@@ -143,7 +148,11 @@ export default function LoanRequestShow({
         ),
     );
     const { updateDecision, processingIds } = useUpdateLoanRequestDecision({
-        onUpdated: (updated) => setCurrentRequest(updated),
+        onUpdated: (result) => {
+            setCurrentRequest(result.loanRequest);
+            setCurrentCorrectionReports(result.correctionReports);
+            setCurrentAuditTrail(result.auditTrail);
+        },
     });
     const { 
         startReview,
@@ -161,6 +170,7 @@ export default function LoanRequestShow({
             setCurrentCoMakerOne(result.coMakerOne);
             setCurrentCoMakerTwo(result.coMakerTwo);
             setCurrentCorrectionReports(result.correctionReports);
+            setCurrentAuditTrail(result.auditTrail);
             setCancellationReasonPrefill(
                 resolveCancellationReasonPrefill(result.correctionReports),
             );
@@ -177,6 +187,7 @@ export default function LoanRequestShow({
             setCurrentApplicant(updated.applicant);
             setCurrentCoMakerOne(updated.coMakerOne);
             setCurrentCoMakerTwo(updated.coMakerTwo);
+            setCurrentAuditTrail(updated.auditTrail);
             setIsCorrectionOpen(false);
         },
     });
@@ -185,6 +196,7 @@ export default function LoanRequestShow({
             onUpdated: (updated) => {
                 setCurrentRequest(updated.loanRequest);
                 setCurrentCorrectionReports(updated.correctionReports);
+                setCurrentAuditTrail(updated.auditTrail);
                 setCancellationReasonPrefill(
                     resolveCancellationReasonPrefill(updated.correctionReports),
                 );
@@ -592,6 +604,8 @@ export default function LoanRequestShow({
                 printHref={printHref}
                 approvedDocumentHrefs={approvedDocumentHrefs}
                 correctedRequestHref={correctedRequestHref}
+                auditTrail={currentAuditTrail}
+                auditTrailAudience="staff"
                 correction={{
                     show: canCorrect,
                     isProcessing: isCorrecting,

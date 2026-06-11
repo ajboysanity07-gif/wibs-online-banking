@@ -44,6 +44,7 @@ class LoanRequestController extends Controller
 
         $payload = $this->sanitizePayload([
             ...$serializer->serializeDetail($loanRequest),
+            'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
             'workflowPermissions' => $workspaceService->workflowPermissions($actor),
             'workflowContext' => [
                 'isOwnRequest' => $decisionService->isOwnRequest(

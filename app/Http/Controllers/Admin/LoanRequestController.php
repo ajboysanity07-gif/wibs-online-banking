@@ -76,6 +76,7 @@ class LoanRequestController extends Controller
         );
         $payload = $this->sanitizePayload([
             ...$serializer->serializeDetail($loanRequestRecord),
+            'auditTrail' => $serializer->serializeAuditTrail($loanRequestRecord),
             'decision' => $decision,
             'workflowPermissions' => $this->resolveWorkflowPermissions($actor),
             'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
-import type { LoanRequestDetail } from '@/types/loan-requests';
+import type { LoanRequestDecisionResult } from '@/types/loan-requests';
 
 export type LoanRequestDecisionAction = 'approve' | 'decline';
 
@@ -17,7 +17,7 @@ export type LoanRequestDeclinePayload = {
 
 type LoanRequestDecisionOptions = {
     onUpdated?: (
-        loanRequest: LoanRequestDetail,
+        result: LoanRequestDecisionResult,
         action: LoanRequestDecisionAction,
     ) => void;
 };
@@ -52,7 +52,7 @@ export function useUpdateLoanRequestDecision(
             const toastId = `loan-request-decision-${action}-${loanRequestId}`;
 
             try {
-                const loanRequest =
+                const result =
                     action === 'approve'
                         ? await adminApi.approveLoanRequest(
                               loanRequestId,
@@ -64,8 +64,8 @@ export function useUpdateLoanRequestDecision(
                           });
 
                 showSuccessToast(successCopy[action], { id: toastId });
-                options?.onUpdated?.(loanRequest, action);
-                return loanRequest;
+                options?.onUpdated?.(result, action);
+                return result;
             } catch (error) {
                 showErrorToast(error, errorCopy[action], { id: toastId });
                 return null;

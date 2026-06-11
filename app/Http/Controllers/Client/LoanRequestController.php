@@ -186,6 +186,9 @@ class LoanRequestController extends Controller
 
         $payload = $this->sanitizePayload([
             ...$detail,
+            'auditTrail' => $serializer->serializeMemberAuditTrail(
+                $loanRequestRecord,
+            ),
             'hasOpenCorrectionReport' => $loanRequestRecord
                 ->correctionReports()
                 ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
@@ -236,6 +239,7 @@ class LoanRequestController extends Controller
             'ok' => true,
             'data' => [
                 'loanRequest' => $serializer->serializeLoanRequest($updated),
+                'auditTrail' => $serializer->serializeMemberAuditTrail($updated),
             ],
         ]);
     }

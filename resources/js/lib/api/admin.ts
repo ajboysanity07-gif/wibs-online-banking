@@ -24,11 +24,14 @@ import type {
     RequestsResponse,
 } from '@/types/admin';
 import type {
+    LoanRequestAuditEntry,
     LoanRequestCorrectionReport,
     LoanRequestCorrectionReportDismissPayload,
     LoanRequestCorrectionPayload,
     LoanRequestCorrectionResult,
+    LoanRequestDecisionResult,
     LoanRequestDetail,
+    LoanRequestCancellationResult,
     LoanRequestPersonData,
     LoanRequestWorkflowResult,
 } from '@/types/loan-requests';
@@ -92,11 +95,6 @@ type LoanRequestCancellationPayload = {
     cancellation_reason: string;
 };
 
-type LoanRequestCancellationResult = {
-    loanRequest: LoanRequestDetail;
-    correctionReports: LoanRequestCorrectionReport[];
-};
-
 type LoanRequestCorrectionReportDismissResult = {
     report: LoanRequestCorrectionReport;
     correctionReports: LoanRequestCorrectionReport[];
@@ -150,6 +148,7 @@ type LoanRequestWorkflowResponse = {
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
+    auditTrail: LoanRequestAuditEntry[];
     correctionReports: LoanRequestCorrectionReport[];
     loan?: Record<string, unknown> | null;
 };
@@ -241,22 +240,22 @@ export const adminApi = {
     async approveLoanRequest(
         loanRequestId: number,
         payload: LoanRequestApprovePayload,
-    ): Promise<LoanRequestDetail> {
+    ): Promise<LoanRequestDecisionResult> {
         const response = await client.patch<
-            ApiResponse<{ loanRequest: LoanRequestDetail }>
+            ApiResponse<LoanRequestDecisionResult>
         >(`/spa/admin/requests/${loanRequestId}/approve`, payload);
 
-        return unwrap(response).loanRequest;
+        return unwrap(response);
     },
     async declineLoanRequest(
         loanRequestId: number,
         payload: LoanRequestDeclinePayload,
-    ): Promise<LoanRequestDetail> {
+    ): Promise<LoanRequestDecisionResult> {
         const response = await client.patch<
-            ApiResponse<{ loanRequest: LoanRequestDetail }>
+            ApiResponse<LoanRequestDecisionResult>
         >(`/spa/admin/requests/${loanRequestId}/decline`, payload);
 
-        return unwrap(response).loanRequest;
+        return unwrap(response);
     },
     async correctLoanRequest(
         loanRequestId: number,

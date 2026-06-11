@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { Ban, Calendar, Download, PencilLine, Printer } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
+import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
     LoanRequestWorkflowActions,
     type LoanRequestWorkflowProps,
@@ -39,6 +40,8 @@ import {
 import { showErrorToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type {
+    LoanRequestAuditEntry,
+    LoanRequestAuditTrailAudience,
     LoanRequestDetail,
     LoanRequestPersonData,
     LoanRequestStatusValue,
@@ -55,6 +58,8 @@ type Props = {
     printHref: string;
     approvedDocumentHrefs?: ApprovedDocumentHrefs | null;
     correctedRequestHref?: string | null;
+    auditTrail: LoanRequestAuditEntry[];
+    auditTrailAudience?: LoanRequestAuditTrailAudience;
     decision?: DecisionProps;
     cancellation?: CancellationProps;
     correction?: CorrectionProps;
@@ -399,6 +404,8 @@ export function LoanRequestDetailPage({
     printHref,
     approvedDocumentHrefs = null,
     correctedRequestHref = null,
+    auditTrail,
+    auditTrailAudience = 'staff',
     decision,
     cancellation,
     correction,
@@ -952,6 +959,11 @@ export function LoanRequestDetailPage({
                             />
                         </CardContent>
                     </Card>
+
+                    <LoanRequestAuditTrail
+                        entries={auditTrail}
+                        audience={auditTrailAudience}
+                    />
                 </div>
 
                 <div className="space-y-4 lg:sticky lg:top-24">

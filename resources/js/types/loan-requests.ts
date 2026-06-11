@@ -148,6 +148,34 @@ export type LoanRequestWorkflowContext = {
     isOwnRequest: boolean;
 };
 
+export type LoanRequestAuditTrailAudience = 'staff' | 'member';
+
+export type LoanRequestAuditActor = {
+    user_id: number;
+    name: string;
+    acctno: string | null;
+};
+
+export type LoanRequestAuditMetadataItem = {
+    key: string;
+    label: string;
+    value: string;
+};
+
+export type LoanRequestAuditEntry = {
+    id: string;
+    action: string;
+    action_label: string;
+    actor: LoanRequestAuditActor | null;
+    from_status: LoanRequestStatusValue | null;
+    from_status_label: string | null;
+    to_status: LoanRequestStatusValue | null;
+    to_status_label: string | null;
+    reason: string | null;
+    created_at: string | null;
+    metadata: LoanRequestAuditMetadataItem[];
+};
+
 export type LoanRequestDetail = {
     id: number;
     reference: string;
@@ -278,9 +306,27 @@ export type LoanRequestCorrectionResult = {
     applicant: LoanRequestPersonData | null;
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
+    auditTrail: LoanRequestAuditEntry[];
 };
 
 export type LoanRequestWorkflowResult = LoanRequestCorrectionResult & {
     correctionReports: LoanRequestCorrectionReport[];
     loan?: Record<string, unknown> | null;
+};
+
+export type LoanRequestDecisionResult = {
+    loanRequest: LoanRequestDetail;
+    correctionReports: LoanRequestCorrectionReport[];
+    auditTrail: LoanRequestAuditEntry[];
+};
+
+export type LoanRequestCancellationResult = {
+    loanRequest: LoanRequestDetail;
+    correctionReports: LoanRequestCorrectionReport[];
+    auditTrail: LoanRequestAuditEntry[];
+};
+
+export type LoanRequestMemberCancellationResult = {
+    loanRequest: LoanRequestDetail;
+    auditTrail: LoanRequestAuditEntry[];
 };

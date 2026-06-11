@@ -30,7 +30,10 @@ class LoanRequestCorrectionController extends Controller
 
         return response()->json([
             'ok' => true,
-            'data' => $serializer->serializeDetail($updated),
+            'data' => [
+                ...$serializer->serializeDetail($updated),
+                'auditTrail' => $serializer->serializeAuditTrail($updated),
+            ],
         ]);
     }
 }
