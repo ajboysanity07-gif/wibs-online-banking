@@ -26,4 +26,6 @@ test('notification bell renders generic notification metadata', async () => {
     assert.match(bellFile, /buildNotificationMetadataChips/);
     assert.match(helperFile, /payload\.changed_fields/);
     assert.match(helperFile, /payload\.actor_name/);
+    assert.match(helperFile, /Pending Review/);
+    assert.match(helperFile, /Under Review/);
 });

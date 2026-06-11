@@ -318,7 +318,7 @@ export function LoanRequestQueuePage({
             emphasisClassName: 'text-amber-600 dark:text-amber-400',
         },
         {
-            label: 'Under review',
+            label: 'Under Review',
             value: summaryCounts.underReview,
             emphasisClassName: 'text-sky-600 dark:text-sky-400',
         },

@@ -199,6 +199,7 @@ return new class extends Migration
 
         foreach ([
             'assigned_officer_id',
+            'reviewed_by',
             'rejected_by',
             'approved_by',
             'declined_by',
@@ -220,6 +221,8 @@ return new class extends Migration
             Schema::hasColumn('loan_requests', 'declined_at') ? 'declined_at' : null,
             Schema::hasColumn('loan_requests', 'declined_by') ? 'declined_by' : null,
             Schema::hasColumn('loan_requests', 'approved_interest_rate') ? 'approved_interest_rate' : null,
+            Schema::hasColumn('loan_requests', 'approved_term') ? 'approved_term' : null,
+            Schema::hasColumn('loan_requests', 'approved_amount') ? 'approved_amount' : null,
             Schema::hasColumn('loan_requests', 'approval_remarks') ? 'approval_remarks' : null,
             Schema::hasColumn('loan_requests', 'approved_at') ? 'approved_at' : null,
             Schema::hasColumn('loan_requests', 'approved_by') ? 'approved_by' : null,
@@ -228,6 +231,8 @@ return new class extends Migration
             Schema::hasColumn('loan_requests', 'rejected_by') ? 'rejected_by' : null,
             Schema::hasColumn('loan_requests', 'review_remarks') ? 'review_remarks' : null,
             Schema::hasColumn('loan_requests', 'review_decision') ? 'review_decision' : null,
+            Schema::hasColumn('loan_requests', 'reviewed_at') ? 'reviewed_at' : null,
+            Schema::hasColumn('loan_requests', 'reviewed_by') ? 'reviewed_by' : null,
             Schema::hasColumn('loan_requests', 'assigned_officer_id') ? 'assigned_officer_id' : null,
         ]));
 

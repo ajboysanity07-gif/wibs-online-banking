@@ -12,7 +12,7 @@ const statusLabels: Partial<Record<LoanRequestStatusValue, string>> = {
     pending_co_maker_signatures: 'Pending Co-Maker Signatures',
     submitted: 'Submitted',
     pending_review: 'Pending Review',
-    under_review: 'Under review',
+    under_review: 'Under Review',
     needs_revision: 'Needs Revision',
     recommended_for_approval: 'Recommended for Approval',
     rejected: 'Rejected',

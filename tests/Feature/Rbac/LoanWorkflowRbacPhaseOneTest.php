@@ -16,8 +16,10 @@ test('phase one rbac schema is present', function () {
     expect(Schema::hasTable('role_permissions'))->toBeTrue();
     expect(Schema::hasTable('user_roles'))->toBeTrue();
 
-    foreach ([
+    $workflowColumns = [
         'assigned_officer_id',
+        'reviewed_by',
+        'reviewed_at',
         'review_decision',
         'review_remarks',
         'rejected_by',
@@ -26,11 +28,15 @@ test('phase one rbac schema is present', function () {
         'approved_by',
         'approved_at',
         'approval_remarks',
+        'approved_amount',
+        'approved_term',
         'approved_interest_rate',
         'declined_by',
         'declined_at',
         'decline_reason',
-    ] as $column) {
+    ];
+
+    foreach ($workflowColumns as $column) {
         expect(Schema::hasColumn('loan_requests', $column))->toBeTrue();
     }
 
@@ -40,6 +46,47 @@ test('phase one rbac schema is present', function () {
         'metadata_json',
     ] as $column) {
         expect(Schema::hasColumn('loan_request_changes', $column))->toBeTrue();
+    }
+});
+
+test('phase one workflow field migration rolls back and reapplies all workflow columns', function () {
+    $workflowColumns = [
+        'assigned_officer_id',
+        'reviewed_by',
+        'reviewed_at',
+        'review_decision',
+        'review_remarks',
+        'rejected_by',
+        'rejected_at',
+        'rejection_reason',
+        'approved_by',
+        'approved_at',
+        'approval_remarks',
+        'approved_amount',
+        'approved_term',
+        'approved_interest_rate',
+        'declined_by',
+        'declined_at',
+        'decline_reason',
+    ];
+
+    /** @var \Illuminate\Database\Migrations\Migration $migration */
+    $migration = require database_path('migrations/2026_06_09_114848_add_phase_one_workflow_fields_to_loan_requests_table.php');
+
+    foreach ($workflowColumns as $column) {
+        expect(Schema::hasColumn('loan_requests', $column))->toBeTrue();
+    }
+
+    $migration->down();
+
+    foreach ($workflowColumns as $column) {
+        expect(Schema::hasColumn('loan_requests', $column))->toBeFalse();
+    }
+
+    $migration->up();
+
+    foreach ($workflowColumns as $column) {
+        expect(Schema::hasColumn('loan_requests', $column))->toBeTrue();
     }
 });
 

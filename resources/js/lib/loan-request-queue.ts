@@ -19,7 +19,7 @@ export const loanRequestQueueStatusLabels: Record<
     string
 > = {
     pending_review: 'Pending Review',
-    under_review: 'Under review',
+    under_review: 'Under Review',
     needs_revision: 'Needs Revision',
     recommended_for_approval: 'Recommended for Approval',
     rejected: 'Rejected',
@@ -35,7 +35,7 @@ export const adminLoanRequestQueueStatusOptions: Array<
 > = [
     { value: 'all', label: 'All' },
     { value: 'pending_review', label: 'Pending Review' },
-    { value: 'under_review', label: 'Under review' },
+    { value: 'under_review', label: 'Under Review' },
     { value: 'needs_revision', label: 'Needs Revision' },
     { value: 'recommended_for_approval', label: 'Recommended for Approval' },
     { value: 'rejected', label: 'Rejected' },

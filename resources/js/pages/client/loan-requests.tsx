@@ -45,7 +45,7 @@ const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
     { value: 'all', label: 'All' },
     { value: 'draft', label: 'Draft' },
     { value: 'pending_review', label: 'Pending Review' },
-    { value: 'under_review', label: 'Under review' },
+    { value: 'under_review', label: 'Under Review' },
     { value: 'needs_revision', label: 'Needs Revision' },
     { value: 'recommended_for_approval', label: 'Recommended for Approval' },
     { value: 'approved', label: 'Approved' },
@@ -203,7 +203,7 @@ export default function LoanRequestsPage({
                                 'text-orange-600 dark:text-orange-400',
                         },
                         {
-                            label: 'Under review',
+                            label: 'Under Review',
                             value: summaryCounts.underReview,
                             emphasisClassName:
                                 'text-sky-600 dark:text-sky-400',

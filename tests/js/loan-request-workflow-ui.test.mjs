@@ -16,6 +16,7 @@ test('loan request status badge exposes the expanded workflow labels', async () 
 
     for (const label of [
         'Pending Review',
+        'Under Review',
         'Needs Revision',
         'Recommended for Approval',
         'Rejected',
@@ -79,6 +80,7 @@ test('client loan request pages surface revision and conversion workflow states'
     assert.match(detailFile, /Revision remarks/);
     assert.match(detailFile, /converted_to_loan/);
     assert.match(listFile, /Pending Review/);
+    assert.match(listFile, /Under Review/);
     assert.match(listFile, /Needs Revision/);
     assert.match(listFile, /Approved\/Converted/);
 });

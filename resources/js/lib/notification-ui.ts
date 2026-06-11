@@ -87,11 +87,11 @@ const formatStatusLabel = (status?: string | null): string | null => {
     }
 
     if (status === 'under_review') {
-        return 'Under review';
+        return 'Under Review';
     }
 
     if (status === 'pending_review') {
-        return 'Pending review';
+        return 'Pending Review';
     }
 
     return formatFieldLabel(status);
