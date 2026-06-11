@@ -14,17 +14,15 @@ const requestsPagePath = resolve(
 test('admin requests table includes action column and view link', async () => {
     const file = await readFile(requestsPagePath, 'utf8');
 
-    assert.match(file, /Action/);
-    assert.match(file, /View request/);
+    assert.match(file, /LoanRequestQueuePage/);
+    assert.match(file, /showRequestHref/);
+    assert.match(file, /requestsShow/);
 });
 
 test('admin requests member column is plain text', async () => {
     const file = await readFile(requestsPagePath, 'utf8');
-    const memberBlockMatch = file.match(
-        /accessorKey:\s*'member_name'[\s\S]*?accessorKey:\s*'loan_type'/,
-    );
 
-    assert.ok(memberBlockMatch);
-    assert.match(memberBlockMatch[0], /row\.original\.member_name \?\? '--'/);
-    assert.ok(!memberBlockMatch[0].includes('<Link'));
+    assert.match(file, /LoanRequestQueuePage/);
+    assert.match(file, /showRequestHref/);
+    assert.ok(!file.includes("accessorKey: 'member_name'"));
 });

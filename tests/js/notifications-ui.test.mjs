@@ -14,12 +14,16 @@ test('app sidebar header shows notifications for admins and members', async () =
 });
 
 test('notification bell renders generic notification metadata', async () => {
-    const file = await readFile(
+    const bellFile = await readFile(
         resolve('resources', 'js', 'components', 'notification-bell.tsx'),
         'utf8',
     );
+    const helperFile = await readFile(
+        resolve('resources', 'js', 'lib', 'notification-ui.ts'),
+        'utf8',
+    );
 
-    assert.match(file, /buildMetadata/);
-    assert.match(file, /payload\.changed_fields/);
-    assert.match(file, /payload\.actor_name/);
+    assert.match(bellFile, /buildNotificationMetadataChips/);
+    assert.match(helperFile, /payload\.changed_fields/);
+    assert.match(helperFile, /payload\.actor_name/);
 });

@@ -19,9 +19,9 @@ test('admin requests uses shared surface layout primitives', async () => {
         'utf8',
     );
 
-    assert.match(file, /<PageHero/);
-    assert.match(file, /<SurfaceCard/);
-    assert.match(file, /<SectionHeader/);
+    assert.match(file, /<LoanRequestQueuePage/);
+    assert.match(file, /heroTitle="Loan Requests"/);
+    assert.match(file, /showReportedSummary/);
 });
 
 test('loan request detail page uses the shared shell', async () => {

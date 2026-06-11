@@ -1735,7 +1735,7 @@ test('admin requests api filters by loan type', function () {
         ->assertJsonPath('data.items.0.loan_type', 'Personal');
 });
 
-test('admin requests api filters under review status and includes pending review requests', function () {
+test('admin requests api filters under review status and keeps pending review separate', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
@@ -1761,7 +1761,7 @@ test('admin requests api filters under review status and includes pending review
         ->actingAs($admin)
         ->get('/spa/admin/requests?status=under_review');
 
-    $response->assertOk()->assertJsonCount(3, 'data.items');
+    $response->assertOk()->assertJsonCount(2, 'data.items');
 
     $statuses = collect($response->json('data.items'))
         ->pluck('status')
@@ -1771,7 +1771,6 @@ test('admin requests api filters under review status and includes pending review
         ->all();
 
     expect($statuses)->toBe([
-        LoanRequestStatus::PendingReview->value,
         'under_review',
     ]);
 });

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\AppUser;
+use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
