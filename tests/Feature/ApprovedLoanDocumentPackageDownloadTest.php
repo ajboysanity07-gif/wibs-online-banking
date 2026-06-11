@@ -430,7 +430,7 @@ test('grepalife signature section keeps printed names and blank signature areas 
         ->not->toContain('No Input Data');
 });
 
-test('grepalife signature section leaves witness and place of signing blank when unavailable', function () {
+test('grepalife signature section keeps the official loan manager name when approval metadata is unavailable', function () {
     Storage::fake('public');
 
     $admin = User::factory()->create();
@@ -485,7 +485,7 @@ test('grepalife signature section leaves witness and place of signing blank when
             'reviewer.name',
         ),
         $documentData,
-    ))->toBe('');
+    ))->toBe('ANNABELLE M. AMORA');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
@@ -512,6 +512,9 @@ test('grepalife signature section leaves witness and place of signing blank when
 
     expect($pdfText)
         ->toContain('HELARIO BONIFACIO TEJERO')
+        ->toContain('ANNABELLE M. AMORA')
+        ->not->toContain('ANNABELLE MONGADO AMORA')
+        ->not->toContain('N/A')
         ->toContain('WIBS COOPERATIVE')
         ->not->toContain('Input Data')
         ->not->toContain('No Input Data');
@@ -788,8 +791,8 @@ test('plan of payment route returns an xlsx response and generated workbook open
     expect($loanInformationSheet?->getCell('C17')->getValue())->toBe('SEMI-MONTHLY');
     expect($loanInformationSheet?->getCell('E17')->getValue())->toBe(24.0);
     expect($loanInformationSheet?->getCell('C32')->getValue())->toBe('CO A MAKERONE');
-    expect(trim((string) $loanInformationSheet?->getCell('C14')->getValue()))->toBe('');
-    expect(trim((string) $loanInformationSheet?->getCell('C18')->getValue()))->toBe('');
+    expect(trim((string) $loanInformationSheet?->getCell('C14')->getValue()))->toBe('ANNABELLE M. AMORA');
+    expect(trim((string) $loanInformationSheet?->getCell('C18')->getValue()))->toBe('ANNABELLE M. AMORA');
     expect(trim((string) $loanInformationSheet?->getCell('H7')->getValue()))->toBe('');
     expect(trim((string) $loanInformationSheet?->getCell('E21')->getValue()))->toBe('');
 
@@ -797,14 +800,14 @@ test('plan of payment route returns an xlsx response and generated workbook open
     expect($planOfPaymentSheet?->getCell('D10')->getValue())->toBe(
         '123 Loan Street, Loan City, Loan Province',
     );
-    expect(trim((string) $planOfPaymentSheet?->getCell('G27')->getValue()))->toBe('');
+    expect(trim((string) $planOfPaymentSheet?->getCell('G27')->getValue()))->toBe('ANNABELLE M. AMORA');
     expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect(trim((string) $planOfPaymentSheet?->getCell('G59')->getValue()))->toBe('');
+    expect(trim((string) $planOfPaymentSheet?->getCell('G59')->getValue()))->toBe('ANNABELLE M. AMORA');
 
     expect($disclosureSheet?->getCell('M7')->getValue())->toBe($loanRequest->reference);
     expect($disclosureSheet?->getCell('D7')->getValue())->toBe('SAMPLE Q MEMBER');
     expect($disclosureSheet?->getCell('L57')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect(trim((string) $disclosureSheet?->getCell('L50')->getValue()))->toBe('');
+    expect(trim((string) $disclosureSheet?->getCell('L50')->getValue()))->toBe('ANNABELLE M. AMORA');
 
     expect($promissoryNoteSheet?->getCell('I8')->getValue())->not->toBe('');
     expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('SAMPLE Q MEMBER');
@@ -970,25 +973,25 @@ test('plan of payment workbook keeps printed names and no signature drawings on 
         ->toBe('BEN D SANTOS')
         ->not->toBe('Co B MakerTwo');
     expect($loanInformationSheet?->getCell('C14')->getValue())
-        ->toBe('MARIA LOAN MANAGER')
+        ->toBe('ANNABELLE M. AMORA')
         ->not->toBe('0');
     expect($loanInformationSheet?->getCell('C18')->getValue())
-        ->toBe('MARIA LOAN MANAGER')
+        ->toBe('ANNABELLE M. AMORA')
         ->not->toBe('0');
-    expect($loanInformationSheet?->getCell('C42')->getValue())->toBe('MARIA LOAN MANAGER');
-    expect($loanInformationSheet?->getCell('C43')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($loanInformationSheet?->getCell('C42')->getValue())->toBe('ANNABELLE M. AMORA');
+    expect($loanInformationSheet?->getCell('C43')->getValue())->toBe('ANNABELLE M. AMORA');
     expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('HELARIO B TEJERO');
-    expect($planOfPaymentSheet?->getCell('G27')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($planOfPaymentSheet?->getCell('G27')->getValue())->toBe('ANNABELLE M. AMORA');
     expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('HELARIO B TEJERO');
-    expect($planOfPaymentSheet?->getCell('G59')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($planOfPaymentSheet?->getCell('G59')->getValue())->toBe('ANNABELLE M. AMORA');
     expect($disclosureSheet?->getCell('D7')->getValue())->toBe('HELARIO B TEJERO');
-    expect($disclosureSheet?->getCell('L50')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($disclosureSheet?->getCell('L50')->getValue())->toBe('ANNABELLE M. AMORA');
     expect($disclosureSheet?->getCell('L57')->getValue())->toBe('HELARIO B TEJERO');
     expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('HELARIO B TEJERO');
     expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('ANITA C RIVERA');
     expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('BEN D SANTOS');
-    expect($promissoryNoteSheet?->getCell('B58')->getValue())->toBe('MARIA LOAN MANAGER');
-    expect($promissoryNoteSheet?->getCell('H58')->getValue())->toBe('MARIA LOAN MANAGER');
+    expect($promissoryNoteSheet?->getCell('B58')->getValue())->toBe('ANNABELLE M. AMORA');
+    expect($promissoryNoteSheet?->getCell('H58')->getValue())->toBe('ANNABELLE M. AMORA');
 
     foreach ([
         $loanInformationSheet,

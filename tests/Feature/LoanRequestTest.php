@@ -1032,7 +1032,7 @@ test('loan request submissions persist snapshots and enter pending review', func
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
 });
 
-test('newly submitted applicant signature replaces old signature file', function () {
+test('legacy applicant signature payload is ignored when signatures are collected physically', function () {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -1104,8 +1104,8 @@ test('newly submitted applicant signature replaces old signature file', function
         ->where('role', LoanRequestPersonRole::Applicant->value)
         ->value('signature_path');
 
-    expect($firstSignaturePath)->not->toBeNull();
-    Storage::disk('public')->assertExists((string) $firstSignaturePath);
+    expect($firstSignaturePath)->toBeNull();
+    expect(Storage::disk('public')->allFiles('loan-requests/signatures'))->toBe([]);
 
     $payload['applicant_signature_data'] = sampleSignatureDataUrl('two');
     $payload['loan_purpose'] = 'Tuition';
@@ -1120,10 +1120,9 @@ test('newly submitted applicant signature replaces old signature file', function
         ->where('role', LoanRequestPersonRole::Applicant->value)
         ->value('signature_path');
 
-    expect($secondSignaturePath)->not->toBeNull();
-    expect($secondSignaturePath)->not->toBe($firstSignaturePath);
-    Storage::disk('public')->assertMissing((string) $firstSignaturePath);
-    Storage::disk('public')->assertExists((string) $secondSignaturePath);
+    expect($secondSignaturePath)->toBeNull();
+    expect($loanRequest->fresh()->loan_purpose)->toBe('Tuition');
+    expect(Storage::disk('public')->allFiles('loan-requests/signatures'))->toBe([]);
 });
 
 test('loan request print preview omits signature images even when stored signatures exist', function () {
@@ -1243,12 +1242,12 @@ test('loan request print preview omits signature images even when stored signatu
     expect($content)->toContain('line-height: 1;');
     expect($content)->toContain('font-size: 8pt;');
     expect($content)->toContain('margin: 0 0 1px;');
-    expect($content)->toContain('margin-top: 1px;');
+    expect($content)->toContain('margin-top: 2px;');
     expect($content)->toContain('window.print();');
     expect(substr_count($content, 'class="signature-signing-space"'))->toBe(4);
     expect(substr_count($content, 'class="signature-line"'))->toBe(4);
     expect(
-        preg_match('/\\.signature-name\\s*\\{[^}]*font-size:\\s*9\\.5pt;/s', $content),
+        preg_match('/\\.signature-name\\s*\\{[^}]*font-size:\\s*8\\.5pt;/s', $content),
     )->toBe(1);
 });
 
