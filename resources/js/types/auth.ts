@@ -19,6 +19,8 @@ export type LoanWorkflowRole =
     | 'loan_officer'
     | 'loan_manager';
 
+export type WorkspaceName = 'member' | 'staff';
+
 export type Auth = {
     user: User;
     isAdmin: boolean;
@@ -26,6 +28,9 @@ export type Auth = {
     hasMemberAccess: boolean;
     isAdminOnly: boolean;
     isHybrid: boolean;
+    availableWorkspaces: WorkspaceName[];
+    activeWorkspace: WorkspaceName | null;
+    hasMultipleWorkspaces: boolean;
     experience?: 'superadmin' | 'user' | 'user-admin' | 'admin-only';
     hasActiveStaffAccess: boolean;
     canAccessLoanWorkflow: boolean;

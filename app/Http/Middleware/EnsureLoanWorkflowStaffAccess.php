@@ -25,7 +25,7 @@ class EnsureLoanWorkflowStaffAccess
             abort(403);
         }
 
-        if (! $this->workspaceService->canAccess($user)) {
+        if (! $this->workspaceService->canAccessLoanWorkflow($user)) {
             abort(403);
         }
 

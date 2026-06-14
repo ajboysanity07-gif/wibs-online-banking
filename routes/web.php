@@ -61,6 +61,7 @@ use App\Http\Controllers\Spa\Superadmin\StaffController as SpaSuperadminStaffCon
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use App\Http\Controllers\Staff\LoanRequestController as StaffLoanRequestController;
 use App\Http\Controllers\Superadmin\StaffController as SuperadminStaffController;
+use App\Http\Controllers\WorkspaceSwitchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -332,6 +333,10 @@ Route::get('client/savings', ClientMemberSavingsController::class)
 Route::get('dashboard', DashboardRedirectController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::post('workspace/switch', WorkspaceSwitchController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('workspace.switch');
 
 Route::get('pending-approval', [PendingApprovalController::class, 'index'])
     ->middleware('auth')

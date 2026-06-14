@@ -11,7 +11,7 @@ test('sidebar exposes the superadmin staff management entry', async () => {
 
     assert.match(file, /Staff management/);
     assert.match(file, /superadminStaffIndex/);
-    assert.match(file, /auth\.isAdmin && auth\.hasActiveStaffAccess/);
+    assert.match(file, /auth\.isSuperadmin && auth\.hasActiveStaffAccess/);
 });
 
 test('superadmin staff page requires a reason for every mutation', async () => {

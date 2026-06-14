@@ -124,9 +124,14 @@ test('suspended staff cannot access superadmin or workflow routes while hybrid m
     $this
         ->actingAs($suspendedHybrid->fresh())
         ->get(route('dashboard'))
+        ->assertRedirect(route('profile.edit', ['onboarding' => 1]));
+
+    $this
+        ->actingAs($suspendedHybrid->fresh())
+        ->get(route('profile.edit', ['onboarding' => 1]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('dashboard')
+            ->component('settings/profile')
             ->where('auth.hasMemberAccess', true)
             ->where('auth.hasActiveStaffAccess', false));
 });

@@ -7,6 +7,7 @@ import {
     LayoutGrid,
     PiggyBank,
     Settings,
+    ShieldCheck,
     Users,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
@@ -40,7 +41,7 @@ import {
 } from '@/routes/client/loan-requests';
 import { index as staffLoanRequestsIndex } from '@/routes/staff/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
-import type { Auth, NavItem } from '@/types';
+import type { Auth, NavItem, WorkspaceName } from '@/types';
 import AppLogo from './app-logo';
 import {
     memberLoanRequestsNavMatchOptions,
@@ -84,7 +85,7 @@ const memberNavItems: NavItem[] = [
     },
 ];
 
-const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
+const legacyAdminNavItems = (): NavItem[] => [
     {
         title: 'Admin Dashboard',
         href: adminDashboard(),
@@ -109,25 +110,9 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
         href: reportedRequests(),
         icon: FileText,
     },
-    ...(isSuperadmin
-        ? [
-              {
-                  title: 'Staff management',
-                  href: superadminStaffIndex(),
-                  icon: ShieldCheck,
-                  match: 'section',
-                  matchPaths: [superadminStaffIndex(), '/superadmin/staff'],
-              },
-              {
-                  title: 'Organization settings',
-                  href: organizationSettings(),
-                  icon: Settings,
-              },
-          ]
-        : []),
 ];
 
-const staffNavItems: NavItem[] = [
+const staffWorkflowNavItems: NavItem[] = [
     {
         title: 'Loan Workflow',
         href: staffLoanRequestsIndex(),
@@ -152,31 +137,62 @@ const footerNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
-    const hasMemberAccess = auth.hasMemberAccess;
-    const showAdminNav = auth.isAdmin && auth.hasActiveStaffAccess;
-    const showStaffNav = auth.canAccessLoanWorkflow;
-    const showMemberNav = hasMemberAccess;
-    const adminItems = showAdminNav
-        ? adminNavItems(auth.isSuperadmin)
+    const activeWorkspace = auth.activeWorkspace;
+    const hasMemberWorkspace = auth.availableWorkspaces.includes('member');
+    const hasStaffWorkspace = auth.availableWorkspaces.includes('staff');
+    const showMemberNav =
+        activeWorkspace === 'member' && hasMemberWorkspace;
+    const showStaffNav = activeWorkspace === 'staff' && hasStaffWorkspace;
+    const staffWorkspaceItems: NavItem[] = showStaffNav
+        ? [
+              ...(auth.canAccessLoanWorkflow ? staffWorkflowNavItems : []),
+              ...(auth.isSuperadmin && auth.hasActiveStaffAccess
+                  ? [
+                        {
+                            title: 'Staff management',
+                            href: superadminStaffIndex(),
+                            icon: ShieldCheck,
+                            match: 'section' as const,
+                            matchPaths: [
+                                superadminStaffIndex(),
+                                '/superadmin/staff',
+                            ],
+                        },
+                    ]
+                  : []),
+              ...(auth.isAdmin && auth.hasActiveStaffAccess
+                  ? legacyAdminNavItems()
+                  : []),
+              ...(auth.isAdmin &&
+              auth.isSuperadmin &&
+              auth.hasActiveStaffAccess
+                  ? [
+                        {
+                            title: 'Organization settings',
+                            href: organizationSettings(),
+                            icon: Settings,
+                        },
+                    ]
+                  : []),
+          ]
         : [];
-    const staffItems = showStaffNav ? staffNavItems : [];
-    const memberItems = showMemberNav ? memberNavItems : [];
-    const adminLabel = 'Admin Workspace';
-    const staffLabel = 'Loan Workflow';
-    const memberLabel = 'My Account';
-    const adminGroupStorageKey = 'sidebar-admin-workspace-collapsed';
-    const staffGroupStorageKey = 'sidebar-loan-workflow-collapsed';
-    const memberGroupStorageKey = 'sidebar-my-account-collapsed';
+    const primaryWorkspace: WorkspaceName | null =
+        activeWorkspace ??
+        (auth.availableWorkspaces.length === 1
+            ? auth.availableWorkspaces[0]
+            : null);
     const homeLink =
-        auth.experience === 'user-admin' && auth.hasActiveStaffAccess
-            ? workspaceDashboard()
-            : showAdminNav
-              ? adminDashboard()
-              : showStaffNav
-                ? staffLoanRequestsIndex()
-                : showMemberNav
-                  ? clientDashboard()
-                  : profileEdit();
+        primaryWorkspace === 'member'
+            ? clientDashboard()
+            : primaryWorkspace === 'staff'
+              ? auth.isSuperadmin
+                    ? superadminStaffIndex()
+                    : auth.isAdmin && auth.hasActiveStaffAccess
+                      ? adminDashboard()
+                      : auth.canAccessLoanWorkflow
+                        ? staffLoanRequestsIndex()
+                        : profileEdit()
+              : workspaceDashboard();
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -193,25 +209,18 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                {showAdminNav && (
+                {showStaffNav && staffWorkspaceItems.length > 0 && (
                     <NavMain
-                        items={adminItems}
-                        label={adminLabel}
-                        collapsibleStorageKey={adminGroupStorageKey}
-                    />
-                )}
-                {showStaffNav && (
-                    <NavMain
-                        items={staffItems}
-                        label={staffLabel}
-                        collapsibleStorageKey={staffGroupStorageKey}
+                        items={staffWorkspaceItems}
+                        label="Staff Workspace"
+                        collapsibleStorageKey="sidebar-staff-workspace-collapsed"
                     />
                 )}
                 {showMemberNav && (
                     <NavMain
-                        items={memberItems}
-                        label={memberLabel}
-                        collapsibleStorageKey={memberGroupStorageKey}
+                        items={memberNavItems}
+                        label="Member Portal"
+                        collapsibleStorageKey="sidebar-member-portal-collapsed"
                     />
                 )}
             </SidebarContent>

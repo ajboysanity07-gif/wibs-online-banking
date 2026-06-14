@@ -59,6 +59,7 @@ test('loan request queue surfaces keep pending review distinct and expose workfl
     assert.match(adminPageFile, /workspace="admin"/);
     assert.match(staffPageFile, /workspace="staff"/);
     assert.match(staffPageFile, /buildStaffLoanRequestQueueStatusOptions/);
+    assert.doesNotMatch(staffPageFile, /auth\.isAdmin/);
 });
 
 test('client loan request pages surface revision and conversion workflow states', async () => {

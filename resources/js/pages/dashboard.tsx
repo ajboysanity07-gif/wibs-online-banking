@@ -1,18 +1,23 @@
-import { Head, Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, ShieldCheck, Users } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import {
+    BriefcaseBusiness,
+    ShieldCheck,
+    UserRound,
+} from 'lucide-react';
+import { useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
-import { dashboard as adminDashboard } from '@/routes/admin';
-import { index as membersIndex } from '@/routes/admin/watchlist';
-import {
-    dashboard as clientDashboard,
-} from '@/routes/client';
-import { edit as profileEdit } from '@/routes/profile';
-import type { Auth, BreadcrumbItem } from '@/types';
+import { switchMethod as switchWorkspace } from '@/routes/workspace';
+import type {
+    Auth,
+    BreadcrumbItem,
+    LoanWorkflowRole,
+    WorkspaceName,
+} from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -27,8 +32,24 @@ type PageProps = {
 
 export default function Dashboard() {
     const { auth } = usePage<PageProps>().props;
-    const showMemberWorkspace = auth.hasMemberAccess;
-    const showAdminWorkspace = auth.isAdmin && auth.hasActiveStaffAccess;
+    const [switchingWorkspace, setSwitchingWorkspace] =
+        useState<WorkspaceName | null>(null);
+    const showMemberWorkspace = auth.availableWorkspaces.includes('member');
+    const showStaffWorkspace = auth.availableWorkspaces.includes('staff');
+    const staffRoleLabels = resolveStaffRoleLabels(auth);
+
+    const openWorkspace = (workspace: WorkspaceName) => {
+        setSwitchingWorkspace(workspace);
+
+        router.post(
+            switchWorkspace.url(),
+            { workspace },
+            {
+                preserveScroll: true,
+                onFinish: () => setSwitchingWorkspace(null),
+            },
+        );
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -42,8 +63,9 @@ export default function Dashboard() {
                         Switch workspaces
                     </h1>
                     <p className="max-w-2xl text-sm text-muted-foreground">
-                        Pick the context you want to work in. Your sidebar
-                        updates to show the full navigation for each workspace.
+                        Pick the context you want to work in. Navigation and
+                        landing pages follow your selected workspace, while
+                        backend authorization stays enforced separately.
                     </p>
                 </div>
 
@@ -57,58 +79,39 @@ export default function Dashboard() {
                             <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                        <LayoutGrid className="h-4 w-4" />
-                                        <span>Member workspace</span>
+                                        <UserRound className="h-4 w-4" />
+                                        <span>Member Portal</span>
                                     </div>
                                     <h2 className="text-lg font-semibold">
-                                        My Account
+                                        Member Portal
                                     </h2>
                                     <p className="text-sm text-muted-foreground">
-                                        Everyday member tools, account activity,
-                                        and personal details.
+                                        Manage your personal account, loan
+                                        applications, documents, and status.
                                     </p>
                                 </div>
                                 <Badge variant="secondary">Member</Badge>
                             </div>
 
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                    Best for
-                                </p>
-                                <ul className="grid gap-2 text-sm text-muted-foreground">
-                                    <li className="flex items-start gap-2">
-                                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-                                        <span>
-                                            Tracking loan status and savings
-                                            health.
-                                        </span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-                                        <span>
-                                            Submitting requests and updating
-                                            your profile.
-                                        </span>
-                                    </li>
-                                </ul>
+                            <div className="flex flex-wrap gap-2">
+                                <Badge variant="outline">Loans</Badge>
+                                <Badge variant="outline">Documents</Badge>
+                                <Badge variant="outline">Status</Badge>
                             </div>
 
-                            <div className="mt-auto flex flex-wrap gap-2">
-                                <Button asChild>
-                                    <Link href={clientDashboard().url}>
-                                        Go to member dashboard
-                                    </Link>
-                                </Button>
-                                <Button variant="ghost" asChild>
-                                    <Link href={profileEdit().url}>
-                                        Manage settings
-                                    </Link>
+                            <div className="mt-auto">
+                                <Button
+                                    type="button"
+                                    onClick={() => openWorkspace('member')}
+                                    disabled={switchingWorkspace !== null}
+                                >
+                                    Open Workspace
                                 </Button>
                             </div>
                         </SurfaceCard>
                     )}
 
-                    {showAdminWorkspace && (
+                    {showStaffWorkspace && (
                         <SurfaceCard
                             variant="default"
                             padding="lg"
@@ -117,68 +120,53 @@ export default function Dashboard() {
                             <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                        <Users className="h-4 w-4" />
-                                        <span>Admin workspace</span>
+                                        <BriefcaseBusiness className="h-4 w-4" />
+                                        <span>Staff Workspace</span>
                                     </div>
                                     <h2 className="text-lg font-semibold">
-                                        Admin Workspace
+                                        Staff Workspace
                                     </h2>
                                     <p className="text-sm text-muted-foreground">
-                                        Oversight tools for member operations,
-                                        approvals, and controls.
+                                        Review and manage loan applications
+                                        according to your assigned staff roles.
                                     </p>
                                 </div>
-                                <Badge
-                                    variant={
-                                        auth.isSuperadmin
-                                            ? 'default'
-                                            : 'secondary'
-                                    }
+                                <Badge variant="default">Staff</Badge>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                                {staffRoleLabels.map((roleLabel) => (
+                                    <Badge
+                                        key={roleLabel}
+                                        variant={
+                                            roleLabel === 'Superadmin'
+                                                ? 'default'
+                                                : 'secondary'
+                                        }
+                                    >
+                                        {roleLabel}
+                                    </Badge>
+                                ))}
+                                {staffRoleLabels.length === 0 ? (
+                                    <Badge variant="outline">
+                                        Staff access
+                                    </Badge>
+                                ) : null}
+                            </div>
+
+                            <div className="mt-auto">
+                                <Button
+                                    type="button"
+                                    onClick={() => openWorkspace('staff')}
+                                    disabled={switchingWorkspace !== null}
                                 >
-                                    {auth.isSuperadmin
-                                        ? 'Superadmin'
-                                        : 'Admin'}
-                                </Badge>
-                            </div>
-
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                    Best for
-                                </p>
-                                <ul className="grid gap-2 text-sm text-muted-foreground">
-                                    <li className="flex items-start gap-2">
-                                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-                                        <span>
-                                            Reviewing member activity and
-                                            approvals.
-                                        </span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
-                                        <span>
-                                            Monitoring operational signals and
-                                            exceptions.
-                                        </span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div className="mt-auto flex flex-wrap gap-2">
-                                <Button asChild>
-                                    <Link href={adminDashboard().url}>
-                                        Open admin dashboard
-                                    </Link>
-                                </Button>
-                                <Button variant="ghost" asChild>
-                                    <Link href={membersIndex().url}>
-                                        View members
-                                    </Link>
+                                    Open Workspace
                                 </Button>
                             </div>
                         </SurfaceCard>
                     )}
 
-                    {!showMemberWorkspace && !showAdminWorkspace && (
+                    {!showMemberWorkspace && !showStaffWorkspace && (
                         <SurfaceCard
                             variant="muted"
                             padding="lg"
@@ -201,4 +189,34 @@ export default function Dashboard() {
             </PageShell>
         </AppLayout>
     );
+}
+
+function resolveStaffRoleLabels(auth: Auth): string[] {
+    const labels = new Set<string>();
+
+    if (auth.isSuperadmin) {
+        labels.add('Superadmin');
+    }
+
+    if (auth.isAdmin && !auth.isSuperadmin) {
+        labels.add('Admin');
+    }
+
+    auth.loanWorkflowRoles.forEach((role) => {
+        labels.add(workflowRoleLabel(role));
+    });
+
+    return Array.from(labels);
+}
+
+function workflowRoleLabel(role: LoanWorkflowRole): string {
+    if (role === 'superadmin') {
+        return 'Superadmin';
+    }
+
+    if (role === 'loan_officer') {
+        return 'Loan Officer';
+    }
+
+    return 'Loan Manager';
 }

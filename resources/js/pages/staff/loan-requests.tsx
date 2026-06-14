@@ -19,12 +19,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function StaffLoanRequestsPage() {
     const { auth } = usePage<PageProps>().props;
     const statusOptions = useMemo(
-        () =>
-            buildStaffLoanRequestQueueStatusOptions(
-                auth.loanWorkflowRoles,
-                auth.isAdmin,
-            ),
-        [auth.isAdmin, auth.loanWorkflowRoles],
+        () => buildStaffLoanRequestQueueStatusOptions(auth.loanWorkflowRoles),
+        [auth.loanWorkflowRoles],
     );
 
     return (

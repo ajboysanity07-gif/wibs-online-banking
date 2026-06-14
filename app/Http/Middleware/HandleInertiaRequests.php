@@ -93,6 +93,9 @@ class HandleInertiaRequests extends Middleware
      *     hasMemberAccess: bool,
      *     isAdminOnly: bool,
      *     isHybrid: bool,
+     *     availableWorkspaces: array<int, string>,
+     *     activeWorkspace: string|null,
+     *     hasMultipleWorkspaces: bool,
      *     experience: mixed,
      *     hasActiveStaffAccess: bool,
      *     canAccessLoanWorkflow: bool,
@@ -111,6 +114,7 @@ class HandleInertiaRequests extends Middleware
                 'staffAccessControl',
             );
             $workspaceService = app(LoanWorkflowWorkspaceService::class);
+            $availableWorkspaces = $workspaceService->availableWorkspaces($user);
 
             return [
                 'user' => $user?->withoutRelations(),
@@ -118,10 +122,13 @@ class HandleInertiaRequests extends Middleware
                 'isSuperadmin' => $user?->isSuperadmin() ?? false,
                 'hasMemberAccess' => $user?->hasMemberAccess() ?? false,
                 'isAdminOnly' => $user?->isAdminOnly() ?? false,
-                'isHybrid' => $user?->isHybrid() ?? false,
+                'isHybrid' => $workspaceService->hasMultipleWorkspaces($user),
+                'availableWorkspaces' => $availableWorkspaces,
+                'activeWorkspace' => $workspaceService->resolveActiveWorkspace($request, $user),
+                'hasMultipleWorkspaces' => count($availableWorkspaces) > 1,
                 'experience' => $user?->experienceType(),
                 'hasActiveStaffAccess' => $user?->hasActiveStaffAccess() ?? false,
-                'canAccessLoanWorkflow' => $workspaceService->canAccess($user),
+                'canAccessLoanWorkflow' => $workspaceService->canAccessLoanWorkflow($user),
                 'loanWorkflowRoles' => $workspaceService->workflowRoles($user),
                 'loanWorkflowPermissions' => $workspaceService->workflowPermissions($user),
             ];
@@ -149,6 +156,9 @@ class HandleInertiaRequests extends Middleware
      *     hasMemberAccess: bool,
      *     isAdminOnly: bool,
      *     isHybrid: bool,
+     *     availableWorkspaces: array<int, string>,
+     *     activeWorkspace: string|null,
+     *     hasMultipleWorkspaces: bool,
      *     experience: mixed,
      *     hasActiveStaffAccess: bool,
      *     canAccessLoanWorkflow: bool,
@@ -165,6 +175,9 @@ class HandleInertiaRequests extends Middleware
             'hasMemberAccess' => false,
             'isAdminOnly' => false,
             'isHybrid' => false,
+            'availableWorkspaces' => [],
+            'activeWorkspace' => null,
+            'hasMultipleWorkspaces' => false,
             'experience' => null,
             'hasActiveStaffAccess' => false,
             'canAccessLoanWorkflow' => false,

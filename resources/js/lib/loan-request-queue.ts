@@ -60,7 +60,6 @@ const workflowStatusOrder: Array<
 ];
 
 const statusesForRole: Record<string, typeof workflowStatusOrder> = {
-    admin: workflowStatusOrder,
     loan_officer: [
         'pending_review',
         'under_review',
@@ -88,13 +87,12 @@ export const normalizeLoanRequestQueueStatus = (
 
 export const buildStaffLoanRequestQueueStatusOptions = (
     roles: string[],
-    isAdmin: boolean,
 ): Array<LoanRequestStatusFilterOption<LoanRequestQueueStatusFilter>> => {
     const resolvedStatuses = new Set<
         Exclude<LoanRequestQueueStatusFilter, 'all' | 'reported' | 'cancelled'>
     >();
 
-    if (isAdmin) {
+    if (roles.includes('superadmin')) {
         workflowStatusOrder.forEach((status) => resolvedStatuses.add(status));
     }
 
@@ -109,7 +107,7 @@ export const buildStaffLoanRequestQueueStatusOptions = (
             ? workflowStatusOrder.filter((status) =>
                   resolvedStatuses.has(status),
               )
-            : workflowStatusOrder;
+            : [];
 
     return [
         { value: 'all', label: 'All' },

@@ -29,8 +29,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $user->loadMissing('adminProfile', 'userProfile');
+        $user->loadMissing(
+            'adminProfile',
+            'userProfile',
+            'roles.permissions',
+            'staffAccessControl',
+        );
         $status = $user->isAdminOnly() ? 'active' : $user->userProfile?->status;
+        $availableWorkspaces = $this->workspaceService->availableWorkspaces($user);
 
         return response()->json([
             'ok' => true,
@@ -48,8 +54,13 @@ class AuthController extends Controller
                     'is_superadmin' => $user->isSuperadmin(),
                     'has_member_access' => $user->hasMemberAccess(),
                     'is_admin_only' => $user->isAdminOnly(),
-                    'is_hybrid' => $user->isHybrid(),
+                    'is_hybrid' => $this->workspaceService->hasMultipleWorkspaces($user),
                     'experience' => $user->experienceType(),
+                    'has_active_staff_access' => $user->hasActiveStaffAccess(),
+                    'can_access_loan_workflow' => $this->workspaceService->canAccessLoanWorkflow($user),
+                    'available_workspaces' => $availableWorkspaces,
+                    'active_workspace' => $this->workspaceService->resolveActiveWorkspace($request, $user),
+                    'has_multiple_workspaces' => count($availableWorkspaces) > 1,
                 ],
             ],
         ]);
@@ -78,10 +89,16 @@ class AuthController extends Controller
         }
 
         if ($this->requiresTwoFactorChallenge($user)) {
+            $storedWorkspace = $request->session()->get('active_workspace');
+
             $request->session()->put([
                 'login.id' => $user->getKey(),
                 'login.remember' => $request->boolean('remember'),
-                'url.intended' => $this->postAuthRedirect($user),
+                'url.intended' => $this->postAuthRedirect(
+                    $request,
+                    $user,
+                    is_string($storedWorkspace) ? $storedWorkspace : null,
+                ),
             ]);
 
             TwoFactorAuthenticationChallenged::dispatch($user);
@@ -93,12 +110,22 @@ class AuthController extends Controller
             ]);
         }
 
+        $storedWorkspace = $request->session()->get('active_workspace');
+
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
+        if (is_string($storedWorkspace) && $storedWorkspace !== '') {
+            $request->session()->put('active_workspace', $storedWorkspace);
+        }
+
         return response()->json([
             'ok' => true,
-            'redirect_to' => $this->postAuthRedirect($user),
+            'redirect_to' => $this->postAuthRedirect(
+                $request,
+                $user,
+                is_string($storedWorkspace) ? $storedWorkspace : null,
+            ),
         ]);
     }
 
@@ -124,55 +151,32 @@ class AuthController extends Controller
 
         return response()->json([
             'ok' => true,
-            'redirect_to' => $this->postAuthRedirect($user),
+            'redirect_to' => $this->postAuthRedirect($request, $user),
         ]);
     }
 
-    private function postAuthRedirect(AppUser $user): string
-    {
-        $user->loadMissing(
-            'adminProfile',
-            'userProfile',
-            'roles.permissions',
-            'staffAccessControl',
-        );
-
-        $experience = $user->experienceType();
-
+    private function postAuthRedirect(
+        Request $request,
+        AppUser $user,
+        ?string $preferredWorkspace = null,
+    ): string {
         if (
-            $user->hasActiveStaffAccess()
-            && (
-                $experience === AppUser::EXPERIENCE_SUPERADMIN
-                || $experience === AppUser::EXPERIENCE_ADMIN_ONLY
+            is_string($preferredWorkspace)
+            && $this->workspaceService->canAccessWorkspace(
+                $user,
+                $preferredWorkspace,
             )
         ) {
-            return '/admin/dashboard';
+            return $this->workspaceService->defaultRouteForWorkspace(
+                $user,
+                $preferredWorkspace,
+            );
         }
 
-        if ($experience === AppUser::EXPERIENCE_USER_ADMIN) {
-            return '/dashboard';
-        }
-
-        if (
-            ! $user->hasMemberAccess()
-            && $this->workspaceService->canAccess($user)
-        ) {
-            return '/staff/loan-requests';
-        }
-
-        if ($user->userProfile?->status === 'suspended') {
-            return '/pending-approval';
-        }
-
-        if (! $user->hasMemberAccess()) {
-            return '/settings/profile';
-        }
-
-        if (! $user->memberApplicationProfileIsComplete()) {
-            return '/settings/profile?onboarding=1';
-        }
-
-        return '/client/dashboard';
+        return $this->workspaceService->postAuthenticationRedirectPath(
+            $request,
+            $user,
+        );
     }
 
     private function requiresTwoFactorChallenge(AppUser $user): bool

@@ -20,35 +20,15 @@ class DashboardRedirectController extends Controller
             return redirect()->route('login');
         }
 
-        $user->loadMissing('adminProfile', 'userProfile');
+        $redirectPath = $workspaceService->dashboardRedirectPath(
+            $request,
+            $user,
+        );
 
-        if (
-            $user->hasActiveStaffAccess()
-            && ($user->isSuperadmin() || $user->isAdminOnly())
-        ) {
-            return redirect()->route('admin.dashboard');
+        if ($redirectPath !== null) {
+            return redirect()->to($redirectPath);
         }
 
-        if ($user->isHybrid()) {
-            return Inertia::render('dashboard');
-        }
-
-        if (! $user->hasMemberAccess() && $workspaceService->canAccess($user)) {
-            return redirect()->route('staff.loan-requests.index');
-        }
-
-        if ($user->userProfile?->status === 'suspended') {
-            return redirect()->route('pending-approval');
-        }
-
-        if (! $user->hasMemberAccess()) {
-            return redirect()->route('profile.edit');
-        }
-
-        if (! $user->memberApplicationProfileIsComplete()) {
-            return redirect()->route('profile.edit', ['onboarding' => 1]);
-        }
-
-        return redirect()->route('client.dashboard');
+        return Inertia::render('dashboard');
     }
 }
