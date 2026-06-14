@@ -96,10 +96,7 @@ class LoanRequestPolicy
             $user,
             $loanRequest,
             Permission::LOAN_APPROVE,
-        ) && (
-            $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value
-            || $this->canUseLegacyAdminDecisionPath($user, $loanRequest)
-        );
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value;
     }
 
     public function decline(AppUser $user, LoanRequest $loanRequest): bool
@@ -108,19 +105,7 @@ class LoanRequestPolicy
             $user,
             $loanRequest,
             Permission::LOAN_DECLINE,
-        ) && (
-            $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value
-            || $this->canUseLegacyAdminDecisionPath($user, $loanRequest)
-        );
-    }
-
-    public function convertToLoan(AppUser $user, LoanRequest $loanRequest): bool
-    {
-        return $this->canActOnAnotherUsersRequest(
-            $user,
-            $loanRequest,
-            Permission::LOAN_CONVERT_TO_LOAN,
-        ) && $this->statusValue($loanRequest) === LoanRequestStatus::Approved->value;
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value;
     }
 
     public function delete(AppUser $user, LoanRequest $loanRequest): bool
@@ -145,15 +130,6 @@ class LoanRequestPolicy
     ): bool {
         return ! $this->ownsLoanRequest($user, $loanRequest)
             && $user->hasPermission($permission);
-    }
-
-    private function canUseLegacyAdminDecisionPath(
-        AppUser $user,
-        LoanRequest $loanRequest,
-    ): bool {
-        return $user->hasRole(Role::ADMIN)
-            && LoanRequestStatus::normalizeValue($loanRequest->status)
-                === LoanRequestStatus::UnderReview->value;
     }
 
     private function ownsLoanRequest(AppUser $user, LoanRequest $loanRequest): bool

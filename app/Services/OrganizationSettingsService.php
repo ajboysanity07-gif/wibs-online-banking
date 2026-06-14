@@ -13,7 +13,7 @@ class OrganizationSettingsService
 {
     private const DEFAULT_PORTAL_LABEL = 'Member Portal';
 
-    private const DEFAULT_LOAN_SMS_APPROVED_TEMPLATE = '{company_name} {portal_label}: Your loan request ({loan_reference}) has been APPROVED for {approved_amount} payable over {approved_term} months. Please visit the {office_name} office to finalize your loan.';
+    private const DEFAULT_LOAN_SMS_APPROVED_TEMPLATE = '{company_name} {portal_label}: Your loan request ({loan_reference}) has been APPROVED for {approved_amount} payable over {approved_term} months and is awaiting processing in WIBS.';
 
     private const DEFAULT_LOAN_SMS_DECLINED_TEMPLATE = '{company_name} {portal_label}: Your loan request ({loan_reference}) has been DECLINED. For questions or clarification, please contact the {office_name} office.';
 

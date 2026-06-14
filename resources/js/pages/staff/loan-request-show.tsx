@@ -64,7 +64,6 @@ export default function StaffLoanRequestShow({
         recommendApproval,
         approveLoanRequest,
         declineLoanRequest,
-        convertToLoan,
         processingIds: workflowProcessingIds,
     } = useLoanRequestWorkflow({
         onUpdated: (result) => {
@@ -145,10 +144,6 @@ export default function StaffLoanRequestShow({
         !isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
         hasWorkflowPermission('loan.decline');
-    const canConvertToLoan =
-        !isOwnRequest &&
-        currentRequest.status === 'approved' &&
-        hasWorkflowPermission('loan.convert_to_loan');
     const isWorkflowProcessing =
         workflowProcessingIds[currentRequest.id] ?? false;
 
@@ -226,14 +221,6 @@ export default function StaffLoanRequestShow({
                                       currentRequest.id,
                                       payload,
                                   ),
-                          }
-                        : undefined,
-                    convertToLoan: canConvertToLoan
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  convertToLoan(currentRequest.id, payload),
                           }
                         : undefined,
                 }}

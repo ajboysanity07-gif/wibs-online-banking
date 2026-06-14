@@ -85,7 +85,10 @@ class Role extends Model
 
         $permissionsByName = Permission::query()->pluck('id', 'name');
         $rolePermissions = [
-            self::ADMIN => $permissionsByName->values()->all(),
+            self::ADMIN => self::permissionIds(
+                $permissionsByName,
+                Permission::defaultNames(),
+            ),
             self::MEMBER => self::permissionIds($permissionsByName, [
                 Permission::LOAN_CREATE,
                 Permission::LOAN_VIEW,
@@ -101,7 +104,6 @@ class Role extends Model
                 Permission::LOAN_VIEW,
                 Permission::LOAN_APPROVE,
                 Permission::LOAN_DECLINE,
-                Permission::LOAN_CONVERT_TO_LOAN,
             ]),
         ];
 

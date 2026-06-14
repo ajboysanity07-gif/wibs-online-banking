@@ -117,9 +117,6 @@ test('loan officers are limited to review-stage workflow actions', function () {
     $recommended = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::RecommendedForApproval,
     ]);
-    $approved = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::Approved,
-    ]);
 
     expect(Gate::forUser($loanOfficer)->allows('startReview', $pendingReview))->toBeTrue();
     expect(Gate::forUser($loanOfficer)->allows('requestRevision', $pendingReview))->toBeTrue();
@@ -128,10 +125,9 @@ test('loan officers are limited to review-stage workflow actions', function () {
     expect(Gate::forUser($loanOfficer)->allows('recommendApproval', $underReview))->toBeTrue();
     expect(Gate::forUser($loanOfficer)->allows('approve', $recommended))->toBeFalse();
     expect(Gate::forUser($loanOfficer)->allows('decline', $recommended))->toBeFalse();
-    expect(Gate::forUser($loanOfficer)->allows('convertToLoan', $approved))->toBeFalse();
 });
 
-test('loan managers are limited to recommendation, approval, decline, and conversion stages', function () {
+test('loan managers are limited to approval and decline stages', function () {
     $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
@@ -144,9 +140,6 @@ test('loan managers are limited to recommendation, approval, decline, and conver
     $recommended = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::RecommendedForApproval,
     ]);
-    $approved = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::Approved,
-    ]);
 
     expect(Gate::forUser($loanManager)->allows('startReview', $pendingReview))->toBeFalse();
     expect(Gate::forUser($loanManager)->allows('requestRevision', $pendingReview))->toBeFalse();
@@ -154,7 +147,6 @@ test('loan managers are limited to recommendation, approval, decline, and conver
     expect(Gate::forUser($loanManager)->allows('recommendApproval', $recommended))->toBeFalse();
     expect(Gate::forUser($loanManager)->allows('approve', $recommended))->toBeTrue();
     expect(Gate::forUser($loanManager)->allows('decline', $recommended))->toBeTrue();
-    expect(Gate::forUser($loanManager)->allows('convertToLoan', $approved))->toBeTrue();
 });
 
 test('users with multiple workflow roles receive the combined permissions', function () {
@@ -173,14 +165,10 @@ test('users with multiple workflow roles receive the combined permissions', func
     $recommended = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::RecommendedForApproval,
     ]);
-    $approved = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::Approved,
-    ]);
 
     expect(Gate::forUser($actor)->allows('startReview', $pendingReview))->toBeTrue();
     expect(Gate::forUser($actor)->allows('approve', $recommended))->toBeTrue();
     expect(Gate::forUser($actor)->allows('decline', $recommended))->toBeTrue();
-    expect(Gate::forUser($actor)->allows('convertToLoan', $approved))->toBeTrue();
 });
 
 test('loan managers can approve recommended requests through the existing admin endpoint', function () {
@@ -313,6 +301,45 @@ test('loan managers cannot approve under review requests through the existing ad
     $loanRequest->refresh();
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+});
+
+test('legacy admins cannot bypass recommendation through the existing admin endpoints', function () {
+    Queue::fake();
+
+    $admin = createWorkflowAuthorizationActor(
+        [Role::ADMIN],
+        withAdminProfile: true,
+        acctno: null,
+    );
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100009A',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/approve", [
+            'approved_amount' => 15000,
+            'approved_term' => 12,
+        ])
+        ->assertForbidden();
+
+    $this
+        ->actingAs($admin)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/decline", [
+            'decision_notes' => 'Legacy admin decline.',
+        ])
+        ->assertForbidden();
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    Queue::assertNothingPushed();
 });
 
 test('loan officers can start review through the workflow route and create an audit row', function () {
@@ -563,6 +590,8 @@ test('loan managers can approve recommended requests through the workflow route 
     expect($loanRequest->approved_interest_rate)->toBe('1.2500');
     expect($loanRequest->approval_remarks)->toBe('Approved by manager.');
     expect($loanRequest->decision_notes)->toBe('Approved by manager.');
+    expect(DB::table('wlnmaster')->count())->toBe(0);
+    expect(DB::table('wlnled')->count())->toBe(0);
 
     $change = LoanRequestChange::query()->sole();
 
@@ -604,6 +633,8 @@ test('loan managers can decline recommended requests through the workflow route 
     expect($loanRequest->declined_by)->toBe($loanManager->user_id);
     expect($loanRequest->decline_reason)->toBe('Debt-to-income ratio is too high.');
     expect($loanRequest->decision_notes)->toBe('Debt-to-income ratio is too high.');
+    expect(DB::table('wlnmaster')->count())->toBe(0);
+    expect(DB::table('wlnled')->count())->toBe(0);
 
     $change = LoanRequestChange::query()->sole();
 
@@ -613,198 +644,30 @@ test('loan managers can decline recommended requests through the workflow route 
     expect($change->reason)->toBe('Debt-to-income ratio is too high.');
 });
 
-test('loan managers can convert approved requests through the workflow route and create a legacy loan plus audit row', function () {
+test('workflow conversion route is removed and no portal action can call it', function () {
     $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100016A',
     );
 
-    DB::table('wmaster')->insert([
-        'acctno' => $member->acctno,
-        'lname' => 'Cruz',
-        'fname' => 'Jamie',
-        'bname' => 'Cruz, Jamie',
-    ]);
-
-    $loanRequest = createApprovedWorkflowLoanRequest($member, [
-        'decision_notes' => 'Approved by manager.',
-    ]);
-
-    $response = $this
-        ->actingAs($loanManager)
-        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [
-            'remarks' => 'Released to accounting.',
-        ]);
-
-    $response
-        ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::ConvertedToLoan->value)
-        ->assertJsonPath('data.loan.loan_status', 'ACT')
-        ->assertJsonPath('data.loan.ledger_control_no', '1')
-        ->assertJsonPath('data.loan.ledger_trans_no', '1');
-
-    $loanRequest->refresh();
-
-    expect($loanRequest->status)->toBe(LoanRequestStatus::ConvertedToLoan);
-    expect($loanRequest->decision_notes)->toBe('Released to accounting.');
-
-    $legacyLoan = DB::table('wlnmaster')->first();
-
-    expect($legacyLoan)->not->toBeNull();
-    expect((string) $legacyLoan->acctno)->toBe($member->acctno);
-    expect((string) $legacyLoan->lnnumber)->toStartWith('0102-');
-    expect((string) $legacyLoan->lnstatus)->toBe('ACT');
-    expect((float) $legacyLoan->principal)->toBe(22000.0);
-    expect((float) $legacyLoan->balance)->toBe(22000.0);
-    expect((float) $legacyLoan->int_rate)->toBe(1.25);
-    expect((int) $legacyLoan->term_mons)->toBe(540);
-    expect((string) $legacyLoan->purpose)->toBe('Working capital');
-    expect((string) $legacyLoan->remarks)->toBe(sprintf('Converted from %s', $loanRequest->reference));
-
-    $ledgerEntry = DB::table('wlnled')
-        ->where('lnnumber', $legacyLoan->lnnumber)
-        ->first();
-
-    expect($ledgerEntry)->not->toBeNull();
-    expect((string) $ledgerEntry->lnstatus)->toBe('ACT');
-    expect((string) $ledgerEntry->lncode)->toBe('RL');
-    expect((string) $ledgerEntry->cs_ck)->toBe('CS');
-    expect((string) $ledgerEntry->bname)->toBe('Jamie Cruz');
-    expect((string) $ledgerEntry->mreference)->toBe($loanRequest->reference);
-    expect((float) $ledgerEntry->principal)->toBe(22000.0);
-    expect((float) $ledgerEntry->payments)->toBe(0.0);
-    expect((float) $ledgerEntry->balance)->toBe(22000.0);
-    expect((string) $ledgerEntry->controlno)->toBe('1');
-    expect((string) $ledgerEntry->transno)->toBe('1');
-
-    $change = LoanRequestChange::query()->sole();
-
-    expect($change->action)->toBe(LoanRequestChange::ACTION_CONVERT_TO_LOAN);
-    expect($change->changed_by)->toBe($loanManager->user_id);
-    expect($change->from_status)->toBe(LoanRequestStatus::Approved->value);
-    expect($change->to_status)->toBe(LoanRequestStatus::ConvertedToLoan->value);
-    expect($change->reason)->toBe('Released to accounting.');
-    expect($change->metadata_json['loan_number'] ?? null)->toBe($legacyLoan->lnnumber);
-    expect($change->metadata_json['loan_status'] ?? null)->toBe('ACT');
-    expect($change->metadata_json['ledger_control_no'] ?? null)->toBe('1');
-    expect($change->metadata_json['ledger_trans_no'] ?? null)->toBe('1');
-});
-
-test('admins can convert approved requests through the workflow route', function () {
-    $admin = createWorkflowAuthorizationActor(
-        [Role::ADMIN],
-        withAdminProfile: true,
-        acctno: null,
-    );
-    $member = createWorkflowAuthorizationActor(
-        [Role::MEMBER],
-        acctno: '100016B',
-    );
-
-    $loanRequest = createApprovedWorkflowLoanRequest($member, [
-        'approved_amount' => 18000,
-        'approved_term' => 12,
-        'approved_interest_rate' => 0.95,
-    ]);
-
-    $this
-        ->actingAs($admin)
-        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
-        ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::ConvertedToLoan->value);
-
-    $loanRequest->refresh();
-
-    expect($loanRequest->status)->toBe(LoanRequestStatus::ConvertedToLoan);
-    expect(DB::table('wlnmaster')->count())->toBe(1);
-    expect(LoanRequestChange::query()->count())->toBe(1);
-});
-
-test('loan managers cannot convert non approved requests through the workflow route', function (LoanRequestStatus $status) {
-    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
-    $member = createWorkflowAuthorizationActor(
-        [Role::MEMBER],
-        acctno: '100016C',
-    );
-
-    $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'acctno' => $member->acctno,
-        'status' => $status,
-        'submitted_at' => now(),
-        'approved_amount' => 22000,
-        'approved_term' => 18,
-        'approved_interest_rate' => 1.25,
-    ]);
-
-    $this
-        ->actingAs($loanManager)
-        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
-        ->assertForbidden();
-
-    expect(DB::table('wlnmaster')->count())->toBe(0);
-    expect(LoanRequestChange::query()->count())->toBe(0);
-})->with([
-    'pending review' => LoanRequestStatus::PendingReview,
-    'under review' => LoanRequestStatus::UnderReview,
-    'recommended for approval' => LoanRequestStatus::RecommendedForApproval,
-    'rejected' => LoanRequestStatus::Rejected,
-    'declined' => LoanRequestStatus::Declined,
-]);
-
-test('loan managers cannot convert the same request twice', function () {
-    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
-    $member = createWorkflowAuthorizationActor(
-        [Role::MEMBER],
-        acctno: '100016D',
-    );
-
     $loanRequest = createApprovedWorkflowLoanRequest($member);
 
-    $this
-        ->actingAs($loanManager)
-        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
-        ->assertOk();
+    expect(app('router')->has('spa.workflow.loan-requests.convert-to-loan'))
+        ->toBeFalse();
 
     $this
         ->actingAs($loanManager)
-        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
-        ->assertForbidden();
-
-    expect(DB::table('wlnmaster')->count())->toBe(1);
-    expect(LoanRequestChange::query()->count())->toBe(1);
-});
-
-test('loan managers cannot convert approved requests when a matching converted legacy loan already exists', function () {
-    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
-    $member = createWorkflowAuthorizationActor(
-        [Role::MEMBER],
-        acctno: '100016E',
-    );
-
-    $loanRequest = createApprovedWorkflowLoanRequest($member);
-
-    DB::table('wlnmaster')->insert([
-        'acctno' => $member->acctno,
-        'lnnumber' => '0102-999999',
-        'typecode' => '02',
-        'lntype' => 'MICRO BUSINESS LOAN',
-        'lnstatus' => 'ACT',
-        'principal' => 22000,
-        'balance' => 22000,
-        'remarks' => sprintf('Converted from %s', $loanRequest->reference),
-    ]);
-
-    $this
-        ->actingAs($loanManager)
-        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors('loan_request');
+        ->patchJson("/spa/workflow/loan-requests/{$loanRequest->id}/convert-to-loan", [
+            'remarks' => 'Should never execute.',
+        ])
+        ->assertNotFound();
 
     $loanRequest->refresh();
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
-    expect(DB::table('wlnmaster')->count())->toBe(1);
+    expect(DB::table('wlnmaster')->count())->toBe(0);
+    expect(DB::table('wlnled')->count())->toBe(0);
     expect(LoanRequestChange::query()->count())->toBe(0);
 });
 
@@ -856,26 +719,6 @@ test('unauthorized direct workflow route calls are blocked', function () {
         ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [])
         ->assertForbidden();
 
-    expect(LoanRequestChange::query()->count())->toBe(0);
-});
-
-test('unauthorized direct convert route calls are blocked', function () {
-    $member = createWorkflowAuthorizationActor(
-        [Role::MEMBER],
-        acctno: '100020A',
-    );
-
-    $loanRequest = createApprovedWorkflowLoanRequest($member);
-
-    $this
-        ->actingAs($member)
-        ->patchJson(route('spa.workflow.loan-requests.convert-to-loan', $loanRequest), [])
-        ->assertForbidden();
-
-    $loanRequest->refresh();
-
-    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
-    expect(DB::table('wlnmaster')->count())->toBe(0);
     expect(LoanRequestChange::query()->count())->toBe(0);
 });
 

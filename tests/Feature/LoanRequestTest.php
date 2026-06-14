@@ -49,6 +49,13 @@ beforeEach(function () {
         });
     }
 
+    if (! Schema::hasTable('wlnled')) {
+        Schema::create('wlnled', function (Blueprint $table) {
+            $table->string('acctno');
+            $table->string('lnnumber')->nullable();
+        });
+    }
+
     if (! Schema::hasTable('wlntype')) {
         Schema::create('wlntype', function (Blueprint $table) {
             $table->string('typecode')->primary();
@@ -2060,7 +2067,7 @@ test('admin can view loan request details page', function () {
             ->where('loanRequest.id', $loanRequest->id)
             ->where('loanRequest.reference', $loanRequest->reference)
             ->where('loanRequest.status', LoanRequestStatus::UnderReview->value)
-            ->where('decision.canDecide', true)
+            ->where('decision.canDecide', false)
             ->where('decision.canCancel', true)
             ->where('decision.isOwnRequest', false)
             ->where('workflowPermissions', fn ($permissions): bool => collect($permissions)->contains(
@@ -2186,7 +2193,7 @@ test('admin loan request detail marks own requests as not decisionable', functio
             ->where('decision.isOwnRequest', true));
 });
 
-test('admin can approve an under review loan request', function () {
+test('admin cannot approve an under review loan request', function () {
     Queue::fake();
 
     if (! Schema::hasTable('wlnmaster')) {
@@ -2227,28 +2234,18 @@ test('admin can approve an under review loan request', function () {
         );
 
     $response
-        ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value)
-        ->assertJsonPath('data.loanRequest.reference', $loanRequest->reference)
-        ->assertJsonPath('data.loanRequest.approved_amount', '15000.00');
+        ->assertForbidden();
 
     $loanRequest->refresh();
 
-    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
-    expect($loanRequest->reviewed_by)->toBe($admin->user_id);
-    expect($loanRequest->reviewed_at)->not->toBeNull();
-    expect($loanRequest->approved_amount)->toBe('15000.00');
-    expect($loanRequest->approved_term)->toBe(12);
-    expect($loanRequest->decision_notes)->toBe('Approved for release.');
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
     expect(DB::table('wlnmaster')->count())->toBe(0);
+    expect(DB::table('wlnled')->count())->toBe(0);
 
-    Queue::assertPushed(
-        SendLoanDecisionSmsJob::class,
-        fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
-    );
+    Queue::assertNothingPushed();
 });
 
-test('admin can decline an under review loan request', function () {
+test('admin cannot decline an under review loan request', function () {
     Queue::fake();
 
     $admin = User::factory()->create();
@@ -2277,23 +2274,14 @@ test('admin can decline an under review loan request', function () {
         );
 
     $response
-        ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Declined->value)
-        ->assertJsonPath('data.loanRequest.reference', $loanRequest->reference);
+        ->assertForbidden();
 
     $loanRequest->refresh();
 
-    expect($loanRequest->status)->toBe(LoanRequestStatus::Declined);
-    expect($loanRequest->reviewed_by)->toBe($admin->user_id);
-    expect($loanRequest->reviewed_at)->not->toBeNull();
-    expect($loanRequest->approved_amount)->toBeNull();
-    expect($loanRequest->approved_term)->toBeNull();
-    expect($loanRequest->decision_notes)->toBe('Declined due to incomplete documents.');
+    expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($loanRequest->decision_notes)->toBeNull();
 
-    Queue::assertPushed(
-        SendLoanDecisionSmsJob::class,
-        fn (SendLoanDecisionSmsJob $job) => $job->loanRequestId === $loanRequest->id,
-    );
+    Queue::assertNothingPushed();
 });
 
 test('admin can cancel a pending loan request before decision', function (LoanRequestStatus $status) {
@@ -2795,7 +2783,7 @@ test('loan request decision sms uses branding and reference for approvals', func
     SendLoanDecisionSmsJob::dispatchSync($loanRequest->id);
 
     $expectedMessage = sprintf(
-        'MRDINC Member Portal: Your loan request (%s) has been APPROVED for Php. 100,000.00 payable over 12 months. Please visit the MRDINC office to finalize your loan.',
+        'MRDINC Member Portal: Your loan request (%s) has been APPROVED for Php. 100,000.00 payable over 12 months and is awaiting processing in WIBS.',
         $loanRequest->reference,
     );
 
@@ -3047,7 +3035,7 @@ test('admin corrected request cannot be approved immediately after creation', fu
 
     $corrected = LoanRequest::factory()->forUser($member)->create([
         'acctno' => $member->acctno,
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
         'corrected_from_id' => $source->id,
     ]);
@@ -3082,7 +3070,7 @@ test('admin corrected request cannot be approved immediately after creation', fu
 
     $corrected->refresh();
 
-    expect($corrected->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($corrected->status)->toBe(LoanRequestStatus::RecommendedForApproval);
     expect(
         LoanRequestChange::query()
             ->where('loan_request_id', $corrected->id)
@@ -3116,7 +3104,7 @@ test('admin create corrected request audit alone is not enough to approve', func
 
     $corrected = LoanRequest::factory()->forUser($member)->create([
         'acctno' => $member->acctno,
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
         'corrected_from_id' => $source->id,
     ]);
@@ -3206,6 +3194,10 @@ test('admin corrected request can be approved after a saved correction audit exi
             false,
         );
 
+    $corrected->forceFill([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+    ])->save();
+
     $this
         ->actingAs($admin)
         ->patchJson("/spa/admin/requests/{$corrected->id}/approve", [
@@ -3253,7 +3245,7 @@ test('corrected request approval is blocked when correction audit history is una
 
     $corrected = LoanRequest::factory()->forUser($member)->create([
         'acctno' => $member->acctno,
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
         'corrected_from_id' => $source->id,
     ]);
@@ -3275,7 +3267,7 @@ test('corrected request approval is blocked when correction audit history is una
 
     $corrected->refresh();
 
-    expect($corrected->status)->toBe(LoanRequestStatus::UnderReview);
+    expect($corrected->status)->toBe(LoanRequestStatus::RecommendedForApproval);
 
     Queue::assertNothingPushed();
 });
@@ -3552,7 +3544,7 @@ test('loan request decisions succeed even without a phone number', function () {
     ]);
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
     ]);
 

@@ -48,14 +48,14 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(workflowActionsFile, /Start Review/);
     assert.match(workflowActionsFile, /Request Revision/);
     assert.match(workflowActionsFile, /Recommend Approval/);
-    assert.match(workflowActionsFile, /Convert to Loan/);
+    assert.doesNotMatch(workflowActionsFile, /Convert to Loan/);
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
     assert.match(adminPageFile, /workflowPermissions/);
     assert.match(staffPageFile, /LoanRequestDetailPage/);
     assert.match(staffPageFile, /useLoanRequestWorkflow/);
     assert.match(staffPageFile, /Back to workflow queue/);
-    assert.match(staffPageFile, /convertToLoan/);
+    assert.doesNotMatch(staffPageFile, /convertToLoan/);
     assert.match(
         clientPageFile,
         /\['submitted', 'pending_review', 'under_review'\]\.includes/,

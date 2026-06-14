@@ -2,7 +2,6 @@ import type { AxiosResponse } from 'axios';
 import client from '@/lib/api/client';
 import {
     approve as workflowApproveRoute,
-    convertToLoan as workflowConvertToLoanRoute,
     decline as workflowDeclineRoute,
     recommendApproval as workflowRecommendApprovalRoute,
     reject as workflowRejectRoute,
@@ -137,10 +136,6 @@ type LoanRequestWorkflowApprovePayload = {
 
 type LoanRequestWorkflowDeclinePayload = {
     decline_reason: string;
-};
-
-type LoanRequestWorkflowConvertPayload = {
-    remarks?: string | null;
 };
 
 type LoanRequestWorkflowResponse = {
@@ -365,17 +360,6 @@ export const adminApi = {
     ): Promise<LoanRequestWorkflowResult> {
         const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
             workflowDeclineRoute(loanRequestId).url,
-            payload,
-        );
-
-        return unwrap(response);
-    },
-    async convertLoanRequestToLoan(
-        loanRequestId: number,
-        payload: LoanRequestWorkflowConvertPayload = {},
-    ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowConvertToLoanRoute(loanRequestId).url,
             payload,
         );
 

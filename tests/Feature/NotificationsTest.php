@@ -50,7 +50,7 @@ test('approved loan request sends a database notification', function () {
     ]);
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
     ]);
     prepareLoanRequestForApproval($loanRequest, $admin);
@@ -97,7 +97,7 @@ test('declined loan request sends a database notification', function () {
     ]);
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
     ]);
 
@@ -656,7 +656,7 @@ test('admin-only loan request owners are not notified', function () {
 
     $loanRequest = LoanRequest::factory()->forUser($adminOnly)->create([
         'acctno' => '000501',
-        'status' => LoanRequestStatus::UnderReview,
+        'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
     ]);
     prepareLoanRequestForApproval($loanRequest, $admin);

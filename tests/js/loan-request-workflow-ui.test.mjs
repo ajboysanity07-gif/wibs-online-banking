@@ -79,6 +79,7 @@ test('client loan request pages surface revision and conversion workflow states'
 
     assert.match(detailFile, /Revision remarks/);
     assert.match(detailFile, /converted_to_loan/);
+    assert.match(detailFile, /Approved - awaiting processing in WIBS\./);
     assert.match(listFile, /Pending Review/);
     assert.match(listFile, /Under Review/);
     assert.match(listFile, /Needs Revision/);

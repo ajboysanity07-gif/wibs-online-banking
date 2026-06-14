@@ -43,10 +43,6 @@ export type LoanRequestWorkflowDeclinePayload = {
     decline_reason: string;
 };
 
-export type LoanRequestWorkflowConvertToLoanPayload = {
-    remarks?: string | null;
-};
-
 type LoanRequestWorkflowActionConfig<TPayload> = {
     show?: boolean;
     isProcessing?: boolean;
@@ -60,7 +56,6 @@ export type LoanRequestWorkflowProps = {
     recommendApproval?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowRecommendApprovalPayload>;
     approve?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowApprovePayload>;
     decline?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowDeclinePayload>;
-    convertToLoan?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowConvertToLoanPayload>;
 };
 
 type Props = {
@@ -84,7 +79,6 @@ export function LoanRequestWorkflowActions({
     const [isRecommendOpen, setIsRecommendOpen] = useState(false);
     const [isApproveOpen, setIsApproveOpen] = useState(false);
     const [isDeclineOpen, setIsDeclineOpen] = useState(false);
-    const [isConvertOpen, setIsConvertOpen] = useState(false);
 
     const [startReviewRemarks, setStartReviewRemarks] = useState('');
     const [revisionRemarks, setRevisionRemarks] = useState('');
@@ -104,7 +98,6 @@ export function LoanRequestWorkflowActions({
     const [declineReasonError, setDeclineReasonError] = useState<
         string | null
     >(null);
-    const [convertRemarks, setConvertRemarks] = useState('');
 
     const hasOfficerActions =
         Boolean(workflow?.startReview?.show) ||
@@ -113,7 +106,6 @@ export function LoanRequestWorkflowActions({
         Boolean(workflow?.recommendApproval?.show);
     const hasManagerActions =
         Boolean(workflow?.approve?.show) || Boolean(workflow?.decline?.show);
-    const hasConvertAction = Boolean(workflow?.convertToLoan?.show);
 
     useEffect(() => {
         const nextAmount =
@@ -142,7 +134,7 @@ export function LoanRequestWorkflowActions({
         loanRequest.requested_term,
     ]);
 
-    if (!hasOfficerActions && !hasManagerActions && !hasConvertAction) {
+    if (!hasOfficerActions && !hasManagerActions) {
         return null;
     }
 
@@ -257,19 +249,6 @@ export function LoanRequestWorkflowActions({
         }
     };
 
-    const submitConvertToLoan = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const result = await workflow?.convertToLoan?.onSubmit?.({
-            remarks: convertRemarks.trim() || null,
-        });
-
-        if (result) {
-            setConvertRemarks('');
-            setIsConvertOpen(false);
-        }
-    };
-
     return (
         <>
             {hasOfficerActions ? (
@@ -367,29 +346,6 @@ export function LoanRequestWorkflowActions({
                             </Button>
                         ) : null}
                     </div>
-                    <Separator className="bg-border/40" />
-                </div>
-            ) : null}
-
-            {hasConvertAction ? (
-                <div className="space-y-3">
-                    <div className="space-y-1">
-                        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                            Conversion
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            Create the actual loan record once the request is
-                            approved.
-                        </p>
-                    </div>
-                    <Button
-                        type="button"
-                        className="w-full justify-start"
-                        disabled={workflow?.convertToLoan?.isProcessing}
-                        onClick={() => setIsConvertOpen(true)}
-                    >
-                        Convert to Loan
-                    </Button>
                     <Separator className="bg-border/40" />
                 </div>
             ) : null}
@@ -777,53 +733,6 @@ export function LoanRequestWorkflowActions({
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isConvertOpen} onOpenChange={setIsConvertOpen}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Convert to Loan</DialogTitle>
-                        <DialogDescription>
-                            Create the actual loan record for this approved
-                            request. This action cannot be repeated.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form className="space-y-4" onSubmit={submitConvertToLoan}>
-                        <div className="space-y-2">
-                            <Label htmlFor="workflow_convert_remarks">
-                                Remarks
-                            </Label>
-                            <textarea
-                                id="workflow_convert_remarks"
-                                className={textareaClassName}
-                                maxLength={1000}
-                                value={convertRemarks}
-                                disabled={workflow?.convertToLoan?.isProcessing}
-                                onChange={(event) =>
-                                    setConvertRemarks(event.target.value)
-                                }
-                            />
-                            <div className="text-right text-xs text-muted-foreground">
-                                {convertRemarks.length}/1000
-                            </div>
-                        </div>
-                        <DialogFooter className="gap-2 sm:gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={workflow?.convertToLoan?.isProcessing}
-                                onClick={() => setIsConvertOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={workflow?.convertToLoan?.isProcessing}
-                            >
-                                Convert to Loan
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }

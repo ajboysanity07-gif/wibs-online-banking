@@ -104,7 +104,7 @@ const REPORT_FONT_STYLE_OPTIONS = [
     { value: 'italic', label: 'Italic' },
 ];
 const DEFAULT_LOAN_SMS_APPROVED_TEMPLATE =
-    '{company_name} {portal_label}: Your loan request ({loan_reference}) has been APPROVED for {approved_amount} payable over {approved_term} months. Please visit the {office_name} office to finalize your loan.';
+    '{company_name} {portal_label}: Your loan request ({loan_reference}) has been APPROVED for {approved_amount} payable over {approved_term} months and is awaiting processing in WIBS.';
 const DEFAULT_LOAN_SMS_DECLINED_TEMPLATE =
     '{company_name} {portal_label}: Your loan request ({loan_reference}) has been DECLINED. For questions or clarification, please contact the {office_name} office.';
 const LOAN_SMS_PLACEHOLDERS = [

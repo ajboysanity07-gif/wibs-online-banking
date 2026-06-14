@@ -141,8 +141,7 @@ export type LoanRequestWorkflowPermission =
     | 'loan.reject'
     | 'loan.recommend_approval'
     | 'loan.approve'
-    | 'loan.decline'
-    | 'loan.convert_to_loan';
+    | 'loan.decline';
 
 export type LoanRequestWorkflowContext = {
     isOwnRequest: boolean;

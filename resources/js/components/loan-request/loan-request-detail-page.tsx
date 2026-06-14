@@ -193,7 +193,7 @@ const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     recommended_for_approval:
         'The officer review is complete and the request is waiting for manager approval.',
     rejected: 'This request was rejected during officer review.',
-    approved: 'This request is approved and can now be converted into a loan.',
+    approved: 'Approved - awaiting processing in WIBS.',
     declined: 'This request was declined after manager review.',
     converted_to_loan:
         'This request has already been converted into an actual loan record.',
@@ -1509,7 +1509,7 @@ export function LoanRequestDetailPage({
                                           'recommended_for_approval'
                                         ? 'A loan manager can now approve or decline this request.'
                                         : statusValue === 'approved'
-                                          ? 'The request can now be converted into an actual loan.'
+                                          ? 'Approved - awaiting processing in WIBS.'
                                           : statusValue ===
                                               'converted_to_loan'
                                             ? 'The request is already linked to a created loan record.'

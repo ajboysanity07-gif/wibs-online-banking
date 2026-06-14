@@ -161,7 +161,6 @@ export default function LoanRequestShow({
         recommendApproval,
         approveLoanRequest,
         declineLoanRequest,
-        convertToLoan,
         processingIds: workflowProcessingIds,
     } = useLoanRequestWorkflow({
         onUpdated: (result) => {
@@ -303,10 +302,6 @@ export default function LoanRequestShow({
         !decision.isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
         hasWorkflowPermission('loan.decline');
-    const canConvertToLoan =
-        !decision.isOwnRequest &&
-        currentRequest.status === 'approved' &&
-        hasWorkflowPermission('loan.convert_to_loan');
     const canCorrect =
         currentRequest.status === 'under_review' && !decision.isOwnRequest;
     const requiresCorrectionBeforeApproval =
@@ -716,14 +711,6 @@ export default function LoanRequestShow({
                                       currentRequest.id,
                                       payload,
                                   ),
-                          }
-                        : undefined,
-                    convertToLoan: canConvertToLoan
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  convertToLoan(currentRequest.id, payload),
                           }
                         : undefined,
                 }}

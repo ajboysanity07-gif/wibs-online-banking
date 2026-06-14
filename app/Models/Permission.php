@@ -59,12 +59,22 @@ class Permission extends Model
             ['name' => self::LOAN_RECOMMEND_APPROVAL, 'display_name' => 'Recommend loan approval'],
             ['name' => self::LOAN_APPROVE, 'display_name' => 'Approve loans'],
             ['name' => self::LOAN_DECLINE, 'display_name' => 'Decline loans'],
-            ['name' => self::LOAN_CONVERT_TO_LOAN, 'display_name' => 'Convert approved requests to loans'],
             ['name' => self::MEMBER_VIEW, 'display_name' => 'View members'],
             ['name' => self::MEMBER_CREATE, 'display_name' => 'Create members'],
             ['name' => self::MEMBER_UPDATE, 'display_name' => 'Update members'],
             ['name' => self::PAYMENT_CREATE, 'display_name' => 'Create payments'],
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function defaultNames(): array
+    {
+        return array_map(
+            static fn (array $permission): string => $permission['name'],
+            self::defaults(),
+        );
     }
 
     public function roles(): BelongsToMany

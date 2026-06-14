@@ -141,10 +141,24 @@ test('loan workflow rbac seeder is idempotent and backfills admin and member rol
     ]);
     expect($loanManagerRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
         Permission::LOAN_APPROVE,
-        Permission::LOAN_CONVERT_TO_LOAN,
         Permission::LOAN_DECLINE,
         Permission::LOAN_VIEW,
     ]);
+
+    $legacyConversionPermission = Permission::query()->firstOrCreate(
+        ['name' => Permission::LOAN_CONVERT_TO_LOAN],
+        ['display_name' => 'Convert approved requests to loans'],
+    );
+
+    $adminRole->permissions()->syncWithoutDetaching([$legacyConversionPermission->id]);
+    $loanManagerRole->permissions()->syncWithoutDetaching([$legacyConversionPermission->id]);
+
+    $this->seed(LoanWorkflowRbacSeeder::class);
+
+    expect($adminRole->fresh()->permissions()->pluck('name')->all())
+        ->not->toContain(Permission::LOAN_CONVERT_TO_LOAN);
+    expect($loanManagerRole->fresh()->permissions()->pluck('name')->all())
+        ->not->toContain(Permission::LOAN_CONVERT_TO_LOAN);
 
     $adminOnly->load('roles.permissions');
     $hybridAdmin->load('roles.permissions');
@@ -154,12 +168,14 @@ test('loan workflow rbac seeder is idempotent and backfills admin and member rol
     expect($adminOnly->hasRole(Role::ADMIN))->toBeTrue();
     expect($adminOnly->hasRole(Role::MEMBER))->toBeFalse();
     expect($adminOnly->hasPermission(Permission::PAYMENT_CREATE))->toBeTrue();
+    expect($adminOnly->hasPermission(Permission::LOAN_CONVERT_TO_LOAN))->toBeFalse();
     expect($adminOnly->roles()->count())->toBe(1);
 
     expect($hybridAdmin->hasRole(Role::ADMIN))->toBeTrue();
     expect($hybridAdmin->hasRole(Role::MEMBER))->toBeTrue();
     expect($hybridAdmin->hasAnyRole([Role::LOAN_MANAGER, Role::MEMBER]))->toBeTrue();
     expect($hybridAdmin->hasPermission(Permission::LOAN_CREATE))->toBeTrue();
+    expect($hybridAdmin->hasPermission(Permission::LOAN_CONVERT_TO_LOAN))->toBeFalse();
     expect($hybridAdmin->hasPermission(Permission::MEMBER_UPDATE))->toBeTrue();
 
     expect($member->hasRole(Role::MEMBER))->toBeTrue();

@@ -25,7 +25,7 @@ const features = [
     {
         title: 'View loan applications and status',
         description:
-            'See current loan requests and track approvals from submission to release.',
+            'See current loan requests, track approvals, and review WIBS-managed loan updates.',
         icon: LineChart,
     },
     {

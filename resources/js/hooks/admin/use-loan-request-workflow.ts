@@ -9,8 +9,7 @@ export type LoanRequestWorkflowAction =
     | 'reject'
     | 'recommendApproval'
     | 'approve'
-    | 'decline'
-    | 'convertToLoan';
+    | 'decline';
 
 export type LoanRequestStartReviewPayload = {
     remarks?: string | null;
@@ -39,18 +38,13 @@ export type LoanRequestWorkflowDeclinePayload = {
     decline_reason: string;
 };
 
-export type LoanRequestConvertToLoanPayload = {
-    remarks?: string | null;
-};
-
 type LoanRequestWorkflowPayload =
     | LoanRequestStartReviewPayload
     | LoanRequestRequestRevisionPayload
     | LoanRequestRejectPayload
     | LoanRequestRecommendApprovalPayload
     | LoanRequestWorkflowApprovePayload
-    | LoanRequestWorkflowDeclinePayload
-    | LoanRequestConvertToLoanPayload;
+    | LoanRequestWorkflowDeclinePayload;
 
 type LoanRequestWorkflowOptions = {
     onUpdated?: (
@@ -66,7 +60,6 @@ const successCopy: Record<LoanRequestWorkflowAction, string> = {
     recommendApproval: 'Loan request recommended for approval.',
     approve: 'Loan request approved successfully.',
     decline: 'Loan request declined successfully.',
-    convertToLoan: 'Approved request converted to a loan.',
 };
 
 const errorCopy: Record<LoanRequestWorkflowAction, string> = {
@@ -76,7 +69,6 @@ const errorCopy: Record<LoanRequestWorkflowAction, string> = {
     recommendApproval: 'Failed to recommend the request for approval.',
     approve: 'Failed to approve the loan request.',
     decline: 'Failed to decline the loan request.',
-    convertToLoan: 'Failed to convert the request to a loan.',
 };
 
 export function useLoanRequestWorkflow(
@@ -142,11 +134,6 @@ export function useLoanRequestWorkflow(
                             payload as LoanRequestWorkflowDeclinePayload,
                         );
                     }
-
-                    return adminApi.convertLoanRequestToLoan(
-                        loanRequestId,
-                        payload as LoanRequestConvertToLoanPayload,
-                    );
                 })();
 
                 showSuccessToast(successCopy[action], { id: toastId });
@@ -195,9 +182,5 @@ export function useLoanRequestWorkflow(
             loanRequestId: number,
             payload: LoanRequestWorkflowDeclinePayload,
         ) => runAction(loanRequestId, 'decline', payload),
-        convertToLoan: (
-            loanRequestId: number,
-            payload: LoanRequestConvertToLoanPayload = {},
-        ) => runAction(loanRequestId, 'convertToLoan', payload),
     };
 }
