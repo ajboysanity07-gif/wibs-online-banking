@@ -21,7 +21,8 @@ class MemberAdminAccessRequest extends FormRequest
 
         $actor->loadMissing('adminProfile');
 
-        return $actor->isSuperadmin();
+        return $actor->isSuperadmin()
+            && $actor->hasActiveStaffAccess();
     }
 
     /**

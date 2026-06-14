@@ -6,6 +6,7 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\Role;
+use App\Models\StaffAccessControl;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -340,6 +341,57 @@ test('legacy admins cannot bypass recommendation through the existing admin endp
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
     Queue::assertNothingPushed();
+});
+
+test('superadmins can monitor requests but cannot act on workflow decisions without explicit workflow roles', function () {
+    $superadmin = createWorkflowAuthorizationActor(
+        [Role::SUPERADMIN],
+        withAdminProfile: true,
+        acctno: null,
+    );
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100009B',
+    );
+
+    $pendingReview = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now(),
+    ]);
+    $recommended = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+    ]);
+
+    expect(Gate::forUser($superadmin)->allows('view', $pendingReview))->toBeTrue();
+    expect(Gate::forUser($superadmin)->allows('startReview', $pendingReview))->toBeFalse();
+    expect(Gate::forUser($superadmin)->allows('approve', $recommended))->toBeFalse();
+    expect(Gate::forUser($superadmin)->allows('decline', $recommended))->toBeFalse();
+});
+
+test('suspended staff cannot monitor or act on workflow requests', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    StaffAccessControl::factory()->suspended()->create([
+        'user_id' => $loanOfficer->user_id,
+    ]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100009C',
+    );
+
+    $pendingReview = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now(),
+    ]);
+
+    expect(Gate::forUser($loanOfficer->fresh())->allows('view', $pendingReview))->toBeFalse();
+
+    $this
+        ->actingAs($loanOfficer->fresh())
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $pendingReview), [
+            'remarks' => 'Suspended staff cannot start review.',
+        ])
+        ->assertForbidden();
 });
 
 test('loan officers can start review through the workflow route and create an audit row', function () {

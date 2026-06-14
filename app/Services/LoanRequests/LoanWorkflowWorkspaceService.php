@@ -18,9 +18,18 @@ class LoanWorkflowWorkspaceService
 
         $user->loadMissing('roles.permissions');
 
+        if (! $user->hasActiveStaffAccess()) {
+            return false;
+        }
+
+        if ($user->isSuperadmin()) {
+            return $user->hasPermission(Permission::LOAN_VIEW)
+                || $user->isLegacySuperadmin();
+        }
+
         return $user->hasPermission(Permission::LOAN_VIEW)
             && $user->hasAnyRole([
-                Role::ADMIN,
+                Role::SUPERADMIN,
                 Role::LOAN_OFFICER,
                 Role::LOAN_MANAGER,
             ]);
@@ -37,14 +46,19 @@ class LoanWorkflowWorkspaceService
 
         $user->loadMissing('roles.permissions');
 
-        return collect([
-            Role::ADMIN,
-            Role::LOAN_OFFICER,
-            Role::LOAN_MANAGER,
-        ])
-            ->filter(fn (string $role): bool => $user->hasRole($role))
-            ->values()
-            ->all();
+        $roles = [];
+
+        if ($user->hasRole(Role::SUPERADMIN) || $user->isLegacySuperadmin()) {
+            $roles[] = Role::SUPERADMIN;
+        }
+
+        foreach ([Role::LOAN_OFFICER, Role::LOAN_MANAGER] as $roleName) {
+            if ($user->hasRole($roleName)) {
+                $roles[] = $roleName;
+            }
+        }
+
+        return $roles;
     }
 
     /**
@@ -58,7 +72,7 @@ class LoanWorkflowWorkspaceService
 
         $user->loadMissing('roles.permissions');
 
-        return $user->roles
+        $permissions = $user->roles
             ->flatMap(static fn (Role $role) => $role->permissions->pluck('name'))
             ->filter(
                 static fn (mixed $permission): bool => is_string($permission)
@@ -67,6 +81,15 @@ class LoanWorkflowWorkspaceService
             ->unique()
             ->values()
             ->all();
+
+        if (
+            $user->isLegacySuperadmin() &&
+            ! in_array(Permission::LOAN_VIEW, $permissions, true)
+        ) {
+            $permissions[] = Permission::LOAN_VIEW;
+        }
+
+        return $permissions;
     }
 
     /**
@@ -76,7 +99,10 @@ class LoanWorkflowWorkspaceService
     {
         $user->loadMissing('roles.permissions');
 
-        if ($user->hasRole(Role::ADMIN)) {
+        if (
+            $user->hasRole(Role::SUPERADMIN) ||
+            $user->isLegacySuperadmin()
+        ) {
             return array_values(array_filter(
                 LoanRequestStatus::requestFilterValues(),
                 static fn (string $status): bool => $status !== LoanRequestStatus::Draft->value,
@@ -113,7 +139,10 @@ class LoanWorkflowWorkspaceService
     {
         $user->loadMissing('roles.permissions');
 
-        if ($user->hasRole(Role::ADMIN)) {
+        if (
+            $user->hasRole(Role::SUPERADMIN) ||
+            $user->isLegacySuperadmin()
+        ) {
             return;
         }
 

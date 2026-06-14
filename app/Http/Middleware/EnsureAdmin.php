@@ -23,7 +23,7 @@ class EnsureAdmin
 
         $user->loadMissing('adminProfile');
 
-        if ($user->adminProfile !== null) {
+        if ($user->adminProfile !== null && $user->hasActiveStaffAccess()) {
             return $next($request);
         }
 

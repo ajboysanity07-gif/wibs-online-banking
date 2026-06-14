@@ -19,6 +19,10 @@ class AdminProfileFactory extends Factory
 
             if ($adminProfile->appUser instanceof AppUser) {
                 Role::attachNamedRole($adminProfile->appUser, Role::ADMIN);
+
+                if ($adminProfile->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN) {
+                    Role::attachNamedRole($adminProfile->appUser, Role::SUPERADMIN);
+                }
             }
         });
     }

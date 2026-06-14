@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Spa\LoginRequest;
 use App\Http\Requests\Spa\RegisterRequest;
 use App\Models\AppUser;
+use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,10 @@ use Laravel\Fortify\Events\TwoFactorAuthenticationChallenged;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private LoanWorkflowWorkspaceService $workspaceService,
+    ) {}
+
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -125,13 +130,21 @@ class AuthController extends Controller
 
     private function postAuthRedirect(AppUser $user): string
     {
-        $user->loadMissing('adminProfile', 'userProfile');
+        $user->loadMissing(
+            'adminProfile',
+            'userProfile',
+            'roles.permissions',
+            'staffAccessControl',
+        );
 
         $experience = $user->experienceType();
 
         if (
-            $experience === AppUser::EXPERIENCE_SUPERADMIN
-            || $experience === AppUser::EXPERIENCE_ADMIN_ONLY
+            $user->hasActiveStaffAccess()
+            && (
+                $experience === AppUser::EXPERIENCE_SUPERADMIN
+                || $experience === AppUser::EXPERIENCE_ADMIN_ONLY
+            )
         ) {
             return '/admin/dashboard';
         }
@@ -140,8 +153,19 @@ class AuthController extends Controller
             return '/dashboard';
         }
 
+        if (
+            ! $user->hasMemberAccess()
+            && $this->workspaceService->canAccess($user)
+        ) {
+            return '/staff/loan-requests';
+        }
+
         if ($user->userProfile?->status === 'suspended') {
             return '/pending-approval';
+        }
+
+        if (! $user->hasMemberAccess()) {
+            return '/settings/profile';
         }
 
         if (! $user->memberApplicationProfileIsComplete()) {

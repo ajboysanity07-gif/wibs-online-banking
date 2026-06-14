@@ -2,6 +2,7 @@
 
 use App\Models\AdminProfile;
 use App\Models\AppUser;
+use App\Models\Role;
 use App\Models\UserProfile;
 use Database\Seeders\SuperadminUserSeeder;
 use Illuminate\Support\Str;
@@ -42,4 +43,5 @@ test('superadmin user seeder provisions a superadmin account', function () {
             ->where('status', 'active')
             ->exists(),
     )->toBeTrue();
+    expect($superadmin->fresh()->hasRole(Role::SUPERADMIN))->toBeTrue();
 });

@@ -90,7 +90,7 @@ test('phase one workflow field migration rolls back and reapplies all workflow c
     }
 });
 
-test('loan workflow rbac seeder is idempotent and backfills admin and member roles safely', function () {
+test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, and member roles safely', function () {
     $adminOnly = AppUser::factory()->create(['acctno' => null]);
     AdminProfile::factory()->admin()->create([
         'user_id' => $adminOnly->user_id,
@@ -107,6 +107,13 @@ test('loan workflow rbac seeder is idempotent and backfills admin and member rol
         'acctno' => '654321',
     ]);
 
+    $legacySuperadmin = AppUser::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $legacySuperadmin->user_id,
+    ]);
+
     $unknownUser = AppUser::factory()->create([
         'acctno' => null,
     ]);
@@ -119,6 +126,7 @@ test('loan workflow rbac seeder is idempotent and backfills admin and member rol
         Role::LOAN_MANAGER,
         Role::LOAN_OFFICER,
         Role::MEMBER,
+        Role::SUPERADMIN,
     ]);
     expect(Permission::query()->count())->toBe(count(Permission::defaults()));
 
@@ -126,11 +134,27 @@ test('loan workflow rbac seeder is idempotent and backfills admin and member rol
     $memberRole = Role::query()->where('name', Role::MEMBER)->firstOrFail();
     $loanOfficerRole = Role::query()->where('name', Role::LOAN_OFFICER)->firstOrFail();
     $loanManagerRole = Role::query()->where('name', Role::LOAN_MANAGER)->firstOrFail();
+    $superadminRole = Role::query()->where('name', Role::SUPERADMIN)->firstOrFail();
 
-    expect($adminRole->permissions()->count())->toBe(count(Permission::defaults()));
+    expect($adminRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
+        Permission::LOAN_VIEW,
+        Permission::MEMBER_CREATE,
+        Permission::MEMBER_UPDATE,
+        Permission::MEMBER_VIEW,
+        Permission::PAYMENT_CREATE,
+    ]);
     expect($memberRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
         Permission::LOAN_CREATE,
         Permission::LOAN_VIEW,
+    ]);
+    expect($superadminRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
+        Permission::LOAN_VIEW,
+        Permission::MEMBER_CREATE,
+        Permission::MEMBER_UPDATE,
+        Permission::MEMBER_VIEW,
+        Permission::PAYMENT_CREATE,
+        Permission::STAFF_MANAGE,
+        Permission::STAFF_VIEW,
     ]);
     expect($loanOfficerRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
         Permission::LOAN_RECOMMEND_APPROVAL,
@@ -163,12 +187,15 @@ test('loan workflow rbac seeder is idempotent and backfills admin and member rol
     $adminOnly->load('roles.permissions');
     $hybridAdmin->load('roles.permissions');
     $member->load('roles.permissions');
+    $legacySuperadmin->load('roles.permissions', 'adminProfile');
     $unknownUser->load('roles.permissions');
 
     expect($adminOnly->hasRole(Role::ADMIN))->toBeTrue();
     expect($adminOnly->hasRole(Role::MEMBER))->toBeFalse();
     expect($adminOnly->hasPermission(Permission::PAYMENT_CREATE))->toBeTrue();
     expect($adminOnly->hasPermission(Permission::LOAN_CONVERT_TO_LOAN))->toBeFalse();
+    expect($adminOnly->hasPermission(Permission::LOAN_REVIEW))->toBeFalse();
+    expect($adminOnly->hasPermission(Permission::LOAN_APPROVE))->toBeFalse();
     expect($adminOnly->roles()->count())->toBe(1);
 
     expect($hybridAdmin->hasRole(Role::ADMIN))->toBeTrue();
@@ -183,8 +210,72 @@ test('loan workflow rbac seeder is idempotent and backfills admin and member rol
     expect($member->hasPermission(Permission::LOAN_VIEW))->toBeTrue();
     expect($member->hasPermission(Permission::PAYMENT_CREATE))->toBeFalse();
 
+    expect($legacySuperadmin->hasRole(Role::SUPERADMIN))->toBeTrue();
+    expect($legacySuperadmin->isSuperadmin())->toBeTrue();
+    expect($legacySuperadmin->hasPermission(Permission::STAFF_MANAGE))->toBeTrue();
+    expect($legacySuperadmin->hasPermission(Permission::LOAN_REVIEW))->toBeFalse();
+    expect($legacySuperadmin->hasPermission(Permission::LOAN_APPROVE))->toBeFalse();
+
     expect($unknownUser->roles()->count())->toBe(0);
     expect($unknownUser->hasAnyRole([Role::ADMIN, Role::MEMBER]))->toBeFalse();
+});
+
+test('app user recognizes explicit and legacy superadmin access', function () {
+    Role::ensureWorkflowDefaults();
+
+    $explicitSuperadmin = AppUser::factory()->create([
+        'acctno' => null,
+    ]);
+    $explicitSuperadmin->roles()->sync([
+        Role::query()->where('name', Role::SUPERADMIN)->value('id'),
+    ]);
+
+    $legacySuperadmin = AppUser::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $legacySuperadmin->user_id,
+    ]);
+
+    $regularAdmin = AppUser::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->admin()->create([
+        'user_id' => $regularAdmin->user_id,
+    ]);
+
+    expect($explicitSuperadmin->fresh()->isSuperadmin())->toBeTrue();
+    expect($legacySuperadmin->fresh()->isSuperadmin())->toBeTrue();
+    expect($regularAdmin->fresh()->isSuperadmin())->toBeFalse();
+});
+
+test('superadmin does not receive loan officer or manager decision permissions unless explicitly assigned', function () {
+    Role::ensureWorkflowDefaults();
+
+    $superadmin = AppUser::factory()->create([
+        'acctno' => null,
+    ]);
+    AdminProfile::factory()->superadmin()->create([
+        'user_id' => $superadmin->user_id,
+    ]);
+
+    $superadmin->load('roles.permissions');
+
+    expect($superadmin->hasPermission(Permission::LOAN_VIEW))->toBeTrue();
+    expect($superadmin->hasPermission(Permission::LOAN_REVIEW))->toBeFalse();
+    expect($superadmin->hasPermission(Permission::LOAN_RECOMMEND_APPROVAL))->toBeFalse();
+    expect($superadmin->hasPermission(Permission::LOAN_APPROVE))->toBeFalse();
+    expect($superadmin->hasPermission(Permission::LOAN_DECLINE))->toBeFalse();
+
+    Role::attachNamedRole($superadmin, Role::LOAN_OFFICER);
+    Role::attachNamedRole($superadmin, Role::LOAN_MANAGER);
+
+    $superadmin->refresh()->load('roles.permissions');
+
+    expect($superadmin->hasPermission(Permission::LOAN_REVIEW))->toBeTrue();
+    expect($superadmin->hasPermission(Permission::LOAN_RECOMMEND_APPROVAL))->toBeTrue();
+    expect($superadmin->hasPermission(Permission::LOAN_APPROVE))->toBeTrue();
+    expect($superadmin->hasPermission(Permission::LOAN_DECLINE))->toBeTrue();
 });
 
 test('loan request status enum exposes phase one workflow values without removing legacy ones', function () {

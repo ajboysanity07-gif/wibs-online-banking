@@ -26,7 +26,7 @@ class MemberAdminAccessService
         $member = DB::transaction(function () use ($user): AppUser {
             $user->loadMissing('adminProfile', 'userProfile');
 
-            if ($user->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN) {
+            if ($user->isSuperadmin()) {
                 throw ValidationException::withMessages([
                     'member' => 'Superadmin access cannot be updated from here.',
                 ]);
@@ -72,7 +72,7 @@ class MemberAdminAccessService
 
         $user->loadMissing('adminProfile');
 
-        if ($user->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN) {
+        if ($user->isSuperadmin()) {
             throw ValidationException::withMessages([
                 'member' => 'Superadmin access cannot be revoked from here.',
             ]);

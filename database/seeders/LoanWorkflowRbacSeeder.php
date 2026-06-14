@@ -26,6 +26,9 @@ class LoanWorkflowRbacSeeder extends Seeder
         $adminRoleId = Role::query()
             ->where('name', Role::ADMIN)
             ->value('id');
+        $superadminRoleId = Role::query()
+            ->where('name', Role::SUPERADMIN)
+            ->value('id');
         $memberRoleId = Role::query()
             ->where('name', Role::MEMBER)
             ->value('id');
@@ -36,6 +39,17 @@ class LoanWorkflowRbacSeeder extends Seeder
                 ->get()
                 ->each(function (AppUser $user) use ($adminRoleId): void {
                     $user->roles()->syncWithoutDetaching([$adminRoleId]);
+                });
+        }
+
+        if ($superadminRoleId !== null) {
+            AppUser::query()
+                ->whereHas('adminProfile', function ($query): void {
+                    $query->where('access_level', \App\Models\AdminProfile::ACCESS_LEVEL_SUPERADMIN);
+                })
+                ->get()
+                ->each(function (AppUser $user) use ($superadminRoleId): void {
+                    $user->roles()->syncWithoutDetaching([$superadminRoleId]);
                 });
         }
 
@@ -51,16 +65,20 @@ class LoanWorkflowRbacSeeder extends Seeder
         }
 
         $this->command?->info(sprintf(
-            'Loan workflow RBAC seeded: %d roles, %d permissions, %d admin backfills, %d member backfills.',
+            'Loan workflow RBAC seeded: %d roles, %d permissions, %d admin backfills, %d superadmin backfills, %d member backfills.',
             Role::query()->count(),
             Permission::query()->count(),
             AppUser::query()->whereHas('roles', function ($query): void {
                 $query->where('name', Role::ADMIN);
             })->count(),
             AppUser::query()->whereHas('roles', function ($query): void {
+                $query->where('name', Role::SUPERADMIN);
+            })->count(),
+            AppUser::query()->whereHas('roles', function ($query): void {
                 $query->where('name', Role::MEMBER);
             })->count(),
         ));
+        $this->command?->line('Legacy superadmins are backfilled to the explicit superadmin role when their admin profile access level is superadmin.');
         $this->command?->line(
             'Member backfill only attaches the member role to users with a non-empty acctno. Users without that signal are left unchanged.',
         );

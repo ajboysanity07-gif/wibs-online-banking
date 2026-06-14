@@ -8,8 +8,17 @@ import {
     requestRevision as workflowRequestRevisionRoute,
     startReview as workflowStartReviewRoute,
 } from '@/routes/spa/workflow/loan-requests';
+import {
+    history as superadminStaffHistoryRoute,
+    index as superadminStaffIndexRoute,
+    reactivate as superadminStaffReactivateRoute,
+    store as superadminStaffStoreRoute,
+    suspend as superadminStaffSuspendRoute,
+} from '@/routes/spa/superadmin/staff';
+import { update as superadminStaffRoleUpdateRoute } from '@/routes/spa/superadmin/staff/roles';
 import type {
     DashboardSummary,
+    EditableStaffRoleName,
     MemberAccountActionsResponse,
     MemberAccountsSummary,
     MemberDetail,
@@ -21,6 +30,9 @@ import type {
     MembersResponse,
     ReportedRequestsResponse,
     RequestsResponse,
+    StaffAccount,
+    StaffDirectoryResponse,
+    StaffHistoryEntry,
 } from '@/types/admin';
 import type {
     LoanRequestAuditEntry,
@@ -78,6 +90,34 @@ type MemberLoanPaymentsQueryParams = {
     range?: string;
     start?: string | null;
     end?: string | null;
+};
+
+type StaffDirectoryQueryParams = {
+    search?: string;
+    role?: EditableStaffRoleName | null;
+    access?: 'active' | 'suspended' | null;
+    page?: number;
+    perPage?: number;
+};
+
+type CreateStaffPayload = {
+    username: string;
+    email: string;
+    phoneno?: string | null;
+    password: string;
+    password_confirmation: string;
+    roles: EditableStaffRoleName[];
+    reason: string;
+};
+
+type UpdateStaffRolePayload = {
+    role: EditableStaffRoleName;
+    operation: 'assign' | 'remove';
+    reason: string;
+};
+
+type StaffAccessPayload = {
+    reason: string;
 };
 
 type LoanRequestApprovePayload = {
@@ -146,6 +186,15 @@ type LoanRequestWorkflowResponse = {
     auditTrail: LoanRequestAuditEntry[];
     correctionReports: LoanRequestCorrectionReport[];
     loan?: Record<string, unknown> | null;
+};
+
+type StaffMutationResponse = {
+    staff: StaffAccount;
+    message?: string;
+};
+
+type StaffHistoryResponse = {
+    items: StaffHistoryEntry[];
 };
 
 export const adminApi = {
@@ -436,5 +485,77 @@ export const adminApi = {
         });
 
         return unwrap(response);
+    },
+    async getStaff(
+        params: StaffDirectoryQueryParams,
+        signal?: AbortSignal,
+    ): Promise<StaffDirectoryResponse> {
+        const response = await client.get<ApiResponse<StaffDirectoryResponse>>(
+            superadminStaffIndexRoute().url,
+            {
+                params,
+                signal,
+            },
+        );
+
+        return unwrap(response);
+    },
+    async createStaff(
+        payload: CreateStaffPayload,
+    ): Promise<StaffMutationResponse> {
+        const response = await client.post<ApiResponse<StaffMutationResponse>>(
+            superadminStaffStoreRoute().url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async updateStaffRole(
+        userId: number,
+        payload: UpdateStaffRolePayload,
+    ): Promise<StaffAccount> {
+        const response = await client.patch<ApiResponse<StaffMutationResponse>>(
+            superadminStaffRoleUpdateRoute(userId).url,
+            payload,
+        );
+
+        return unwrap(response).staff;
+    },
+    async suspendStaff(
+        userId: number,
+        payload: StaffAccessPayload,
+    ): Promise<StaffAccount> {
+        const response = await client.patch<ApiResponse<StaffMutationResponse>>(
+            superadminStaffSuspendRoute(userId).url,
+            payload,
+        );
+
+        return unwrap(response).staff;
+    },
+    async reactivateStaff(
+        userId: number,
+        payload: StaffAccessPayload,
+    ): Promise<StaffAccount> {
+        const response = await client.patch<ApiResponse<StaffMutationResponse>>(
+            superadminStaffReactivateRoute(userId).url,
+            payload,
+        );
+
+        return unwrap(response).staff;
+    },
+    async getStaffHistory(
+        userId: number,
+        limit = 50,
+        signal?: AbortSignal,
+    ): Promise<StaffHistoryEntry[]> {
+        const response = await client.get<ApiResponse<StaffHistoryResponse>>(
+            superadminStaffHistoryRoute(userId).url,
+            {
+                params: { limit },
+                signal,
+            },
+        );
+
+        return unwrap(response).items;
     },
 };

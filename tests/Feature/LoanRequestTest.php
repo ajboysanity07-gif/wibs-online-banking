@@ -3021,6 +3021,7 @@ test('admin corrected request cannot be approved immediately after creation', fu
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000532',
@@ -3140,6 +3141,7 @@ test('admin corrected request can be approved after a saved correction audit exi
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000536',
@@ -3231,6 +3233,7 @@ test('corrected request approval is blocked when correction audit history is una
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000538',
@@ -3537,6 +3540,7 @@ test('loan request decisions succeed even without a phone number', function () {
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000505',

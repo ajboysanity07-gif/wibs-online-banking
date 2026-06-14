@@ -14,7 +14,10 @@ export type User = {
     [key: string]: unknown;
 };
 
-export type LoanWorkflowRole = 'admin' | 'loan_officer' | 'loan_manager';
+export type LoanWorkflowRole =
+    | 'superadmin'
+    | 'loan_officer'
+    | 'loan_manager';
 
 export type Auth = {
     user: User;
@@ -24,6 +27,7 @@ export type Auth = {
     isAdminOnly: boolean;
     isHybrid: boolean;
     experience?: 'superadmin' | 'user' | 'user-admin' | 'admin-only';
+    hasActiveStaffAccess: boolean;
     canAccessLoanWorkflow: boolean;
     loanWorkflowRoles: LoanWorkflowRole[];
     loanWorkflowPermissions: LoanRequestWorkflowPermission[];

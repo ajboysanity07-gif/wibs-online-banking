@@ -7,6 +7,7 @@ use App\Models\AppUser as User;
 use App\Models\LoanRequest;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
+use App\Models\Role;
 use App\Models\UserProfile;
 use App\Notifications\AdminAccessAuditNotification;
 use App\Notifications\AdminAccessChangedNotification;
@@ -44,7 +45,7 @@ beforeEach(function () {
 });
 
 test('approved loan request sends a database notification', function () {
-    $admin = createAdminUser();
+    $admin = createAdminUser(roles: [Role::LOAN_MANAGER]);
     $member = User::factory()->create([
         'phoneno' => null,
     ]);
@@ -91,7 +92,7 @@ test('approved loan request sends a database notification', function () {
 });
 
 test('declined loan request sends a database notification', function () {
-    $admin = createAdminUser();
+    $admin = createAdminUser(roles: [Role::LOAN_MANAGER]);
     $member = User::factory()->create([
         'phoneno' => null,
     ]);
@@ -651,7 +652,7 @@ test('mark all notifications as read updates unread count', function () {
 });
 
 test('admin-only loan request owners are not notified', function () {
-    $admin = createAdminUser(acctno: '000500');
+    $admin = createAdminUser(acctno: '000500', roles: [Role::LOAN_MANAGER]);
     $adminOnly = createAdminUser(acctno: null, name: 'Admin Only');
 
     $loanRequest = LoanRequest::factory()->forUser($adminOnly)->create([
@@ -923,6 +924,7 @@ function createAdminUser(
     bool $superadmin = false,
     ?string $acctno = null,
     ?string $name = null,
+    array $roles = [],
 ): User {
     $user = User::factory()->create([
         'acctno' => $acctno,
@@ -940,6 +942,12 @@ function createAdminUser(
 
     if ($acctno !== null) {
         seedWmaster($user, 'Admin', 'User');
+    }
+
+    foreach ($roles as $role) {
+        if (is_string($role) && trim($role) !== '') {
+            Role::attachNamedRole($user, $role);
+        }
     }
 
     return $user;

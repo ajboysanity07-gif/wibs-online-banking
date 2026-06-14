@@ -25,6 +25,23 @@ test('loan officers can access the staff workflow list page', function (): void 
         );
 });
 
+test('superadmins can access the staff workflow list page for monitoring', function (): void {
+    $superadmin = createLoanWorkflowStaffUser(
+        [Role::SUPERADMIN],
+        withAdminProfile: true,
+    );
+
+    $this
+        ->actingAs($superadmin)
+        ->get(route('staff.loan-requests.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('staff/loan-requests')
+            ->where('auth.canAccessLoanWorkflow', true)
+            ->where('auth.loanWorkflowRoles', fn ($roles): bool => collect($roles)->contains(Role::SUPERADMIN))
+        );
+});
+
 test('loan managers can access the staff workflow detail page', function (): void {
     $loanManager = createLoanWorkflowStaffUser([Role::LOAN_MANAGER]);
     $member = createLoanWorkflowStaffUser([

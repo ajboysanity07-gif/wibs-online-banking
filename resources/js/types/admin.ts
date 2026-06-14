@@ -175,3 +175,78 @@ export type ReportedRequestsResponse = {
 export type MemberStatusAction = 'suspend' | 'reactivate';
 
 export type MemberAdminAccessAction = 'grant' | 'revoke';
+
+export type EditableStaffRoleName =
+    | 'superadmin'
+    | 'loan_officer'
+    | 'loan_manager';
+
+export type StaffRoleName = EditableStaffRoleName | 'member';
+
+export type StaffAccessStatus = 'active' | 'suspended' | 'not_staff';
+
+export type StaffRoleBadge = {
+    name: StaffRoleName;
+    label: string;
+    editable: boolean;
+};
+
+export type StaffChangeSummary = {
+    action: string;
+    action_label: string;
+    created_at: string | null;
+    actor_name: string | null;
+    actor_display_code: string | null;
+};
+
+export type StaffAccount = {
+    user_id: number;
+    display_code: string;
+    display_name: string;
+    username: string | null;
+    email: string | null;
+    phoneno: string | null;
+    acctno: string | null;
+    has_member_access: boolean;
+    roles: StaffRoleBadge[];
+    staff_access_status: StaffAccessStatus;
+    last_change: StaffChangeSummary | null;
+    created_at: string | null;
+};
+
+export type StaffHistoryActor = {
+    display_code: string;
+    name: string;
+};
+
+export type StaffHistoryRole = {
+    name: StaffRoleName;
+    label: string;
+};
+
+export type StaffHistoryEntry = {
+    id: number;
+    action: string;
+    action_label: string;
+    role_name: StaffRoleName | null;
+    role_label: string | null;
+    before_roles: StaffHistoryRole[];
+    after_roles: StaffHistoryRole[];
+    before_staff_status: StaffAccessStatus | null;
+    after_staff_status: StaffAccessStatus | null;
+    reason: string;
+    metadata: Record<string, unknown> | null;
+    created_at: string | null;
+    actor: StaffHistoryActor | null;
+};
+
+export type StaffDirectoryMeta = PaginationMeta & {
+    search: string | null;
+    role: EditableStaffRoleName | null;
+    access: Extract<StaffAccessStatus, 'active' | 'suspended'> | null;
+};
+
+export type StaffDirectoryResponse = {
+    items: StaffAccount[];
+    meta: StaffDirectoryMeta;
+};

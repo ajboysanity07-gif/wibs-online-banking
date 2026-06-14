@@ -94,6 +94,7 @@ class HandleInertiaRequests extends Middleware
      *     isAdminOnly: bool,
      *     isHybrid: bool,
      *     experience: mixed,
+     *     hasActiveStaffAccess: bool,
      *     canAccessLoanWorkflow: bool,
      *     loanWorkflowRoles: array<int, string>,
      *     loanWorkflowPermissions: array<int, string>
@@ -103,7 +104,12 @@ class HandleInertiaRequests extends Middleware
     {
         try {
             $user = $request->user();
-            $user?->loadMissing('adminProfile', 'userProfile', 'roles.permissions');
+            $user?->loadMissing(
+                'adminProfile',
+                'userProfile',
+                'roles.permissions',
+                'staffAccessControl',
+            );
             $workspaceService = app(LoanWorkflowWorkspaceService::class);
 
             return [
@@ -114,6 +120,7 @@ class HandleInertiaRequests extends Middleware
                 'isAdminOnly' => $user?->isAdminOnly() ?? false,
                 'isHybrid' => $user?->isHybrid() ?? false,
                 'experience' => $user?->experienceType(),
+                'hasActiveStaffAccess' => $user?->hasActiveStaffAccess() ?? false,
                 'canAccessLoanWorkflow' => $workspaceService->canAccess($user),
                 'loanWorkflowRoles' => $workspaceService->workflowRoles($user),
                 'loanWorkflowPermissions' => $workspaceService->workflowPermissions($user),
@@ -143,6 +150,7 @@ class HandleInertiaRequests extends Middleware
      *     isAdminOnly: bool,
      *     isHybrid: bool,
      *     experience: mixed,
+     *     hasActiveStaffAccess: bool,
      *     canAccessLoanWorkflow: bool,
      *     loanWorkflowRoles: array<int, string>,
      *     loanWorkflowPermissions: array<int, string>
@@ -158,6 +166,7 @@ class HandleInertiaRequests extends Middleware
             'isAdminOnly' => false,
             'isHybrid' => false,
             'experience' => null,
+            'hasActiveStaffAccess' => false,
             'canAccessLoanWorkflow' => false,
             'loanWorkflowRoles' => [],
             'loanWorkflowPermissions' => [],

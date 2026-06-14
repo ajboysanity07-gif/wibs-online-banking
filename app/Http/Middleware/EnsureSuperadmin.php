@@ -23,7 +23,7 @@ class EnsureSuperadmin
 
         $user->loadMissing('adminProfile');
 
-        if ($user->isSuperadmin()) {
+        if ($user->isSuperadmin() && $user->hasActiveStaffAccess()) {
             return $next($request);
         }
 

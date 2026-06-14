@@ -57,8 +57,10 @@ use App\Http\Controllers\Spa\PasswordRecoveryPhoneOtpController as SpaPasswordRe
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneResetController as SpaPasswordRecoveryPhoneResetController;
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneVerificationController as SpaPasswordRecoveryPhoneVerificationController;
 use App\Http\Controllers\Spa\Staff\RequestsController as SpaStaffRequestsController;
+use App\Http\Controllers\Spa\Superadmin\StaffController as SpaSuperadminStaffController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use App\Http\Controllers\Staff\LoanRequestController as StaffLoanRequestController;
+use App\Http\Controllers\Superadmin\StaffController as SuperadminStaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -147,6 +149,24 @@ Route::prefix('spa')->middleware('web')->group(function () {
         Route::get('staff/loan-requests', SpaStaffRequestsController::class)
             ->name('spa.staff.loan-requests.index');
     });
+
+    Route::prefix('superadmin')
+        ->middleware(['auth', 'verified', 'superadmin'])
+        ->name('spa.superadmin.')
+        ->group(function () {
+            Route::get('staff', [SpaSuperadminStaffController::class, 'index'])
+                ->name('staff.index');
+            Route::post('staff', [SpaSuperadminStaffController::class, 'store'])
+                ->name('staff.store');
+            Route::patch('staff/{user}/roles', [SpaSuperadminStaffController::class, 'updateRole'])
+                ->name('staff.roles.update');
+            Route::patch('staff/{user}/suspend', [SpaSuperadminStaffController::class, 'suspend'])
+                ->name('staff.suspend');
+            Route::patch('staff/{user}/reactivate', [SpaSuperadminStaffController::class, 'reactivate'])
+                ->name('staff.reactivate');
+            Route::get('staff/{user}/history', [SpaSuperadminStaffController::class, 'history'])
+                ->name('staff.history');
+        });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {
         Route::get('admin/summary', SpaAccountSummaryController::class);
@@ -436,5 +456,13 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
         ->middleware('superadmin')
         ->name('admin.settings.organization.update');
 });
+
+Route::prefix('superadmin')
+    ->middleware(['auth', 'verified', 'superadmin'])
+    ->name('superadmin.')
+    ->group(function () {
+        Route::get('staff', SuperadminStaffController::class)
+            ->name('staff.index');
+    });
 
 require __DIR__.'/settings.php';

@@ -70,6 +70,11 @@ class AppUser extends Authenticatable
         return $this->hasOne(AdminProfile::class, 'user_id', 'user_id');
     }
 
+    public function staffAccessControl(): HasOne
+    {
+        return $this->hasOne(StaffAccessControl::class, 'user_id', 'user_id');
+    }
+
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -116,6 +121,24 @@ class AppUser extends Authenticatable
             'user_id',
             'user_id',
         );
+    }
+
+    public function userRoleChanges(): HasMany
+    {
+        return $this->hasMany(
+            UserRoleChange::class,
+            'target_user_id',
+            'user_id',
+        );
+    }
+
+    public function latestRoleChange(): HasOne
+    {
+        return $this->hasOne(
+            UserRoleChange::class,
+            'target_user_id',
+            'user_id',
+        )->latestOfMany();
     }
 
     public function hasCanonicalMemberRecord(): bool
@@ -231,6 +254,19 @@ class AppUser extends Authenticatable
 
     public function isSuperadmin(): bool
     {
+        if (
+            Schema::hasTable('roles') &&
+            Schema::hasTable('user_roles') &&
+            $this->hasRole(Role::SUPERADMIN)
+        ) {
+            return true;
+        }
+
+        return $this->isLegacySuperadmin();
+    }
+
+    public function isLegacySuperadmin(): bool
+    {
         return $this->adminProfile?->access_level === AdminProfile::ACCESS_LEVEL_SUPERADMIN;
     }
 
@@ -270,6 +306,58 @@ class AppUser extends Authenticatable
     public function isAdminOnly(): bool
     {
         return $this->isAdmin() && ! $this->hasMemberAccess();
+    }
+
+    public function hasActiveStaffAccess(): bool
+    {
+        if (! $this->isStaffUser()) {
+            return false;
+        }
+
+        if (! Schema::hasTable('staff_access_controls')) {
+            return true;
+        }
+
+        $this->loadMissing('staffAccessControl');
+
+        return $this->staffAccessControl?->status !== StaffAccessControl::STATUS_SUSPENDED;
+    }
+
+    public function isStaffAccessSuspended(): bool
+    {
+        if (! $this->isStaffUser() || ! Schema::hasTable('staff_access_controls')) {
+            return false;
+        }
+
+        $this->loadMissing('staffAccessControl');
+
+        return $this->staffAccessControl?->status === StaffAccessControl::STATUS_SUSPENDED;
+    }
+
+    public function canViewStaffManagement(): bool
+    {
+        if (! $this->isSuperadmin() || ! $this->hasActiveStaffAccess()) {
+            return false;
+        }
+
+        if ($this->isLegacySuperadmin()) {
+            return true;
+        }
+
+        return $this->hasPermission(Permission::STAFF_VIEW);
+    }
+
+    public function canManageStaff(): bool
+    {
+        if (! $this->isSuperadmin() || ! $this->hasActiveStaffAccess()) {
+            return false;
+        }
+
+        if ($this->isLegacySuperadmin()) {
+            return true;
+        }
+
+        return $this->hasPermission(Permission::STAFF_MANAGE);
     }
 
     public function hasRole(Role|string $role): bool
@@ -343,6 +431,22 @@ class AppUser extends Authenticatable
                 $query->where('name', $permissionName);
             })
             ->exists();
+    }
+
+    private function isStaffUser(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if (
+            ! Schema::hasTable('roles') ||
+            ! Schema::hasTable('user_roles')
+        ) {
+            return false;
+        }
+
+        return $this->hasAnyRole(Role::editableStaffNames());
     }
 
     public function getDisplayCodeAttribute(): string

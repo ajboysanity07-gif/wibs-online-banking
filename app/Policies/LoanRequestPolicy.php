@@ -21,12 +21,7 @@ class LoanRequestPolicy
             return $user->hasPermission(Permission::LOAN_VIEW);
         }
 
-        return $user->hasPermission(Permission::LOAN_VIEW)
-            && $user->hasAnyRole([
-                Role::ADMIN,
-                Role::LOAN_OFFICER,
-                Role::LOAN_MANAGER,
-            ]);
+        return $this->canMonitorOtherUsersRequest($user);
     }
 
     public function create(AppUser $user): bool
@@ -129,7 +124,27 @@ class LoanRequestPolicy
         string $permission,
     ): bool {
         return ! $this->ownsLoanRequest($user, $loanRequest)
+            && $user->hasActiveStaffAccess()
             && $user->hasPermission($permission);
+    }
+
+    private function canMonitorOtherUsersRequest(AppUser $user): bool
+    {
+        if (! $user->hasActiveStaffAccess()) {
+            return false;
+        }
+
+        if ($user->isSuperadmin()) {
+            return $user->hasPermission(Permission::LOAN_VIEW)
+                || $user->isLegacySuperadmin();
+        }
+
+        return $user->hasPermission(Permission::LOAN_VIEW)
+            && $user->hasAnyRole([
+                Role::SUPERADMIN,
+                Role::LOAN_OFFICER,
+                Role::LOAN_MANAGER,
+            ]);
     }
 
     private function ownsLoanRequest(AppUser $user, LoanRequest $loanRequest): bool

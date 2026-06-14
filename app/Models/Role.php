@@ -14,6 +14,8 @@ class Role extends Model
 
     public const ADMIN = 'admin';
 
+    public const SUPERADMIN = 'superadmin';
+
     public const LOAN_OFFICER = 'loan_officer';
 
     public const LOAN_MANAGER = 'loan_manager';
@@ -35,9 +37,22 @@ class Role extends Model
     {
         return [
             ['name' => self::ADMIN, 'display_name' => 'Admin'],
+            ['name' => self::SUPERADMIN, 'display_name' => 'Superadmin'],
             ['name' => self::LOAN_OFFICER, 'display_name' => 'Loan Officer'],
             ['name' => self::LOAN_MANAGER, 'display_name' => 'Loan Manager'],
             ['name' => self::MEMBER, 'display_name' => 'Member'],
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function editableStaffNames(): array
+    {
+        return [
+            self::SUPERADMIN,
+            self::LOAN_OFFICER,
+            self::LOAN_MANAGER,
         ];
     }
 
@@ -87,7 +102,25 @@ class Role extends Model
         $rolePermissions = [
             self::ADMIN => self::permissionIds(
                 $permissionsByName,
-                Permission::defaultNames(),
+                [
+                    Permission::LOAN_VIEW,
+                    Permission::MEMBER_VIEW,
+                    Permission::MEMBER_CREATE,
+                    Permission::MEMBER_UPDATE,
+                    Permission::PAYMENT_CREATE,
+                ],
+            ),
+            self::SUPERADMIN => self::permissionIds(
+                $permissionsByName,
+                [
+                    Permission::LOAN_VIEW,
+                    Permission::STAFF_VIEW,
+                    Permission::STAFF_MANAGE,
+                    Permission::MEMBER_VIEW,
+                    Permission::MEMBER_CREATE,
+                    Permission::MEMBER_UPDATE,
+                    Permission::PAYMENT_CREATE,
+                ],
             ),
             self::MEMBER => self::permissionIds($permissionsByName, [
                 Permission::LOAN_CREATE,

@@ -29,6 +29,7 @@ import {
 } from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { index as membersIndex } from '@/routes/admin/watchlist';
+import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
 import {
     dashboard as clientDashboard,
     loans as clientLoans,
@@ -111,6 +112,13 @@ const adminNavItems = (isSuperadmin: boolean): NavItem[] => [
     ...(isSuperadmin
         ? [
               {
+                  title: 'Staff management',
+                  href: superadminStaffIndex(),
+                  icon: ShieldCheck,
+                  match: 'section',
+                  matchPaths: [superadminStaffIndex(), '/superadmin/staff'],
+              },
+              {
                   title: 'Organization settings',
                   href: organizationSettings(),
                   icon: Settings,
@@ -145,7 +153,7 @@ const footerNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth } = usePage<PageProps>().props;
     const hasMemberAccess = auth.hasMemberAccess;
-    const showAdminNav = auth.isAdmin;
+    const showAdminNav = auth.isAdmin && auth.hasActiveStaffAccess;
     const showStaffNav = auth.canAccessLoanWorkflow;
     const showMemberNav = hasMemberAccess;
     const adminItems = showAdminNav
@@ -160,13 +168,15 @@ export function AppSidebar() {
     const staffGroupStorageKey = 'sidebar-loan-workflow-collapsed';
     const memberGroupStorageKey = 'sidebar-my-account-collapsed';
     const homeLink =
-        auth.experience === 'user-admin'
+        auth.experience === 'user-admin' && auth.hasActiveStaffAccess
             ? workspaceDashboard()
-            : auth.isAdmin
+            : showAdminNav
               ? adminDashboard()
-              : auth.canAccessLoanWorkflow
+              : showStaffNav
                 ? staffLoanRequestsIndex()
-                : clientDashboard();
+                : showMemberNav
+                  ? clientDashboard()
+                  : profileEdit();
 
     return (
         <Sidebar collapsible="icon" variant="inset">

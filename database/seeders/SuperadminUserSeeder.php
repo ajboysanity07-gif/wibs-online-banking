@@ -72,7 +72,7 @@ class SuperadminUserSeeder extends Seeder
                 'access_level' => AdminProfile::ACCESS_LEVEL_SUPERADMIN,
             ],
         );
-        Role::attachNamedRole($superadmin, Role::ADMIN);
+        Role::attachNamedRole($superadmin, Role::SUPERADMIN);
 
         $this->command?->info(
             sprintf(

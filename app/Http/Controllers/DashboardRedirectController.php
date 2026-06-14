@@ -22,7 +22,10 @@ class DashboardRedirectController extends Controller
 
         $user->loadMissing('adminProfile', 'userProfile');
 
-        if ($user->isSuperadmin() || $user->isAdminOnly()) {
+        if (
+            $user->hasActiveStaffAccess()
+            && ($user->isSuperadmin() || $user->isAdminOnly())
+        ) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -36,6 +39,10 @@ class DashboardRedirectController extends Controller
 
         if ($user->userProfile?->status === 'suspended') {
             return redirect()->route('pending-approval');
+        }
+
+        if (! $user->hasMemberAccess()) {
+            return redirect()->route('profile.edit');
         }
 
         if (! $user->memberApplicationProfileIsComplete()) {

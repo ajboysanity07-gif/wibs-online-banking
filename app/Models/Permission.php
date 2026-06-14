@@ -29,6 +29,10 @@ class Permission extends Model
 
     public const LOAN_CONVERT_TO_LOAN = 'loan.convert_to_loan';
 
+    public const STAFF_VIEW = 'staff.view';
+
+    public const STAFF_MANAGE = 'staff.manage';
+
     public const MEMBER_VIEW = 'member.view';
 
     public const MEMBER_CREATE = 'member.create';
@@ -59,6 +63,8 @@ class Permission extends Model
             ['name' => self::LOAN_RECOMMEND_APPROVAL, 'display_name' => 'Recommend loan approval'],
             ['name' => self::LOAN_APPROVE, 'display_name' => 'Approve loans'],
             ['name' => self::LOAN_DECLINE, 'display_name' => 'Decline loans'],
+            ['name' => self::STAFF_VIEW, 'display_name' => 'View staff accounts'],
+            ['name' => self::STAFF_MANAGE, 'display_name' => 'Manage staff accounts'],
             ['name' => self::MEMBER_VIEW, 'display_name' => 'View members'],
             ['name' => self::MEMBER_CREATE, 'display_name' => 'Create members'],
             ['name' => self::MEMBER_UPDATE, 'display_name' => 'Update members'],

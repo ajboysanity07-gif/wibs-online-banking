@@ -28,7 +28,7 @@ type PageProps = {
 export default function Dashboard() {
     const { auth } = usePage<PageProps>().props;
     const showMemberWorkspace = auth.hasMemberAccess;
-    const showAdminWorkspace = auth.isAdmin;
+    const showAdminWorkspace = auth.isAdmin && auth.hasActiveStaffAccess;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

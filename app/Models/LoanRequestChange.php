@@ -19,6 +19,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_DECLINE = 'decline';
 
+    public const ACTION_UNASSIGN_SUSPENDED_OFFICER = 'unassign_suspended_officer';
+
     public const ACTION_CONVERT_TO_LOAN = 'convert_to_loan';
 
     public const ACTION_CANCEL_REQUEST = 'cancel_request';
