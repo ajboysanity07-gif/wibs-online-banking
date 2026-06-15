@@ -65,6 +65,9 @@ test('loan request report reserves physical signature areas without digital imag
         'reviewer' => [
             'signatureData' => null,
         ],
+        'processor' => [
+            'name' => 'PATRICIA LOAN PROCESSOR',
+        ],
         'companyName' => 'Acme Cooperative',
         'reportHeader' => [
             'companyName' => 'Acme Cooperative',
@@ -80,7 +83,8 @@ test('loan request report reserves physical signature areas without digital imag
         ->toContain('class="signature-signing-space"')
         ->toContain('height: 10px;')
         ->toContain('class="signature-name"')
-        ->toContain('ANNABELLE M. AMORA')
+        ->toContain('PATRICIA LOAN PROCESSOR')
+        ->toContain('Loan Processor / Recommended By')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')
@@ -117,6 +121,9 @@ test('loan request report keeps printed names and blank signature lines when sig
         'reviewer' => [
             'name' => 'ANNABELLE M. AMORA',
         ],
+        'processor' => [
+            'name' => 'PATRICIA LOAN PROCESSOR',
+        ],
         'reviewerSignatureData' => null,
         'companyName' => 'Acme Cooperative',
         'reportHeader' => [
@@ -132,13 +139,13 @@ test('loan request report keeps printed names and blank signature lines when sig
         ->toContain('JUAN SANTOS DELA CRUZ')
         ->toContain('MARIA LOPEZ REYES')
         ->toContain('PEDRO SANTOS CRUZ')
-        ->toContain('ANNABELLE M. AMORA')
+        ->toContain('PATRICIA LOAN PROCESSOR')
+        ->toContain('<div class="signature-label">Loan Processor / Recommended By</div>')
         ->toContain('<div class="signature-label">Member / Applicant</div>')
         ->toContain('<div class="signature-label">Co-maker 1</div>')
         ->toContain('<div class="signature-label">Co-maker 2</div>')
         ->toContain('<div class="signature-line"></div>')
         ->not->toContain('ANNABELLE MONGADO AMORA')
-        ->not->toContain('<div class="signature-name">N/A</div>')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')
@@ -174,6 +181,9 @@ test('loan request report keeps approved details and blank signature lines on ap
         'reviewer' => [
             'name' => 'ANNABELLE M. AMORA',
         ],
+        'processor' => [
+            'name' => 'PATRICIA LOAN PROCESSOR',
+        ],
         'reviewerSignatureData' => null,
         'companyName' => 'Acme Cooperative',
         'reportHeader' => [
@@ -190,13 +200,14 @@ test('loan request report keeps approved details and blank signature lines on ap
         ->toContain('JUAN SANTOS DELA CRUZ')
         ->toContain('MARIA LOPEZ REYES')
         ->toContain('PEDRO SANTOS CRUZ')
+        ->toContain('<td class="label">Recommended By:</td>')
+        ->toContain('<td class="field field--tight">Patricia Loan Processor</td>')
         ->toContain('ANNABELLE M. AMORA')
         ->toContain('<div class="signature-label">Member / Applicant</div>')
         ->toContain('<div class="signature-label">Co-maker 1</div>')
         ->toContain('<div class="signature-label">Co-maker 2</div>')
         ->toContain('<div class="signature-label">Loan Manager / Approved By</div>')
         ->not->toContain('ANNABELLE MONGADO AMORA')
-        ->not->toContain('<div class="signature-name">N/A</div>')
         ->not->toContain('alt="Applicant signature"')
         ->not->toContain('alt="Co-maker 1 signature"')
         ->not->toContain('alt="Co-maker 2 signature"')

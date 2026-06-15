@@ -46,9 +46,12 @@ import {
     affidavitUndertaking as requestsAffidavitUndertakingDocument,
     applicationForm as requestsApplicationFormDocument,
     authorization as requestsAuthorizationDocument,
+    disclosureStatement as requestsDisclosureStatementDocument,
     grepalife as requestsGrepalifeDocument,
+    loanInformation as requestsLoanInformationDocument,
     loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
     planOfPayment as requestsPlanOfPaymentDocument,
+    promissoryNote as requestsPromissoryNoteDocument,
     undertakingBarangay as requestsUndertakingBarangayDocument,
 } from '@/routes/staff/loan-requests/documents';
 import type { BreadcrumbItem } from '@/types';
@@ -195,6 +198,16 @@ const displayChecklistStatusTone = (status: string): string => {
             'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
     }[status] ?? 'border-border/60 bg-muted/20 text-muted-foreground';
 };
+
+const documentResultStatusOrder = [
+    'generated_current',
+    'generated_stale',
+    'ready_to_generate',
+    'not_applicable',
+    'generation_failed',
+    'awaiting_member_confirmation',
+    'incomplete',
+] as const;
 
 type ProcessingFormState = {
     loan_request: {
@@ -359,19 +372,28 @@ export default function StaffLoanRequestShow({
                       currentRequest.id,
                   ).url,
                   grepalife: requestsGrepalifeDocument(currentRequest.id).url,
-                  loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
+                  affidavitUndertaking: requestsAffidavitUndertakingDocument(
+                      currentRequest.id,
+                  ).url,
+                  authorization: requestsAuthorizationDocument(
+                      currentRequest.id,
+                  ).url,
+                  loanInformation: requestsLoanInformationDocument(
                       currentRequest.id,
                   ).url,
                   planOfPayment: requestsPlanOfPaymentDocument(
                       currentRequest.id,
                   ).url,
+                  disclosureStatement: requestsDisclosureStatementDocument(
+                      currentRequest.id,
+                  ).url,
+                  promissoryNote: requestsPromissoryNoteDocument(
+                      currentRequest.id,
+                  ).url,
                   undertakingBarangay: requestsUndertakingBarangayDocument(
                       currentRequest.id,
                   ).url,
-                  affidavitUndertaking: requestsAffidavitUndertakingDocument(
-                      currentRequest.id,
-                  ).url,
-                  authorization: requestsAuthorizationDocument(
+                  loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
                       currentRequest.id,
                   ).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
@@ -424,6 +446,37 @@ export default function StaffLoanRequestShow({
     const actorUserId = auth.user.id;
     const assignedProcessorId =
         currentRequest.assigned_processor_id ?? currentRequest.assigned_officer_id;
+    const documentResultSummary = useMemo(() => {
+        if (lastDocumentResults === null) {
+            return [];
+        }
+
+        return documentResultStatusOrder
+            .map((status) => {
+                const matches = lastDocumentResults.filter(
+                    (document) => document.status === status,
+                );
+
+                if (matches.length === 0) {
+                    return null;
+                }
+
+                return {
+                    status,
+                    count: matches.length,
+                    label: matches[0]?.status_label ?? status,
+                };
+            })
+            .filter(
+                (
+                    item,
+                ): item is {
+                    status: (typeof documentResultStatusOrder)[number];
+                    count: number;
+                    label: string;
+                } => item !== null,
+            );
+    }, [lastDocumentResults]);
     const isV2Workflow =
         currentRequest.workflow_version === 'document_workflow_v2';
     const canClaim = currentRequest.can_claim;
@@ -713,15 +766,34 @@ export default function StaffLoanRequestShow({
                             </div>
                             {lastDocumentResults !== null ? (
                                 <Alert className="border-sky-500/30 bg-sky-500/10">
-                                    <AlertTitle>Document checklist updated</AlertTitle>
+                                    <AlertTitle>
+                                        Document generation results
+                                    </AlertTitle>
                                     <AlertDescription>
-                                        {lastDocumentResults.length} document
-                                        status
-                                        {lastDocumentResults.length === 1
-                                            ? ''
-                                            : 'es'}{' '}
-                                        refreshed from the latest generation
-                                        run.
+                                        <p>
+                                            {lastDocumentResults.length}{' '}
+                                            document
+                                            {lastDocumentResults.length === 1
+                                                ? ''
+                                                : 's'}{' '}
+                                            refreshed from the latest
+                                            generation run.
+                                        </p>
+                                        {documentResultSummary.length > 0 ? (
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {documentResultSummary.map(
+                                                    (item) => (
+                                                        <span
+                                                            key={item.status}
+                                                            className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(item.status)}`}
+                                                        >
+                                                            {item.label}:{' '}
+                                                            {item.count}
+                                                        </span>
+                                                    ),
+                                                )}
+                                            </div>
+                                        ) : null}
                                     </AlertDescription>
                                 </Alert>
                             ) : null}
@@ -836,6 +908,18 @@ export default function StaffLoanRequestShow({
                         <CardContent className="space-y-3">
                             {currentDocumentChecklist.map((document) => {
                                 const viewHref = `/staff/loan-requests/${currentRequest.id}/documents/generated/${document.key}`;
+                                const isWorkbookDocument = [
+                                    'loan_information',
+                                    'plan_of_payment',
+                                    'disclosure_statement',
+                                    'promissory_note',
+                                ].includes(document.key);
+                                const previewHref = isWorkbookDocument
+                                    ? `${viewHref}?preview=1`
+                                    : viewHref;
+                                const printDocumentHref = isWorkbookDocument
+                                    ? `${viewHref}?print=1`
+                                    : viewHref;
                                 const downloadHref = `${viewHref}?download=1`;
 
                                 return (
@@ -854,13 +938,36 @@ export default function StaffLoanRequestShow({
                                                     >
                                                         {document.status_label}
                                                     </span>
+                                                    {document.template_version ? (
+                                                        <span className="rounded-full border border-border/50 px-2 py-1 text-[11px] text-muted-foreground">
+                                                            {document.template_version}
+                                                        </span>
+                                                    ) : null}
                                                     {document.generated_at ? (
                                                         <span className="text-xs text-muted-foreground">
+                                                            Last generated:{' '}
                                                             {formatDateTime(
                                                                 document.generated_at,
                                                             )}
                                                         </span>
                                                     ) : null}
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                                    <span>
+                                                        Generated by:{' '}
+                                                        {document.generated_by ??
+                                                            '-'}
+                                                    </span>
+                                                    <span>
+                                                        Generated version:{' '}
+                                                        {document.generated_version ??
+                                                            '-'}
+                                                    </span>
+                                                    <span>
+                                                        Source version:{' '}
+                                                        {document.source_version ??
+                                                            '-'}
+                                                    </span>
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2">
@@ -872,11 +979,28 @@ export default function StaffLoanRequestShow({
                                                             variant="outline"
                                                         >
                                                             <a
-                                                                href={viewHref}
+                                                                href={
+                                                                    previewHref
+                                                                }
                                                                 target="_blank"
                                                                 rel="noreferrer"
                                                             >
                                                                 Preview
+                                                            </a>
+                                                        </Button>
+                                                        <Button
+                                                            asChild
+                                                            size="sm"
+                                                            variant="outline"
+                                                        >
+                                                            <a
+                                                                href={
+                                                                    printDocumentHref
+                                                                }
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                            >
+                                                                Print
                                                             </a>
                                                         </Button>
                                                         <Button
@@ -919,6 +1043,11 @@ export default function StaffLoanRequestShow({
                                                     ),
                                                 )}
                                             </ul>
+                                        ) : null}
+                                        {document.failure_message ? (
+                                            <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">
+                                                {document.failure_message}
+                                            </p>
                                         ) : null}
                                     </div>
                                 );

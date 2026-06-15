@@ -295,8 +295,14 @@ Route::prefix('client/loans/requests/{loanRequest}/documents')
             ->name('client.loan-requests.documents.grepalife');
         Route::get('loan-security-agreement', [LoanRequestController::class, 'loanSecurityAgreementDocument'])
             ->name('client.loan-requests.documents.loan-security-agreement');
+        Route::get('loan-information', [LoanRequestController::class, 'loanInformationDocument'])
+            ->name('client.loan-requests.documents.loan-information');
         Route::get('plan-of-payment', [LoanRequestController::class, 'planOfPaymentDocument'])
             ->name('client.loan-requests.documents.plan-of-payment');
+        Route::get('disclosure-statement', [LoanRequestController::class, 'disclosureStatementDocument'])
+            ->name('client.loan-requests.documents.disclosure-statement');
+        Route::get('promissory-note', [LoanRequestController::class, 'promissoryNoteDocument'])
+            ->name('client.loan-requests.documents.promissory-note');
         Route::get('undertaking-barangay', [LoanRequestController::class, 'undertakingBarangayDocument'])
             ->name('client.loan-requests.documents.undertaking-barangay');
         Route::get('affidavit-undertaking', [LoanRequestController::class, 'affidavitUndertakingDocument'])
@@ -381,8 +387,14 @@ Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])-
             ->name('staff.loan-requests.documents.grepalife');
         Route::get('loan-security-agreement', [StaffLoanRequestController::class, 'loanSecurityAgreementDocument'])
             ->name('staff.loan-requests.documents.loan-security-agreement');
+        Route::get('loan-information', [StaffLoanRequestController::class, 'loanInformationDocument'])
+            ->name('staff.loan-requests.documents.loan-information');
         Route::get('plan-of-payment', [StaffLoanRequestController::class, 'planOfPaymentDocument'])
             ->name('staff.loan-requests.documents.plan-of-payment');
+        Route::get('disclosure-statement', [StaffLoanRequestController::class, 'disclosureStatementDocument'])
+            ->name('staff.loan-requests.documents.disclosure-statement');
+        Route::get('promissory-note', [StaffLoanRequestController::class, 'promissoryNoteDocument'])
+            ->name('staff.loan-requests.documents.promissory-note');
         Route::get('undertaking-barangay', [StaffLoanRequestController::class, 'undertakingBarangayDocument'])
             ->name('staff.loan-requests.documents.undertaking-barangay');
         Route::get('affidavit-undertaking', [StaffLoanRequestController::class, 'affidavitUndertakingDocument'])
@@ -450,8 +462,14 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
             ->name('admin.requests.documents.grepalife');
         Route::get('loan-security-agreement', [AdminLoanRequestController::class, 'loanSecurityAgreementDocument'])
             ->name('admin.requests.documents.loan-security-agreement');
+        Route::get('loan-information', [AdminLoanRequestController::class, 'loanInformationDocument'])
+            ->name('admin.requests.documents.loan-information');
         Route::get('plan-of-payment', [AdminLoanRequestController::class, 'planOfPaymentDocument'])
             ->name('admin.requests.documents.plan-of-payment');
+        Route::get('disclosure-statement', [AdminLoanRequestController::class, 'disclosureStatementDocument'])
+            ->name('admin.requests.documents.disclosure-statement');
+        Route::get('promissory-note', [AdminLoanRequestController::class, 'promissoryNoteDocument'])
+            ->name('admin.requests.documents.promissory-note');
         Route::get('undertaking-barangay', [AdminLoanRequestController::class, 'undertakingBarangayDocument'])
             ->name('admin.requests.documents.undertaking-barangay');
         Route::get('affidavit-undertaking', [AdminLoanRequestController::class, 'affidavitUndertakingDocument'])

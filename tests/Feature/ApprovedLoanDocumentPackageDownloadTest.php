@@ -5,6 +5,7 @@ use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
@@ -247,7 +248,7 @@ test('loan security agreement pdf includes borrower and agreement details', func
         ->toContain('LOANSECURITYAGREEMENT')
         ->toContain('ACMECOOPERATIVE')
         ->toContain('HELARIOB.TEJERO')
-        ->toContain('POBLACION,TAGUMCITY,DAVAODELNORTE')
+        ->toContain('TAGUMCITY,DAVAODELNORTE')
         ->toContain('SALARYLOAN')
         ->toContain('22DAYOFMAY,2026')
         ->not->toContain('25,000.00');
@@ -744,140 +745,116 @@ test('approved member can download approved loan documents for owned request', f
         ->assertDownload('approved-loan-documents-'.$loanRequest->reference.'.zip');
 });
 
-test('plan of payment route returns an xlsx response and generated workbook opens', function () {
+test('each workbook-derived route returns an xlsx response and generated document opens', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
+    foreach (approvedLoanDocumentsWorkbookRouteDefinitions($loanRequest) as $document) {
+        $response = $this
+            ->actingAs($admin)
+            ->get(route($document['route'], $loanRequest));
 
-    $response->assertOk();
-    $response->assertDownload(
-        'plan-of-payment-disclosure-promissory-note-'.$loanRequest->reference.'.xlsx',
-    );
-    $response->assertHeaderContains(
-        'content-type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
+        $response->assertOk();
+        $response->assertDownload($document['filename']);
+        $response->assertHeaderContains(
+            'content-type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
 
-    $spreadsheet = IOFactory::load(
-        approvedLoanDocumentsDownloadedFilePath($response),
-    );
+        $spreadsheet = IOFactory::load(
+            approvedLoanDocumentsDownloadedFilePath($response),
+        );
+        $worksheet = $spreadsheet->getSheet(0);
 
-    expect($spreadsheet->getSheetCount())->toBe(4);
-    expect($spreadsheet->getSheet(0)->getTitle())->toBe('Loan Information');
-    expect($spreadsheet->getSheet(1)->getTitle())->toBe('Plan of Payment');
-    expect($spreadsheet->getSheet(2)->getTitle())->toBe('Disclosure Statement');
-    expect($spreadsheet->getSheet(3)->getTitle())->toBe('Promissory Note');
-    $loanInformationSheet = $spreadsheet->getSheetByName('Loan Information');
-    $planOfPaymentSheet = $spreadsheet->getSheetByName('Plan of Payment');
-    $disclosureSheet = $spreadsheet->getSheetByName('Disclosure Statement');
-    $promissoryNoteSheet = $spreadsheet->getSheetByName('Promissory Note');
+        expect($spreadsheet->getSheetCount())->toBe(1);
+        expect($worksheet->getTitle())->toBe($document['sheet']);
+        expect((string) file_get_contents(approvedLoanDocumentsDownloadedFilePath($response)))
+            ->not->toContain('LibreOffice')
+            ->not->toContain('soffice');
+        expect(approvedLoanDocumentsWorkbookStringValues($spreadsheet))->not->toContain(
+            'Input Data',
+            'No Input Data',
+            'DO NOT INPUT ANYTHING',
+        );
 
-    expect($loanInformationSheet)->toBeInstanceOf(Worksheet::class);
-    expect($planOfPaymentSheet)->toBeInstanceOf(Worksheet::class);
-    expect($disclosureSheet)->toBeInstanceOf(Worksheet::class);
-    expect($promissoryNoteSheet)->toBeInstanceOf(Worksheet::class);
+        if ($document['sheet'] === 'Loan Information') {
+            expect($worksheet->getCell('C7')->getValue())->toBe('SAMPLE Q MEMBER');
+            expect($worksheet->getCell('F7')->getValue())->toBe('Sample Enterprise');
+            expect($worksheet->getCell('C9')->getValue())->toBe(25000.0);
+            expect($worksheet->getCell('C10')->getValue())->toBe(0.36);
+            expect($worksheet->getCell('C12')->getValue())->toBe(0.05);
+            expect($worksheet->getCell('C13')->getValue())->toBe(9000.0);
+            expect($worksheet->getCell('C17')->getValue())->toBe('SEMI-MONTHLY');
+            expect($worksheet->getCell('E17')->getValue())->toBe(24.0);
+            expect($worksheet->getCell('C32')->getValue())->toBe('CO A MAKERONE');
+            expect(trim((string) $worksheet->getCell('C14')->getValue()))->toBe('ANNABELLE M. AMORA');
+            expect(trim((string) $worksheet->getCell('C18')->getValue()))->toBe('ANNABELLE M. AMORA');
+            expect(trim((string) $worksheet->getCell('H7')->getValue()))->toBe('');
+            expect(trim((string) $worksheet->getCell('E21')->getValue()))->toBe('');
+            expect(
+                approvedLoanDocumentsWorksheetPrintAreaRange($worksheet),
+            )->toBe(approvedLoanDocumentsExpectedWorksheetPrintAreaRange('Loan Information'));
+            approvedLoanDocumentsAssertWorksheetOuterBorder(
+                $worksheet,
+                approvedLoanDocumentsExpectedLoanInformationBorderRange(
+                    $worksheet,
+                ),
+            );
+        }
 
-    expect($loanInformationSheet?->getCell('C7')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect($loanInformationSheet?->getCell('F7')->getValue())->toBe('Sample Enterprise');
-    expect($loanInformationSheet?->getCell('C9')->getValue())->toBe(25000.0);
-    expect($loanInformationSheet?->getCell('C10')->getValue())->toBe(0.36);
-    expect($loanInformationSheet?->getCell('C12')->getValue())->toBe(0.05);
-    expect($loanInformationSheet?->getCell('C13')->getValue())->toBe(9000.0);
-    expect($loanInformationSheet?->getCell('C17')->getValue())->toBe('SEMI-MONTHLY');
-    expect($loanInformationSheet?->getCell('E17')->getValue())->toBe(24.0);
-    expect($loanInformationSheet?->getCell('C32')->getValue())->toBe('CO A MAKERONE');
-    expect(trim((string) $loanInformationSheet?->getCell('C14')->getValue()))->toBe('ANNABELLE M. AMORA');
-    expect(trim((string) $loanInformationSheet?->getCell('C18')->getValue()))->toBe('ANNABELLE M. AMORA');
-    expect(trim((string) $loanInformationSheet?->getCell('H7')->getValue()))->toBe('');
-    expect(trim((string) $loanInformationSheet?->getCell('E21')->getValue()))->toBe('');
+        if ($document['sheet'] === 'Plan of Payment') {
+            expect($worksheet->getCell('D9')->getValue())->toBe('SAMPLE Q MEMBER');
+            expect($worksheet->getCell('D10')->getValue())->toBe(
+                '123 Loan Street, Loan City, Loan Province',
+            );
+            expect(trim((string) $worksheet->getCell('G27')->getValue()))->toBe('ANNABELLE M. AMORA');
+            expect($worksheet->getCell('D41')->getValue())->toBe('SAMPLE Q MEMBER');
+            expect(trim((string) $worksheet->getCell('G59')->getValue()))->toBe('ANNABELLE M. AMORA');
+            expect(approvedLoanDocumentsWorksheetPrintAreaRange($worksheet))->toBeNull();
+            expect(
+                $worksheet->getStyle('B15')
+                    ->getBorders()
+                    ->getLeft()
+                    ->getBorderStyle(),
+            )->toBe(Border::BORDER_NONE);
+        }
 
-    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect($planOfPaymentSheet?->getCell('D10')->getValue())->toBe(
-        '123 Loan Street, Loan City, Loan Province',
-    );
-    expect(trim((string) $planOfPaymentSheet?->getCell('G27')->getValue()))->toBe('ANNABELLE M. AMORA');
-    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect(trim((string) $planOfPaymentSheet?->getCell('G59')->getValue()))->toBe('ANNABELLE M. AMORA');
+        if ($document['sheet'] === 'Disclosure Statement') {
+            expect($worksheet->getCell('M7')->getValue())->toBe($loanRequest->reference);
+            expect($worksheet->getCell('D7')->getValue())->toBe('SAMPLE Q MEMBER');
+            expect($worksheet->getCell('L57')->getValue())->toBe('SAMPLE Q MEMBER');
+            expect(trim((string) $worksheet->getCell('L50')->getValue()))->toBe('ANNABELLE M. AMORA');
+            expect(approvedLoanDocumentsWorksheetPrintAreaRange($worksheet))->toBeNull();
+            expect(
+                $worksheet->getStyle('A7')
+                    ->getBorders()
+                    ->getLeft()
+                    ->getBorderStyle(),
+            )->toBe(Border::BORDER_NONE);
+        }
 
-    expect($disclosureSheet?->getCell('M7')->getValue())->toBe($loanRequest->reference);
-    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect(trim((string) $disclosureSheet?->getCell('L50')->getValue()))->toBe('ANNABELLE M. AMORA');
+        if ($document['sheet'] === 'Promissory Note') {
+            expect($worksheet->getCell('I8')->getValue())->not->toBe('');
+            expect($worksheet->getCell('B50')->getValue())->toBe('SAMPLE Q MEMBER');
+            expect($worksheet->getCell('E50')->getValue())->toBe('CO A MAKERONE');
+            expect($worksheet->getCell('I50')->getValue())->toBe('CO B MAKERTWO');
+            expect(approvedLoanDocumentsWorksheetPrintAreaRange($worksheet))->toBeNull();
+            expect(
+                $worksheet->getStyle('A12')
+                    ->getBorders()
+                    ->getLeft()
+                    ->getBorderStyle(),
+            )->toBe(Border::BORDER_NONE);
+        }
 
-    expect($promissoryNoteSheet?->getCell('I8')->getValue())->not->toBe('');
-    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('CO A MAKERONE');
-    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('CO B MAKERTWO');
-    expect((string) file_get_contents(approvedLoanDocumentsDownloadedFilePath($response)))
-        ->not->toContain('LibreOffice')
-        ->not->toContain('soffice');
-
-    expect(
-        approvedLoanDocumentsWorksheetPrintAreaRange($loanInformationSheet),
-    )->toBe(approvedLoanDocumentsExpectedWorksheetPrintAreaRange('Loan Information'));
-
-    approvedLoanDocumentsAssertWorksheetOuterBorder(
-        $loanInformationSheet,
-        approvedLoanDocumentsExpectedLoanInformationBorderRange(
-            $loanInformationSheet,
-        ),
-    );
-
-    $workbookStrings = approvedLoanDocumentsWorkbookStringValues($spreadsheet);
-
-    expect($workbookStrings)->not->toContain(
-        'Input Data',
-        'No Input Data',
-        'DO NOT INPUT ANYTHING',
-    );
-
-    expect(
-        approvedLoanDocumentsWorksheetPrintAreaRange(
-            $spreadsheet->getSheetByName('Plan of Payment'),
-        ),
-    )->toBeNull();
-    expect(
-        approvedLoanDocumentsWorksheetPrintAreaRange(
-            $spreadsheet->getSheetByName('Disclosure Statement'),
-        ),
-    )->toBeNull();
-    expect(
-        approvedLoanDocumentsWorksheetPrintAreaRange(
-            $spreadsheet->getSheetByName('Promissory Note'),
-        ),
-    )->toBeNull();
-    expect(
-        $spreadsheet->getSheetByName('Plan of Payment')
-            ->getStyle('B15')
-            ->getBorders()
-            ->getLeft()
-            ->getBorderStyle(),
-    )->toBe(Border::BORDER_NONE);
-    expect(
-        $spreadsheet->getSheetByName('Disclosure Statement')
-            ->getStyle('A7')
-            ->getBorders()
-            ->getLeft()
-            ->getBorderStyle(),
-    )->toBe(Border::BORDER_NONE);
-    expect(
-        $spreadsheet->getSheetByName('Promissory Note')
-            ->getStyle('A12')
-            ->getBorders()
-            ->getLeft()
-            ->getBorderStyle(),
-    )->toBe(Border::BORDER_NONE);
-
-    $spreadsheet->disconnectWorksheets();
-    unset($spreadsheet);
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+    }
 });
 
-test('plan of payment workbook keeps printed names and no signature drawings on main', function () {
+test('workbook-derived documents keep printed names and no signature drawings on main', function () {
     Storage::fake('public');
 
     $admin = User::factory()->create([
@@ -943,89 +920,87 @@ test('plan of payment workbook keeps printed names and no signature drawings on 
     ]);
     createActiveAdminSignatureRecord($admin, 'one');
 
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
+    foreach (approvedLoanDocumentsWorkbookRouteDefinitions($loanRequest) as $document) {
+        $response = $this
+            ->actingAs($admin)
+            ->get(route($document['route'], $loanRequest));
 
-    $response->assertOk();
+        $response->assertOk();
 
-    $spreadsheet = IOFactory::load(
-        approvedLoanDocumentsDownloadedFilePath($response),
-    );
-    $loanInformationSheet = $spreadsheet->getSheetByName('Loan Information');
-    $planOfPaymentSheet = $spreadsheet->getSheetByName('Plan of Payment');
-    $disclosureSheet = $spreadsheet->getSheetByName('Disclosure Statement');
-    $promissoryNoteSheet = $spreadsheet->getSheetByName('Promissory Note');
+        $spreadsheet = IOFactory::load(
+            approvedLoanDocumentsDownloadedFilePath($response),
+        );
+        $worksheet = $spreadsheet->getSheet(0);
 
-    expect($loanInformationSheet)->toBeInstanceOf(Worksheet::class);
-    expect($planOfPaymentSheet)->toBeInstanceOf(Worksheet::class);
-    expect($disclosureSheet)->toBeInstanceOf(Worksheet::class);
-    expect($promissoryNoteSheet)->toBeInstanceOf(Worksheet::class);
-    expect($loanInformationSheet?->getCell('C7')->getValue())
-        ->toBe('HELARIO B TEJERO')
-        ->not->toBe('Sample Q Member');
-    expect($loanInformationSheet?->getCell('C8')->getValue())
-        ->toBe('123 Loan Street, Loan City, Loan Province');
-    expect($loanInformationSheet?->getCell('C32')->getValue())
-        ->toBe('ANITA C RIVERA')
-        ->not->toBe('Co A MakerOne');
-    expect($loanInformationSheet?->getCell('C33')->getValue())
-        ->toBe('BEN D SANTOS')
-        ->not->toBe('Co B MakerTwo');
-    expect($loanInformationSheet?->getCell('C14')->getValue())
-        ->toBe('ANNABELLE M. AMORA')
-        ->not->toBe('0');
-    expect($loanInformationSheet?->getCell('C18')->getValue())
-        ->toBe('ANNABELLE M. AMORA')
-        ->not->toBe('0');
-    expect($loanInformationSheet?->getCell('C42')->getValue())->toBe('ANNABELLE M. AMORA');
-    expect($loanInformationSheet?->getCell('C43')->getValue())->toBe('ANNABELLE M. AMORA');
-    expect($planOfPaymentSheet?->getCell('D9')->getValue())->toBe('HELARIO B TEJERO');
-    expect($planOfPaymentSheet?->getCell('G27')->getValue())->toBe('ANNABELLE M. AMORA');
-    expect($planOfPaymentSheet?->getCell('D41')->getValue())->toBe('HELARIO B TEJERO');
-    expect($planOfPaymentSheet?->getCell('G59')->getValue())->toBe('ANNABELLE M. AMORA');
-    expect($disclosureSheet?->getCell('D7')->getValue())->toBe('HELARIO B TEJERO');
-    expect($disclosureSheet?->getCell('L50')->getValue())->toBe('ANNABELLE M. AMORA');
-    expect($disclosureSheet?->getCell('L57')->getValue())->toBe('HELARIO B TEJERO');
-    expect($promissoryNoteSheet?->getCell('B50')->getValue())->toBe('HELARIO B TEJERO');
-    expect($promissoryNoteSheet?->getCell('E50')->getValue())->toBe('ANITA C RIVERA');
-    expect($promissoryNoteSheet?->getCell('I50')->getValue())->toBe('BEN D SANTOS');
-    expect($promissoryNoteSheet?->getCell('B58')->getValue())->toBe('ANNABELLE M. AMORA');
-    expect($promissoryNoteSheet?->getCell('H58')->getValue())->toBe('ANNABELLE M. AMORA');
-
-    foreach ([
-        $loanInformationSheet,
-        $planOfPaymentSheet,
-        $disclosureSheet,
-        $promissoryNoteSheet,
-    ] as $worksheet) {
         expect($worksheet)->toBeInstanceOf(Worksheet::class);
-        expect($worksheet?->getDrawingCollection())->toHaveCount(0);
+        expect($worksheet->getTitle())->toBe($document['sheet']);
+        expect($worksheet->getDrawingCollection())->toHaveCount(0);
+
+        if ($document['sheet'] === 'Loan Information') {
+            expect($worksheet->getCell('C7')->getValue())
+                ->toBe('HELARIO B TEJERO')
+                ->not->toBe('Sample Q Member');
+            expect($worksheet->getCell('C8')->getValue())
+                ->toBe('123 Loan Street, Loan City, Loan Province');
+            expect($worksheet->getCell('C32')->getValue())
+                ->toBe('ANITA C RIVERA')
+                ->not->toBe('Co A MakerOne');
+            expect($worksheet->getCell('C33')->getValue())
+                ->toBe('BEN D SANTOS')
+                ->not->toBe('Co B MakerTwo');
+            expect($worksheet->getCell('C14')->getValue())
+                ->toBe('ANNABELLE M. AMORA')
+                ->not->toBe('0');
+            expect($worksheet->getCell('C18')->getValue())
+                ->toBe('ANNABELLE M. AMORA')
+                ->not->toBe('0');
+            expect($worksheet->getCell('C42')->getValue())->toBe('ANNABELLE M. AMORA');
+            expect($worksheet->getCell('C43')->getValue())->toBe('ANNABELLE M. AMORA');
+        }
+
+        if ($document['sheet'] === 'Plan of Payment') {
+            expect($worksheet->getCell('D9')->getValue())->toBe('HELARIO B TEJERO');
+            expect($worksheet->getCell('G27')->getValue())->toBe('ANNABELLE M. AMORA');
+            expect($worksheet->getCell('D41')->getValue())->toBe('HELARIO B TEJERO');
+            expect($worksheet->getCell('G59')->getValue())->toBe('ANNABELLE M. AMORA');
+        }
+
+        if ($document['sheet'] === 'Disclosure Statement') {
+            expect($worksheet->getCell('D7')->getValue())->toBe('HELARIO B TEJERO');
+            expect($worksheet->getCell('L50')->getValue())->toBe('ANNABELLE M. AMORA');
+            expect($worksheet->getCell('L57')->getValue())->toBe('HELARIO B TEJERO');
+        }
+
+        if ($document['sheet'] === 'Promissory Note') {
+            expect($worksheet->getCell('B50')->getValue())->toBe('HELARIO B TEJERO');
+            expect($worksheet->getCell('E50')->getValue())->toBe('ANITA C RIVERA');
+            expect($worksheet->getCell('I50')->getValue())->toBe('BEN D SANTOS');
+            expect($worksheet->getCell('B58')->getValue())->toBe('ANNABELLE M. AMORA');
+            expect($worksheet->getCell('H58')->getValue())->toBe('ANNABELLE M. AMORA');
+        }
+
+        expect(approvedLoanDocumentsWorkbookStringValues($spreadsheet))->not->toContain(
+            'Sample Q Member',
+            'Sample Address',
+            'Sample Loan',
+            'Sample Position',
+            'Sample Co-maker One',
+            'Sample Co-maker Two',
+            'Sample Co-maker One Address',
+            'Sample Co-maker Two Address',
+            'Sample Witness One',
+            'Sample Witness Two',
+            'Input Data',
+            'No Input Data',
+            'DO NOT INPUT ANYTHING',
+        );
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
     }
-
-    $workbookStrings = approvedLoanDocumentsWorkbookStringValues($spreadsheet);
-
-    expect($workbookStrings)->not->toContain(
-        'Sample Q Member',
-        'Sample Address',
-        'Sample Loan',
-        'Sample Position',
-        'Sample Co-maker One',
-        'Sample Co-maker Two',
-        'Sample Co-maker One Address',
-        'Sample Co-maker Two Address',
-        'Sample Witness One',
-        'Sample Witness Two',
-        'Input Data',
-        'No Input Data',
-        'DO NOT INPUT ANYTHING',
-    );
-
-    $spreadsheet->disconnectWorksheets();
-    unset($spreadsheet);
 });
 
-test('plan of payment workbook includes a centered uploaded report header design on every worksheet', function () {
+test('workbook-derived documents include a centered uploaded report header design', function () {
     Storage::fake('public');
 
     $admin = User::factory()->create();
@@ -1047,19 +1022,19 @@ test('plan of payment workbook includes a centered uploaded report header design
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
+    foreach (approvedLoanDocumentsWorkbookRouteDefinitions($loanRequest) as $document) {
+        $response = $this
+            ->actingAs($admin)
+            ->get(route($document['route'], $loanRequest));
 
-    $response->assertOk();
+        $response->assertOk();
 
-    $spreadsheet = IOFactory::load(
-        approvedLoanDocumentsDownloadedFilePath($response),
-    );
-    expect($spreadsheet->getSheetCount())->toBe(4);
+        $spreadsheet = IOFactory::load(
+            approvedLoanDocumentsDownloadedFilePath($response),
+        );
+        expect($spreadsheet->getSheetCount())->toBe(1);
 
-    foreach (range(0, $spreadsheet->getSheetCount() - 1) as $sheetIndex) {
-        $worksheet = $spreadsheet->getSheet($sheetIndex);
+        $worksheet = $spreadsheet->getSheet(0);
         $drawings = $worksheet->getDrawingCollection();
         $drawing = $drawings[0] ?? null;
         $printAreaRange = approvedLoanDocumentsWorksheetPrintAreaRange($worksheet);
@@ -1149,17 +1124,24 @@ test('plan of payment workbook includes a centered uploaded report header design
             expect((string) $worksheet->getCell('K15')->getValue())
                 ->toContain('L15');
         }
+
+        if ($worksheet->getTitle() === 'Loan Information') {
+            expect($worksheet->getCell('C7')->getValue())->toBe('SAMPLE Q MEMBER');
+        }
+
+        if ($worksheet->getTitle() === 'Disclosure Statement') {
+            expect($worksheet->getCell('M7')->getValue())->toBe(
+                $loanRequest->reference,
+            );
+        }
+
+        if ($worksheet->getTitle() === 'Promissory Note') {
+            expect($worksheet->getCell('I8')->getValue())->not->toBe('');
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
     }
-
-    $firstSheet = $spreadsheet->getSheet(0);
-    expect($firstSheet->getCell('C7')->getValue())->toBe('SAMPLE Q MEMBER');
-    expect($spreadsheet->getSheet(2)->getCell('M7')->getValue())->toBe(
-        $loanRequest->reference,
-    );
-    expect($spreadsheet->getSheet(3)->getCell('I8')->getValue())->not->toBe('');
-
-    $spreadsheet->disconnectWorksheets();
-    unset($spreadsheet);
 });
 
 test('missing optional fields do not break approved document generation', function () {
@@ -1225,19 +1207,27 @@ test('missing optional fields do not break approved document generation', functi
             ->toStartWith('%PDF');
     }
 
-    $xlsxResponse = $this->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
-    $xlsxResponse->assertOk();
+    foreach (approvedLoanDocumentsWorkbookRouteDefinitions($loanRequest) as $document) {
+        $xlsxResponse = $this->get(route($document['route'], $loanRequest));
+        $xlsxResponse->assertOk();
 
-    $spreadsheet = IOFactory::load(
-        approvedLoanDocumentsDownloadedFilePath($xlsxResponse),
-    );
-    expect($spreadsheet->getSheetCount())->toBe(4);
-    expect($spreadsheet->getSheet(0)->getCell('F7')->getValue())->toBeNull();
-    expect($spreadsheet->getSheet(0)->getCell('C9')->getValue())->toBeNull();
-    expect($spreadsheet->getSheet(0)->getCell('C34')->getValue())->toBeNull();
-    expect($spreadsheet->getSheet(0)->getCell('C37')->getValue())->toBeNull();
-    $spreadsheet->disconnectWorksheets();
-    unset($spreadsheet);
+        $spreadsheet = IOFactory::load(
+            approvedLoanDocumentsDownloadedFilePath($xlsxResponse),
+        );
+        expect($spreadsheet->getSheetCount())->toBe(1);
+
+        $worksheet = $spreadsheet->getSheet(0);
+
+        if ($document['sheet'] === 'Loan Information') {
+            expect($worksheet->getCell('F7')->getValue())->toBeNull();
+            expect($worksheet->getCell('C9')->getValue())->toBeNull();
+            expect($worksheet->getCell('C34')->getValue())->toBeNull();
+            expect($worksheet->getCell('C37')->getValue())->toBeNull();
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+    }
 });
 
 test('approved loan can still download approved loan documents zip package', function () {
@@ -1281,11 +1271,14 @@ test('approved document zip contains all required files and valid generated docu
     expect($entryNames)->toBe([
         '01-Application-Form.pdf',
         '02-GREPALIFE.pdf',
-        '03-Loan-Security-Agreement.pdf',
-        '04-Undertaking-Barangay-Officials.pdf',
-        '05-Affidavit-of-Undertaking.pdf',
-        '06-Authorization.pdf',
-        '07-Plan-of-Payment-Disclosure-Promissory-Note.xlsx',
+        '03-Affidavit-of-Undertaking.pdf',
+        '04-Authorization.pdf',
+        '05-Loan-Information.xlsx',
+        '06-Plan-of-Payment.xlsx',
+        '07-Disclosure-Statement.xlsx',
+        '08-Promissory-Note.xlsx',
+        '09-Undertaking-Barangay-Officials.pdf',
+        '10-Loan-Security-Agreement.pdf',
     ]);
 
     foreach ($entries as $content) {
@@ -1300,9 +1293,16 @@ test('approved document zip contains all required files and valid generated docu
         expect($entries[$entryName])->toStartWith('%PDF');
     }
 
-    expect($entries['07-Plan-of-Payment-Disclosure-Promissory-Note.xlsx'] ?? null)
-        ->toBeString()
-        ->toStartWith('PK');
+    foreach ([
+        '05-Loan-Information.xlsx',
+        '06-Plan-of-Payment.xlsx',
+        '07-Disclosure-Statement.xlsx',
+        '08-Promissory-Note.xlsx',
+    ] as $entryName) {
+        expect($entries[$entryName] ?? null)
+            ->toBeString()
+            ->toStartWith('PK');
+    }
 });
 
 test('missing grepalife image template is logged and fails generation', function () {
@@ -1468,11 +1468,7 @@ function approvedLoanDocumentsRouteDefinitions(LoanRequest $loanRequest): array
 {
     return [
         ...approvedLoanDocumentsPdfRouteDefinitions($loanRequest),
-        [
-            'route' => 'admin.requests.documents.plan-of-payment',
-            'filename' => 'plan-of-payment-disclosure-promissory-note-'.$loanRequest->reference.'.xlsx',
-            'disposition' => 'attachment',
-        ],
+        ...approvedLoanDocumentsWorkbookRouteDefinitions($loanRequest),
     ];
 }
 
@@ -1488,6 +1484,39 @@ function approvedLoanDocumentsPdfRouteDefinitions(LoanRequest $loanRequest): arr
             'disposition' => 'attachment',
         ],
         ...approvedLoanDocumentsTemplateBackedPdfRouteDefinitions($loanRequest),
+    ];
+}
+
+/**
+ * @return array<int, array{route: string, filename: string, disposition: string, sheet: string}>
+ */
+function approvedLoanDocumentsWorkbookRouteDefinitions(LoanRequest $loanRequest): array
+{
+    return [
+        [
+            'route' => 'admin.requests.documents.loan-information',
+            'filename' => 'loan-information-'.$loanRequest->reference.'.xlsx',
+            'disposition' => 'attachment',
+            'sheet' => 'Loan Information',
+        ],
+        [
+            'route' => 'admin.requests.documents.plan-of-payment',
+            'filename' => 'plan-of-payment-'.$loanRequest->reference.'.xlsx',
+            'disposition' => 'attachment',
+            'sheet' => 'Plan of Payment',
+        ],
+        [
+            'route' => 'admin.requests.documents.disclosure-statement',
+            'filename' => 'disclosure-statement-'.$loanRequest->reference.'.xlsx',
+            'disposition' => 'attachment',
+            'sheet' => 'Disclosure Statement',
+        ],
+        [
+            'route' => 'admin.requests.documents.promissory-note',
+            'filename' => 'promissory-note-'.$loanRequest->reference.'.xlsx',
+            'disposition' => 'attachment',
+            'sheet' => 'Promissory Note',
+        ],
     ];
 }
 
@@ -1538,10 +1567,10 @@ function approvedLoanDocumentsTemplateBackedPdfZipEntryNames(): array
 {
     return [
         '02-GREPALIFE.pdf',
-        '03-Loan-Security-Agreement.pdf',
-        '04-Undertaking-Barangay-Officials.pdf',
-        '05-Affidavit-of-Undertaking.pdf',
-        '06-Authorization.pdf',
+        '03-Affidavit-of-Undertaking.pdf',
+        '04-Authorization.pdf',
+        '09-Undertaking-Barangay-Officials.pdf',
+        '10-Loan-Security-Agreement.pdf',
     ];
 }
 
@@ -1554,10 +1583,13 @@ function approvedLoanDocumentsApprovedOnlyRouteNames(): array
         'admin.requests.approved-documents',
         'admin.requests.documents.grepalife',
         'admin.requests.documents.loan-security-agreement',
+        'admin.requests.documents.loan-information',
+        'admin.requests.documents.plan-of-payment',
+        'admin.requests.documents.disclosure-statement',
+        'admin.requests.documents.promissory-note',
         'admin.requests.documents.undertaking-barangay',
         'admin.requests.documents.affidavit-undertaking',
         'admin.requests.documents.authorization',
-        'admin.requests.documents.plan-of-payment',
     ];
 }
 
@@ -1921,11 +1953,76 @@ function approvedLoanDocumentsCreateApprovedLoanRequestWithPeople(
         'reviewed_at' => now(),
         'approved_amount' => 25000,
         'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => '15th & 30th',
     ]);
 
     approvedLoanDocumentsCreateLoanRequestPeopleSnapshots($loanRequest);
+    approvedLoanDocumentsCreateDataEntries($loanRequest);
 
     return $loanRequest;
+}
+
+function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
+{
+    foreach ([
+        'service_charge_rate' => ['number', 0.05],
+        'insurance_rate' => ['number', 1.0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0.0075],
+        'notarial_fee' => ['number', 100.0],
+        'penalty_rate_per_month' => ['number', 0.05],
+        'witness_one_name' => ['string', 'Annabelle M. Amora'],
+        'witness_two_name' => ['string', 'Annabelle M. Amora'],
+        'authorized_recipient_name' => ['string', 'Authorized Recipient'],
+        'authorized_recipient_relationship' => ['string', 'Sibling'],
+        'authorized_recipient_contact' => ['string', '09170000019'],
+        'authorization_reason' => ['string', 'Member will be out of town on release date.'],
+        'release_method' => ['string', 'Bank transfer'],
+        'payout_bank_name' => ['string', 'WIBS Cooperative Bank'],
+        'payout_account_name' => ['string', 'Sample Q Member'],
+        'payout_account_number' => ['string', '1234567890'],
+        'payout_account_type' => ['string', 'Savings'],
+        'payout_atm_number' => ['string', '9876543210'],
+        'barangay_name' => ['string', 'Barangay San Isidro'],
+        'barangay_clearance_reference' => ['string', 'BCL-2026-030'],
+        'barangay_locality' => ['string', 'Tagum City, Davao del Norte'],
+        'barangay_official_name' => ['string', 'Hon. Pedro Santos'],
+        'barangay_official_title' => ['string', 'Barangay Captain'],
+        'loan_security_details' => ['string', 'Salary receivables and related security undertakings'],
+        'notarial_venue' => ['string', 'Tagum City, Davao del Norte'],
+    ] as $fieldKey => [$valueType, $value]) {
+        approvedLoanDocumentsPersistDataEntry(
+            $loanRequest,
+            $fieldKey,
+            $valueType,
+            $value,
+        );
+    }
+}
+
+function approvedLoanDocumentsPersistDataEntry(
+    LoanRequest $loanRequest,
+    string $fieldKey,
+    string $valueType,
+    mixed $value,
+): void {
+    LoanRequestDataEntry::query()->updateOrCreate(
+        [
+            'loan_request_id' => $loanRequest->id,
+            'field_key' => $fieldKey,
+        ],
+        [
+            'section_key' => 'processing',
+            'owner_type' => 'staff',
+            'value_type' => $valueType,
+            'value_json' => ['value' => $value],
+            'is_sensitive' => false,
+            'confirmed_by_member' => false,
+            'confirmed_by_member_at' => null,
+        ],
+    );
 }
 
 function approvedLoanDocumentsCreateApprovedMember(): User

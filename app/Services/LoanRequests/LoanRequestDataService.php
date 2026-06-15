@@ -35,6 +35,14 @@ class LoanRequestDataService
             'section' => 'insurance',
             'type' => 'string',
         ],
+        'beneficiary_primary_birthdate' => [
+            'label' => 'Primary beneficiary birthdate',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'insurance',
+            'type' => 'date',
+        ],
         'beneficiary_secondary_name' => [
             'label' => 'Secondary beneficiary name',
             'owner' => self::OWNER_MEMBER,
@@ -50,6 +58,14 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'insurance',
             'type' => 'string',
+        ],
+        'beneficiary_secondary_birthdate' => [
+            'label' => 'Secondary beneficiary birthdate',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'insurance',
+            'type' => 'date',
         ],
         'health_smoker' => [
             'label' => 'Tobacco-use declaration',
@@ -115,6 +131,22 @@ class LoanRequestDataService
             'section' => 'authorization',
             'type' => 'string',
         ],
+        'authorization_reason' => [
+            'label' => 'Authorization reason',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'authorization',
+            'type' => 'string',
+        ],
+        'release_method' => [
+            'label' => 'Release method',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'authorization',
+            'type' => 'string',
+        ],
         'payout_bank_name' => [
             'label' => 'Payout bank name',
             'owner' => self::OWNER_MEMBER,
@@ -171,6 +203,14 @@ class LoanRequestDataService
             'section' => 'barangay',
             'type' => 'string',
         ],
+        'barangay_locality' => [
+            'label' => 'Barangay locality',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => false,
+            'required_on_submit' => true,
+            'section' => 'barangay',
+            'type' => 'string',
+        ],
         'declaration_existing_loans' => [
             'label' => 'Existing-loans declaration',
             'owner' => self::OWNER_MEMBER,
@@ -219,6 +259,14 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'number',
         ],
+        'insurance_required' => [
+            'label' => 'Insurance required',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'boolean',
+        ],
         'insurance_term' => [
             'label' => 'Insurance term',
             'owner' => self::OWNER_STAFF,
@@ -258,6 +306,46 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'processing',
             'type' => 'number',
+        ],
+        'authorization_required' => [
+            'label' => 'Authorization document required',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'boolean',
+        ],
+        'barangay_required' => [
+            'label' => 'Barangay undertaking required',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'boolean',
+        ],
+        'security_required' => [
+            'label' => 'Security agreement required',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'boolean',
+        ],
+        'loan_security_details' => [
+            'label' => 'Security or collateral details',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'notarial_venue' => [
+            'label' => 'Notarial venue',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
         ],
         'witness_one_name' => [
             'label' => 'Witness one name',
@@ -452,7 +540,23 @@ class LoanRequestDataService
             }
         }
 
-        return $missing;
+        if (
+            ($flatValues['beneficiary_secondary_name'] ?? null) !== null
+            && trim((string) ($flatValues['beneficiary_secondary_name'] ?? '')) !== ''
+        ) {
+            foreach ([
+                'beneficiary_secondary_relationship',
+                'beneficiary_secondary_birthdate',
+            ] as $fieldKey) {
+                $value = $flatValues[$fieldKey] ?? null;
+
+                if ($value === null || trim((string) $value) === '') {
+                    $missing[] = $fieldKey;
+                }
+            }
+        }
+
+        return array_values(array_unique($missing));
     }
 
     /**
@@ -717,6 +821,16 @@ class LoanRequestDataService
             }
 
             return trim((string) $value);
+        }
+
+        if ($definition['type'] === 'date') {
+            if ($value === null) {
+                return null;
+            }
+
+            $normalized = trim((string) $value);
+
+            return $normalized !== '' ? $normalized : null;
         }
 
         if ($value === null) {

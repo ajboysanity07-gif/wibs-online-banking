@@ -7,6 +7,7 @@ use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\Permission;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanRequestDataService;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Html as HtmlWriter;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class LoanRequestController extends Controller
@@ -94,6 +97,7 @@ class LoanRequestController extends Controller
         LoanRequestPdfService $pdfService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->canViewPdf($loanRequest)) {
             abort(404);
@@ -110,6 +114,7 @@ class LoanRequestController extends Controller
         LoanRequestPdfService $pdfService,
     ): View {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->canViewPdf($loanRequest)) {
             abort(404);
@@ -123,6 +128,7 @@ class LoanRequestController extends Controller
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
@@ -136,6 +142,7 @@ class LoanRequestController extends Controller
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->canViewPdf($loanRequest)) {
             abort(404);
@@ -149,6 +156,7 @@ class LoanRequestController extends Controller
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
@@ -162,6 +170,7 @@ class LoanRequestController extends Controller
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
@@ -175,6 +184,7 @@ class LoanRequestController extends Controller
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
@@ -183,11 +193,54 @@ class LoanRequestController extends Controller
         return $documentService->planOfPayment($loanRequest);
     }
 
+    public function loanInformationDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->loanInformation($loanRequest);
+    }
+
+    public function disclosureStatementDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->disclosureStatement($loanRequest);
+    }
+
+    public function promissoryNoteDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->promissoryNote($loanRequest);
+    }
+
     public function undertakingBarangayDocument(
         LoanRequest $loanRequest,
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
@@ -201,6 +254,7 @@ class LoanRequestController extends Controller
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
@@ -214,6 +268,7 @@ class LoanRequestController extends Controller
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
         $this->authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
@@ -228,6 +283,7 @@ class LoanRequestController extends Controller
         LoanRequestDocumentKey $documentKey,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
 
         $document = $loanRequest->documents()
             ->where('document_key', $documentKey->value)
@@ -249,6 +305,18 @@ class LoanRequestController extends Controller
         $headers = $document->generated_mime_type !== null
             ? ['Content-Type' => $document->generated_mime_type]
             : [];
+
+        if (
+            $this->isWorkbookDocument($documentKey)
+            && ($request->boolean('preview') || $request->boolean('print'))
+        ) {
+            return $this->renderWorkbookDocument(
+                $disk,
+                $document->generated_path,
+                $document->generated_filename ?: $documentKey->label().'.xlsx',
+                $request->boolean('print'),
+            );
+        }
 
         if ($request->boolean('download')) {
             return Storage::disk($disk)->download(
@@ -299,6 +367,141 @@ class LoanRequestController extends Controller
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::ConvertedToLoan->value,
         ], true);
+    }
+
+    private function authorizeStaffDocumentAccess(LoanRequest $loanRequest): void
+    {
+        $actor = request()->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        if (
+            $loanRequest->assigned_officer_id === $actor->user_id
+            || $actor->hasPermission(Permission::LOAN_MANAGE_ASSIGNMENT)
+            || $actor->hasPermission(Permission::LOAN_APPROVE)
+            || $actor->hasPermission(Permission::LOAN_DECLINE)
+            || $actor->isSuperadmin()
+        ) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function isWorkbookDocument(LoanRequestDocumentKey $documentKey): bool
+    {
+        return in_array(
+            $documentKey,
+            LoanRequestDocumentKey::workbookDocuments(),
+            true,
+        );
+    }
+
+    private function renderWorkbookDocument(
+        string $disk,
+        string $generatedPath,
+        string $filename,
+        bool $autoPrint,
+    ): HttpResponse {
+        $spreadsheet = IOFactory::load(Storage::disk($disk)->path($generatedPath));
+        $writer = IOFactory::createWriter($spreadsheet, 'Html');
+
+        if ($writer instanceof HtmlWriter) {
+            $writer
+                ->setSheetIndex(0)
+                ->setEmbedImages(true)
+                ->setUseInlineCss(true)
+                ->setPreCalculateFormulas(true);
+        }
+
+        ob_start();
+        $writer->save('php://output');
+        $html = (string) ob_get_clean();
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
+        return response(
+            $this->decorateWorkbookPreviewHtml($html, $filename, $autoPrint),
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        );
+    }
+
+    private function decorateWorkbookPreviewHtml(
+        string $html,
+        string $title,
+        bool $autoPrint,
+    ): string {
+        $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $headMarkup = <<<HTML
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{$safeTitle}</title>
+<style>
+body {
+    margin: 0;
+    padding: 24px;
+    background: #f5f7fb;
+    color: #0f172a;
+}
+table.sheet {
+    width: min(100%, 1100px);
+    margin: 0 auto 24px;
+    background: #ffffff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+.navigation {
+    width: min(100%, 1100px);
+    margin: 0 auto 16px;
+    padding: 0;
+}
+.navigation li {
+    list-style: none;
+}
+@media print {
+    body {
+        padding: 0;
+        background: #ffffff;
+    }
+    table.sheet {
+        width: 100%;
+        margin: 0;
+        box-shadow: none;
+    }
+}
+</style>
+HTML;
+
+        $bodyMarkup = $autoPrint
+            ? <<<'HTML'
+<script>
+(() => {
+    let printed = false;
+
+    const triggerPrint = () => {
+        if (printed) {
+            return;
+        }
+
+        printed = true;
+        window.print();
+    };
+
+    window.addEventListener('load', () => {
+        setTimeout(triggerPrint, 100);
+    });
+})();
+</script>
+HTML
+            : '';
+
+        $html = preg_replace('/<\/head>/i', $headMarkup.'</head>', $html, 1) ?? $html;
+
+        if ($bodyMarkup !== '') {
+            $html = preg_replace('/<\/body>/i', $bodyMarkup.'</body>', $html, 1) ?? $html;
+        }
+
+        return $html;
     }
 
     private function sanitizePayload(mixed $value): mixed

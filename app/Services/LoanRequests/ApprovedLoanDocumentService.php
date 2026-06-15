@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use NumberFormatter;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,20 +28,6 @@ use ZipArchive;
 
 class ApprovedLoanDocumentService
 {
-    private const DEFAULT_INTEREST_RATE_PER_ANNUM = 0.36;
-
-    private const DEFAULT_SERVICE_CHARGE_RATE = 0.05;
-
-    private const DEFAULT_INSURANCE_RATE = 1.0;
-
-    private const DEFAULT_LOAN_SECURITY_RATE = 0.02;
-
-    private const DEFAULT_DOCUMENTARY_STAMP_RATE = 0.0075;
-
-    private const DEFAULT_NOTARIAL_FEE = 100.0;
-
-    private const DEFAULT_PENALTY_RATE_PER_MONTH = 0.05;
-
     private const GREPALIFE_IMAGE_TEMPLATE_PAGES = [
         [
             'image' => 'grepalife-page-1.png',
@@ -71,11 +58,14 @@ class ApprovedLoanDocumentService
     private const ZIP_DOCUMENT_NAMES = [
         'application_form' => '01-Application-Form.pdf',
         'grepalife' => '02-GREPALIFE.pdf',
-        'loan_security_agreement' => '03-Loan-Security-Agreement.pdf',
-        'undertaking_barangay' => '04-Undertaking-Barangay-Officials.pdf',
-        'affidavit_undertaking' => '05-Affidavit-of-Undertaking.pdf',
-        'authorization' => '06-Authorization.pdf',
-        'plan_of_payment' => '07-Plan-of-Payment-Disclosure-Promissory-Note.xlsx',
+        'affidavit_undertaking' => '03-Affidavit-of-Undertaking.pdf',
+        'authorization' => '04-Authorization.pdf',
+        'loan_information' => '05-Loan-Information.xlsx',
+        'plan_of_payment' => '06-Plan-of-Payment.xlsx',
+        'disclosure_statement' => '07-Disclosure-Statement.xlsx',
+        'promissory_note' => '08-Promissory-Note.xlsx',
+        'undertaking_barangay' => '09-Undertaking-Barangay-Officials.pdf',
+        'loan_security_agreement' => '10-Loan-Security-Agreement.pdf',
     ];
 
     /**
@@ -84,11 +74,14 @@ class ApprovedLoanDocumentService
     private const DOWNLOAD_DOCUMENT_NAMES = [
         'application_form' => 'application-form-%s.pdf',
         'grepalife' => 'grepalife-%s.pdf',
-        'loan_security_agreement' => '%s Loan Request Agreement.pdf',
-        'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
         'affidavit_undertaking' => 'affidavit-undertaking-%s.pdf',
         'authorization' => 'authorization-%s.pdf',
-        'plan_of_payment' => 'plan-of-payment-disclosure-promissory-note-%s.xlsx',
+        'loan_information' => 'loan-information-%s.xlsx',
+        'plan_of_payment' => 'plan-of-payment-%s.xlsx',
+        'disclosure_statement' => 'disclosure-statement-%s.xlsx',
+        'promissory_note' => 'promissory-note-%s.xlsx',
+        'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
+        'loan_security_agreement' => '%s Loan Request Agreement.pdf',
     ];
 
     public function __construct(
@@ -99,6 +92,8 @@ class ApprovedLoanDocumentService
         private ApprovedLoanImageTemplatePdfService $approvedLoanImageTemplatePdfService,
         private ApprovedLoanPdfTemplateService $approvedLoanPdfTemplateService,
         private ApprovedLoanExcelTemplateService $approvedLoanExcelTemplateService,
+        private LoanRequestDataService $loanRequestDataService,
+        private LoanRequestDocumentCatalog $documentCatalog,
         private GrepalifePdfFieldMap $grepalifePdfFieldMap,
         private UndertakingBarangayPdfFieldMap $undertakingBarangayPdfFieldMap,
         private AffidavitUndertakingPdfFieldMap $affidavitUndertakingPdfFieldMap,
@@ -231,8 +226,56 @@ class ApprovedLoanDocumentService
             'plan_of_payment',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             function (string $outputPath, array $documentData): void {
-                $this->approvedLoanExcelTemplateService->generate(
-                    self::EXCEL_TEMPLATE_FILENAMES['plan_of_payment'],
+                $this->generateWorkbookSheetDocumentToPath(
+                    LoanRequestDocumentKey::PlanOfPayment,
+                    $outputPath,
+                    $documentData,
+                );
+            },
+        );
+    }
+
+    public function loanInformation(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'loan_information',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            function (string $outputPath, array $documentData): void {
+                $this->generateWorkbookSheetDocumentToPath(
+                    LoanRequestDocumentKey::LoanInformation,
+                    $outputPath,
+                    $documentData,
+                );
+            },
+        );
+    }
+
+    public function disclosureStatement(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'disclosure_statement',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            function (string $outputPath, array $documentData): void {
+                $this->generateWorkbookSheetDocumentToPath(
+                    LoanRequestDocumentKey::DisclosureStatement,
+                    $outputPath,
+                    $documentData,
+                );
+            },
+        );
+    }
+
+    public function promissoryNote(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'promissory_note',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            function (string $outputPath, array $documentData): void {
+                $this->generateWorkbookSheetDocumentToPath(
+                    LoanRequestDocumentKey::PromissoryNote,
                     $outputPath,
                     $documentData,
                 );
@@ -260,11 +303,14 @@ class ApprovedLoanDocumentService
 
             $applicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['application_form'];
             $grepalifePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['grepalife'];
-            $loanSecurityAgreementPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['loan_security_agreement'];
-            $undertakingBarangayPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['undertaking_barangay'];
             $affidavitUndertakingPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['affidavit_undertaking'];
             $authorizationPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['authorization'];
+            $loanInformationPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['loan_information'];
             $planOfPaymentPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['plan_of_payment'];
+            $disclosureStatementPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['disclosure_statement'];
+            $promissoryNotePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['promissory_note'];
+            $undertakingBarangayPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['undertaking_barangay'];
+            $loanSecurityAgreementPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['loan_security_agreement'];
 
             $this->loanRequestPdfService->saveToPath($loanRequest, $applicationFormPath);
             $this->approvedLoanImageTemplatePdfService->generate(
@@ -272,16 +318,6 @@ class ApprovedLoanDocumentService
                 $grepalifePath,
                 $documentData,
                 $this->grepalifePdfFieldMap,
-            );
-            $this->loanSecurityAgreementPdfService->generate(
-                $loanSecurityAgreementPath,
-                $documentData,
-            );
-            $this->approvedLoanPdfTemplateService->generate(
-                self::PDF_TEMPLATE_FILENAMES['undertaking_barangay'],
-                $undertakingBarangayPath,
-                $documentData,
-                $this->undertakingBarangayPdfFieldMap,
             );
             $this->approvedLoanPdfTemplateService->generate(
                 self::PDF_TEMPLATE_FILENAMES['affidavit_undertaking'],
@@ -295,9 +331,34 @@ class ApprovedLoanDocumentService
                 $documentData,
                 $this->authorizationPdfFieldMap,
             );
-            $this->approvedLoanExcelTemplateService->generate(
-                self::EXCEL_TEMPLATE_FILENAMES['plan_of_payment'],
+            $this->generateWorkbookSheetDocumentToPath(
+                LoanRequestDocumentKey::LoanInformation,
+                $loanInformationPath,
+                $documentData,
+            );
+            $this->generateWorkbookSheetDocumentToPath(
+                LoanRequestDocumentKey::PlanOfPayment,
                 $planOfPaymentPath,
+                $documentData,
+            );
+            $this->generateWorkbookSheetDocumentToPath(
+                LoanRequestDocumentKey::DisclosureStatement,
+                $disclosureStatementPath,
+                $documentData,
+            );
+            $this->generateWorkbookSheetDocumentToPath(
+                LoanRequestDocumentKey::PromissoryNote,
+                $promissoryNotePath,
+                $documentData,
+            );
+            $this->approvedLoanPdfTemplateService->generate(
+                self::PDF_TEMPLATE_FILENAMES['undertaking_barangay'],
+                $undertakingBarangayPath,
+                $documentData,
+                $this->undertakingBarangayPdfFieldMap,
+            );
+            $this->loanSecurityAgreementPdfService->generate(
+                $loanSecurityAgreementPath,
                 $documentData,
             );
 
@@ -310,11 +371,14 @@ class ApprovedLoanDocumentService
             $this->createZipArchive($zipPath, [
                 $applicationFormPath,
                 $grepalifePath,
-                $loanSecurityAgreementPath,
-                $undertakingBarangayPath,
                 $affidavitUndertakingPath,
                 $authorizationPath,
+                $loanInformationPath,
                 $planOfPaymentPath,
+                $disclosureStatementPath,
+                $promissoryNotePath,
+                $undertakingBarangayPath,
+                $loanSecurityAgreementPath,
             ]);
         } catch (Throwable $exception) {
             File::deleteDirectory($workingDirectory);
@@ -418,18 +482,7 @@ class ApprovedLoanDocumentService
 
     public function templateVersionFor(LoanRequestDocumentKey $documentKey): string
     {
-        return match ($documentKey) {
-            LoanRequestDocumentKey::ApplicationForm => 'application-form-v1',
-            LoanRequestDocumentKey::Grepalife => 'grepalife-v1',
-            LoanRequestDocumentKey::LoanSecurityAgreement => 'loan-security-agreement-v1',
-            LoanRequestDocumentKey::UndertakingBarangay => 'undertaking-barangay-v1',
-            LoanRequestDocumentKey::AffidavitUndertaking => 'affidavit-undertaking-v1',
-            LoanRequestDocumentKey::Authorization => 'authorization-v1',
-            LoanRequestDocumentKey::LoanInformation,
-            LoanRequestDocumentKey::PlanOfPayment,
-            LoanRequestDocumentKey::DisclosureStatement,
-            LoanRequestDocumentKey::PromissoryNote => 'plan-of-payment-workbook-v1',
-        };
+        return $this->documentCatalog->templateVersionFor($documentKey);
     }
 
     /**
@@ -658,12 +711,14 @@ class ApprovedLoanDocumentService
     public function buildDocumentData(
         LoanRequest $loanRequest,
         array $overrides = [],
-        bool $allowDefaultFinancialValues = true,
+        bool $allowDefaultFinancialValues = false,
     ): array {
         $loanRequest->loadMissing(
             'people',
+            'assignedProcessor.adminProfile',
             'reviewedBy.adminProfile',
             'reviewedBy.activeAdminSignature',
+            'approvedBy.adminProfile',
             'approvalSignature',
             'user',
         );
@@ -672,48 +727,64 @@ class ApprovedLoanDocumentService
         $coMakerOne = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerOne);
         $coMakerTwo = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerTwo);
         $memberRecord = $this->resolveMemberWmaster($loanRequest);
+        $flatValues = $this->loanRequestDataService->loadFlatValues($loanRequest);
         $branding = $this->organizationSettingsService->branding();
-        $approvedAt = $this->resolveReviewedAt($loanRequest);
+        $documentDate = $this->resolveDocumentDate($loanRequest);
         $approvedTerm = $this->normalizeIntegerValue($loanRequest->approved_term);
         $approvedAmountRaw = $this->normalizeNumericValue($loanRequest->approved_amount);
-        $paymentMode = $this->resolveWorkbookPaymentMode($applicant);
+        $paymentMode = $this->resolveWorkbookPaymentModeValue(
+            $this->normalizeText(
+                is_array($overrides['loan'] ?? null)
+                    ? ($overrides['loan']['payment_mode_workbook'] ?? null)
+                    : null,
+            ) ?? $this->normalizeText($loanRequest->recommended_payment_frequency),
+        );
         $officialLoanManager = $this->officialLoanManagerResolver->documentData();
-        $reviewerName = $this->normalizeText($officialLoanManager['name']);
-        $reviewerPosition = $this->normalizeText($officialLoanManager['position']);
         $overrideLoan = is_array($overrides['loan'] ?? null)
             ? $overrides['loan']
             : [];
         $overrideReviewer = is_array($overrides['reviewer'] ?? null)
             ? $overrides['reviewer']
             : [];
+        $overrideProcessing = is_array($overrides['processing'] ?? null)
+            ? $overrides['processing']
+            : [];
+        $reviewerName = $this->normalizeText($overrideReviewer['name'] ?? null)
+            ?? $this->normalizeText($officialLoanManager['name']);
+        $reviewerPosition = $this->normalizeText($overrideReviewer['position'] ?? null)
+            ?? $this->normalizeText($officialLoanManager['position']);
+        $processorName = $loanRequest->assignedProcessor?->adminProfile?->fullname
+            ?? $loanRequest->assignedProcessor?->name
+            ?? $loanRequest->assignedProcessor?->username;
+        $processorDisplayName = $this->normalizeText($processorName);
         $amortizationCount = $this->resolveAmortizationCount(
             $approvedTerm,
             $paymentMode,
         );
-        $maturityDate = $this->resolveMaturityDate($approvedAt, $approvedTerm);
+        $maturityDate = $this->resolveMaturityDate($documentDate, $approvedTerm);
         $interestRateRaw = $this->resolveNumericOverride(
             $overrideLoan['interest_rate_raw'] ?? null,
-            $allowDefaultFinancialValues
-                ? self::DEFAULT_INTEREST_RATE_PER_ANNUM
-                : null,
+            $this->normalizeNumericValue($loanRequest->approved_interest_rate),
         );
+        $insuranceRequired = ($overrideLoan['insurance_required'] ?? $flatValues['insurance_required'] ?? null) !== false;
+        $securityRequired = ($overrideLoan['security_required'] ?? $flatValues['security_required'] ?? null) !== false;
         $serviceChargeRateRaw = $this->resolveNumericOverride(
-            $overrideLoan['service_charge_rate_raw'] ?? null,
-            $allowDefaultFinancialValues
-                ? self::DEFAULT_SERVICE_CHARGE_RATE
-                : null,
+            $overrideLoan['service_charge_rate_raw']
+                ?? $flatValues['service_charge_rate']
+                ?? null,
+            null,
         );
         $insuranceRateRaw = $this->resolveNumericOverride(
-            $overrideLoan['insurance_rate_raw'] ?? null,
-            $allowDefaultFinancialValues
-                ? self::DEFAULT_INSURANCE_RATE
-                : null,
+            $overrideLoan['insurance_rate_raw']
+                ?? $flatValues['insurance_rate']
+                ?? null,
+            $insuranceRequired ? null : 0.0,
         );
         $insuranceTerm = $this->resolveIntegerOverride(
-            $overrideLoan['insurance_term'] ?? null,
-            $allowDefaultFinancialValues && $approvedTerm !== null
-                ? min($approvedTerm, 12)
-                : null,
+            $overrideLoan['insurance_term']
+                ?? $flatValues['insurance_term']
+                ?? null,
+            $insuranceRequired ? null : 0,
         );
         $interestNotDeductedRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $approvedTerm !== null && $interestRateRaw !== null
@@ -731,10 +802,10 @@ class ApprovedLoanDocumentService
                 : null,
         );
         $loanSecurityRateRaw = $this->resolveNumericOverride(
-            $overrideLoan['loan_security_rate_raw'] ?? null,
-            $allowDefaultFinancialValues
-                ? self::DEFAULT_LOAN_SECURITY_RATE
-                : null,
+            $overrideLoan['loan_security_rate_raw']
+                ?? $flatValues['loan_security_rate']
+                ?? null,
+            $securityRequired ? null : 0.0,
         );
         $loanSecurityAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $loanSecurityRateRaw !== null
@@ -742,10 +813,10 @@ class ApprovedLoanDocumentService
                 : null,
         );
         $documentaryStampRateRaw = $this->resolveNumericOverride(
-            $overrideLoan['documentary_stamp_rate_raw'] ?? null,
-            $allowDefaultFinancialValues
-                ? self::DEFAULT_DOCUMENTARY_STAMP_RATE
-                : null,
+            $overrideLoan['documentary_stamp_rate_raw']
+                ?? $flatValues['documentary_stamp_rate']
+                ?? null,
+            null,
         );
         $documentaryStampAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $documentaryStampRateRaw !== null
@@ -753,10 +824,10 @@ class ApprovedLoanDocumentService
                 : null,
         );
         $notarialFeeRaw = $this->resolveNumericOverride(
-            $overrideLoan['notarial_fee_raw'] ?? null,
-            $allowDefaultFinancialValues
-                ? self::DEFAULT_NOTARIAL_FEE
-                : null,
+            $overrideLoan['notarial_fee_raw']
+                ?? $flatValues['notarial_fee']
+                ?? null,
+            null,
         );
         $principalAmortizationRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $amortizationCount !== null && $amortizationCount > 0
@@ -800,10 +871,10 @@ class ApprovedLoanDocumentService
                 : null,
         );
         $penaltyRateRaw = $this->resolveNumericOverride(
-            $overrideLoan['penalty_rate_raw'] ?? null,
-            $allowDefaultFinancialValues
-                ? self::DEFAULT_PENALTY_RATE_PER_MONTH
-                : null,
+            $overrideLoan['penalty_rate_raw']
+                ?? $flatValues['penalty_rate_per_month']
+                ?? null,
+            null,
         );
         $witnessOneName = $this->normalizeText(
             $overrideReviewer['witness_one_name'] ?? null,
@@ -840,10 +911,17 @@ class ApprovedLoanDocumentService
                     ? $branding['reportTypography']
                     : [],
             ],
+            'processor' => [
+                'name' => $processorDisplayName,
+                'position' => $processorDisplayName !== null
+                    ? 'Loan Processor'
+                    : null,
+            ],
             'reviewer' => [
                 'name' => $reviewerName,
                 'position' => $reviewerPosition,
                 'signature_path' => null,
+                'signature_data' => null,
                 'witness_one_name' => $witnessOneName,
                 'witness_two_name' => $witnessTwoName,
             ],
@@ -864,14 +942,20 @@ class ApprovedLoanDocumentService
                 'amortization_count' => $amortizationCount,
                 'payment_mode_workbook' => $paymentMode,
                 'purpose' => $this->normalizeText($loanRequest->loan_purpose),
-                'approved_date' => $approvedAt?->format('F d, Y'),
-                'approved_date_short' => $approvedAt?->format('m/d/Y'),
+                'approved_date' => $documentDate?->format('F d, Y'),
+                'approved_date_short' => $documentDate?->format('m/d/Y'),
                 'maturity_date_short' => $maturityDate?->format('m/d/Y'),
                 'term_days' => $approvedTerm !== null ? $approvedTerm * 30 : null,
+                'recommended_by' => $processorDisplayName,
+                'recommendation_remarks' => $this->normalizeText(
+                    $loanRequest->recommendation_remarks,
+                ),
                 'insurance_term' => $insuranceTerm,
                 'interest_rate_raw' => $interestRateRaw,
                 'service_charge_rate_raw' => $serviceChargeRateRaw,
                 'insurance_rate_raw' => $insuranceRateRaw,
+                'loan_security_rate_raw' => $loanSecurityRateRaw,
+                'documentary_stamp_rate_raw' => $documentaryStampRateRaw,
                 'interest_rate_words' => $this->formatPercentWords($interestRateRaw),
                 'interest_not_deducted_raw' => $interestNotDeductedRaw,
                 'service_charge_amount_raw' => $serviceChargeAmountRaw,
@@ -889,10 +973,76 @@ class ApprovedLoanDocumentService
                 'amortization_total_raw' => $amortizationTotalRaw,
                 'penalty_rate_raw' => $penaltyRateRaw,
             ],
+            'authorization' => [
+                'authorized_recipient_name' => $this->normalizeText(
+                    $overrideProcessing['authorized_recipient_name'] ?? $flatValues['authorized_recipient_name'] ?? null,
+                ),
+                'authorized_recipient_relationship' => $this->normalizeText(
+                    $overrideProcessing['authorized_recipient_relationship'] ?? $flatValues['authorized_recipient_relationship'] ?? null,
+                ),
+                'authorized_recipient_contact' => $this->normalizeText(
+                    $overrideProcessing['authorized_recipient_contact'] ?? $flatValues['authorized_recipient_contact'] ?? null,
+                ),
+                'authorization_reason' => $this->normalizeText(
+                    $overrideProcessing['authorization_reason'] ?? $flatValues['authorization_reason'] ?? null,
+                ),
+                'release_method' => $this->normalizeText(
+                    $overrideProcessing['release_method'] ?? $flatValues['release_method'] ?? null,
+                ),
+                'payout_bank_name' => $this->normalizeText(
+                    $overrideProcessing['payout_bank_name'] ?? $flatValues['payout_bank_name'] ?? null,
+                ),
+                'payout_account_name' => $this->normalizeText(
+                    $overrideProcessing['payout_account_name'] ?? $flatValues['payout_account_name'] ?? null,
+                ),
+                'payout_account_number' => $this->normalizeText(
+                    $overrideProcessing['payout_account_number'] ?? $flatValues['payout_account_number'] ?? null,
+                ),
+                'payout_account_type' => $this->normalizeText(
+                    $overrideProcessing['payout_account_type'] ?? $flatValues['payout_account_type'] ?? null,
+                ),
+                'payout_atm_number' => $this->normalizeText(
+                    $overrideProcessing['payout_atm_number'] ?? $flatValues['payout_atm_number'] ?? null,
+                ),
+            ],
+            'barangay' => [
+                'name' => $this->normalizeText(
+                    $overrideProcessing['barangay_name'] ?? $flatValues['barangay_name'] ?? null,
+                ),
+                'clearance_reference' => $this->normalizeText(
+                    $overrideProcessing['barangay_clearance_reference'] ?? $flatValues['barangay_clearance_reference'] ?? null,
+                ),
+                'locality' => $this->normalizeText(
+                    $overrideProcessing['barangay_locality'] ?? $flatValues['barangay_locality'] ?? null,
+                ),
+                'official_name' => $this->normalizeText(
+                    $overrideProcessing['barangay_official_name'] ?? $flatValues['barangay_official_name'] ?? null,
+                ),
+                'official_title' => $this->normalizeText(
+                    $overrideProcessing['barangay_official_title'] ?? $flatValues['barangay_official_title'] ?? null,
+                ),
+            ],
+            'security' => [
+                'loan_security_details' => $this->normalizeText(
+                    $overrideProcessing['loan_security_details'] ?? $flatValues['loan_security_details'] ?? null,
+                ),
+                'notarial_venue' => $this->normalizeText(
+                    $overrideProcessing['notarial_venue'] ?? $flatValues['notarial_venue'] ?? null,
+                ),
+            ],
+            'health' => [
+                'health_smoker' => $overrideProcessing['health_smoker'] ?? $flatValues['health_smoker'] ?? null,
+                'health_hypertension' => $overrideProcessing['health_hypertension'] ?? $flatValues['health_hypertension'] ?? null,
+                'health_diabetes' => $overrideProcessing['health_diabetes'] ?? $flatValues['health_diabetes'] ?? null,
+                'health_recent_hospitalization' => $overrideProcessing['health_recent_hospitalization'] ?? $flatValues['health_recent_hospitalization'] ?? null,
+                'health_declaration_notes' => $this->normalizeText(
+                    $overrideProcessing['health_declaration_notes'] ?? $flatValues['health_declaration_notes'] ?? null,
+                ),
+            ],
             'applicant' => $this->personDocumentData($applicant, $loanRequest),
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
             'co_maker_two' => $this->personDocumentData($coMakerTwo, $loanRequest),
-            'beneficiaries' => $this->beneficiaryDocumentData($memberRecord),
+            'beneficiaries' => $this->beneficiaryDocumentData($flatValues, $memberRecord),
         ];
 
         return $overrides !== []
@@ -987,10 +1137,44 @@ class ApprovedLoanDocumentService
     }
 
     /**
-     * @return array<int, array{name: string, birthdate: string|null, relationship: null}>
+     * @param  array<string, mixed>  $flatValues
+     * @return array<int, array{name: string, birthdate: string|null, relationship: string|null}>
      */
-    private function beneficiaryDocumentData(?Wmaster $memberRecord): array
+    private function beneficiaryDocumentData(array $flatValues, ?Wmaster $memberRecord): array
     {
+        $beneficiariesFromEntries = array_values(array_filter([
+            ! $this->isBlankString($flatValues['beneficiary_primary_name'] ?? null)
+                ? [
+                    'name' => $this->normalizeText((string) $flatValues['beneficiary_primary_name']),
+                    'birthdate' => $this->formatShortDateValue(
+                        $flatValues['beneficiary_primary_birthdate'] ?? null,
+                    ),
+                    'relationship' => $this->normalizeText(
+                        is_scalar($flatValues['beneficiary_primary_relationship'] ?? null)
+                            ? (string) $flatValues['beneficiary_primary_relationship']
+                            : null,
+                    ),
+                ]
+                : null,
+            ! $this->isBlankString($flatValues['beneficiary_secondary_name'] ?? null)
+                ? [
+                    'name' => $this->normalizeText((string) $flatValues['beneficiary_secondary_name']),
+                    'birthdate' => $this->formatShortDateValue(
+                        $flatValues['beneficiary_secondary_birthdate'] ?? null,
+                    ),
+                    'relationship' => $this->normalizeText(
+                        is_scalar($flatValues['beneficiary_secondary_relationship'] ?? null)
+                            ? (string) $flatValues['beneficiary_secondary_relationship']
+                            : null,
+                    ),
+                ]
+                : null,
+        ]));
+
+        if ($beneficiariesFromEntries !== []) {
+            return $beneficiariesFromEntries;
+        }
+
         if (! $memberRecord instanceof Wmaster) {
             return [];
         }
@@ -1285,9 +1469,9 @@ class ApprovedLoanDocumentService
         };
     }
 
-    private function resolveWorkbookPaymentMode(?LoanRequestPerson $applicant): ?string
+    private function resolveWorkbookPaymentModeValue(?string $value): ?string
     {
-        $payday = $this->normalizePaydayValue($applicant?->payday);
+        $payday = $this->normalizePaydayValue($value);
 
         return match ($payday) {
             'Weekly' => 'WEEKLY',
@@ -1298,6 +1482,11 @@ class ApprovedLoanDocumentService
             'Monthly' => 'MONTHLY',
             default => null,
         };
+    }
+
+    private function resolveWorkbookPaymentMode(?LoanRequestPerson $applicant): ?string
+    {
+        return $this->resolveWorkbookPaymentModeValue($applicant?->payday);
     }
 
     private function resolveAmortizationCount(
@@ -1331,8 +1520,21 @@ class ApprovedLoanDocumentService
         return $approvedAt->copy()->addMonthsNoOverflow($approvedTerm);
     }
 
-    private function resolveReviewedAt(LoanRequest $loanRequest): ?CarbonInterface
+    private function resolveDocumentDate(LoanRequest $loanRequest): ?CarbonInterface
     {
+        if ($loanRequest->approved_at instanceof CarbonInterface) {
+            return $loanRequest->approved_at;
+        }
+
+        $approvedAt = trim((string) $loanRequest->approved_at);
+
+        if ($approvedAt !== '') {
+            try {
+                return Carbon::parse($approvedAt);
+            } catch (Throwable) {
+            }
+        }
+
         if ($loanRequest->reviewed_at instanceof CarbonInterface) {
             return $loanRequest->reviewed_at;
         }
@@ -1348,6 +1550,15 @@ class ApprovedLoanDocumentService
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function isBlankString(mixed $value): bool
+    {
+        if (! is_scalar($value)) {
+            return true;
+        }
+
+        return trim((string) $value) === '';
     }
 
     private function formatCurrencyWords(float|int|string|null $value): ?string

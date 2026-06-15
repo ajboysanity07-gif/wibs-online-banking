@@ -215,6 +215,45 @@ class LoanRequestController extends Controller
         return $documentService->planOfPayment($loanRequestRecord);
     }
 
+    public function loanInformationDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->loanInformation($loanRequestRecord);
+    }
+
+    public function disclosureStatementDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->disclosureStatement($loanRequestRecord);
+    }
+
+    public function promissoryNoteDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->promissoryNote($loanRequestRecord);
+    }
+
     public function undertakingBarangayDocument(
         int $loanRequest,
         ApprovedLoanDocumentService $documentService,

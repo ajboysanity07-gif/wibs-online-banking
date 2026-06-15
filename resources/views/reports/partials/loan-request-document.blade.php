@@ -59,7 +59,7 @@
 
         return '';
     };
-    $formatPrintedSignatureName = static function (mixed $value, string $fallback = 'N/A') use ($displayProperText, $normalizeValue): string {
+    $formatPrintedSignatureName = static function (mixed $value, string $fallback = '') use ($displayProperText, $normalizeValue): string {
         $text = $normalizeValue($value);
 
         if ($text === '') {
@@ -147,7 +147,12 @@
         return 'signature-name signature-name--tightest';
     };
     $reportHeader = $reportHeader ?? [];
-    $approvedTermLabel = $formatMonths($loanRequest->approved_term);
+    $processorName = $processor['name'] ?? '';
+    $processorDisplayName = $displayProperText($processorName);
+    $processorSignatureName = $formatPrintedSignatureName($processorName);
+    $amountForDisplay = $loanRequest->approved_amount ?? $loanRequest->recommended_amount;
+    $termForDisplay = $loanRequest->approved_term ?? $loanRequest->recommended_term;
+    $approvedTermLabel = $formatMonths($termForDisplay);
     $reviewerName = $reviewer['name'] ?? '';
     $officialLoanManagerName = app(\App\Services\LoanRequests\OfficialLoanManagerResolver::class)->name();
     $loanManagerSourceName = $normalizeValue($reviewerName) !== ''
@@ -155,6 +160,12 @@
         : $officialLoanManagerName;
     $loanManagerName = $displayProperText($loanManagerSourceName);
     $loanManagerSignatureName = $formatPrintedSignatureName($loanManagerSourceName);
+    $showManagerApproval = in_array($status, ['approved', 'converted_to_loan', 'declined'], true)
+        || $normalizeValue($loanRequest->approved_by ?? null) !== '';
+    $amountDecisionLabel = $showManagerApproval ? 'Amount Approved:' : 'Amount Recommended:';
+    $termDecisionLabel = $showManagerApproval
+        ? 'Approved Loan Term/Duration:'
+        : 'Recommended Loan Term/Duration:';
     $signatureBlocks = [
         [
             'name' => $formatPrintedSignatureName($extractPersonName($applicant)),
@@ -169,8 +180,12 @@
             'label' => 'Co-maker 2',
         ],
         [
-            'name' => $loanManagerSignatureName,
-            'label' => 'Loan Manager / Approved By',
+            'name' => $showManagerApproval
+                ? $loanManagerSignatureName
+                : $processorSignatureName,
+            'label' => $showManagerApproval
+                ? 'Loan Manager / Approved By'
+                : 'Loan Processor / Recommended By',
         ],
     ];
 @endphp
@@ -196,10 +211,10 @@
             <td class="{{ $fitFieldClass($formatDate($loanRequest->submitted_at)) }}">{{ $formatDate($loanRequest->submitted_at) }}</td>
         </tr>
         <tr class="row-line">
-            <td class="label">Amount Approved:</td>
+            <td class="label">{{ $amountDecisionLabel }}</td>
 
-            <td class="{{ $fitFieldClass($formatCurrency($loanRequest->approved_amount)) }}">{{ $formatCurrency($loanRequest->approved_amount) }}</td>
-            <td class="label">Approved Loan Term/Duration:</td>
+            <td class="{{ $fitFieldClass($formatCurrency($amountForDisplay)) }}">{{ $formatCurrency($amountForDisplay) }}</td>
+            <td class="label">{{ $termDecisionLabel }}</td>
 
             <td class="{{ $fitFieldClass($approvedTermLabel) }}">{{ $approvedTermLabel }}</td>
         </tr>
@@ -221,10 +236,10 @@
         <tr class="row-line">
             <td class="label">Recommended By:</td>
 
-            <td class="field"></td>
+            <td class="{{ $fitFieldClass($processorDisplayName) }}">{{ $processorDisplayName }}</td>
             <td class="label">Approved By:</td>
 
-            <td class="{{ $fitFieldClass($loanManagerName) }}">{{ $loanManagerName }}</td>
+            <td class="{{ $fitFieldClass($showManagerApproval ? $loanManagerName : '') }}">{{ $showManagerApproval ? $loanManagerName : '' }}</td>
         </tr>
         </table>
     </div>

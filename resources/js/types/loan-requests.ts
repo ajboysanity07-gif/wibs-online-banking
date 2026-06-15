@@ -209,7 +209,8 @@ export type LoanRequestDataFieldType =
     | 'string'
     | 'boolean'
     | 'number'
-    | 'integer';
+    | 'integer'
+    | 'date';
 
 export type LoanRequestDataFieldDefinition = {
     label: string;

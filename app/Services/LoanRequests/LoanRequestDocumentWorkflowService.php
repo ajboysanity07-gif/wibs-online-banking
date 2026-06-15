@@ -8,100 +8,38 @@ use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDocument;
+use App\Models\LoanRequestPerson;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestDocumentWorkflowService
 {
     /**
-     * @var array<string, list<string>>
+     * @var list<string>
      */
-    private const DOCUMENT_REQUIREMENTS = [
-        'application_form' => [],
-        'grepalife' => [
-            'beneficiary_primary_name',
-            'beneficiary_primary_relationship',
-            'health_smoker',
-            'health_hypertension',
-            'health_diabetes',
-            'health_recent_hospitalization',
-        ],
-        'affidavit_undertaking' => [],
-        'authorization' => [
-            'authorized_recipient_name',
-            'authorized_recipient_relationship',
-            'authorized_recipient_contact',
-        ],
-        'loan_information' => [
-            'service_charge_rate',
-            'insurance_rate',
-            'insurance_term',
-            'loan_security_rate',
-            'documentary_stamp_rate',
-            'notarial_fee',
-            'penalty_rate_per_month',
-            'witness_one_name',
-            'witness_two_name',
-        ],
-        'plan_of_payment' => [
-            'service_charge_rate',
-            'insurance_rate',
-            'insurance_term',
-            'loan_security_rate',
-            'documentary_stamp_rate',
-            'notarial_fee',
-            'penalty_rate_per_month',
-            'witness_one_name',
-            'witness_two_name',
-        ],
-        'disclosure_statement' => [
-            'service_charge_rate',
-            'insurance_rate',
-            'insurance_term',
-            'loan_security_rate',
-            'documentary_stamp_rate',
-            'notarial_fee',
-            'penalty_rate_per_month',
-            'witness_one_name',
-            'witness_two_name',
-        ],
-        'promissory_note' => [
-            'service_charge_rate',
-            'insurance_rate',
-            'insurance_term',
-            'loan_security_rate',
-            'documentary_stamp_rate',
-            'notarial_fee',
-            'penalty_rate_per_month',
-            'witness_one_name',
-            'witness_two_name',
-        ],
-        'undertaking_barangay' => [
-            'barangay_name',
-            'barangay_official_name',
-            'barangay_official_title',
-        ],
-        'loan_security_agreement' => [],
+    private const REQUIRED_RECOMMENDATION_FIELDS = [
+        'recommended_amount',
+        'recommended_term',
+        'recommended_interest_rate',
+        'recommended_payment_frequency',
     ];
 
     /**
      * @var list<string>
      */
-    private const TERM_REQUIREMENT_DOCUMENTS = [
-        'grepalife',
-        'affidavit_undertaking',
-        'authorization',
-        'loan_information',
-        'plan_of_payment',
-        'disclosure_statement',
-        'promissory_note',
-        'undertaking_barangay',
-        'loan_security_agreement',
+    private const VALID_PAYMENT_FREQUENCIES = [
+        'Weekly',
+        '15th',
+        '30th',
+        '15th & 30th',
+        'Bi-Weekly',
+        'Monthly',
     ];
 
     public function __construct(
         private LoanRequestDataService $dataService,
         private ApprovedLoanDocumentService $approvedLoanDocumentService,
+        private LoanRequestDocumentCatalog $documentCatalog,
     ) {}
 
     /**
@@ -138,9 +76,14 @@ class LoanRequestDocumentWorkflowService
     public function refreshChecklist(LoanRequest $loanRequest)
     {
         $loanRequest->loadMissing('documents', 'dataEntries', 'people', 'user');
+        $flatValues = $this->dataService->loadFlatValues($loanRequest);
 
         foreach (LoanRequestDocumentKey::cases() as $documentKey) {
-            $state = $this->evaluateDocumentState($loanRequest, $documentKey);
+            $state = $this->evaluateDocumentState(
+                $loanRequest,
+                $documentKey,
+                $flatValues,
+            );
             $document = LoanRequestDocument::query()->firstOrNew([
                 'loan_request_id' => $loanRequest->id,
                 'document_key' => $documentKey->value,
@@ -151,11 +94,11 @@ class LoanRequestDocumentWorkflowService
             $sourceVersion = $previousSourceHash !== $state['source_hash']
                 ? max(1, $previousSourceVersion + 1)
                 : max(1, $previousSourceVersion);
-
             $readinessStatus = $state['status'];
 
             if (
-                $document->generated_path !== null
+                $state['status'] !== LoanRequestDocumentReadinessStatus::NotApplicable
+                && $document->generated_path !== null
                 && $document->generated_path !== ''
                 && $document->generated_version !== null
                 && $previousSourceHash !== null
@@ -168,7 +111,7 @@ class LoanRequestDocumentWorkflowService
             $document->fill([
                 'is_applicable' => $state['is_applicable'],
                 'readiness_status' => $readinessStatus,
-                'template_version' => $this->approvedLoanDocumentService->templateVersionFor(
+                'template_version' => $this->documentCatalog->templateVersionFor(
                     $documentKey,
                 ),
                 'source_hash' => $state['source_hash'],
@@ -176,6 +119,9 @@ class LoanRequestDocumentWorkflowService
                 'failure_information_json' => $state['failure_information'],
                 'metadata_json' => [
                     'required_fields' => $state['required_fields'],
+                    'source_fields' => $this->documentCatalog->sourceFieldKeys(
+                        $documentKey,
+                    ),
                     'workflow_version' => $this->workflowVersionValue($loanRequest),
                 ],
             ]);
@@ -269,18 +215,33 @@ class LoanRequestDocumentWorkflowService
                 continue;
             }
 
-            $generatedDocument = $this->generateDocument(
-                $loanRequest,
-                $documentKey,
-                $actor,
-            );
+            try {
+                $generatedDocument = $this->generateDocument(
+                    $loanRequest,
+                    $documentKey,
+                    $actor,
+                );
 
-            $results[] = [
-                'key' => $documentKey->value,
-                'status' => $generatedDocument->readiness_status?->value
-                    ?? LoanRequestDocumentReadinessStatus::GeneratedCurrent->value,
-                'message' => $generatedDocument->failure_information_json['message'] ?? null,
-            ];
+                $results[] = [
+                    'key' => $documentKey->value,
+                    'status' => $generatedDocument->readiness_status?->value
+                        ?? LoanRequestDocumentReadinessStatus::GeneratedCurrent->value,
+                    'message' => $generatedDocument->failure_information_json['message'] ?? null,
+                ];
+            } catch (\Throwable $exception) {
+                $failedDocument = LoanRequestDocument::query()
+                    ->where('loan_request_id', $loanRequest->id)
+                    ->where('document_key', $documentKey->value)
+                    ->first();
+
+                $results[] = [
+                    'key' => $documentKey->value,
+                    'status' => $failedDocument?->readiness_status?->value
+                        ?? LoanRequestDocumentReadinessStatus::GenerationFailed->value,
+                    'message' => $failedDocument?->failure_information_json['message']
+                        ?? $exception->getMessage(),
+                ];
+            }
         }
 
         return $results;
@@ -295,6 +256,12 @@ class LoanRequestDocumentWorkflowService
             ->firstOrFail(
                 fn (LoanRequestDocument $candidate): bool => $candidate->document_key === $documentKey->value,
             );
+
+        if (! $document->is_applicable) {
+            throw ValidationException::withMessages([
+                'document' => 'This document is not applicable to the current request.',
+            ]);
+        }
 
         $blockers = $document->failure_information_json['blockers'] ?? [];
 
@@ -368,6 +335,12 @@ class LoanRequestDocumentWorkflowService
         LoanRequest $loanRequest,
         array $changedFields = [],
     ): void {
+        if ($changedFields === []) {
+            $this->refreshChecklist($loanRequest);
+
+            return;
+        }
+
         $documents = $this->refreshChecklist($loanRequest);
 
         foreach ($documents as $document) {
@@ -375,13 +348,10 @@ class LoanRequestDocumentWorkflowService
                 continue;
             }
 
-            if (
-                $changedFields !== []
-                && ! $this->documentUsesFields(
-                    LoanRequestDocumentKey::from($document->document_key),
-                    $changedFields,
-                )
-            ) {
+            if (! $this->documentCatalog->usesChangedFields(
+                LoanRequestDocumentKey::from($document->document_key),
+                $changedFields,
+            )) {
                 continue;
             }
 
@@ -394,26 +364,27 @@ class LoanRequestDocumentWorkflowService
     }
 
     /**
+     * @param  array<string, mixed>  $flatValues
      * @return array{is_applicable:bool, status:LoanRequestDocumentReadinessStatus, source_hash:string, failure_information:array<string,mixed>|null, required_fields:list<string>}
      */
     private function evaluateDocumentState(
         LoanRequest $loanRequest,
         LoanRequestDocumentKey $documentKey,
+        array $flatValues,
     ): array {
         $workflowVersion = $this->workflowVersionValue($loanRequest);
-        $requiredFields = self::DOCUMENT_REQUIREMENTS[$documentKey->value] ?? [];
-        $flatValues = $this->dataService->loadFlatValues($loanRequest);
-        $failureInformation = null;
-        $status = LoanRequestDocumentReadinessStatus::ReadyToGenerate;
+        $requiredFields = $this->effectiveRequiredFields($documentKey, $flatValues);
 
         if ($workflowVersion === LoanRequestWorkflowVersion::LegacyV1->value) {
-            if ($documentKey !== LoanRequestDocumentKey::ApplicationForm) {
-                $status = LoanRequestDocumentReadinessStatus::LegacyDataIncomplete;
-                $failureInformation = [
+            $status = $documentKey === LoanRequestDocumentKey::ApplicationForm
+                ? LoanRequestDocumentReadinessStatus::ReadyToGenerate
+                : LoanRequestDocumentReadinessStatus::LegacyDataIncomplete;
+            $failureInformation = $documentKey === LoanRequestDocumentKey::ApplicationForm
+                ? null
+                : [
                     'message' => 'Historical document data unavailable.',
                     'blockers' => ['Historical document data unavailable.'],
                 ];
-            }
 
             return [
                 'is_applicable' => true,
@@ -428,84 +399,83 @@ class LoanRequestDocumentWorkflowService
             ];
         }
 
-        $missingFields = [];
+        $isApplicable = $this->documentCatalog->isApplicable(
+            $documentKey,
+            $loanRequest,
+            $flatValues,
+        );
 
-        foreach ($requiredFields as $fieldKey) {
-            $value = $flatValues[$fieldKey] ?? null;
-
-            if (is_bool($value)) {
-                continue;
-            }
-
-            if ($value === null || trim((string) $value) === '') {
-                $missingFields[] = $fieldKey;
-            }
+        if (! $isApplicable) {
+            return [
+                'is_applicable' => false,
+                'status' => LoanRequestDocumentReadinessStatus::NotApplicable,
+                'source_hash' => sha1(json_encode(
+                    $this->sourceHashPayload($loanRequest, $documentKey, $flatValues, false),
+                ) ?: $documentKey->value),
+                'failure_information' => null,
+                'required_fields' => $requiredFields,
+            ];
         }
 
-        if (in_array($documentKey->value, self::TERM_REQUIREMENT_DOCUMENTS, true)) {
-            foreach ([
-                'recommended_amount',
-                'recommended_term',
-                'recommended_interest_rate',
-                'recommended_payment_frequency',
-            ] as $field) {
-                $value = $loanRequest->getAttribute($field);
+        $blockers = [];
+        $memberActionNeeded = false;
+        $missingFields = $this->missingRequiredFieldKeys(
+            $requiredFields,
+            $loanRequest,
+            $flatValues,
+        );
 
-                if ($value === null || trim((string) $value) === '') {
-                    $missingFields[] = $field;
-                }
-            }
+        foreach ($this->documentCatalog->templateBlockers($documentKey) as $message) {
+            $blockers[] = $message;
         }
 
-        if ($missingFields !== []) {
-            $labels = array_map(
-                function (string $fieldKey): string {
-                    return match ($fieldKey) {
-                        'recommended_amount' => 'Recommended amount',
-                        'recommended_term' => 'Recommended term',
-                        'recommended_interest_rate' => 'Recommended interest rate',
-                        'recommended_payment_frequency' => 'Recommended payment frequency',
-                        default => $this->dataService->fieldLabel($fieldKey),
-                    };
-                },
-                $missingFields,
+        foreach ($missingFields as $fieldKey) {
+            $blockers[] = sprintf(
+                '%s is required.',
+                $this->fieldLabel($fieldKey),
             );
-            $hasMemberOwnedMissingField = collect($missingFields)
-                ->contains(fn (string $fieldKey): bool => $this->dataService->isSensitiveField($fieldKey));
-            $status = $hasMemberOwnedMissingField
-                ? LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation
-                : LoanRequestDocumentReadinessStatus::Incomplete;
-            $failureInformation = [
-                'message' => 'Document data is incomplete.',
-                'blockers' => array_map(
-                    static fn (string $label): string => sprintf(
-                        '%s is required.',
-                        $label,
-                    ),
-                    $labels,
-                ),
-            ];
-        } elseif ($this->dataService->hasUnconfirmedSensitiveFields($loanRequest)) {
-            $status = LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation;
-            $failureInformation = [
-                'message' => 'Sensitive member-provided values are waiting for confirmation.',
-                'blockers' => array_map(
-                    fn (string $fieldKey): string => sprintf(
-                        '%s must be confirmed by the member.',
-                        $this->dataService->fieldLabel($fieldKey),
-                    ),
-                    $this->dataService->unconfirmedSensitiveFields($loanRequest),
-                ),
-            ];
+
+            if ($this->dataService->isSensitiveField($fieldKey)) {
+                $memberActionNeeded = true;
+            }
         }
+
+        foreach ($this->unconfirmedSourceFields($loanRequest, $documentKey) as $fieldKey) {
+            $blockers[] = sprintf(
+                '%s must be confirmed by the member.',
+                $this->fieldLabel($fieldKey),
+            );
+            $memberActionNeeded = true;
+        }
+
+        foreach ($this->financialBlockers($loanRequest, $documentKey, $flatValues) as $message) {
+            $blockers[] = $message;
+        }
+
+        $blockers = array_values(array_unique(array_filter(
+            $blockers,
+            static fn (mixed $message): bool => is_string($message) && trim($message) !== '',
+        )));
+        $status = $blockers === []
+            ? LoanRequestDocumentReadinessStatus::ReadyToGenerate
+            : ($memberActionNeeded
+                ? LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation
+                : LoanRequestDocumentReadinessStatus::Incomplete);
 
         return [
             'is_applicable' => true,
             'status' => $status,
             'source_hash' => sha1(json_encode(
-                $this->sourceHashPayload($loanRequest, $documentKey, $flatValues),
+                $this->sourceHashPayload($loanRequest, $documentKey, $flatValues, true),
             ) ?: $documentKey->value),
-            'failure_information' => $failureInformation,
+            'failure_information' => $blockers === []
+                ? null
+                : [
+                    'message' => $memberActionNeeded
+                        ? 'Member confirmation is required before this document can be generated.'
+                        : 'Document data is incomplete.',
+                    'blockers' => $blockers,
+                ],
             'required_fields' => $requiredFields,
         ];
     }
@@ -524,6 +494,7 @@ class LoanRequestDocumentWorkflowService
         $workingLoanRequest->approved_amount = $loanRequest->recommended_amount;
         $workingLoanRequest->approved_term = $loanRequest->recommended_term;
         $workingLoanRequest->approved_interest_rate = $loanRequest->recommended_interest_rate;
+        $workingLoanRequest->recommended_payment_frequency = $loanRequest->recommended_payment_frequency;
         $workingLoanRequest->reviewed_at = $loanRequest->reviewed_at
             ?? $loanRequest->updated_at
             ?? now();
@@ -540,25 +511,51 @@ class LoanRequestDocumentWorkflowService
                     'service_charge_rate_raw' => $flatValues['service_charge_rate'] ?? null,
                     'insurance_rate_raw' => $flatValues['insurance_rate'] ?? null,
                     'insurance_term' => $flatValues['insurance_term'] ?? null,
+                    'insurance_required' => $flatValues['insurance_required'] ?? null,
                     'loan_security_rate_raw' => $flatValues['loan_security_rate'] ?? null,
+                    'security_required' => $flatValues['security_required'] ?? null,
                     'documentary_stamp_rate_raw' => $flatValues['documentary_stamp_rate'] ?? null,
                     'notarial_fee_raw' => $flatValues['notarial_fee'] ?? null,
                     'penalty_rate_raw' => $flatValues['penalty_rate_per_month'] ?? null,
                     'payment_mode_workbook' => $loanRequest->recommended_payment_frequency,
+                ],
+                'processing' => [
+                    'loan_security_details' => $flatValues['loan_security_details'] ?? null,
+                    'notarial_venue' => $flatValues['notarial_venue'] ?? null,
+                    'barangay_name' => $flatValues['barangay_name'] ?? null,
+                    'barangay_clearance_reference' => $flatValues['barangay_clearance_reference'] ?? null,
+                    'barangay_locality' => $flatValues['barangay_locality'] ?? null,
+                    'barangay_official_name' => $flatValues['barangay_official_name'] ?? null,
+                    'barangay_official_title' => $flatValues['barangay_official_title'] ?? null,
+                    'authorized_recipient_name' => $flatValues['authorized_recipient_name'] ?? null,
+                    'authorized_recipient_relationship' => $flatValues['authorized_recipient_relationship'] ?? null,
+                    'authorized_recipient_contact' => $flatValues['authorized_recipient_contact'] ?? null,
+                    'authorization_reason' => $flatValues['authorization_reason'] ?? null,
+                    'release_method' => $flatValues['release_method'] ?? null,
+                    'payout_bank_name' => $flatValues['payout_bank_name'] ?? null,
+                    'payout_account_name' => $flatValues['payout_account_name'] ?? null,
+                    'payout_account_number' => $flatValues['payout_account_number'] ?? null,
+                    'payout_account_type' => $flatValues['payout_account_type'] ?? null,
+                    'payout_atm_number' => $flatValues['payout_atm_number'] ?? null,
+                    'health_smoker' => $flatValues['health_smoker'] ?? null,
+                    'health_hypertension' => $flatValues['health_hypertension'] ?? null,
+                    'health_diabetes' => $flatValues['health_diabetes'] ?? null,
+                    'health_recent_hospitalization' => $flatValues['health_recent_hospitalization'] ?? null,
+                    'health_declaration_notes' => $flatValues['health_declaration_notes'] ?? null,
                 ],
                 'beneficiaries' => array_values(array_filter([
                     ($flatValues['beneficiary_primary_name'] ?? null) !== null
                         ? [
                             'name' => $flatValues['beneficiary_primary_name'],
                             'relationship' => $flatValues['beneficiary_primary_relationship'] ?? null,
-                            'birthdate' => null,
+                            'birthdate' => $flatValues['beneficiary_primary_birthdate'] ?? null,
                         ]
                         : null,
                     ($flatValues['beneficiary_secondary_name'] ?? null) !== null
                         ? [
                             'name' => $flatValues['beneficiary_secondary_name'],
                             'relationship' => $flatValues['beneficiary_secondary_relationship'] ?? null,
-                            'birthdate' => null,
+                            'birthdate' => $flatValues['beneficiary_secondary_birthdate'] ?? null,
                         ]
                         : null,
                 ])),
@@ -575,57 +572,321 @@ class LoanRequestDocumentWorkflowService
         LoanRequest $loanRequest,
         LoanRequestDocumentKey $documentKey,
         array $flatValues,
+        bool $isApplicable,
     ): array {
-        $requiredFields = self::DOCUMENT_REQUIREMENTS[$documentKey->value] ?? [];
         $fieldValues = [];
 
-        foreach ($requiredFields as $fieldKey) {
+        foreach ($this->documentCatalog->sourceFieldKeys($documentKey) as $fieldKey) {
             $fieldValues[$fieldKey] = $flatValues[$fieldKey] ?? null;
+        }
+
+        $snapshotValues = [];
+
+        foreach ($this->documentCatalog->sourceSnapshotPaths($documentKey) as $snapshotPath) {
+            $snapshotValues[$snapshotPath] = $this->snapshotValueForPath(
+                $loanRequest,
+                $snapshotPath,
+            );
         }
 
         return [
             'reference' => $loanRequest->reference,
             'document_key' => $documentKey->value,
-            'requested_amount' => (string) ($loanRequest->requested_amount ?? ''),
-            'requested_term' => (string) ($loanRequest->requested_term ?? ''),
-            'recommended_amount' => (string) ($loanRequest->recommended_amount ?? ''),
-            'recommended_term' => (string) ($loanRequest->recommended_term ?? ''),
-            'recommended_interest_rate' => (string) ($loanRequest->recommended_interest_rate ?? ''),
-            'recommended_payment_frequency' => (string) ($loanRequest->recommended_payment_frequency ?? ''),
-            'review_remarks' => (string) ($loanRequest->recommendation_remarks ?? ''),
-            'required_fields' => $fieldValues,
+            'workflow_version' => $this->workflowVersionValue($loanRequest),
+            'is_applicable' => $isApplicable,
+            'snapshot_values' => $snapshotValues,
+            'field_values' => $fieldValues,
         ];
     }
 
     /**
-     * @param  list<string>  $changedFields
+     * @return list<string>
      */
-    private function documentUsesFields(
+    private function effectiveRequiredFields(
         LoanRequestDocumentKey $documentKey,
-        array $changedFields,
-    ): bool {
-        if (array_intersect($changedFields, [
-            'typecode',
-            'requested_amount',
-            'requested_term',
-            'loan_purpose',
-            'availment_status',
-            'applicant',
-            'co_maker_1',
-            'co_maker_2',
-            'recommended_amount',
-            'recommended_term',
-            'recommended_interest_rate',
-            'recommended_payment_frequency',
-            'recommendation_remarks',
-        ]) !== []) {
-            return true;
+        array $flatValues,
+    ): array {
+        $requiredFields = $this->documentCatalog->requiredFieldKeys($documentKey);
+
+        if (($flatValues['insurance_required'] ?? null) === false) {
+            $requiredFields = array_values(array_diff($requiredFields, [
+                'insurance_rate',
+                'insurance_term',
+            ]));
         }
 
-        return array_intersect(
-            $changedFields,
-            self::DOCUMENT_REQUIREMENTS[$documentKey->value] ?? [],
-        ) !== [];
+        if (($flatValues['security_required'] ?? null) === false) {
+            $requiredFields = array_values(array_diff($requiredFields, [
+                'loan_security_rate',
+                'loan_security_details',
+            ]));
+        }
+
+        return $requiredFields;
+    }
+
+    /**
+     * @param  list<string>  $requiredFields
+     * @param  array<string, mixed>  $flatValues
+     * @return list<string>
+     */
+    private function missingRequiredFieldKeys(
+        array $requiredFields,
+        LoanRequest $loanRequest,
+        array $flatValues,
+    ): array {
+        $missingFields = [];
+
+        foreach ($requiredFields as $fieldKey) {
+            if (in_array($fieldKey, self::REQUIRED_RECOMMENDATION_FIELDS, true)) {
+                continue;
+            }
+
+            $value = $flatValues[$fieldKey] ?? null;
+
+            if ($this->isBlankValue($value)) {
+                $missingFields[] = $fieldKey;
+            }
+        }
+
+        foreach ($this->conditionalRequiredMemberFields($loanRequest, $flatValues) as $fieldKey) {
+            if ($this->isBlankValue($flatValues[$fieldKey] ?? null)) {
+                $missingFields[] = $fieldKey;
+            }
+        }
+
+        return array_values(array_unique($missingFields));
+    }
+
+    /**
+     * @param  array<string, mixed>  $flatValues
+     * @return list<string>
+     */
+    private function conditionalRequiredMemberFields(
+        LoanRequest $loanRequest,
+        array $flatValues,
+    ): array {
+        $conditionalFields = [];
+
+        if (
+            in_array(
+                'beneficiary_secondary_name',
+                $this->documentCatalog->sourceFieldKeys(LoanRequestDocumentKey::Grepalife),
+                true,
+            )
+            && ! $this->isBlankValue($flatValues['beneficiary_secondary_name'] ?? null)
+        ) {
+            $conditionalFields[] = 'beneficiary_secondary_relationship';
+            $conditionalFields[] = 'beneficiary_secondary_birthdate';
+        }
+
+        return array_values(array_unique($conditionalFields));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function unconfirmedSourceFields(
+        LoanRequest $loanRequest,
+        LoanRequestDocumentKey $documentKey,
+    ): array {
+        $sourceFields = $this->documentCatalog->sourceFieldKeys($documentKey);
+
+        return array_values(array_filter(
+            $this->dataService->unconfirmedSensitiveFields($loanRequest),
+            static fn (string $fieldKey): bool => in_array($fieldKey, $sourceFields, true),
+        ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $flatValues
+     * @return list<string>
+     */
+    private function financialBlockers(
+        LoanRequest $loanRequest,
+        LoanRequestDocumentKey $documentKey,
+        array $flatValues,
+    ): array {
+        if (! $this->documentCatalog->requiresFinancialRules($documentKey)) {
+            return [];
+        }
+
+        $blockers = [];
+        $recommendationValues = [
+            'recommended_amount' => $loanRequest->recommended_amount,
+            'recommended_term' => $loanRequest->recommended_term,
+            'recommended_interest_rate' => $loanRequest->recommended_interest_rate,
+            'recommended_payment_frequency' => $loanRequest->recommended_payment_frequency,
+        ];
+
+        foreach ($recommendationValues as $fieldKey => $value) {
+            if ($this->isBlankValue($value)) {
+                $blockers[] = sprintf(
+                    '%s is required.',
+                    $this->fieldLabel($fieldKey),
+                );
+            }
+        }
+
+        if (! $this->isPositiveNumericValue($loanRequest->recommended_amount)) {
+            $blockers[] = 'Recommended amount must be greater than zero.';
+        }
+
+        if (! $this->isPositiveIntegerValue($loanRequest->recommended_term)) {
+            $blockers[] = 'Recommended term must be greater than zero.';
+        }
+
+        if (! $this->isNumericValue($loanRequest->recommended_interest_rate)) {
+            $blockers[] = 'Recommended interest rate must be numeric.';
+        }
+
+        if (
+            ! $this->isBlankValue($loanRequest->recommended_payment_frequency)
+            && ! in_array(
+                trim((string) $loanRequest->recommended_payment_frequency),
+                self::VALID_PAYMENT_FREQUENCIES,
+                true,
+            )
+        ) {
+            $blockers[] = 'Recommended payment frequency is not recognized by the official templates.';
+        }
+
+        foreach ([
+            'service_charge_rate' => 'Service charge rate must be numeric.',
+            'documentary_stamp_rate' => 'Documentary stamp rate must be numeric.',
+            'notarial_fee' => 'Notarial fee must be numeric.',
+            'penalty_rate_per_month' => 'Penalty rate per month must be numeric.',
+        ] as $fieldKey => $message) {
+            if (
+                ! $this->isBlankValue($flatValues[$fieldKey] ?? null)
+                && ! $this->isNumericValue($flatValues[$fieldKey] ?? null)
+            ) {
+                $blockers[] = $message;
+            }
+        }
+
+        if (($flatValues['insurance_required'] ?? null) !== false) {
+            if (! $this->isNumericValue($flatValues['insurance_rate'] ?? null)) {
+                $blockers[] = 'Insurance rate must be numeric.';
+            }
+
+            if (! $this->isPositiveIntegerValue($flatValues['insurance_term'] ?? null)) {
+                $blockers[] = 'Insurance term must be greater than zero.';
+            }
+        }
+
+        if (($flatValues['security_required'] ?? null) !== false) {
+            if (! $this->isNumericValue($flatValues['loan_security_rate'] ?? null)) {
+                $blockers[] = 'Loan security rate must be numeric.';
+            }
+        }
+
+        return array_values(array_unique($blockers));
+    }
+
+    private function snapshotValueForPath(
+        LoanRequest $loanRequest,
+        string $path,
+    ): mixed {
+        $loanRequest->loadMissing('people');
+
+        if ($path === 'applicant.') {
+            return $this->personSnapshot(
+                $loanRequest->people->firstWhere('role', 'applicant'),
+            );
+        }
+
+        if ($path === 'co_maker_1.') {
+            return $this->personSnapshot(
+                $loanRequest->people->firstWhere('role', 'co_maker_1'),
+            );
+        }
+
+        if ($path === 'co_maker_2.') {
+            return $this->personSnapshot(
+                $loanRequest->people->firstWhere('role', 'co_maker_2'),
+            );
+        }
+
+        if (! str_starts_with($path, 'loan_request.')) {
+            return null;
+        }
+
+        $attribute = substr($path, strlen('loan_request.'));
+
+        return $loanRequest->getAttribute($attribute);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function personSnapshot(?LoanRequestPerson $person): ?array
+    {
+        if (! $person instanceof LoanRequestPerson) {
+            return null;
+        }
+
+        return [
+            'first_name' => $person->first_name,
+            'middle_name' => $person->middle_name,
+            'last_name' => $person->last_name,
+            'birthdate' => $person->birthdate,
+            'birthplace_city' => $person->birthplace_city,
+            'birthplace_province' => $person->birthplace_province,
+            'address1' => $person->address1,
+            'address2' => $person->address2,
+            'address3' => $person->address3,
+            'cell_no' => $person->cell_no,
+            'telephone_no' => $person->telephone_no,
+            'civil_status' => $person->civil_status,
+            'employer_business_name' => $person->employer_business_name,
+            'employer_business_address1' => $person->employer_business_address1,
+            'employer_business_address2' => $person->employer_business_address2,
+            'employer_business_address3' => $person->employer_business_address3,
+            'current_position' => $person->current_position,
+            'nature_of_business' => $person->nature_of_business,
+            'years_in_work_business' => $person->years_in_work_business,
+            'gross_monthly_income' => $person->gross_monthly_income,
+            'payday' => $person->payday,
+        ];
+    }
+
+    private function fieldLabel(string $fieldKey): string
+    {
+        return match ($fieldKey) {
+            'recommended_amount' => 'Recommended amount',
+            'recommended_term' => 'Recommended term',
+            'recommended_interest_rate' => 'Recommended interest rate',
+            'recommended_payment_frequency' => 'Recommended payment frequency',
+            default => $this->dataService->fieldLabel($fieldKey),
+        };
+    }
+
+    private function isBlankValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return false;
+        }
+
+        return $value === null || trim((string) $value) === '';
+    }
+
+    private function isNumericValue(mixed $value): bool
+    {
+        return ! $this->isBlankValue($value)
+            && is_numeric((string) $value);
+    }
+
+    private function isPositiveNumericValue(mixed $value): bool
+    {
+        return $this->isNumericValue($value)
+            && (float) $value > 0;
+    }
+
+    private function isPositiveIntegerValue(mixed $value): bool
+    {
+        return $this->isNumericValue($value)
+            && (int) round((float) $value) > 0;
     }
 
     private function workflowVersionValue(LoanRequest $loanRequest): string

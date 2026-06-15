@@ -45,9 +45,12 @@ import {
     affidavitUndertaking as loanRequestAffidavitUndertakingDocument,
     applicationForm as loanRequestApplicationFormDocument,
     authorization as loanRequestAuthorizationDocument,
+    disclosureStatement as loanRequestDisclosureStatementDocument,
     grepalife as loanRequestGrepalifeDocument,
+    loanInformation as loanRequestLoanInformationDocument,
     loanSecurityAgreement as loanRequestLoanSecurityAgreementDocument,
     planOfPayment as loanRequestPlanOfPaymentDocument,
+    promissoryNote as loanRequestPromissoryNoteDocument,
     undertakingBarangay as loanRequestUndertakingBarangayDocument,
 } from '@/routes/client/loan-requests/documents';
 import type { BreadcrumbItem } from '@/types';
@@ -172,22 +175,31 @@ export default function LoanRequestShow({
                   ).url,
                   grepalife: loanRequestGrepalifeDocument(currentLoanRequest.id)
                       .url,
-                  loanSecurityAgreement:
-                      loanRequestLoanSecurityAgreementDocument(
-                          currentLoanRequest.id,
-                      ).url,
-                  planOfPayment: loanRequestPlanOfPaymentDocument(
-                      currentLoanRequest.id,
-                  ).url,
-                  undertakingBarangay: loanRequestUndertakingBarangayDocument(
-                      currentLoanRequest.id,
-                  ).url,
                   affidavitUndertaking: loanRequestAffidavitUndertakingDocument(
                       currentLoanRequest.id,
                   ).url,
                   authorization: loanRequestAuthorizationDocument(
                       currentLoanRequest.id,
                   ).url,
+                  loanInformation: loanRequestLoanInformationDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  planOfPayment: loanRequestPlanOfPaymentDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  disclosureStatement: loanRequestDisclosureStatementDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  promissoryNote: loanRequestPromissoryNoteDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  undertakingBarangay: loanRequestUndertakingBarangayDocument(
+                      currentLoanRequest.id,
+                  ).url,
+                  loanSecurityAgreement:
+                      loanRequestLoanSecurityAgreementDocument(
+                          currentLoanRequest.id,
+                      ).url,
                   packageZip: loanRequestApprovedDocuments(
                       currentLoanRequest.id,
                   ).url,

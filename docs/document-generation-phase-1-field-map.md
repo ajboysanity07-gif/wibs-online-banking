@@ -16,6 +16,105 @@ Legacy compatibility remains intentional:
 - Legacy requests may still surface `Historical document data unavailable` for documents that do not have reliable historical source fields.
 - Online co-maker signature links are no longer part of the active workflow; printed documents still rely on physical signature lines where applicable.
 
+## Phase 6 implementation note
+
+Phase 6 keeps this file as the checked-in documentation map for the live document package. The active implementation is now centralized in:
+
+- `app/Services/LoanRequests/LoanRequestDocumentCatalog.php`
+- `app/Services/LoanRequests/LoanRequestDocumentWorkflowService.php`
+- `app/Services/LoanRequests/ApprovedLoanDocumentService.php`
+- `app/Services/LoanRequests/LoanSecurityAgreementPdfService.php`
+- `app/Http/Controllers/Staff/LoanRequestController.php`
+
+### Active template versions and applicability
+
+| Document | Document key | Template version | Official template source | Applicability rule |
+| --- | --- | --- | --- | --- |
+| Application Form | `application_form` | `application-form-v2` | `public/APPLICATION FORM-1.pdf` plus `resources/views/reports/partials/loan-request-document.blade.php` | Always |
+| GREPALIFE | `grepalife` | `grepalife-v2` | `resources/templates/approved-loan-documents/images/grepalife-page-1.png`, `grepalife-page-2.png` | Insurance applies unless staff explicitly marks `insurance_required = false` |
+| Affidavit of Undertaking | `affidavit_undertaking` | `affidavit-undertaking-v2` | `storage/app/templates/approved-loan-documents/pdf/affidavit-undertaking.pdf` | Always |
+| Authorization | `authorization` | `authorization-v2` | `storage/app/templates/approved-loan-documents/pdf/authorization.pdf` | Applies when authorization data makes the document relevant and `authorization_required` is not false |
+| Loan Information | `loan_information` | `loan-information-workbook-v2` | `storage/app/templates/approved-loan-documents/excel/plan-of-payment-disclosure-promissory-note.xlsx` | Always |
+| Plan of Payment | `plan_of_payment` | `plan-of-payment-workbook-v2` | Same workbook template, exported as a single-sheet file | Always |
+| Disclosure Statement | `disclosure_statement` | `disclosure-statement-workbook-v2` | Same workbook template, exported as a single-sheet file | Always |
+| Promissory Note | `promissory_note` | `promissory-note-workbook-v2` | Same workbook template, exported as a single-sheet file | Always |
+| Undertaking - Barangay | `undertaking_barangay` | `undertaking-barangay-v2` | `storage/app/templates/approved-loan-documents/pdf/undertaking-barangay-officials.pdf` | Applies when barangay data makes the document relevant and `barangay_required` is not false |
+| Loan Security Agreement | `loan_security_agreement` | `loan-security-agreement-v2` | `resources/views/reports/loan-security-agreement.blade.php` | Applies when security data makes the document relevant and `security_required` is not false |
+
+### Financial source and rounding rules
+
+1. The live package uses authoritative persisted portal values first:
+   - `loan_requests.approved_amount`
+   - `loan_requests.approved_term`
+   - `loan_requests.approved_interest_rate`
+   - `loan_requests.recommended_payment_frequency`
+2. Document-workflow processing values come from `loan_request_data_entries` through `LoanRequestDataService::loadFlatValues()`:
+   - `service_charge_rate`
+   - `insurance_rate`
+   - `insurance_term`
+   - `loan_security_rate`
+   - `documentary_stamp_rate`
+   - `notarial_fee`
+   - `penalty_rate_per_month`
+   - witness names
+3. Workbook financial values are calculated in `ApprovedLoanDocumentService::buildDocumentData()` and rounded with `round(..., 2)` through `roundCurrency()`.
+4. No workbook or PDF document generates official-looking financial values from guessed defaults. Missing authoritative numeric inputs block generation for the affected workbook document.
+5. The portal does not create or mutate the official WIBS amortization schedule. Workbook outputs only reflect the persisted portal recommendation/approval values already stored in the request plus verified processing inputs.
+
+### Selective staleness and regeneration
+
+- `loan_request_documents.source_hash` is document-specific and built from the exact snapshot paths and processing fields listed in `LoanRequestDocumentCatalog`.
+- Only documents whose live source hash changes move from `Generated - Current` to `Generated - Stale`.
+- Workbook outputs are split into four separate exported files. Each has its own:
+  - document key
+  - readiness state
+  - source hash
+  - generated version
+  - preview/print/download route
+- Staff-generated workbook previews render HTML from the stored single-sheet `.xlsx` file. Direct downloads remain `.xlsx`.
+- Manager term changes intentionally stale only the affected documents. Recommendation remains blocked until every applicable document is both generated and current.
+
+### Live mapping matrix
+
+The rows below document the current rendered fields that actively drive Phase 6 readiness and staleness. When the repository contains stored inputs that do not yet have a verified official template slot, that gap is called out explicitly instead of inventing a field placement.
+
+| Document | Rendered field(s) | Source table/model | Source property/path | Owner | Required for current output | Formatting rule | Missing-data blocker |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Application Form | Request reference, submitted/review dates, loan type, loan purpose, availment status | `loan_requests` | `reference`, `submitted_at`, `reviewed_at`, `loan_type_label_snapshot`, `loan_purpose`, `availment_status` | System + member + processor | Required | Existing blade formatting and status labels | Request snapshot must exist |
+| Application Form | Applicant and co-maker identity, address, employment, income | `loan_request_people` | applicant/co-maker snapshot columns | Member-owned snapshot | Required | Existing blade line wrapping, long-name spacing, blank-on-missing | Missing snapshot data shows blank values but does not invent filler |
+| Application Form | Recommended amount, term, interest context, recommendation remarks | `loan_requests` | `recommended_amount`, `recommended_term`, `recommended_interest_rate`, `recommended_payment_frequency`, `recommendation_remarks` | Processor-owned | Required before recommendation | Currency/term labels from blade partial | Missing recommendation data blocks recommendation, not simple preview |
+| Application Form | `Recommended By` | `loan_requests` relation | `assignedProcessor.adminProfile.fullname` or assigned user display name | System from assigned processor | Required for recommendation package | Printed as Loan Processor name | Missing assigned processor blocks recommendation |
+| Application Form | Loan manager approval info | `loan_requests` relation | `approvedBy`, `approved_at` | Manager-owned | Optional until approval | Printed only when approval exists | No blocker before approval |
+| GREPALIFE | Applicant identity and contact block | `loan_request_people` | applicant snapshot columns | Member-owned snapshot | Required | Uppercase names, short dates, address fragments, checkbox normalization | Missing required identity fields block GREPALIFE |
+| GREPALIFE | Beneficiary primary name, relationship, birthdate | `loan_request_data_entries` | `beneficiary_primary_name`, `beneficiary_primary_relationship`, `beneficiary_primary_birthdate` | Member-owned sensitive | Required when insurance applies | Name text + short birthdate formatting | Missing value blocks GREPALIFE |
+| GREPALIFE | Beneficiary secondary details | `loan_request_data_entries` | secondary beneficiary fields | Member-owned sensitive | Optional unless secondary name is present | Same as primary beneficiary | Secondary relationship and birthdate block if secondary name is present |
+| GREPALIFE | Health declarations | `loan_request_data_entries` | `health_smoker`, `health_hypertension`, `health_diabetes`, `health_recent_hospitalization`, `health_declaration_notes` | Member-owned sensitive | Required when insurance applies | Boolean checkbox/yes-no handling and note text | Missing required health answers block GREPALIFE |
+| Affidavit of Undertaking | Applicant identity, approved amount, loan type, approved date, reviewer name | `loan_request_people`, `loan_requests`, related reviewer | applicant snapshot, `approved_amount`, `loan_type_label_snapshot`, `reviewed_at`, reviewer display name | Mixed | Required for current checked-in template | Existing PDF overlay coordinates | Missing applicant or approved-request data blocks output |
+| Affidavit of Undertaking | Notarial venue, witness metadata | Stored in `loan_request_data_entries` but not rendered by the checked-in template map | `notarial_venue`, witness fields | Staff-owned | Not currently required | No verified official slot in the checked-in PDF map | Documented template-slot blocker; do not guess placement |
+| Authorization | Applicant identity, request reference, approved amount, approved date, organization name | `loan_request_people`, `loan_requests`, `organization_settings` | applicant snapshot, `reference`, `approved_amount`, `reviewed_at`, organization branding | Mixed | Required for current checked-in template | Existing PDF overlay coordinates | Missing applicant or approved-request data blocks output |
+| Authorization | Authorized recipient, relationship, authorization reason, release method, bank/account/ATM details | `loan_request_data_entries` | authorization and banking section fields | Member-owned sensitive | Stored for future verified output but not currently rendered | No verified slot map in `authorization.pdf` | Remains a documented official-template blocker; do not fabricate placement |
+| Loan Information | Approved amount, approved interest rate, approved term, payment mode, amortization count, deductions, witness names | `loan_requests`, `loan_request_data_entries` | approved request fields plus processing rate/witness fields | Mixed | Required | Single-sheet XLSX export, decimal-safe 2dp rounding, uppercase witness names | Missing financial inputs block Loan Information |
+| Loan Information | Co-maker names and addresses | `loan_request_people` | co-maker snapshot fields | Member-owned snapshot | Required when co-makers exist on the request | Uppercase names, text cells, controlled wrapping | Missing snapshot values leave blanks; no fake names |
+| Plan of Payment | Borrower name/address, amount, type, payment mode, amortization breakdown, dates, reviewer printed name | `loan_request_people`, `loan_requests`, `loan_request_data_entries` | workbook data builder output | Mixed | Required | Single-sheet XLSX export | Missing authoritative financial inputs block Plan of Payment |
+| Disclosure Statement | Borrower identity, reference number, amount, interest, deductions, maturity, manager printed name/title | `loan_request_people`, `loan_requests`, `loan_request_data_entries` | workbook data builder output | Mixed | Required | Single-sheet XLSX export | Missing authoritative financial inputs block Disclosure Statement |
+| Promissory Note | Approved date, maturity, amount, amount in words, payment mode, co-maker names/addresses, witness names | `loan_request_people`, `loan_requests`, `loan_request_data_entries` | workbook data builder output | Mixed | Required | Single-sheet XLSX export with controlled wrapping for long names | Missing authoritative financial or witness inputs block Promissory Note |
+| Undertaking - Barangay | Applicant identity, loan type, approved amount, approved date, organization name | `loan_request_people`, `loan_requests`, `organization_settings` | applicant snapshot, approved request fields, branding | Mixed | Required for current checked-in template | Existing PDF overlay coordinates | Missing applicant or approved-request data blocks output |
+| Undertaking - Barangay | Barangay official name/title and locality extras | `loan_request_data_entries` | barangay section fields | Member + staff verified | Stored for future verified output but not currently rendered | No verified slot map in `undertaking-barangay-officials.pdf` | Documented official-template blocker; do not guess placement |
+| Loan Security Agreement | Borrower identity/address, loan type, approved date, lender name/title | `loan_request_people`, `loan_requests`, reviewer relation | applicant snapshot, `loan_type_label_snapshot`, `reviewed_at`, reviewer display data | Mixed | Required | Blade-rendered HTML/PDF with physical signature lines | Missing applicant or reviewer context blocks output |
+| Loan Security Agreement | Place of signing | `loan_request_data_entries` with organization fallback | `notarial_venue`, then organization business address | Staff-owned verified, then system fallback | Required when security document is applicable | Printed as the signing venue line in the blade template | Missing both venue and organization address blocks the signing-place blank |
+| Loan Security Agreement | Security detail narrative | `loan_request_data_entries` | `loan_security_details` | Staff-owned | Stored but not currently rendered | No verified official slot in checked-in blade template | Documented template-slot blocker; do not invent wording |
+
+### Remaining checked-in template blockers
+
+The current repository still has stored Phase 5/6 inputs that are intentionally not rendered until there is a verified official slot map:
+
+- Authorization recipient/payout detail fields in `authorization.pdf`
+- Barangay official/title locality extras in `undertaking-barangay-officials.pdf`
+- Affidavit notarial/witness extras in `affidavit-undertaking.pdf`
+- Loan security detail narrative in the current checked-in Loan Security Agreement blade template
+
+These values are preserved in `loan_request_data_entries`, participate in workflow history where appropriate, and may be used later. They are not guessed into the output.
+
 Primary files reviewed:
 
 - `app/Http/Controllers/Client/LoanRequestController.php`

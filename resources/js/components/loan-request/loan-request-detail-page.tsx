@@ -70,11 +70,14 @@ type Props = {
 type ApprovedDocumentHrefs = {
     applicationForm: string;
     grepalife: string;
-    loanSecurityAgreement: string;
-    planOfPayment: string;
-    undertakingBarangay: string;
     affidavitUndertaking: string;
     authorization: string;
+    loanInformation: string;
+    planOfPayment: string;
+    disclosureStatement: string;
+    promissoryNote: string;
+    undertakingBarangay: string;
+    loanSecurityAgreement: string;
     packageZip?: string | null;
 };
 
@@ -533,13 +536,33 @@ export function LoanRequestDetailPage({
                   format: 'PDF',
               },
               {
-                  label: 'Loan Security Agreement PDF',
-                  href: approvedDocumentHrefs.loanSecurityAgreement,
+                  label: 'Affidavit of Undertaking PDF',
+                  href: approvedDocumentHrefs.affidavitUndertaking,
                   format: 'PDF',
+              },
+              {
+                  label: 'Authorization PDF',
+                  href: approvedDocumentHrefs.authorization,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Loan Information Excel',
+                  href: approvedDocumentHrefs.loanInformation,
+                  format: 'XLSX',
               },
               {
                   label: 'Plan of Payment Excel',
                   href: approvedDocumentHrefs.planOfPayment,
+                  format: 'XLSX',
+              },
+              {
+                  label: 'Disclosure Statement Excel',
+                  href: approvedDocumentHrefs.disclosureStatement,
+                  format: 'XLSX',
+              },
+              {
+                  label: 'Promissory Note Excel',
+                  href: approvedDocumentHrefs.promissoryNote,
                   format: 'XLSX',
               },
               {
@@ -548,15 +571,10 @@ export function LoanRequestDetailPage({
                   format: 'PDF',
               },
               {
-                  label: 'Affidavit of Undertaking PDF',
-                  href: approvedDocumentHrefs.affidavitUndertaking,
+                  label: 'Loan Security Agreement PDF',
+                  href: approvedDocumentHrefs.loanSecurityAgreement,
                   format: 'PDF',
               },
-               {
-                   label: 'Authorization PDF',
-                   href: approvedDocumentHrefs.authorization,
-                   format: 'PDF',
-               },
           ]
         : [];
     const showCorrectedCopyAction =

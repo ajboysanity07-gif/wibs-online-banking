@@ -65,6 +65,7 @@ class LoanRequestPdfService
     {
         $loanRequest->loadMissing(
             'people',
+            'assignedProcessor.adminProfile',
             'reviewedBy.adminProfile',
             'user',
         );
@@ -77,12 +78,20 @@ class LoanRequestPdfService
         $reportHeader['companyName'] = $branding['companyName'] ?? '';
         $reportHeader['designData'] = $reportHeader['designData'] ?? null;
         $officialLoanManager = $this->officialLoanManagerResolver->documentData();
+        $processorName = $loanRequest->assignedProcessor?->adminProfile?->fullname
+            ?? $loanRequest->assignedProcessor?->name
+            ?? $loanRequest->assignedProcessor?->username;
 
         return [
             'loanRequest' => $loanRequest,
             'applicant' => $applicant,
             'coMakerOne' => $coMakerOne,
             'coMakerTwo' => $coMakerTwo,
+            'processor' => [
+                'name' => $processorName,
+                'position' => $processorName !== null ? 'Loan Processor' : null,
+                'signatureData' => null,
+            ],
             'reviewer' => [
                 'name' => $officialLoanManager['name'],
                 'position' => $officialLoanManager['position'],

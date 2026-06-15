@@ -188,8 +188,10 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
         'insurance' => [
             'beneficiary_primary_name' => 'Primary Beneficiary',
             'beneficiary_primary_relationship' => 'Spouse',
+            'beneficiary_primary_birthdate' => '1992-03-21',
             'beneficiary_secondary_name' => 'Secondary Beneficiary',
             'beneficiary_secondary_relationship' => 'Sibling',
+            'beneficiary_secondary_birthdate' => '1988-11-04',
         ],
         'health' => [
             'health_smoker' => false,
@@ -202,6 +204,8 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
             'authorized_recipient_name' => 'Authorized Recipient',
             'authorized_recipient_relationship' => 'Sibling',
             'authorized_recipient_contact' => '09123456781',
+            'authorization_reason' => 'Member will be out of town on release date.',
+            'release_method' => 'Bank transfer',
         ],
         'banking' => [
             'payout_bank_name' => 'WIBS Cooperative Bank',
@@ -213,6 +217,7 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
         'barangay' => [
             'barangay_name' => 'Barangay San Isidro',
             'barangay_clearance_reference' => 'BCL-2026-001',
+            'barangay_locality' => 'Tagum City, Davao del Norte',
         ],
         'declarations' => [
             'declaration_existing_loans' => false,

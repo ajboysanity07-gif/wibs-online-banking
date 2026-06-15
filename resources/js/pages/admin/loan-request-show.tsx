@@ -41,9 +41,12 @@ import {
     affidavitUndertaking as requestsAffidavitUndertakingDocument,
     applicationForm as requestsApplicationFormDocument,
     authorization as requestsAuthorizationDocument,
+    disclosureStatement as requestsDisclosureStatementDocument,
     grepalife as requestsGrepalifeDocument,
+    loanInformation as requestsLoanInformationDocument,
     loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
     planOfPayment as requestsPlanOfPaymentDocument,
+    promissoryNote as requestsPromissoryNoteDocument,
     undertakingBarangay as requestsUndertakingBarangayDocument,
 } from '@/routes/admin/requests/documents';
 import type { BreadcrumbItem } from '@/types';
@@ -253,19 +256,28 @@ export default function LoanRequestShow({
                       currentRequest.id,
                   ).url,
                   grepalife: requestsGrepalifeDocument(currentRequest.id).url,
-                  loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
+                  affidavitUndertaking: requestsAffidavitUndertakingDocument(
+                      currentRequest.id,
+                  ).url,
+                  authorization: requestsAuthorizationDocument(
+                      currentRequest.id,
+                  ).url,
+                  loanInformation: requestsLoanInformationDocument(
                       currentRequest.id,
                   ).url,
                   planOfPayment: requestsPlanOfPaymentDocument(
                       currentRequest.id,
                   ).url,
+                  disclosureStatement: requestsDisclosureStatementDocument(
+                      currentRequest.id,
+                  ).url,
+                  promissoryNote: requestsPromissoryNoteDocument(
+                      currentRequest.id,
+                  ).url,
                   undertakingBarangay: requestsUndertakingBarangayDocument(
                       currentRequest.id,
                   ).url,
-                  affidavitUndertaking: requestsAffidavitUndertakingDocument(
-                      currentRequest.id,
-                  ).url,
-                  authorization: requestsAuthorizationDocument(
+                  loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
                       currentRequest.id,
                   ).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,

@@ -572,6 +572,8 @@ export function LoanRequestDataSectionStep({
                                         field.type === 'number' ||
                                         field.type === 'integer'
                                             ? 'number'
+                                            : field.type === 'date'
+                                              ? 'date'
                                             : 'text'
                                     }
                                     step={
