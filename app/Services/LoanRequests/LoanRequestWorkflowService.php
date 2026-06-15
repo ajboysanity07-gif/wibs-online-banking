@@ -17,6 +17,7 @@ class LoanRequestWorkflowService
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
         private LoanRequestDecisionService $decisionService,
+        private LoanRequestAssignmentService $assignmentService,
     ) {}
 
     public function startReview(
@@ -40,12 +41,16 @@ class LoanRequestWorkflowService
 
             $before = $this->snapshotForAudit($lockedLoanRequest);
             $fromStatus = $this->statusValue($lockedLoanRequest);
-            $assignedOfficerChanged = $lockedLoanRequest->assigned_officer_id === null;
+            $assignmentChange = $this->assignmentService->assignForStartReview(
+                $lockedLoanRequest,
+                $actor,
+            );
+            $assignedOfficerChanged = (bool) (
+                $assignmentChange['assignment_changed'] ?? false
+            );
 
             $lockedLoanRequest->fill([
                 'status' => LoanRequestStatus::UnderReview,
-                'assigned_officer_id' => $lockedLoanRequest->assigned_officer_id
-                    ?? $actor->user_id,
             ]);
             $lockedLoanRequest->save();
 
@@ -64,7 +69,13 @@ class LoanRequestWorkflowService
                 ])),
                 [
                     'remarks' => $this->normalizeOptionalText($remarks),
-                    'assigned_officer_id' => $updated->assigned_officer_id,
+                    'assignment' => [
+                        'changed' => $assignedOfficerChanged,
+                        'before' => $assignmentChange['before'] ?? null,
+                        'after' => $assignmentChange['after'] ?? null,
+                        'previous_officer' => $assignmentChange['previous_officer'] ?? null,
+                        'new_officer' => $assignmentChange['new_officer'] ?? null,
+                    ],
                 ],
                 $before,
                 $this->snapshotForAudit($updated),

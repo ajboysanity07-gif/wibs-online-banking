@@ -1,13 +1,16 @@
 import type { AxiosResponse } from 'axios';
 import client from '@/lib/api/client';
 import {
+    claim as workflowClaimRoute,
     approve as workflowApproveRoute,
     decline as workflowDeclineRoute,
     recommendApproval as workflowRecommendApprovalRoute,
     reject as workflowRejectRoute,
     requestRevision as workflowRequestRevisionRoute,
+    returnToQueue as workflowReturnToQueueRoute,
     startReview as workflowStartReviewRoute,
 } from '@/routes/spa/workflow/loan-requests';
+import { update as workflowAssignmentUpdateRoute } from '@/routes/spa/workflow/loan-requests/assignment';
 import {
     history as superadminStaffHistoryRoute,
     index as superadminStaffIndexRoute,
@@ -153,6 +156,18 @@ type LoanRequestAdminCorrectedCopyResult = {
 
 type LoanRequestWorkflowStartReviewPayload = {
     remarks?: string | null;
+};
+
+type LoanRequestWorkflowClaimPayload = Record<string, never>;
+
+type LoanRequestWorkflowAssignmentPayload = {
+    action: 'assign' | 'reassign';
+    officer_user_id: number;
+    reason: string;
+};
+
+type LoanRequestWorkflowReturnToQueuePayload = {
+    reason: string;
 };
 
 type LoanRequestWorkflowRequestRevisionPayload = {
@@ -354,6 +369,39 @@ export const adminApi = {
     ): Promise<LoanRequestWorkflowResult> {
         const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
             workflowStartReviewRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async claimLoanRequest(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowClaimPayload = {},
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowClaimRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async updateLoanRequestAssignment(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowAssignmentPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowAssignmentUpdateRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async returnLoanRequestToQueue(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowReturnToQueuePayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            workflowReturnToQueueRoute(loanRequestId).url,
             payload,
         );
 

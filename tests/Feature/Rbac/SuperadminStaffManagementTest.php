@@ -346,7 +346,7 @@ test('suspending a loan officer unassigns active applications, preserves termina
     $approved->refresh();
 
     expect($underReview->assigned_officer_id)->toBeNull();
-    expect($recommended->assigned_officer_id)->toBeNull();
+    expect($recommended->assigned_officer_id)->toBe($loanOfficer->user_id);
     expect($approved->assigned_officer_id)->toBe($loanOfficer->user_id);
 
     $unassignments = LoanRequestChange::query()
@@ -354,18 +354,19 @@ test('suspending a loan officer unassigns active applications, preserves termina
         ->orderBy('loan_request_id')
         ->get();
 
-    expect($unassignments)->toHaveCount(2);
+    expect($unassignments)->toHaveCount(1);
     expect($unassignments->pluck('loan_request_id')->all())->toBe([
         $underReview->id,
-        $recommended->id,
     ]);
     $firstMetadata = $unassignments->firstOrFail()->metadata_json;
 
-    expect($firstMetadata['suspended_staff']['user_id'] ?? null)
+    expect($firstMetadata['previous_officer']['user_id'] ?? null)
         ->toBe($loanOfficer->user_id);
-    expect($firstMetadata['actor']['user_id'] ?? null)
-        ->toBe($superadmin->user_id);
-    expect($firstMetadata['suspension_reason'] ?? null)
+    expect($firstMetadata['new_officer'] ?? null)->toBeNull();
+    expect($firstMetadata['cause'] ?? null)
+        ->toBe(\App\Services\LoanRequests\LoanRequestAssignmentService::CAUSE_STAFF_SUSPENDED);
+    expect($unassignments->firstOrFail()->changed_by)->toBe($superadmin->user_id);
+    expect($unassignments->firstOrFail()->reason)
         ->toBe('Suspending access during a compliance review.');
 
     $this
@@ -380,7 +381,7 @@ test('suspending a loan officer unassigns active applications, preserves termina
     $recommended->refresh();
 
     expect($underReview->assigned_officer_id)->toBeNull();
-    expect($recommended->assigned_officer_id)->toBeNull();
+    expect($recommended->assigned_officer_id)->toBe($loanOfficer->user_id);
 });
 
 function createManagedSuperadmin(?string $acctno = null): AppUser

@@ -111,12 +111,15 @@ test('loan officers are limited to review-stage workflow actions', function () {
 
     $pendingReview = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::PendingReview,
+        'assigned_officer_id' => $loanOfficer->user_id,
     ]);
     $underReview = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
+        'assigned_officer_id' => $loanOfficer->user_id,
     ]);
     $recommended = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::RecommendedForApproval,
+        'assigned_officer_id' => $loanOfficer->user_id,
     ]);
 
     expect(Gate::forUser($loanOfficer)->allows('startReview', $pendingReview))->toBeTrue();
@@ -441,6 +444,7 @@ test('loan officers cannot start review once a request is already under review',
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
+        'assigned_officer_id' => $loanOfficer->user_id,
     ]);
 
     $this
@@ -453,7 +457,7 @@ test('loan officers cannot start review once a request is already under review',
     $loanRequest->refresh();
 
     expect($loanRequest->status)->toBe(LoanRequestStatus::UnderReview);
-    expect($loanRequest->assigned_officer_id)->toBeNull();
+    expect($loanRequest->assigned_officer_id)->toBe($loanOfficer->user_id);
     expect(LoanRequestChange::query()->count())->toBe(0);
 });
 
@@ -467,6 +471,7 @@ test('loan officers can request revision through the workflow route and create a
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
+        'assigned_officer_id' => $loanOfficer->user_id,
     ]);
 
     $response = $this
@@ -506,6 +511,7 @@ test('loan officers can reject through the workflow route and create an audit ro
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
+        'assigned_officer_id' => $loanOfficer->user_id,
     ]);
 
     $response = $this
@@ -545,6 +551,7 @@ test('loan officers can recommend approval through the workflow route and create
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
+        'assigned_officer_id' => $loanOfficer->user_id,
     ]);
 
     $response = $this

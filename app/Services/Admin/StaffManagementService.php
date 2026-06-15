@@ -2,15 +2,13 @@
 
 namespace App\Services\Admin;
 
-use App\LoanRequestStatus;
 use App\Models\AdminProfile;
 use App\Models\AppUser;
-use App\Models\LoanRequest;
-use App\Models\LoanRequestChange;
 use App\Models\Role;
 use App\Models\StaffAccessControl;
 use App\Models\UserProfile;
 use App\Models\UserRoleChange;
+use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Support\SchemaCapabilities;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,6 +21,7 @@ class StaffManagementService
 {
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
+        private LoanRequestAssignmentService $assignmentService,
     ) {}
 
     public function getPaginated(
@@ -242,6 +241,15 @@ class StaffManagementService
             $beforeRoles = $this->visibleRoleNames($user);
             $beforeStatus = $this->auditStaffStatus($user);
 
+            $unassignedLoanRequestIds = $normalizedRole === Role::LOAN_OFFICER
+                ? $this->assignmentService->unassignUnavailableOfficerRequests(
+                    $user,
+                    $actor,
+                    $normalizedReason,
+                    LoanRequestAssignmentService::CAUSE_ROLE_REMOVED,
+                )
+                : [];
+
             Role::detachNamedRole($user, $normalizedRole);
 
             $user = $this->reloadUser($user->user_id);
@@ -258,7 +266,9 @@ class StaffManagementService
                 $beforeStatus,
                 $this->auditStaffStatus($user),
                 $normalizedReason,
-                null,
+                $unassignedLoanRequestIds !== []
+                    ? ['unassigned_loan_request_ids' => $unassignedLoanRequestIds]
+                    : null,
             );
 
             return $this->reloadUser($user->user_id);
@@ -306,7 +316,12 @@ class StaffManagementService
             $user->setRelation('staffAccessControl', $control);
 
             $unassignedLoanRequestIds = $this->userAlreadyHasEditableRole($user, Role::LOAN_OFFICER)
-                ? $this->unassignSuspendedOfficerRequests($user, $actor, $normalizedReason)
+                ? $this->assignmentService->unassignUnavailableOfficerRequests(
+                    $user,
+                    $actor,
+                    $normalizedReason,
+                    LoanRequestAssignmentService::CAUSE_STAFF_SUSPENDED,
+                )
                 : [];
 
             $user = $this->reloadUser($user->user_id);
@@ -825,111 +840,5 @@ class StaffManagementService
             'reason' => $reason,
             'metadata_json' => $metadata,
         ]);
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function unassignSuspendedOfficerRequests(
-        AppUser $suspendedOfficer,
-        AppUser $actor,
-        string $reason,
-    ): array {
-        if (! $this->schemaCapabilities->hasTable('loan_requests')) {
-            return [];
-        }
-
-        $loanRequests = LoanRequest::query()
-            ->where('assigned_officer_id', $suspendedOfficer->user_id)
-            ->whereIn('status', $this->reassignableLoanStatuses())
-            ->lockForUpdate()
-            ->get();
-
-        foreach ($loanRequests as $loanRequest) {
-            $before = $this->loanRequestAssignmentSnapshot($loanRequest);
-            $fromStatus = $this->loanRequestStatusValue($loanRequest);
-
-            $loanRequest->forceFill([
-                'assigned_officer_id' => null,
-            ])->save();
-
-            $after = $this->loanRequestAssignmentSnapshot($loanRequest->refresh());
-
-            if (! $this->schemaCapabilities->hasTable('loan_request_changes')) {
-                continue;
-            }
-
-            $audit = [
-                'loan_request_id' => $loanRequest->id,
-                'changed_by' => $actor->user_id,
-                'action' => LoanRequestChange::ACTION_UNASSIGN_SUSPENDED_OFFICER,
-                'reason' => $reason,
-                'before_json' => $before,
-                'after_json' => $after,
-                'changed_fields_json' => ['assigned_officer_id'],
-            ];
-
-            if ($this->schemaCapabilities->hasColumn('loan_request_changes', 'from_status')) {
-                $audit['from_status'] = $fromStatus;
-            }
-
-            if ($this->schemaCapabilities->hasColumn('loan_request_changes', 'to_status')) {
-                $audit['to_status'] = $fromStatus;
-            }
-
-            if ($this->schemaCapabilities->hasColumn('loan_request_changes', 'metadata_json')) {
-                $audit['metadata_json'] = [
-                    'suspended_staff' => [
-                        'user_id' => $suspendedOfficer->user_id,
-                        'display_code' => $suspendedOfficer->display_code,
-                        'username' => $suspendedOfficer->username,
-                    ],
-                    'actor' => [
-                        'user_id' => $actor->user_id,
-                        'display_code' => $actor->display_code,
-                        'name' => $actor->name,
-                    ],
-                    'suspension_reason' => $reason,
-                ];
-            }
-
-            LoanRequestChange::query()->create($audit);
-        }
-
-        return $loanRequests->pluck('id')->map(static fn (mixed $id): int => (int) $id)->all();
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function reassignableLoanStatuses(): array
-    {
-        return [
-            LoanRequestStatus::PendingCoMakerSignatures->value,
-            LoanRequestStatus::Submitted->value,
-            LoanRequestStatus::PendingReview->value,
-            LoanRequestStatus::UnderReview->value,
-            LoanRequestStatus::NeedsRevision->value,
-            LoanRequestStatus::RecommendedForApproval->value,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function loanRequestAssignmentSnapshot(LoanRequest $loanRequest): array
-    {
-        return [
-            'id' => $loanRequest->id,
-            'status' => $this->loanRequestStatusValue($loanRequest),
-            'assigned_officer_id' => $loanRequest->assigned_officer_id,
-        ];
-    }
-
-    private function loanRequestStatusValue(LoanRequest $loanRequest): string
-    {
-        return $loanRequest->status instanceof LoanRequestStatus
-            ? $loanRequest->status->value
-            : (string) $loanRequest->status;
     }
 }

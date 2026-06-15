@@ -114,6 +114,7 @@ class Role extends Model
                 $permissionsByName,
                 [
                     Permission::LOAN_VIEW,
+                    Permission::LOAN_MANAGE_ASSIGNMENT,
                     Permission::STAFF_VIEW,
                     Permission::STAFF_MANAGE,
                     Permission::MEMBER_VIEW,
@@ -129,12 +130,15 @@ class Role extends Model
             self::LOAN_OFFICER => self::permissionIds($permissionsByName, [
                 Permission::LOAN_VIEW,
                 Permission::LOAN_REVIEW,
+                Permission::LOAN_CLAIM,
+                Permission::LOAN_RETURN_TO_QUEUE,
                 Permission::LOAN_REQUEST_REVISION,
                 Permission::LOAN_REJECT,
                 Permission::LOAN_RECOMMEND_APPROVAL,
             ]),
             self::LOAN_MANAGER => self::permissionIds($permissionsByName, [
                 Permission::LOAN_VIEW,
+                Permission::LOAN_MANAGE_ASSIGNMENT,
                 Permission::LOAN_APPROVE,
                 Permission::LOAN_DECLINE,
             ]),

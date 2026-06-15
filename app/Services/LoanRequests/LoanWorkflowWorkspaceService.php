@@ -305,6 +305,9 @@ class LoanWorkflowWorkspaceService
 
         if ($user->hasRole(Role::LOAN_MANAGER)) {
             $statuses = array_merge($statuses, [
+                LoanRequestStatus::PendingReview->value,
+                LoanRequestStatus::UnderReview->value,
+                LoanRequestStatus::NeedsRevision->value,
                 LoanRequestStatus::RecommendedForApproval->value,
                 LoanRequestStatus::Approved->value,
                 LoanRequestStatus::Declined->value,
@@ -323,6 +326,38 @@ class LoanWorkflowWorkspaceService
             $user->hasRole(Role::SUPERADMIN) ||
             $user->isLegacySuperadmin()
         ) {
+            return;
+        }
+
+        if ($user->hasRole(Role::LOAN_MANAGER)) {
+            $statuses = $this->visibleStatusesFor($user);
+
+            if ($statuses === []) {
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+
+            $query->whereIn('status', $statuses);
+
+            return;
+        }
+
+        if ($user->hasRole(Role::LOAN_OFFICER)) {
+            $query->where(function (Builder $builder) use ($user): void {
+                $builder
+                    ->where(function (Builder $queueQuery): void {
+                        $queueQuery
+                            ->whereIn('status', [
+                                LoanRequestStatus::PendingReview->value,
+                                LoanRequestStatus::UnderReview->value,
+                                LoanRequestStatus::NeedsRevision->value,
+                            ])
+                            ->whereNull('assigned_officer_id');
+                    })
+                    ->orWhere('assigned_officer_id', $user->user_id);
+            });
+
             return;
         }
 

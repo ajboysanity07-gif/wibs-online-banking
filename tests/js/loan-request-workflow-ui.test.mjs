@@ -55,6 +55,11 @@ test('loan request queue surfaces keep pending review distinct and expose workfl
     assert.match(queueFile, /rejected/);
     assert.match(queueFile, /converted_to_loan/);
     assert.match(queueFile, /reported/);
+    assert.match(queueFile, /Assignee/);
+    assert.match(queueFile, /assignmentFilters/);
+    assert.match(queueFile, /assignmentOfficers/);
+    assert.match(queueFile, /All loan officers/);
+    assert.match(queueFile, /High workload/);
     assert.doesNotMatch(queueFile, /status === 'pending_review' \|\|/);
     assert.match(adminPageFile, /workspace="admin"/);
     assert.match(staffPageFile, /workspace="staff"/);

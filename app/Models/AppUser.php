@@ -99,6 +99,11 @@ class AppUser extends Authenticatable
             ->latestOfMany();
     }
 
+    public function assignedLoanRequests(): HasMany
+    {
+        return $this->hasMany(LoanRequest::class, 'assigned_officer_id', 'user_id');
+    }
+
     public function userProfile(): HasOne
     {
         return $this->hasOne(UserProfile::class, 'user_id', 'user_id');

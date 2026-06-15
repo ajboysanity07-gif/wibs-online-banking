@@ -86,6 +86,7 @@ const requestsTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
+    { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-16', cellClassName: 'w-20' },
     { headerClassName: 'w-20', cellClassName: 'w-20' },
@@ -108,6 +109,10 @@ export function LoanRequestQueuePage({
     const [loanType, setLoanType] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] =
         useState<LoanRequestQueueStatusFilter>('all');
+    const [assignmentFilter, setAssignmentFilter] = useState<
+        'unassigned' | 'mine' | 'all' | null
+    >(null);
+    const [officerId, setOfficerId] = useState<number | null>(null);
     const [minAmount, setMinAmount] = useState('');
     const [maxAmount, setMaxAmount] = useState('');
     const [page, setPage] = useState(1);
@@ -128,6 +133,8 @@ export function LoanRequestQueuePage({
         perPage,
         loanType,
         status,
+        assignment: assignmentFilter,
+        officerId,
         reported,
         minAmount: minAmountValue,
         maxAmount: maxAmountValue,
@@ -144,6 +151,12 @@ export function LoanRequestQueuePage({
                 accessorKey: 'member_name',
                 header: 'Member',
                 cell: ({ row }) => row.original.member_name ?? '--',
+            },
+            {
+                accessorKey: 'assigned_officer',
+                header: 'Assignee',
+                cell: ({ row }) =>
+                    row.original.assigned_officer?.name ?? 'Unassigned',
             },
             {
                 accessorKey: 'loan_type',
@@ -249,6 +262,8 @@ export function LoanRequestQueuePage({
         searchValue !== '' ? searchValue : null,
         loanType,
         statusFilter !== 'all' ? statusFilter : null,
+        assignmentFilter,
+        officerId,
         minAmountValue,
         maxAmountValue,
     ].filter((value) => value !== null && value !== undefined).length;
@@ -300,6 +315,20 @@ export function LoanRequestQueuePage({
         loanType ? `Type: ${loanType}` : null,
         statusFilter !== 'all'
             ? `Filter: ${loanRequestQueueStatusLabels[statusFilter]}`
+            : null,
+        assignmentFilter
+            ? `Assignment: ${
+                  meta.assignmentFilters?.find(
+                      (option) => option.value === assignmentFilter,
+                  )?.label ?? assignmentFilter
+              }`
+            : null,
+        officerId !== null
+            ? `Officer: ${
+                  meta.assignmentOfficers?.find(
+                      (officer) => officer.user_id === officerId,
+                  )?.name ?? officerId
+              }`
             : null,
         minAmountValue !== undefined
             ? `Min: ${formatCurrency(minAmountValue)}`
@@ -427,6 +456,8 @@ export function LoanRequestQueuePage({
                                         setSearch('');
                                         setLoanType(null);
                                         setStatusFilter('all');
+                                        setAssignmentFilter(null);
+                                        setOfficerId(null);
                                         setMinAmount('');
                                         setMaxAmount('');
                                         setPage(1);
@@ -438,6 +469,106 @@ export function LoanRequestQueuePage({
                         />
 
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {workspace === 'staff' &&
+                            (meta.assignmentFilters?.length ?? 0) > 0 ? (
+                                <div className="space-y-1">
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                        Assignment
+                                    </span>
+                                    <Select
+                                        value={assignmentFilter ?? 'default'}
+                                        onValueChange={(value) => {
+                                            const nextAssignment =
+                                                value === 'default'
+                                                    ? null
+                                                    : (value as
+                                                          | 'unassigned'
+                                                          | 'mine'
+                                                          | 'all');
+
+                                            setAssignmentFilter(
+                                                nextAssignment,
+                                            );
+
+                                            if (
+                                                nextAssignment !== null &&
+                                                nextAssignment !== 'all'
+                                            ) {
+                                                setOfficerId(null);
+                                            }
+
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <SelectTrigger aria-label="Assignment">
+                                            <SelectValue placeholder="Default view" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="default">
+                                                Default view
+                                            </SelectItem>
+                                            {meta.assignmentFilters?.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ) : null}
+
+                            {workspace === 'staff' &&
+                            (meta.assignmentOfficers?.length ?? 0) > 0 &&
+                            (assignmentFilter === null ||
+                                assignmentFilter === 'all') ? (
+                                <div className="space-y-1">
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                        Loan officer
+                                    </span>
+                                    <Select
+                                        value={
+                                            officerId !== null
+                                                ? `${officerId}`
+                                                : 'all'
+                                        }
+                                        onValueChange={(value) => {
+                                            setOfficerId(
+                                                value === 'all'
+                                                    ? null
+                                                    : Number(value),
+                                            );
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <SelectTrigger aria-label="Loan officer">
+                                            <SelectValue placeholder="All loan officers" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All loan officers
+                                            </SelectItem>
+                                            {meta.assignmentOfficers?.map(
+                                                (officer) => (
+                                                    <SelectItem
+                                                        key={
+                                                            officer.user_id
+                                                        }
+                                                        value={`${officer.user_id}`}
+                                                    >
+                                                        {`${officer.name} - ${officer.active_assignment_count} active application${officer.active_assignment_count === 1 ? '' : 's'}${officer.has_workload_warning ? ' - High workload' : ''}`}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ) : null}
+
                             <div className="space-y-1">
                                 <span className="text-xs font-medium text-muted-foreground">
                                     Loan type
@@ -640,6 +771,16 @@ export function LoanRequestQueuePage({
                                                 </div>
                                             </div>
                                             <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Assignee
+                                                    </p>
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        {item.assigned_officer
+                                                            ?.name ??
+                                                            'Unassigned'}
+                                                    </p>
+                                                </div>
                                                 <div className="space-y-1">
                                                     <p className="text-muted-foreground">
                                                         Amount

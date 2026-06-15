@@ -7,6 +7,7 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -28,6 +29,7 @@ class LoanRequestController extends Controller
     public function show(
         Request $request,
         LoanRequest $loanRequest,
+        LoanRequestAssignmentService $assignmentService,
         LoanRequestDecisionService $decisionService,
         LoanRequestPayloadSerializer $serializer,
         LoanWorkflowWorkspaceService $workspaceService,
@@ -42,8 +44,14 @@ class LoanRequestController extends Controller
 
         abort_unless($actor instanceof AppUser, 403);
 
+        $detail = $serializer->serializeDetail($loanRequest);
+
         $payload = $this->sanitizePayload([
-            ...$serializer->serializeDetail($loanRequest),
+            ...$detail,
+            'loanRequest' => [
+                ...$detail['loanRequest'],
+                ...$assignmentService->capabilitiesFor($loanRequest, $actor),
+            ],
             'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
             'workflowPermissions' => $workspaceService->workflowPermissions($actor),
             'workflowContext' => [
@@ -52,6 +60,11 @@ class LoanRequestController extends Controller
                     $actor,
                 ),
             ],
+            'eligibleOfficers' => $assignmentService->canManageAssignments(
+                $actor,
+            )
+                ? $assignmentService->eligibleOfficerOptions($loanRequest)
+                : [],
         ]);
 
         return Inertia::render('staff/loan-request-show', $payload);

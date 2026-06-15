@@ -34,6 +34,11 @@ class LoanRequestPayloadSerializer
     private const AUDIT_ACTION_LABELS = [
         'submitted' => 'Submitted',
         LoanRequestChange::ACTION_START_REVIEW => 'Review Started',
+        LoanRequestChange::ACTION_ASSIGNMENT_CLAIMED => 'Claimed',
+        LoanRequestChange::ACTION_ASSIGNMENT_ASSIGNED => 'Assigned',
+        LoanRequestChange::ACTION_ASSIGNMENT_REASSIGNED => 'Reassigned',
+        LoanRequestChange::ACTION_ASSIGNMENT_RETURNED_TO_QUEUE => 'Returned to Queue',
+        LoanRequestChange::ACTION_ASSIGNMENT_UNASSIGNED_STAFF_UNAVAILABLE => 'Returned to Queue',
         LoanRequestChange::ACTION_REQUEST_REVISION => 'Revision Requested',
         LoanRequestChange::ACTION_REJECT => 'Rejected',
         LoanRequestChange::ACTION_RECOMMEND_APPROVAL => 'Recommended for Approval',
@@ -206,7 +211,7 @@ class LoanRequestPayloadSerializer
     }
 
     /**
-     * @return array{user_id: int, name: string}|null
+     * @return array{user_id: int, name: string, display_code: string}|null
      */
     private function serializeActor(mixed $actor): ?array
     {
@@ -217,6 +222,7 @@ class LoanRequestPayloadSerializer
         return [
             'user_id' => $actor->user_id,
             'name' => $actor->adminProfile?->fullname ?? $actor->name,
+            'display_code' => $actor->display_code,
         ];
     }
 

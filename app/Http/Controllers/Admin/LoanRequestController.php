@@ -8,6 +8,7 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -22,6 +23,7 @@ class LoanRequestController extends Controller
 {
     public function show(
         Request $request,
+        LoanRequestAssignmentService $assignmentService,
         LoanRequestDecisionService $decisionService,
         LoanRequestPayloadSerializer $serializer,
         LoanRequestService $loanRequestService,
@@ -74,8 +76,17 @@ class LoanRequestController extends Controller
         $correctionReportSource = $this->resolveCorrectionReportSource(
             $loanRequestRecord,
         );
+        $detail = $serializer->serializeDetail($loanRequestRecord);
+
         $payload = $this->sanitizePayload([
-            ...$serializer->serializeDetail($loanRequestRecord),
+            ...$detail,
+            'loanRequest' => [
+                ...$detail['loanRequest'],
+                ...$assignmentService->capabilitiesFor(
+                    $loanRequestRecord,
+                    $actor instanceof AppUser ? $actor : null,
+                ),
+            ],
             'auditTrail' => $serializer->serializeAuditTrail($loanRequestRecord),
             'decision' => $decision,
             'workflowPermissions' => $this->resolveWorkflowPermissions($actor),

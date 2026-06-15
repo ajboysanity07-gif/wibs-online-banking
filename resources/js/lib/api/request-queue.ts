@@ -22,6 +22,8 @@ export type RequestQueueQueryParams = {
     search?: string;
     loanType?: string;
     status?: string;
+    assignment?: 'unassigned' | 'mine' | 'all';
+    officerId?: number;
     reported?: boolean;
     minAmount?: number;
     maxAmount?: number;

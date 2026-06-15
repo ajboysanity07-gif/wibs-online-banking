@@ -45,16 +45,61 @@ class LoanRequestPolicy
 
     public function startReview(AppUser $user, LoanRequest $loanRequest): bool
     {
+        return $this->canStartReviewWorkflow(
+            $user,
+            $loanRequest,
+        );
+    }
+
+    public function claim(AppUser $user, LoanRequest $loanRequest): bool
+    {
         return $this->canActOnAnotherUsersRequest(
             $user,
             $loanRequest,
-            Permission::LOAN_REVIEW,
-        ) && $this->statusValue($loanRequest) === LoanRequestStatus::PendingReview->value;
+            Permission::LOAN_CLAIM,
+        ) && $this->isAssignableOperationalStatus($loanRequest);
+    }
+
+    public function manageAssignment(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        if (! $user->hasActiveStaffAccess()) {
+            return false;
+        }
+
+        if (! $this->isAssignableOperationalStatus($loanRequest)) {
+            return false;
+        }
+
+        return $user->hasPermission(Permission::LOAN_MANAGE_ASSIGNMENT)
+            || $user->isLegacySuperadmin();
+    }
+
+    public function returnToQueue(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        if (! $this->isAssignableOperationalStatus($loanRequest)) {
+            return false;
+        }
+
+        if (
+            $user->hasActiveStaffAccess()
+            && (
+                $user->hasPermission(Permission::LOAN_MANAGE_ASSIGNMENT)
+                || $user->isLegacySuperadmin()
+            )
+        ) {
+            return $loanRequest->assigned_officer_id !== null;
+        }
+
+        return $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_RETURN_TO_QUEUE,
+        ) && $loanRequest->assigned_officer_id === $user->user_id;
     }
 
     public function requestRevision(AppUser $user, LoanRequest $loanRequest): bool
     {
-        return $this->canActOnAnotherUsersRequest(
+        return $this->canActOnAssignedRequest(
             $user,
             $loanRequest,
             Permission::LOAN_REQUEST_REVISION,
@@ -66,7 +111,7 @@ class LoanRequestPolicy
 
     public function reject(AppUser $user, LoanRequest $loanRequest): bool
     {
-        return $this->canActOnAnotherUsersRequest(
+        return $this->canActOnAssignedRequest(
             $user,
             $loanRequest,
             Permission::LOAN_REJECT,
@@ -78,7 +123,7 @@ class LoanRequestPolicy
 
     public function recommendApproval(AppUser $user, LoanRequest $loanRequest): bool
     {
-        return $this->canActOnAnotherUsersRequest(
+        return $this->canActOnAssignedRequest(
             $user,
             $loanRequest,
             Permission::LOAN_RECOMMEND_APPROVAL,
@@ -128,6 +173,35 @@ class LoanRequestPolicy
             && $user->hasPermission($permission);
     }
 
+    private function canActOnAssignedRequest(
+        AppUser $user,
+        LoanRequest $loanRequest,
+        string $permission,
+    ): bool {
+        return $this->canActOnAnotherUsersRequest($user, $loanRequest, $permission)
+            && $loanRequest->assigned_officer_id === $user->user_id;
+    }
+
+    private function canStartReviewWorkflow(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        if (! $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_REVIEW,
+        )) {
+            return false;
+        }
+
+        if ($this->statusValue($loanRequest) !== LoanRequestStatus::PendingReview->value) {
+            return false;
+        }
+
+        return $loanRequest->assigned_officer_id === null
+            || $loanRequest->assigned_officer_id === $user->user_id;
+    }
+
     private function canMonitorOtherUsersRequest(AppUser $user): bool
     {
         if (! $user->hasActiveStaffAccess()) {
@@ -168,5 +242,14 @@ class LoanRequestPolicy
         return $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
+    }
+
+    private function isAssignableOperationalStatus(LoanRequest $loanRequest): bool
+    {
+        return in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::PendingReview->value,
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::NeedsRevision->value,
+        ], true);
     }
 }

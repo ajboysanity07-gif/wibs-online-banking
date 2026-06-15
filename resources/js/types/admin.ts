@@ -1,4 +1,8 @@
 import type { LoanRequestStatusValue } from './loan-requests';
+import type {
+    LoanRequestAssignmentOfficerOption,
+    LoanRequestAssignmentState,
+} from './loan-requests';
 import type { PaginatedResponse, PaginationMeta } from './pagination';
 
 export type { PaginatedResponse, PaginationMeta } from './pagination';
@@ -45,6 +49,16 @@ export type RequestPreview = {
     approved_amount: number | string | null;
     reviewed_at: string | null;
     submitted_at: string | null;
+    assigned_officer: {
+        user_id: number;
+        name: string;
+        display_code: string;
+    } | null;
+    assignment_state: LoanRequestAssignmentState | null;
+    can_claim: boolean;
+    can_assign: boolean;
+    can_reassign: boolean;
+    can_return_to_queue: boolean;
     has_open_correction_report: boolean;
     latest_correction_report_id: number | null;
     latest_correction_report_reported_at: string | null;
@@ -159,6 +173,11 @@ export type RequestsResponse = {
         message: string | null;
         loanTypes: string[];
         openCorrectionReports: number;
+        assignmentFilters?: Array<{
+            value: 'unassigned' | 'mine' | 'all';
+            label: string;
+        }>;
+        assignmentOfficers?: LoanRequestAssignmentOfficerOption[];
     };
 };
 

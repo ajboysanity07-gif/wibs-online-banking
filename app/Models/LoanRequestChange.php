@@ -9,6 +9,16 @@ class LoanRequestChange extends Model
 {
     public const ACTION_START_REVIEW = 'start_review';
 
+    public const ACTION_ASSIGNMENT_CLAIMED = 'assignment_claimed';
+
+    public const ACTION_ASSIGNMENT_ASSIGNED = 'assignment_assigned';
+
+    public const ACTION_ASSIGNMENT_REASSIGNED = 'assignment_reassigned';
+
+    public const ACTION_ASSIGNMENT_RETURNED_TO_QUEUE = 'assignment_returned_to_queue';
+
+    public const ACTION_ASSIGNMENT_UNASSIGNED_STAFF_UNAVAILABLE = 'assignment_unassigned_staff_unavailable';
+
     public const ACTION_REQUEST_REVISION = 'request_revision';
 
     public const ACTION_REJECT = 'reject';
@@ -19,7 +29,7 @@ class LoanRequestChange extends Model
 
     public const ACTION_DECLINE = 'decline';
 
-    public const ACTION_UNASSIGN_SUSPENDED_OFFICER = 'unassign_suspended_officer';
+    public const ACTION_UNASSIGN_SUSPENDED_OFFICER = self::ACTION_ASSIGNMENT_UNASSIGNED_STAFF_UNAVAILABLE;
 
     public const ACTION_CONVERT_TO_LOAN = 'convert_to_loan';
 

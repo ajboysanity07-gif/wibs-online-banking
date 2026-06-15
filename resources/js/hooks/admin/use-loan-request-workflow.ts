@@ -4,12 +4,27 @@ import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import type { LoanRequestWorkflowResult } from '@/types/loan-requests';
 
 export type LoanRequestWorkflowAction =
+    | 'claim'
+    | 'assign'
+    | 'reassign'
+    | 'returnToQueue'
     | 'startReview'
     | 'requestRevision'
     | 'reject'
     | 'recommendApproval'
     | 'approve'
     | 'decline';
+
+export type LoanRequestClaimPayload = Record<string, never>;
+
+export type LoanRequestAssignmentPayload = {
+    officer_user_id: number;
+    reason: string;
+};
+
+export type LoanRequestReturnToQueuePayload = {
+    reason: string;
+};
 
 export type LoanRequestStartReviewPayload = {
     remarks?: string | null;
@@ -39,6 +54,9 @@ export type LoanRequestWorkflowDeclinePayload = {
 };
 
 type LoanRequestWorkflowPayload =
+    | LoanRequestClaimPayload
+    | LoanRequestAssignmentPayload
+    | LoanRequestReturnToQueuePayload
     | LoanRequestStartReviewPayload
     | LoanRequestRequestRevisionPayload
     | LoanRequestRejectPayload
@@ -54,6 +72,10 @@ type LoanRequestWorkflowOptions = {
 };
 
 const successCopy: Record<LoanRequestWorkflowAction, string> = {
+    claim: 'Loan request claimed successfully.',
+    assign: 'Loan request assigned successfully.',
+    reassign: 'Loan request reassigned successfully.',
+    returnToQueue: 'Loan request returned to the queue.',
     startReview: 'Loan request moved to under review.',
     requestRevision: 'Revision request sent successfully.',
     reject: 'Loan request rejected successfully.',
@@ -63,6 +85,10 @@ const successCopy: Record<LoanRequestWorkflowAction, string> = {
 };
 
 const errorCopy: Record<LoanRequestWorkflowAction, string> = {
+    claim: 'Failed to claim the loan request.',
+    assign: 'Failed to assign the loan request.',
+    reassign: 'Failed to reassign the loan request.',
+    returnToQueue: 'Failed to return the loan request to the queue.',
     startReview: 'Failed to start reviewing the loan request.',
     requestRevision: 'Failed to request a revision.',
     reject: 'Failed to reject the loan request.',
@@ -93,6 +119,40 @@ export function useLoanRequestWorkflow(
 
             try {
                 const result = await (async (): Promise<LoanRequestWorkflowResult> => {
+                    if (action === 'claim') {
+                        return adminApi.claimLoanRequest(
+                            loanRequestId,
+                            payload as LoanRequestClaimPayload,
+                        );
+                    }
+
+                    if (action === 'assign') {
+                        return adminApi.updateLoanRequestAssignment(
+                            loanRequestId,
+                            {
+                                ...(payload as LoanRequestAssignmentPayload),
+                                action: 'assign',
+                            },
+                        );
+                    }
+
+                    if (action === 'reassign') {
+                        return adminApi.updateLoanRequestAssignment(
+                            loanRequestId,
+                            {
+                                ...(payload as LoanRequestAssignmentPayload),
+                                action: 'reassign',
+                            },
+                        );
+                    }
+
+                    if (action === 'returnToQueue') {
+                        return adminApi.returnLoanRequestToQueue(
+                            loanRequestId,
+                            payload as LoanRequestReturnToQueuePayload,
+                        );
+                    }
+
                     if (action === 'startReview') {
                         return adminApi.startLoanRequestReview(
                             loanRequestId,
@@ -158,6 +218,22 @@ export function useLoanRequestWorkflow(
 
     return {
         processingIds,
+        claimLoanRequest: (
+            loanRequestId: number,
+            payload: LoanRequestClaimPayload = {},
+        ) => runAction(loanRequestId, 'claim', payload),
+        assignLoanRequest: (
+            loanRequestId: number,
+            payload: LoanRequestAssignmentPayload,
+        ) => runAction(loanRequestId, 'assign', payload),
+        reassignLoanRequest: (
+            loanRequestId: number,
+            payload: LoanRequestAssignmentPayload,
+        ) => runAction(loanRequestId, 'reassign', payload),
+        returnLoanRequestToQueue: (
+            loanRequestId: number,
+            payload: LoanRequestReturnToQueuePayload,
+        ) => runAction(loanRequestId, 'returnToQueue', payload),
         startReview: (
             loanRequestId: number,
             payload: LoanRequestStartReviewPayload = {},

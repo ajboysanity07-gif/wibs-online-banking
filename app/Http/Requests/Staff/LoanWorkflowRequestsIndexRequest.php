@@ -32,6 +32,12 @@ class LoanWorkflowRequestsIndexRequest extends FormRequest
                 'string',
                 Rule::in(LoanRequestStatus::requestFilterValues()),
             ],
+            'assignment' => [
+                'nullable',
+                'string',
+                Rule::in(['unassigned', 'mine', 'all']),
+            ],
+            'officerId' => ['nullable', 'integer', 'min:1'],
             'minAmount' => ['nullable', 'numeric', 'min:0'],
             'maxAmount' => ['nullable', 'numeric', 'min:0'],
             'reported' => ['nullable', 'boolean'],

@@ -132,6 +132,12 @@ Route::prefix('spa')->middleware('web')->group(function () {
         ->prefix('workflow/loan-requests')
         ->name('spa.workflow.loan-requests.')
         ->group(function () {
+            Route::patch('{loanRequest}/claim', [SpaLoanRequestWorkflowController::class, 'claim'])
+                ->name('claim');
+            Route::patch('{loanRequest}/assignment', [SpaLoanRequestWorkflowController::class, 'updateAssignment'])
+                ->name('assignment.update');
+            Route::patch('{loanRequest}/return-to-queue', [SpaLoanRequestWorkflowController::class, 'returnToQueue'])
+                ->name('return-to-queue');
             Route::patch('{loanRequest}/start-review', [SpaLoanRequestWorkflowController::class, 'startReview'])
                 ->name('start-review');
             Route::patch('{loanRequest}/request-revision', [SpaLoanRequestWorkflowController::class, 'requestRevision'])

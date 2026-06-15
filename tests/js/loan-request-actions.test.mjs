@@ -46,14 +46,24 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(detailFile, /sm:grid-cols-2/);
     assert.match(detailFile, /variant="ghost"/);
     assert.match(workflowActionsFile, /Start Review/);
+    assert.match(workflowActionsFile, /Claim/);
+    assert.match(workflowActionsFile, /Assign Officer/);
+    assert.match(workflowActionsFile, /Reassign Officer/);
+    assert.match(workflowActionsFile, /Return to Queue/);
     assert.match(workflowActionsFile, /Request Revision/);
     assert.match(workflowActionsFile, /Recommend Approval/);
+    assert.match(workflowActionsFile, /High workload/);
     assert.doesNotMatch(workflowActionsFile, /Convert to Loan/);
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
     assert.match(adminPageFile, /workflowPermissions/);
     assert.match(staffPageFile, /LoanRequestDetailPage/);
     assert.match(staffPageFile, /useLoanRequestWorkflow/);
+    assert.match(staffPageFile, /claimLoanRequest/);
+    assert.match(staffPageFile, /assignLoanRequest/);
+    assert.match(staffPageFile, /returnLoanRequestToQueue/);
+    assert.match(staffPageFile, /currentRequest\.can_claim/);
+    assert.match(staffPageFile, /currentEligibleOfficers/);
     assert.match(staffPageFile, /Back to workflow queue/);
     assert.doesNotMatch(staffPageFile, /convertToLoan/);
     assert.match(

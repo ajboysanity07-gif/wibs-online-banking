@@ -12,6 +12,8 @@ export type RequestQueueParams = {
     perPage: number;
     loanType?: string | null;
     status?: string | null;
+    assignment?: 'unassigned' | 'mine' | 'all' | null;
+    officerId?: number | null;
     reported?: boolean;
     minAmount?: number;
     maxAmount?: number;
@@ -29,6 +31,8 @@ const emptyResponse: RequestsResponse = {
         message: null,
         loanTypes: [],
         openCorrectionReports: 0,
+        assignmentFilters: [],
+        assignmentOfficers: [],
     },
 };
 
@@ -57,6 +61,8 @@ export function useRequestQueue(params: RequestQueueParams) {
                             trimmedSearch !== '' ? trimmedSearch : undefined,
                         loanType: params.loanType ?? undefined,
                         status: params.status ?? undefined,
+                        assignment: params.assignment ?? undefined,
+                        officerId: params.officerId ?? undefined,
                         reported: params.reported ?? undefined,
                         minAmount: params.minAmount ?? undefined,
                         maxAmount: params.maxAmount ?? undefined,
@@ -86,10 +92,12 @@ export function useRequestQueue(params: RequestQueueParams) {
         params.loanType,
         params.maxAmount,
         params.minAmount,
+        params.officerId,
         params.page,
         params.perPage,
         params.reported,
         params.search,
+        params.assignment,
         params.status,
         params.workspace,
     ]);

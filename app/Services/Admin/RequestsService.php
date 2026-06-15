@@ -7,6 +7,7 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Models\Role;
+use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -19,6 +20,7 @@ class RequestsService
 
     public function __construct(
         private LoanWorkflowWorkspaceService $workspaceService,
+        private LoanRequestAssignmentService $assignmentService,
     ) {}
 
     /**
@@ -162,6 +164,8 @@ class RequestsService
         int $page,
         ?string $loanType = null,
         ?string $status = null,
+        ?string $assignment = null,
+        ?int $officerId = null,
         ?float $minAmount = null,
         ?float $maxAmount = null,
         ?bool $reported = null,
@@ -180,6 +184,12 @@ class RequestsService
         $hasCorrectionReportsTable = $this->hasCorrectionReportsTable();
         $query = $this->baseQuery();
         $this->workspaceService->applyVisibleScope($query, $user);
+        $this->assignmentService->applyOfficerQueueScope(
+            $query,
+            $user,
+            $assignment,
+            $officerId,
+        );
 
         if ($hasCorrectionReportsTable) {
             $query->with('latestOpenCorrectionReport.user');
@@ -234,6 +244,7 @@ class RequestsService
                 ->map(fn (LoanRequest $request) => $this->mapRequest(
                     $request,
                     $hasCorrectionReportsTable,
+                    $user,
                 )),
             'available' => ! $reportedUnavailable,
             'message' => $reportedUnavailable
@@ -242,6 +253,10 @@ class RequestsService
             'paginator' => $paginator,
             'loanTypes' => $this->getLoanTypeOptionsForWorkflowUser($user),
             'openCorrectionReports' => $this->countOpenCorrectionReports($user),
+            'assignmentFilters' => $this->assignmentService->assignmentFilterOptionsFor($user),
+            'assignmentOfficers' => $this->assignmentService->canManageAssignments($user)
+                ? $this->assignmentService->eligibleOfficerOptions()
+                : [],
         ];
     }
 
@@ -323,6 +338,7 @@ class RequestsService
             ->where('status', '!=', LoanRequestStatus::Draft->value)
             ->with([
                 'applicant',
+                'assignedOfficer.adminProfile',
                 'user',
             ])
             ->orderByDesc('submitted_at')
@@ -378,8 +394,11 @@ class RequestsService
     /**
      * @return array<string, mixed>
      */
-    private function mapRequest(LoanRequest $request, bool $hasCorrectionReportsTable): array
-    {
+    private function mapRequest(
+        LoanRequest $request,
+        bool $hasCorrectionReportsTable,
+        ?AppUser $actor = null,
+    ): array {
         $status = LoanRequestStatus::normalizeValue($request->status)
             ?? (string) $request->status;
         $submittedAt = $request->submitted_at?->toDateTimeString()
@@ -398,6 +417,10 @@ class RequestsService
             || (int) ($request->open_correction_reports_count ?? 0) > 0;
 
         $summary = $request->loan_type_label_snapshot;
+        $assignmentCapabilities = $this->assignmentService->capabilitiesFor(
+            $request,
+            $actor,
+        );
 
         return [
             'id' => $request->id,
@@ -412,6 +435,19 @@ class RequestsService
             'approved_amount' => $request->approved_amount,
             'reviewed_at' => $request->reviewed_at?->toDateTimeString(),
             'member_acctno' => $request->acctno,
+            'assigned_officer' => $request->assignedOfficer
+                ? [
+                    'user_id' => $request->assignedOfficer->user_id,
+                    'name' => $request->assignedOfficer->adminProfile?->fullname
+                        ?? $request->assignedOfficer->name,
+                    'display_code' => $request->assignedOfficer->display_code,
+                ]
+                : null,
+            'assignment_state' => $assignmentCapabilities['assignment_state'],
+            'can_claim' => $assignmentCapabilities['can_claim'],
+            'can_assign' => $assignmentCapabilities['can_assign'],
+            'can_reassign' => $assignmentCapabilities['can_reassign'],
+            'can_return_to_queue' => $assignmentCapabilities['can_return_to_queue'],
             'has_open_correction_report' => $hasOpenCorrectionReport,
             'latest_correction_report_id' => $latestOpenReport?->id,
             'latest_correction_report_reported_at' => $latestOpenReportReportedAt,

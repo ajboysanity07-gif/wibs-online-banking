@@ -22,6 +22,8 @@ class RequestsController extends Controller
         $search = trim((string) $request->query('search', ''));
         $loanType = trim((string) $request->query('loanType', ''));
         $status = trim((string) $request->query('status', ''));
+        $assignment = trim((string) $request->query('assignment', ''));
+        $officerId = $request->query('officerId');
         $perPage = (int) $request->query('perPage', 10);
         $page = (int) $request->query('page', 1);
         $minAmount = $request->query('minAmount');
@@ -29,6 +31,7 @@ class RequestsController extends Controller
         $reported = $request->has('reported')
             ? $request->boolean('reported')
             : null;
+        $officerId = is_numeric($officerId) ? (int) $officerId : null;
         $minAmount = is_numeric($minAmount) ? (float) $minAmount : null;
         $maxAmount = is_numeric($maxAmount) ? (float) $maxAmount : null;
 
@@ -39,6 +42,8 @@ class RequestsController extends Controller
             $page,
             $loanType !== '' ? $loanType : null,
             $status !== '' ? $status : null,
+            $assignment !== '' ? $assignment : null,
+            $officerId,
             $minAmount,
             $maxAmount,
             $reported,
@@ -62,6 +67,8 @@ class RequestsController extends Controller
                     'lastPage' => $lastPage,
                     'loanTypes' => $result['loanTypes'] ?? [],
                     'openCorrectionReports' => $result['openCorrectionReports'] ?? 0,
+                    'assignmentFilters' => $result['assignmentFilters'] ?? [],
+                    'assignmentOfficers' => $result['assignmentOfficers'] ?? [],
                 ],
             ],
         ]);

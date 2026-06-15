@@ -49,6 +49,22 @@ export type LoanRequestPersonData = {
 export type LoanRequestReviewer = {
     user_id: number;
     name: string;
+    display_code?: string;
+};
+
+export type LoanRequestAssignmentState =
+    | 'unassigned'
+    | 'assigned_to_me'
+    | 'assigned_to_other';
+
+export type LoanRequestAssignmentOfficerOption = {
+    user_id: number;
+    name: string;
+    display_code: string;
+    username: string | null;
+    active_assignment_count: number;
+    has_workload_warning: boolean;
+    workload_warning_label: string | null;
 };
 
 export type LoanRequestCoMakerSignatureStateValue =
@@ -137,6 +153,9 @@ export type LoanRequestWorkflowPermission =
     | 'loan.view'
     | 'loan.create'
     | 'loan.review'
+    | 'loan.claim'
+    | 'loan.return_to_queue'
+    | 'loan.manage_assignment'
     | 'loan.request_revision'
     | 'loan.reject'
     | 'loan.recommend_approval'
@@ -188,6 +207,11 @@ export type LoanRequestDetail = {
     submitted_at: string | null;
     assigned_officer_id: number | null;
     assigned_officer: LoanRequestReviewer | null;
+    assignment_state: LoanRequestAssignmentState;
+    can_claim: boolean;
+    can_assign: boolean;
+    can_reassign: boolean;
+    can_return_to_queue: boolean;
     reviewed_by: LoanRequestReviewer | null;
     reviewed_at: string | null;
     review_decision: string | null;
@@ -310,6 +334,7 @@ export type LoanRequestCorrectionResult = {
 
 export type LoanRequestWorkflowResult = LoanRequestCorrectionResult & {
     correctionReports: LoanRequestCorrectionReport[];
+    eligibleOfficers: LoanRequestAssignmentOfficerOption[];
     loan?: Record<string, unknown> | null;
 };
 

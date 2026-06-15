@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
@@ -20,8 +20,10 @@ import {
     undertakingBarangay as requestsUndertakingBarangayDocument,
 } from '@/routes/staff/loan-requests/documents';
 import type { BreadcrumbItem } from '@/types';
+import type { Auth } from '@/types/auth';
 import type {
     LoanRequestAuditEntry,
+    LoanRequestAssignmentOfficerOption,
     LoanRequestDetail,
     LoanRequestPersonData,
     LoanRequestWorkflowContext,
@@ -34,6 +36,7 @@ type Props = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
     auditTrail: LoanRequestAuditEntry[];
+    eligibleOfficers: LoanRequestAssignmentOfficerOption[];
     workflowPermissions: LoanRequestWorkflowPermission[];
     workflowContext: LoanRequestWorkflowContext;
 };
@@ -44,9 +47,11 @@ export default function StaffLoanRequestShow({
     coMakerOne,
     coMakerTwo,
     auditTrail,
+    eligibleOfficers,
     workflowPermissions,
     workflowContext,
 }: Props) {
+    const { auth } = usePage<{ auth: Auth }>().props;
     const [currentRequest, setCurrentRequest] =
         useState<LoanRequestDetail>(loanRequest);
     const [currentApplicant, setCurrentApplicant] =
@@ -57,7 +62,13 @@ export default function StaffLoanRequestShow({
         useState<LoanRequestPersonData | null>(coMakerTwo);
     const [currentAuditTrail, setCurrentAuditTrail] =
         useState<LoanRequestAuditEntry[]>(auditTrail);
-    const { 
+    const [currentEligibleOfficers, setCurrentEligibleOfficers] =
+        useState<LoanRequestAssignmentOfficerOption[]>(eligibleOfficers);
+    const {
+        claimLoanRequest,
+        assignLoanRequest,
+        reassignLoanRequest,
+        returnLoanRequestToQueue,
         startReview,
         requestRevision,
         rejectLoanRequest,
@@ -72,6 +83,7 @@ export default function StaffLoanRequestShow({
             setCurrentCoMakerOne(result.coMakerOne);
             setCurrentCoMakerTwo(result.coMakerTwo);
             setCurrentAuditTrail(result.auditTrail);
+            setCurrentEligibleOfficers(result.eligibleOfficers);
         },
     });
     const breadcrumbs: BreadcrumbItem[] = [
@@ -118,24 +130,31 @@ export default function StaffLoanRequestShow({
         permission: LoanRequestWorkflowPermission,
     ): boolean => workflowPermissions.includes(permission);
     const isOwnRequest = workflowContext.isOwnRequest;
+    const actorUserId = auth.user.id;
+    const canClaim = currentRequest.can_claim;
     const canStartReview =
         !isOwnRequest &&
         currentRequest.status === 'pending_review' &&
-        hasWorkflowPermission('loan.review');
+        hasWorkflowPermission('loan.review') &&
+        (currentRequest.assigned_officer_id === null ||
+            currentRequest.assigned_officer_id === actorUserId);
     const canRequestRevision =
         !isOwnRequest &&
         (currentRequest.status === 'pending_review' ||
             currentRequest.status === 'under_review') &&
-        hasWorkflowPermission('loan.request_revision');
+        hasWorkflowPermission('loan.request_revision') &&
+        currentRequest.assigned_officer_id === actorUserId;
     const canReject =
         !isOwnRequest &&
         (currentRequest.status === 'pending_review' ||
             currentRequest.status === 'under_review') &&
-        hasWorkflowPermission('loan.reject');
+        hasWorkflowPermission('loan.reject') &&
+        currentRequest.assigned_officer_id === actorUserId;
     const canRecommendApproval =
         !isOwnRequest &&
         currentRequest.status === 'under_review' &&
-        hasWorkflowPermission('loan.recommend_approval');
+        hasWorkflowPermission('loan.recommend_approval') &&
+        currentRequest.assigned_officer_id === actorUserId;
     const canWorkflowApprove =
         !isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
@@ -144,6 +163,14 @@ export default function StaffLoanRequestShow({
         !isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
         hasWorkflowPermission('loan.decline');
+    const canAssign =
+        currentRequest.can_assign && currentEligibleOfficers.length > 0;
+    const canReassign =
+        currentRequest.can_reassign &&
+        currentEligibleOfficers.some(
+            (officer) => officer.user_id !== currentRequest.assigned_officer_id,
+        );
+    const canReturnToQueue = currentRequest.can_return_to_queue;
     const isWorkflowProcessing =
         workflowProcessingIds[currentRequest.id] ?? false;
 
@@ -163,6 +190,49 @@ export default function StaffLoanRequestShow({
                 auditTrail={currentAuditTrail}
                 auditTrailAudience="staff"
                 workflow={{
+                    claim: canClaim
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: () =>
+                                  claimLoanRequest(currentRequest.id),
+                          }
+                        : undefined,
+                    assign: canAssign
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              officerOptions: currentEligibleOfficers,
+                              onSubmit: (payload) =>
+                                  assignLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    reassign: canReassign
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              officerOptions: currentEligibleOfficers,
+                              onSubmit: (payload) =>
+                                  reassignLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    returnToQueue: canReturnToQueue
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: (payload) =>
+                                  returnLoanRequestToQueue(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
                     startReview: canStartReview
                         ? {
                               show: true,
