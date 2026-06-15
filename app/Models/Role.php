@@ -16,7 +16,7 @@ class Role extends Model
 
     public const SUPERADMIN = 'superadmin';
 
-    public const LOAN_OFFICER = 'loan_officer';
+    public const LOAN_PROCESSOR = 'loan_processor';
 
     public const LOAN_MANAGER = 'loan_manager';
 
@@ -38,7 +38,7 @@ class Role extends Model
         return [
             ['name' => self::ADMIN, 'display_name' => 'Admin'],
             ['name' => self::SUPERADMIN, 'display_name' => 'Superadmin'],
-            ['name' => self::LOAN_OFFICER, 'display_name' => 'Loan Officer'],
+            ['name' => self::LOAN_PROCESSOR, 'display_name' => 'Loan Processor'],
             ['name' => self::LOAN_MANAGER, 'display_name' => 'Loan Manager'],
             ['name' => self::MEMBER, 'display_name' => 'Member'],
         ];
@@ -51,7 +51,7 @@ class Role extends Model
     {
         return [
             self::SUPERADMIN,
-            self::LOAN_OFFICER,
+            self::LOAN_PROCESSOR,
             self::LOAN_MANAGER,
         ];
     }
@@ -82,6 +82,18 @@ class Role extends Model
             ! Schema::hasTable('role_permissions')
         ) {
             return;
+        }
+
+        if (
+            ! self::query()->where('name', self::LOAN_PROCESSOR)->exists()
+            && self::query()->where('name', 'loan_officer')->exists()
+        ) {
+            self::query()
+                ->where('name', 'loan_officer')
+                ->update([
+                    'name' => self::LOAN_PROCESSOR,
+                    'display_name' => 'Loan Processor',
+                ]);
         }
 
         foreach (self::defaults() as $roleDefinition) {
@@ -127,7 +139,16 @@ class Role extends Model
                 Permission::LOAN_CREATE,
                 Permission::LOAN_VIEW,
             ]),
-            self::LOAN_OFFICER => self::permissionIds($permissionsByName, [
+            self::LOAN_PROCESSOR => self::permissionIds($permissionsByName, [
+                Permission::LOAN_VIEW,
+                Permission::LOAN_REVIEW,
+                Permission::LOAN_CLAIM,
+                Permission::LOAN_RETURN_TO_QUEUE,
+                Permission::LOAN_REQUEST_REVISION,
+                Permission::LOAN_REJECT,
+                Permission::LOAN_RECOMMEND_APPROVAL,
+            ]),
+            'loan_officer' => self::permissionIds($permissionsByName, [
                 Permission::LOAN_VIEW,
                 Permission::LOAN_REVIEW,
                 Permission::LOAN_CLAIM,
@@ -159,6 +180,7 @@ class Role extends Model
         }
 
         self::ensureWorkflowDefaults();
+        $roleName = self::normalizeRoleName($roleName);
 
         $roleId = self::query()
             ->where('name', $roleName)
@@ -176,6 +198,8 @@ class Role extends Model
         if (! Schema::hasTable('user_roles')) {
             return;
         }
+
+        $roleName = self::normalizeRoleName($roleName);
 
         $roleId = self::query()
             ->where('name', $roleName)
@@ -199,5 +223,12 @@ class Role extends Model
             static fn (string $permissionName): ?int => $permissionsByName->get($permissionName),
             $permissionNames,
         )));
+    }
+
+    private static function normalizeRoleName(string $roleName): string
+    {
+        return trim($roleName) === 'loan_officer'
+            ? self::LOAN_PROCESSOR
+            : trim($roleName);
     }
 }

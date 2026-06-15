@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,12 +37,14 @@ class LoanRequest extends Model
         'loan_purpose',
         'availment_status',
         'status',
+        'workflow_version',
         'submitted_at',
         'assigned_officer_id',
         'reviewed_by',
         'reviewed_at',
         'review_decision',
         'review_remarks',
+        'review_rejection_category',
         'rejected_by',
         'rejected_at',
         'rejection_reason',
@@ -54,10 +57,27 @@ class LoanRequest extends Model
         'approved_amount',
         'approved_term',
         'approved_interest_rate',
+        'recommended_amount',
+        'recommended_term',
+        'recommended_interest_rate',
+        'recommended_payment_frequency',
+        'recommendation_remarks',
         'decision_notes',
         'declined_by',
         'declined_at',
+        'decline_category',
         'decline_reason',
+        'member_action_type',
+        'member_action_message',
+        'member_action_fields_json',
+        'member_action_requested_by',
+        'member_action_requested_at',
+        'member_action_resolved_at',
+        'workflow_upgraded_by',
+        'workflow_upgraded_at',
+        'workflow_upgrade_reason',
+        'reopened_by',
+        'reopened_at',
         'cancelled_by',
         'cancelled_at',
         'cancellation_reason',
@@ -79,6 +99,11 @@ class LoanRequest extends Model
     }
 
     public function assignedOfficer(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'assigned_officer_id', 'user_id');
+    }
+
+    public function assignedProcessor(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'assigned_officer_id', 'user_id');
     }
@@ -113,9 +138,44 @@ class LoanRequest extends Model
         return $this->belongsTo(AppUser::class, 'cancelled_by', 'user_id');
     }
 
+    public function memberActionRequestedBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'member_action_requested_by', 'user_id');
+    }
+
+    public function workflowUpgradedBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'workflow_upgraded_by', 'user_id');
+    }
+
+    public function reopenedBy(): BelongsTo
+    {
+        return $this->belongsTo(AppUser::class, 'reopened_by', 'user_id');
+    }
+
     public function changes(): HasMany
     {
         return $this->hasMany(LoanRequestChange::class);
+    }
+
+    public function dataEntries(): HasMany
+    {
+        return $this->hasMany(LoanRequestDataEntry::class);
+    }
+
+    public function dataChanges(): HasMany
+    {
+        return $this->hasMany(LoanRequestDataChange::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(LoanRequestDocument::class);
+    }
+
+    public function notificationEvents(): HasMany
+    {
+        return $this->hasMany(LoanRequestNotificationEvent::class);
     }
 
     public function correctionReports(): HasMany
@@ -174,12 +234,20 @@ class LoanRequest extends Model
             'requested_amount' => 'decimal:2',
             'approved_amount' => 'decimal:2',
             'approved_interest_rate' => 'decimal:4',
+            'recommended_amount' => 'decimal:2',
+            'recommended_interest_rate' => 'decimal:4',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'rejected_at' => 'datetime',
             'approved_at' => 'datetime',
             'declined_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'member_action_requested_at' => 'datetime',
+            'member_action_resolved_at' => 'datetime',
+            'workflow_upgraded_at' => 'datetime',
+            'reopened_at' => 'datetime',
+            'member_action_fields_json' => 'array',
+            'workflow_version' => LoanRequestWorkflowVersion::class,
             'status' => LoanRequestStatus::class,
         ];
     }

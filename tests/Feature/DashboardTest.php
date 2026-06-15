@@ -133,7 +133,7 @@ test('staff-only workflow users are redirected to the staff review queue', funct
 
     $loanOfficer->roles()->sync(
         Role::query()
-            ->where('name', Role::LOAN_OFFICER)
+            ->where('name', Role::LOAN_PROCESSOR)
             ->pluck('id')
             ->all(),
     );

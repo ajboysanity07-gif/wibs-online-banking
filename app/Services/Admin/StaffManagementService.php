@@ -241,7 +241,7 @@ class StaffManagementService
             $beforeRoles = $this->visibleRoleNames($user);
             $beforeStatus = $this->auditStaffStatus($user);
 
-            $unassignedLoanRequestIds = $normalizedRole === Role::LOAN_OFFICER
+            $unassignedLoanRequestIds = $normalizedRole === Role::LOAN_PROCESSOR
                 ? $this->assignmentService->unassignUnavailableOfficerRequests(
                     $user,
                     $actor,
@@ -315,7 +315,7 @@ class StaffManagementService
 
             $user->setRelation('staffAccessControl', $control);
 
-            $unassignedLoanRequestIds = $this->userAlreadyHasEditableRole($user, Role::LOAN_OFFICER)
+            $unassignedLoanRequestIds = $this->userAlreadyHasEditableRole($user, Role::LOAN_PROCESSOR)
                 ? $this->assignmentService->unassignUnavailableOfficerRequests(
                     $user,
                     $actor,
@@ -756,7 +756,7 @@ class StaffManagementService
             $roles[] = Role::SUPERADMIN;
         }
 
-        foreach ([Role::LOAN_OFFICER, Role::LOAN_MANAGER] as $roleName) {
+        foreach ([Role::LOAN_PROCESSOR, Role::LOAN_MANAGER] as $roleName) {
             if ($user->hasRole($roleName)) {
                 $roles[] = $roleName;
             }

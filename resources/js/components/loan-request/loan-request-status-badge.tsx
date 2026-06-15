@@ -9,15 +9,18 @@ type Props = {
 
 const statusLabels: Partial<Record<LoanRequestStatusValue, string>> = {
     draft: 'Draft',
-    pending_co_maker_signatures: 'Pending Co-Maker Signatures',
-    submitted: 'Submitted',
-    pending_review: 'Pending Review',
-    under_review: 'Under Review',
-    needs_revision: 'Needs Revision',
-    recommended_for_approval: 'Recommended for Approval',
-    rejected: 'Rejected',
-    approved: 'Approved',
-    declined: 'Declined',
+    pending_co_maker_signatures: 'Legacy Pending Co-Maker Signatures',
+    submitted: 'Legacy Submitted',
+    pending_review: 'Pending Processing',
+    under_review: 'In Processing',
+    needs_revision: 'Awaiting Member Correction',
+    awaiting_member_information: 'Awaiting Member Information',
+    recommended_for_approval: 'For Loan Manager Review',
+    awaiting_member_acceptance: 'Awaiting Member Acceptance',
+    rejected: 'Rejected During Processing',
+    approved: 'Approved - For WIBS Processing',
+    declined: 'Declined by Loan Manager',
+    member_declined_terms: 'Member Declined Revised Terms',
     converted_to_loan: 'Converted to Loan',
     cancelled: 'Cancelled',
 };
@@ -38,7 +41,9 @@ const statusVariant = (status?: LoanRequestStatusValue | null) => {
     if (
         status === 'pending_review' ||
         status === 'under_review' ||
-        status === 'recommended_for_approval'
+        status === 'recommended_for_approval' ||
+        status === 'awaiting_member_information' ||
+        status === 'awaiting_member_acceptance'
     ) {
         return 'secondary';
     }
@@ -51,8 +56,16 @@ const statusClassName = (status?: LoanRequestStatusValue | null): string => {
         return 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-200';
     }
 
+    if (status === 'awaiting_member_information') {
+        return 'border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-200';
+    }
+
     if (status === 'recommended_for_approval') {
         return 'border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-200';
+    }
+
+    if (status === 'awaiting_member_acceptance') {
+        return 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-200';
     }
 
     if (status === 'pending_review') {

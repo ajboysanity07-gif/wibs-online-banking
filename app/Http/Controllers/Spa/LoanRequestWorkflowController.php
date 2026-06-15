@@ -5,18 +5,28 @@ namespace App\Http\Controllers\Spa;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workflow\LoanRequestAssignmentUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestClaimRequest;
+use App\Http\Requests\Workflow\LoanRequestGenerateDocumentsRequest;
+use App\Http\Requests\Workflow\LoanRequestProcessingUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestRecommendApprovalRequest;
+use App\Http\Requests\Workflow\LoanRequestRejectDuringProcessingRequest;
 use App\Http\Requests\Workflow\LoanRequestRejectRequest;
+use App\Http\Requests\Workflow\LoanRequestReopenRequest;
+use App\Http\Requests\Workflow\LoanRequestRequestMemberActionRequest;
 use App\Http\Requests\Workflow\LoanRequestRequestRevisionRequest;
+use App\Http\Requests\Workflow\LoanRequestReturnForProcessingRequest;
 use App\Http\Requests\Workflow\LoanRequestReturnToQueueRequest;
 use App\Http\Requests\Workflow\LoanRequestStartReviewRequest;
+use App\Http\Requests\Workflow\LoanRequestUpgradeWorkflowRequest;
 use App\Http\Requests\Workflow\LoanRequestWorkflowApproveRequest;
 use App\Http\Requests\Workflow\LoanRequestWorkflowDeclineRequest;
-use App\Jobs\SendLoanDecisionSmsJob;
+use App\LoanRequestDocumentKey;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestDataService;
+use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
+use App\Services\LoanRequests\LoanRequestProcessingService;
 use App\Services\LoanRequests\LoanRequestWorkflowService;
 use Illuminate\Http\JsonResponse;
 
@@ -26,6 +36,8 @@ class LoanRequestWorkflowController extends Controller
         LoanRequestClaimRequest $request,
         LoanRequest $loanRequest,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
@@ -39,6 +51,8 @@ class LoanRequestWorkflowController extends Controller
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
@@ -46,6 +60,8 @@ class LoanRequestWorkflowController extends Controller
         LoanRequestAssignmentUpdateRequest $request,
         LoanRequest $loanRequest,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
@@ -75,6 +91,8 @@ class LoanRequestWorkflowController extends Controller
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
@@ -82,6 +100,8 @@ class LoanRequestWorkflowController extends Controller
         LoanRequestReturnToQueueRequest $request,
         LoanRequest $loanRequest,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
@@ -99,6 +119,8 @@ class LoanRequestWorkflowController extends Controller
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
@@ -107,6 +129,8 @@ class LoanRequestWorkflowController extends Controller
         LoanRequest $loanRequest,
         LoanRequestWorkflowService $service,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
@@ -124,6 +148,8 @@ class LoanRequestWorkflowController extends Controller
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
@@ -132,6 +158,8 @@ class LoanRequestWorkflowController extends Controller
         LoanRequest $loanRequest,
         LoanRequestWorkflowService $service,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
@@ -149,6 +177,8 @@ class LoanRequestWorkflowController extends Controller
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
@@ -157,6 +187,8 @@ class LoanRequestWorkflowController extends Controller
         LoanRequest $loanRequest,
         LoanRequestWorkflowService $service,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
@@ -174,6 +206,8 @@ class LoanRequestWorkflowController extends Controller
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
@@ -182,6 +216,8 @@ class LoanRequestWorkflowController extends Controller
         LoanRequest $loanRequest,
         LoanRequestWorkflowService $service,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
@@ -199,60 +235,285 @@ class LoanRequestWorkflowController extends Controller
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
     public function approve(
         LoanRequestWorkflowApproveRequest $request,
         LoanRequest $loanRequest,
-        LoanRequestWorkflowService $service,
+        LoanRequestProcessingService $processingService,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
 
         abort_unless($actor instanceof AppUser, 403);
 
-        $updated = $service->approve(
+        $updated = $processingService->approveByManager(
             $loanRequest,
             $actor,
             $request->validated(),
         );
-
-        SendLoanDecisionSmsJob::dispatch($updated->id)->afterCommit();
 
         return $this->response(
             $updated,
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
     public function decline(
         LoanRequestWorkflowDeclineRequest $request,
         LoanRequest $loanRequest,
-        LoanRequestWorkflowService $service,
+        LoanRequestProcessingService $processingService,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         LoanRequestPayloadSerializer $serializer,
     ): JsonResponse {
         $actor = $request->user();
 
         abort_unless($actor instanceof AppUser, 403);
 
-        $updated = $service->decline(
+        $updated = $processingService->declineByManager(
             $loanRequest,
             $actor,
+            $request->validated('decline_category'),
             $request->validated('decline_reason'),
         );
-
-        SendLoanDecisionSmsJob::dispatch($updated->id)->afterCommit();
 
         return $this->response(
             $updated,
             $actor,
             $serializer,
             $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+        );
+    }
+
+    public function updateProcessingDetails(
+        LoanRequestProcessingUpdateRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestProcessingService $processingService,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $updated = $processingService->updateProcessingDetails(
+            $loanRequest,
+            $actor,
+            $request->validated(),
+        );
+
+        return $this->response(
+            $updated,
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+        );
+    }
+
+    public function requestMemberAction(
+        LoanRequestRequestMemberActionRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestProcessingService $processingService,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $updated = $processingService->requestMemberAction(
+            $loanRequest,
+            $actor,
+            $request->validated(),
+        );
+
+        return $this->response(
+            $updated,
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+        );
+    }
+
+    public function rejectDuringProcessing(
+        LoanRequestRejectDuringProcessingRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestProcessingService $processingService,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $updated = $processingService->rejectDuringProcessing(
+            $loanRequest,
+            $actor,
+            $request->validated('rejection_category'),
+            $request->validated('member_visible_reason'),
+        );
+
+        return $this->response(
+            $updated,
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+        );
+    }
+
+    public function generateDocuments(
+        LoanRequestGenerateDocumentsRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $documentKey = $request->validated('document_key');
+        $results = $documentKey !== null
+            ? [
+                [
+                    'key' => LoanRequestDocumentKey::from($documentKey)->value,
+                    'status' => $documentWorkflowService
+                        ->generateDocument(
+                            $loanRequest,
+                            LoanRequestDocumentKey::from($documentKey),
+                            $actor,
+                        )
+                        ->readiness_status?->value,
+                    'message' => null,
+                ],
+            ]
+            : $documentWorkflowService->generateAll($loanRequest, $actor);
+
+        return $this->response(
+            $loanRequest->refresh(),
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+            [
+                'documentResults' => $results,
+            ],
+        );
+    }
+
+    public function returnForProcessing(
+        LoanRequestReturnForProcessingRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestProcessingService $processingService,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $updated = $processingService->returnForProcessing(
+            $loanRequest,
+            $actor,
+            $request->validated('reason'),
+        );
+
+        return $this->response(
+            $updated,
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+        );
+    }
+
+    public function reopen(
+        LoanRequestReopenRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestProcessingService $processingService,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $updated = $processingService->reopenRejectedRequest(
+            $loanRequest,
+            $actor,
+            $request->validated('reason'),
+            (bool) $request->validated('retain_assignment', false),
+        );
+
+        return $this->response(
+            $updated,
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
+        );
+    }
+
+    public function upgradeWorkflow(
+        LoanRequestUpgradeWorkflowRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestProcessingService $processingService,
+        LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
+        LoanRequestPayloadSerializer $serializer,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $updated = $processingService->upgradeWorkflowVersion(
+            $loanRequest,
+            $actor,
+            $request->validated('reason'),
+        );
+
+        return $this->response(
+            $updated,
+            $actor,
+            $serializer,
+            $assignmentService,
+            $documentWorkflowService,
+            $dataService,
         );
     }
 
@@ -261,6 +522,8 @@ class LoanRequestWorkflowController extends Controller
         AppUser $actor,
         LoanRequestPayloadSerializer $serializer,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanRequestDataService $dataService,
         array $extra = [],
     ): JsonResponse {
         $detail = $serializer->serializeDetail($loanRequest);
@@ -285,6 +548,11 @@ class LoanRequestWorkflowController extends Controller
                 )
                     ? $assignmentService->eligibleOfficerOptions($loanRequest)
                     : [],
+                'dataSections' => $dataService->serializeSections($loanRequest),
+                'dataSectionDefinitions' => $dataService->sectionDefinitions(),
+                'documentChecklist' => $documentWorkflowService->serializeChecklist(
+                    $loanRequest,
+                ),
                 ...$extra,
             ],
         ]);

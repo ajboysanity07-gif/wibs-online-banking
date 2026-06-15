@@ -197,7 +197,7 @@ export type MemberAdminAccessAction = 'grant' | 'revoke';
 
 export type EditableStaffRoleName =
     | 'superadmin'
-    | 'loan_officer'
+    | 'loan_processor'
     | 'loan_manager';
 
 export type StaffRoleName = EditableStaffRoleName | 'member';

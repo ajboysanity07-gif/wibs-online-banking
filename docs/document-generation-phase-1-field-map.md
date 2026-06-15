@@ -2,6 +2,20 @@
 
 This is a Phase 1 audit of the current repo state on 2026-06-09. It is documentation only. No workflow UI, migration, route, controller, PDF layout, or Docker changes were made as part of this phase.
 
+## Phase 5 update note
+
+Phase 5 keeps this document as the source-of-truth audit for legacy field origins, but the live document workflow now adds two implementation layers:
+
+- `document_workflow_v2` persists member-owned and staff-owned document inputs in `loan_request_data_entries` so sensitive values can be tracked, confirmed, and reused across documents without copying them into many request snapshot columns.
+- `loan_request_documents` now tracks per-document applicability, readiness, generation state, template version, file metadata, and stale/failure conditions for the active checklist workflow.
+
+Legacy compatibility remains intentional:
+
+- Existing requests are backfilled as `legacy_v1`.
+- New member submissions default to `document_workflow_v2`.
+- Legacy requests may still surface `Historical document data unavailable` for documents that do not have reliable historical source fields.
+- Online co-maker signature links are no longer part of the active workflow; printed documents still rely on physical signature lines where applicable.
+
 Primary files reviewed:
 
 - `app/Http/Controllers/Client/LoanRequestController.php`

@@ -58,10 +58,12 @@ export type LoanRequestWorkflowApprovePayload = {
     approved_amount: string;
     approved_term: string;
     approved_interest_rate?: string | null;
+    approved_payment_frequency?: string | null;
     approval_remarks?: string | null;
 };
 
 export type LoanRequestWorkflowDeclinePayload = {
+    decline_category: string;
     decline_reason: string;
 };
 
@@ -186,7 +188,10 @@ export function LoanRequestWorkflowActions({
     const [approvedAmount, setApprovedAmount] = useState('');
     const [approvedTerm, setApprovedTerm] = useState('');
     const [approvedInterestRate, setApprovedInterestRate] = useState('');
+    const [approvedPaymentFrequency, setApprovedPaymentFrequency] =
+        useState('');
     const [approvalRemarks, setApprovalRemarks] = useState('');
+    const [declineCategory, setDeclineCategory] = useState('');
     const [declineReason, setDeclineReason] = useState('');
     const [declineReasonError, setDeclineReasonError] = useState<
         string | null
@@ -240,12 +245,18 @@ export function LoanRequestWorkflowActions({
                 ? `${loanRequest.approved_interest_rate}`
                 : '',
         );
+        setApprovedPaymentFrequency(
+            loanRequest.recommended_payment_frequency ?? '',
+        );
         setApprovalRemarks(loanRequest.approval_remarks ?? '');
+        setDeclineCategory(loanRequest.decline_category ?? '');
     }, [
         loanRequest.approved_amount,
         loanRequest.approved_interest_rate,
         loanRequest.approved_term,
         loanRequest.approval_remarks,
+        loanRequest.decline_category,
+        loanRequest.recommended_payment_frequency,
         loanRequest.requested_amount,
         loanRequest.requested_term,
     ]);
@@ -283,7 +294,7 @@ export function LoanRequestWorkflowActions({
         const reason = assignReason.trim();
 
         if (!Number.isInteger(officerUserId) || officerUserId <= 0) {
-            setAssignReasonError('Select a Loan Officer before continuing.');
+            setAssignReasonError('Select a Loan Processor before continuing.');
             return;
         }
 
@@ -312,7 +323,7 @@ export function LoanRequestWorkflowActions({
         const reason = reassignReason.trim();
 
         if (!Number.isInteger(officerUserId) || officerUserId <= 0) {
-            setReassignReasonError('Select a Loan Officer before continuing.');
+            setReassignReasonError('Select a Loan Processor before continuing.');
             return;
         }
 
@@ -439,6 +450,8 @@ export function LoanRequestWorkflowActions({
             approved_amount: approvedAmount,
             approved_term: approvedTerm,
             approved_interest_rate: approvedInterestRate.trim() || null,
+            approved_payment_frequency:
+                approvedPaymentFrequency.trim() || null,
             approval_remarks: approvalRemarks.trim() || null,
         });
 
@@ -450,7 +463,13 @@ export function LoanRequestWorkflowActions({
     const submitDecline = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        const category = declineCategory.trim();
         const reason = declineReason.trim();
+
+        if (category === '') {
+            setDeclineReasonError('Decline category is required.');
+            return;
+        }
 
         if (reason === '') {
             setDeclineReasonError('Decline reason is required.');
@@ -460,10 +479,12 @@ export function LoanRequestWorkflowActions({
         setDeclineReasonError(null);
 
         const result = await workflow?.decline?.onSubmit?.({
+            decline_category: category,
             decline_reason: reason,
         });
 
         if (result) {
+            setDeclineCategory('');
             setDeclineReason('');
             setIsDeclineOpen(false);
         }
@@ -502,7 +523,7 @@ export function LoanRequestWorkflowActions({
                                 disabled={workflow.assign.isProcessing}
                                 onClick={() => setIsAssignOpen(true)}
                             >
-                                Assign Officer
+                                Assign Loan Processor
                             </Button>
                         ) : null}
                         {workflow?.reassign?.show ? (
@@ -513,7 +534,7 @@ export function LoanRequestWorkflowActions({
                                 disabled={workflow.reassign.isProcessing}
                                 onClick={() => setIsReassignOpen(true)}
                             >
-                                Reassign Officer
+                                Reassign Loan Processor
                             </Button>
                         ) : null}
                         {workflow?.returnToQueue?.show ? (
@@ -539,7 +560,7 @@ export function LoanRequestWorkflowActions({
                             Review actions
                         </p>
                         <p className="text-xs text-muted-foreground">
-                            Officer actions are limited by the current workflow
+                            Loan processor actions are limited by the current workflow
                             status and server-side permissions.
                         </p>
                     </div>
@@ -634,16 +655,16 @@ export function LoanRequestWorkflowActions({
             <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Assign Loan Officer</DialogTitle>
+                        <DialogTitle>Assign Loan Processor</DialogTitle>
                         <DialogDescription>
-                            Select an active Loan Officer and record the reason
+                            Select an active Loan Processor and record the reason
                             for the assignment.
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitAssign}>
                         <div className="space-y-2">
                             <Label htmlFor="assign_officer_user_id">
-                                Loan Officer
+                                Loan Processor
                             </Label>
                             <Select
                                 value={assignOfficerUserId}
@@ -654,9 +675,9 @@ export function LoanRequestWorkflowActions({
                             >
                                 <SelectTrigger
                                     id="assign_officer_user_id"
-                                    aria-label="Loan Officer"
+                                    aria-label="Loan Processor"
                                 >
-                                    <SelectValue placeholder="Select a Loan Officer" />
+                                    <SelectValue placeholder="Select a Loan Processor" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {assignOfficerOptions.map((officer) => (
@@ -710,7 +731,7 @@ export function LoanRequestWorkflowActions({
                                     assignOfficerOptions.length === 0
                                 }
                             >
-                                Assign Officer
+                                Assign Loan Processor
                             </Button>
                         </DialogFooter>
                     </form>
@@ -720,7 +741,7 @@ export function LoanRequestWorkflowActions({
             <Dialog open={isReassignOpen} onOpenChange={setIsReassignOpen}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Reassign Loan Officer</DialogTitle>
+                        <DialogTitle>Reassign Loan Processor</DialogTitle>
                         <DialogDescription>
                             Move this application to another active Loan
                             Officer and record the reason.
@@ -729,7 +750,7 @@ export function LoanRequestWorkflowActions({
                     <form className="space-y-4" onSubmit={submitReassign}>
                         <div className="space-y-2">
                             <Label htmlFor="reassign_officer_user_id">
-                                Loan Officer
+                                Loan Processor
                             </Label>
                             <Select
                                 value={reassignOfficerUserId}
@@ -740,9 +761,9 @@ export function LoanRequestWorkflowActions({
                             >
                                 <SelectTrigger
                                     id="reassign_officer_user_id"
-                                    aria-label="Loan Officer"
+                                    aria-label="Loan Processor"
                                 >
-                                    <SelectValue placeholder="Select a Loan Officer" />
+                                    <SelectValue placeholder="Select a Loan Processor" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {reassignOfficerOptions.map((officer) => (
@@ -798,7 +819,7 @@ export function LoanRequestWorkflowActions({
                                     reassignOfficerOptions.length === 0
                                 }
                             >
-                                Reassign Officer
+                                Reassign Loan Processor
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1172,6 +1193,22 @@ export function LoanRequestWorkflowActions({
                             />
                         </div>
                         <div className="space-y-2">
+                            <Label htmlFor="workflow_approved_payment_frequency">
+                                Payment frequency
+                            </Label>
+                            <Input
+                                id="workflow_approved_payment_frequency"
+                                value={approvedPaymentFrequency}
+                                className={inputClassName}
+                                disabled={workflow?.approve?.isProcessing}
+                                onChange={(event) =>
+                                    setApprovedPaymentFrequency(
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
                             <Label htmlFor="workflow_approval_remarks">
                                 Approval remarks
                             </Label>
@@ -1219,6 +1256,21 @@ export function LoanRequestWorkflowActions({
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitDecline}>
+                        <div className="space-y-2">
+                            <Label htmlFor="workflow_decline_category">
+                                Decline category
+                            </Label>
+                            <Input
+                                id="workflow_decline_category"
+                                value={declineCategory}
+                                className={inputClassName}
+                                disabled={workflow?.decline?.isProcessing}
+                                onChange={(event) => {
+                                    setDeclineCategory(event.target.value);
+                                    setDeclineReasonError(null);
+                                }}
+                            />
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="workflow_decline_reason">
                                 Decline reason

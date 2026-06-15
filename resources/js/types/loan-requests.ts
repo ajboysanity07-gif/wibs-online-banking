@@ -46,6 +46,39 @@ export type LoanRequestPersonData = {
     signature_url?: string | null;
 };
 
+export type LoanRequestPersonFormData = {
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    nickname: string;
+    birthdate: string;
+    birthplace_city: string;
+    birthplace_province: string;
+    address1: string;
+    address2: string;
+    address3: string;
+    length_of_stay: string;
+    housing_status: string;
+    cell_no: string;
+    civil_status: string;
+    educational_attainment: string;
+    number_of_children: string;
+    spouse_name: string;
+    spouse_age: string;
+    spouse_cell_no: string;
+    employment_type: string;
+    employer_business_name: string;
+    employer_business_address1: string;
+    employer_business_address2: string;
+    employer_business_address3: string;
+    telephone_no: string;
+    current_position: string;
+    nature_of_business: string;
+    years_in_work_business: string;
+    gross_monthly_income: string;
+    payday: string;
+};
+
 export type LoanRequestReviewer = {
     user_id: number;
     name: string;
@@ -65,35 +98,6 @@ export type LoanRequestAssignmentOfficerOption = {
     active_assignment_count: number;
     has_workload_warning: boolean;
     workload_warning_label: string | null;
-};
-
-export type LoanRequestCoMakerSignatureStateValue =
-    | 'proposed'
-    | 'link_active'
-    | 'expired'
-    | 'signed';
-
-export type LoanRequestCoMakerSignatureState = {
-    role: 'co_maker_1' | 'co_maker_2';
-    state: LoanRequestCoMakerSignatureStateValue;
-    is_confirmed: boolean;
-    has_signature: boolean;
-    has_active_link: boolean;
-    has_expired_link: boolean;
-    loan_request_person_id: number | null;
-    signed_via: 'in_person' | 'remote' | null;
-    expires_at: string | null;
-    signed_at: string | null;
-    last_generated_at: string | null;
-};
-
-export type LoanRequestGeneratedSignatureLink = {
-    role: 'co_maker_1' | 'co_maker_2';
-    loan_request_person_id: number;
-    status: 'link_active';
-    signing_url: string;
-    url: string;
-    expires_at: string | null;
 };
 
 export type LoanRequestCorrectionReportStatus =
@@ -135,6 +139,10 @@ export type LoanRequestCorrectionReportDismissPayload = {
 
 export type LoanRequestReadOnlyMap = Record<string, boolean>;
 
+export type LoanRequestWorkflowVersion =
+    | 'legacy_v1'
+    | 'document_workflow_v2';
+
 export type LoanRequestStatusValue =
     | 'draft'
     | 'pending_co_maker_signatures'
@@ -142,10 +150,13 @@ export type LoanRequestStatusValue =
     | 'pending_review'
     | 'under_review'
     | 'needs_revision'
+    | 'awaiting_member_information'
     | 'recommended_for_approval'
+    | 'awaiting_member_acceptance'
     | 'rejected'
     | 'approved'
     | 'declined'
+    | 'member_declined_terms'
     | 'converted_to_loan'
     | 'cancelled';
 
@@ -194,6 +205,102 @@ export type LoanRequestAuditEntry = {
     metadata: LoanRequestAuditMetadataItem[];
 };
 
+export type LoanRequestDataFieldType =
+    | 'string'
+    | 'boolean'
+    | 'number'
+    | 'integer';
+
+export type LoanRequestDataFieldDefinition = {
+    label: string;
+    sensitive: boolean;
+    owner: 'member' | 'staff';
+    type: LoanRequestDataFieldType;
+};
+
+export type LoanRequestDataSectionDefinition = {
+    label: string;
+    fields: Record<string, LoanRequestDataFieldDefinition>;
+};
+
+export type LoanRequestDataSectionDefinitions = Record<
+    string,
+    LoanRequestDataSectionDefinition
+>;
+
+export type LoanRequestDataFieldValue = string | number | boolean | null;
+
+export type LoanRequestDataSectionValues = Record<
+    string,
+    LoanRequestDataFieldValue
+>;
+
+export type LoanRequestDataSections = Record<
+    string,
+    LoanRequestDataSectionValues
+>;
+
+export type LoanRequestDocumentKey =
+    | 'application_form'
+    | 'grepalife'
+    | 'affidavit_undertaking'
+    | 'authorization'
+    | 'loan_information'
+    | 'plan_of_payment'
+    | 'disclosure_statement'
+    | 'promissory_note'
+    | 'undertaking_barangay'
+    | 'loan_security_agreement';
+
+export type LoanRequestDocumentReadinessStatus =
+    | 'not_started'
+    | 'incomplete'
+    | 'awaiting_member_confirmation'
+    | 'ready_to_generate'
+    | 'generated_current'
+    | 'generated_stale'
+    | 'generation_failed'
+    | 'not_applicable'
+    | 'legacy_data_incomplete';
+
+export type LoanRequestDocumentChecklistItem = {
+    key: LoanRequestDocumentKey;
+    label: string;
+    is_applicable: boolean;
+    status: LoanRequestDocumentReadinessStatus;
+    status_label: string;
+    template_version: string | null;
+    generated_at: string | null;
+    generated_by: string | null;
+    generated_filename: string | null;
+    generated_mime_type: string | null;
+    generated_version: number | null;
+    source_version: number | null;
+    blockers: string[];
+    failure_message: string | null;
+};
+
+export type LoanRequestDocumentGenerationResult = {
+    key: LoanRequestDocumentKey;
+    status: LoanRequestDocumentReadinessStatus | null;
+    message: string | null;
+};
+
+export type LoanRequestMemberActionType =
+    | 'needs_revision'
+    | 'awaiting_member_information'
+    | 'terms_acceptance'
+    | 'awaiting_member_acceptance'
+    | null;
+
+export type LoanRequestMemberAction = {
+    type: LoanRequestMemberActionType;
+    message: string | null;
+    fields: string[] | null;
+    requested_at: string | null;
+    resolved_at: string | null;
+};
+
 export type LoanRequestDetail = {
     id: number;
     reference: string;
@@ -206,16 +313,25 @@ export type LoanRequestDetail = {
     availment_status: string | null;
     submitted_at: string | null;
     assigned_officer_id: number | null;
+    assigned_processor_id: number | null;
     assigned_officer: LoanRequestReviewer | null;
+    assigned_processor: LoanRequestReviewer | null;
     assignment_state: LoanRequestAssignmentState;
     can_claim: boolean;
     can_assign: boolean;
     can_reassign: boolean;
     can_return_to_queue: boolean;
+    workflow_version: LoanRequestWorkflowVersion | null;
+    recommended_amount: number | string | null;
+    recommended_term: number | string | null;
+    recommended_interest_rate: number | string | null;
+    recommended_payment_frequency: string | null;
+    recommendation_remarks: string | null;
     reviewed_by: LoanRequestReviewer | null;
     reviewed_at: string | null;
     review_decision: string | null;
     review_remarks: string | null;
+    review_rejection_category: string | null;
     rejected_by: LoanRequestReviewer | null;
     rejected_at: string | null;
     rejection_reason: string | null;
@@ -228,7 +344,13 @@ export type LoanRequestDetail = {
     decision_notes: string | null;
     declined_by: LoanRequestReviewer | null;
     declined_at: string | null;
+    decline_category: string | null;
     decline_reason: string | null;
+    member_action_type: LoanRequestMemberActionType;
+    member_action_message: string | null;
+    member_action_fields: string[] | null;
+    member_action_requested_at: string | null;
+    member_action_resolved_at: string | null;
     cancelled_by: LoanRequestReviewer | null;
     cancelled_at: string | null;
     cancellation_reason: string | null;
@@ -272,39 +394,6 @@ export type LoanRequestDraft = {
     updated_at: string | null;
 };
 
-export type LoanRequestPersonFormData = {
-    first_name: string;
-    middle_name: string;
-    last_name: string;
-    nickname: string;
-    birthdate: string;
-    birthplace_city: string;
-    birthplace_province: string;
-    address1: string;
-    address2: string;
-    address3: string;
-    length_of_stay: string;
-    housing_status: string;
-    cell_no: string;
-    civil_status: string;
-    educational_attainment: string;
-    number_of_children: string;
-    spouse_name: string;
-    spouse_age: string;
-    spouse_cell_no: string;
-    employment_type: string;
-    employer_business_name: string;
-    employer_business_address1: string;
-    employer_business_address2: string;
-    employer_business_address3: string;
-    telephone_no: string;
-    current_position: string;
-    nature_of_business: string;
-    years_in_work_business: string;
-    gross_monthly_income: string;
-    payday: string;
-};
-
 export type LoanRequestFormData = {
     typecode: string;
     requested_amount: string;
@@ -315,6 +404,12 @@ export type LoanRequestFormData = {
     applicant: LoanRequestPersonFormData;
     co_maker_1: LoanRequestPersonFormData;
     co_maker_2: LoanRequestPersonFormData;
+    insurance: LoanRequestDataSectionValues;
+    health: LoanRequestDataSectionValues;
+    authorization: LoanRequestDataSectionValues;
+    banking: LoanRequestDataSectionValues;
+    barangay: LoanRequestDataSectionValues;
+    declarations: LoanRequestDataSectionValues;
 };
 
 export type LoanRequestCorrectionPayload = Omit<
@@ -335,6 +430,10 @@ export type LoanRequestCorrectionResult = {
 export type LoanRequestWorkflowResult = LoanRequestCorrectionResult & {
     correctionReports: LoanRequestCorrectionReport[];
     eligibleOfficers: LoanRequestAssignmentOfficerOption[];
+    dataSections: LoanRequestDataSections;
+    dataSectionDefinitions: LoanRequestDataSectionDefinitions;
+    documentChecklist: LoanRequestDocumentChecklistItem[];
+    documentResults?: LoanRequestDocumentGenerationResult[];
     loan?: Record<string, unknown> | null;
 };
 
@@ -353,4 +452,11 @@ export type LoanRequestCancellationResult = {
 export type LoanRequestMemberCancellationResult = {
     loanRequest: LoanRequestDetail;
     auditTrail: LoanRequestAuditEntry[];
+};
+
+export type LoanRequestMemberActionResolutionResult = {
+    loanRequest: LoanRequestDetail;
+    auditTrail: LoanRequestAuditEntry[];
+    dataSections: LoanRequestDataSections;
+    dataSectionDefinitions: LoanRequestDataSectionDefinitions;
 };

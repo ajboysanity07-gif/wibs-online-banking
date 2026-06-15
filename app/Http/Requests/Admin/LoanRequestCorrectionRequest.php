@@ -42,6 +42,35 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules = parent::rules();
         unset($rules['undertaking_accepted']);
 
+        $rules['insurance'] = ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_secondary_name,beneficiary_secondary_relationship'];
+        $rules['insurance.beneficiary_primary_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['insurance.beneficiary_primary_relationship'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['insurance.beneficiary_secondary_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['insurance.beneficiary_secondary_relationship'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['health'] = ['sometimes', 'array:health_smoker,health_hypertension,health_diabetes,health_recent_hospitalization,health_declaration_notes'];
+        $rules['health.health_smoker'] = ['sometimes', 'boolean'];
+        $rules['health.health_hypertension'] = ['sometimes', 'boolean'];
+        $rules['health.health_diabetes'] = ['sometimes', 'boolean'];
+        $rules['health.health_recent_hospitalization'] = ['sometimes', 'boolean'];
+        $rules['health.health_declaration_notes'] = ['sometimes', 'nullable', 'string', 'max:1000'];
+        $rules['authorization'] = ['sometimes', 'array:authorized_recipient_name,authorized_recipient_relationship,authorized_recipient_contact'];
+        $rules['authorization.authorized_recipient_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['authorization.authorized_recipient_relationship'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['authorization.authorized_recipient_contact'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,payout_atm_number'];
+        $rules['banking.payout_bank_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['banking.payout_account_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['banking.payout_account_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['banking.payout_account_type'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['banking.payout_atm_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['barangay'] = ['sometimes', 'array:barangay_name,barangay_clearance_reference'];
+        $rules['barangay.barangay_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['barangay.barangay_clearance_reference'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['declarations'] = ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent'];
+        $rules['declarations.declaration_existing_loans'] = ['sometimes', 'boolean'];
+        $rules['declarations.declaration_pending_cases'] = ['sometimes', 'boolean'];
+        $rules['declarations.declaration_truth_confirmation'] = ['sometimes', 'boolean'];
+        $rules['declarations.declaration_data_privacy_consent'] = ['sometimes', 'boolean'];
         $rules['change_reason'] = ['required', 'string', 'max:1000'];
 
         foreach (self::FORBIDDEN_FIELDS as $field) {

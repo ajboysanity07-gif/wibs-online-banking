@@ -26,6 +26,7 @@ class LoanRequestWorkflowDeclineRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'decline_category' => ['required', 'string', 'max:255'],
             'decline_reason' => ['required', 'string', 'max:1000'],
         ];
     }

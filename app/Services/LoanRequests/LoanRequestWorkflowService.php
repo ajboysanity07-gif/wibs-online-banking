@@ -3,10 +3,10 @@
 namespace App\Services\LoanRequests;
 
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
-use App\Notifications\LoanRequestDecisionNotification;
 use App\Support\SchemaCapabilities;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -18,6 +18,8 @@ class LoanRequestWorkflowService
         private SchemaCapabilities $schemaCapabilities,
         private LoanRequestDecisionService $decisionService,
         private LoanRequestAssignmentService $assignmentService,
+        private LoanRequestDocumentWorkflowService $documentWorkflowService,
+        private LoanRequestNotificationService $notificationService,
     ) {}
 
     public function startReview(
@@ -90,7 +92,7 @@ class LoanRequestWorkflowService
         AppUser $actor,
         string $remarks,
     ): LoanRequest {
-        return DB::transaction(function () use (
+        $updated = DB::transaction(function () use (
             $loanRequest,
             $actor,
             $remarks,
@@ -116,6 +118,12 @@ class LoanRequestWorkflowService
                 'reviewed_at' => now(),
                 'review_decision' => LoanRequestStatus::NeedsRevision->value,
                 'review_remarks' => $remarks,
+                'member_action_type' => 'needs_revision',
+                'member_action_message' => $remarks,
+                'member_action_fields_json' => null,
+                'member_action_requested_by' => $actor->user_id,
+                'member_action_requested_at' => now(),
+                'member_action_resolved_at' => null,
                 'rejected_by' => null,
                 'rejected_at' => null,
                 'rejection_reason' => null,
@@ -147,6 +155,21 @@ class LoanRequestWorkflowService
 
             return $updated;
         });
+
+        if ($this->isDocumentWorkflowV2($updated)) {
+            $this->notificationService->notifyMember(
+                $updated,
+                LoanRequestNotificationService::EVENT_AWAITING_MEMBER_CORRECTION,
+                [
+                    'title' => 'Loan request needs correction',
+                    'message' => $remarks,
+                    'reason' => $remarks,
+                ],
+                $actor,
+            );
+        }
+
+        return $updated;
     }
 
     public function reject(
@@ -233,6 +256,13 @@ class LoanRequestWorkflowService
                 [LoanRequestStatus::UnderReview],
                 'Only under review requests can be recommended for approval.',
             );
+
+            if ($this->isDocumentWorkflowV2($lockedLoanRequest)) {
+                $this->ensureV2RecommendationRequirements(
+                    $lockedLoanRequest,
+                    $actor,
+                );
+            }
 
             $before = $this->snapshotForAudit($lockedLoanRequest);
             $fromStatus = $this->statusValue($lockedLoanRequest);
@@ -534,11 +564,20 @@ class LoanRequestWorkflowService
             'user_id' => $loanRequest->user_id,
             'acctno' => $loanRequest->acctno,
             'status' => $this->statusValue($loanRequest),
+            'workflow_version' => $loanRequest->workflow_version?->value
+                ?? (string) $loanRequest->workflow_version,
             'assigned_officer_id' => $loanRequest->assigned_officer_id,
+            'recommended_amount' => $loanRequest->recommended_amount,
+            'recommended_term' => $loanRequest->recommended_term,
+            'recommended_interest_rate' => $loanRequest->recommended_interest_rate,
+            'recommended_payment_frequency' => $loanRequest->recommended_payment_frequency,
+            'recommendation_remarks' => $loanRequest->recommendation_remarks,
             'reviewed_by' => $loanRequest->reviewed_by,
             'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
             'review_decision' => $loanRequest->review_decision,
             'review_remarks' => $loanRequest->review_remarks,
+            'member_action_type' => $loanRequest->member_action_type,
+            'member_action_message' => $loanRequest->member_action_message,
             'rejected_by' => $loanRequest->rejected_by,
             'rejected_at' => $loanRequest->rejected_at?->toDateTimeString(),
             'rejection_reason' => $loanRequest->rejection_reason,
@@ -560,6 +599,49 @@ class LoanRequestWorkflowService
         return $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
+    }
+
+    private function isDocumentWorkflowV2(LoanRequest $loanRequest): bool
+    {
+        return $loanRequest->workflow_version instanceof LoanRequestWorkflowVersion
+            ? $loanRequest->workflow_version === LoanRequestWorkflowVersion::DocumentWorkflowV2
+            : (string) $loanRequest->workflow_version
+                === LoanRequestWorkflowVersion::DocumentWorkflowV2->value;
+    }
+
+    private function ensureV2RecommendationRequirements(
+        LoanRequest $loanRequest,
+        AppUser $actor,
+    ): void {
+        if ($loanRequest->assigned_officer_id !== $actor->user_id) {
+            throw ValidationException::withMessages([
+                'assignment' => 'Only the assigned Loan Processor can recommend this request.',
+            ]);
+        }
+
+        if ($loanRequest->member_action_type !== null) {
+            throw ValidationException::withMessages([
+                'member_action' => 'Resolve the outstanding member action before recommending this request.',
+            ]);
+        }
+
+        foreach ([
+            'recommended_amount' => 'Recommended amount is required before recommendation.',
+            'recommended_term' => 'Recommended term is required before recommendation.',
+            'recommended_interest_rate' => 'Recommended interest rate is required before recommendation.',
+            'recommended_payment_frequency' => 'Recommended payment frequency is required before recommendation.',
+            'recommendation_remarks' => 'Recommendation remarks are required before recommendation.',
+        ] as $field => $message) {
+            $value = $loanRequest->getAttribute($field);
+
+            if ($value === null || trim((string) $value) === '') {
+                throw ValidationException::withMessages([
+                    $field => $message,
+                ]);
+            }
+        }
+
+        $this->documentWorkflowService->ensureRecommendationReady($loanRequest);
     }
 
     private function normalizeOptionalText(mixed $value): ?string

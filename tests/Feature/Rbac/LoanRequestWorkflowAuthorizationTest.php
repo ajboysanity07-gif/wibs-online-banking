@@ -1,6 +1,7 @@
 <?php
 
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AdminProfile;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -102,8 +103,8 @@ test('members can create and only view or resubmit their own eligible loan reque
     expect(Gate::forUser($member)->allows('resubmit', $ownUnderReview))->toBeFalse();
 });
 
-test('loan officers are limited to review-stage workflow actions', function () {
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+test('loan processors are limited to review-stage workflow actions', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100003',
@@ -155,7 +156,7 @@ test('loan managers are limited to approval and decline stages', function () {
 
 test('users with multiple workflow roles receive the combined permissions', function () {
     $actor = createWorkflowAuthorizationActor([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
         Role::LOAN_MANAGER,
     ]);
     $member = createWorkflowAuthorizationActor(
@@ -245,11 +246,11 @@ test('loan managers can decline recommended requests through the existing admin 
     expect($loanRequest->reviewed_by)->toBe($loanManager->user_id);
 });
 
-test('loan officers cannot approve recommended requests through the existing admin endpoint', function () {
+test('loan processors cannot approve recommended requests through the existing admin endpoint', function () {
     Queue::fake();
 
     $loanOfficer = createWorkflowAuthorizationActor(
-        [Role::LOAN_OFFICER],
+        [Role::LOAN_PROCESSOR],
         withAdminProfile: true,
         acctno: null,
     );
@@ -373,7 +374,7 @@ test('superadmins can monitor requests but cannot act on workflow decisions with
 });
 
 test('suspended staff cannot monitor or act on workflow requests', function () {
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     StaffAccessControl::factory()->suspended()->create([
         'user_id' => $loanOfficer->user_id,
     ]);
@@ -397,8 +398,8 @@ test('suspended staff cannot monitor or act on workflow requests', function () {
         ->assertForbidden();
 });
 
-test('loan officers can start review through the workflow route and create an audit row', function () {
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+test('loan processors can start review through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100010',
@@ -434,8 +435,8 @@ test('loan officers can start review through the workflow route and create an au
     expect($change->reason)->toBe('Initial review started.');
 });
 
-test('loan officers cannot start review once a request is already under review', function () {
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+test('loan processors cannot start review once a request is already under review', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100010A',
@@ -445,6 +446,7 @@ test('loan officers cannot start review once a request is already under review',
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
         'assigned_officer_id' => $loanOfficer->user_id,
+        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
     ]);
 
     $this
@@ -461,8 +463,8 @@ test('loan officers cannot start review once a request is already under review',
     expect(LoanRequestChange::query()->count())->toBe(0);
 });
 
-test('loan officers can request revision through the workflow route and create an audit row', function () {
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+test('loan processors can request revision through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100011',
@@ -472,6 +474,7 @@ test('loan officers can request revision through the workflow route and create a
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
         'assigned_officer_id' => $loanOfficer->user_id,
+        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
     ]);
 
     $response = $this
@@ -501,8 +504,8 @@ test('loan officers can request revision through the workflow route and create a
     expect($change->reason)->toBe('Please correct the employer address.');
 });
 
-test('loan officers can reject through the workflow route and create an audit row', function () {
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+test('loan processors can reject through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100012',
@@ -541,8 +544,8 @@ test('loan officers can reject through the workflow route and create an audit ro
     expect($change->reason)->toBe('Income documents are insufficient.');
 });
 
-test('loan officers can recommend approval through the workflow route and create an audit row', function () {
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+test('loan processors can recommend approval through the workflow route and create an audit row', function () {
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100013',
@@ -581,10 +584,10 @@ test('loan officers can recommend approval through the workflow route and create
     expect($change->reason)->toBe('Ready for manager approval.');
 });
 
-test('loan officers cannot approve through the workflow route', function () {
+test('loan processors cannot approve through the workflow route', function () {
     Queue::fake();
 
-    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
     $member = createWorkflowAuthorizationActor(
         [Role::MEMBER],
         acctno: '100014',
@@ -614,7 +617,7 @@ test('loan managers can approve recommended requests through the workflow route 
         [Role::MEMBER],
         acctno: '100015',
     );
-    $reviewingOfficer = createWorkflowAuthorizationActor([Role::LOAN_OFFICER]);
+    $reviewingOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::RecommendedForApproval,
@@ -623,6 +626,7 @@ test('loan managers can approve recommended requests through the workflow route 
         'reviewed_at' => now()->subMinute(),
         'review_decision' => LoanRequestStatus::RecommendedForApproval->value,
         'review_remarks' => 'Officer recommendation.',
+        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
     ]);
 
     $response = $this
@@ -672,11 +676,13 @@ test('loan managers can decline recommended requests through the workflow route 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::RecommendedForApproval,
         'submitted_at' => now(),
+        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
     ]);
 
     $response = $this
         ->actingAs($loanManager)
         ->patchJson(route('spa.workflow.loan-requests.decline', $loanRequest), [
+            'decline_category' => 'policy',
             'decline_reason' => 'Debt-to-income ratio is too high.',
         ]);
 

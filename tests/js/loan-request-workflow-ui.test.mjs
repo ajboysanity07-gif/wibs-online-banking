@@ -15,11 +15,11 @@ test('loan request status badge exposes the expanded workflow labels', async () 
     ]);
 
     for (const label of [
-        'Pending Review',
-        'Under Review',
-        'Needs Revision',
-        'Recommended for Approval',
-        'Rejected',
+        'Pending Processing',
+        'In Processing',
+        'Awaiting Member Correction',
+        'For Loan Manager Review',
+        'Rejected During Processing',
         'Converted to Loan',
     ]) {
         assert.match(file, new RegExp(label));
@@ -55,10 +55,10 @@ test('loan request queue surfaces keep pending review distinct and expose workfl
     assert.match(queueFile, /rejected/);
     assert.match(queueFile, /converted_to_loan/);
     assert.match(queueFile, /reported/);
-    assert.match(queueFile, /Assignee/);
+    assert.match(queueFile, /Assigned Loan Processor/);
     assert.match(queueFile, /assignmentFilters/);
     assert.match(queueFile, /assignmentOfficers/);
-    assert.match(queueFile, /All loan officers/);
+    assert.match(queueFile, /All loan processors/);
     assert.match(queueFile, /High workload/);
     assert.doesNotMatch(queueFile, /status === 'pending_review' \|\|/);
     assert.match(adminPageFile, /workspace="admin"/);
@@ -86,8 +86,8 @@ test('client loan request pages surface revision and conversion workflow states'
     assert.match(detailFile, /Revision remarks/);
     assert.match(detailFile, /converted_to_loan/);
     assert.match(detailFile, /Approved - awaiting processing in WIBS\./);
-    assert.match(listFile, /Pending Review/);
-    assert.match(listFile, /Under Review/);
-    assert.match(listFile, /Needs Revision/);
+    assert.match(listFile, /Pending Processing/);
+    assert.match(listFile, /In Processing/);
+    assert.match(listFile, /Awaiting Member Correction/);
     assert.match(listFile, /Approved\/Converted/);
 });

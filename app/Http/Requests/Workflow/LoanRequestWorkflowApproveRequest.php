@@ -29,6 +29,7 @@ class LoanRequestWorkflowApproveRequest extends FormRequest
             'approved_amount' => ['required', 'numeric', 'min:1'],
             'approved_term' => ['required', 'integer', 'min:1'],
             'approved_interest_rate' => ['nullable', 'numeric', 'min:0'],
+            'approved_payment_frequency' => ['nullable', 'string', 'max:255'],
             'approval_remarks' => ['nullable', 'string', 'max:1000'],
         ];
     }

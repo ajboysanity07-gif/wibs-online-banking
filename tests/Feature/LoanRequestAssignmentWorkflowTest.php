@@ -1,6 +1,7 @@
 <?php
 
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AdminProfile;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -17,7 +18,7 @@ beforeEach(function (): void {
 });
 
 test('assignment permissions are scoped to explicit workflow roles', function (): void {
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
     $superadmin = createAssignmentActor([Role::SUPERADMIN]);
     $legacyAdmin = createAssignmentActor(
@@ -52,9 +53,9 @@ test('assignment permissions are scoped to explicit workflow roles', function ()
     expect($member->hasPermission(Permission::LOAN_CLAIM))->toBeFalse();
 });
 
-test('loan officer can claim an unassigned operational request and another officer cannot overwrite it', function (): void {
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
-    $secondOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+test('loan processor can claim an unassigned operational request and another officer cannot overwrite it', function (): void {
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '420001');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
@@ -81,7 +82,7 @@ test('loan officer can claim an unassigned operational request and another offic
         ->assertStatus(409)
         ->assertJsonPath(
             'message',
-            'This application has already been assigned to another Loan Officer.',
+            'This application has already been assigned to another Loan Processor.',
         );
 
     $loanRequest->refresh();
@@ -93,8 +94,8 @@ test('loan officer can claim an unassigned operational request and another offic
 });
 
 test('start review auto claims pending review requests and blocks other officers', function (): void {
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
-    $secondOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '430001');
 
     $unassignedRequest = LoanRequest::factory()->forUser($member)->create([
@@ -148,9 +149,9 @@ test('start review auto claims pending review requests and blocks other officers
     ]);
 });
 
-test('loan officers can only perform review actions on requests assigned to themselves', function (): void {
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
-    $secondOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+test('loan processors can only perform review actions on requests assigned to themselves', function (): void {
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '440001');
 
     $revisionRequest = LoanRequest::factory()->forUser($member)->create([
@@ -164,6 +165,7 @@ test('loan officers can only perform review actions on requests assigned to them
     $recommendRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
         'assigned_officer_id' => $loanOfficer->user_id,
+        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
     ]);
 
     $this
@@ -217,7 +219,7 @@ test('loan officers can only perform review actions on requests assigned to them
 
 test('applicants cannot claim or be manually assigned their own application by user id or acctno', function (): void {
     $loanOfficerApplicant = createAssignmentActor(
-        [Role::LOAN_OFFICER, Role::MEMBER],
+        [Role::LOAN_PROCESSOR, Role::MEMBER],
         acctno: '450001',
     );
     $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
@@ -246,8 +248,8 @@ test('applicants cannot claim or be manually assigned their own application by u
 
 test('loan managers can assign reassign and return operational requests to queue', function (): void {
     $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
-    $secondOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '460001');
 
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
@@ -297,9 +299,9 @@ test('loan managers can assign reassign and return operational requests to queue
 
 test('manual assignment rejects ineligible officers and terminal requests', function (): void {
     $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $memberOnly = createAssignmentActor([Role::MEMBER], acctno: '470001');
-    $suspendedOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $suspendedOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $owner = createAssignmentActor([Role::MEMBER], acctno: '470002');
 
     StaffAccessControl::factory()->suspended($loanManager)->create([
@@ -345,9 +347,9 @@ test('manual assignment rejects ineligible officers and terminal requests', func
         ->assertForbidden();
 });
 
-test('assigned loan officers can return their own requests to queue but not another officers request', function (): void {
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
-    $secondOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+test('assigned loan processors can return their own requests to queue but not another officers request', function (): void {
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '480001');
 
     $ownedRequest = LoanRequest::factory()->forUser($member)->create([
@@ -377,8 +379,8 @@ test('assigned loan officers can return their own requests to queue but not anot
 });
 
 test('queue api scopes active work by ownership and exposes assignment metadata', function (): void {
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
-    $secondOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '490001');
 
@@ -462,7 +464,7 @@ test('queue api scopes active work by ownership and exposes assignment metadata'
 });
 
 test('eligible officer options count only operational workload and warn at the configured threshold', function (): void {
-    $loanOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '500001');
 
     LoanRequest::factory()
@@ -487,10 +489,10 @@ test('eligible officer options count only operational workload and warn at the c
     expect($option['workload_warning_label'])->toBe('High workload');
 });
 
-test('suspension and loan officer role removal only unassign operational requests', function (): void {
+test('suspension and loan processor role removal only unassign operational requests', function (): void {
     $superadmin = createAssignmentActor([Role::SUPERADMIN]);
-    $suspendedOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
-    $removedOfficer = createAssignmentActor([Role::LOAN_OFFICER]);
+    $suspendedOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $removedOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
     $member = createAssignmentActor([Role::MEMBER], acctno: '510001');
 
     $suspendedPending = LoanRequest::factory()->forUser($member)->create([
@@ -538,8 +540,8 @@ test('suspension and loan officer role removal only unassign operational request
     $staffService->removeRole(
         $removedOfficer->fresh(),
         $superadmin,
-        Role::LOAN_OFFICER,
-        'Removing loan officer access after a staffing change.',
+        Role::LOAN_PROCESSOR,
+        'Removing loan processor access after a staffing change.',
     );
 
     $suspendedPending->refresh();

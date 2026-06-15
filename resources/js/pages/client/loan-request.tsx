@@ -9,6 +9,7 @@ import {
     LoanRequestApplicantPersonalStep,
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
+    LoanRequestDataSectionStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
 } from '@/components/loan-request/loan-request-steps';
@@ -24,6 +25,9 @@ import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    LoanRequestDataSectionDefinitions,
+    LoanRequestDataSections,
+    LoanRequestDataSectionValues,
     LoanRequestDraft,
     LoanRequestFormData,
     LoanRequestMemberSummary,
@@ -42,6 +46,8 @@ type Props = {
     coMakerTwo: LoanRequestPersonData | null;
     applicantReadOnly: LoanRequestReadOnlyMap | null;
     member: LoanRequestMemberSummary;
+    dataSections: LoanRequestDataSections;
+    dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     draft: LoanRequestDraft | null;
 };
 
@@ -76,6 +82,36 @@ const steps = [
         id: 'co-maker-2',
         title: 'Co-maker 2',
         description: 'Add details for your second co-maker.',
+    },
+    {
+        id: 'insurance',
+        title: 'Insurance & beneficiaries',
+        description: 'Provide beneficiary details required for document generation.',
+    },
+    {
+        id: 'health',
+        title: 'Health declarations',
+        description: 'Complete the required health declarations for the request.',
+    },
+    {
+        id: 'authorization',
+        title: 'Authorization & release',
+        description: 'Confirm the authorized recipient and release details.',
+    },
+    {
+        id: 'banking',
+        title: 'Bank & payout',
+        description: 'Provide the payout bank and account information.',
+    },
+    {
+        id: 'barangay',
+        title: 'Barangay information',
+        description: 'Provide the barangay details required for the forms.',
+    },
+    {
+        id: 'declarations',
+        title: 'Declarations',
+        description: 'Review the required declarations and consent statements.',
     },
     {
         id: 'review',
@@ -253,6 +289,36 @@ const resolveStepFromErrors = (
             return;
         }
 
+        if (key.startsWith('insurance.') || key === 'document_data') {
+            stepMatches.push(5);
+            return;
+        }
+
+        if (key.startsWith('health.')) {
+            stepMatches.push(6);
+            return;
+        }
+
+        if (key.startsWith('authorization.')) {
+            stepMatches.push(7);
+            return;
+        }
+
+        if (key.startsWith('banking.')) {
+            stepMatches.push(8);
+            return;
+        }
+
+        if (key.startsWith('barangay.')) {
+            stepMatches.push(9);
+            return;
+        }
+
+        if (key.startsWith('declarations.')) {
+            stepMatches.push(10);
+            return;
+        }
+
         if (key.startsWith('applicant.')) {
             const field = key.replace('applicant.', '');
             stepMatches.push(
@@ -266,7 +332,7 @@ const resolveStepFromErrors = (
         }
 
         if (key === 'undertaking_accepted') {
-            stepMatches.push(5);
+            stepMatches.push(11);
         }
     });
 
@@ -280,6 +346,8 @@ export default function LoanRequestPage({
     coMakerTwo,
     applicantReadOnly,
     member,
+    dataSections,
+    dataSectionDefinitions,
     draft,
 }: Props) {
     const [currentStep, setCurrentStep] = useState(0);
@@ -305,8 +373,26 @@ export default function LoanRequestPage({
             applicant: toPersonForm(applicant),
             co_maker_1: toPersonForm(coMakerOne),
             co_maker_2: toPersonForm(coMakerTwo),
+            insurance: {
+                ...dataSections.insurance,
+            },
+            health: {
+                ...dataSections.health,
+            },
+            authorization: {
+                ...dataSections.authorization,
+            },
+            banking: {
+                ...dataSections.banking,
+            },
+            barangay: {
+                ...dataSections.barangay,
+            },
+            declarations: {
+                ...dataSections.declarations,
+            },
         }),
-        [applicant, coMakerOne, coMakerTwo, draft, loanTypes],
+        [applicant, coMakerOne, coMakerTwo, dataSections, draft, loanTypes],
     );
 
     const form = useForm<LoanRequestFormData>(initialFormData);
@@ -356,6 +442,25 @@ export default function LoanRequestPage({
         (field: keyof LoanRequestPersonFormData, value: string) => {
             form.setData(personKey, {
                 ...form.data[personKey],
+                [field]: value,
+            });
+        };
+
+    const updateDataSection =
+        (
+            sectionKey: keyof Pick<
+                LoanRequestFormData,
+                | 'insurance'
+                | 'health'
+                | 'authorization'
+                | 'banking'
+                | 'barangay'
+                | 'declarations'
+            >,
+        ) =>
+        (field: string, value: string | number | boolean | null) => {
+            form.setData(sectionKey, {
+                ...(form.data[sectionKey] as LoanRequestDataSectionValues),
                 [field]: value,
             });
         };
@@ -556,11 +661,102 @@ export default function LoanRequestPage({
                             show={currentStep === 5}
                             direction={stepDirection}
                         >
+                            <LoanRequestDataSectionStep
+                                sectionKey="insurance"
+                                title="Insurance and beneficiaries"
+                                description="Provide beneficiary details that will be reused across the required documents."
+                                values={form.data.insurance}
+                                definition={dataSectionDefinitions.insurance}
+                                errors={form.errors}
+                                onChange={updateDataSection('insurance')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 6}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestDataSectionStep
+                                sectionKey="health"
+                                title="Health declarations"
+                                description="Confirm the required health declarations before submission."
+                                values={form.data.health}
+                                definition={dataSectionDefinitions.health}
+                                errors={form.errors}
+                                onChange={updateDataSection('health')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 7}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestDataSectionStep
+                                sectionKey="authorization"
+                                title="Authorization and release"
+                                description="Provide the authorized recipient details for loan release."
+                                values={form.data.authorization}
+                                definition={dataSectionDefinitions.authorization}
+                                errors={form.errors}
+                                onChange={updateDataSection('authorization')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 8}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestDataSectionStep
+                                sectionKey="banking"
+                                title="Bank and payout information"
+                                description="Provide the payout bank account details that staff will use for processing."
+                                values={form.data.banking}
+                                definition={dataSectionDefinitions.banking}
+                                errors={form.errors}
+                                onChange={updateDataSection('banking')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 9}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestDataSectionStep
+                                sectionKey="barangay"
+                                title="Barangay information"
+                                description="Provide the barangay details required for the supporting documents."
+                                values={form.data.barangay}
+                                definition={dataSectionDefinitions.barangay}
+                                errors={form.errors}
+                                onChange={updateDataSection('barangay')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 10}
+                            direction={stepDirection}
+                        >
+                            <LoanRequestDataSectionStep
+                                sectionKey="declarations"
+                                title="Personal declarations and consent"
+                                description="Complete the declarations and consent items required before processing can begin."
+                                values={form.data.declarations}
+                                definition={dataSectionDefinitions.declarations}
+                                errors={form.errors}
+                                onChange={updateDataSection('declarations')}
+                            />
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 11}
+                            direction={stepDirection}
+                        >
                             <LoanRequestReviewStep
                                 data={form.data}
                                 loanTypes={loanTypes}
                                 member={member}
                                 errors={form.errors}
+                                sectionDefinitions={dataSectionDefinitions}
                                 onUndertakingChange={(value) =>
                                     form.setData('undertaking_accepted', value)
                                 }

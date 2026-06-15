@@ -124,7 +124,7 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     expect(Role::query()->pluck('name')->sort()->values()->all())->toBe([
         Role::ADMIN,
         Role::LOAN_MANAGER,
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
         Role::MEMBER,
         Role::SUPERADMIN,
     ]);
@@ -132,7 +132,7 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
 
     $adminRole = Role::query()->where('name', Role::ADMIN)->firstOrFail();
     $memberRole = Role::query()->where('name', Role::MEMBER)->firstOrFail();
-    $loanOfficerRole = Role::query()->where('name', Role::LOAN_OFFICER)->firstOrFail();
+    $loanOfficerRole = Role::query()->where('name', Role::LOAN_PROCESSOR)->firstOrFail();
     $loanManagerRole = Role::query()->where('name', Role::LOAN_MANAGER)->firstOrFail();
     $superadminRole = Role::query()->where('name', Role::SUPERADMIN)->firstOrFail();
 
@@ -253,7 +253,7 @@ test('app user recognizes explicit and legacy superadmin access', function () {
     expect($regularAdmin->fresh()->isSuperadmin())->toBeFalse();
 });
 
-test('superadmin does not receive loan officer or manager decision permissions unless explicitly assigned', function () {
+test('superadmin does not receive loan processor or manager decision permissions unless explicitly assigned', function () {
     Role::ensureWorkflowDefaults();
 
     $superadmin = AppUser::factory()->create([
@@ -271,7 +271,7 @@ test('superadmin does not receive loan officer or manager decision permissions u
     expect($superadmin->hasPermission(Permission::LOAN_APPROVE))->toBeFalse();
     expect($superadmin->hasPermission(Permission::LOAN_DECLINE))->toBeFalse();
 
-    Role::attachNamedRole($superadmin, Role::LOAN_OFFICER);
+    Role::attachNamedRole($superadmin, Role::LOAN_PROCESSOR);
     Role::attachNamedRole($superadmin, Role::LOAN_MANAGER);
 
     $superadmin->refresh()->load('roles.permissions');

@@ -95,13 +95,13 @@ class RequestsService
         }
 
         if ($status !== null && $status !== '') {
-            if ($status === LoanRequestStatus::UnderReview->value) {
+            if ($status === LoanRequestStatus::PendingReview->value) {
                 $query->whereIn(
                     'status',
                     [
                         LoanRequestStatus::PendingCoMakerSignatures->value,
                         LoanRequestStatus::Submitted->value,
-                        LoanRequestStatus::UnderReview->value,
+                        LoanRequestStatus::PendingReview->value,
                     ],
                 );
             } else {
@@ -203,13 +203,13 @@ class RequestsService
         }
 
         if ($status !== null && $status !== '') {
-            if ($status === LoanRequestStatus::UnderReview->value) {
+            if ($status === LoanRequestStatus::PendingReview->value) {
                 $query->whereIn(
                     'status',
                     [
                         LoanRequestStatus::PendingCoMakerSignatures->value,
                         LoanRequestStatus::Submitted->value,
-                        LoanRequestStatus::UnderReview->value,
+                        LoanRequestStatus::PendingReview->value,
                     ],
                 );
             } else {

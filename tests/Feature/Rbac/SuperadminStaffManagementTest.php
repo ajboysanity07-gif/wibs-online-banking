@@ -19,7 +19,7 @@ beforeEach(function (): void {
 test('superadmin staff management routes allow explicit and legacy superadmins and block other actors', function (): void {
     $superadmin = createManagedSuperadmin();
     $legacyFallbackSuperadmin = createLegacyFallbackSuperadmin();
-    $loanOfficer = createManagedStaffUser([Role::LOAN_OFFICER]);
+    $loanOfficer = createManagedStaffUser([Role::LOAN_PROCESSOR]);
     $loanManager = createManagedStaffUser([Role::LOAN_MANAGER]);
     $member = AppUser::factory()->create();
     $legacyAdmin = createLegacyAdmin();
@@ -77,7 +77,7 @@ test('suspended staff cannot access superadmin or workflow routes while hybrid m
             'user_id' => $suspendedSuperadmin->user_id,
         ]);
 
-    $loanOfficer = createManagedStaffUser([Role::LOAN_OFFICER]);
+    $loanOfficer = createManagedStaffUser([Role::LOAN_PROCESSOR]);
     StaffAccessControl::factory()
         ->suspended($actingSuperadmin)
         ->create([
@@ -145,7 +145,7 @@ test('superadmin can assign and remove editable staff roles while preserving mem
     $this
         ->actingAs($superadmin)
         ->patchJson(route('spa.superadmin.staff.roles.update', $target), [
-            'role' => Role::LOAN_OFFICER,
+            'role' => Role::LOAN_PROCESSOR,
             'operation' => 'assign',
             'reason' => 'Assign to the officer queue.',
         ])
@@ -165,7 +165,7 @@ test('superadmin can assign and remove editable staff roles while preserving mem
     $this
         ->actingAs($superadmin)
         ->patchJson(route('spa.superadmin.staff.roles.update', $target), [
-            'role' => Role::LOAN_OFFICER,
+            'role' => Role::LOAN_PROCESSOR,
             'operation' => 'remove',
             'reason' => 'Shift the user back to manager-only duties.',
         ])
@@ -175,7 +175,7 @@ test('superadmin can assign and remove editable staff roles while preserving mem
 
     expect($target->acctno)->toBe('400001');
     expect($target->hasRole(Role::MEMBER))->toBeTrue();
-    expect($target->hasRole(Role::LOAN_OFFICER))->toBeFalse();
+    expect($target->hasRole(Role::LOAN_PROCESSOR))->toBeFalse();
     expect($target->hasRole(Role::LOAN_MANAGER))->toBeTrue();
     expect($target->hasActiveStaffAccess())->toBeTrue();
 
@@ -183,7 +183,7 @@ test('superadmin can assign and remove editable staff roles while preserving mem
 
     $assignOfficerAudit = UserRoleChange::query()
         ->where('action', UserRoleChange::ACTION_ROLE_ASSIGNED)
-        ->where('role_name', Role::LOAN_OFFICER)
+        ->where('role_name', Role::LOAN_PROCESSOR)
         ->orderBy('id')
         ->firstOrFail();
 
@@ -191,7 +191,7 @@ test('superadmin can assign and remove editable staff roles while preserving mem
     expect($assignOfficerAudit->before_roles_json)->toBe([Role::MEMBER]);
     expect($assignOfficerAudit->after_roles_json)->toContain(
         Role::MEMBER,
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     );
 });
 
@@ -205,7 +205,7 @@ test('staff role mutations require reasons and do not manage legacy admin accoun
     $this
         ->actingAs($superadmin)
         ->patchJson(route('spa.superadmin.staff.roles.update', $target), [
-            'role' => Role::LOAN_OFFICER,
+            'role' => Role::LOAN_PROCESSOR,
             'operation' => 'assign',
             'reason' => '',
         ])
@@ -311,10 +311,10 @@ test('superadmin cannot remove or suspend their own superadmin access and servic
     ))->toThrow(ValidationException::class);
 });
 
-test('suspending a loan officer unassigns active applications, preserves terminal ones, audits each unassignment, and reactivation does not reclaim them', function (): void {
+test('suspending a loan processor unassigns active applications, preserves terminal ones, audits each unassignment, and reactivation does not reclaim them', function (): void {
     $superadmin = createManagedSuperadmin();
     $loanOfficer = createManagedStaffUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ], acctno: '500001');
     $member = AppUser::factory()->create([
         'acctno' => '500002',

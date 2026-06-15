@@ -20,7 +20,6 @@ use App\Http\Controllers\Auth\UsernameSuggestionController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\LoanRequestController;
 use App\Http\Controllers\Client\LoanRequestCorrectionReportController as ClientLoanRequestCorrectionReportController;
-use App\Http\Controllers\Client\LoanRequestSignatureLinkController as ClientLoanRequestSignatureLinkController;
 use App\Http\Controllers\Client\MemberLoanPaymentsController as ClientMemberLoanPaymentsController;
 use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemberLoanPaymentsExportController;
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
@@ -28,14 +27,13 @@ use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansContro
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LoanRequestActionController;
 use App\Http\Controllers\NotificationsController as NotificationsPageController;
-use App\Http\Controllers\PublicLoanRequestCoMakerSignatureController;
 use App\Http\Controllers\Spa\Admin\AccountSummaryController as SpaAccountSummaryController;
 use App\Http\Controllers\Spa\Admin\DashboardDataController as SpaDashboardDataController;
 use App\Http\Controllers\Spa\Admin\LoanRequestCorrectionController as SpaLoanRequestCorrectionController;
 use App\Http\Controllers\Spa\Admin\LoanRequestCorrectionReportController as SpaLoanRequestCorrectionReportController;
 use App\Http\Controllers\Spa\Admin\LoanRequestDecisionController as SpaLoanRequestDecisionController;
-use App\Http\Controllers\Spa\Admin\LoanRequestSignatureLinkController as SpaLoanRequestSignatureLinkController;
 use App\Http\Controllers\Spa\Admin\MemberAccountActionsController as SpaMemberAccountActionsController;
 use App\Http\Controllers\Spa\Admin\MemberAccountsSummaryController as SpaMemberAccountsSummaryController;
 use App\Http\Controllers\Spa\Admin\MemberAdminAccessController as SpaMemberAdminAccessController;
@@ -65,16 +63,6 @@ use App\Http\Controllers\WorkspaceSwitchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
-
-Route::get(
-    'loan-requests/sign/co-maker/{token}',
-    [PublicLoanRequestCoMakerSignatureController::class, 'show'],
-)->name('loan-requests.sign.co-maker.show');
-
-Route::post(
-    'loan-requests/sign/co-maker/{token}',
-    [PublicLoanRequestCoMakerSignatureController::class, 'store'],
-)->name('loan-requests.sign.co-maker.store');
 
 Route::middleware('guest')->group(function () {
     Route::post('register/verify', [MemberVerificationController::class, 'store'])
@@ -150,6 +138,20 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('approve');
             Route::patch('{loanRequest}/decline', [SpaLoanRequestWorkflowController::class, 'decline'])
                 ->name('decline');
+            Route::patch('{loanRequest}/processing-details', [SpaLoanRequestWorkflowController::class, 'updateProcessingDetails'])
+                ->name('processing-details');
+            Route::patch('{loanRequest}/request-member-action', [SpaLoanRequestWorkflowController::class, 'requestMemberAction'])
+                ->name('request-member-action');
+            Route::patch('{loanRequest}/reject-during-processing', [SpaLoanRequestWorkflowController::class, 'rejectDuringProcessing'])
+                ->name('reject-during-processing');
+            Route::post('{loanRequest}/documents/generate', [SpaLoanRequestWorkflowController::class, 'generateDocuments'])
+                ->name('documents.generate');
+            Route::patch('{loanRequest}/return-for-processing', [SpaLoanRequestWorkflowController::class, 'returnForProcessing'])
+                ->name('return-for-processing');
+            Route::patch('{loanRequest}/reopen', [SpaLoanRequestWorkflowController::class, 'reopen'])
+                ->name('reopen');
+            Route::patch('{loanRequest}/upgrade-workflow', [SpaLoanRequestWorkflowController::class, 'upgradeWorkflow'])
+                ->name('upgrade-workflow');
         });
 
     Route::middleware(['auth', 'verified', 'loan-workflow-staff'])->group(function () {
@@ -199,10 +201,6 @@ Route::prefix('spa')->middleware('web')->group(function () {
             [SpaLoanRequestCorrectionReportController::class, 'dismiss'],
         );
         Route::patch('admin/requests/{loanRequest}/cancel', [SpaLoanRequestDecisionController::class, 'cancel']);
-        Route::post(
-            'admin/requests/{loanRequest}/co-makers/{role}/signature-link',
-            [SpaLoanRequestSignatureLinkController::class, 'store'],
-        );
         Route::post('admin/requests/{loanRequest}/admin-corrected-copy', [SpaLoanRequestDecisionController::class, 'createAdminCorrectedCopy']);
         Route::get('admin/watchlist', SpaWatchlistController::class);
     });
@@ -246,13 +244,6 @@ Route::patch('client/loans/request', [LoanRequestController::class, 'draft'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.draft');
 
-Route::post(
-    'client/loans/request/co-makers/{role}/signature-link',
-    [ClientLoanRequestSignatureLinkController::class, 'store'],
-)
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
-    ->name('client.loan-requests.signature-links.store');
-
 Route::get('client/loans/requests', [LoanRequestController::class, 'index'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.index');
@@ -264,6 +255,10 @@ Route::get('client/loans/requests/{loanRequest}', [LoanRequestController::class,
 Route::patch('client/loans/requests/{loanRequest}/cancel', [LoanRequestController::class, 'cancel'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.cancel');
+
+Route::patch('client/loans/requests/{loanRequest}/resolve-action', [LoanRequestController::class, 'resolveAction'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.resolve-action');
 
 Route::post(
     'client/loans/requests/{loanRequest}/correction-reports',
@@ -340,6 +335,10 @@ Route::get('dashboard', DashboardRedirectController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+Route::get('loan-requests/{reference}/action', LoanRequestActionController::class)
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('loan-requests.action');
+
 Route::post('workspace/switch', WorkspaceSwitchController::class)
     ->middleware(['auth', 'verified'])
     ->name('workspace.switch');
@@ -369,6 +368,11 @@ Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])-
         'loan-requests/{loanRequest}/approved-documents',
         [StaffLoanRequestController::class, 'approvedDocuments'],
     )->name('staff.loan-requests.approved-documents');
+
+    Route::get(
+        'loan-requests/{loanRequest}/documents/generated/{documentKey}',
+        [StaffLoanRequestController::class, 'generatedDocument'],
+    )->name('staff.loan-requests.documents.generated');
 
     Route::prefix('loan-requests/{loanRequest}/documents')->group(function () {
         Route::get('application-form', [StaffLoanRequestController::class, 'applicationFormDocument'])

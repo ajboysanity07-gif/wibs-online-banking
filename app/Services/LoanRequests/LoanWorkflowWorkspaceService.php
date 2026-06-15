@@ -66,7 +66,7 @@ class LoanWorkflowWorkspaceService
         return $user->hasPermission(Permission::LOAN_VIEW)
             && $user->hasAnyRole([
                 Role::SUPERADMIN,
-                Role::LOAN_OFFICER,
+                Role::LOAN_PROCESSOR,
                 Role::LOAN_MANAGER,
             ]);
     }
@@ -232,7 +232,7 @@ class LoanWorkflowWorkspaceService
             $roles[] = Role::SUPERADMIN;
         }
 
-        foreach ([Role::LOAN_OFFICER, Role::LOAN_MANAGER] as $roleName) {
+        foreach ([Role::LOAN_PROCESSOR, Role::LOAN_MANAGER] as $roleName) {
             if ($user->hasRole($roleName)) {
                 $roles[] = $roleName;
             }
@@ -291,15 +291,18 @@ class LoanWorkflowWorkspaceService
 
         $statuses = [];
 
-        if ($user->hasRole(Role::LOAN_OFFICER)) {
+        if ($user->hasRole(Role::LOAN_PROCESSOR)) {
             $statuses = array_merge($statuses, [
                 LoanRequestStatus::Submitted->value,
                 LoanRequestStatus::PendingCoMakerSignatures->value,
                 LoanRequestStatus::PendingReview->value,
                 LoanRequestStatus::UnderReview->value,
                 LoanRequestStatus::NeedsRevision->value,
+                LoanRequestStatus::AwaitingMemberInformation->value,
                 LoanRequestStatus::Rejected->value,
                 LoanRequestStatus::RecommendedForApproval->value,
+                LoanRequestStatus::AwaitingMemberAcceptance->value,
+                LoanRequestStatus::MemberDeclinedTerms->value,
             ]);
         }
 
@@ -308,9 +311,12 @@ class LoanWorkflowWorkspaceService
                 LoanRequestStatus::PendingReview->value,
                 LoanRequestStatus::UnderReview->value,
                 LoanRequestStatus::NeedsRevision->value,
+                LoanRequestStatus::AwaitingMemberInformation->value,
                 LoanRequestStatus::RecommendedForApproval->value,
+                LoanRequestStatus::AwaitingMemberAcceptance->value,
                 LoanRequestStatus::Approved->value,
                 LoanRequestStatus::Declined->value,
+                LoanRequestStatus::MemberDeclinedTerms->value,
                 LoanRequestStatus::ConvertedToLoan->value,
             ]);
         }
@@ -343,7 +349,7 @@ class LoanWorkflowWorkspaceService
             return;
         }
 
-        if ($user->hasRole(Role::LOAN_OFFICER)) {
+        if ($user->hasRole(Role::LOAN_PROCESSOR)) {
             $query->where(function (Builder $builder) use ($user): void {
                 $builder
                     ->where(function (Builder $queueQuery): void {

@@ -109,6 +109,45 @@ class LoanRequestPolicy
         ], true);
     }
 
+    public function updateProcessingDetails(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return $this->canActOnAssignedRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_REVIEW,
+        ) && in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::PendingReview->value,
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::NeedsRevision->value,
+            LoanRequestStatus::AwaitingMemberInformation->value,
+        ], true);
+    }
+
+    public function requestMemberAction(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return $this->updateProcessingDetails($user, $loanRequest);
+    }
+
+    public function rejectDuringProcessing(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return $this->canActOnAssignedRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_REJECT,
+        ) && in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::PendingReview->value,
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::NeedsRevision->value,
+            LoanRequestStatus::AwaitingMemberInformation->value,
+        ], true);
+    }
+
     public function reject(AppUser $user, LoanRequest $loanRequest): bool
     {
         return $this->canActOnAssignedRequest(
@@ -130,6 +169,11 @@ class LoanRequestPolicy
         ) && $this->statusValue($loanRequest) === LoanRequestStatus::UnderReview->value;
     }
 
+    public function generateDocuments(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        return $this->updateProcessingDetails($user, $loanRequest);
+    }
+
     public function approve(AppUser $user, LoanRequest $loanRequest): bool
     {
         return $this->canActOnAnotherUsersRequest(
@@ -137,6 +181,60 @@ class LoanRequestPolicy
             $loanRequest,
             Permission::LOAN_APPROVE,
         ) && $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value;
+    }
+
+    public function returnForProcessing(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        if (! $user->hasActiveStaffAccess() || $this->ownsLoanRequest($user, $loanRequest)) {
+            return false;
+        }
+
+        if (! in_array($this->statusValue($loanRequest), [
+            LoanRequestStatus::RecommendedForApproval->value,
+            LoanRequestStatus::AwaitingMemberAcceptance->value,
+        ], true)) {
+            return false;
+        }
+
+        return $user->hasPermission(Permission::LOAN_MANAGE_ASSIGNMENT)
+            || $user->hasPermission(Permission::LOAN_APPROVE)
+            || $user->hasPermission(Permission::LOAN_DECLINE)
+            || $user->isLegacySuperadmin();
+    }
+
+    public function reopenRejectedRequest(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_MANAGE_ASSIGNMENT,
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::Rejected->value;
+    }
+
+    public function upgradeWorkflowVersion(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_MANAGE_ASSIGNMENT,
+        );
+    }
+
+    public function respondToMemberAction(
+        AppUser $user,
+        LoanRequest $loanRequest,
+    ): bool {
+        return $this->ownsLoanRequest($user, $loanRequest)
+            && in_array($this->statusValue($loanRequest), [
+                LoanRequestStatus::AwaitingMemberInformation->value,
+                LoanRequestStatus::AwaitingMemberAcceptance->value,
+            ], true);
     }
 
     public function decline(AppUser $user, LoanRequest $loanRequest): bool
@@ -216,7 +314,7 @@ class LoanRequestPolicy
         return $user->hasPermission(Permission::LOAN_VIEW)
             && $user->hasAnyRole([
                 Role::SUPERADMIN,
-                Role::LOAN_OFFICER,
+                Role::LOAN_PROCESSOR,
                 Role::LOAN_MANAGER,
             ]);
     }

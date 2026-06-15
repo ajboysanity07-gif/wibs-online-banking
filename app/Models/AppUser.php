@@ -371,18 +371,24 @@ class AppUser extends Authenticatable
             ? $role->name
             : trim($role);
 
-        if ($roleName === '') {
+        $roleNames = $this->normalizedRoleNames($roleName);
+
+        if ($roleNames === []) {
             return false;
         }
 
         if ($this->relationLoaded('roles')) {
             return $this->roles->contains(
-                static fn (Role $assignedRole): bool => $assignedRole->name === $roleName,
+                static fn (Role $assignedRole): bool => in_array(
+                    $assignedRole->name,
+                    $roleNames,
+                    true,
+                ),
             );
         }
 
         return $this->roles()
-            ->where('name', $roleName)
+            ->whereIn('name', $roleNames)
             ->exists();
     }
 
@@ -391,8 +397,10 @@ class AppUser extends Authenticatable
      */
     public function hasAnyRole(array $roles): bool
     {
-        $roleNames = array_values(array_unique(array_filter(array_map(
-            static fn (Role|string $role): string => trim($role instanceof Role ? $role->name : $role),
+        $roleNames = array_values(array_unique(array_merge(...array_map(
+            fn (Role|string $role): array => $this->normalizedRoleNames(
+                trim($role instanceof Role ? $role->name : $role),
+            ),
             $roles,
         ))));
 
@@ -452,6 +460,30 @@ class AppUser extends Authenticatable
         }
 
         return $this->hasAnyRole(Role::editableStaffNames());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizedRoleNames(string $roleName): array
+    {
+        $normalizedRoleName = trim($roleName);
+
+        if ($normalizedRoleName === '') {
+            return [];
+        }
+
+        if (
+            in_array(
+                $normalizedRoleName,
+                [Role::LOAN_PROCESSOR, 'loan_officer'],
+                true,
+            )
+        ) {
+            return [Role::LOAN_PROCESSOR, 'loan_officer'];
+        }
+
+        return [$normalizedRoleName];
     }
 
     public function getDisplayCodeAttribute(): string

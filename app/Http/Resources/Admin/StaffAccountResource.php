@@ -62,10 +62,10 @@ class StaffAccountResource extends JsonResource
             ];
         }
 
-        if ($user->hasRole(Role::LOAN_OFFICER)) {
+        if ($user->hasRole(Role::LOAN_PROCESSOR)) {
             $roles[] = [
-                'name' => Role::LOAN_OFFICER,
-                'label' => 'Loan Officer',
+                'name' => Role::LOAN_PROCESSOR,
+                'label' => 'Loan Processor',
                 'editable' => true,
             ];
         }

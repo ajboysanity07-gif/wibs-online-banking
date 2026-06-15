@@ -45,7 +45,7 @@ test('member only users resolve only the member workspace', function (): void {
 });
 
 test('staff only workflow users resolve only the staff workspace', function (): void {
-    $loanOfficer = createStaffWorkspaceUser([Role::LOAN_OFFICER]);
+    $loanOfficer = createStaffWorkspaceUser([Role::LOAN_PROCESSOR]);
 
     $this
         ->actingAs($loanOfficer)
@@ -73,7 +73,7 @@ test('rbac hybrid users expose both workspaces', function (string $role): void {
             ->where('auth.hasMultipleWorkspaces', true)
             ->where('auth.isHybrid', true));
 })->with([
-    'loan officer hybrid' => Role::LOAN_OFFICER,
+    'loan processor hybrid' => Role::LOAN_PROCESSOR,
     'loan manager hybrid' => Role::LOAN_MANAGER,
     'superadmin hybrid' => Role::SUPERADMIN,
 ]);
@@ -96,7 +96,7 @@ test('legacy admins continue to resolve the staff workspace', function (): void 
 
 test('suspended hybrid staff retain member access only', function (): void {
     $hybrid = createWorkspaceMemberUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ]);
 
     StaffAccessControl::factory()->suspended()->create([
@@ -128,7 +128,7 @@ test('suspended hybrid staff retain member access only', function (): void {
 
 test('workspace switching validates, persists, and updates shared context', function (): void {
     $hybrid = createWorkspaceMemberUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ]);
 
     $this
@@ -165,7 +165,7 @@ test('workspace switching validates, persists, and updates shared context', func
 
 test('workspace switching rejects invalid and unavailable values', function (): void {
     $hybrid = createWorkspaceMemberUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ]);
     $memberOnly = createWorkspaceMemberUser();
 
@@ -203,10 +203,10 @@ test('spa login redirects respect workspace defaults', function (): void {
         Role::SUPERADMIN,
     ]);
     $staffOnlyOfficer = createStaffWorkspaceUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ]);
     $hybrid = createWorkspaceMemberUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ]);
 
     $this->postJson('/spa/auth/login', [
@@ -234,7 +234,7 @@ test('spa login redirects respect workspace defaults', function (): void {
 
 test('direct member and staff pages normalize workspace context', function (): void {
     $hybrid = createWorkspaceMemberUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ]);
 
     $this
@@ -254,7 +254,7 @@ test('direct member and staff pages normalize workspace context', function (): v
 
 test('staff cannot act on their own applications after switching to staff workspace', function (): void {
     $hybrid = createWorkspaceMemberUser([
-        Role::LOAN_OFFICER,
+        Role::LOAN_PROCESSOR,
     ]);
     $ownRequest = LoanRequest::factory()->forUser($hybrid)->create([
         'status' => LoanRequestStatus::PendingReview,

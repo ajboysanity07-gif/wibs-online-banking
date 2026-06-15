@@ -87,11 +87,31 @@ const formatStatusLabel = (status?: string | null): string | null => {
     }
 
     if (status === 'under_review') {
-        return 'Under Review';
+        return 'In Processing';
     }
 
     if (status === 'pending_review') {
-        return 'Pending Review';
+        return 'Pending Processing';
+    }
+
+    if (status === 'needs_revision') {
+        return 'Awaiting Member Correction';
+    }
+
+    if (status === 'recommended_for_approval') {
+        return 'For Loan Manager Review';
+    }
+
+    if (status === 'approved') {
+        return 'Approved - For WIBS Processing';
+    }
+
+    if (status === 'declined') {
+        return 'Declined by Loan Manager';
+    }
+
+    if (status === 'rejected') {
+        return 'Rejected During Processing';
     }
 
     return formatFieldLabel(status);

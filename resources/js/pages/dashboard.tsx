@@ -214,8 +214,8 @@ function workflowRoleLabel(role: LoanWorkflowRole): string {
         return 'Superadmin';
     }
 
-    if (role === 'loan_officer') {
-        return 'Loan Officer';
+    if (role === 'loan_processor') {
+        return 'Loan Processor';
     }
 
     return 'Loan Manager';

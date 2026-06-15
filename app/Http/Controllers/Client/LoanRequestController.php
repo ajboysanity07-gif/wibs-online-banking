@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\LoanRequestCancelRequest;
 use App\Http\Requests\Client\LoanRequestDraftRequest;
+use App\Http\Requests\Client\LoanRequestResolveActionRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
@@ -12,9 +13,11 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
+use App\Services\LoanRequests\LoanRequestProcessingService;
 use App\Services\LoanRequests\LoanRequestService;
 use App\Support\LocationComposer;
 use DateTimeInterface;
@@ -138,6 +141,7 @@ class LoanRequestController extends Controller
     public function show(
         Request $request,
         LoanRequestPayloadSerializer $serializer,
+        LoanRequestDataService $dataService,
         int $loanRequest,
     ): Response|RedirectResponse {
         $user = $request->user();
@@ -189,6 +193,15 @@ class LoanRequestController extends Controller
             'auditTrail' => $serializer->serializeMemberAuditTrail(
                 $loanRequestRecord,
             ),
+            'dataSections' => $dataService->serializeSections($loanRequestRecord),
+            'dataSectionDefinitions' => $dataService->sectionDefinitions(),
+            'memberAction' => [
+                'type' => $loanRequestRecord->member_action_type,
+                'message' => $loanRequestRecord->member_action_message,
+                'fields' => $loanRequestRecord->member_action_fields_json,
+                'requested_at' => $loanRequestRecord->member_action_requested_at?->toDateTimeString(),
+                'resolved_at' => $loanRequestRecord->member_action_resolved_at?->toDateTimeString(),
+            ],
             'hasOpenCorrectionReport' => $loanRequestRecord
                 ->correctionReports()
                 ->where('status', LoanRequestCorrectionReport::STATUS_OPEN)
@@ -240,6 +253,62 @@ class LoanRequestController extends Controller
             'data' => [
                 'loanRequest' => $serializer->serializeLoanRequest($updated),
                 'auditTrail' => $serializer->serializeMemberAuditTrail($updated),
+            ],
+        ]);
+    }
+
+    public function resolveAction(
+        LoanRequestResolveActionRequest $request,
+        int $loanRequest,
+        LoanRequestProcessingService $processingService,
+        LoanRequestPayloadSerializer $serializer,
+        LoanRequestDataService $dataService,
+    ): JsonResponse|RedirectResponse {
+        $user = $request->user();
+
+        if (! $user instanceof AppUser) {
+            return redirect()->route('login');
+        }
+
+        $loanRequestRecord = $this->findLoanRequestForUser(
+            $user,
+            $loanRequest,
+            'resolve-action',
+        );
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        $status = $loanRequestRecord->status instanceof LoanRequestStatus
+            ? $loanRequestRecord->status->value
+            : (string) $loanRequestRecord->status;
+
+        $updated = match ($status) {
+            LoanRequestStatus::AwaitingMemberInformation->value => $processingService->resolveMemberInformation(
+                $loanRequestRecord,
+                $user,
+                $request->validated(),
+            ),
+            LoanRequestStatus::AwaitingMemberAcceptance->value => $processingService->respondToTerms(
+                $loanRequestRecord,
+                $user,
+                $request->validated('decision') === 'accept',
+                $request->validated('reason'),
+            ),
+            default => throw new \Symfony\Component\HttpKernel\Exception\HttpException(
+                403,
+                'This loan request does not currently have a pending member action.',
+            ),
+        };
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'loanRequest' => $serializer->serializeLoanRequest($updated),
+                'auditTrail' => $serializer->serializeMemberAuditTrail($updated),
+                'dataSections' => $dataService->serializeSections($updated),
+                'dataSectionDefinitions' => $dataService->sectionDefinitions(),
             ],
         ]);
     }
@@ -536,10 +605,7 @@ class LoanRequestController extends Controller
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        return in_array($status, [
-            LoanRequestStatus::Draft->value,
-            LoanRequestStatus::PendingCoMakerSignatures->value,
-        ], true);
+        return $status === LoanRequestStatus::Draft->value;
     }
 
     private function canViewPdf(LoanRequest $loanRequest): bool

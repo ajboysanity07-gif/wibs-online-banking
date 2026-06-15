@@ -60,7 +60,7 @@ class UserRoleChangeResource extends JsonResource
     {
         return match ($roleName) {
             Role::SUPERADMIN => 'Superadmin',
-            Role::LOAN_OFFICER => 'Loan Officer',
+            Role::LOAN_PROCESSOR => 'Loan Processor',
             Role::LOAN_MANAGER => 'Loan Manager',
             Role::MEMBER => 'Member',
             null => null,

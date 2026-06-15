@@ -4,6 +4,7 @@ namespace App\Services\LoanRequests;
 
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
@@ -43,6 +44,7 @@ class LoanRequestService
         private SchemaCapabilities $schemaCapabilities,
         private NotificationRecipientService $notificationRecipients,
         private LoanRequestPayloadSerializer $serializer,
+        private LoanRequestDataService $dataService,
     ) {}
 
     /**
@@ -53,6 +55,8 @@ class LoanRequestService
      *     coMakerTwo: array<string, mixed>|null,
      *     applicantReadOnly: array<string, bool>,
      *     member: array{name: string, acctno: string|null},
+     *     dataSections: array<string, array<string, mixed>>,
+     *     dataSectionDefinitions: array<string, mixed>,
      *     draft: array{
      *         id: int,
      *         status: string,
@@ -117,6 +121,10 @@ class LoanRequestService
                 'name' => $memberName,
                 'acctno' => $user->acctno,
             ],
+            'dataSections' => $draft !== null
+                ? $this->dataService->serializeSections($draft)
+                : $this->dataService->emptySections(),
+            'dataSectionDefinitions' => $this->dataService->sectionDefinitions(),
             'draft' => $draft !== null ? $this->serializeLoanRequest($draft) : null,
         ];
     }
@@ -151,6 +159,7 @@ class LoanRequestService
             $loanRequest->save();
 
             $this->upsertPeopleSnapshots($loanRequest, $payload);
+            $this->dataService->syncMemberSections($loanRequest, $payload);
 
             return $loanRequest->loadMissing('people');
         });
@@ -185,15 +194,42 @@ class LoanRequestService
                 LoanRequestStatus::UnderReview->value,
             ], true);
 
+            $isRevisionResubmission = $this->statusValue($loanRequest)
+                === LoanRequestStatus::NeedsRevision->value;
+
             $this->fillLoanRequest(
                 $loanRequest,
                 $payload,
-                LoanRequestStatus::PendingReview,
+                $isRevisionResubmission && $loanRequest->assigned_officer_id !== null
+                    ? LoanRequestStatus::UnderReview
+                    : LoanRequestStatus::PendingReview,
                 true,
             );
+            $loanRequest->workflow_version = LoanRequestWorkflowVersion::DocumentWorkflowV2;
             $loanRequest->save();
 
             $this->upsertPeopleSnapshots($loanRequest, $payload);
+            $this->dataService->syncMemberSections($loanRequest, $payload);
+            $missingMemberFields = $this->dataService->missingRequiredMemberFields(
+                $loanRequest,
+            );
+
+            if ($missingMemberFields !== []) {
+                throw ValidationException::withMessages([
+                    'document_data' => sprintf(
+                        'Please complete these sections before submitting: %s.',
+                        implode(
+                            ', ',
+                            array_map(
+                                fn (string $fieldKey): string => $this->dataService->fieldLabel(
+                                    $fieldKey,
+                                ),
+                                $missingMemberFields,
+                            ),
+                        ),
+                    ),
+                ]);
+            }
             $loanRequest = $loanRequest->refresh();
             $loanRequest->loadMissing('people');
 
@@ -260,6 +296,8 @@ class LoanRequestService
             $corrected->loan_purpose = (string) $sourceRequest->loan_purpose;
             $corrected->availment_status = (string) $sourceRequest->availment_status;
             $corrected->status = LoanRequestStatus::UnderReview;
+            $corrected->workflow_version = $sourceRequest->workflow_version
+                ?? LoanRequestWorkflowVersion::LegacyV1;
             $corrected->submitted_at = now();
             $corrected->reviewed_by = null;
             $corrected->reviewed_at = null;
@@ -370,6 +408,8 @@ class LoanRequestService
             $draft->loan_purpose = (string) $sourceRequest->loan_purpose;
             $draft->availment_status = (string) $sourceRequest->availment_status;
             $draft->status = LoanRequestStatus::Draft;
+            $draft->workflow_version = $sourceRequest->workflow_version
+                ?? LoanRequestWorkflowVersion::LegacyV1;
             $draft->submitted_at = null;
             $draft->save();
 
@@ -696,6 +736,7 @@ class LoanRequestService
             ->whereIn('status', [
                 LoanRequestStatus::Draft->value,
                 LoanRequestStatus::PendingCoMakerSignatures->value,
+                LoanRequestStatus::NeedsRevision->value,
             ])
             ->orderByDesc('updated_at')
             ->orderByDesc('created_at')
@@ -707,6 +748,7 @@ class LoanRequestService
         $loanRequest = new LoanRequest;
         $loanRequest->user_id = $user->user_id;
         $loanRequest->acctno = (string) ($user->acctno ?? '');
+        $loanRequest->workflow_version = LoanRequestWorkflowVersion::DocumentWorkflowV2;
 
         return $loanRequest;
     }

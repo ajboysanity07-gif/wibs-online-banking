@@ -10,10 +10,13 @@ enum LoanRequestStatus: string
     case PendingReview = 'pending_review';
     case UnderReview = 'under_review';
     case NeedsRevision = 'needs_revision';
+    case AwaitingMemberInformation = 'awaiting_member_information';
     case RecommendedForApproval = 'recommended_for_approval';
+    case AwaitingMemberAcceptance = 'awaiting_member_acceptance';
     case Rejected = 'rejected';
     case Approved = 'approved';
     case Declined = 'declined';
+    case MemberDeclinedTerms = 'member_declined_terms';
     case ConvertedToLoan = 'converted_to_loan';
     case Cancelled = 'cancelled';
 
@@ -21,7 +24,7 @@ enum LoanRequestStatus: string
     {
         return match ($this) {
             self::PendingCoMakerSignatures,
-            self::Submitted => self::UnderReview,
+            self::Submitted => self::PendingReview,
             default => $this,
         };
     }
@@ -69,6 +72,9 @@ enum LoanRequestStatus: string
             self::Submitted->value,
             self::PendingReview->value,
             self::UnderReview->value,
+            self::NeedsRevision->value,
+            self::AwaitingMemberInformation->value,
+            self::AwaitingMemberAcceptance->value,
         ];
     }
 
@@ -83,10 +89,13 @@ enum LoanRequestStatus: string
             self::PendingReview->value,
             self::UnderReview->value,
             self::NeedsRevision->value,
+            self::AwaitingMemberInformation->value,
             self::RecommendedForApproval->value,
+            self::AwaitingMemberAcceptance->value,
             self::Rejected->value,
             self::Approved->value,
             self::Declined->value,
+            self::MemberDeclinedTerms->value,
             self::ConvertedToLoan->value,
             self::Cancelled->value,
         ];
@@ -101,10 +110,13 @@ enum LoanRequestStatus: string
             self::PendingReview->value,
             self::UnderReview->value,
             self::NeedsRevision->value,
+            self::AwaitingMemberInformation->value,
             self::RecommendedForApproval->value,
+            self::AwaitingMemberAcceptance->value,
             self::Rejected->value,
             self::Approved->value,
             self::Declined->value,
+            self::MemberDeclinedTerms->value,
             self::ConvertedToLoan->value,
         ];
     }

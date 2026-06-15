@@ -16,7 +16,7 @@ export type User = {
 
 export type LoanWorkflowRole =
     | 'superadmin'
-    | 'loan_officer'
+    | 'loan_processor'
     | 'loan_manager';
 
 export type WorkspaceName = 'member' | 'staff';

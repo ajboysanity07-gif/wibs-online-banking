@@ -178,6 +178,53 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
     return array_replace_recursive($payload, $overrides);
 }
 
+/**
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function validLoanRequestMemberSectionPayload(array $overrides = []): array
+{
+    $payload = [
+        'insurance' => [
+            'beneficiary_primary_name' => 'Primary Beneficiary',
+            'beneficiary_primary_relationship' => 'Spouse',
+            'beneficiary_secondary_name' => 'Secondary Beneficiary',
+            'beneficiary_secondary_relationship' => 'Sibling',
+        ],
+        'health' => [
+            'health_smoker' => false,
+            'health_hypertension' => false,
+            'health_diabetes' => false,
+            'health_recent_hospitalization' => false,
+            'health_declaration_notes' => null,
+        ],
+        'authorization' => [
+            'authorized_recipient_name' => 'Authorized Recipient',
+            'authorized_recipient_relationship' => 'Sibling',
+            'authorized_recipient_contact' => '09123456781',
+        ],
+        'banking' => [
+            'payout_bank_name' => 'WIBS Cooperative Bank',
+            'payout_account_name' => 'Loan Member',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'payout_atm_number' => '9876543210',
+        ],
+        'barangay' => [
+            'barangay_name' => 'Barangay San Isidro',
+            'barangay_clearance_reference' => 'BCL-2026-001',
+        ],
+        'declarations' => [
+            'declaration_existing_loans' => false,
+            'declaration_pending_cases' => false,
+            'declaration_truth_confirmation' => true,
+            'declaration_data_privacy_consent' => true,
+        ],
+    ];
+
+    return array_replace_recursive($payload, $overrides);
+}
+
 function sampleSignatureDataUrl(string $variant = 'one'): string
 {
     $base64 = match ($variant) {
@@ -925,6 +972,7 @@ test('loan request submissions persist snapshots and enter pending review', func
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',
@@ -1360,6 +1408,7 @@ test('loan request submission validates housing status values', function () {
         'loan_purpose' => 'Medical expenses',
         'availment_status' => 'New',
         'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',
@@ -1767,7 +1816,7 @@ test('admin requests api filters under review status and keeps pending review se
         ->actingAs($admin)
         ->get('/spa/admin/requests?status=under_review');
 
-    $response->assertOk()->assertJsonCount(2, 'data.items');
+    $response->assertOk()->assertJsonCount(1, 'data.items');
 
     $statuses = collect($response->json('data.items'))
         ->pluck('status')
@@ -2019,7 +2068,7 @@ test('admin can view loan request details page', function () {
         'user_id' => $admin->user_id,
     ]);
     Role::ensureWorkflowDefaults();
-    Role::attachNamedRole($admin, Role::LOAN_OFFICER);
+    Role::attachNamedRole($admin, Role::LOAN_PROCESSOR);
 
     $loanRequest = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::UnderReview,
@@ -4003,7 +4052,7 @@ test('client can view revision remarks for needs revision workflow requests', fu
     $reviewer = User::factory()->create();
     AdminProfile::factory()->create([
         'user_id' => $reviewer->user_id,
-        'fullname' => 'Loan Officer Review',
+        'fullname' => 'Loan Processor Review',
     ]);
 
     $loanRequest = LoanRequest::factory()
@@ -4034,7 +4083,7 @@ test('client can view revision remarks for needs revision workflow requests', fu
                 'loanRequest.review_remarks',
                 'Please correct the employer address before review continues.',
             )
-            ->where('loanRequest.reviewed_by.name', 'Loan Officer Review'));
+            ->where('loanRequest.reviewed_by.name', 'Loan Processor Review'));
 });
 
 test('client cannot view another member loan request details', function () {

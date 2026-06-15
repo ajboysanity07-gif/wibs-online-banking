@@ -11,9 +11,16 @@ export type LoanRequestWorkflowAction =
     | 'startReview'
     | 'requestRevision'
     | 'reject'
+    | 'updateProcessingDetails'
+    | 'requestMemberAction'
+    | 'rejectDuringProcessing'
+    | 'generateDocuments'
     | 'recommendApproval'
     | 'approve'
-    | 'decline';
+    | 'decline'
+    | 'returnForProcessing'
+    | 'reopen'
+    | 'upgradeWorkflow';
 
 export type LoanRequestClaimPayload = Record<string, never>;
 
@@ -46,11 +53,57 @@ export type LoanRequestWorkflowApprovePayload = {
     approved_amount: number | string;
     approved_term: number | string;
     approved_interest_rate?: number | string | null;
+    approved_payment_frequency?: string | null;
     approval_remarks?: string | null;
 };
 
 export type LoanRequestWorkflowDeclinePayload = {
+    decline_category: string;
     decline_reason: string;
+};
+
+export type LoanRequestProcessingDetailsPayload = {
+    reason: string;
+    information_source: string;
+    loan_request?: Record<string, unknown>;
+    applicant?: Record<string, unknown>;
+    co_maker_1?: Record<string, unknown>;
+    co_maker_2?: Record<string, unknown>;
+    processing?: Record<string, unknown>;
+    recommended_amount?: number | string | null;
+    recommended_term?: number | string | null;
+    recommended_interest_rate?: number | string | null;
+    recommended_payment_frequency?: string | null;
+    recommendation_remarks?: string | null;
+};
+
+export type LoanRequestMemberActionPayload = {
+    action_type: 'needs_revision' | 'awaiting_member_information';
+    message: string;
+    reason: string;
+    field_keys?: string[];
+};
+
+export type LoanRequestRejectDuringProcessingPayload = {
+    rejection_category: string;
+    member_visible_reason: string;
+};
+
+export type LoanRequestGenerateDocumentsPayload = {
+    document_key?: string | null;
+};
+
+export type LoanRequestReturnForProcessingPayload = {
+    reason: string;
+};
+
+export type LoanRequestReopenPayload = {
+    reason: string;
+    retain_assignment?: boolean;
+};
+
+export type LoanRequestUpgradeWorkflowPayload = {
+    reason: string;
 };
 
 type LoanRequestWorkflowPayload =
@@ -60,9 +113,16 @@ type LoanRequestWorkflowPayload =
     | LoanRequestStartReviewPayload
     | LoanRequestRequestRevisionPayload
     | LoanRequestRejectPayload
+    | LoanRequestProcessingDetailsPayload
+    | LoanRequestMemberActionPayload
+    | LoanRequestRejectDuringProcessingPayload
+    | LoanRequestGenerateDocumentsPayload
     | LoanRequestRecommendApprovalPayload
     | LoanRequestWorkflowApprovePayload
-    | LoanRequestWorkflowDeclinePayload;
+    | LoanRequestWorkflowDeclinePayload
+    | LoanRequestReturnForProcessingPayload
+    | LoanRequestReopenPayload
+    | LoanRequestUpgradeWorkflowPayload;
 
 type LoanRequestWorkflowOptions = {
     onUpdated?: (
@@ -79,9 +139,16 @@ const successCopy: Record<LoanRequestWorkflowAction, string> = {
     startReview: 'Loan request moved to under review.',
     requestRevision: 'Revision request sent successfully.',
     reject: 'Loan request rejected successfully.',
+    updateProcessingDetails: 'Processing details saved successfully.',
+    requestMemberAction: 'Member action requested successfully.',
+    rejectDuringProcessing: 'Loan request rejected during processing.',
+    generateDocuments: 'Document generation completed.',
     recommendApproval: 'Loan request recommended for approval.',
     approve: 'Loan request approved successfully.',
     decline: 'Loan request declined successfully.',
+    returnForProcessing: 'Loan request returned for processing.',
+    reopen: 'Loan request reopened successfully.',
+    upgradeWorkflow: 'Workflow upgraded successfully.',
 };
 
 const errorCopy: Record<LoanRequestWorkflowAction, string> = {
@@ -92,9 +159,16 @@ const errorCopy: Record<LoanRequestWorkflowAction, string> = {
     startReview: 'Failed to start reviewing the loan request.',
     requestRevision: 'Failed to request a revision.',
     reject: 'Failed to reject the loan request.',
+    updateProcessingDetails: 'Failed to save processing details.',
+    requestMemberAction: 'Failed to request member action.',
+    rejectDuringProcessing: 'Failed to reject the loan request during processing.',
+    generateDocuments: 'Failed to generate the required documents.',
     recommendApproval: 'Failed to recommend the request for approval.',
     approve: 'Failed to approve the loan request.',
     decline: 'Failed to decline the loan request.',
+    returnForProcessing: 'Failed to return the request for processing.',
+    reopen: 'Failed to reopen the rejected request.',
+    upgradeWorkflow: 'Failed to upgrade the workflow.',
 };
 
 export function useLoanRequestWorkflow(
@@ -181,6 +255,34 @@ export function useLoanRequestWorkflow(
                         );
                     }
 
+                    if (action === 'updateProcessingDetails') {
+                        return adminApi.updateLoanRequestProcessingDetails(
+                            loanRequestId,
+                            payload as LoanRequestProcessingDetailsPayload,
+                        );
+                    }
+
+                    if (action === 'requestMemberAction') {
+                        return adminApi.requestLoanRequestMemberAction(
+                            loanRequestId,
+                            payload as LoanRequestMemberActionPayload,
+                        );
+                    }
+
+                    if (action === 'rejectDuringProcessing') {
+                        return adminApi.rejectLoanRequestDuringProcessing(
+                            loanRequestId,
+                            payload as LoanRequestRejectDuringProcessingPayload,
+                        );
+                    }
+
+                    if (action === 'generateDocuments') {
+                        return adminApi.generateLoanRequestDocuments(
+                            loanRequestId,
+                            payload as LoanRequestGenerateDocumentsPayload,
+                        );
+                    }
+
                     if (action === 'approve') {
                         return adminApi.approveLoanRequestForWorkflow(
                             loanRequestId,
@@ -194,6 +296,29 @@ export function useLoanRequestWorkflow(
                             payload as LoanRequestWorkflowDeclinePayload,
                         );
                     }
+
+                    if (action === 'returnForProcessing') {
+                        return adminApi.returnLoanRequestForProcessing(
+                            loanRequestId,
+                            payload as LoanRequestReturnForProcessingPayload,
+                        );
+                    }
+
+                    if (action === 'reopen') {
+                        return adminApi.reopenLoanRequestForProcessing(
+                            loanRequestId,
+                            payload as LoanRequestReopenPayload,
+                        );
+                    }
+
+                    if (action === 'upgradeWorkflow') {
+                        return adminApi.upgradeLoanRequestWorkflow(
+                            loanRequestId,
+                            payload as LoanRequestUpgradeWorkflowPayload,
+                        );
+                    }
+
+                    throw new Error(`Unsupported workflow action: ${action}`);
                 })();
 
                 showSuccessToast(successCopy[action], { id: toastId });
@@ -246,6 +371,22 @@ export function useLoanRequestWorkflow(
             loanRequestId: number,
             payload: LoanRequestRejectPayload,
         ) => runAction(loanRequestId, 'reject', payload),
+        updateProcessingDetails: (
+            loanRequestId: number,
+            payload: LoanRequestProcessingDetailsPayload,
+        ) => runAction(loanRequestId, 'updateProcessingDetails', payload),
+        requestMemberAction: (
+            loanRequestId: number,
+            payload: LoanRequestMemberActionPayload,
+        ) => runAction(loanRequestId, 'requestMemberAction', payload),
+        rejectLoanRequestDuringProcessing: (
+            loanRequestId: number,
+            payload: LoanRequestRejectDuringProcessingPayload,
+        ) => runAction(loanRequestId, 'rejectDuringProcessing', payload),
+        generateDocuments: (
+            loanRequestId: number,
+            payload: LoanRequestGenerateDocumentsPayload = {},
+        ) => runAction(loanRequestId, 'generateDocuments', payload),
         recommendApproval: (
             loanRequestId: number,
             payload: LoanRequestRecommendApprovalPayload = {},
@@ -258,5 +399,17 @@ export function useLoanRequestWorkflow(
             loanRequestId: number,
             payload: LoanRequestWorkflowDeclinePayload,
         ) => runAction(loanRequestId, 'decline', payload),
+        returnForProcessing: (
+            loanRequestId: number,
+            payload: LoanRequestReturnForProcessingPayload,
+        ) => runAction(loanRequestId, 'returnForProcessing', payload),
+        reopenLoanRequest: (
+            loanRequestId: number,
+            payload: LoanRequestReopenPayload,
+        ) => runAction(loanRequestId, 'reopen', payload),
+        upgradeWorkflow: (
+            loanRequestId: number,
+            payload: LoanRequestUpgradeWorkflowPayload,
+        ) => runAction(loanRequestId, 'upgradeWorkflow', payload),
     };
 }

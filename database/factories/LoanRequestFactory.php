@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -37,6 +38,7 @@ class LoanRequestFactory extends Factory
                 'Restructured',
             ]),
             'status' => LoanRequestStatus::UnderReview,
+            'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
             'submitted_at' => now(),
             'assigned_officer_id' => null,
             'reviewed_by' => null,

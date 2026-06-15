@@ -28,8 +28,8 @@ test('admin loan request detail page includes the full audit trail payload', fun
         username: 'Member Applicant',
     );
     $loanOfficer = createAuditTrailActor(
-        [Role::LOAN_OFFICER],
-        username: 'Loan Officer One',
+        [Role::LOAN_PROCESSOR],
+        username: 'Loan Processor One',
     );
     $loanManager = createAuditTrailActor(
         [Role::LOAN_MANAGER],
@@ -104,7 +104,7 @@ test('admin loan request detail page includes the full audit trail payload', fun
             ->has('auditTrail', 5)
             ->where('auditTrail.0.action', 'submitted')
             ->where('auditTrail.1.action', LoanRequestChange::ACTION_START_REVIEW)
-            ->where('auditTrail.1.actor.name', 'Loan Officer One')
+            ->where('auditTrail.1.actor.name', 'Loan Processor One')
             ->where('auditTrail.1.from_status', LoanRequestStatus::PendingReview->value)
             ->where('auditTrail.1.to_status', LoanRequestStatus::UnderReview->value)
             ->where(
@@ -127,7 +127,7 @@ test('staff loan request detail page includes the audit trail payload', function
         username: 'Member Owner',
     );
     $loanOfficer = createAuditTrailActor(
-        [Role::LOAN_OFFICER],
+        [Role::LOAN_PROCESSOR],
         username: 'Queue Officer',
     );
 
@@ -169,7 +169,7 @@ test('member loan request detail page includes only safe audit trail entries', f
         username: 'Member Viewer',
     );
     $loanOfficer = createAuditTrailActor(
-        [Role::LOAN_OFFICER],
+        [Role::LOAN_PROCESSOR],
         username: 'Officer Reviewer',
     );
 
@@ -231,7 +231,7 @@ test('member loan request detail page includes only safe audit trail entries', f
 
 test('workflow action responses include audit trail from and to statuses', function (): void {
     $loanOfficer = createAuditTrailActor(
-        [Role::LOAN_OFFICER],
+        [Role::LOAN_PROCESSOR],
         username: 'Workflow Officer',
     );
     $member = createAuditTrailActor(

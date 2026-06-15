@@ -22,11 +22,11 @@ class LoanRequestAssignmentService
 {
     public const CAUSE_STAFF_SUSPENDED = 'staff_suspended';
 
-    public const CAUSE_ROLE_REMOVED = 'loan_officer_role_removed';
+    public const CAUSE_ROLE_REMOVED = 'loan_processor_role_removed';
 
-    private const CLAIM_CONFLICT_MESSAGE = 'This application has already been assigned to another Loan Officer.';
+    private const CLAIM_CONFLICT_MESSAGE = 'This application has already been assigned to another Loan Processor.';
 
-    private const MISSING_ASSIGNMENT_MESSAGE = 'This application is not currently assigned to a Loan Officer.';
+    private const MISSING_ASSIGNMENT_MESSAGE = 'This application is not currently assigned to a Loan Processor.';
 
     public function __construct(
         private SchemaCapabilities $schemaCapabilities,
@@ -256,7 +256,7 @@ class LoanRequestAssignmentService
         $officers = AppUser::query()
             ->with(['adminProfile', 'staffAccessControl'])
             ->whereHas('roles', function (Builder $query): void {
-                $query->where('name', Role::LOAN_OFFICER);
+                $query->where('name', Role::LOAN_PROCESSOR);
             })
             ->where(function (Builder $query): void {
                 $query
@@ -283,7 +283,7 @@ class LoanRequestAssignmentService
             ->orderBy('username')
             ->get()
             ->filter(function (AppUser $officer) use ($loanRequest): bool {
-                if (! $officer->hasRole(Role::LOAN_OFFICER)) {
+                if (! $officer->hasRole(Role::LOAN_PROCESSOR)) {
                     return false;
                 }
 
@@ -440,7 +440,7 @@ class LoanRequestAssignmentService
             && ! $this->canManageAssignments($actor)
         ) {
             throw ValidationException::withMessages([
-                'officerId' => 'Filtering by loan officer is not available for your role.',
+                'officerId' => 'Filtering by loan processor is not available for your role.',
             ]);
         }
 
@@ -451,7 +451,7 @@ class LoanRequestAssignmentService
             )
         ) {
             throw ValidationException::withMessages([
-                'officerId' => 'The selected Loan Officer is not available for assignment oversight.',
+                'officerId' => 'The selected Loan Processor is not available for assignment oversight.',
             ]);
         }
 
@@ -638,15 +638,15 @@ class LoanRequestAssignmentService
             'staffAccessControl',
         );
 
-        if (! $targetOfficer->hasRole(Role::LOAN_OFFICER)) {
+        if (! $targetOfficer->hasRole(Role::LOAN_PROCESSOR)) {
             throw ValidationException::withMessages([
-                'officer_user_id' => 'The selected user is not an active Loan Officer.',
+                'officer_user_id' => 'The selected user is not an active Loan Processor.',
             ]);
         }
 
         if (! $targetOfficer->hasActiveStaffAccess()) {
             throw ValidationException::withMessages([
-                'officer_user_id' => 'The selected Loan Officer does not currently have active staff access.',
+                'officer_user_id' => 'The selected Loan Processor does not currently have active staff access.',
             ]);
         }
 

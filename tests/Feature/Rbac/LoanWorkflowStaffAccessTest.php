@@ -11,8 +11,8 @@ beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
 });
 
-test('loan officers can access the staff workflow list page', function (): void {
-    $loanOfficer = createLoanWorkflowStaffUser([Role::LOAN_OFFICER]);
+test('loan processors can access the staff workflow list page', function (): void {
+    $loanOfficer = createLoanWorkflowStaffUser([Role::LOAN_PROCESSOR]);
 
     $this
         ->actingAs($loanOfficer)
@@ -21,7 +21,7 @@ test('loan officers can access the staff workflow list page', function (): void 
         ->assertInertia(fn (Assert $page) => $page
             ->component('staff/loan-requests')
             ->where('auth.canAccessLoanWorkflow', true)
-            ->where('auth.loanWorkflowRoles', fn ($roles): bool => collect($roles)->contains(Role::LOAN_OFFICER))
+            ->where('auth.loanWorkflowRoles', fn ($roles): bool => collect($roles)->contains(Role::LOAN_PROCESSOR))
         );
 });
 

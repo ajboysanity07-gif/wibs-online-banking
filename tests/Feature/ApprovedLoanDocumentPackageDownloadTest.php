@@ -320,7 +320,7 @@ test('grepalife signature section keeps printed names and blank signature areas 
     ]);
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
-        'fullname' => 'Maria Loan Officer',
+        'fullname' => 'Maria Loan Processor',
     ]);
 
     OrganizationSetting::factory()->create([

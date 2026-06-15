@@ -1026,6 +1026,41 @@ function notificationLoanRequestPayload(): array
         'requested_term' => 12,
         'loan_purpose' => 'Home improvement',
         'availment_status' => 'New',
+        'insurance' => [
+            'beneficiary_primary_name' => 'Primary Beneficiary',
+            'beneficiary_primary_relationship' => 'Sibling',
+            'beneficiary_secondary_name' => 'Secondary Beneficiary',
+            'beneficiary_secondary_relationship' => 'Parent',
+        ],
+        'health' => [
+            'health_smoker' => false,
+            'health_hypertension' => false,
+            'health_diabetes' => false,
+            'health_recent_hospitalization' => false,
+            'health_declaration_notes' => null,
+        ],
+        'authorization' => [
+            'authorized_recipient_name' => 'Authorized Recipient',
+            'authorized_recipient_relationship' => 'Sibling',
+            'authorized_recipient_contact' => '09170000009',
+        ],
+        'banking' => [
+            'payout_bank_name' => 'WIBS Cooperative Bank',
+            'payout_account_name' => 'Loan Member',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'payout_atm_number' => '9876543210',
+        ],
+        'barangay' => [
+            'barangay_name' => 'Barangay San Isidro',
+            'barangay_clearance_reference' => 'BCL-2026-020',
+        ],
+        'declarations' => [
+            'declaration_existing_loans' => false,
+            'declaration_pending_cases' => false,
+            'declaration_truth_confirmation' => true,
+            'declaration_data_privacy_consent' => true,
+        ],
         'applicant' => [
             'first_name' => 'Loan',
             'last_name' => 'Member',

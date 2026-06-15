@@ -1,10 +1,17 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { CircleAlert } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -13,8 +20,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useCancelMemberLoanRequest } from '@/hooks/use-cancel-member-loan-request';
+import { useResolveMemberLoanRequestAction } from '@/hooks/use-resolve-member-loan-request-action';
 import { useSubmitLoanRequestCorrectionReport } from '@/hooks/use-submit-loan-request-correction-report';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard as clientDashboard } from '@/routes/client';
@@ -37,6 +53,9 @@ import {
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestAuditEntry,
+    LoanRequestDataFieldDefinition,
+    LoanRequestDataSectionDefinitions,
+    LoanRequestDataSections,
     LoanRequestDetail,
     LoanRequestPersonData,
 } from '@/types/loan-requests';
@@ -47,8 +66,30 @@ type Props = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
     auditTrail: LoanRequestAuditEntry[];
+    dataSections: LoanRequestDataSections;
+    dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     hasOpenCorrectionReport: boolean;
 };
+
+const textareaClassName =
+    'flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
+
+const booleanSelectValue = (value: unknown): string => {
+    if (value === true) {
+        return 'Yes';
+    }
+
+    if (value === false) {
+        return 'No';
+    }
+
+    return '';
+};
+
+const termsSummaryValue = (value: string | number | null | undefined): string =>
+    value === null || value === undefined || `${value}`.trim() === ''
+        ? '--'
+        : `${value}`;
 
 export default function LoanRequestShow({
     loanRequest,
@@ -56,18 +97,23 @@ export default function LoanRequestShow({
     coMakerOne,
     coMakerTwo,
     auditTrail,
+    dataSections,
+    dataSectionDefinitions,
     hasOpenCorrectionReport,
 }: Props) {
     const [currentLoanRequest, setCurrentLoanRequest] =
         useState<LoanRequestDetail>(loanRequest);
     const [currentAuditTrail, setCurrentAuditTrail] =
         useState<LoanRequestAuditEntry[]>(auditTrail);
+    const [currentDataSections, setCurrentDataSections] =
+        useState<LoanRequestDataSections>(dataSections);
     const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
     const [issueDescription, setIssueDescription] = useState('');
     const [correctInformation, setCorrectInformation] = useState('');
     const [supportingNote, setSupportingNote] = useState('');
     const [issueError, setIssueError] = useState<string | null>(null);
     const [correctError, setCorrectError] = useState<string | null>(null);
+    const [memberActionReason, setMemberActionReason] = useState('');
     const [hasOpenReportState, setHasOpenReportState] = useState(
         hasOpenCorrectionReport,
     );
@@ -76,6 +122,14 @@ export default function LoanRequestShow({
             onUpdated: (result) => {
                 setCurrentLoanRequest(result.loanRequest);
                 setCurrentAuditTrail(result.auditTrail);
+            },
+        });
+    const { resolveAction, processingIds: actionProcessingIds } =
+        useResolveMemberLoanRequestAction({
+            onUpdated: (result) => {
+                setCurrentLoanRequest(result.loanRequest);
+                setCurrentAuditTrail(result.auditTrail);
+                setCurrentDataSections(result.dataSections);
             },
         });
     const { submitReport, processingIds } =
@@ -93,6 +147,8 @@ export default function LoanRequestShow({
     const isReportSubmitting = processingIds[loanRequest.id] ?? false;
     const isCancellationSubmitting =
         cancellationProcessingIds[currentLoanRequest.id] ?? false;
+    const isMemberActionSubmitting =
+        actionProcessingIds[currentLoanRequest.id] ?? false;
     const loanRequestsIndexHref = loanRequestsIndex().url;
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Overview', href: clientDashboard().url },
@@ -146,6 +202,56 @@ export default function LoanRequestShow({
         ['submitted', 'pending_review', 'under_review'].includes(
             currentLoanRequest.status,
         );
+    const fieldDirectory = useMemo(() => {
+        const fields = new Map<
+            string,
+            {
+                sectionKey: keyof LoanRequestDataSections;
+                definition: LoanRequestDataFieldDefinition;
+            }
+        >();
+
+        Object.entries(dataSectionDefinitions).forEach(
+            ([sectionKey, sectionDefinition]) => {
+                Object.entries(sectionDefinition.fields).forEach(
+                    ([fieldKey, definition]) => {
+                        fields.set(fieldKey, {
+                            sectionKey: sectionKey as keyof LoanRequestDataSections,
+                            definition,
+                        });
+                    },
+                );
+            },
+        );
+
+        return fields;
+    }, [dataSectionDefinitions]);
+    const requestedFieldKeys = currentLoanRequest.member_action_fields ?? [];
+    const memberActionFields = requestedFieldKeys
+        .map((fieldKey) => {
+            const resolved = fieldDirectory.get(fieldKey);
+
+            if (!resolved) {
+                return null;
+            }
+
+            return {
+                key: fieldKey,
+                sectionKey: resolved.sectionKey,
+                definition: resolved.definition,
+                value: currentDataSections[resolved.sectionKey]?.[fieldKey] ?? null,
+            };
+        })
+        .filter(
+            (
+                field,
+            ): field is {
+                key: string;
+                sectionKey: keyof LoanRequestDataSections;
+                definition: LoanRequestDataFieldDefinition;
+                value: string | number | boolean | null;
+            } => field !== null,
+        );
 
     const submitCorrectionReport = async (
         event: FormEvent<HTMLFormElement>,
@@ -173,6 +279,56 @@ export default function LoanRequestShow({
             correct_information: correctValue,
             supporting_note: supportingNote.trim() || null,
         });
+    };
+
+    const updateMemberActionField = (
+        sectionKey: keyof LoanRequestDataSections,
+        fieldKey: string,
+        value: string | number | boolean | null,
+    ) => {
+        setCurrentDataSections((current) => ({
+            ...current,
+            [sectionKey]: {
+                ...current[sectionKey],
+                [fieldKey]: value,
+            },
+        }));
+    };
+
+    const submitMemberInformation = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        await resolveAction(
+            currentLoanRequest.id,
+            {
+                insurance: currentDataSections.insurance,
+                health: currentDataSections.health,
+                authorization: currentDataSections.authorization,
+                banking: currentDataSections.banking,
+                barangay: currentDataSections.barangay,
+                declarations: currentDataSections.declarations,
+            },
+            'Requested information submitted successfully.',
+        );
+    };
+
+    const submitTermsDecision = async (decision: 'accept' | 'decline') => {
+        const result = await resolveAction(
+            currentLoanRequest.id,
+            {
+                decision,
+                reason: memberActionReason.trim() || null,
+            },
+            decision === 'accept'
+                ? 'Revised loan terms accepted.'
+                : 'Revised loan terms declined.',
+        );
+
+        if (result) {
+            setMemberActionReason('');
+        }
     };
 
     return (
@@ -203,6 +359,257 @@ export default function LoanRequestShow({
                             </Button>
                         </div>
                     )}
+                </section>
+            ) : null}
+            {currentLoanRequest.status === 'awaiting_member_information' ? (
+                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <Card className="border-amber-500/30 bg-card/80">
+                        <CardHeader>
+                            <CardTitle>Awaiting member information</CardTitle>
+                            <CardDescription>
+                                {currentLoanRequest.member_action_message ??
+                                    'Please complete the requested fields so processing can continue.'}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form
+                                className="space-y-5"
+                                onSubmit={submitMemberInformation}
+                            >
+                                {memberActionFields.length > 0 ? (
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        {memberActionFields.map((field) => (
+                                            <div
+                                                key={field.key}
+                                                className={
+                                                    field.definition.type ===
+                                                        'string' &&
+                                                    field.key.includes('notes')
+                                                        ? 'grid gap-2 md:col-span-2'
+                                                        : 'grid gap-2'
+                                                }
+                                            >
+                                                <Label
+                                                    htmlFor={`member_action_${field.key}`}
+                                                >
+                                                    {field.definition.label}
+                                                </Label>
+                                                {field.definition.type ===
+                                                'boolean' ? (
+                                                    <Select
+                                                        value={booleanSelectValue(
+                                                            field.value,
+                                                        )}
+                                                        onValueChange={(
+                                                            nextValue,
+                                                        ) =>
+                                                            updateMemberActionField(
+                                                                field.sectionKey,
+                                                                field.key,
+                                                                nextValue ===
+                                                                    'Yes',
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger
+                                                            id={`member_action_${field.key}`}
+                                                        >
+                                                            <SelectValue placeholder="Select an option" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Yes">
+                                                                Yes
+                                                            </SelectItem>
+                                                            <SelectItem value="No">
+                                                                No
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : field.key.includes(
+                                                      'notes',
+                                                  ) ? (
+                                                    <textarea
+                                                        id={`member_action_${field.key}`}
+                                                        className={
+                                                            textareaClassName
+                                                        }
+                                                        value={
+                                                            field.value
+                                                                ? `${field.value}`
+                                                                : ''
+                                                        }
+                                                        onChange={(event) =>
+                                                            updateMemberActionField(
+                                                                field.sectionKey,
+                                                                field.key,
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                ) : (
+                                                    <Input
+                                                        id={`member_action_${field.key}`}
+                                                        type={
+                                                            field.definition
+                                                                .type ===
+                                                                'number' ||
+                                                            field.definition
+                                                                .type ===
+                                                                'integer'
+                                                                ? 'number'
+                                                                : 'text'
+                                                        }
+                                                        value={
+                                                            field.value
+                                                                ? `${field.value}`
+                                                                : ''
+                                                        }
+                                                        onChange={(event) =>
+                                                            updateMemberActionField(
+                                                                field.sectionKey,
+                                                                field.key,
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <Alert>
+                                        <AlertTitle>
+                                            Requested information
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            This request is waiting for your
+                                            updated confirmation. Review the
+                                            note above and submit once you have
+                                            completed the required details.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Button
+                                        type="submit"
+                                        disabled={isMemberActionSubmitting}
+                                    >
+                                        Submit requested information
+                                    </Button>
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        disabled={isMemberActionSubmitting}
+                                    >
+                                        <Link
+                                            href={loanRequestShow(
+                                                currentLoanRequest.id,
+                                            ).url}
+                                        >
+                                            Refresh request
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </section>
+            ) : null}
+            {currentLoanRequest.status === 'awaiting_member_acceptance' ? (
+                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <Card className="border-indigo-500/30 bg-card/80">
+                        <CardHeader>
+                            <CardTitle>Awaiting member acceptance</CardTitle>
+                            <CardDescription>
+                                {currentLoanRequest.member_action_message ??
+                                    'Review the revised loan terms before continuing.'}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                    <p className="text-xs text-muted-foreground">
+                                        Revised amount
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold">
+                                        {termsSummaryValue(
+                                            currentLoanRequest.recommended_amount,
+                                        )}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                    <p className="text-xs text-muted-foreground">
+                                        Revised term
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold">
+                                        {termsSummaryValue(
+                                            currentLoanRequest.recommended_term,
+                                        )}{' '}
+                                        months
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                    <p className="text-xs text-muted-foreground">
+                                        Revised interest rate
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold">
+                                        {termsSummaryValue(
+                                            currentLoanRequest.recommended_interest_rate,
+                                        )}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                                    <p className="text-xs text-muted-foreground">
+                                        Payment frequency
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold">
+                                        {termsSummaryValue(
+                                            currentLoanRequest.recommended_payment_frequency,
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="member_action_reason">
+                                    Optional note
+                                </Label>
+                                <textarea
+                                    id="member_action_reason"
+                                    className={textareaClassName}
+                                    maxLength={1000}
+                                    value={memberActionReason}
+                                    onChange={(event) =>
+                                        setMemberActionReason(
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Button
+                                    type="button"
+                                    disabled={isMemberActionSubmitting}
+                                    onClick={() =>
+                                        submitTermsDecision('accept')
+                                    }
+                                >
+                                    Accept revised terms
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    disabled={isMemberActionSubmitting}
+                                    onClick={() =>
+                                        submitTermsDecision('decline')
+                                    }
+                                >
+                                    Decline revised terms
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </section>
             ) : null}
             <LoanRequestDetailPage

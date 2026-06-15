@@ -3,18 +3,22 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -31,6 +35,8 @@ class LoanRequestController extends Controller
         LoanRequest $loanRequest,
         LoanRequestAssignmentService $assignmentService,
         LoanRequestDecisionService $decisionService,
+        LoanRequestDataService $dataService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
         LoanRequestPayloadSerializer $serializer,
         LoanWorkflowWorkspaceService $workspaceService,
     ): Response {
@@ -65,6 +71,18 @@ class LoanRequestController extends Controller
             )
                 ? $assignmentService->eligibleOfficerOptions($loanRequest)
                 : [],
+            'dataSections' => $dataService->serializeSections($loanRequest),
+            'dataSectionDefinitions' => $dataService->sectionDefinitions(),
+            'documentChecklist' => $documentWorkflowService->serializeChecklist(
+                $loanRequest,
+            ),
+            'memberAction' => [
+                'type' => $loanRequest->member_action_type,
+                'message' => $loanRequest->member_action_message,
+                'fields' => $loanRequest->member_action_fields_json,
+                'requested_at' => $loanRequest->member_action_requested_at?->toDateTimeString(),
+                'resolved_at' => $loanRequest->member_action_resolved_at?->toDateTimeString(),
+            ],
         ]);
 
         return Inertia::render('staff/loan-request-show', $payload);
@@ -202,6 +220,49 @@ class LoanRequestController extends Controller
         }
 
         return $documentService->authorization($loanRequest);
+    }
+
+    public function generatedDocument(
+        Request $request,
+        LoanRequest $loanRequest,
+        LoanRequestDocumentKey $documentKey,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+
+        $document = $loanRequest->documents()
+            ->where('document_key', $documentKey->value)
+            ->first();
+
+        if (
+            $document === null
+            || ! $document->is_applicable
+            || $document->generated_path === null
+            || $document->generated_path === ''
+        ) {
+            abort(404);
+        }
+
+        $disk = $document->generated_disk ?: 'local';
+
+        abort_unless(Storage::disk($disk)->exists($document->generated_path), 404);
+
+        $headers = $document->generated_mime_type !== null
+            ? ['Content-Type' => $document->generated_mime_type]
+            : [];
+
+        if ($request->boolean('download')) {
+            return Storage::disk($disk)->download(
+                $document->generated_path,
+                $document->generated_filename,
+                $headers,
+            );
+        }
+
+        return Storage::disk($disk)->response(
+            $document->generated_path,
+            $document->generated_filename,
+            $headers,
+        );
     }
 
     private function isDraft(LoanRequest $loanRequest): bool

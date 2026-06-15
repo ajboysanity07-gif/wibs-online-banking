@@ -154,7 +154,7 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'assigned_officer',
-                header: 'Assignee',
+                header: 'Assigned Loan Processor',
                 cell: ({ row }) =>
                     row.original.assigned_officer?.name ?? 'Unassigned',
             },
@@ -546,11 +546,11 @@ export function LoanRequestQueuePage({
                                         }}
                                     >
                                         <SelectTrigger aria-label="Loan officer">
-                                            <SelectValue placeholder="All loan officers" />
+                                            <SelectValue placeholder="All loan processors" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">
-                                                All loan officers
+                                                All loan processors
                                             </SelectItem>
                                             {meta.assignmentOfficers?.map(
                                                 (officer) => (

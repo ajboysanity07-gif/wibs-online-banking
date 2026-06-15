@@ -34,9 +34,12 @@ type StatusFilter =
     | 'pending_review'
     | 'under_review'
     | 'needs_revision'
+    | 'awaiting_member_information'
     | 'recommended_for_approval'
+    | 'awaiting_member_acceptance'
     | 'approved'
     | 'declined'
+    | 'member_declined_terms'
     | 'rejected'
     | 'converted_to_loan'
     | 'cancelled';
@@ -44,13 +47,22 @@ type StatusFilter =
 const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
     { value: 'all', label: 'All' },
     { value: 'draft', label: 'Draft' },
-    { value: 'pending_review', label: 'Pending Review' },
-    { value: 'under_review', label: 'Under Review' },
-    { value: 'needs_revision', label: 'Needs Revision' },
-    { value: 'recommended_for_approval', label: 'Recommended for Approval' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'declined', label: 'Declined' },
-    { value: 'rejected', label: 'Rejected' },
+    { value: 'pending_review', label: 'Pending Processing' },
+    { value: 'under_review', label: 'In Processing' },
+    { value: 'needs_revision', label: 'Awaiting Member Correction' },
+    {
+        value: 'awaiting_member_information',
+        label: 'Awaiting Member Information',
+    },
+    { value: 'recommended_for_approval', label: 'For Loan Manager Review' },
+    {
+        value: 'awaiting_member_acceptance',
+        label: 'Awaiting Member Acceptance',
+    },
+    { value: 'approved', label: 'Approved - For WIBS Processing' },
+    { value: 'declined', label: 'Declined by Loan Manager' },
+    { value: 'member_declined_terms', label: 'Member Declined Terms' },
+    { value: 'rejected', label: 'Rejected During Processing' },
     { value: 'converted_to_loan', label: 'Converted to Loan' },
     { value: 'cancelled', label: 'Cancelled' },
 ];
@@ -59,11 +71,11 @@ const normalizeStatus = (
     status: LoanRequestStatusValue | null,
 ): LoanRequestStatusValue | null => {
     if (status === 'submitted') {
-        return 'under_review';
+        return 'pending_review';
     }
 
     if (status === 'pending_co_maker_signatures') {
-        return 'draft';
+        return 'pending_review';
     }
 
     return status;
@@ -115,6 +127,12 @@ export default function LoanRequestsPage({
             ).length,
             needsRevision: items.filter(
                 (item) => normalizeStatus(item.status) === 'needs_revision',
+            ).length,
+            awaitingMemberAction: items.filter((item) =>
+                [
+                    'awaiting_member_information',
+                    'awaiting_member_acceptance',
+                ].includes(normalizeStatus(item.status) ?? ''),
             ).length,
             approvedOrConverted: items.filter((item) =>
                 ['approved', 'converted_to_loan'].includes(
@@ -197,22 +215,28 @@ export default function LoanRequestsPage({
                                 'text-amber-600 dark:text-amber-400',
                         },
                         {
-                            label: 'Pending Review',
+                            label: 'Pending Processing',
                             value: summaryCounts.pendingReview,
                             emphasisClassName:
                                 'text-orange-600 dark:text-orange-400',
                         },
                         {
-                            label: 'Under Review',
+                            label: 'In Processing',
                             value: summaryCounts.underReview,
                             emphasisClassName:
                                 'text-sky-600 dark:text-sky-400',
                         },
                         {
-                            label: 'Needs Revision',
+                            label: 'Awaiting Member Correction',
                             value: summaryCounts.needsRevision,
                             emphasisClassName:
                                 'text-rose-600 dark:text-rose-400',
+                        },
+                        {
+                            label: 'Awaiting Member Action',
+                            value: summaryCounts.awaitingMemberAction,
+                            emphasisClassName:
+                                'text-violet-600 dark:text-violet-400',
                         },
                         {
                             label: 'Approved/Converted',

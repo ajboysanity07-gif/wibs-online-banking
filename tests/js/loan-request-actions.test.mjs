@@ -47,8 +47,8 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(detailFile, /variant="ghost"/);
     assert.match(workflowActionsFile, /Start Review/);
     assert.match(workflowActionsFile, /Claim/);
-    assert.match(workflowActionsFile, /Assign Officer/);
-    assert.match(workflowActionsFile, /Reassign Officer/);
+    assert.match(workflowActionsFile, /Assign Loan Processor/);
+    assert.match(workflowActionsFile, /Reassign Loan Processor/);
     assert.match(workflowActionsFile, /Return to Queue/);
     assert.match(workflowActionsFile, /Request Revision/);
     assert.match(workflowActionsFile, /Recommend Approval/);

@@ -186,11 +186,63 @@ type LoanRequestWorkflowApprovePayload = {
     approved_amount: number | string;
     approved_term: number | string;
     approved_interest_rate?: number | string | null;
+    approved_payment_frequency?: string | null;
     approval_remarks?: string | null;
 };
 
 type LoanRequestWorkflowDeclinePayload = {
+    decline_category: string;
     decline_reason: string;
+};
+
+type LoanRequestWorkflowProcessingUpdatePayload = {
+    reason: string;
+    information_source: string;
+    loan_request?: {
+        typecode?: string | null;
+        requested_amount?: number | string | null;
+        requested_term?: number | string | null;
+        loan_purpose?: string | null;
+        availment_status?: string | null;
+    };
+    applicant?: Record<string, unknown>;
+    co_maker_1?: Record<string, unknown>;
+    co_maker_2?: Record<string, unknown>;
+    processing?: Record<string, unknown>;
+    recommended_amount?: number | string | null;
+    recommended_term?: number | string | null;
+    recommended_interest_rate?: number | string | null;
+    recommended_payment_frequency?: string | null;
+    recommendation_remarks?: string | null;
+};
+
+type LoanRequestWorkflowMemberActionPayload = {
+    action_type: 'needs_revision' | 'awaiting_member_information';
+    message: string;
+    reason: string;
+    field_keys?: string[];
+};
+
+type LoanRequestWorkflowRejectDuringProcessingPayload = {
+    rejection_category: string;
+    member_visible_reason: string;
+};
+
+type LoanRequestWorkflowGenerateDocumentsPayload = {
+    document_key?: string | null;
+};
+
+type LoanRequestWorkflowReturnForProcessingPayload = {
+    reason: string;
+};
+
+type LoanRequestWorkflowReopenPayload = {
+    reason: string;
+    retain_assignment?: boolean;
+};
+
+type LoanRequestWorkflowUpgradePayload = {
+    reason: string;
 };
 
 type LoanRequestWorkflowResponse = {
@@ -457,6 +509,83 @@ export const adminApi = {
     ): Promise<LoanRequestWorkflowResult> {
         const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
             workflowDeclineRoute(loanRequestId).url,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async updateLoanRequestProcessingDetails(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowProcessingUpdatePayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            `/spa/workflow/loan-requests/${loanRequestId}/processing-details`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async requestLoanRequestMemberAction(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowMemberActionPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            `/spa/workflow/loan-requests/${loanRequestId}/request-member-action`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async rejectLoanRequestDuringProcessing(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowRejectDuringProcessingPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            `/spa/workflow/loan-requests/${loanRequestId}/reject-during-processing`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async generateLoanRequestDocuments(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowGenerateDocumentsPayload = {},
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.post<ApiResponse<LoanRequestWorkflowResponse>>(
+            `/spa/workflow/loan-requests/${loanRequestId}/documents/generate`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async returnLoanRequestForProcessing(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowReturnForProcessingPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            `/spa/workflow/loan-requests/${loanRequestId}/return-for-processing`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async reopenLoanRequestForProcessing(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowReopenPayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            `/spa/workflow/loan-requests/${loanRequestId}/reopen`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async upgradeLoanRequestWorkflow(
+        loanRequestId: number,
+        payload: LoanRequestWorkflowUpgradePayload,
+    ): Promise<LoanRequestWorkflowResult> {
+        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+            `/spa/workflow/loan-requests/${loanRequestId}/upgrade-workflow`,
             payload,
         );
 

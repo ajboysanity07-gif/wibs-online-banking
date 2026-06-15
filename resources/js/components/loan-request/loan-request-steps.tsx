@@ -25,6 +25,9 @@ import {
     formatDisplayText,
 } from '@/lib/formatters';
 import type {
+    LoanRequestDataFieldDefinition,
+    LoanRequestDataSectionDefinition,
+    LoanRequestDataSectionValues,
     LoanRequestFormData,
     LoanRequestMemberSummary,
     LoanRequestPersonFormData,
@@ -275,6 +278,7 @@ type ReviewStepProps = {
     loanTypes: LoanTypeOption[];
     member: LoanRequestMemberSummary;
     errors: Record<string, string | undefined>;
+    sectionDefinitions: Record<string, LoanRequestDataSectionDefinition>;
     onUndertakingChange: (value: boolean) => void;
 };
 
@@ -285,6 +289,9 @@ type SummaryItem = {
 
 const displayValue = (value: string): string =>
     value.trim() !== '' ? value : '--';
+
+const textareaClassName =
+    'flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
 const displayText = (value?: string | null): string => {
     const normalized = formatDisplayText(value);
@@ -431,11 +438,175 @@ const SummaryCard = ({ title, description, children }: SummaryCardProps) => (
     </div>
 );
 
+type DataSectionStepProps = {
+    sectionKey: keyof Pick<
+        LoanRequestFormData,
+        | 'insurance'
+        | 'health'
+        | 'authorization'
+        | 'banking'
+        | 'barangay'
+        | 'declarations'
+    >;
+    title: string;
+    description: string;
+    values: LoanRequestDataSectionValues;
+    definition: LoanRequestDataSectionDefinition;
+    errors: Record<string, string | undefined>;
+    onChange: (
+        field: string,
+        value: string | number | boolean | null,
+    ) => void;
+};
+
+const booleanSelectValue = (value: unknown): string => {
+    if (value === true) {
+        return 'true';
+    }
+
+    if (value === false) {
+        return 'false';
+    }
+
+    return '';
+};
+
+const displaySectionValue = (
+    value: unknown,
+    field: LoanRequestDataFieldDefinition,
+): string => {
+    if (field.type === 'boolean') {
+        if (value === true) {
+            return 'Yes';
+        }
+
+        if (value === false) {
+            return 'No';
+        }
+
+        return '--';
+    }
+
+    if (value === null || value === undefined) {
+        return '--';
+    }
+
+    if (field.type === 'number' || field.type === 'integer') {
+        const numericValue = Number(value);
+
+        return Number.isFinite(numericValue)
+            ? `${numericValue}`
+            : displayText(`${value}`);
+    }
+
+    return displayText(`${value}`);
+};
+
+export function LoanRequestDataSectionStep({
+    sectionKey,
+    title,
+    description,
+    values,
+    definition,
+    errors,
+    onChange,
+}: DataSectionStepProps) {
+    return (
+        <LoanRequestSectionCard
+            title={title}
+            description={description}
+            contentClassName="space-y-5"
+        >
+            <div className="grid gap-4 md:grid-cols-2">
+                {Object.entries(definition.fields).map(([fieldKey, field]) => {
+                    const errorKey = `${sectionKey}.${fieldKey}`;
+                    const value = values[fieldKey];
+                    const isNotesField = fieldKey.includes('notes');
+
+                    return (
+                        <div
+                            key={fieldKey}
+                            className={
+                                isNotesField ? 'grid gap-2 md:col-span-2' : 'grid gap-2'
+                            }
+                        >
+                            <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                                {field.label}
+                            </Label>
+                            {field.type === 'boolean' ? (
+                                <Select
+                                    value={booleanSelectValue(value)}
+                                    onValueChange={(nextValue) =>
+                                        onChange(
+                                            fieldKey,
+                                            nextValue === ''
+                                                ? null
+                                                : nextValue === 'true',
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id={`${sectionKey}_${fieldKey}`}
+                                    >
+                                        <SelectValue placeholder="Select an option" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="true">Yes</SelectItem>
+                                        <SelectItem value="false">No</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            ) : isNotesField ? (
+                                <textarea
+                                    id={`${sectionKey}_${fieldKey}`}
+                                    className={textareaClassName}
+                                    value={value ? `${value}` : ''}
+                                    maxLength={1000}
+                                    onChange={(event) =>
+                                        onChange(fieldKey, event.target.value)
+                                    }
+                                />
+                            ) : (
+                                <Input
+                                    id={`${sectionKey}_${fieldKey}`}
+                                    type={
+                                        field.type === 'number' ||
+                                        field.type === 'integer'
+                                            ? 'number'
+                                            : 'text'
+                                    }
+                                    step={
+                                        field.type === 'number'
+                                            ? '0.01'
+                                            : undefined
+                                    }
+                                    value={value ? `${value}` : ''}
+                                    onChange={(event) =>
+                                        onChange(fieldKey, event.target.value)
+                                    }
+                                />
+                            )}
+                            <InputError message={errors[errorKey]} />
+                        </div>
+                    );
+                })}
+            </div>
+            <Alert className="border-border/50 bg-muted/10">
+                <AlertTitle>Member-provided details</AlertTitle>
+                <AlertDescription>
+                    Complete the applicable fields in this section before
+                    submitting the request for processing.
+                </AlertDescription>
+            </Alert>
+        </LoanRequestSectionCard>
+    );
+}
+
 export function LoanRequestReviewStep({
     data,
     loanTypes,
     member,
     errors,
+    sectionDefinitions,
     onUndertakingChange,
 }: ReviewStepProps) {
     const loanTypeLabel =
@@ -605,6 +776,29 @@ export function LoanRequestReviewStep({
         { label: 'Payday', value: formatPayday(person.payday) },
     ];
 
+    const dataSectionSummaries = (
+        [
+            'insurance',
+            'health',
+            'authorization',
+            'banking',
+            'barangay',
+            'declarations',
+        ] as const
+    ).map((sectionKey) => ({
+        key: sectionKey,
+        title: sectionDefinitions[sectionKey]?.label ?? sectionKey,
+        items: Object.entries(sectionDefinitions[sectionKey]?.fields ?? {}).map(
+            ([fieldKey, field]) => ({
+                label: field.label,
+                value: displaySectionValue(
+                    data[sectionKey][fieldKey],
+                    field,
+                ),
+            }),
+        ),
+    }));
+
     return (
         <LoanRequestSectionCard
             title="Review & undertaking"
@@ -659,6 +853,16 @@ export function LoanRequestReviewStep({
                     items={buildCoMakerSummary('Co-maker 2', data.co_maker_2)}
                 />
             </SummaryCard>
+
+            {dataSectionSummaries.map((section) => (
+                <SummaryCard
+                    key={section.key}
+                    title={section.title}
+                    description="Review the member-provided document details."
+                >
+                    <SummaryGrid items={section.items} />
+                </SummaryCard>
+            ))}
 
             <Alert className="border-border/50 bg-muted/10">
                 <AlertTitle>Physical signatures</AlertTitle>

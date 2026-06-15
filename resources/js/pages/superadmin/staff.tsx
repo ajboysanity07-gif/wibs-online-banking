@@ -93,8 +93,8 @@ const editableRoleOptions: Array<{
         description: 'Manage staff, monitor loan applications, and access existing Superadmin pages.',
     },
     {
-        value: 'loan_officer',
-        label: 'Loan Officer',
+        value: 'loan_processor',
+        label: 'Loan Processor',
         description: 'Review applications, request revisions, reject, and recommend approval.',
     },
     {
@@ -218,7 +218,7 @@ const initialCreateForm: CreateStaffForm = {
 const initialRoleMutationState: RoleMutationState = {
     open: false,
     user: null,
-    role: 'loan_officer',
+    role: 'loan_processor',
     operation: 'assign',
     reason: '',
     processing: false,

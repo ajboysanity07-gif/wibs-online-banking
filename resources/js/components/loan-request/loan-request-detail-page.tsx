@@ -168,15 +168,18 @@ const DetailRow = ({ label, value, className }: DetailRowProps) => (
 
 const statusLabels: Record<LoanRequestStatusValue, string> = {
     draft: 'Draft',
-    submitted: 'Submitted',
-    pending_review: 'Pending Review',
-    pending_co_maker_signatures: 'Pending Co-Maker Signatures',
-    under_review: 'Under Review',
-    needs_revision: 'Needs Revision',
-    recommended_for_approval: 'Recommended for Approval',
-    rejected: 'Rejected',
-    approved: 'Approved',
-    declined: 'Declined',
+    submitted: 'Legacy Submitted',
+    pending_review: 'Pending Processing',
+    pending_co_maker_signatures: 'Legacy Pending Co-Maker Signatures',
+    under_review: 'In Processing',
+    needs_revision: 'Awaiting Member Correction',
+    awaiting_member_information: 'Awaiting Member Information',
+    recommended_for_approval: 'For Loan Manager Review',
+    awaiting_member_acceptance: 'Awaiting Member Acceptance',
+    rejected: 'Rejected During Processing',
+    approved: 'Approved - For WIBS Processing',
+    declined: 'Declined by Loan Manager',
+    member_declined_terms: 'Member Declined Revised Terms',
     converted_to_loan: 'Converted to Loan',
     cancelled: 'Cancelled',
 };
@@ -184,17 +187,24 @@ const statusLabels: Record<LoanRequestStatusValue, string> = {
 const statusDescriptions: Record<LoanRequestStatusValue, string> = {
     draft: 'Complete the form and submit when you are ready.',
     submitted: 'This legacy request has already been submitted for review.',
-    pending_review: 'This request is waiting for a loan officer to start the review.',
+    pending_review:
+        'This request is waiting for an assigned loan processor to begin processing.',
     pending_co_maker_signatures:
-        'This request is still waiting for the required co-maker signatures.',
-    under_review: 'A loan officer is actively reviewing this request.',
+        'This legacy request is still recorded with the old co-maker signature status.',
+    under_review: 'A loan processor is actively processing this request.',
     needs_revision:
-        'The member needs to revise the request before review can continue.',
+        'The member needs to correct the requested details before processing can continue.',
+    awaiting_member_information:
+        'The member still needs to provide additional information or confirmation.',
     recommended_for_approval:
-        'The officer review is complete and the request is waiting for manager approval.',
-    rejected: 'This request was rejected during officer review.',
+        'The loan processor completed the package and it is waiting for manager review.',
+    awaiting_member_acceptance:
+        'The loan manager changed member-impacting terms and is waiting for the member response.',
+    rejected: 'This request was rejected during processing.',
     approved: 'Approved - awaiting processing in WIBS.',
     declined: 'This request was declined after manager review.',
+    member_declined_terms:
+        'The member declined the revised loan terms proposed during manager review.',
     converted_to_loan:
         'This request has already been converted into an actual loan record.',
     cancelled:
@@ -220,6 +230,36 @@ const resolveTimelineSteps = (
             'under_review',
             'recommended_for_approval',
             'declined',
+        ];
+    }
+
+    if (status === 'awaiting_member_information') {
+        return [
+            'draft',
+            'pending_review',
+            'under_review',
+            'awaiting_member_information',
+        ];
+    }
+
+    if (status === 'awaiting_member_acceptance') {
+        return [
+            'draft',
+            'pending_review',
+            'under_review',
+            'recommended_for_approval',
+            'awaiting_member_acceptance',
+        ];
+    }
+
+    if (status === 'member_declined_terms') {
+        return [
+            'draft',
+            'pending_review',
+            'under_review',
+            'recommended_for_approval',
+            'awaiting_member_acceptance',
+            'member_declined_terms',
         ];
     }
 
@@ -553,7 +593,9 @@ export function LoanRequestDetailPage({
     );
     const reviewedBy = loanRequest.reviewed_by?.name ?? '--';
     const reviewedAt = displayDateValue(loanRequest.reviewed_at);
-    const assignedOfficer = loanRequest.assigned_officer?.name ?? '--';
+    const assignedOfficer = loanRequest.assigned_processor?.name
+        ?? loanRequest.assigned_officer?.name
+        ?? '--';
     const reviewDecisionValue = displayText(loanRequest.review_decision);
     const reviewRemarksValue = displayText(loanRequest.review_remarks);
     const rejectedBy = loanRequest.rejected_by?.name ?? '--';
@@ -1165,9 +1207,10 @@ export function LoanRequestDetailPage({
                                             label="Status"
                                             value={statusLabels[statusValue] ?? '--'}
                                         />
-                                        {loanRequest.assigned_officer !== null ? (
+                                        {loanRequest.assigned_processor !== null ||
+                                        loanRequest.assigned_officer !== null ? (
                                             <DetailRow
-                                                label="Assigned officer"
+                                                label="Assigned loan processor"
                                                 value={assignedOfficer}
                                             />
                                         ) : null}
@@ -1500,9 +1543,9 @@ export function LoanRequestDetailPage({
                             {statusValue === 'draft'
                                 ? 'Finish the application and submit to begin the review.'
                                 : statusValue === 'pending_review'
-                                  ? 'A loan officer can now pick this request up and start the review.'
+                                  ? 'A loan processor can now pick this request up and start the review.'
                                   : statusValue === 'under_review'
-                                    ? 'The request is under active review by a loan officer.'
+                                    ? 'The request is under active review by a loan processor.'
                                     : statusValue === 'needs_revision'
                                       ? 'The member needs to update the request before it can continue.'
                                       : statusValue ===

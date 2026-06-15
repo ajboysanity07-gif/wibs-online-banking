@@ -21,13 +21,37 @@ class LoanRequestChange extends Model
 
     public const ACTION_REQUEST_REVISION = 'request_revision';
 
+    public const ACTION_REQUEST_MEMBER_INFORMATION = 'request_member_information';
+
     public const ACTION_REJECT = 'reject';
 
+    public const ACTION_REJECT_DURING_PROCESSING = 'reject_during_processing';
+
+    public const ACTION_REOPEN_REJECTED_REQUEST = 'reopen_rejected_request';
+
     public const ACTION_RECOMMEND_APPROVAL = 'recommend_approval';
+
+    public const ACTION_GENERATE_REQUIRED_DOCUMENTS = 'generate_required_documents';
+
+    public const ACTION_REGENERATE_DOCUMENT = 'regenerate_document';
+
+    public const ACTION_PROCESSING_DETAILS_UPDATED = 'processing_details_updated';
 
     public const ACTION_APPROVE = 'approve';
 
     public const ACTION_DECLINE = 'decline';
+
+    public const ACTION_MANAGER_RETURN_FOR_PROCESSING = 'manager_return_for_processing';
+
+    public const ACTION_MANAGER_CHANGED_TERMS = 'manager_changed_terms';
+
+    public const ACTION_MEMBER_CONFIRMED_INFORMATION = 'member_confirmed_information';
+
+    public const ACTION_MEMBER_ACCEPTED_TERMS = 'member_accepted_terms';
+
+    public const ACTION_MEMBER_DECLINED_TERMS = 'member_declined_terms';
+
+    public const ACTION_WORKFLOW_UPGRADED = 'workflow_upgraded';
 
     public const ACTION_UNASSIGN_SUSPENDED_OFFICER = self::ACTION_ASSIGNMENT_UNASSIGNED_STAFF_UNAVAILABLE;
 
