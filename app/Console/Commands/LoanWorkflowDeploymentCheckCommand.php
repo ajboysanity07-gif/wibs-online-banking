@@ -41,8 +41,14 @@ class LoanWorkflowDeploymentCheckCommand extends Command
         $this->renderIssues('OK', $report['ok'] ?? []);
 
         $smokeFailed = false;
+        $skipSmoke = (bool) $this->option('skip-smoke');
 
-        if (! (bool) $this->option('skip-smoke')) {
+        if ($stage->isPreMigration() && ! $skipSmoke) {
+            $this->newLine();
+            $this->line(
+                'Strict smoke checks are deferred until post-migration because the workflow tables and seeded permissions may not exist yet.',
+            );
+        } elseif (! $skipSmoke) {
             $smoke = $supportService->smokeTest();
             $this->newLine();
             $this->line('Smoke checks');
