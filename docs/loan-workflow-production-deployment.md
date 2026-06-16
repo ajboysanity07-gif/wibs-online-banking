@@ -21,9 +21,12 @@ This guide covers Phase 7.1 production deployment for the RBAC loan workflow, do
 - `php artisan loan-workflow:repair --apply`
   - Applies approved deterministic repairs.
 - `php artisan loan-workflow:smoke-test`
-  - Read-only dependency and configuration check.
+  - Strict post-migration dependency and configuration check.
 - `php artisan loan-workflow:deployment-check --stage=pre-migration`
-  - Safe helper that runs staged preflight and smoke checks without applying migrations, seeding, or repairs.
+  - Safe helper that runs staged preflight before migration.
+  - Strict smoke checks are automatically deferred until post-migration because the new workflow tables and seeded permissions may not exist yet.
+- `php artisan loan-workflow:deployment-check --stage=post-migration`
+  - Runs strict post-migration preflight followed by the non-destructive smoke test.
 - `php artisan loan-workflow:send-reminders`
   - Queues due member reminders once per request and event, subject to the configured reminder cap.
 - `php artisan loan-workflow:cleanup-temp-files --dry-run`
@@ -177,12 +180,11 @@ php artisan up
 
 `php artisan loan-workflow:deployment-check --stage=pre-migration` is safe to run before the actual release window.
 
-It may orchestrate:
+In pre-migration mode it runs staged preflight only. Strict smoke checks are deferred automatically until the post-migration schema and workflow permissions are available.
 
-- staged preflight
-- smoke-test style dependency checks
+`php artisan loan-workflow:deployment-check --stage=post-migration` runs both strict post-migration preflight and the non-destructive smoke test.
 
-It does not:
+The helper does not:
 
 - apply migrations
 - seed permissions
@@ -296,7 +298,6 @@ Run these from the deployed release:
 
 ```bash
 php artisan migrate:status --no-interaction
-php artisan loan-workflow:preflight --stage=pre-migration
 php artisan loan-workflow:preflight --stage=post-migration
 php artisan loan-workflow:smoke-test
 php artisan route:list
