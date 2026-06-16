@@ -176,13 +176,6 @@ return new class extends Migration
         DB::table('loan_requests')->update([
             'workflow_version' => LoanRequestWorkflowVersion::LegacyV1->value,
         ]);
-
-        DB::table('loan_requests')
-            ->where('status', 'pending_co_maker_signatures')
-            ->update([
-                'status' => 'pending_review',
-                'updated_at' => now(),
-            ]);
     }
 
     /**

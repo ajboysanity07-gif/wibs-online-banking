@@ -5,8 +5,10 @@ namespace Database\Seeders;
 use App\Models\AppUser;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\LoanRequests\LoanWorkflowPermissionSeedService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class LoanWorkflowRbacSeeder extends Seeder
 {
@@ -21,47 +23,18 @@ class LoanWorkflowRbacSeeder extends Seeder
             return;
         }
 
-        Role::ensureWorkflowDefaults();
+        $report = app(LoanWorkflowPermissionSeedService::class)->seed();
 
-        $adminRoleId = Role::query()
-            ->where('name', Role::ADMIN)
-            ->value('id');
-        $superadminRoleId = Role::query()
-            ->where('name', Role::SUPERADMIN)
-            ->value('id');
-        $memberRoleId = Role::query()
-            ->where('name', Role::MEMBER)
-            ->value('id');
-
-        if ($adminRoleId !== null) {
-            AppUser::query()
-                ->whereHas('adminProfile')
-                ->get()
-                ->each(function (AppUser $user) use ($adminRoleId): void {
-                    $user->roles()->syncWithoutDetaching([$adminRoleId]);
-                });
-        }
-
-        if ($superadminRoleId !== null) {
-            AppUser::query()
-                ->whereHas('adminProfile', function ($query): void {
-                    $query->where('access_level', \App\Models\AdminProfile::ACCESS_LEVEL_SUPERADMIN);
-                })
-                ->get()
-                ->each(function (AppUser $user) use ($superadminRoleId): void {
-                    $user->roles()->syncWithoutDetaching([$superadminRoleId]);
-                });
-        }
-
-        if ($memberRoleId !== null) {
-            // Member backfill follows the existing member-access rule: a non-empty acctno.
-            AppUser::query()
-                ->whereNotNull('acctno')
-                ->whereRaw("LTRIM(RTRIM(acctno)) <> ''")
-                ->get()
-                ->each(function (AppUser $user) use ($memberRoleId): void {
-                    $user->roles()->syncWithoutDetaching([$memberRoleId]);
-                });
+        if (($report['conflicts'] ?? []) !== []) {
+            throw new RuntimeException(
+                implode(
+                    ' ',
+                    array_map(
+                        static fn (array $issue): string => (string) ($issue['summary'] ?? ''),
+                        $report['conflicts'],
+                    ),
+                ),
+            );
         }
 
         $this->command?->info(sprintf(

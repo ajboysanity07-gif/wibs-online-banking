@@ -98,7 +98,7 @@ test('phase seven migration backfills representative legacy loan request documen
         ->and((int) $document->generated_version)->toBe(2)
         ->and($document->generated_disk)->toBe('local')
         ->and((string) $document->metadata_json)->toContain('legacy_data_json')
-        ->and($loanRequest->status)->toBe(LoanRequestStatus::PendingReview)
+        ->and($loanRequest->status)->toBe(LoanRequestStatus::PendingCoMakerSignatures)
         ->and($loanRequest->workflow_version)->toBe(
             LoanRequestWorkflowVersion::LegacyV1,
         );
@@ -269,8 +269,19 @@ test('loan workflow repair command supports dry run and deterministic apply mode
 
 test('loan workflow smoke test passes when required configuration is present', function (): void {
     config()->set('mail.default', 'array');
+    config()->set('queue.default', 'database');
+    config()->set('queue.connections.database.after_commit', true);
     config()->set('services.semaphore.api_key', 'test-key');
     config()->set('services.semaphore.base_url', 'https://example.test/sms');
+
+    if (! Schema::hasTable('loan_request_notification_events')) {
+        $migration = require database_path(
+            'migrations/2026_06_15_081803_create_loan_request_notification_events_table.php',
+        );
+        $migration->up();
+    }
+
+    Artisan::call('loan-workflow:seed-permissions');
 
     $exitCode = Artisan::call('loan-workflow:smoke-test');
     $output = Artisan::output();

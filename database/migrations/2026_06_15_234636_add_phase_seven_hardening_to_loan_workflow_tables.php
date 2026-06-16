@@ -1,7 +1,6 @@
 <?php
 
 use App\LoanRequestDocumentReadinessStatus;
-use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -251,11 +250,6 @@ return new class extends Migration
 
                     if ($row->workflow_version === null || trim((string) $row->workflow_version) === '') {
                         $updates['workflow_version'] = $this->determineWorkflowVersion($row);
-                    }
-
-                    if ($row->status === LoanRequestStatus::PendingCoMakerSignatures->value) {
-                        $updates['status'] = LoanRequestStatus::PendingReview->value;
-                        $updates['updated_at'] = now();
                     }
 
                     if ($updates === []) {

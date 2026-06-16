@@ -17,11 +17,12 @@ class LoanWorkflowSmokeTestCommand extends Command
         $result = $supportService->smokeTest();
 
         $this->table(
-            ['Check', 'Status'],
+            ['Check', 'Status', 'Summary'],
             array_map(
                 static fn (array $check): array => [
                     $check['name'] ?? '-',
                     $check['status'] ?? 'fail',
+                    $check['summary'] ?? '-',
                 ],
                 $result['checks'] ?? [],
             ),
@@ -29,7 +30,7 @@ class LoanWorkflowSmokeTestCommand extends Command
 
         $failed = collect($result['checks'] ?? [])
             ->contains(
-                static fn (array $check): bool => ($check['status'] ?? 'fail') !== 'pass',
+                static fn (array $check): bool => ($check['status'] ?? 'fail') === 'fail',
             );
 
         return $failed ? self::FAILURE : self::SUCCESS;

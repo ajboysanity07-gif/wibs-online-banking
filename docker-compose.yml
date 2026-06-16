@@ -26,7 +26,28 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    command: >-
+      php artisan queue:work
+      --queue=loan-workflow,loan-workflow-notifications
+      --tries=5
+      --timeout=120
+      --backoff=60,300,900
+      --sleep=3
+      --max-time=3600
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    depends_on:
+      - app
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wibs-scheduler
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: php artisan schedule:work
     volumes:
       - laravel_storage:/var/www/html/storage
     depends_on:

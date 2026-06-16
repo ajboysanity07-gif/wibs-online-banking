@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
+use App\LoanWorkflowPreflightStage;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDocument;
@@ -12,12 +13,14 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Support\SchemaCapabilities;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Throwable;
 
 class LoanWorkflowProductionSupportService
 {
@@ -34,54 +37,79 @@ class LoanWorkflowProductionSupportService
      * @return array{
      *     blocking:list<array<string, mixed>>,
      *     warnings:list<array<string, mixed>>,
+     *     deferred:list<array<string, mixed>>,
      *     ok:list<array<string, mixed>>
      * }
      */
-    public function preflight(): array
-    {
+    public function preflight(
+        LoanWorkflowPreflightStage $stage = LoanWorkflowPreflightStage::PostMigration,
+    ): array {
         $report = [
             'blocking' => [],
             'warnings' => [],
+            'deferred' => [],
             'ok' => [],
         ];
 
-        $pendingMigrations = $this->pendingMigrationNames();
-        if ($pendingMigrations !== []) {
-            $report['blocking'][] = $this->issue(
-                'pending_migrations',
-                'Pending migrations must be applied before deployment.',
-                count($pendingMigrations),
-                $pendingMigrations,
-            );
-        } else {
-            $report['ok'][] = $this->issue(
-                'pending_migrations',
-                'No pending migrations detected.',
-                0,
-            );
+        $databaseConnection = $this->databaseConnectionIssue();
+
+        if ($databaseConnection !== null) {
+            $report['blocking'][] = $databaseConnection;
+
+            foreach ($this->queueConfigurationIssues($stage) as $severity => $issues) {
+                $report[$severity] = array_merge($report[$severity], $issues);
+            }
+
+            foreach ($this->deliveryConfigurationIssues($stage) as $severity => $issues) {
+                $report[$severity] = array_merge($report[$severity], $issues);
+            }
+
+            return $report;
         }
 
-        foreach ($this->loanRequestDataIssues() as $severity => $issues) {
+        $report['ok'][] = $this->issue(
+            'database_connection',
+            'Database connectivity was verified.',
+            1,
+        );
+
+        foreach ($this->migrationIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
-        foreach ($this->roleAssignmentIssues() as $severity => $issues) {
+        foreach ($this->storageBackupConfigurationIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
-        foreach ($this->documentIssues() as $severity => $issues) {
+        foreach ($this->postMigrationSchemaIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
-        foreach ($this->notificationIssues() as $severity => $issues) {
+        foreach ($this->workflowPermissionIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
-        foreach ($this->queueConfigurationIssues() as $severity => $issues) {
+        foreach ($this->loanRequestDataIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
-        foreach ($this->deliveryConfigurationIssues() as $severity => $issues) {
+        foreach ($this->roleAssignmentIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
+        foreach ($this->documentIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
+        foreach ($this->notificationIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
+        foreach ($this->queueConfigurationIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
+        foreach ($this->deliveryConfigurationIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
@@ -172,11 +200,73 @@ class LoanWorkflowProductionSupportService
     public function smokeTest(): array
     {
         $checks = [];
-        $checks[] = $this->smokeCheck('database_connection', fn (): bool => DB::connection()->getPdo() !== null);
-        $checks[] = $this->smokeCheck('loan_requests_table', fn (): bool => $this->schemaCapabilities->hasTable('loan_requests'));
-        $checks[] = $this->smokeCheck('loan_request_documents_table', fn (): bool => $this->schemaCapabilities->hasTable('loan_request_documents'));
-        $checks[] = $this->smokeCheck('loan_request_notification_events_table', fn (): bool => $this->schemaCapabilities->hasTable('loan_request_notification_events'));
-        $checks[] = $this->smokeCheck('private_storage_round_trip', function (): bool {
+
+        $databaseConnectionIssue = $this->databaseConnectionIssue();
+        $checks[] = $databaseConnectionIssue === null
+            ? $this->smokeCheck('database_connection', 'pass', 'Database connectivity was verified.')
+            : $this->smokeCheck(
+                'database_connection',
+                'fail',
+                (string) ($databaseConnectionIssue['summary'] ?? 'Database connectivity could not be verified.'),
+            );
+        $checks[] = $this->smokeCheck(
+            'loan_requests_table',
+            $this->schemaCapabilities->hasTable('loan_requests') ? 'pass' : 'fail',
+            $this->schemaCapabilities->hasTable('loan_requests')
+                ? 'loan_requests table is present.'
+                : 'loan_requests table is missing.',
+        );
+        $checks[] = $this->smokeCheck(
+            'loan_request_documents_table',
+            $this->schemaCapabilities->hasTable('loan_request_documents') ? 'pass' : 'fail',
+            $this->schemaCapabilities->hasTable('loan_request_documents')
+                ? 'loan_request_documents table is present.'
+                : 'loan_request_documents table is missing.',
+        );
+        $checks[] = $this->smokeCheck(
+            'loan_request_notification_events_table',
+            $this->schemaCapabilities->hasTable('loan_request_notification_events') ? 'pass' : 'fail',
+            $this->schemaCapabilities->hasTable('loan_request_notification_events')
+                ? 'loan_request_notification_events table is present.'
+                : 'loan_request_notification_events table is missing.',
+        );
+        $checks[] = $this->storageRoundTripSmokeCheck();
+        $checks[] = $this->smokeCheck(
+            'document_templates_present',
+            $this->documentCatalog->templateAvailabilityIssues() === [] ? 'pass' : 'fail',
+            $this->documentCatalog->templateAvailabilityIssues() === []
+                ? 'All required workflow templates are present.'
+                : 'One or more required workflow templates are missing.',
+        );
+        $checks[] = $this->smokeCheck(
+            'workflow_action_route_registered',
+            Route::has('loan-requests.action') ? 'pass' : 'fail',
+            Route::has('loan-requests.action')
+                ? 'The workflow action route is registered.'
+                : 'The workflow action route is missing.',
+        );
+        $checks[] = $this->smokeCheck(
+            'workflow_permissions_seeded',
+            $this->workflowPermissionsSeeded() ? 'pass' : 'fail',
+            $this->workflowPermissionsSeeded()
+                ? 'Workflow roles, permissions, and mappings are seeded.'
+                : 'Workflow roles, permissions, or mappings are missing.',
+        );
+
+        foreach ($this->queueSmokeChecks() as $check) {
+            $checks[] = $check;
+        }
+
+        foreach ($this->deliverySmokeChecks() as $check) {
+            $checks[] = $check;
+        }
+
+        return ['checks' => $checks];
+    }
+
+    private function storageRoundTripSmokeCheck(): array
+    {
+        return $this->smokeCheckCallback('private_storage_round_trip', function (): array {
             $path = sprintf(
                 '%s/smoke-%s.txt',
                 $this->documentStorage->temporaryDirectory(),
@@ -189,16 +279,15 @@ class LoanWorkflowProductionSupportService
             $contents = $exists ? Storage::disk($disk)->get($path) : null;
             Storage::disk($disk)->delete($path);
 
-            return $exists && $contents === 'ok' && ! Storage::disk($disk)->exists($path);
+            return [
+                'status' => $exists && $contents === 'ok' && ! Storage::disk($disk)->exists($path)
+                    ? 'pass'
+                    : 'fail',
+                'summary' => $exists && $contents === 'ok' && ! Storage::disk($disk)->exists($path)
+                    ? 'Private storage write, read, and delete round-trip succeeded.'
+                    : 'Private storage round-trip failed.',
+            ];
         });
-        $checks[] = $this->smokeCheck('queue_configuration', fn (): bool => trim((string) config('queue.default')) !== '');
-        $checks[] = $this->smokeCheck('mail_configuration_present', fn (): bool => trim((string) config('mail.default')) !== '');
-        $checks[] = $this->smokeCheck('sms_configuration_present', fn (): bool => trim((string) config('services.semaphore.api_key', '')) !== '');
-        $checks[] = $this->smokeCheck('document_templates_present', fn (): bool => $this->documentCatalog->templateAvailabilityIssues() === []);
-        $checks[] = $this->smokeCheck('workflow_action_route_registered', fn (): bool => Route::has('loan-requests.action'));
-        $checks[] = $this->smokeCheck('workflow_permissions_seeded', fn (): bool => $this->workflowPermissionsSeeded());
-
-        return ['checks' => $checks];
     }
 
     /**
@@ -291,37 +380,337 @@ class LoanWorkflowProductionSupportService
         ];
     }
 
+    private function databaseConnectionIssue(): ?array
+    {
+        try {
+            DB::connection()->getPdo();
+
+            return null;
+        } catch (Throwable $throwable) {
+            return $this->issue(
+                'database_connection',
+                'Database connectivity could not be verified.',
+                1,
+                [mb_substr($throwable->getMessage(), 0, 160)],
+            );
+        }
+    }
+
+    /**
+     * @return array{
+     *     repository:list<string>,
+     *     pending:list<string>,
+     *     ran:list<string>,
+     *     unknown:list<string>,
+     *     migrations_table_exists:bool
+     * }
+     */
+    private function migrationState(): array
+    {
+        $repositoryMigrations = $this->repositoryMigrationNames();
+
+        if (! $this->schemaCapabilities->hasTable('migrations')) {
+            return [
+                'repository' => $repositoryMigrations,
+                'pending' => $repositoryMigrations,
+                'ran' => [],
+                'unknown' => [],
+                'migrations_table_exists' => false,
+            ];
+        }
+
+        $ranMigrations = DB::table('migrations')
+            ->orderBy('migration')
+            ->pluck('migration')
+            ->map(static fn (mixed $value): string => (string) $value)
+            ->all();
+
+        return [
+            'repository' => $repositoryMigrations,
+            'pending' => array_values(array_diff($repositoryMigrations, $ranMigrations)),
+            'ran' => $ranMigrations,
+            'unknown' => array_values(array_diff($ranMigrations, $repositoryMigrations)),
+            'migrations_table_exists' => true,
+        ];
+    }
+
     /**
      * @return list<string>
      */
-    private function pendingMigrationNames(): array
+    private function repositoryMigrationNames(): array
     {
-        if (! $this->schemaCapabilities->hasTable('migrations')) {
-            return collect(File::files(database_path('migrations')))
-                ->map(fn (\SplFileInfo $file): string => pathinfo($file->getFilename(), PATHINFO_FILENAME))
-                ->sort()
-                ->values()
-                ->all();
-        }
-
-        $ran = DB::table('migrations')->pluck('migration')->all();
-
         return collect(File::files(database_path('migrations')))
-            ->map(fn (\SplFileInfo $file): string => pathinfo($file->getFilename(), PATHINFO_FILENAME))
-            ->reject(fn (string $migration): bool => in_array($migration, $ran, true))
+            ->map(
+                fn (\SplFileInfo $file): string => pathinfo(
+                    $file->getFilename(),
+                    PATHINFO_FILENAME,
+                ),
+            )
             ->sort()
             ->values()
             ->all();
     }
 
-    /**
-     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,ok:list<array<string,mixed>>}
-     */
-    private function loanRequestDataIssues(): array
+    private function hasExistingApplicationSchema(): bool
     {
-        $issues = ['blocking' => [], 'warnings' => [], 'ok' => []];
+        foreach ([
+            'appusers',
+            'admin_profiles',
+            'loan_requests',
+            'roles',
+            'permissions',
+        ] as $table) {
+            if ($this->schemaCapabilities->hasTable($table)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function migrationIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+        $migrationState = $this->migrationState();
+
+        if (! $migrationState['migrations_table_exists']) {
+            if ($stage->isPreMigration() && ! $this->hasExistingApplicationSchema()) {
+                $issues['warnings'][] = $this->issue(
+                    'migration_repository_missing',
+                    'The migrations table is missing, so repository migrations are treated as pending on this schema.',
+                    count($migrationState['pending']),
+                    array_slice($migrationState['pending'], 0, 20),
+                );
+            } else {
+                $issues['blocking'][] = $this->issue(
+                    'unknown_migration_state',
+                    'The migrations table is missing, so migration state cannot be verified safely.',
+                    1,
+                );
+            }
+        }
+
+        if ($migrationState['unknown'] !== []) {
+            $issues['blocking'][] = $this->issue(
+                'unknown_repository_migrations',
+                'Migration history contains entries that are not present in this repository checkout.',
+                count($migrationState['unknown']),
+                $migrationState['unknown'],
+            );
+        }
+
+        if ($migrationState['pending'] !== []) {
+            $issues[$stage->isPreMigration() ? 'warnings' : 'blocking'][] = $this->issue(
+                'pending_migrations',
+                $stage->isPreMigration()
+                    ? 'Pending repository migrations were detected. Review them before running migrate --force.'
+                    : 'Pending migrations must be applied before deployment can continue.',
+                count($migrationState['pending']),
+                $migrationState['pending'],
+            );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'pending_migrations',
+                'No pending migrations detected.',
+                0,
+            );
+        }
+
+        return $issues;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function storageBackupConfigurationIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+
+        try {
+            $documentDisk = $this->documentStorage->documentDisk();
+            $documentDirectory = $this->documentStorage->documentDirectory();
+            $temporaryDirectory = $this->documentStorage->temporaryDirectory();
+            $diskDriver = trim((string) config(
+                "filesystems.disks.{$documentDisk}.driver",
+                '',
+            ));
+
+            if ($diskDriver === '') {
+                $issues['blocking'][] = $this->issue(
+                    'document_storage_configuration',
+                    'The generated-document disk is not configured.',
+                    1,
+                    [$documentDisk],
+                );
+
+                return $issues;
+            }
+
+            $this->documentStorage->ensureSafeRelativePath(
+                $documentDirectory.'/verification.txt',
+                [$documentDirectory],
+            );
+            $this->documentStorage->ensureSafeRelativePath(
+                $temporaryDirectory.'/verification.txt',
+                [$temporaryDirectory],
+            );
+
+            $references = [
+                'disk:'.$documentDisk,
+                'driver:'.$diskDriver,
+                'documents:'.$documentDirectory,
+                'temp:'.$temporaryDirectory,
+            ];
+
+            if ($diskDriver === 'local') {
+                $references[] = 'path:'.storage_path('app');
+            }
+
+            $issues['ok'][] = $this->issue(
+                'document_storage_backup_scope',
+                'Generated-document storage backup scope can be resolved from configuration.',
+                1,
+                $references,
+            );
+        } catch (Throwable $throwable) {
+            $issues['blocking'][] = $this->issue(
+                'document_storage_configuration',
+                'Generated-document backup scope could not be verified from configuration.',
+                1,
+                [mb_substr($throwable->getMessage(), 0, 160)],
+            );
+        }
+
+        if ($stage->isPreMigration()) {
+            $issues['ok'][] = $this->issue(
+                'backup_procedure_checkpoint',
+                'Pre-migration mode verified the configuration needed to review database and private-storage backups before deployment.',
+                1,
+            );
+        }
+
+        return $issues;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function postMigrationSchemaIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+        $missingArtifacts = [];
+
+        foreach ([
+            ['table', 'staff_access_controls', 'staff access controls'],
+            ['table', 'user_role_changes', 'user role change audit'],
+            ['table', 'loan_request_data_changes', 'loan request data change audit'],
+            ['table', 'loan_request_data_entries', 'loan request data entries'],
+            ['table', 'loan_request_documents', 'loan request documents'],
+            ['table', 'loan_request_notification_events', 'loan request notification events'],
+            ['table', 'loan_workflow_repairs', 'loan workflow repairs'],
+            ['column', 'loan_requests.workflow_version', 'loan_requests.workflow_version'],
+            ['column', 'loan_request_documents.document_key', 'loan_request_documents.document_key'],
+        ] as [$type, $artifact, $label]) {
+            $exists = $type === 'table'
+                ? $this->schemaCapabilities->hasTable($artifact)
+                : $this->schemaCapabilities->hasColumn(
+                    explode('.', $artifact)[0],
+                    explode('.', $artifact)[1],
+                );
+
+            if ($exists) {
+                continue;
+            }
+
+            $missingArtifacts[] = $label;
+        }
+
+        if ($missingArtifacts === []) {
+            $issues['ok'][] = $this->issue(
+                'workflow_schema_ready',
+                'The workflow schema required for post-migration validation is present.',
+                1,
+            );
+
+            return $issues;
+        }
+
+        $issues[$stage->isPreMigration() ? 'deferred' : 'blocking'][] = $this->issue(
+            'workflow_schema_artifacts',
+            $stage->isPreMigration()
+                ? 'Post-migration schema checks are deferred until the Phase 5-7 tables and columns are available.'
+                : 'Required workflow schema artifacts are missing after migration.',
+            count($missingArtifacts),
+            $missingArtifacts,
+        );
+
+        return $issues;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function workflowPermissionIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+
+        if (
+            ! $this->schemaCapabilities->hasTable('roles')
+            || ! $this->schemaCapabilities->hasTable('permissions')
+            || ! $this->schemaCapabilities->hasTable('role_permissions')
+        ) {
+            $issues['blocking'][] = $this->issue(
+                'workflow_permission_schema',
+                'Workflow RBAC tables are missing.',
+                1,
+            );
+
+            return $issues;
+        }
+
+        if ($this->workflowPermissionsSeeded($stage->isPreMigration())) {
+            $issues['ok'][] = $this->issue(
+                'workflow_permissions_seeded',
+                'Workflow roles, permissions, and role mappings are present.',
+                1,
+            );
+
+            return $issues;
+        }
+
+        $issues[$stage->isPreMigration() ? 'warnings' : 'blocking'][] = $this->issue(
+            'workflow_permissions_seeded',
+            $stage->isPreMigration()
+                ? 'Workflow roles, permissions, or role mappings are not fully seeded yet. Run loan-workflow:seed-permissions after migration.'
+                : 'Workflow roles, permissions, or role mappings are missing.',
+            1,
+        );
+
+        return $issues;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function loanRequestDataIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
 
         if (! $this->schemaCapabilities->hasTable('loan_requests')) {
+            $issues['blocking'][] = $this->issue(
+                'loan_requests_table',
+                'The loan_requests table is missing.',
+                1,
+            );
+
             return $issues;
         }
 
@@ -360,6 +749,14 @@ class LoanWorkflowProductionSupportService
                     $this->loanRequestReferences($missingWorkflowVersionIds->all()),
                 );
             }
+        } else {
+            $issues[$stage->isPreMigration() ? 'deferred' : 'blocking'][] = $this->issue(
+                'workflow_version_validation',
+                $stage->isPreMigration()
+                    ? 'Workflow-version validation is deferred until the Phase 5 workflow_version column exists.'
+                    : 'The workflow_version column is missing from loan_requests.',
+                1,
+            );
         }
 
         $legacyStatusIds = LoanRequest::query()
@@ -367,9 +764,11 @@ class LoanWorkflowProductionSupportService
             ->pluck('id');
 
         if ($legacyStatusIds->isNotEmpty()) {
-            $issues['blocking'][] = $this->issue(
+            $issues[$stage->isPreMigration() ? 'warnings' : 'blocking'][] = $this->issue(
                 'active_legacy_co_maker_statuses',
-                'Legacy pending co-maker signature statuses are still active.',
+                $stage->isPreMigration()
+                    ? 'Active pending_co_maker_signatures rows were found. They must be normalized through loan-workflow:repair after migration.'
+                    : 'Legacy pending co-maker signature statuses are still active.',
                 $legacyStatusIds->count(),
                 $this->loanRequestReferences($legacyStatusIds->all()),
             );
@@ -379,11 +778,12 @@ class LoanWorkflowProductionSupportService
     }
 
     /**
-     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
      */
-    private function roleAssignmentIssues(): array
-    {
-        $issues = ['blocking' => [], 'warnings' => [], 'ok' => []];
+    private function roleAssignmentIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
 
         if ($this->schemaCapabilities->hasTable('user_roles')) {
             $invalidAssignments = DB::table('user_roles as user_roles')
@@ -392,14 +792,7 @@ class LoanWorkflowProductionSupportService
                 ->where(function ($query): void {
                     $query
                         ->whereNull('appusers.user_id')
-                        ->orWhereNull('roles.id')
-                        ->orWhereNotIn('roles.name', [
-                            ...array_map(
-                                static fn (array $role): string => $role['name'],
-                                Role::defaults(),
-                            ),
-                            'loan_officer',
-                        ]);
+                        ->orWhereNull('roles.id');
                 })
                 ->select([
                     'user_roles.user_id',
@@ -424,6 +817,18 @@ class LoanWorkflowProductionSupportService
             }
         }
 
+        if (! $this->schemaCapabilities->hasTable('staff_access_controls')) {
+            $issues[$stage->isPreMigration() ? 'deferred' : 'blocking'][] = $this->issue(
+                'inactive_staff_assignment_validation',
+                $stage->isPreMigration()
+                    ? 'Inactive staff-assignment validation is deferred until staff_access_controls exists.'
+                    : 'The staff_access_controls table is missing.',
+                1,
+            );
+
+            return $issues;
+        }
+
         $inactiveAssignments = $this->inactiveAssignmentCandidates();
 
         if ($inactiveAssignments !== []) {
@@ -442,16 +847,37 @@ class LoanWorkflowProductionSupportService
     }
 
     /**
-     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
      */
-    private function documentIssues(): array
-    {
-        $issues = ['blocking' => [], 'warnings' => [], 'ok' => []];
+    private function documentIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
 
         if (
             ! $this->schemaCapabilities->hasTable('loan_request_documents')
             || ! $this->schemaCapabilities->hasColumn('loan_request_documents', 'document_key')
         ) {
+            $issues[$stage->isPreMigration() ? 'deferred' : 'blocking'][] = $this->issue(
+                'document_integrity_validation',
+                $stage->isPreMigration()
+                    ? 'Document integrity checks are deferred until loan_request_documents and document_key are available.'
+                    : 'The workflow document tables or columns required for document integrity validation are missing.',
+                1,
+            );
+
+            return $issues;
+        }
+
+        if (! $this->schemaCapabilities->hasColumn('loan_requests', 'workflow_version')) {
+            $issues[$stage->isPreMigration() ? 'deferred' : 'blocking'][] = $this->issue(
+                'document_workflow_version_validation',
+                $stage->isPreMigration()
+                    ? 'Document gate checks are deferred until loan_requests.workflow_version is available.'
+                    : 'The workflow_version column is required for strict document-gate validation.',
+                1,
+            );
+
             return $issues;
         }
 
@@ -623,13 +1049,22 @@ class LoanWorkflowProductionSupportService
     }
 
     /**
-     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
      */
-    private function notificationIssues(): array
-    {
-        $issues = ['blocking' => [], 'warnings' => [], 'ok' => []];
+    private function notificationIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
 
         if (! $this->schemaCapabilities->hasTable('loan_request_notification_events')) {
+            $issues[$stage->isPreMigration() ? 'deferred' : 'blocking'][] = $this->issue(
+                'notification_event_validation',
+                $stage->isPreMigration()
+                    ? 'Notification deduplication checks are deferred until loan_request_notification_events exists.'
+                    : 'The loan_request_notification_events table is missing.',
+                1,
+            );
+
             return $issues;
         }
 
@@ -668,11 +1103,12 @@ class LoanWorkflowProductionSupportService
     }
 
     /**
-     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
      */
-    private function queueConfigurationIssues(): array
-    {
-        $issues = ['blocking' => [], 'warnings' => [], 'ok' => []];
+    private function queueConfigurationIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
         $defaultConnection = trim((string) config('queue.default'));
 
         if ($defaultConnection === '' || in_array($defaultConnection, [
@@ -685,6 +1121,13 @@ class LoanWorkflowProductionSupportService
                 'Queue processing is not configured for a production-safe asynchronous connection.',
                 1,
                 [$defaultConnection !== '' ? $defaultConnection : 'missing'],
+            );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'queue_connection',
+                'The active queue connection is configured for asynchronous processing.',
+                1,
+                [$defaultConnection],
             );
         }
 
@@ -699,6 +1142,12 @@ class LoanWorkflowProductionSupportService
                 'The active queue connection does not enable after_commit dispatch by default.',
                 1,
             );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'queue_after_commit',
+                'The active queue connection enables after_commit dispatch.',
+                1,
+            );
         }
 
         $failedDriver = trim((string) config('queue.failed.driver'));
@@ -708,36 +1157,322 @@ class LoanWorkflowProductionSupportService
                 'Failed jobs are not configured to be retained.',
                 1,
             );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'failed_jobs_driver',
+                'Failed jobs storage is configured.',
+                1,
+                [$failedDriver],
+            );
         }
+
+        $workflowQueue = trim((string) config(
+            'loan_workflow.notifications.queue',
+            '',
+        ));
+        $workflowNotificationQueues = array_values(array_filter(array_unique([
+            trim((string) config('loan_workflow.notifications.mail_queue', '')),
+            trim((string) config('loan_workflow.notifications.sms_queue', '')),
+        ])));
+
+        if ($workflowQueue === '') {
+            $issues['warnings'][] = $this->issue(
+                'workflow_queue',
+                'The workflow queue name is not configured.',
+                1,
+            );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'workflow_queue',
+                'The workflow queue name is configured.',
+                1,
+                [$workflowQueue],
+            );
+        }
+
+        if ($workflowNotificationQueues === []) {
+            $issues['warnings'][] = $this->issue(
+                'workflow_notification_queues',
+                'The workflow notification queues are not configured.',
+                1,
+            );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'workflow_notification_queues',
+                'The workflow notification queues are configured.',
+                count($workflowNotificationQueues),
+                $workflowNotificationQueues,
+            );
+        }
+
+        if ($this->schedulerCommandsConfigured()) {
+            $issues['ok'][] = $this->issue(
+                'workflow_scheduler',
+                'The scheduler is configured for workflow reminders and temporary-file cleanup.',
+                2,
+                ['loan-workflow:send-reminders', 'loan-workflow:cleanup-temp-files'],
+            );
+        } else {
+            $issues['warnings'][] = $this->issue(
+                'workflow_scheduler',
+                'The scheduler is missing the workflow reminder or temporary cleanup command.',
+                2,
+                ['loan-workflow:send-reminders', 'loan-workflow:cleanup-temp-files'],
+            );
+        }
+
+        $issues['deferred'][] = $this->issue(
+            'workflow_queue_runtime',
+            'Queue-consumer runtime verification requires an external heartbeat or process inspection. Configuration was checked separately.',
+            max(1, count($workflowNotificationQueues) + ($workflowQueue === '' ? 0 : 1)),
+            array_values(array_filter([
+                $workflowQueue !== '' ? $workflowQueue : null,
+                ...$workflowNotificationQueues,
+            ])),
+        );
+        $issues['deferred'][] = $this->issue(
+            'workflow_scheduler_runtime',
+            'Scheduler runtime verification requires an external heartbeat or process inspection. Command registration was checked separately.',
+            2,
+            ['loan-workflow:send-reminders', 'loan-workflow:cleanup-temp-files'],
+        );
 
         return $issues;
     }
 
     /**
-     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
      */
-    private function deliveryConfigurationIssues(): array
+    private function deliveryConfigurationIssues(
+        LoanWorkflowPreflightStage $stage,
+    ): array {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+
+        [$mailStatus, $mailSummary, $mailReferences] = $this->mailDeliveryAssessment();
+        $issues[$mailStatus === 'pass' ? 'ok' : 'warnings'][] = $this->issue(
+            'mail_configuration',
+            $mailSummary,
+            max(1, count($mailReferences)),
+            $mailReferences,
+        );
+
+        [$smsStatus, $smsSummary, $smsReferences] = $this->smsDeliveryAssessment();
+        $issues[$smsStatus === 'pass' ? 'ok' : 'warnings'][] = $this->issue(
+            'sms_configuration',
+            $smsSummary,
+            max(1, count($smsReferences)),
+            $smsReferences,
+        );
+
+        return $issues;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function queueSmokeChecks(): array
     {
-        $issues = ['blocking' => [], 'warnings' => [], 'ok' => []];
+        $checks = [];
+        $defaultConnection = trim((string) config('queue.default'));
+        $isAsyncConnection = $defaultConnection !== ''
+            && ! in_array($defaultConnection, ['sync', 'deferred', 'background'], true);
+
+        $checks[] = $this->smokeCheck(
+            'queue_connection_async',
+            $isAsyncConnection ? 'pass' : 'fail',
+            $isAsyncConnection
+                ? 'The active queue connection is asynchronous.'
+                : 'The active queue connection is not production-safe.',
+        );
+
+        $afterCommit = (bool) config(
+            sprintf('queue.connections.%s.after_commit', $defaultConnection),
+            false,
+        );
+        $checks[] = $this->smokeCheck(
+            'queue_after_commit_enabled',
+            $afterCommit ? 'pass' : 'fail',
+            $afterCommit
+                ? 'The active queue connection enables after_commit dispatch.'
+                : 'The active queue connection does not enable after_commit dispatch.',
+        );
+
+        $workflowQueue = trim((string) config('loan_workflow.notifications.queue', ''));
+        $checks[] = $this->smokeCheck(
+            'workflow_queue_configured',
+            $workflowQueue !== '' ? 'pass' : 'fail',
+            $workflowQueue !== ''
+                ? 'The workflow queue name is configured.'
+                : 'The workflow queue name is missing.',
+        );
+
+        $workflowNotificationQueues = array_values(array_filter(array_unique([
+            trim((string) config('loan_workflow.notifications.mail_queue', '')),
+            trim((string) config('loan_workflow.notifications.sms_queue', '')),
+        ])));
+        $checks[] = $this->smokeCheck(
+            'workflow_notification_queues_configured',
+            $workflowNotificationQueues !== [] ? 'pass' : 'fail',
+            $workflowNotificationQueues !== []
+                ? 'The workflow notification queues are configured.'
+                : 'The workflow notification queues are missing.',
+        );
+
+        $failedDriver = trim((string) config('queue.failed.driver'));
+        $checks[] = $this->smokeCheck(
+            'failed_jobs_storage_configured',
+            ($failedDriver !== '' && $failedDriver !== 'null') ? 'pass' : 'fail',
+            ($failedDriver !== '' && $failedDriver !== 'null')
+                ? 'Failed jobs storage is configured.'
+                : 'Failed jobs storage is not configured.',
+        );
+
+        $checks[] = $this->smokeCheck(
+            'workflow_scheduler_configured',
+            $this->schedulerCommandsConfigured() ? 'pass' : 'fail',
+            $this->schedulerCommandsConfigured()
+                ? 'The scheduler is configured for reminders and temporary cleanup.'
+                : 'The scheduler is missing workflow reminder or cleanup commands.',
+        );
+
+        $checks[] = $this->smokeCheck(
+            'workflow_queue_runtime_verification',
+            'deferred',
+            'Queue-consumer runtime verification requires an external heartbeat or process inspection.',
+        );
+        $checks[] = $this->smokeCheck(
+            'workflow_scheduler_runtime_verification',
+            'deferred',
+            'Scheduler runtime verification requires an external heartbeat or process inspection.',
+        );
+
+        return $checks;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function deliverySmokeChecks(): array
+    {
+        [$mailStatus, $mailSummary] = $this->mailDeliveryAssessment();
+        [$smsStatus, $smsSummary] = $this->smsDeliveryAssessment();
+
+        return [
+            $this->smokeCheck('mail_delivery_configuration', $mailStatus, $mailSummary),
+            $this->smokeCheck('sms_delivery_configuration', $smsStatus, $smsSummary),
+        ];
+    }
+
+    private function schedulerCommandsConfigured(): bool
+    {
+        $commands = collect(app(Schedule::class)->events())
+            ->map(static fn (object $event): string => trim((string) ($event->command ?? '')))
+            ->filter()
+            ->values();
+
+        return $commands->contains(
+            static fn (string $command): bool => str_contains($command, 'loan-workflow:send-reminders'),
+        ) && $commands->contains(
+            static fn (string $command): bool => str_contains($command, 'loan-workflow:cleanup-temp-files'),
+        );
+    }
+
+    /**
+     * @return array{0:'pass'|'warn'|'fail', 1:string, 2:list<string>}
+     */
+    private function mailDeliveryAssessment(): array
+    {
         $mailDefault = trim((string) config('mail.default'));
 
         if ($mailDefault === '') {
-            $issues['warnings'][] = $this->issue(
-                'mail_configuration',
-                'Mail delivery is not configured.',
-                1,
-            );
+            return ['fail', 'Mail delivery is not configured.', []];
         }
 
-        if (trim((string) config('services.semaphore.api_key', '')) === '') {
-            $issues['warnings'][] = $this->issue(
-                'sms_configuration',
-                'SMS delivery is not configured.',
-                1,
-            );
+        if (app()->environment('production')) {
+            if (in_array($mailDefault, ['array', 'log'], true)) {
+                return [
+                    'fail',
+                    'Production mail delivery is configured to a non-live mailer.',
+                    [$mailDefault],
+                ];
+            }
+
+            return ['pass', 'Production mail delivery is configured.', [$mailDefault]];
         }
 
-        return $issues;
+        if (in_array($mailDefault, ['array', 'log'], true)) {
+            return [
+                'pass',
+                'Non-production mail delivery is safely disabled or redirected.',
+                [$mailDefault],
+            ];
+        }
+
+        $smtpHost = trim((string) config("mail.mailers.{$mailDefault}.host", ''));
+        if (in_array($smtpHost, ['127.0.0.1', 'localhost', 'mailpit', 'mailhog'], true)) {
+            return [
+                'pass',
+                'Non-production mail delivery is redirected to a local mail sink.',
+                [$mailDefault, $smtpHost],
+            ];
+        }
+
+        return [
+            'fail',
+            'Non-production mail delivery appears to target a live or unverified mail transport.',
+            array_values(array_filter([$mailDefault, $smtpHost])),
+        ];
+    }
+
+    /**
+     * @return array{0:'pass'|'warn'|'fail', 1:string, 2:list<string>}
+     */
+    private function smsDeliveryAssessment(): array
+    {
+        $apiKey = trim((string) config('services.semaphore.api_key', ''));
+        $baseUrl = trim((string) config('services.semaphore.base_url', ''));
+
+        if (app()->environment('production')) {
+            if ($apiKey === '' || $baseUrl === '') {
+                return [
+                    'fail',
+                    'Production SMS delivery is not fully configured.',
+                    array_values(array_filter([$baseUrl !== '' ? $baseUrl : null])),
+                ];
+            }
+
+            return ['pass', 'Production SMS delivery is configured.', [$baseUrl]];
+        }
+
+        if ($apiKey === '') {
+            return [
+                'pass',
+                'Non-production SMS delivery is safely disabled because no provider key is configured.',
+                array_values(array_filter([$baseUrl !== '' ? $baseUrl : null])),
+            ];
+        }
+
+        $host = parse_url($baseUrl, PHP_URL_HOST);
+        $normalizedHost = is_string($host) ? trim($host) : '';
+        $isSafeHost = $normalizedHost !== ''
+            && (
+                in_array($normalizedHost, ['127.0.0.1', 'localhost'], true)
+                || str_ends_with($normalizedHost, '.test')
+            );
+
+        if ($isSafeHost) {
+            return [
+                'pass',
+                'Non-production SMS delivery is redirected to a non-live endpoint.',
+                [$baseUrl],
+            ];
+        }
+
+        return [
+            'fail',
+            'Non-production SMS delivery appears to target a live or unverified provider endpoint.',
+            array_values(array_filter([$baseUrl])),
+        ];
     }
 
     /**
@@ -745,7 +1480,12 @@ class LoanWorkflowProductionSupportService
      */
     private function inactiveAssignmentCandidates(): array
     {
-        if (! $this->schemaCapabilities->hasTable('loan_requests')) {
+        if (
+            ! $this->schemaCapabilities->hasTable('loan_requests')
+            || ! $this->schemaCapabilities->hasTable('staff_access_controls')
+            || ! $this->schemaCapabilities->hasTable('roles')
+            || ! $this->schemaCapabilities->hasTable('user_roles')
+        ) {
             return [];
         }
 
@@ -816,20 +1556,35 @@ class LoanWorkflowProductionSupportService
 
                     $before = $loanRequest->only(['status', 'workflow_version']);
                     $loanRequest->forceFill($updates)->save();
+                    $after = $loanRequest->fresh()->only(['status', 'workflow_version']);
 
-                    $this->recordRepairAudit(
-                        'loan_request',
-                        $loanRequest->id,
-                        $loanRequest->id,
-                        array_key_exists('workflow_version', $updates)
-                            ? 'backfill_workflow_version'
-                            : 'normalize_legacy_co_maker_status',
-                        $before,
-                        $loanRequest->fresh()->only(['status', 'workflow_version']),
-                        [
-                            'reference' => $loanRequest->reference,
-                        ],
-                    );
+                    if (array_key_exists('workflow_version', $updates)) {
+                        $this->recordRepairAudit(
+                            'loan_request',
+                            $loanRequest->id,
+                            $loanRequest->id,
+                            'backfill_workflow_version',
+                            ['workflow_version' => $before['workflow_version'] ?? null],
+                            ['workflow_version' => $after['workflow_version'] ?? null],
+                            [
+                                'reference' => $loanRequest->reference,
+                            ],
+                        );
+                    }
+
+                    if (array_key_exists('status', $updates)) {
+                        $this->recordRepairAudit(
+                            'loan_request',
+                            $loanRequest->id,
+                            $loanRequest->id,
+                            'normalize_legacy_co_maker_status',
+                            ['status' => $before['status'] ?? null],
+                            ['status' => $after['status'] ?? null],
+                            [
+                                'reference' => $loanRequest->reference,
+                            ],
+                        );
+                    }
                 }
             });
 
@@ -1079,22 +1834,24 @@ class LoanWorkflowProductionSupportService
         ];
     }
 
-    private function workflowPermissionsSeeded(): bool
-    {
+    private function workflowPermissionsSeeded(
+        bool $allowLegacyLoanOfficer = false,
+    ): bool {
         if (
             ! $this->schemaCapabilities->hasTable('roles')
             || ! $this->schemaCapabilities->hasTable('permissions')
+            || ! $this->schemaCapabilities->hasTable('role_permissions')
         ) {
             return false;
         }
 
         $roleNames = Role::query()->pluck('name')->all();
         $permissionNames = Permission::query()->pluck('name')->all();
+        $requiredRolePermissions = Role::workflowPermissionNames(
+            includeLegacyLoanOfficer: $allowLegacyLoanOfficer,
+        );
 
-        foreach (array_map(
-            static fn (array $role): string => $role['name'],
-            Role::defaults(),
-        ) as $roleName) {
+        foreach (array_keys($requiredRolePermissions) as $roleName) {
             if (! in_array($roleName, $roleNames, true)) {
                 return false;
             }
@@ -1102,6 +1859,36 @@ class LoanWorkflowProductionSupportService
 
         foreach (Permission::defaultNames() as $permissionName) {
             if (! in_array($permissionName, $permissionNames, true)) {
+                return false;
+            }
+        }
+
+        if (! $allowLegacyLoanOfficer && in_array('loan_officer', $roleNames, true)) {
+            return false;
+        }
+
+        $roles = Role::query()
+            ->with('permissions')
+            ->whereIn('name', array_keys($requiredRolePermissions))
+            ->get()
+            ->keyBy('name');
+
+        foreach ($requiredRolePermissions as $roleName => $expectedPermissions) {
+            $role = $roles->get($roleName);
+
+            if (! $role instanceof Role) {
+                return false;
+            }
+
+            $assignedPermissions = $role->permissions
+                ->pluck('name')
+                ->map(static fn (mixed $value): string => (string) $value)
+                ->sort()
+                ->values()
+                ->all();
+            sort($expectedPermissions);
+
+            if ($assignedPermissions !== $expectedPermissions) {
                 return false;
             }
         }
@@ -1208,14 +1995,37 @@ class LoanWorkflowProductionSupportService
     }
 
     /**
-     * @param  callable(): bool  $callback
-     * @return array{name:string, status:string}
+     * @return array{name:string, status:string, summary:string}
      */
-    private function smokeCheck(string $name, callable $callback): array
+    private function smokeCheck(string $name, string $status, string $summary): array
     {
         return [
             'name' => $name,
-            'status' => $callback() ? 'pass' : 'fail',
+            'status' => $status,
+            'summary' => $summary,
         ];
+    }
+
+    /**
+     * @param  callable(): array{status:string, summary:string}  $callback
+     * @return array{name:string, status:string, summary:string}
+     */
+    private function smokeCheckCallback(string $name, callable $callback): array
+    {
+        try {
+            $result = $callback();
+        } catch (Throwable $throwable) {
+            return $this->smokeCheck(
+                $name,
+                'fail',
+                mb_substr($throwable->getMessage(), 0, 160),
+            );
+        }
+
+        return $this->smokeCheck(
+            $name,
+            (string) ($result['status'] ?? 'fail'),
+            (string) ($result['summary'] ?? ''),
+        );
     }
 }

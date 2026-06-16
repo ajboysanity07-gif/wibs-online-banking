@@ -56,6 +56,58 @@ class Role extends Model
         ];
     }
 
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function workflowPermissionNames(
+        bool $includeLegacyLoanOfficer = false,
+    ): array {
+        $permissions = [
+            self::ADMIN => [
+                Permission::LOAN_VIEW,
+                Permission::MEMBER_VIEW,
+                Permission::MEMBER_CREATE,
+                Permission::MEMBER_UPDATE,
+                Permission::PAYMENT_CREATE,
+            ],
+            self::SUPERADMIN => [
+                Permission::LOAN_VIEW,
+                Permission::LOAN_MANAGE_ASSIGNMENT,
+                Permission::STAFF_VIEW,
+                Permission::STAFF_MANAGE,
+                Permission::MEMBER_VIEW,
+                Permission::MEMBER_CREATE,
+                Permission::MEMBER_UPDATE,
+                Permission::PAYMENT_CREATE,
+            ],
+            self::MEMBER => [
+                Permission::LOAN_CREATE,
+                Permission::LOAN_VIEW,
+            ],
+            self::LOAN_PROCESSOR => [
+                Permission::LOAN_VIEW,
+                Permission::LOAN_REVIEW,
+                Permission::LOAN_CLAIM,
+                Permission::LOAN_RETURN_TO_QUEUE,
+                Permission::LOAN_REQUEST_REVISION,
+                Permission::LOAN_REJECT,
+                Permission::LOAN_RECOMMEND_APPROVAL,
+            ],
+            self::LOAN_MANAGER => [
+                Permission::LOAN_VIEW,
+                Permission::LOAN_MANAGE_ASSIGNMENT,
+                Permission::LOAN_APPROVE,
+                Permission::LOAN_DECLINE,
+            ],
+        ];
+
+        if ($includeLegacyLoanOfficer) {
+            $permissions['loan_officer'] = $permissions[self::LOAN_PROCESSOR];
+        }
+
+        return $permissions;
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -111,59 +163,16 @@ class Role extends Model
         }
 
         $permissionsByName = Permission::query()->pluck('id', 'name');
-        $rolePermissions = [
-            self::ADMIN => self::permissionIds(
-                $permissionsByName,
-                [
-                    Permission::LOAN_VIEW,
-                    Permission::MEMBER_VIEW,
-                    Permission::MEMBER_CREATE,
-                    Permission::MEMBER_UPDATE,
-                    Permission::PAYMENT_CREATE,
-                ],
-            ),
-            self::SUPERADMIN => self::permissionIds(
-                $permissionsByName,
-                [
-                    Permission::LOAN_VIEW,
-                    Permission::LOAN_MANAGE_ASSIGNMENT,
-                    Permission::STAFF_VIEW,
-                    Permission::STAFF_MANAGE,
-                    Permission::MEMBER_VIEW,
-                    Permission::MEMBER_CREATE,
-                    Permission::MEMBER_UPDATE,
-                    Permission::PAYMENT_CREATE,
-                ],
-            ),
-            self::MEMBER => self::permissionIds($permissionsByName, [
-                Permission::LOAN_CREATE,
-                Permission::LOAN_VIEW,
-            ]),
-            self::LOAN_PROCESSOR => self::permissionIds($permissionsByName, [
-                Permission::LOAN_VIEW,
-                Permission::LOAN_REVIEW,
-                Permission::LOAN_CLAIM,
-                Permission::LOAN_RETURN_TO_QUEUE,
-                Permission::LOAN_REQUEST_REVISION,
-                Permission::LOAN_REJECT,
-                Permission::LOAN_RECOMMEND_APPROVAL,
-            ]),
-            'loan_officer' => self::permissionIds($permissionsByName, [
-                Permission::LOAN_VIEW,
-                Permission::LOAN_REVIEW,
-                Permission::LOAN_CLAIM,
-                Permission::LOAN_RETURN_TO_QUEUE,
-                Permission::LOAN_REQUEST_REVISION,
-                Permission::LOAN_REJECT,
-                Permission::LOAN_RECOMMEND_APPROVAL,
-            ]),
-            self::LOAN_MANAGER => self::permissionIds($permissionsByName, [
-                Permission::LOAN_VIEW,
-                Permission::LOAN_MANAGE_ASSIGNMENT,
-                Permission::LOAN_APPROVE,
-                Permission::LOAN_DECLINE,
-            ]),
-        ];
+        $rolePermissions = collect(
+            self::workflowPermissionNames(includeLegacyLoanOfficer: true),
+        )->mapWithKeys(
+            fn (array $permissionNames, string $roleName): array => [
+                $roleName => self::permissionIds(
+                    $permissionsByName,
+                    $permissionNames,
+                ),
+            ],
+        )->all();
 
         self::query()
             ->whereIn('name', array_keys($rolePermissions))
