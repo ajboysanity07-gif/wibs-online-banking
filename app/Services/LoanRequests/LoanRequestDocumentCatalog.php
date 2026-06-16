@@ -38,7 +38,6 @@ class LoanRequestDocumentCatalog
                 'loan_request.approved_amount',
                 'loan_request.approved_term',
                 'loan_request.approved_interest_rate',
-                'loan_request.reviewed_at',
                 'applicant.',
                 'co_maker_1.',
                 'co_maker_2.',
@@ -87,7 +86,6 @@ class LoanRequestDocumentCatalog
             'source_paths' => [
                 'loan_request.recommended_amount',
                 'loan_request.recommended_term',
-                'loan_request.reviewed_at',
                 'applicant.',
             ],
             'template_files' => [
@@ -110,7 +108,6 @@ class LoanRequestDocumentCatalog
             'source_paths' => [
                 'loan_request.recommended_amount',
                 'loan_request.recommended_term',
-                'loan_request.reviewed_at',
                 'applicant.',
             ],
             'template_files' => [
@@ -128,7 +125,6 @@ class LoanRequestDocumentCatalog
             'source_fields' => [],
             'source_paths' => [
                 'loan_request.recommended_amount',
-                'loan_request.reviewed_at',
                 'applicant.',
             ],
             'template_files' => [
@@ -312,7 +308,6 @@ class LoanRequestDocumentCatalog
             'source_fields' => [],
             'source_paths' => [
                 'loan_request.recommended_amount',
-                'loan_request.reviewed_at',
                 'applicant.',
             ],
             'template_files' => [
@@ -336,7 +331,6 @@ class LoanRequestDocumentCatalog
             'source_paths' => [
                 'loan_request.recommended_amount',
                 'loan_request.recommended_term',
-                'loan_request.reviewed_at',
                 'applicant.',
             ],
             'template_files' => [
@@ -422,6 +416,26 @@ class LoanRequestDocumentCatalog
         }
 
         return $blockers;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function templateAvailabilityIssues(): array
+    {
+        $issues = [];
+
+        foreach (LoanRequestDocumentKey::cases() as $documentKey) {
+            foreach ($this->templateBlockers($documentKey) as $blocker) {
+                $issues[] = sprintf(
+                    '%s: %s',
+                    $documentKey->label(),
+                    $blocker,
+                );
+            }
+        }
+
+        return array_values(array_unique($issues));
     }
 
     /**

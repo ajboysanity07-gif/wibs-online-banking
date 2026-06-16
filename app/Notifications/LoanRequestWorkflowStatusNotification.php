@@ -14,6 +14,10 @@ class LoanRequestWorkflowStatusNotification extends Notification implements Shou
 {
     use Queueable;
 
+    public int $tries;
+
+    public int $timeout;
+
     /**
      * @param  array{
      *     event_type:string,
@@ -28,8 +32,19 @@ class LoanRequestWorkflowStatusNotification extends Notification implements Shou
         private LoanRequest $loanRequest,
         private ?AppUser $actor,
         private array $payload,
+        private array $channels = ['database'],
+        private ?int $notificationEventId = null,
     ) {
         $this->afterCommit = true;
+        $this->tries = max(
+            1,
+            (int) config('loan_workflow.notifications.tries', 5),
+        );
+        $this->timeout = max(
+            1,
+            (int) config('loan_workflow.notifications.timeout', 120),
+        );
+        $this->onQueue($this->resolveQueueName());
     }
 
     /**
@@ -37,17 +52,12 @@ class LoanRequestWorkflowStatusNotification extends Notification implements Shou
      */
     public function via(object $notifiable): array
     {
-        $channels = ['database'];
-
-        if (
-            $notifiable instanceof AppUser
-            && is_string($notifiable->email)
-            && trim($notifiable->email) !== ''
-        ) {
-            $channels[] = 'mail';
-        }
-
-        return $channels;
+        return array_map(
+            static fn (string $channel): string => $channel === 'email'
+                ? 'mail'
+                : $channel,
+            $this->channels,
+        );
     }
 
     /**
@@ -100,5 +110,37 @@ class LoanRequestWorkflowStatusNotification extends Notification implements Shou
     public function toArray(object $notifiable): array
     {
         return $this->toDatabase($notifiable);
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return config('loan_workflow.notifications.backoff_seconds', [
+            60,
+            300,
+            900,
+        ]);
+    }
+
+    public function notificationEventId(): ?int
+    {
+        return $this->notificationEventId;
+    }
+
+    private function resolveQueueName(): string
+    {
+        $channel = $this->channels[0] ?? 'database';
+
+        return in_array($channel, ['mail', 'email'], true)
+            ? (string) config(
+                'loan_workflow.notifications.mail_queue',
+                'loan-workflow-notifications',
+            )
+            : (string) config(
+                'loan_workflow.notifications.queue',
+                'loan-workflow',
+            );
     }
 }

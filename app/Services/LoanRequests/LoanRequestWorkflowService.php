@@ -7,6 +7,7 @@ use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Notifications\LoanRequestDecisionNotification;
 use App\Support\SchemaCapabilities;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;

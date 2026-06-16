@@ -9,6 +9,8 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDocument;
 use App\Models\LoanRequestPerson;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 
@@ -40,6 +42,7 @@ class LoanRequestDocumentWorkflowService
         private LoanRequestDataService $dataService,
         private ApprovedLoanDocumentService $approvedLoanDocumentService,
         private LoanRequestDocumentCatalog $documentCatalog,
+        private LoanRequestDocumentStorage $documentStorage,
     ) {}
 
     /**
@@ -73,50 +76,88 @@ class LoanRequestDocumentWorkflowService
     /**
      * @return \Illuminate\Support\Collection<int, LoanRequestDocument>
      */
-    public function refreshChecklist(LoanRequest $loanRequest)
+    public function inspectChecklist(LoanRequest $loanRequest): Collection
     {
         $loanRequest->loadMissing('documents', 'dataEntries', 'people', 'user');
         $flatValues = $this->dataService->loadFlatValues($loanRequest);
 
-        foreach (LoanRequestDocumentKey::cases() as $documentKey) {
+        return collect(LoanRequestDocumentKey::cases())->map(function (
+            LoanRequestDocumentKey $documentKey,
+        ) use ($loanRequest, $flatValues): array {
             $state = $this->evaluateDocumentState(
                 $loanRequest,
                 $documentKey,
                 $flatValues,
             );
-            $document = LoanRequestDocument::query()->firstOrNew([
-                'loan_request_id' => $loanRequest->id,
-                'document_key' => $documentKey->value,
-            ]);
+            /** @var LoanRequestDocument|null $document */
+            $document = $loanRequest->documents
+                ->firstWhere('document_key', $documentKey->value);
 
-            $previousSourceHash = $document->source_hash;
-            $previousSourceVersion = (int) ($document->source_version ?? 0);
+            $previousSourceHash = $document?->source_hash;
+            $previousSourceVersion = (int) ($document?->source_version ?? 0);
             $sourceVersion = $previousSourceHash !== $state['source_hash']
                 ? max(1, $previousSourceVersion + 1)
                 : max(1, $previousSourceVersion);
             $readinessStatus = $state['status'];
+            $hasGeneratedArtifact = $document?->generated_path !== null
+                && $document?->generated_path !== ''
+                && $document?->generated_version !== null
+                && $this->documentStorage->fileExists(
+                    $document->generated_path,
+                    $document->generated_disk,
+                );
 
             if (
                 $state['status'] !== LoanRequestDocumentReadinessStatus::NotApplicable
-                && $document->generated_path !== null
-                && $document->generated_path !== ''
-                && $document->generated_version !== null
+                && $hasGeneratedArtifact
                 && $previousSourceHash !== null
-                && $previousSourceHash !== $state['source_hash']
-                && $document->readiness_status === LoanRequestDocumentReadinessStatus::GeneratedCurrent
             ) {
-                $readinessStatus = LoanRequestDocumentReadinessStatus::GeneratedStale;
+                if ($previousSourceHash === $state['source_hash']) {
+                    $readinessStatus = match ($document?->readiness_status) {
+                        LoanRequestDocumentReadinessStatus::GeneratedCurrent => LoanRequestDocumentReadinessStatus::GeneratedCurrent,
+                        LoanRequestDocumentReadinessStatus::GeneratedStale => LoanRequestDocumentReadinessStatus::GeneratedStale,
+                        default => $readinessStatus,
+                    };
+                } elseif (
+                    in_array($document?->readiness_status, [
+                        LoanRequestDocumentReadinessStatus::GeneratedCurrent,
+                        LoanRequestDocumentReadinessStatus::GeneratedStale,
+                    ], true)
+                ) {
+                    $readinessStatus = LoanRequestDocumentReadinessStatus::GeneratedStale;
+                }
             }
 
-            $document->fill([
-                'is_applicable' => $state['is_applicable'],
-                'readiness_status' => $readinessStatus,
-                'template_version' => $this->documentCatalog->templateVersionFor(
-                    $documentKey,
-                ),
-                'source_hash' => $state['source_hash'],
-                'source_version' => $sourceVersion,
-                'failure_information_json' => $state['failure_information'],
+            if (
+                $state['status'] !== LoanRequestDocumentReadinessStatus::NotApplicable
+                && ! $hasGeneratedArtifact
+                && $document?->generated_path !== null
+                && $document?->generated_path !== ''
+                && in_array($document?->readiness_status, [
+                    LoanRequestDocumentReadinessStatus::GeneratedCurrent,
+                    LoanRequestDocumentReadinessStatus::GeneratedStale,
+                ], true)
+            ) {
+                $readinessStatus = LoanRequestDocumentReadinessStatus::GenerationFailed;
+                $state['failure_information'] = [
+                    'message' => 'The generated file is missing from private storage.',
+                    'blockers' => [],
+                ];
+            }
+
+            return [
+                'document_key' => $documentKey,
+                'document' => $document,
+                'fill' => [
+                    'is_applicable' => $state['is_applicable'],
+                    'readiness_status' => $readinessStatus,
+                    'template_version' => $this->documentCatalog->templateVersionFor(
+                        $documentKey,
+                    ),
+                    'source_hash' => $state['source_hash'],
+                    'source_version' => $sourceVersion,
+                    'failure_information_json' => $state['failure_information'],
+                ],
                 'metadata_json' => [
                     'required_fields' => $state['required_fields'],
                     'source_fields' => $this->documentCatalog->sourceFieldKeys(
@@ -124,6 +165,27 @@ class LoanRequestDocumentWorkflowService
                     ),
                     'workflow_version' => $this->workflowVersionValue($loanRequest),
                 ],
+            ];
+        });
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, LoanRequestDocument>
+     */
+    public function refreshChecklist(LoanRequest $loanRequest)
+    {
+        foreach ($this->inspectChecklist($loanRequest) as $inspection) {
+            $documentKey = $inspection['document_key'];
+            $document = $inspection['document'] instanceof LoanRequestDocument
+                ? $inspection['document']
+                : LoanRequestDocument::query()->firstOrNew([
+                    'loan_request_id' => $loanRequest->id,
+                    'document_key' => $documentKey->value,
+                ]);
+
+            $document->fill([
+                ...$inspection['fill'],
+                'metadata_json' => $inspection['metadata_json'],
             ]);
             $document->save();
         }
@@ -187,67 +249,90 @@ class LoanRequestDocumentWorkflowService
      */
     public function generateAll(LoanRequest $loanRequest, AppUser $actor): array
     {
-        $results = [];
+        return $this->withDocumentGenerationLock($loanRequest, function () use (
+            $loanRequest,
+            $actor,
+        ): array {
+            $results = [];
 
-        foreach ($this->refreshChecklist($loanRequest) as $document) {
-            $documentKey = LoanRequestDocumentKey::from($document->document_key);
+            foreach ($this->refreshChecklist($loanRequest) as $document) {
+                $documentKey = LoanRequestDocumentKey::from($document->document_key);
 
-            if (! $document->is_applicable) {
-                $results[] = [
-                    'key' => $documentKey->value,
-                    'status' => LoanRequestDocumentReadinessStatus::NotApplicable->value,
-                    'message' => 'Document not applicable.',
-                ];
+                if (! $document->is_applicable) {
+                    $results[] = [
+                        'key' => $documentKey->value,
+                        'status' => LoanRequestDocumentReadinessStatus::NotApplicable->value,
+                        'message' => 'Document not applicable.',
+                    ];
 
-                continue;
+                    continue;
+                }
+
+                $blockers = $document->failure_information_json['blockers'] ?? [];
+
+                if ($blockers !== []) {
+                    $results[] = [
+                        'key' => $documentKey->value,
+                        'status' => $document->readiness_status?->value
+                            ?? LoanRequestDocumentReadinessStatus::Incomplete->value,
+                        'message' => implode(' ', array_filter($blockers, 'is_string')),
+                    ];
+
+                    continue;
+                }
+
+                try {
+                    $generatedDocument = $this->generateDocumentInternal(
+                        $loanRequest,
+                        $documentKey,
+                        $actor,
+                    );
+
+                    $results[] = [
+                        'key' => $documentKey->value,
+                        'status' => $generatedDocument->readiness_status?->value
+                            ?? LoanRequestDocumentReadinessStatus::GeneratedCurrent->value,
+                        'message' => $generatedDocument->failure_information_json['message'] ?? null,
+                    ];
+                } catch (\Throwable $exception) {
+                    $failedDocument = LoanRequestDocument::query()
+                        ->where('loan_request_id', $loanRequest->id)
+                        ->where('document_key', $documentKey->value)
+                        ->first();
+
+                    $results[] = [
+                        'key' => $documentKey->value,
+                        'status' => $failedDocument?->readiness_status?->value
+                            ?? LoanRequestDocumentReadinessStatus::GenerationFailed->value,
+                        'message' => $failedDocument?->failure_information_json['message']
+                            ?? $exception->getMessage(),
+                    ];
+                }
             }
 
-            $blockers = $document->failure_information_json['blockers'] ?? [];
-
-            if ($blockers !== []) {
-                $results[] = [
-                    'key' => $documentKey->value,
-                    'status' => $document->readiness_status?->value
-                        ?? LoanRequestDocumentReadinessStatus::Incomplete->value,
-                    'message' => implode(' ', array_filter($blockers, 'is_string')),
-                ];
-
-                continue;
-            }
-
-            try {
-                $generatedDocument = $this->generateDocument(
-                    $loanRequest,
-                    $documentKey,
-                    $actor,
-                );
-
-                $results[] = [
-                    'key' => $documentKey->value,
-                    'status' => $generatedDocument->readiness_status?->value
-                        ?? LoanRequestDocumentReadinessStatus::GeneratedCurrent->value,
-                    'message' => $generatedDocument->failure_information_json['message'] ?? null,
-                ];
-            } catch (\Throwable $exception) {
-                $failedDocument = LoanRequestDocument::query()
-                    ->where('loan_request_id', $loanRequest->id)
-                    ->where('document_key', $documentKey->value)
-                    ->first();
-
-                $results[] = [
-                    'key' => $documentKey->value,
-                    'status' => $failedDocument?->readiness_status?->value
-                        ?? LoanRequestDocumentReadinessStatus::GenerationFailed->value,
-                    'message' => $failedDocument?->failure_information_json['message']
-                        ?? $exception->getMessage(),
-                ];
-            }
-        }
-
-        return $results;
+            return $results;
+        });
     }
 
     public function generateDocument(
+        LoanRequest $loanRequest,
+        LoanRequestDocumentKey $documentKey,
+        AppUser $actor,
+    ): LoanRequestDocument {
+        return $this->withDocumentGenerationLock($loanRequest, function () use (
+            $loanRequest,
+            $documentKey,
+            $actor,
+        ): LoanRequestDocument {
+            return $this->generateDocumentInternal(
+                $loanRequest,
+                $documentKey,
+                $actor,
+            );
+        });
+    }
+
+    private function generateDocumentInternal(
         LoanRequest $loanRequest,
         LoanRequestDocumentKey $documentKey,
         AppUser $actor,
@@ -281,14 +366,13 @@ class LoanRequestDocumentWorkflowService
         )
             ? 'xlsx'
             : 'pdf';
-        $relativePath = sprintf(
-            'loan-request-documents/%d/%s/v%d.%s',
+        $relativePath = $this->documentStorage->newGeneratedDocumentPath(
             $loanRequest->id,
             $documentKey->value,
             $nextGeneratedVersion,
             $extension,
         );
-        $absolutePath = storage_path('app/'.$relativePath);
+        $absolutePath = $this->documentStorage->absolutePath($relativePath);
         File::ensureDirectoryExists(dirname($absolutePath));
 
         try {
@@ -313,13 +397,15 @@ class LoanRequestDocumentWorkflowService
         $document->fill([
             'readiness_status' => LoanRequestDocumentReadinessStatus::GeneratedCurrent,
             'generated_version' => $nextGeneratedVersion,
-            'generated_disk' => 'local',
+            'generated_disk' => $this->documentStorage->documentDisk(),
             'generated_path' => $relativePath,
             'generated_filename' => $metadata['filename'],
             'generated_mime_type' => $metadata['mime_type'],
             'generated_size_bytes' => File::exists($absolutePath)
                 ? File::size($absolutePath)
                 : null,
+            'generated_checksum_sha256' => $this->documentStorage
+                ->checksumForAbsolutePath($absolutePath),
             'generated_by' => $actor->user_id,
             'generated_at' => now(),
             'failure_information_json' => null,
@@ -894,5 +980,30 @@ class LoanRequestDocumentWorkflowService
         return $loanRequest->workflow_version instanceof LoanRequestWorkflowVersion
             ? $loanRequest->workflow_version->value
             : (string) ($loanRequest->workflow_version ?? LoanRequestWorkflowVersion::LegacyV1->value);
+    }
+
+    /**
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $callback
+     * @return TReturn
+     */
+    private function withDocumentGenerationLock(
+        LoanRequest $loanRequest,
+        callable $callback,
+    ): mixed {
+        $lock = Cache::lock(
+            sprintf('loan-workflow:documents:%d', $loanRequest->id),
+            120,
+        );
+        $result = $lock->get($callback);
+
+        if ($result !== false) {
+            return $result;
+        }
+
+        throw ValidationException::withMessages([
+            'documents' => 'Document generation is already running for this request.',
+        ]);
     }
 }

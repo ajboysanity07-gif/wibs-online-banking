@@ -115,6 +115,8 @@ The current repository still has stored Phase 5/6 inputs that are intentionally 
 
 These values are preserved in `loan_request_data_entries`, participate in workflow history where appropriate, and may be used later. They are not guessed into the output.
 
+Phase 7 production hardening keeps these slots blocked and non-required until the checked-in official templates or authoritative slot maps are updated.
+
 Primary files reviewed:
 
 - `app/Http/Controllers/Client/LoanRequestController.php`

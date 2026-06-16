@@ -29,6 +29,7 @@ class LoanRequestDocument extends Model
         'generated_filename',
         'generated_mime_type',
         'generated_size_bytes',
+        'generated_checksum_sha256',
         'generated_by',
         'generated_at',
         'failure_information_json',

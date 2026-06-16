@@ -540,6 +540,12 @@ class LoanRequestWorkflowController extends Controller
                     ),
                 ],
                 'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
+                'notificationHistory' => $serializer->serializeNotificationHistory(
+                    $loanRequest,
+                ),
+                'workflowHealth' => $serializer->serializeWorkflowHealth(
+                    $loanRequest,
+                ),
                 'correctionReports' => $serializer->serializeCorrectionReports(
                     $loanRequest,
                 ),

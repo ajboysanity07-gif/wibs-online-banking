@@ -565,10 +565,22 @@ class LoanRequestProcessingService
             $approvalRemarks = trim((string) ($payload['approval_remarks'] ?? ''));
             $before = $this->editableSnapshot($lockedLoanRequest);
 
-            $termsChanged = (string) $approvedAmount !== (string) $lockedLoanRequest->recommended_amount
-                || (string) $approvedTerm !== (string) $lockedLoanRequest->recommended_term
-                || (string) $approvedInterestRate !== (string) $lockedLoanRequest->recommended_interest_rate
-                || (string) $approvedPaymentFrequency !== (string) $lockedLoanRequest->recommended_payment_frequency;
+            $termsChanged = ! $this->sameNumericValue(
+                $approvedAmount,
+                $lockedLoanRequest->recommended_amount,
+            )
+                || ! $this->sameIntegerValue(
+                    $approvedTerm,
+                    $lockedLoanRequest->recommended_term,
+                )
+                || ! $this->sameNumericValue(
+                    $approvedInterestRate,
+                    $lockedLoanRequest->recommended_interest_rate,
+                )
+                || ! $this->sameTextValue(
+                    $approvedPaymentFrequency,
+                    $lockedLoanRequest->recommended_payment_frequency,
+                );
 
             if ($isDocumentWorkflowV2 && $termsChanged) {
                 $lockedLoanRequest->fill([
@@ -1090,5 +1102,39 @@ class LoanRequestProcessingService
         return $loanRequest->workflow_version instanceof LoanRequestWorkflowVersion
             ? $loanRequest->workflow_version->value
             : (string) ($loanRequest->workflow_version ?? LoanRequestWorkflowVersion::LegacyV1->value);
+    }
+
+    private function sameNumericValue(mixed $left, mixed $right): bool
+    {
+        if ($left === null || $right === null) {
+            return $this->sameTextValue($left, $right);
+        }
+
+        if (! is_numeric((string) $left) || ! is_numeric((string) $right)) {
+            return $this->sameTextValue($left, $right);
+        }
+
+        return abs((float) $left - (float) $right) < 0.0001;
+    }
+
+    private function sameIntegerValue(mixed $left, mixed $right): bool
+    {
+        if ($left === null || $right === null) {
+            return $this->sameTextValue($left, $right);
+        }
+
+        if (! is_numeric((string) $left) || ! is_numeric((string) $right)) {
+            return $this->sameTextValue($left, $right);
+        }
+
+        return (int) round((float) $left) === (int) round((float) $right);
+    }
+
+    private function sameTextValue(mixed $left, mixed $right): bool
+    {
+        $normalizedLeft = $left === null ? null : trim((string) $left);
+        $normalizedRight = $right === null ? null : trim((string) $right);
+
+        return $normalizedLeft === $normalizedRight;
     }
 }

@@ -342,7 +342,7 @@ Route::get('dashboard', DashboardRedirectController::class)
     ->name('dashboard');
 
 Route::get('loan-requests/{reference}/action', LoanRequestActionController::class)
-    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete', 'signed'])
     ->name('loan-requests.action');
 
 Route::post('workspace/switch', WorkspaceSwitchController::class)

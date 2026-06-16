@@ -216,6 +216,15 @@ return new class extends Migration
             }
         }
 
+        if (Schema::hasColumn('loan_requests', 'assigned_officer_id')) {
+            try {
+                Schema::table('loan_requests', function (Blueprint $table) {
+                    $table->dropIndex('loan_requests_assignment_status_index');
+                });
+            } catch (\Throwable) {
+            }
+        }
+
         $columns = array_values(array_filter([
             Schema::hasColumn('loan_requests', 'decline_reason') ? 'decline_reason' : null,
             Schema::hasColumn('loan_requests', 'declined_at') ? 'declined_at' : null,

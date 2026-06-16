@@ -302,6 +302,32 @@ export type LoanRequestMemberAction = {
     resolved_at: string | null;
 };
 
+export type LoanRequestNotificationHistoryItem = {
+    id: number;
+    channel: string;
+    event_type: string;
+    event_label: string;
+    status: string | null;
+    queued_at: string | null;
+    sent_at: string | null;
+    failed_at: string | null;
+    last_attempt_at: string | null;
+    attempt_count: number;
+    retry_count: number;
+    reminder_attempts: number;
+    provider_error: string | null;
+};
+
+export type LoanRequestWorkflowHealth = {
+    processing_age_days: number | null;
+    stale_document_count: number;
+    failed_document_count: number;
+    legacy_blocker_count: number;
+    pending_member_action: boolean;
+    notification_failure_count: number;
+    workflow_failed_job_count: number;
+};
+
 export type LoanRequestDetail = {
     id: number;
     reference: string;
@@ -434,6 +460,8 @@ export type LoanRequestWorkflowResult = LoanRequestCorrectionResult & {
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     documentChecklist: LoanRequestDocumentChecklistItem[];
+    notificationHistory: LoanRequestNotificationHistoryItem[];
+    workflowHealth: LoanRequestWorkflowHealth;
     documentResults?: LoanRequestDocumentGenerationResult[];
     loan?: Record<string, unknown> | null;
 };

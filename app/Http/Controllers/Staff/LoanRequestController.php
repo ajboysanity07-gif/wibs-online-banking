@@ -12,6 +12,7 @@ use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestDocumentStorage;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -19,11 +20,11 @@ use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Writer\Html as HtmlWriter;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class LoanRequestController extends Controller
@@ -62,6 +63,12 @@ class LoanRequestController extends Controller
                 ...$assignmentService->capabilitiesFor($loanRequest, $actor),
             ],
             'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
+            'notificationHistory' => $serializer->serializeNotificationHistory(
+                $loanRequest,
+            ),
+            'workflowHealth' => $serializer->serializeWorkflowHealth(
+                $loanRequest,
+            ),
             'workflowPermissions' => $workspaceService->workflowPermissions($actor),
             'workflowContext' => [
                 'isOwnRequest' => $decisionService->isOwnRequest(
@@ -281,6 +288,7 @@ class LoanRequestController extends Controller
         Request $request,
         LoanRequest $loanRequest,
         LoanRequestDocumentKey $documentKey,
+        LoanRequestDocumentStorage $documentStorage,
     ): HttpResponse {
         Gate::authorize('view', $loanRequest);
         $this->authorizeStaffDocumentAccess($loanRequest);
@@ -298,37 +306,47 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
-        $disk = $document->generated_disk ?: 'local';
+        $disk = $document->generated_disk ?: $documentStorage->documentDisk();
 
-        abort_unless(Storage::disk($disk)->exists($document->generated_path), 404);
+        try {
+            $absolutePath = $documentStorage->absolutePath(
+                $document->generated_path,
+                $disk,
+            );
+        } catch (RuntimeException) {
+            abort(404);
+        }
+
+        abort_unless(is_file($absolutePath), 404);
 
         $headers = $document->generated_mime_type !== null
             ? ['Content-Type' => $document->generated_mime_type]
             : [];
+        $downloadName = basename(
+            $document->generated_filename ?: $documentKey->label(),
+        );
 
         if (
             $this->isWorkbookDocument($documentKey)
             && ($request->boolean('preview') || $request->boolean('print'))
         ) {
             return $this->renderWorkbookDocument(
-                $disk,
-                $document->generated_path,
-                $document->generated_filename ?: $documentKey->label().'.xlsx',
+                $absolutePath,
+                $downloadName !== '' ? $downloadName : $documentKey->label().'.xlsx',
                 $request->boolean('print'),
             );
         }
 
         if ($request->boolean('download')) {
-            return Storage::disk($disk)->download(
-                $document->generated_path,
-                $document->generated_filename,
+            return response()->download(
+                $absolutePath,
+                $downloadName !== '' ? $downloadName : null,
                 $headers,
             );
         }
 
-        return Storage::disk($disk)->response(
-            $document->generated_path,
-            $document->generated_filename,
+        return response()->file(
+            $absolutePath,
             $headers,
         );
     }
@@ -398,12 +416,11 @@ class LoanRequestController extends Controller
     }
 
     private function renderWorkbookDocument(
-        string $disk,
-        string $generatedPath,
+        string $absolutePath,
         string $filename,
         bool $autoPrint,
     ): HttpResponse {
-        $spreadsheet = IOFactory::load(Storage::disk($disk)->path($generatedPath));
+        $spreadsheet = IOFactory::load($absolutePath);
         $writer = IOFactory::createWriter($spreadsheet, 'Html');
 
         if ($writer instanceof HtmlWriter) {

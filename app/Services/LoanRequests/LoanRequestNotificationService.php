@@ -7,7 +7,8 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestNotificationEvent;
 use App\Notifications\LoanRequestWorkflowStatusNotification;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 
 class LoanRequestNotificationService
 {
@@ -44,54 +45,89 @@ class LoanRequestNotificationService
             return;
         }
 
-        $actionUrl = route('loan-requests.action', [
-            'reference' => $loanRequest->reference,
-        ], false);
+        $actionUrl = URL::temporarySignedRoute(
+            'loan-requests.action',
+            now()->addHours(max(
+                1,
+                (int) config('loan_workflow.notifications.action_link_ttl_hours', 168),
+            )),
+            [
+                'reference' => $loanRequest->reference,
+            ],
+        );
 
-        if (! $this->shouldSendPortalNotification($loanRequest, $eventType, $member)) {
-            $this->maybeQueueSms($loanRequest, $eventType, $content, $member);
+        $payload = [
+            'event_type' => $eventType,
+            'title' => $content['title'],
+            'message' => $content['message'],
+            'reason' => $content['reason'] ?? null,
+            'status' => $loanRequest->status instanceof \App\LoanRequestStatus
+                ? $loanRequest->status->value
+                : (string) $loanRequest->status,
+            'action_url' => $actionUrl,
+        ];
 
-            return;
-        }
-
-        $this->createChannelEvent(
+        $channelEvents = DB::transaction(function () use (
             $loanRequest,
             $eventType,
-            'database',
-            (string) $member->user_id,
-            'sent',
-            now(),
-            $member->user_id,
-        );
+            $member,
+            $payload,
+        ): array {
+            LoanRequest::query()
+                ->whereKey($loanRequest->id)
+                ->lockForUpdate()
+                ->first();
 
-        if (is_string($member->email) && trim($member->email) !== '') {
-            $this->createChannelEvent(
+            $events = [];
+
+            $databaseEvent = $this->createChannelEvent(
                 $loanRequest,
                 $eventType,
-                'email',
-                trim($member->email),
-                'sent',
-                now(),
+                'database',
+                (string) $member->user_id,
+                'queued',
+                null,
                 $member->user_id,
+                $payload,
             );
-        }
 
-        $member->notify(
-            new LoanRequestWorkflowStatusNotification(
+            if ($databaseEvent->wasRecentlyCreated) {
+                $events[] = $databaseEvent;
+            }
+
+            if (is_string($member->email) && trim($member->email) !== '') {
+                $emailEvent = $this->createChannelEvent(
+                    $loanRequest,
+                    $eventType,
+                    'email',
+                    trim($member->email),
+                    'queued',
+                    null,
+                    $member->user_id,
+                    $payload,
+                );
+
+                if ($emailEvent->wasRecentlyCreated) {
+                    $events[] = $emailEvent;
+                }
+            }
+
+            return $events;
+        });
+
+        foreach ($channelEvents as $event) {
+            if (! $event instanceof LoanRequestNotificationEvent) {
+                continue;
+            }
+
+            $member->notify(new LoanRequestWorkflowStatusNotification(
                 $loanRequest,
                 $actor,
-                [
-                    'event_type' => $eventType,
-                    'title' => $content['title'],
-                    'message' => $content['message'],
-                    'reason' => $content['reason'] ?? null,
-                    'status' => $loanRequest->status instanceof \App\LoanRequestStatus
-                        ? $loanRequest->status->value
-                        : (string) $loanRequest->status,
-                    'action_url' => $actionUrl,
-                ],
-            ),
-        );
+                $payload,
+                [$event->channel],
+                $event->id,
+            ));
+        }
 
         $this->maybeQueueSms($loanRequest, $eventType, $content, $member);
     }
@@ -117,11 +153,26 @@ class LoanRequestNotificationService
             return false;
         }
 
-        if ($event->reminder_sent_at !== null || $event->sent_at === null) {
+        if (
+            $event->sent_at === null
+            || in_array($event->result, ['failed', 'skipped'], true)
+        ) {
             return false;
         }
 
-        if ($event->sent_at->diffInDays(now()) < 3) {
+        if (
+            (int) ($event->reminder_attempts ?? 0) >= max(
+                0,
+                (int) config('loan_workflow.notifications.max_reminders', 1),
+            )
+        ) {
+            return false;
+        }
+
+        if ($event->sent_at->diffInDays(now()) < max(
+            1,
+            (int) config('loan_workflow.notifications.reminder_after_days', 3),
+        )) {
             return false;
         }
 
@@ -133,22 +184,6 @@ class LoanRequestNotificationService
         return true;
     }
 
-    private function shouldSendPortalNotification(
-        LoanRequest $loanRequest,
-        string $eventType,
-        AppUser $member,
-    ): bool {
-        return ! LoanRequestNotificationEvent::query()
-            ->where('loan_request_id', $loanRequest->id)
-            ->where('event_type', $eventType)
-            ->where('channel', 'database')
-            ->where('recipient_user_id', $member->user_id)
-            ->exists();
-    }
-
-    /**
-     * @param  array{title:string, message:string, reason?:string|null}  $content
-     */
     private function maybeQueueSms(
         LoanRequest $loanRequest,
         string $eventType,
@@ -173,6 +208,7 @@ class LoanRequestNotificationService
             [
                 'recipient_user_id' => $member->user_id,
                 'result' => 'queued',
+                'queued_at' => now(),
                 'metadata_json' => $content,
             ],
         );
@@ -190,9 +226,10 @@ class LoanRequestNotificationService
         string $channel,
         string $recipient,
         string $result,
-        \DateTimeInterface $sentAt,
+        ?\DateTimeInterface $sentAt = null,
         ?int $recipientUserId = null,
-    ): Model {
+        ?array $metadata = null,
+    ): LoanRequestNotificationEvent {
         return LoanRequestNotificationEvent::query()->firstOrCreate(
             [
                 'loan_request_id' => $loanRequest->id,
@@ -203,7 +240,12 @@ class LoanRequestNotificationService
             [
                 'recipient_user_id' => $recipientUserId,
                 'result' => $result,
+                'queued_at' => now(),
+                'attempt_count' => 0,
+                'retry_count' => 0,
+                'reminder_attempts' => 0,
                 'sent_at' => $sentAt,
+                'metadata_json' => $metadata,
             ],
         );
     }

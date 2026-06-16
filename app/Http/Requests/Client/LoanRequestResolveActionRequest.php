@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Client;
 
 use App\Models\AppUser;
+use App\Models\LoanRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,10 +13,11 @@ class LoanRequestResolveActionRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        $loanRequest = $this->resolvedLoanRequest();
 
         return $user instanceof AppUser
-            && $this->loanRequest !== null
-            && $user->can('respondToMemberAction', $this->loanRequest);
+            && $loanRequest instanceof LoanRequest
+            && $user->can('respondToMemberAction', $loanRequest);
     }
 
     /**
@@ -58,5 +60,20 @@ class LoanRequestResolveActionRequest extends FormRequest
             'declarations.declaration_truth_confirmation' => ['sometimes', 'boolean'],
             'declarations.declaration_data_privacy_consent' => ['sometimes', 'boolean'],
         ];
+    }
+
+    private function resolvedLoanRequest(): ?LoanRequest
+    {
+        $loanRequest = $this->route('loanRequest');
+
+        if ($loanRequest instanceof LoanRequest) {
+            return $loanRequest;
+        }
+
+        if (! is_numeric($loanRequest)) {
+            return null;
+        }
+
+        return LoanRequest::query()->find((int) $loanRequest);
     }
 }

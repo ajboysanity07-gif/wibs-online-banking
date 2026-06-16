@@ -17,7 +17,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use NumberFormatter;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use RuntimeException;
@@ -94,6 +93,7 @@ class ApprovedLoanDocumentService
         private ApprovedLoanExcelTemplateService $approvedLoanExcelTemplateService,
         private LoanRequestDataService $loanRequestDataService,
         private LoanRequestDocumentCatalog $documentCatalog,
+        private LoanRequestDocumentStorage $documentStorage,
         private GrepalifePdfFieldMap $grepalifePdfFieldMap,
         private UndertakingBarangayPdfFieldMap $undertakingBarangayPdfFieldMap,
         private AffidavitUndertakingPdfFieldMap $affidavitUndertakingPdfFieldMap,
@@ -574,15 +574,10 @@ class ApprovedLoanDocumentService
         string $outputPath,
         array $documentData,
     ): array {
-        $temporaryWorkbookPath = storage_path(
-            sprintf(
-                'app/tmp/approved-loan-documents/%s-%s.xlsx',
-                $documentKey->value,
-                Str::uuid(),
-            ),
+        $temporaryWorkbookPath = $this->documentStorage->temporaryFilePath(
+            $documentKey->value,
+            'xlsx',
         );
-
-        File::ensureDirectoryExists(dirname($temporaryWorkbookPath));
 
         try {
             $this->approvedLoanExcelTemplateService->generate(
@@ -688,17 +683,10 @@ class ApprovedLoanDocumentService
 
     private function makeWorkingDirectory(LoanRequest $loanRequest): string
     {
-        $workingDirectory = storage_path(
-            sprintf(
-                'app/tmp/approved-loan-documents/%s-%s',
-                $loanRequest->id,
-                Str::uuid(),
-            ),
+        return $this->documentStorage->temporaryWorkingDirectory(
+            'approved-loan-documents',
+            $loanRequest->id,
         );
-
-        File::ensureDirectoryExists($workingDirectory);
-
-        return $workingDirectory;
     }
 
     /**

@@ -2,14 +2,17 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestCorrectionReport;
+use App\Models\LoanRequestNotificationEvent;
 use App\Models\LoanRequestPerson;
 use App\Support\LocationComposer;
+use App\Support\SchemaCapabilities;
 use DateTimeInterface;
 use Illuminate\Support\Str;
 
@@ -115,6 +118,7 @@ class LoanRequestPayloadSerializer
 
     public function __construct(
         private LoanRequestDecisionService $decisionService,
+        private SchemaCapabilities $schemaCapabilities,
     ) {}
 
     /**
@@ -822,6 +826,70 @@ class LoanRequestPayloadSerializer
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function serializeNotificationHistory(LoanRequest $loanRequest): array
+    {
+        $events = $loanRequest->notificationEvents()
+            ->orderByDesc('id')
+            ->get();
+
+        return $events
+            ->map(fn (LoanRequestNotificationEvent $event): array => [
+                'id' => $event->id,
+                'channel' => $event->channel,
+                'event_type' => $event->event_type,
+                'event_label' => Str::of($event->event_type)
+                    ->replace('_', ' ')
+                    ->headline()
+                    ->toString(),
+                'status' => $event->result,
+                'queued_at' => $event->queued_at?->toDateTimeString(),
+                'sent_at' => $event->sent_at?->toDateTimeString(),
+                'failed_at' => $event->failed_at?->toDateTimeString(),
+                'last_attempt_at' => $event->last_attempt_at?->toDateTimeString(),
+                'attempt_count' => (int) ($event->attempt_count ?? 0),
+                'retry_count' => (int) ($event->retry_count ?? 0),
+                'reminder_attempts' => (int) ($event->reminder_attempts ?? 0),
+                'provider_error' => $this->normalizeOptionalString(
+                    $event->provider_error,
+                ),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, int|bool|null>
+     */
+    public function serializeWorkflowHealth(LoanRequest $loanRequest): array
+    {
+        $documents = $loanRequest->documents()->get();
+        $notifications = $loanRequest->notificationEvents()->get();
+
+        return [
+            'processing_age_days' => $this->processingAgeDays($loanRequest),
+            'stale_document_count' => $documents
+                ->where('is_applicable', true)
+                ->where('readiness_status', LoanRequestDocumentReadinessStatus::GeneratedStale)
+                ->count(),
+            'failed_document_count' => $documents
+                ->where('is_applicable', true)
+                ->where('readiness_status', LoanRequestDocumentReadinessStatus::GenerationFailed)
+                ->count(),
+            'legacy_blocker_count' => $documents
+                ->where('is_applicable', true)
+                ->where('readiness_status', LoanRequestDocumentReadinessStatus::LegacyDataIncomplete)
+                ->count(),
+            'pending_member_action' => $loanRequest->member_action_type !== null,
+            'notification_failure_count' => $notifications
+                ->where('result', 'failed')
+                ->count(),
+            'workflow_failed_job_count' => $this->workflowFailedJobCount(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function serializePerson(
@@ -850,6 +918,28 @@ class LoanRequestPayloadSerializer
     {
         return LoanRequestStatus::normalizeValue($loanRequest->status)
             ?? (string) $loanRequest->status;
+    }
+
+    private function processingAgeDays(LoanRequest $loanRequest): ?int
+    {
+        $status = $this->normalizeStatus($loanRequest);
+
+        if (! in_array($status, [
+            LoanRequestStatus::PendingReview->value,
+            LoanRequestStatus::UnderReview->value,
+            LoanRequestStatus::NeedsRevision->value,
+            LoanRequestStatus::AwaitingMemberInformation->value,
+            LoanRequestStatus::RecommendedForApproval->value,
+            LoanRequestStatus::AwaitingMemberAcceptance->value,
+        ], true)) {
+            return null;
+        }
+
+        if ($loanRequest->submitted_at === null) {
+            return null;
+        }
+
+        return max(0, now()->diffInDays($loanRequest->submitted_at));
     }
 
     private function rawStatusValue(mixed $status): ?string
@@ -998,6 +1088,21 @@ class LoanRequestPayloadSerializer
         $trimmed = trim((string) $value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    private function workflowFailedJobCount(): int
+    {
+        if (! $this->schemaCapabilities->hasTable('failed_jobs')) {
+            return 0;
+        }
+
+        return \DB::table('failed_jobs')
+            ->where(function ($query): void {
+                $query
+                    ->where('payload', 'like', '%SendLoanWorkflowSmsJob%')
+                    ->orWhere('payload', 'like', '%LoanRequestWorkflowStatusNotification%');
+            })
+            ->count();
     }
 
     private function normalizeDateForInput(mixed $value): ?string
