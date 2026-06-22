@@ -357,18 +357,7 @@ class LoanRequestPolicy
 
     private function ownsLoanRequest(AppUser $user, LoanRequest $loanRequest): bool
     {
-        if ($loanRequest->user_id !== null && $loanRequest->user_id === $user->user_id) {
-            return true;
-        }
-
-        $requestAcctno = trim((string) ($loanRequest->acctno ?? ''));
-        $userAcctno = trim((string) ($user->acctno ?? ''));
-
-        if ($requestAcctno === '' || $userAcctno === '') {
-            return false;
-        }
-
-        return $requestAcctno === $userAcctno;
+        return $loanRequest->isOwnedBy($user);
     }
 
     private function statusValue(LoanRequest $loanRequest): string

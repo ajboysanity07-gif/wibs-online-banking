@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { CircleAlert } from 'lucide-react';
+import { CheckCircle2, CircleAlert, XCircle } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
@@ -56,12 +56,85 @@ import {
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestAuditEntry,
+    LoanRequestCompleteness,
     LoanRequestDataFieldDefinition,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
     LoanRequestDetail,
+    LoanRequestDocumentKey,
     LoanRequestPersonData,
 } from '@/types/loan-requests';
+
+const documentKeyLabels: Record<LoanRequestDocumentKey, string> = {
+    application_form: 'Application Form',
+    grepalife: 'GREPALIFE',
+    affidavit_undertaking: 'Affidavit of Undertaking',
+    authorization: 'Authorization',
+    loan_information: 'Loan Information',
+    plan_of_payment: 'Plan of Payment',
+    disclosure_statement: 'Disclosure Statement',
+    promissory_note: 'Promissory Note',
+    undertaking_barangay: 'Undertaking - Barangay',
+    loan_security_agreement: 'Loan Security Agreement',
+};
+
+function CompletenessTracker({
+    completeness,
+}: {
+    completeness: LoanRequestCompleteness;
+}) {
+    const { percentage, completed, missing, missing_documents } = completeness;
+
+    return (
+        <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="rounded-xl border border-border/40 bg-card/70 p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-foreground">
+                        Application: {percentage}% Complete
+                    </p>
+                    <span className="text-xs text-muted-foreground">
+                        {completed.length} of {completed.length + missing.length} sections
+                    </span>
+                </div>
+                <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                        className="h-full rounded-full bg-primary transition-all duration-300"
+                        style={{ width: `${percentage}%` }}
+                    />
+                </div>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                    {completed.map((label) => (
+                        <div key={label} className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" />
+                            <span>{label}</span>
+                        </div>
+                    ))}
+                    {missing.map((label) => (
+                        <div key={label} className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                            <XCircle className="size-3.5 shrink-0" />
+                            <span>{label} missing</span>
+                        </div>
+                    ))}
+                </div>
+                {missing_documents.length > 0 ? (
+                    <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                        <p className="mb-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                            Missing documents
+                        </p>
+                        <ul className="space-y-1">
+                            {missing_documents.map((key) => (
+                                <li key={key} className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                                    <XCircle className="size-3 shrink-0" />
+                                    {documentKeyLabels[key] ?? key}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : null}
+            </div>
+        </section>
+    );
+}
 
 type Props = {
     loanRequest: LoanRequestDetail;
@@ -346,6 +419,9 @@ export default function LoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
+            {currentLoanRequest.completeness ? (
+                <CompletenessTracker completeness={currentLoanRequest.completeness} />
+            ) : null}
             {currentLoanRequest.status === 'approved' ? (
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     {hasOpenReportState ? (

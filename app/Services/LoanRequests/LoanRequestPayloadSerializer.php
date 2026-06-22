@@ -127,6 +127,7 @@ class LoanRequestPayloadSerializer
     public function __construct(
         private LoanRequestDecisionService $decisionService,
         private SchemaCapabilities $schemaCapabilities,
+        private LoanRequestCompletenessService $completenessService,
     ) {}
 
     /**
@@ -260,6 +261,7 @@ class LoanRequestPayloadSerializer
             'wibs_release_date' => $loanRequest->wibs_release_date?->toDateString(),
             'wibs_encoded_at' => $loanRequest->wibs_encoded_at?->toDateTimeString(),
             'wibs_released_at' => $loanRequest->wibs_released_at?->toDateTimeString(),
+            'completeness' => $this->completenessService->computeFor($loanRequest),
         ];
     }
 

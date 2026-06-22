@@ -395,6 +395,145 @@ class StaffManagementService
         });
     }
 
+    public function findMemberByAccountNumber(string $accountNumber): ?AppUser
+    {
+        $trimmed = trim($accountNumber);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $query = AppUser::query()
+            ->where('acctno', $trimmed)
+            ->with([
+                'adminProfile',
+                'roles.permissions',
+                'staffAccessControl',
+                'userProfile',
+                'latestRoleChange.actor.adminProfile',
+            ]);
+
+        if (Schema::hasTable('wmaster')) {
+            $query->with('wmaster');
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * @return Collection<int, AppUser>
+     */
+    public function searchMembers(string $query, int $limit = 10): Collection
+    {
+        $trimmed = trim($query);
+
+        if (mb_strlen($trimmed) < 2) {
+            return collect();
+        }
+
+        $searchLike = '%'.addcslashes($trimmed, '%_\\').'%';
+        $limit = max(1, min($limit, 50));
+
+        $q = AppUser::query()
+            ->with([
+                'adminProfile',
+                'roles.permissions',
+                'staffAccessControl',
+                'userProfile',
+                'latestRoleChange.actor.adminProfile',
+            ])
+            ->whereHas('roles', function (Builder $roleQuery): void {
+                $roleQuery->where('name', Role::MEMBER);
+            })
+            ->where(function (Builder $builder) use ($searchLike): void {
+                $builder
+                    ->where('username', 'like', $searchLike)
+                    ->orWhere('email', 'like', $searchLike)
+                    ->orWhere('acctno', 'like', $searchLike)
+                    ->orWhereHas('adminProfile', function (Builder $profileQuery) use ($searchLike): void {
+                        $profileQuery->where('fullname', 'like', $searchLike);
+                    });
+
+                if (Schema::hasTable('wmaster')) {
+                    $builder->orWhereHas('wmaster', function (Builder $wmasterQuery) use ($searchLike): void {
+                        $wmasterQuery
+                            ->where('fname', 'like', $searchLike)
+                            ->orWhere('mname', 'like', $searchLike)
+                            ->orWhere('lname', 'like', $searchLike)
+                            ->orWhere('bname', 'like', $searchLike);
+                    });
+                }
+            });
+
+        if (Schema::hasTable('wmaster')) {
+            $q->with('wmaster');
+        }
+
+        return $q->limit($limit)->get();
+    }
+
+    public function promoteMember(
+        string $accountNumber,
+        string $roleName,
+        ?string $reason,
+        AppUser $actor,
+    ): AppUser {
+        Role::ensureWorkflowDefaults();
+
+        $normalizedRole = $this->normalizeEditableRole($roleName);
+        $normalizedReason = trim((string) ($reason ?? ''));
+        $trimmedAcctno = trim($accountNumber);
+
+        $target = AppUser::query()
+            ->where('acctno', $trimmedAcctno)
+            ->firstOrFail();
+
+        if (! $target->hasRole(Role::MEMBER)) {
+            throw ValidationException::withMessages([
+                'account_number' => 'The account number does not belong to a registered portal member.',
+            ]);
+        }
+
+        if ($target->user_id === $actor->user_id) {
+            throw ValidationException::withMessages([
+                'account_number' => 'You cannot promote yourself.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($target, $actor, $normalizedRole, $normalizedReason): AppUser {
+            $user = $this->lockUser($target->user_id);
+            $this->lockSupportingRows($user->user_id);
+            $this->guardLegacyAdminOnlyTarget($user);
+
+            $beforeRoles = $this->visibleRoleNames($user);
+            $beforeStatus = $this->auditStaffStatus($user);
+
+            if (! $this->userAlreadyHasEditableRole($user, $normalizedRole)) {
+                Role::attachNamedRole($user, $normalizedRole);
+                $user = $this->reloadUser($user->user_id);
+                $this->syncLegacySuperadminProfile($user);
+            }
+
+            $this->activateStaffAccessRow($user);
+            $user = $this->reloadUser($user->user_id);
+
+            $this->recordUserRoleChange(
+                $user,
+                $actor,
+                UserRoleChange::ACTION_STAFF_CREATED,
+                $normalizedRole,
+                $beforeRoles,
+                $this->visibleRoleNames($user),
+                $beforeStatus,
+                $this->auditStaffStatus($user),
+                $normalizedReason,
+                ['account_type' => 'member_promoted'],
+            );
+
+            return $this->reloadUser($user->user_id);
+        });
+    }
+
     private function applyManagedStaffScope(Builder $query): void
     {
         $query->where(function (Builder $builder): void {

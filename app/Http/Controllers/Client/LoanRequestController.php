@@ -7,6 +7,7 @@ use App\Http\Requests\Client\LoanRequestCancelRequest;
 use App\Http\Requests\Client\LoanRequestDraftRequest;
 use App\Http\Requests\Client\LoanRequestResolveActionRequest;
 use App\Http\Requests\Client\LoanRequestStoreRequest;
+use App\Http\Requests\Client\SaveDraftRequest;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
@@ -311,6 +312,22 @@ class LoanRequestController extends Controller
                 'dataSectionDefinitions' => $dataService->sectionDefinitions(),
             ],
         ]);
+    }
+
+    public function saveDraft(
+        SaveDraftRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestService $service,
+    ): JsonResponse {
+        $user = $request->user();
+
+        if (! $user instanceof AppUser) {
+            abort(403);
+        }
+
+        $service->saveDraft($user, $request->validated());
+
+        return response()->json(null, HttpResponse::HTTP_NO_CONTENT);
     }
 
     public function createCorrectedCopy(

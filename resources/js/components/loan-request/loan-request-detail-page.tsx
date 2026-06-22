@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Ban, Calendar, Download, PencilLine, Printer } from 'lucide-react';
+import { Ban, Calendar, Download, Eye, PencilLine, Printer } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
@@ -582,6 +582,7 @@ export function LoanRequestDetailPage({
         (correctedCopy?.show ?? true) &&
         typeof correctedCopy?.onCreate === 'function';
     const showCancelledNotice = statusValue === 'cancelled';
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [isCancellationDialogOpen, setIsCancellationDialogOpen] =
@@ -1173,7 +1174,7 @@ export function LoanRequestDetailPage({
                                             </Label>
                                             <textarea
                                                 id="decision_notes"
-                                                className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                                 placeholder="Add optional notes for the member"
                                                 value={decisionNotes}
                                                 onChange={(event) =>
@@ -1457,25 +1458,44 @@ export function LoanRequestDetailPage({
                                     <div className="grid gap-2">
                                         {approvedDocumentItems.map(
                                             (document) => (
-                                                <Button
+                                                <div
                                                     key={document.label}
-                                                    asChild
-                                                    variant="outline"
-                                                    className="h-11 w-full justify-start px-3"
+                                                    className="flex items-stretch gap-2"
                                                 >
-                                                    <a
-                                                        href={document.href}
-                                                        className="flex w-full min-w-0 items-center gap-2"
+                                                    {document.format === 'PDF' ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className="h-11 shrink-0 px-3"
+                                                            onClick={() =>
+                                                                setPreviewUrl(
+                                                                    document.href,
+                                                                )
+                                                            }
+                                                            title="Preview"
+                                                        >
+                                                            <Eye className="size-4" />
+                                                        </Button>
+                                                    ) : null}
+                                                    <Button
+                                                        asChild
+                                                        variant="outline"
+                                                        className="h-11 min-w-0 flex-1 justify-start px-3"
                                                     >
-                                                        <Download className="size-4 shrink-0" />
-                                                        <span className="min-w-0 flex-1 truncate text-left text-sm">
-                                                            {document.label}
-                                                        </span>
-                                                        <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                                                            {document.format}
-                                                        </span>
-                                                    </a>
-                                                </Button>
+                                                        <a
+                                                            href={document.href}
+                                                            className="flex w-full min-w-0 items-center gap-2"
+                                                        >
+                                                            <Download className="size-4 shrink-0" />
+                                                            <span className="min-w-0 flex-1 truncate text-left text-sm">
+                                                                {document.label}
+                                                            </span>
+                                                            <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                                                {document.format}
+                                                            </span>
+                                                        </a>
+                                                    </Button>
+                                                </div>
                                             ),
                                         )}
                                         {approvedDocumentHrefs.packageZip ? (
@@ -1725,6 +1745,7 @@ export function LoanRequestDetailPage({
                             </Label>
                             <textarea
                                 id="cancellation_reason"
+                                aria-label={cancellation?.reasonLabel ?? 'Cancellation reason'}
                                 className={textareaClassName}
                                 maxLength={1000}
                                 required={cancellation?.reasonRequired}
@@ -1796,6 +1817,7 @@ export function LoanRequestDetailPage({
                             </Label>
                             <textarea
                                 id="correction_reason"
+                                aria-label="Correction reason"
                                 className={textareaClassName}
                                 maxLength={1000}
                                 required
@@ -1833,6 +1855,33 @@ export function LoanRequestDetailPage({
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+            <Dialog
+                open={previewUrl !== null}
+                onOpenChange={(open) => {
+                    if (!open) setPreviewUrl(null);
+                }}
+            >
+                <DialogContent className="flex max-h-[90vh] w-full max-w-4xl flex-col gap-0 p-0 sm:max-w-4xl max-[768px]:fixed max-[768px]:inset-0 max-[768px]:translate-x-0 max-[768px]:translate-y-0 max-[768px]:rounded-none max-[768px]:max-h-none max-[768px]:max-w-none [&>button]:z-10">
+                    <DialogHeader className="px-4 pt-4 pb-2">
+                        <DialogTitle>Document Preview</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-1 flex-col gap-2 px-4 pb-4">
+                        <iframe
+                            src={previewUrl ?? ''}
+                            className="h-[70vh] w-full flex-1 rounded border border-border/30 max-[768px]:h-[calc(100vh-80px)]"
+                            title="Document preview"
+                        />
+                        <div className="flex justify-end">
+                            <Button asChild variant="outline" size="sm">
+                                <a href={previewUrl ?? ''} download>
+                                    <Download className="mr-2 size-4" />
+                                    Download
+                                </a>
+                            </Button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </PageShell>

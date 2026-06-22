@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import client from '@/lib/api/client';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -407,6 +408,38 @@ export default function LoanRequestPage({
     useEffect(() => {
         setDraftState(draft);
     }, [draft]);
+
+    const formDataRef = useRef(form.data);
+
+    useEffect(() => {
+        formDataRef.current = form.data;
+    }, [form.data]);
+
+    useEffect(() => {
+        if (!draftState) {
+            return;
+        }
+
+        const interval = setInterval(async () => {
+            const currentDraft = draftState;
+
+            if (!currentDraft) {
+                return;
+            }
+
+            try {
+                await client.patch(
+                    `/client/loans/requests/${currentDraft.id}/save-draft`,
+                    formDataRef.current,
+                );
+                showSuccessToast('Draft saved.', { id: 'auto-save-draft' });
+            } catch {
+                // silent — auto-save failures are non-critical
+            }
+        }, 30_000);
+
+        return () => clearInterval(interval);
+    }, [draftState]);
 
     const handleStepChange = (step: number) => {
         if (step === currentStep) {

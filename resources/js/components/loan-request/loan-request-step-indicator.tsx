@@ -27,7 +27,7 @@ export function LoanRequestStepIndicator({
 
     return (
         <div className={cn('overflow-x-auto pb-1', className)}>
-            <div className="relative min-w-[600px] px-3 sm:min-w-[640px]">
+            <div className="relative min-w-150 px-3 sm:min-w-160">
                 <div
                     className="absolute top-3.5 h-px bg-border/30"
                     style={{
@@ -62,7 +62,7 @@ export function LoanRequestStepIndicator({
                         return (
                             <li
                                 key={step.id}
-                                className="flex min-w-[96px] flex-col items-center text-center sm:min-w-[112px]"
+                                className="flex min-w-24 flex-col items-center text-center sm:min-w-28"
                             >
                                 <button
                                     type="button"
@@ -96,7 +96,7 @@ export function LoanRequestStepIndicator({
                                     </span>
                                     <span
                                         className={cn(
-                                            'max-w-[6.5rem] truncate leading-tight transition-colors',
+                                            'max-w-26 truncate leading-tight transition-colors',
                                             isActive
                                                 ? 'font-semibold text-foreground'
                                                 : isComplete

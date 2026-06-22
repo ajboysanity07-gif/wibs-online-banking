@@ -264,6 +264,12 @@ type StaffHistoryResponse = {
     items: StaffHistoryEntry[];
 };
 
+type PromoteMemberPayload = {
+    account_number: string;
+    role: EditableStaffRoleName;
+    reason: string;
+};
+
 export const adminApi = {
     async getDashboardSummary(): Promise<DashboardSummary> {
         const response =
@@ -734,5 +740,37 @@ export const adminApi = {
         );
 
         return unwrap(response).items;
+    },
+    async lookupMemberForPromotion(
+        accountNumber: string,
+        signal?: AbortSignal,
+    ): Promise<StaffAccount> {
+        const response = await client.get<ApiResponse<{ member: StaffAccount }>>(
+            '/spa/superadmin/staff/member-lookup',
+            { params: { account_number: accountNumber }, signal },
+        );
+
+        return unwrap(response).member;
+    },
+    async searchMembers(
+        query: string,
+        signal?: AbortSignal,
+    ): Promise<StaffAccount[]> {
+        const response = await client.get<ApiResponse<{ members: StaffAccount[] }>>(
+            '/spa/superadmin/staff/search-members',
+            { params: { query }, signal },
+        );
+
+        return unwrap(response).members;
+    },
+    async promoteMember(
+        payload: PromoteMemberPayload,
+    ): Promise<StaffMutationResponse> {
+        const response = await client.post<ApiResponse<StaffMutationResponse>>(
+            '/spa/superadmin/staff/promote',
+            payload,
+        );
+
+        return unwrap(response);
     },
 };

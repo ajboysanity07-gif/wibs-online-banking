@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Head } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { History, MoreHorizontal, ShieldCheck, ShieldOff, UserPlus } from 'lucide-react';
+import { History, MoreHorizontal, Search, ShieldCheck, ShieldOff, UserPlus, Users } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
@@ -44,6 +44,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import {
     TableSkeleton,
     type TableSkeletonColumn,
@@ -229,6 +237,34 @@ const initialAccessMutationState: StaffAccessMutationState = {
     open: false,
     user: null,
     action: 'suspend',
+    reason: '',
+    processing: false,
+    errors: {},
+};
+
+type PromoteDialogState = {
+    open: boolean;
+    step: 1 | 2 | 3;
+    query: string;
+    searchLoading: boolean;
+    searchError: string | null;
+    searchResults: StaffAccount[];
+    selectedMember: StaffAccount | null;
+    role: EditableStaffRoleName | '';
+    reason: string;
+    processing: boolean;
+    errors: FieldErrors;
+};
+
+const initialPromoteDialogState: PromoteDialogState = {
+    open: false,
+    step: 1,
+    query: '',
+    searchLoading: false,
+    searchError: null,
+    searchResults: [],
+    selectedMember: null,
+    role: '',
     reason: '',
     processing: false,
     errors: {},
@@ -439,6 +475,10 @@ export default function SuperadminStaffPage() {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState<string | null>(null);
 
+    const [promoteDialog, setPromoteDialog] = useState<PromoteDialogState>(
+        initialPromoteDialogState,
+    );
+
     const { items, meta, loading, error } = useStaffDirectory({
         search,
         role: roleFilter,
@@ -484,6 +524,62 @@ export default function SuperadminStaffPage() {
         };
     }, [historyUser]);
 
+    useEffect(() => {
+        if (!promoteDialog.open) return;
+
+        const query = promoteDialog.query.trim();
+
+        if (query.length < 2) return;
+
+        const controller = new AbortController();
+
+        const timer = setTimeout(async () => {
+            setPromoteDialog((current) => {
+                if (current.step === 3) return current;
+
+                return {
+                    ...current,
+                    searchLoading: true,
+                    searchError: null,
+                    searchResults: [],
+                };
+            });
+
+            try {
+                const members = await adminApi.searchMembers(
+                    query,
+                    controller.signal,
+                );
+
+                if (!controller.signal.aborted) {
+                    setPromoteDialog((current) => {
+                        if (current.step === 3) return current;
+
+                        return {
+                            ...current,
+                            step: 2,
+                            searchLoading: false,
+                            searchResults: members,
+                        };
+                    });
+                }
+            } catch {
+                if (!controller.signal.aborted) {
+                    setPromoteDialog((current) => ({
+                        ...current,
+                        searchLoading: false,
+                        searchError: 'Unable to search members right now.',
+                    }));
+                }
+            }
+        }, 300);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [promoteDialog.query, promoteDialog.open]);
+
     const showSkeleton = loading && items.length === 0;
     const searchValue = search.trim();
     const filterCount = [
@@ -512,6 +608,94 @@ export default function SuperadminStaffPage() {
         setCreateForm(initialCreateForm);
         setCreateErrors({});
         setCreateProcessing(false);
+    };
+
+    const resetPromoteDialog = () => {
+        setPromoteDialog(initialPromoteDialogState);
+    };
+
+    const handleSearchNow = async () => {
+        const query = promoteDialog.query.trim();
+
+        if (query.length < 2 || promoteDialog.searchLoading) {
+            return;
+        }
+
+        setPromoteDialog((current) => ({
+            ...current,
+            searchLoading: true,
+            searchError: null,
+            searchResults: [],
+        }));
+
+        try {
+            const members = await adminApi.searchMembers(query);
+
+            setPromoteDialog((current) => ({
+                ...current,
+                step: 2,
+                searchLoading: false,
+                searchResults: members,
+            }));
+        } catch (requestError) {
+            if (!(axios.isAxiosError(requestError) && requestError.code === 'ERR_CANCELED')) {
+                setPromoteDialog((current) => ({
+                    ...current,
+                    searchLoading: false,
+                    searchError: 'Unable to search members right now.',
+                }));
+                showErrorToast(requestError, 'Member search failed.');
+            }
+        }
+    };
+
+    const handlePromoteMember = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!promoteDialog.role || !promoteDialog.selectedMember?.acctno) {
+            return;
+        }
+
+        setPromoteDialog((current) => ({
+            ...current,
+            processing: true,
+            errors: {},
+        }));
+
+        try {
+            const response = await adminApi.promoteMember({
+                account_number: promoteDialog.selectedMember!.acctno!,
+                role: promoteDialog.role as EditableStaffRoleName,
+                reason: promoteDialog.reason,
+            });
+
+            showSuccessToast(
+                response.message ?? 'Member promoted to staff successfully.',
+            );
+            resetPromoteDialog();
+            setPage(1);
+            refreshDirectory();
+        } catch (requestError) {
+            if (
+                axios.isAxiosError(requestError) &&
+                requestError.response?.status === 422
+            ) {
+                setPromoteDialog((current) => ({
+                    ...current,
+                    processing: false,
+                    errors: mapValidationErrors(
+                        requestError.response.data?.errors,
+                    ),
+                }));
+            } else {
+                setPromoteDialog((current) => ({
+                    ...current,
+                    processing: false,
+                }));
+            }
+
+            showErrorToast(requestError, 'Failed to promote the member.');
+        }
     };
 
     const handleCreateRoleToggle = (
@@ -946,13 +1130,28 @@ export default function SuperadminStaffPage() {
                         </>
                     }
                     rightSlot={
-                        <Button
-                            type="button"
-                            onClick={() => setCreateDialogOpen(true)}
-                        >
-                            <UserPlus className="h-4 w-4" />
-                            Create staff account
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setPromoteDialog((current) => ({
+                                        ...current,
+                                        open: true,
+                                    }))
+                                }
+                            >
+                                <Users className="h-4 w-4" />
+                                Promote existing member
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => setCreateDialogOpen(true)}
+                            >
+                                <UserPlus className="h-4 w-4" />
+                                Create staff account
+                            </Button>
+                        </div>
                     }
                 />
 
@@ -1734,6 +1933,466 @@ export default function SuperadminStaffPage() {
                             </div>
                         )}
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={promoteDialog.open}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        resetPromoteDialog();
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Promote existing member</DialogTitle>
+                        <DialogDescription>
+                            Find a registered member and assign a staff role.
+                            Their portal access is preserved.
+                        </DialogDescription>
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                            {([1, 2, 3] as const).map((s) => (
+                                <div
+                                    key={s}
+                                    className={cn(
+                                        'h-1.5 rounded-full transition-all duration-200',
+                                        s === promoteDialog.step
+                                            ? 'w-6 bg-primary'
+                                            : s < promoteDialog.step
+                                              ? 'w-2 bg-primary/40'
+                                              : 'w-2 bg-muted',
+                                    )}
+                                />
+                            ))}
+                            <span className="ml-1 text-xs text-muted-foreground">
+                                Step {promoteDialog.step} of 3
+                            </span>
+                        </div>
+                    </DialogHeader>
+
+                    {promoteDialog.step === 1 ? (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="promote-search-query">
+                                    Search member
+                                </Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="promote-search-query"
+                                        value={promoteDialog.query}
+                                        placeholder="Name, email, or account number"
+                                        autoFocus
+                                        onChange={(event) =>
+                                            setPromoteDialog((current) => ({
+                                                ...current,
+                                                query: event.target.value,
+                                                searchError: null,
+                                            }))
+                                        }
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                void handleSearchNow();
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        type="button"
+                                        disabled={
+                                            promoteDialog.query.trim().length <
+                                                2 || promoteDialog.searchLoading
+                                        }
+                                        onClick={() => void handleSearchNow()}
+                                    >
+                                        <Search className="h-4 w-4" />
+                                        {promoteDialog.searchLoading
+                                            ? 'Searching…'
+                                            : 'Search'}
+                                    </Button>
+                                </div>
+                                {promoteDialog.searchError ? (
+                                    <InputError
+                                        message={promoteDialog.searchError}
+                                    />
+                                ) : null}
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={resetPromoteDialog}
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    ) : promoteDialog.step === 2 ? (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="promote-search-query-2">
+                                    Search member
+                                </Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="promote-search-query-2"
+                                        value={promoteDialog.query}
+                                        placeholder="Name, email, or account number"
+                                        onChange={(event) =>
+                                            setPromoteDialog((current) => ({
+                                                ...current,
+                                                query: event.target.value,
+                                                searchError: null,
+                                            }))
+                                        }
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                void handleSearchNow();
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        type="button"
+                                        disabled={
+                                            promoteDialog.query.trim().length <
+                                                2 || promoteDialog.searchLoading
+                                        }
+                                        onClick={() => void handleSearchNow()}
+                                    >
+                                        <Search className="h-4 w-4" />
+                                        {promoteDialog.searchLoading
+                                            ? 'Searching…'
+                                            : 'Search'}
+                                    </Button>
+                                </div>
+                                {promoteDialog.searchError ? (
+                                    <InputError
+                                        message={promoteDialog.searchError}
+                                    />
+                                ) : null}
+                            </div>
+
+                            <div className="overflow-hidden rounded-xl border border-border/40">
+                                <Table>
+                                    <TableHeader className="bg-muted/30">
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Account No</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Current roles</TableHead>
+                                            <TableHead className="text-right">
+                                                Action
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {promoteDialog.searchLoading ? (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={5}
+                                                    className="h-24 text-center text-sm text-muted-foreground"
+                                                >
+                                                    Searching…
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : promoteDialog.searchResults
+                                              .length === 0 ? (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={5}
+                                                    className="h-24 text-center text-sm text-muted-foreground"
+                                                >
+                                                    No members found.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            promoteDialog.searchResults.map(
+                                                (member) => {
+                                                    const staffRoles =
+                                                        member.roles.filter(
+                                                            (r) => r.editable,
+                                                        );
+                                                    const displayRoles =
+                                                        member.roles.filter(
+                                                            (r) =>
+                                                                r.name !==
+                                                                'member',
+                                                        );
+
+                                                    return (
+                                                        <TableRow
+                                                            key={member.user_id}
+                                                        >
+                                                            <TableCell>
+                                                                <div className="space-y-1">
+                                                                    <p className="font-medium">
+                                                                        {
+                                                                            member.display_name
+                                                                        }
+                                                                    </p>
+                                                                    {staffRoles.length >
+                                                                    0 ? (
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            className="text-xs"
+                                                                        >
+                                                                            Already
+                                                                            a
+                                                                            staff
+                                                                            member
+                                                                        </Badge>
+                                                                    ) : null}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {member.acctno ??
+                                                                    '--'}
+                                                            </TableCell>
+                                                            <TableCell className="max-w-40 truncate">
+                                                                {member.email ??
+                                                                    '--'}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {displayRoles.length ===
+                                                                0 ? (
+                                                                    <span className="text-sm text-muted-foreground">
+                                                                        None
+                                                                    </span>
+                                                                ) : (
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {displayRoles.map(
+                                                                            (
+                                                                                r,
+                                                                            ) => (
+                                                                                <Badge
+                                                                                    key={
+                                                                                        r.name
+                                                                                    }
+                                                                                    variant={roleBadgeVariant(
+                                                                                        r.name,
+                                                                                    )}
+                                                                                    className="text-xs"
+                                                                                >
+                                                                                    {
+                                                                                        r.label
+                                                                                    }
+                                                                                </Badge>
+                                                                            ),
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() =>
+                                                                        setPromoteDialog(
+                                                                            (
+                                                                                current,
+                                                                            ) => ({
+                                                                                ...current,
+                                                                                step: 3,
+                                                                                selectedMember:
+                                                                                    member,
+                                                                                role: '',
+                                                                                reason: '',
+                                                                                errors: {},
+                                                                            }),
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Select
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                },
+                                            )
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() =>
+                                        setPromoteDialog((current) => ({
+                                            ...current,
+                                            step: 1,
+                                            searchResults: [],
+                                            searchError: null,
+                                        }))
+                                    }
+                                >
+                                    Back
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={resetPromoteDialog}
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    ) : (
+                        <form
+                            className="space-y-4"
+                            onSubmit={handlePromoteMember}
+                        >
+                            {promoteDialog.selectedMember ? (
+                                <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
+                                    <p className="font-semibold">
+                                        {
+                                            promoteDialog.selectedMember
+                                                .display_name
+                                        }
+                                    </p>
+                                    <p className="mt-0.5 text-muted-foreground">
+                                        {promoteDialog.selectedMember.email ??
+                                            '--'}
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                        Account no:{' '}
+                                        {promoteDialog.selectedMember.acctno ??
+                                            '--'}
+                                    </p>
+                                    {promoteDialog.selectedMember.roles.filter(
+                                        (r) => r.name !== 'member',
+                                    ).length > 0 ? (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {promoteDialog.selectedMember.roles
+                                                .filter(
+                                                    (r) => r.name !== 'member',
+                                                )
+                                                .map((r) => (
+                                                    <Badge
+                                                        key={r.name}
+                                                        variant={roleBadgeVariant(
+                                                            r.name,
+                                                        )}
+                                                    >
+                                                        {r.label}
+                                                    </Badge>
+                                                ))}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : null}
+
+                            <div className="space-y-3">
+                                <Label>Staff role to assign</Label>
+                                <div className="grid gap-3">
+                                    {editableRoleOptions.map((role) => {
+                                        const checked =
+                                            promoteDialog.role === role.value;
+
+                                        return (
+                                            <label
+                                                key={role.value}
+                                                className={cn(
+                                                    'flex cursor-pointer items-start gap-3 rounded-xl border border-border/40 bg-card/60 p-4 transition-colors',
+                                                    checked
+                                                        ? 'border-primary/40 bg-primary/5'
+                                                        : 'hover:border-border',
+                                                )}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    className="mt-0.5"
+                                                    name="promote-role"
+                                                    value={role.value}
+                                                    checked={checked}
+                                                    onChange={() =>
+                                                        setPromoteDialog(
+                                                            (current) => ({
+                                                                ...current,
+                                                                role: role.value,
+                                                                errors: {
+                                                                    ...current.errors,
+                                                                    role: '',
+                                                                },
+                                                            }),
+                                                        )
+                                                    }
+                                                />
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-medium">
+                                                        {role.label}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {role.description}
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                                <InputError
+                                    message={promoteDialog.errors.role}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="promote-reason">Notes</Label>
+                                <textarea
+                                    id="promote-reason"
+                                    className={textareaClassName}
+                                    value={promoteDialog.reason}
+                                    onChange={(event) =>
+                                        setPromoteDialog((current) => ({
+                                            ...current,
+                                            reason: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Optional reason for promotion — recorded in the audit trail."
+                                />
+                                <InputError
+                                    message={
+                                        promoteDialog.errors.reason ??
+                                        promoteDialog.errors.account_number
+                                    }
+                                />
+                            </div>
+
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled={promoteDialog.processing}
+                                    onClick={() =>
+                                        setPromoteDialog((current) => ({
+                                            ...current,
+                                            step: 2,
+                                            selectedMember: null,
+                                            role: '',
+                                            reason: '',
+                                            errors: {},
+                                        }))
+                                    }
+                                >
+                                    Back
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        promoteDialog.processing ||
+                                        promoteDialog.role === '' ||
+                                        !promoteDialog.selectedMember?.acctno
+                                    }
+                                >
+                                    {promoteDialog.processing
+                                        ? 'Promoting…'
+                                        : 'Promote member'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
                 </DialogContent>
             </Dialog>
         </AppLayout>

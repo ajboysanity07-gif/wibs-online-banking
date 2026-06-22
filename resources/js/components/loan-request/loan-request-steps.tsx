@@ -414,7 +414,7 @@ const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (
         {items.map((item) => (
             <div key={item.label} className="space-y-1">
                 <p className="text-xs text-muted-foreground">{item.label}</p>
-                <p className="text-sm font-medium break-words">{item.value}</p>
+                <p className="text-sm font-medium wrap-break-word">{item.value}</p>
             </div>
         ))}
     </div>
@@ -558,6 +558,7 @@ export function LoanRequestDataSectionStep({
                             ) : isNotesField ? (
                                 <textarea
                                     id={`${sectionKey}_${fieldKey}`}
+                                    aria-label={field.label}
                                     className={textareaClassName}
                                     value={value ? `${value}` : ''}
                                     maxLength={1000}

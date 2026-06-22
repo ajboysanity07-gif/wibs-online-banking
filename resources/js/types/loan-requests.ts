@@ -333,6 +333,13 @@ export type LoanRequestWorkflowHealth = {
     workflow_failed_job_count: number;
 };
 
+export type LoanRequestCompleteness = {
+    percentage: number;
+    completed: string[];
+    missing: string[];
+    missing_documents: LoanRequestDocumentKey[];
+};
+
 export type LoanRequestDetail = {
     id: number;
     reference: string;
@@ -398,6 +405,7 @@ export type LoanRequestDetail = {
     wibs_release_date: string | null;
     wibs_encoded_at: string | null;
     wibs_released_at: string | null;
+    completeness: LoanRequestCompleteness | null;
 };
 
 export type LoanRequestListItem = {

@@ -931,6 +931,27 @@ export default function StaffLoanRequestShow({
                             </div>
                         </CardContent>
                     </Card>
+                    {currentRequest.completeness?.missing_documents &&
+                    currentRequest.completeness.missing_documents.length > 0 ? (
+                        <Alert>
+                            <AlertTitle>Missing documents</AlertTitle>
+                            <AlertDescription>
+                                <ul className="mt-1 space-y-1">
+                                    {currentRequest.completeness.missing_documents.map(
+                                        (key: LoanRequestDocumentKey) => (
+                                            <li key={key} className="text-sm">
+                                                {key
+                                                    .replace(/_/g, ' ')
+                                                    .replace(/\b\w/g, (c) =>
+                                                        c.toUpperCase(),
+                                                    )}
+                                            </li>
+                                        ),
+                                    )}
+                                </ul>
+                            </AlertDescription>
+                        </Alert>
+                    ) : null}
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardTitle>Document checklist</CardTitle>

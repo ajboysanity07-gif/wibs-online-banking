@@ -650,23 +650,7 @@ class LoanRequestAssignmentService
             ]);
         }
 
-        if (
-            $loanRequest->user_id !== null
-            && $loanRequest->user_id === $targetOfficer->user_id
-        ) {
-            throw ValidationException::withMessages([
-                'officer_user_id' => 'You cannot assign an application to the applicant.',
-            ]);
-        }
-
-        $requestAcctno = trim((string) ($loanRequest->acctno ?? ''));
-        $targetAcctno = trim((string) ($targetOfficer->acctno ?? ''));
-
-        if (
-            $requestAcctno !== ''
-            && $targetAcctno !== ''
-            && $requestAcctno === $targetAcctno
-        ) {
+        if ($loanRequest->isOwnedBy($targetOfficer)) {
             throw ValidationException::withMessages([
                 'officer_user_id' => 'You cannot assign an application to the applicant.',
             ]);

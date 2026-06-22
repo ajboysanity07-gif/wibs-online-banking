@@ -177,6 +177,12 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('staff.reactivate');
             Route::get('staff/{user}/history', [SpaSuperadminStaffController::class, 'history'])
                 ->name('staff.history');
+            Route::get('staff/member-lookup', [SpaSuperadminStaffController::class, 'memberLookup'])
+                ->name('staff.member-lookup');
+            Route::get('staff/search-members', [SpaSuperadminStaffController::class, 'searchMembers'])
+                ->name('staff.search-members');
+            Route::post('staff/promote', [SpaSuperadminStaffController::class, 'promote'])
+                ->name('staff.promote');
         });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {
@@ -261,6 +267,10 @@ Route::patch('client/loans/requests/{loanRequest}/cancel', [LoanRequestControlle
 Route::patch('client/loans/requests/{loanRequest}/resolve-action', [LoanRequestController::class, 'resolveAction'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.resolve-action');
+
+Route::patch('client/loans/requests/{loanRequest}/save-draft', [LoanRequestController::class, 'saveDraft'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.loan-requests.save-draft');
 
 Route::post(
     'client/loans/requests/{loanRequest}/correction-reports',

@@ -222,6 +222,22 @@ class LoanRequest extends Model
             ->where('role', LoanRequestPersonRole::CoMakerTwo->value);
     }
 
+    public function isOwnedBy(AppUser $user): bool
+    {
+        if ($this->user_id !== null && $this->user_id === $user->user_id) {
+            return true;
+        }
+
+        $requestAcctno = trim((string) ($this->acctno ?? ''));
+        $userAcctno = trim((string) ($user->acctno ?? ''));
+
+        if ($requestAcctno === '' || $userAcctno === '') {
+            return false;
+        }
+
+        return $requestAcctno === $userAcctno;
+    }
+
     public function getReferenceAttribute(): string
     {
         $id = (int) ($this->getKey() ?? 0);
