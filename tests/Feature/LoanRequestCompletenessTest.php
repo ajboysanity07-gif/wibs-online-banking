@@ -177,6 +177,40 @@ test('completeness marks a document complete when generated and current', functi
         ->not->toContain(LoanRequestDocumentKey::ApplicationForm->value);
 });
 
+test('profile autofill populates correct fields on draft creation', function (): void {
+    $member = AppUser::factory()->create([
+        'acctno' => '001002',
+        'email_verified_at' => now(),
+    ]);
+
+    $member->roles()->sync(
+        Role::query()->where('name', Role::MEMBER)->pluck('id')->all(),
+    );
+
+    UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $member->user_id,
+        'employment_type' => 'Private',
+        'employer_business_name' => 'Autofill Corp',
+        'gross_monthly_income' => 45000,
+    ]);
+
+    DB::table('wmaster')->updateOrInsert(
+        ['acctno' => '001002'],
+        ['fname' => 'Juan', 'lname' => 'Cruz', 'birthday' => '1990-06-01', 'address' => '123 Main St'],
+    );
+
+    $this->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('applicant.first_name', 'Juan')
+            ->where('applicant.last_name', 'Cruz')
+            ->where('applicant.employment_type', 'Private')
+            ->where('applicant.employer_business_name', 'Autofill Corp')
+        );
+});
+
 test('completeness is included in the serialized loan request on the client show page', function (): void {
     $member = AppUser::factory()->create([
         'acctno' => '001001',
