@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
     LoanRequestPersonalFields,
@@ -54,6 +54,12 @@ import {
     promissoryNote as requestsPromissoryNoteDocument,
     undertakingBarangay as requestsUndertakingBarangayDocument,
 } from '@/routes/staff/loan-requests/documents';
+import {
+    confirmRelease as wibsConfirmRelease,
+    markForEncoding as wibsMarkForEncoding,
+    recordReference as wibsRecordReference,
+    scheduleRelease as wibsScheduleRelease,
+} from '@/routes/staff/loan-requests/wibs';
 import type { BreadcrumbItem } from '@/types';
 import type { Auth } from '@/types/auth';
 import type {
@@ -295,6 +301,9 @@ export default function StaffLoanRequestShow({
         useState(false);
     const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
     const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
+    const [wibsReference, setWibsReference] = useState('');
+    const [wibsReleaseDate, setWibsReleaseDate] = useState('');
+    const [isWibsSubmitting, setIsWibsSubmitting] = useState(false);
     const [memberActionType, setMemberActionType] = useState<
         'needs_revision' | 'awaiting_member_information'
     >('awaiting_member_information');
@@ -1253,6 +1262,224 @@ export default function StaffLoanRequestShow({
                     </Card>
                 </div>
             </section>
+            {hasWorkflowPermission('loan.wibs_encode') &&
+            [
+                'converted_to_loan',
+                'for_wibs_encoding',
+                'wibs_loan_created',
+                'release_scheduled',
+                'released',
+            ].includes(currentRequest.status ?? '') ? (
+                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <Card className="border-border/30 bg-card/70 shadow-sm">
+                        <CardHeader>
+                            <CardTitle>WIBS Tracking</CardTitle>
+                            <CardDescription>
+                                Official loan tracking in the WIBS system.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                    Status:
+                                </span>
+                                <Badge variant="secondary">
+                                    {currentRequest.status === 'converted_to_loan'
+                                        ? 'Converted to Loan'
+                                        : currentRequest.status === 'for_wibs_encoding'
+                                          ? 'For WIBS Encoding'
+                                          : currentRequest.status === 'wibs_loan_created'
+                                            ? 'WIBS Loan Created'
+                                            : currentRequest.status === 'release_scheduled'
+                                              ? 'Release Scheduled'
+                                              : 'Released'}
+                                </Badge>
+                            </div>
+
+                            {currentRequest.wibs_loan_reference ? (
+                                <div className="text-sm">
+                                    <span className="font-medium">
+                                        WIBS Reference:
+                                    </span>{' '}
+                                    {currentRequest.wibs_loan_reference}
+                                </div>
+                            ) : null}
+
+                            {currentRequest.wibs_release_date ? (
+                                <div className="text-sm">
+                                    <span className="font-medium">
+                                        Scheduled Release:
+                                    </span>{' '}
+                                    {currentRequest.wibs_release_date}
+                                </div>
+                            ) : null}
+
+                            {currentRequest.wibs_released_at ? (
+                                <div className="text-sm">
+                                    <span className="font-medium">
+                                        Released at:
+                                    </span>{' '}
+                                    {formatDateTime(currentRequest.wibs_released_at)}
+                                </div>
+                            ) : null}
+
+                            <Separator />
+
+                            {currentRequest.status === 'converted_to_loan' ? (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-muted-foreground">
+                                        Forward this loan to WIBS for encoding.
+                                    </p>
+                                    <Button
+                                        disabled={isWibsSubmitting}
+                                        onClick={() => {
+                                            setIsWibsSubmitting(true);
+                                            router.patch(
+                                                wibsMarkForEncoding(
+                                                    currentRequest.id,
+                                                ).url,
+                                                {},
+                                                {
+                                                    onFinish: () =>
+                                                        setIsWibsSubmitting(
+                                                            false,
+                                                        ),
+                                                },
+                                            );
+                                        }}
+                                    >
+                                        {isWibsSubmitting
+                                            ? 'Processing…'
+                                            : 'Mark for WIBS Encoding'}
+                                    </Button>
+                                </div>
+                            ) : currentRequest.status === 'for_wibs_encoding' ? (
+                                <form
+                                    className="space-y-3"
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        setIsWibsSubmitting(true);
+                                        router.patch(
+                                            wibsRecordReference(
+                                                currentRequest.id,
+                                            ).url,
+                                            {
+                                                wibs_loan_reference:
+                                                    wibsReference,
+                                            },
+                                            {
+                                                onFinish: () =>
+                                                    setIsWibsSubmitting(false),
+                                            },
+                                        );
+                                    }}
+                                >
+                                    <div className="space-y-1">
+                                        <Label htmlFor="wibs_loan_reference">
+                                            WIBS Loan Reference
+                                        </Label>
+                                        <Input
+                                            id="wibs_loan_reference"
+                                            value={wibsReference}
+                                            onChange={(e) =>
+                                                setWibsReference(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            maxLength={100}
+                                            required
+                                            placeholder="e.g. WIBS-2026-001"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        disabled={isWibsSubmitting}
+                                    >
+                                        {isWibsSubmitting
+                                            ? 'Saving…'
+                                            : 'Record WIBS Reference'}
+                                    </Button>
+                                </form>
+                            ) : currentRequest.status === 'wibs_loan_created' ? (
+                                <form
+                                    className="space-y-3"
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        setIsWibsSubmitting(true);
+                                        router.patch(
+                                            wibsScheduleRelease(
+                                                currentRequest.id,
+                                            ).url,
+                                            {
+                                                wibs_release_date:
+                                                    wibsReleaseDate,
+                                            },
+                                            {
+                                                onFinish: () =>
+                                                    setIsWibsSubmitting(false),
+                                            },
+                                        );
+                                    }}
+                                >
+                                    <div className="space-y-1">
+                                        <Label htmlFor="wibs_release_date">
+                                            Release Date
+                                        </Label>
+                                        <Input
+                                            id="wibs_release_date"
+                                            type="date"
+                                            value={wibsReleaseDate}
+                                            onChange={(e) =>
+                                                setWibsReleaseDate(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        disabled={isWibsSubmitting}
+                                    >
+                                        {isWibsSubmitting
+                                            ? 'Saving…'
+                                            : 'Schedule Release'}
+                                    </Button>
+                                </form>
+                            ) : currentRequest.status === 'release_scheduled' ? (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-muted-foreground">
+                                        Confirm that the loan has been released
+                                        to the member.
+                                    </p>
+                                    <Button
+                                        disabled={isWibsSubmitting}
+                                        onClick={() => {
+                                            setIsWibsSubmitting(true);
+                                            router.patch(
+                                                wibsConfirmRelease(
+                                                    currentRequest.id,
+                                                ).url,
+                                                {},
+                                                {
+                                                    onFinish: () =>
+                                                        setIsWibsSubmitting(
+                                                            false,
+                                                        ),
+                                                },
+                                            );
+                                        }}
+                                    >
+                                        {isWibsSubmitting
+                                            ? 'Processing…'
+                                            : 'Confirm Release'}
+                                    </Button>
+                                </div>
+                            ) : null}
+                        </CardContent>
+                    </Card>
+                </section>
+            ) : null}
             <LoanRequestDetailPage
                 loanRequest={currentRequest}
                 applicant={currentApplicant}

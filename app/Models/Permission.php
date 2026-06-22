@@ -35,6 +35,8 @@ class Permission extends Model
 
     public const LOAN_CONVERT_TO_LOAN = 'loan.convert_to_loan';
 
+    public const LOAN_WIBS_ENCODE = 'loan.wibs_encode';
+
     public const STAFF_VIEW = 'staff.view';
 
     public const STAFF_MANAGE = 'staff.manage';
@@ -46,6 +48,12 @@ class Permission extends Model
     public const MEMBER_UPDATE = 'member.update';
 
     public const PAYMENT_CREATE = 'payment.create';
+
+    public const REPORT_VIEW_ALL = 'report.view_all';
+
+    public const REPORT_VIEW_OWN = 'report.view_own';
+
+    public const REPORT_EXPORT = 'report.export';
 
     /**
      * @var list<string>
@@ -72,12 +80,16 @@ class Permission extends Model
             ['name' => self::LOAN_RECOMMEND_APPROVAL, 'display_name' => 'Recommend loan approval'],
             ['name' => self::LOAN_APPROVE, 'display_name' => 'Approve loans'],
             ['name' => self::LOAN_DECLINE, 'display_name' => 'Decline loans'],
+            ['name' => self::LOAN_WIBS_ENCODE, 'display_name' => 'Encode loan in WIBS'],
             ['name' => self::STAFF_VIEW, 'display_name' => 'View staff accounts'],
             ['name' => self::STAFF_MANAGE, 'display_name' => 'Manage staff accounts'],
             ['name' => self::MEMBER_VIEW, 'display_name' => 'View members'],
             ['name' => self::MEMBER_CREATE, 'display_name' => 'Create members'],
             ['name' => self::MEMBER_UPDATE, 'display_name' => 'Update members'],
             ['name' => self::PAYMENT_CREATE, 'display_name' => 'Create payments'],
+            ['name' => self::REPORT_VIEW_ALL, 'display_name' => 'View all reports'],
+            ['name' => self::REPORT_VIEW_OWN, 'display_name' => 'View own reports'],
+            ['name' => self::REPORT_EXPORT, 'display_name' => 'Export reports'],
         ];
     }
 

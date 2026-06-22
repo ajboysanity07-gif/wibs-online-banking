@@ -61,6 +61,7 @@ class LoanRequestController extends Controller
             'loanRequest' => [
                 ...$detail['loanRequest'],
                 ...$assignmentService->capabilitiesFor($loanRequest, $actor),
+                'wibs_loan_reference' => $loanRequest->wibs_loan_reference,
             ],
             'auditTrail' => $serializer->serializeAuditTrail($loanRequest),
             'notificationHistory' => $serializer->serializeNotificationHistory(

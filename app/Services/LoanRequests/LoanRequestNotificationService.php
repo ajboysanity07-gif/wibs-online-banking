@@ -24,6 +24,14 @@ class LoanRequestNotificationService
 
     public const EVENT_APPROVED_FOR_WIBS = 'approved_for_wibs_processing';
 
+    public const EVENT_FOR_WIBS_ENCODING = 'for_wibs_encoding';
+
+    public const EVENT_WIBS_LOAN_CREATED = 'wibs_loan_created';
+
+    public const EVENT_RELEASE_SCHEDULED = 'release_scheduled';
+
+    public const EVENT_RELEASED = 'released';
+
     public const EVENT_CANCELLED = 'cancelled';
 
     public const EVENT_REOPENED = 'reopened';

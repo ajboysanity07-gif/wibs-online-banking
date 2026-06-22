@@ -28,19 +28,23 @@ return new class extends Migration
             }
 
             if (Schema::hasColumn('user_role_changes', 'before_roles_json')) {
-                DB::table('user_role_changes')->update([
-                    'before_roles_json' => DB::raw(
-                        "REPLACE(before_roles_json, 'loan_officer', 'loan_processor')",
-                    ),
-                ]);
+                DB::table('user_role_changes')
+                    ->where('before_roles_json', 'like', '%loan_officer%')
+                    ->update([
+                        'before_roles_json' => DB::raw(
+                            "REPLACE(before_roles_json, 'loan_officer', 'loan_processor')",
+                        ),
+                    ]);
             }
 
             if (Schema::hasColumn('user_role_changes', 'after_roles_json')) {
-                DB::table('user_role_changes')->update([
-                    'after_roles_json' => DB::raw(
-                        "REPLACE(after_roles_json, 'loan_officer', 'loan_processor')",
-                    ),
-                ]);
+                DB::table('user_role_changes')
+                    ->where('after_roles_json', 'like', '%loan_officer%')
+                    ->update([
+                        'after_roles_json' => DB::raw(
+                            "REPLACE(after_roles_json, 'loan_officer', 'loan_processor')",
+                        ),
+                    ]);
             }
         }
     }

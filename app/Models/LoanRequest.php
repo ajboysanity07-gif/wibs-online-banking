@@ -81,6 +81,10 @@ class LoanRequest extends Model
         'cancelled_by',
         'cancelled_at',
         'cancellation_reason',
+        'wibs_loan_reference',
+        'wibs_release_date',
+        'wibs_encoded_at',
+        'wibs_released_at',
     ];
 
     public function user(): BelongsTo
@@ -249,6 +253,9 @@ class LoanRequest extends Model
             'member_action_fields_json' => 'array',
             'workflow_version' => LoanRequestWorkflowVersion::class,
             'status' => LoanRequestStatus::class,
+            'wibs_release_date' => 'date',
+            'wibs_encoded_at' => 'datetime',
+            'wibs_released_at' => 'datetime',
         ];
     }
 }

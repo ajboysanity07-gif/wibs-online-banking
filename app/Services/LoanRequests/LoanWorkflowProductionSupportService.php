@@ -101,6 +101,10 @@ class LoanWorkflowProductionSupportService
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
+        foreach ($this->wibsIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
         foreach ($this->notificationIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
@@ -879,6 +883,31 @@ class LoanWorkflowProductionSupportService
             );
 
             return $issues;
+        }
+
+        $duplicateDocumentKeys = DB::table('loan_request_documents')
+            ->select([
+                'loan_request_id',
+                'document_key',
+                DB::raw('COUNT(*) as duplicate_count'),
+            ])
+            ->whereNotNull('document_key')
+            ->groupBy(['loan_request_id', 'document_key'])
+            ->havingRaw('COUNT(*) > 1')
+            ->get();
+
+        if ($duplicateDocumentKeys->isNotEmpty()) {
+            $issues['blocking'][] = $this->issue(
+                'duplicate_document_keys',
+                'Duplicate (loan_request_id, document_key) pairs exist in loan_request_documents. The unique index added by Phase 7 will silently fail unless these are resolved before migration.',
+                $duplicateDocumentKeys->count(),
+                $duplicateDocumentKeys->map(fn (object $item): string => sprintf(
+                    'request:%d %s (%dx)',
+                    (int) $item->loan_request_id,
+                    trim((string) $item->document_key),
+                    (int) $item->duplicate_count,
+                ))->all(),
+            );
         }
 
         $missingFiles = [];
@@ -1974,6 +2003,92 @@ class LoanWorkflowProductionSupportService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    /**
+     * @return array{
+     *     blocking:list<array<string, mixed>>,
+     *     warnings:list<array<string, mixed>>,
+     *     deferred:list<array<string, mixed>>,
+     *     ok:list<array<string, mixed>>
+     * }
+     */
+    private function wibsIssues(LoanWorkflowPreflightStage $stage): array
+    {
+        $issues = [
+            'blocking' => [],
+            'warnings' => [],
+            'deferred' => [],
+            'ok' => [],
+        ];
+
+        if (! $this->schemaCapabilities->hasTable('loan_requests')) {
+            $issues['deferred'][] = $this->issue(
+                'wibs_validation',
+                'WIBS tracking checks are deferred because the loan_requests table is absent.',
+                0,
+            );
+
+            return $issues;
+        }
+
+        if (! $this->schemaCapabilities->hasColumn('loan_requests', 'wibs_loan_reference')) {
+            $issues['deferred'][] = $this->issue(
+                'wibs_validation',
+                'WIBS tracking checks are deferred because the wibs_loan_reference column is absent. Run migrations first.',
+                0,
+            );
+
+            return $issues;
+        }
+
+        $staleDays = (int) config('loan_workflow.wibs_encoding_stale_days', 5);
+        $staleThreshold = CarbonImmutable::now()->subWeekdays($staleDays);
+
+        $staleEncoding = DB::table('loan_requests')
+            ->where('status', LoanRequestStatus::ForWibsEncoding->value)
+            ->where(function ($query) use ($staleThreshold): void {
+                $query->where('wibs_encoded_at', '<', $staleThreshold)
+                    ->orWhereNull('wibs_encoded_at');
+            })
+            ->pluck('id');
+
+        if ($staleEncoding->isNotEmpty()) {
+            $issues['deferred'][] = $this->issue(
+                'stale_wibs_encoding',
+                sprintf(
+                    '%d loan request(s) have been in "for_wibs_encoding" status for more than %d business day(s) without a WIBS reference.',
+                    $staleEncoding->count(),
+                    $staleDays,
+                ),
+                $staleEncoding->count(),
+                $staleEncoding->map(fn (int $id): string => 'request:'.$id)->all(),
+            );
+        }
+
+        $missingReference = DB::table('loan_requests')
+            ->where('status', LoanRequestStatus::WibsLoanCreated->value)
+            ->whereNull('wibs_loan_reference')
+            ->pluck('id');
+
+        if ($missingReference->isNotEmpty()) {
+            $issues['blocking'][] = $this->issue(
+                'wibs_reference_missing',
+                'Loan request(s) with "wibs_loan_created" status have a null wibs_loan_reference, indicating data inconsistency.',
+                $missingReference->count(),
+                $missingReference->map(fn (int $id): string => 'request:'.$id)->all(),
+            );
+        }
+
+        if ($issues['blocking'] === [] && $issues['deferred'] === []) {
+            $issues['ok'][] = $this->issue(
+                'wibs_tracking',
+                'WIBS tracking data integrity checks passed.',
+                1,
+            );
+        }
+
+        return $issues;
     }
 
     /**

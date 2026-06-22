@@ -154,6 +154,8 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
         Permission::MEMBER_UPDATE,
         Permission::MEMBER_VIEW,
         Permission::PAYMENT_CREATE,
+        Permission::REPORT_EXPORT,
+        Permission::REPORT_VIEW_ALL,
         Permission::STAFF_MANAGE,
         Permission::STAFF_VIEW,
     ]);
@@ -165,12 +167,16 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
         Permission::LOAN_RETURN_TO_QUEUE,
         Permission::LOAN_REVIEW,
         Permission::LOAN_VIEW,
+        Permission::REPORT_VIEW_OWN,
     ]);
     expect($loanManagerRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
         Permission::LOAN_APPROVE,
         Permission::LOAN_DECLINE,
         Permission::LOAN_MANAGE_ASSIGNMENT,
         Permission::LOAN_VIEW,
+        Permission::LOAN_WIBS_ENCODE,
+        Permission::REPORT_EXPORT,
+        Permission::REPORT_VIEW_ALL,
     ]);
 
     $legacyConversionPermission = Permission::query()->firstOrCreate(
@@ -217,6 +223,7 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     expect($legacySuperadmin->hasRole(Role::SUPERADMIN))->toBeTrue();
     expect($legacySuperadmin->isSuperadmin())->toBeTrue();
     expect($legacySuperadmin->hasPermission(Permission::STAFF_MANAGE))->toBeTrue();
+    expect($legacySuperadmin->hasPermission(Permission::REPORT_VIEW_ALL))->toBeTrue();
     expect($legacySuperadmin->hasPermission(Permission::LOAN_REVIEW))->toBeFalse();
     expect($legacySuperadmin->hasPermission(Permission::LOAN_APPROVE))->toBeFalse();
 

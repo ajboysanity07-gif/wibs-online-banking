@@ -60,6 +60,10 @@ class LoanRequestPayloadSerializer
         LoanRequestChange::ACTION_MEMBER_DECLINED_TERMS => 'Terms Declined',
         LoanRequestChange::ACTION_WORKFLOW_UPGRADED => 'Workflow Upgraded',
         LoanRequestChange::ACTION_CONVERT_TO_LOAN => 'Converted to Loan',
+        LoanRequestChange::ACTION_MARK_FOR_WIBS_ENCODING => 'Marked for WIBS Encoding',
+        LoanRequestChange::ACTION_RECORD_WIBS_REFERENCE => 'WIBS Reference Recorded',
+        LoanRequestChange::ACTION_SCHEDULE_WIBS_RELEASE => 'Release Scheduled',
+        LoanRequestChange::ACTION_CONFIRM_WIBS_RELEASE => 'Released',
         LoanRequestChange::ACTION_CANCEL_REQUEST => 'Cancelled',
         LoanRequestChange::ACTION_CANCEL_APPROVED_REQUEST => 'Cancelled',
         LoanRequestChange::ACTION_CREATE_CORRECTED_REQUEST => 'Corrected Request Created',
@@ -82,6 +86,10 @@ class LoanRequestPayloadSerializer
         LoanRequestStatus::Declined->value => 'Declined by Loan Manager',
         LoanRequestStatus::MemberDeclinedTerms->value => 'Member Declined Revised Terms',
         LoanRequestStatus::ConvertedToLoan->value => 'Converted to Loan',
+        LoanRequestStatus::ForWibsEncoding->value => 'For WIBS Encoding',
+        LoanRequestStatus::WibsLoanCreated->value => 'WIBS Loan Created',
+        LoanRequestStatus::ReleaseScheduled->value => 'Release Scheduled',
+        LoanRequestStatus::Released->value => 'Released',
         LoanRequestStatus::Cancelled->value => 'Cancelled',
     ];
 
@@ -249,6 +257,9 @@ class LoanRequestPayloadSerializer
             'correction_saved' => $correctionSaved,
             'requires_correction_before_approval' => $requiresCorrectionBeforeApproval,
             'acctno' => $loanRequest->acctno,
+            'wibs_release_date' => $loanRequest->wibs_release_date?->toDateString(),
+            'wibs_encoded_at' => $loanRequest->wibs_encoded_at?->toDateTimeString(),
+            'wibs_released_at' => $loanRequest->wibs_released_at?->toDateTimeString(),
         ];
     }
 

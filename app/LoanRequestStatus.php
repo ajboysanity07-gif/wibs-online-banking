@@ -18,6 +18,10 @@ enum LoanRequestStatus: string
     case Declined = 'declined';
     case MemberDeclinedTerms = 'member_declined_terms';
     case ConvertedToLoan = 'converted_to_loan';
+    case ForWibsEncoding = 'for_wibs_encoding';
+    case WibsLoanCreated = 'wibs_loan_created';
+    case ReleaseScheduled = 'release_scheduled';
+    case Released = 'released';
     case Cancelled = 'cancelled';
 
     public function normalized(): self
@@ -97,6 +101,10 @@ enum LoanRequestStatus: string
             self::Declined->value,
             self::MemberDeclinedTerms->value,
             self::ConvertedToLoan->value,
+            self::ForWibsEncoding->value,
+            self::WibsLoanCreated->value,
+            self::ReleaseScheduled->value,
+            self::Released->value,
             self::Cancelled->value,
         ];
     }
@@ -118,6 +126,10 @@ enum LoanRequestStatus: string
             self::Declined->value,
             self::MemberDeclinedTerms->value,
             self::ConvertedToLoan->value,
+            self::ForWibsEncoding->value,
+            self::WibsLoanCreated->value,
+            self::ReleaseScheduled->value,
+            self::Released->value,
         ];
     }
 }

@@ -67,6 +67,14 @@ class LoanRequestChange extends Model
 
     public const ACTION_CANCEL_APPROVED_REQUEST = 'cancel_approved_request';
 
+    public const ACTION_MARK_FOR_WIBS_ENCODING = 'mark_for_wibs_encoding';
+
+    public const ACTION_RECORD_WIBS_REFERENCE = 'record_wibs_reference';
+
+    public const ACTION_SCHEDULE_WIBS_RELEASE = 'schedule_wibs_release';
+
+    public const ACTION_CONFIRM_WIBS_RELEASE = 'confirm_wibs_release';
+
     /**
      * @var list<string>
      */

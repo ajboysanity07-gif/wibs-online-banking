@@ -4,6 +4,7 @@ use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestDocument;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Services\LoanRequests\LoanWorkflowProductionSupportService;
@@ -155,6 +156,41 @@ test('repair command is idempotent and does not dispatch notifications or jobs',
 
     Notification::assertNothingSent();
     Queue::assertNothingPushed();
+});
+
+test('preflight blocks when duplicate document_key pairs exist for the same loan request', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'submitted_at' => now(),
+    ]);
+
+    // Create one document normally while the unique index is in place.
+    LoanRequestDocument::factory()->create([
+        'loan_request_id' => $loanRequest->id,
+        'document_key' => 'application_form',
+    ]);
+
+    // Drop both unique indexes (the original from the create migration and the one
+    // added by the Phase 7 hardening migration) to simulate a production database
+    // where duplicates pre-existed and the Phase 7 unique index silently failed.
+    DB::statement('DROP INDEX IF EXISTS loan_request_documents_loan_request_id_document_key_unique');
+    DB::statement('DROP INDEX IF EXISTS loan_request_documents_request_document_unique');
+    DB::table('loan_request_documents')->insert([
+        'loan_request_id' => $loanRequest->id,
+        'document_key' => 'application_form',
+        'is_applicable' => true,
+        'readiness_status' => 'not_started',
+        'source_version' => 1,
+        'generated_version' => 0,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->artisan('loan-workflow:preflight', [
+        '--stage' => 'post-migration',
+    ])
+        ->expectsOutputToContain('duplicate_document_keys')
+        ->assertFailed();
 });
 
 test('workflow migrations and permission seeding do not dispatch notifications or jobs', function (): void {

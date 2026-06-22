@@ -173,9 +173,13 @@ return new class extends Migration
             }
         });
 
-        DB::table('loan_requests')->update([
-            'workflow_version' => LoanRequestWorkflowVersion::LegacyV1->value,
-        ]);
+        DB::table('loan_requests')
+            ->whereNull('workflow_version')
+            ->orderBy('id')
+            ->chunkById(200, fn ($chunk) => DB::table('loan_requests')
+                ->whereIn('id', $chunk->pluck('id'))
+                ->update(['workflow_version' => LoanRequestWorkflowVersion::LegacyV1->value])
+            );
     }
 
     /**

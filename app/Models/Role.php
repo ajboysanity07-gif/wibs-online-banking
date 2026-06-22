@@ -79,6 +79,8 @@ class Role extends Model
                 Permission::MEMBER_CREATE,
                 Permission::MEMBER_UPDATE,
                 Permission::PAYMENT_CREATE,
+                Permission::REPORT_VIEW_ALL,
+                Permission::REPORT_EXPORT,
             ],
             self::MEMBER => [
                 Permission::LOAN_CREATE,
@@ -92,12 +94,16 @@ class Role extends Model
                 Permission::LOAN_REQUEST_REVISION,
                 Permission::LOAN_REJECT,
                 Permission::LOAN_RECOMMEND_APPROVAL,
+                Permission::REPORT_VIEW_OWN,
             ],
             self::LOAN_MANAGER => [
                 Permission::LOAN_VIEW,
                 Permission::LOAN_MANAGE_ASSIGNMENT,
                 Permission::LOAN_APPROVE,
                 Permission::LOAN_DECLINE,
+                Permission::LOAN_WIBS_ENCODE,
+                Permission::REPORT_VIEW_ALL,
+                Permission::REPORT_EXPORT,
             ],
         ];
 

@@ -624,6 +624,31 @@ export default function LoanRequestShow({
                     </Card>
                 </section>
             ) : null}
+            {[
+                'for_wibs_encoding',
+                'wibs_loan_created',
+                'release_scheduled',
+                'released',
+            ].includes(currentLoanRequest.status ?? '') ? (
+                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Loan Release Status</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">
+                                {currentLoanRequest.status === 'for_wibs_encoding'
+                                    ? 'Your loan is currently being processed for release in the WIBS system.'
+                                    : currentLoanRequest.status === 'wibs_loan_created'
+                                      ? 'Your loan has been created in WIBS. A release date will be scheduled soon.'
+                                      : currentLoanRequest.status === 'release_scheduled'
+                                        ? `Your loan release has been scheduled${currentLoanRequest.wibs_release_date ? ' for ' + currentLoanRequest.wibs_release_date : ''}. Please coordinate with your branch.`
+                                        : 'Your loan has been released. Please coordinate with your branch for the next steps.'}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </section>
+            ) : null}
             <LoanRequestDetailPage
                 loanRequest={currentLoanRequest}
                 applicant={applicant}

@@ -246,6 +246,42 @@ class LoanRequestPolicy
         ) && $this->statusValue($loanRequest) === LoanRequestStatus::RecommendedForApproval->value;
     }
 
+    public function markForWibsEncoding(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        return $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_WIBS_ENCODE,
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::ConvertedToLoan->value;
+    }
+
+    public function recordWibsReference(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        return $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_WIBS_ENCODE,
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::ForWibsEncoding->value;
+    }
+
+    public function scheduleWibsRelease(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        return $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_WIBS_ENCODE,
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::WibsLoanCreated->value;
+    }
+
+    public function confirmWibsRelease(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        return $this->canActOnAnotherUsersRequest(
+            $user,
+            $loanRequest,
+            Permission::LOAN_WIBS_ENCODE,
+        ) && $this->statusValue($loanRequest) === LoanRequestStatus::ReleaseScheduled->value;
+    }
+
     public function delete(AppUser $user, LoanRequest $loanRequest): bool
     {
         return false;

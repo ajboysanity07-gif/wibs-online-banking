@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\LoanRequestController as AdminLoanRequestController;
 use App\Http\Controllers\Admin\MemberLoanPaymentsController;
 use App\Http\Controllers\Admin\MemberLoanPaymentsExportController;
@@ -9,6 +8,7 @@ use App\Http\Controllers\Admin\MemberLoansController;
 use App\Http\Controllers\Admin\MemberProfileController;
 use App\Http\Controllers\Admin\MemberSavingsController;
 use App\Http\Controllers\Admin\OrganizationSettingsController;
+use App\Http\Controllers\Admin\ReportingController;
 use App\Http\Controllers\Admin\RequestsController;
 use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Api\BirthplaceSearchController;
@@ -58,6 +58,8 @@ use App\Http\Controllers\Spa\Staff\RequestsController as SpaStaffRequestsControl
 use App\Http\Controllers\Spa\Superadmin\StaffController as SpaSuperadminStaffController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use App\Http\Controllers\Staff\LoanRequestController as StaffLoanRequestController;
+use App\Http\Controllers\Staff\ProcessorDashboardController;
+use App\Http\Controllers\Staff\WibsTrackingController;
 use App\Http\Controllers\Superadmin\StaffController as SuperadminStaffController;
 use App\Http\Controllers\WorkspaceSwitchController;
 use Illuminate\Support\Facades\Route;
@@ -358,6 +360,9 @@ Route::get('notifications', NotificationsPageController::class)
     ->name('notifications');
 
 Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])->group(function () {
+    Route::get('processor-dashboard', [ProcessorDashboardController::class, 'index'])
+        ->name('staff.processor-dashboard.index');
+
     Route::get('loan-requests', [StaffLoanRequestController::class, 'index'])
         ->name('staff.loan-requests.index');
 
@@ -402,13 +407,31 @@ Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])-
         Route::get('authorization', [StaffLoanRequestController::class, 'authorizationDocument'])
             ->name('staff.loan-requests.documents.authorization');
     });
+
+    Route::prefix('loan-requests/{loanRequest}/wibs')->group(function () {
+        Route::patch('mark-for-encoding', [WibsTrackingController::class, 'markForEncoding'])
+            ->name('staff.loan-requests.wibs.mark-for-encoding');
+        Route::patch('record-reference', [WibsTrackingController::class, 'recordReference'])
+            ->name('staff.loan-requests.wibs.record-reference');
+        Route::patch('schedule-release', [WibsTrackingController::class, 'scheduleRelease'])
+            ->name('staff.loan-requests.wibs.schedule-release');
+        Route::patch('confirm-release', [WibsTrackingController::class, 'confirmRelease'])
+            ->name('staff.loan-requests.wibs.confirm-release');
+    });
 });
 
 Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(function () {
     Route::redirect('/', '/admin/dashboard')->name('admin.home');
 
-    Route::get('dashboard', [AdminDashboardController::class, 'index'])
+    Route::get('dashboard', [ReportingController::class, 'dashboard'])
         ->name('admin.dashboard');
+
+    Route::get('reports', [ReportingController::class, 'index'])
+        ->name('admin.reports.index');
+
+    Route::get('reports/export/{type}', [ReportingController::class, 'export'])
+        ->name('admin.reports.export')
+        ->where('type', 'monthly-applications|rejection-reasons|turnaround-time|processor-workload');
 
     Route::get('members/{user}', [MemberProfileController::class, 'show'])
         ->name('admin.members.show');

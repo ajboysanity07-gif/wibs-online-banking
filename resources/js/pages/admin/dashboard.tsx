@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { MemberListCardSkeleton } from '@/components/member-list-card-skeleton';
@@ -16,6 +16,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import {
     Table,
     TableBody,
@@ -36,14 +37,23 @@ import {
     getRegistrationStatusVariant,
 } from '@/lib/member-status';
 import { dashboard } from '@/routes/admin';
+import { index as reportsIndex } from '@/routes/admin/reports';
 import { show as showMember } from '@/routes/admin/members';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
 import type { DashboardSummary, MemberSummary } from '@/types/admin';
+import type { DateRange, ReportingMetrics, StaffPerformanceRow } from '@/types/reports';
+
+type DateRangeToggle = 'today' | 'week' | 'month' | 'all';
 
 type Props = {
     summary: DashboardSummary;
+    reportingMetrics?: ReportingMetrics;
+    applicationVolume?: Record<string, number>;
+    staffPerformance?: StaffPerformanceRow[];
+    canExport?: boolean;
+    dateRange?: DateRange;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -117,7 +127,69 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
     </SurfaceCard>
 );
 
-export default function AdminDashboard({ summary }: Props) {
+function InlineBarChart({ data }: { data: Record<string, number> }) {
+    const entries = Object.entries(data);
+    const max = Math.max(...entries.map(([, v]) => v), 1);
+
+    return (
+        <div className="flex h-40 items-end gap-1 overflow-x-auto pb-4">
+            {entries.map(([date, count]) => (
+                <div key={date} className="flex flex-1 flex-col items-center gap-1" title={`${date}: ${count}`}>
+                    <span className="text-[10px] text-muted-foreground">{count}</span>
+                    <div
+                        className="w-full min-w-3 rounded-t bg-primary/70"
+                        style={{ height: `${Math.round((count / max) * 80)}px` }}
+                    />
+                    <span className="w-full truncate text-center text-[9px] text-muted-foreground">
+                        {date.slice(5)}
+                    </span>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP',
+        maximumFractionDigits: 0,
+    }).format(value);
+}
+
+function applyDateRangeToggle(toggle: DateRangeToggle): void {
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmt = (d: Date) =>
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    const to = fmt(today);
+    let from: string | undefined;
+
+    if (toggle === 'today') {
+        from = to;
+    } else if (toggle === 'week') {
+        const d = new Date(today);
+        d.setDate(d.getDate() - 6);
+        from = fmt(d);
+    } else if (toggle === 'month') {
+        from = fmt(new Date(today.getFullYear(), today.getMonth(), 1));
+    }
+
+    router.get(
+        dashboard().url,
+        from ? { from, to } : {},
+        { preserveScroll: true, replace: true },
+    );
+}
+
+export default function AdminDashboard({
+    summary,
+    reportingMetrics,
+    applicationVolume,
+    staffPerformance,
+    canExport,
+}: Props) {
     const {
         summary: summaryState,
         refresh,
@@ -254,6 +326,124 @@ export default function AdminDashboard({ summary }: Props) {
                         </CardContent>
                     </Card>
                 </div>
+
+                {reportingMetrics ? (
+                    <>
+                        <Separator />
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold">Loan workflow reporting</h2>
+                                <p className="text-sm text-muted-foreground">Application volume and processing metrics.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {(['today', 'week', 'month', 'all'] as DateRangeToggle[]).map((t) => (
+                                    <Button
+                                        key={t}
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => applyDateRangeToggle(t)}
+                                    >
+                                        {t === 'today' ? 'Today' : t === 'week' ? 'This week' : t === 'month' ? 'This month' : 'All time'}
+                                    </Button>
+                                ))}
+                                {canExport ? (
+                                    <Button size="sm" variant="secondary" asChild>
+                                        <Link href={reportsIndex().url}>View reports</Link>
+                                    </Button>
+                                ) : null}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardDescription>Pending applications</CardDescription>
+                                    <CardTitle className="text-3xl">{reportingMetrics.pending_count}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">In-progress loan requests</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardDescription>Approved</CardDescription>
+                                    <CardTitle className="text-3xl">{reportingMetrics.approved_count}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">
+                                        Approval rate: {reportingMetrics.approval_rate}%
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardDescription>Avg processing days</CardDescription>
+                                    <CardTitle className="text-3xl">
+                                        {reportingMetrics.average_processing_days ?? '--'}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Days from submission to decision</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardDescription>Portfolio total</CardDescription>
+                                    <CardTitle className="text-2xl">{formatCurrency(reportingMetrics.portfolio_total)}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Sum of approved loan amounts</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {applicationVolume && Object.keys(applicationVolume).length > 0 ? (
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardTitle>Application volume</CardTitle>
+                                    <CardDescription>Daily loan application submissions.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <InlineBarChart data={applicationVolume} />
+                                </CardContent>
+                            </Card>
+                        ) : null}
+
+                        {staffPerformance && staffPerformance.length > 0 ? (
+                            <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardTitle>Staff workload</CardTitle>
+                                    <CardDescription>Per-processor assignment and decision summary.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="px-0">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="px-6">Processor</TableHead>
+                                                <TableHead className="px-6">Assigned</TableHead>
+                                                <TableHead className="px-6">Approved</TableHead>
+                                                <TableHead className="px-6">Rejected</TableHead>
+                                                <TableHead className="px-6">Avg days</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {staffPerformance.map((row) => (
+                                                <TableRow key={row.processor_id}>
+                                                    <TableCell className="px-6 font-medium">{row.name}</TableCell>
+                                                    <TableCell className="px-6">{row.assigned}</TableCell>
+                                                    <TableCell className="px-6">{row.approved}</TableCell>
+                                                    <TableCell className="px-6">{row.rejected}</TableCell>
+                                                    <TableCell className="px-6">{row.avg_days ?? '--'}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        ) : null}
+                        <Separator />
+                    </>
+                ) : null}
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card

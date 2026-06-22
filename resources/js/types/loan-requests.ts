@@ -158,6 +158,10 @@ export type LoanRequestStatusValue =
     | 'declined'
     | 'member_declined_terms'
     | 'converted_to_loan'
+    | 'for_wibs_encoding'
+    | 'wibs_loan_created'
+    | 'release_scheduled'
+    | 'released'
     | 'cancelled';
 
 export type LoanRequestWorkflowPermission =
@@ -171,7 +175,8 @@ export type LoanRequestWorkflowPermission =
     | 'loan.reject'
     | 'loan.recommend_approval'
     | 'loan.approve'
-    | 'loan.decline';
+    | 'loan.decline'
+    | 'loan.wibs_encode';
 
 export type LoanRequestWorkflowContext = {
     isOwnRequest: boolean;
@@ -389,6 +394,10 @@ export type LoanRequestDetail = {
     correction_saved: boolean;
     requires_correction_before_approval: boolean;
     acctno: string | null;
+    wibs_loan_reference: string | null;
+    wibs_release_date: string | null;
+    wibs_encoded_at: string | null;
+    wibs_released_at: string | null;
 };
 
 export type LoanRequestListItem = {

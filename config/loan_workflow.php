@@ -5,6 +5,8 @@ return [
         'LOAN_WORKFLOW_OFFICER_WORKLOAD_WARNING_THRESHOLD',
         30,
     ),
+    'report_aging_threshold_days' => (int) env('LOAN_WORKFLOW_REPORT_AGING_DAYS', 3),
+    'wibs_encoding_stale_days' => (int) env('LOAN_WORKFLOW_WIBS_STALE_DAYS', 5),
     'documents' => [
         'disk' => env('LOAN_WORKFLOW_DOCUMENT_DISK', 'local'),
         'directory' => env(
