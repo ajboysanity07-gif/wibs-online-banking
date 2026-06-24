@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureLoanWorkflowStaffAccess;
 use App\Http\Middleware\EnsureMemberProfileComplete;
 use App\Http\Middleware\EnsureMemberVerified;
 use App\Http\Middleware\EnsureSuperadmin;
+use App\Http\Middleware\EnsureTwoFactorSetup;
 use App\Http\Middleware\EnsureUserApproved;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'member-profile-complete' => EnsureMemberProfileComplete::class,
             'member-verified' => EnsureMemberVerified::class,
             'superadmin' => EnsureSuperadmin::class,
+            'two-factor-setup' => EnsureTwoFactorSetup::class,
         ]);
 
         $middleware->web(append: [

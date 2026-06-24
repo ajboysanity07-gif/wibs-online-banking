@@ -16,7 +16,7 @@ class LoanRequest extends Model
     /** @use HasFactory<\Database\Factories\LoanRequestFactory> */
     use HasFactory;
 
-    private const REFERENCE_PREFIX = 'LNREQ';
+    public const REFERENCE_PREFIX = 'LNREQ';
 
     /**
      * Target turnaround time (business days) for loan decisions.

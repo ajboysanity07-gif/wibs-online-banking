@@ -50,6 +50,8 @@ function createSuperadminActor(): AppUser
         'suspension_reason' => null,
     ]);
 
+    $actor->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
+
     return $actor->fresh(['roles.permissions', 'userProfile', 'staffAccessControl']);
 }
 
@@ -222,6 +224,8 @@ test('superadmin cannot promote themselves via this endpoint', function (): void
         ['fname' => 'Self', 'lname' => 'Promote', 'birthday' => '1990-01-01', 'address' => 'Test St'],
     );
 
+    $actor->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
+
     $actor = $actor->fresh(['roles.permissions', 'userProfile', 'staffAccessControl']);
 
     $this->actingAs($actor)
@@ -369,4 +373,85 @@ test('member lookup returns 404 for unknown account number', function (): void {
     $this->actingAs($actor)
         ->getJson(route('spa.superadmin.staff.member-lookup', ['account_number' => 'UNKNOWN']))
         ->assertNotFound();
+});
+
+test('searchMembers with empty query returns registered members up to 25', function (): void {
+    $actor = createSuperadminActor();
+
+    for ($i = 1; $i <= 30; $i++) {
+        createSearchableMember(
+            sprintf('008%03d', $i),
+            sprintf('default%d@example.com', $i),
+            'Default',
+            sprintf('Member%d', $i),
+        );
+    }
+
+    $this->actingAs($actor)
+        ->getJson(route('spa.superadmin.staff.search-members'))
+        ->assertOk()
+        ->assertJsonCount(25, 'data.members');
+});
+
+test('searchMembers with empty query excludes accounts without acctno', function (): void {
+    $actor = createSuperadminActor();
+
+    createSearchableMember('010001', 'with.acct@example.com', 'Alice', 'Alpha');
+
+    $noAcct = AppUser::factory()->create([
+        'acctno' => null,
+        'email' => 'no.acct@example.com',
+        'email_verified_at' => now(),
+    ]);
+    $noAcct->roles()->sync(
+        Role::query()->where('name', Role::MEMBER)->pluck('id')->all(),
+    );
+    UserProfile::factory()->approved()->create(['user_id' => $noAcct->user_id]);
+
+    $response = $this->actingAs($actor)
+        ->getJson(route('spa.superadmin.staff.search-members'))
+        ->assertOk();
+
+    $acctNos = collect($response->json('data.members'))->pluck('acctno')->all();
+    expect($acctNos)->toContain('010001')
+        ->and($acctNos)->not->toContain(null);
+});
+
+test('searchMembers with empty query returns results ordered by name', function (): void {
+    $actor = createSuperadminActor();
+
+    createSearchableMember('009001', 'charlie@example.com', 'Charlie', 'Zeta');
+    createSearchableMember('009002', 'alice@example.com', 'Alice', 'Alpha');
+    createSearchableMember('009003', 'bob@example.com', 'Bob', 'Beta');
+
+    $response = $this->actingAs($actor)
+        ->getJson(route('spa.superadmin.staff.search-members'))
+        ->assertOk();
+
+    $acctNos = collect($response->json('data.members'))->pluck('acctno')->all();
+
+    $alphaIdx = array_search('009002', $acctNos, true);
+    $betaIdx = array_search('009003', $acctNos, true);
+    $zetaIdx = array_search('009001', $acctNos, true);
+
+    expect($alphaIdx)->toBeLessThan($betaIdx)
+        ->and($betaIdx)->toBeLessThan($zetaIdx);
+});
+
+test('searchMembers active query still capped at 10 results', function (): void {
+    $actor = createSuperadminActor();
+
+    for ($i = 1; $i <= 12; $i++) {
+        createSearchableMember(
+            sprintf('011%03d', $i),
+            sprintf('cap%d@example.com', $i),
+            'CapTest',
+            sprintf('Surname%d', $i),
+        );
+    }
+
+    $this->actingAs($actor)
+        ->getJson(route('spa.superadmin.staff.search-members', ['query' => 'CapTest']))
+        ->assertOk()
+        ->assertJsonCount(10, 'data.members');
 });
