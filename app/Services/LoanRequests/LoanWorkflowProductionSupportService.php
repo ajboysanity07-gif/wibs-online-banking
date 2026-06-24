@@ -97,6 +97,10 @@ class LoanWorkflowProductionSupportService
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
+        foreach ($this->memberRoleDriftIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
         foreach ($this->documentIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
@@ -106,6 +110,10 @@ class LoanWorkflowProductionSupportService
         }
 
         foreach ($this->notificationIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
+        foreach ($this->securityIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
@@ -2085,6 +2093,116 @@ class LoanWorkflowProductionSupportService
                 'wibs_tracking',
                 'WIBS tracking data integrity checks passed.',
                 1,
+            );
+        }
+
+        return $issues;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function securityIssues(LoanWorkflowPreflightStage $stage): array
+    {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+
+        if (
+            ! $this->schemaCapabilities->hasTable('roles')
+            || ! $this->schemaCapabilities->hasTable('user_roles')
+            || ! $this->schemaCapabilities->hasTable('appusers')
+        ) {
+            $issues['deferred'][] = $this->issue(
+                'two_factor_compliance',
+                '2FA compliance check is deferred because roles or user tables are absent.',
+                0,
+            );
+
+            return $issues;
+        }
+
+        $requiredRoles = [Role::SUPERADMIN, Role::LOAN_MANAGER];
+
+        $nonCompliantUsers = DB::table('appusers')
+            ->join('user_roles', 'appusers.user_id', '=', 'user_roles.user_id')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->whereIn('roles.name', $requiredRoles)
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('appusers.two_factor_confirmed_at')
+                    ->orWhereNull('appusers.two_factor_secret');
+            })
+            ->select(['appusers.email', 'appusers.username', 'roles.name as role_name'])
+            ->get();
+
+        if ($nonCompliantUsers->isEmpty()) {
+            $issues['ok'][] = $this->issue(
+                'two_factor_compliance',
+                'All staff with 2FA-required roles have confirmed two-factor authentication.',
+                0,
+            );
+
+            return $issues;
+        }
+
+        $references = $nonCompliantUsers
+            ->map(static fn (object $u): string => sprintf(
+                '%s (%s)',
+                trim((string) ($u->username ?? $u->email ?? 'unknown')),
+                trim((string) ($u->role_name ?? 'unknown')),
+            ))
+            ->all();
+
+        $issues['deferred'][] = $this->issue(
+            'two_factor_compliance',
+            sprintf(
+                '%d staff member(s) with a 2FA-required role (%s) have not confirmed two-factor authentication.',
+                $nonCompliantUsers->count(),
+                implode(', ', $requiredRoles),
+            ),
+            $nonCompliantUsers->count(),
+            $references,
+        );
+
+        return $issues;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function memberRoleDriftIssues(LoanWorkflowPreflightStage $stage): array
+    {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+
+        if (
+            ! $this->schemaCapabilities->hasTable('appusers')
+            || ! $this->schemaCapabilities->hasTable('roles')
+            || ! $this->schemaCapabilities->hasTable('user_roles')
+        ) {
+            return $issues;
+        }
+
+        $driftCount = AppUser::query()
+            ->whereNotNull('acctno')
+            ->where('acctno', '!=', '')
+            ->whereDoesntHave('roles', function ($q): void {
+                $q->where('name', Role::MEMBER);
+            })
+            ->count();
+
+        if ($driftCount > 0) {
+            $issues['deferred'][] = $this->issue(
+                'member_role_drift',
+                sprintf(
+                    '%d member(s) have an acctno but are missing the member role. Run members:backfill-roles to fix.',
+                    $driftCount,
+                ),
+                $driftCount,
+            );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'member_role_drift',
+                'All members with an acctno have the member role assigned.',
+                0,
             );
         }
 
