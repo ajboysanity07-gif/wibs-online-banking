@@ -1,6 +1,14 @@
 import type { AxiosResponse } from 'axios';
 import client from '@/lib/api/client';
 import {
+    history as superadminStaffHistoryRoute,
+    index as superadminStaffIndexRoute,
+    reactivate as superadminStaffReactivateRoute,
+    store as superadminStaffStoreRoute,
+    suspend as superadminStaffSuspendRoute,
+} from '@/routes/spa/superadmin/staff';
+import { update as superadminStaffRoleUpdateRoute } from '@/routes/spa/superadmin/staff/roles';
+import {
     claim as workflowClaimRoute,
     approve as workflowApproveRoute,
     decline as workflowDeclineRoute,
@@ -11,14 +19,6 @@ import {
     startReview as workflowStartReviewRoute,
 } from '@/routes/spa/workflow/loan-requests';
 import { update as workflowAssignmentUpdateRoute } from '@/routes/spa/workflow/loan-requests/assignment';
-import {
-    history as superadminStaffHistoryRoute,
-    index as superadminStaffIndexRoute,
-    reactivate as superadminStaffReactivateRoute,
-    store as superadminStaffStoreRoute,
-    suspend as superadminStaffSuspendRoute,
-} from '@/routes/spa/superadmin/staff';
-import { update as superadminStaffRoleUpdateRoute } from '@/routes/spa/superadmin/staff/roles';
 import type {
     DashboardSummary,
     EditableStaffRoleName,

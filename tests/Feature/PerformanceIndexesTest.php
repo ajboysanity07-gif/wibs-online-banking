@@ -102,3 +102,17 @@ test('loan requests performance indexes migration adds expected indexes', functi
     expect(Schema::hasIndex('loan_requests', 'idx_loan_requests_status_loan_type_label_snapshot'))
         ->toBeTrue();
 });
+
+test('reporting created_at indexes migration adds expected indexes', function () {
+    $migration = require database_path(
+        'migrations/2026_06_24_064431_add_created_at_indexes_for_reporting.php',
+    );
+    $migration->up();
+
+    expect(Schema::hasIndex('loan_requests', 'idx_loan_requests_created_at'))
+        ->toBeTrue();
+    expect(Schema::hasIndex('loan_request_changes', 'idx_loan_request_changes_created_at'))
+        ->toBeTrue();
+    expect(Schema::hasIndex('user_role_changes', 'idx_user_role_changes_created_at'))
+        ->toBeTrue();
+});

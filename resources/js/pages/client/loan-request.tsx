@@ -1,7 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import client from '@/lib/api/client';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -20,6 +19,7 @@ import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import client from '@/lib/api/client';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { dashboard as clientDashboard } from '@/routes/client';
@@ -403,7 +403,6 @@ export default function LoanRequestPage({
     const isSubmitting = form.processing && activeAction === 'submit';
     const hasLoanTypes = loanTypes.length > 0;
     const stepMeta = steps[currentStep];
-    const canSubmitForReview = hasLoanTypes;
 
     useEffect(() => {
         setDraftState(draft);

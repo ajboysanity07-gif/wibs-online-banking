@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+    memberLoanRequestsBasePath,
+    memberLoanRequestsNavMatchOptions,
+    memberLoansBasePath,
+    memberLoansNavMatchOptions,
+} from '../../resources/js/lib/member-sidebar-nav-match.js';
+import {
     isRouteMatch,
     isWithinSectionPath,
     matchesExactPaths,
     matchesSectionPaths,
     normalizePath,
 } from '../../resources/js/lib/url-match.js';
-import {
-    memberLoanRequestsBasePath,
-    memberLoanRequestsNavMatchOptions,
-    memberLoansBasePath,
-    memberLoansNavMatchOptions,
-} from '../../resources/js/lib/member-sidebar-nav-match.js';
 
 test('normalizePath strips trailing slashes and keeps root', () => {
     assert.equal(normalizePath('/client/loans/'), '/client/loans');

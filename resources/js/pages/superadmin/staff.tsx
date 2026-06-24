@@ -1,6 +1,6 @@
-import axios from 'axios';
 import { Head } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
+import axios from 'axios';
 import { History, MoreHorizontal, Search, ShieldCheck, ShieldOff, UserPlus, Users } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
@@ -57,11 +57,11 @@ import {
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
 import { useStaffDirectory } from '@/hooks/admin/use-staff-directory';
-import { adminApi } from '@/lib/api/admin';
+import AppLayout from '@/layouts/app-layout';
 import { mapValidationErrors } from '@/lib/api';
+import { adminApi } from '@/lib/api/admin';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import AppLayout from '@/layouts/app-layout';
 import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
 import type { BreadcrumbItem } from '@/types';
 import type {

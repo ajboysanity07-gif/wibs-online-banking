@@ -3,7 +3,6 @@ import { usePage } from '@inertiajs/react';
 import {
     isRouteMatch,
     isWithinSectionPath,
-    matchesExactPaths,
     normalizePath,
 } from '@/lib/url-match';
 import { toUrl } from '@/lib/utils';

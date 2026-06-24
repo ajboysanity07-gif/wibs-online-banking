@@ -1,7 +1,7 @@
-import axios from 'axios';
 import { Head } from '@inertiajs/react';
-import { Download, Filter, Search } from 'lucide-react';
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import axios from 'axios';
+import { Download, Filter } from 'lucide-react';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { PageHero } from '@/components/page-hero';
 import { PageShell } from '@/components/page-shell';
 import { SurfaceCard } from '@/components/surface-card';
@@ -24,8 +24,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { showErrorToast } from '@/lib/toast';
 import AppLayout from '@/layouts/app-layout';
+import { showErrorToast } from '@/lib/toast';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -110,8 +110,30 @@ export default function AuditLog() {
         }
     }, []);
 
+    const previousTextFilters = useRef({
+        user_id: filters.user_id,
+        loan_reference: filters.loan_reference,
+    });
+
     useEffect(() => {
-        void fetchAuditLog(filters, page);
+        const textFiltersChanged =
+            filters.user_id !== previousTextFilters.current.user_id ||
+            filters.loan_reference !== previousTextFilters.current.loan_reference;
+        previousTextFilters.current = {
+            user_id: filters.user_id,
+            loan_reference: filters.loan_reference,
+        };
+
+        const timer = setTimeout(
+            () => {
+                void fetchAuditLog(filters, page);
+            },
+            textFiltersChanged ? 300 : 0,
+        );
+
+        return () => {
+            clearTimeout(timer);
+        };
     }, [fetchAuditLog, filters, page]);
 
     const handleFilterSubmit = (e: FormEvent<HTMLFormElement>) => {

@@ -33,15 +33,15 @@ import {
 } from '@/components/ui/table-skeleton';
 import { useRequestQueue } from '@/hooks/loan-request/use-request-queue';
 import AppLayout from '@/layouts/app-layout';
+import type { RequestQueueWorkspace } from '@/lib/api/request-queue';
+import { formatCurrency } from '@/lib/formatters';
 import {
     loanRequestQueueStatusLabels,
     normalizeLoanRequestQueueStatus,
     type LoanRequestQueueStatusFilter,
 } from '@/lib/loan-request-queue';
-import { formatCurrency } from '@/lib/formatters';
 import type { BreadcrumbItem } from '@/types';
 import type { RequestPreview } from '@/types/admin';
-import type { RequestQueueWorkspace } from '@/lib/api/request-queue';
 
 type Props = {
     workspace: RequestQueueWorkspace;

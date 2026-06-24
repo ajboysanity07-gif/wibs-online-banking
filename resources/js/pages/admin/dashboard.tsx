@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { MemberListCardSkeleton } from '@/components/member-list-card-skeleton';
 import { PageHero } from '@/components/page-hero';
@@ -37,8 +38,8 @@ import {
     getRegistrationStatusVariant,
 } from '@/lib/member-status';
 import { dashboard } from '@/routes/admin';
-import { index as reportsIndex } from '@/routes/admin/reports';
 import { show as showMember } from '@/routes/admin/members';
+import { index as reportsIndex } from '@/routes/admin/reports';
 import { index as requestsIndex } from '@/routes/admin/requests';
 import { index as membersIndex } from '@/routes/admin/watchlist';
 import type { BreadcrumbItem } from '@/types';
@@ -127,25 +128,52 @@ const MobileMemberLookupCard = ({ member }: { member: MemberSummary }) => (
     </SurfaceCard>
 );
 
-function InlineBarChart({ data }: { data: Record<string, number> }) {
-    const entries = Object.entries(data);
-    const max = Math.max(...entries.map(([, v]) => v), 1);
+function useReducedMotion(): boolean {
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function ApplicationVolumeChart({ data }: { data: Record<string, number> }) {
+    const reducedMotion = useReducedMotion();
+    const chartData = Object.entries(data).map(([date, count]) => ({
+        date: date.slice(5),
+        count,
+    }));
 
     return (
-        <div className="flex h-40 items-end gap-1 overflow-x-auto pb-4">
-            {entries.map(([date, count]) => (
-                <div key={date} className="flex flex-1 flex-col items-center gap-1" title={`${date}: ${count}`}>
-                    <span className="text-[10px] text-muted-foreground">{count}</span>
-                    <div
-                        className="w-full min-w-3 rounded-t bg-primary/70"
-                        style={{ height: `${Math.round((count / max) * 80)}px` }}
-                    />
-                    <span className="w-full truncate text-center text-[9px] text-muted-foreground">
-                        {date.slice(5)}
-                    </span>
-                </div>
-            ))}
-        </div>
+        <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                />
+                <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                />
+                <Tooltip
+                    cursor={{ fill: 'var(--muted)', opacity: 0.5 }}
+                    contentStyle={{
+                        background: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.5rem',
+                        fontSize: '12px',
+                        color: 'var(--card-foreground)',
+                    }}
+                    formatter={(value: number) => [value, 'Applications']}
+                />
+                <Bar
+                    dataKey="count"
+                    fill="var(--chart-1)"
+                    radius={[4, 4, 0, 0]}
+                    isAnimationActive={!reducedMotion}
+                />
+            </BarChart>
+        </ResponsiveContainer>
     );
 }
 
@@ -404,7 +432,7 @@ export default function AdminDashboard({
                                     <CardDescription>Daily loan application submissions.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <InlineBarChart data={applicationVolume} />
+                                    <ApplicationVolumeChart data={applicationVolume} />
                                 </CardContent>
                             </Card>
                         ) : null}

@@ -25,12 +25,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBranding } from '@/hooks/use-branding';
 import { useLocationSearch } from '@/hooks/use-location-search';
-import { composeAddress } from '@/lib/formatters';
 import AppLayout from '@/layouts/app-layout';
+import { composeAddress } from '@/lib/formatters';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { dashboard } from '@/routes/admin';
-import { cities, provinces } from '@/routes/api/locations';
 import { organization as organizationSettings } from '@/routes/admin/settings';
+import { cities, provinces } from '@/routes/api/locations';
 import { mrdincTheme } from '@/theme/clients/mrdinc';
 import type { BreadcrumbItem, LogoPreset } from '@/types';
 

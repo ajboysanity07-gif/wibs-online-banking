@@ -22,6 +22,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import {
+    memberLoanRequestsNavMatchOptions,
+    memberLoansNavMatchOptions,
+} from '@/lib/member-sidebar-nav-match';
 import { dashboard as workspaceDashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import {
@@ -30,7 +34,6 @@ import {
 } from '@/routes/admin/requests';
 import { organization as organizationSettings } from '@/routes/admin/settings';
 import { index as membersIndex } from '@/routes/admin/watchlist';
-import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
 import {
     dashboard as clientDashboard,
     loans as clientLoans,
@@ -39,14 +42,11 @@ import {
 import {
     index as loanRequestsIndex,
 } from '@/routes/client/loan-requests';
-import { index as staffLoanRequestsIndex } from '@/routes/staff/loan-requests';
 import { edit as profileEdit } from '@/routes/profile';
+import { index as staffLoanRequestsIndex } from '@/routes/staff/loan-requests';
+import { index as superadminStaffIndex } from '@/routes/superadmin/staff';
 import type { Auth, NavItem, WorkspaceName } from '@/types';
 import AppLogo from './app-logo';
-import {
-    memberLoanRequestsNavMatchOptions,
-    memberLoansNavMatchOptions,
-} from '@/lib/member-sidebar-nav-match';
 
 type PageProps = {
     auth: Auth;

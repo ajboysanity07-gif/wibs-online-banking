@@ -3,11 +3,11 @@ import { Ban, Calendar, Download, Eye, PencilLine, Printer } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
+import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import {
     LoanRequestWorkflowActions,
     type LoanRequestWorkflowProps,
 } from '@/components/loan-request/loan-request-workflow-actions';
-import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,6 @@ import {
     composeAddress,
     formatCurrency,
     formatDate,
-    formatDateTime,
     formatDisplayText,
 } from '@/lib/formatters';
 import { showErrorToast } from '@/lib/toast';

@@ -1,12 +1,11 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
-import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import {
     Alert,
     AlertDescription,
@@ -33,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
 import {

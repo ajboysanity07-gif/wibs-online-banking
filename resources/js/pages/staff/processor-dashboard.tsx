@@ -20,7 +20,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { index as loanRequestsIndex, show as loanRequestShow } from '@/routes/staff/loan-requests';
+import { show as loanRequestShow } from '@/routes/staff/loan-requests';
 import { index as processorDashboardIndex } from '@/routes/staff/processor-dashboard';
 import type { BreadcrumbItem } from '@/types';
 import type { ProcessorQueueData } from '@/types/reports';
