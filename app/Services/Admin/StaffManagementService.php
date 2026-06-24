@@ -426,13 +426,7 @@ class StaffManagementService
     public function searchMembers(string $query, int $limit = 10): Collection
     {
         $trimmed = trim($query);
-
-        if (mb_strlen($trimmed) < 2) {
-            return collect();
-        }
-
-        $searchLike = '%'.addcslashes($trimmed, '%_\\').'%';
-        $limit = max(1, min($limit, 50));
+        $isDefault = $trimmed === '' || mb_strlen($trimmed) < 2;
 
         $q = AppUser::query()
             ->with([
@@ -444,32 +438,69 @@ class StaffManagementService
             ])
             ->whereHas('roles', function (Builder $roleQuery): void {
                 $roleQuery->where('name', Role::MEMBER);
-            })
-            ->where(function (Builder $builder) use ($searchLike): void {
-                $builder
-                    ->where('username', 'like', $searchLike)
-                    ->orWhere('email', 'like', $searchLike)
-                    ->orWhere('acctno', 'like', $searchLike)
-                    ->orWhereHas('adminProfile', function (Builder $profileQuery) use ($searchLike): void {
-                        $profileQuery->where('fullname', 'like', $searchLike);
-                    });
-
-                if (Schema::hasTable('wmaster')) {
-                    $builder->orWhereHas('wmaster', function (Builder $wmasterQuery) use ($searchLike): void {
-                        $wmasterQuery
-                            ->where('fname', 'like', $searchLike)
-                            ->orWhere('mname', 'like', $searchLike)
-                            ->orWhere('lname', 'like', $searchLike)
-                            ->orWhere('bname', 'like', $searchLike);
-                    });
-                }
             });
+
+        if ($isDefault) {
+            $q->whereNotNull('acctno')->where('acctno', '!=', '');
+
+            if (Schema::hasTable('wmaster')) {
+                $q->with('wmaster');
+            }
+
+            return $q->limit(200)->get()
+                ->sortBy(fn (AppUser $user): string => $this->memberSortKey($user))
+                ->values()
+                ->take(25);
+        }
+
+        $searchLike = '%'.addcslashes($trimmed, '%_\\').'%';
+        $limit = max(1, min($limit, 10));
+
+        $q->where(function (Builder $builder) use ($searchLike): void {
+            $builder
+                ->where('username', 'like', $searchLike)
+                ->orWhere('email', 'like', $searchLike)
+                ->orWhere('acctno', 'like', $searchLike)
+                ->orWhereHas('adminProfile', function (Builder $profileQuery) use ($searchLike): void {
+                    $profileQuery->where('fullname', 'like', $searchLike);
+                });
+
+            if (Schema::hasTable('wmaster')) {
+                $builder->orWhereHas('wmaster', function (Builder $wmasterQuery) use ($searchLike): void {
+                    $wmasterQuery
+                        ->where('fname', 'like', $searchLike)
+                        ->orWhere('mname', 'like', $searchLike)
+                        ->orWhere('lname', 'like', $searchLike)
+                        ->orWhere('bname', 'like', $searchLike);
+                });
+            }
+        });
 
         if (Schema::hasTable('wmaster')) {
             $q->with('wmaster');
         }
 
         return $q->limit($limit)->get();
+    }
+
+    private function memberSortKey(AppUser $user): string
+    {
+        if (Schema::hasTable('wmaster') && $user->wmaster !== null) {
+            $parts = array_filter([
+                trim((string) ($user->wmaster->lname ?? '')),
+                trim((string) ($user->wmaster->fname ?? '')),
+            ]);
+            $name = implode(', ', $parts);
+            if ($name !== '') {
+                return strtolower($name);
+            }
+        }
+
+        if ($user->adminProfile?->fullname !== null && trim($user->adminProfile->fullname) !== '') {
+            return strtolower(trim($user->adminProfile->fullname));
+        }
+
+        return strtolower(trim((string) ($user->username ?? $user->email ?? '')));
     }
 
     public function promoteMember(

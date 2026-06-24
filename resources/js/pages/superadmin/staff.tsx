@@ -244,7 +244,7 @@ const initialAccessMutationState: StaffAccessMutationState = {
 
 type PromoteDialogState = {
     open: boolean;
-    step: 1 | 2 | 3;
+    step: 1 | 2;
     query: string;
     searchLoading: boolean;
     searchError: string | null;
@@ -526,41 +526,24 @@ export default function SuperadminStaffPage() {
 
     useEffect(() => {
         if (!promoteDialog.open) return;
+        if (promoteDialog.step === 2) return;
 
         const query = promoteDialog.query.trim();
-
-        if (query.length < 2) return;
-
         const controller = new AbortController();
 
+        setPromoteDialog((current) => {
+            if (current.step === 2) return current;
+            return { ...current, searchLoading: true, searchError: null };
+        });
+
         const timer = setTimeout(async () => {
-            setPromoteDialog((current) => {
-                if (current.step === 3) return current;
-
-                return {
-                    ...current,
-                    searchLoading: true,
-                    searchError: null,
-                    searchResults: [],
-                };
-            });
-
             try {
-                const members = await adminApi.searchMembers(
-                    query,
-                    controller.signal,
-                );
+                const members = await adminApi.searchMembers(query, controller.signal);
 
                 if (!controller.signal.aborted) {
                     setPromoteDialog((current) => {
-                        if (current.step === 3) return current;
-
-                        return {
-                            ...current,
-                            step: 2,
-                            searchLoading: false,
-                            searchResults: members,
-                        };
+                        if (current.step === 2) return current;
+                        return { ...current, searchLoading: false, searchResults: members };
                     });
                 }
             } catch {
@@ -568,11 +551,11 @@ export default function SuperadminStaffPage() {
                     setPromoteDialog((current) => ({
                         ...current,
                         searchLoading: false,
-                        searchError: 'Unable to search members right now.',
+                        searchError: 'Unable to load members right now.',
                     }));
                 }
             }
-        }, 300);
+        }, query === '' ? 0 : 300);
 
         return () => {
             clearTimeout(timer);
@@ -612,41 +595,6 @@ export default function SuperadminStaffPage() {
 
     const resetPromoteDialog = () => {
         setPromoteDialog(initialPromoteDialogState);
-    };
-
-    const handleSearchNow = async () => {
-        const query = promoteDialog.query.trim();
-
-        if (query.length < 2 || promoteDialog.searchLoading) {
-            return;
-        }
-
-        setPromoteDialog((current) => ({
-            ...current,
-            searchLoading: true,
-            searchError: null,
-            searchResults: [],
-        }));
-
-        try {
-            const members = await adminApi.searchMembers(query);
-
-            setPromoteDialog((current) => ({
-                ...current,
-                step: 2,
-                searchLoading: false,
-                searchResults: members,
-            }));
-        } catch (requestError) {
-            if (!(axios.isAxiosError(requestError) && requestError.code === 'ERR_CANCELED')) {
-                setPromoteDialog((current) => ({
-                    ...current,
-                    searchLoading: false,
-                    searchError: 'Unable to search members right now.',
-                }));
-                showErrorToast(requestError, 'Member search failed.');
-            }
-        }
     };
 
     const handlePromoteMember = async (event: FormEvent<HTMLFormElement>) => {
@@ -1952,7 +1900,7 @@ export default function SuperadminStaffPage() {
                             Their portal access is preserved.
                         </DialogDescription>
                         <div className="flex items-center gap-1.5 pt-0.5">
-                            {([1, 2, 3] as const).map((s) => (
+                            {([1, 2] as const).map((s) => (
                                 <div
                                     key={s}
                                     className={cn(
@@ -1966,220 +1914,109 @@ export default function SuperadminStaffPage() {
                                 />
                             ))}
                             <span className="ml-1 text-xs text-muted-foreground">
-                                Step {promoteDialog.step} of 3
+                                Step {promoteDialog.step} of 2
                             </span>
                         </div>
                     </DialogHeader>
 
-                    {promoteDialog.step === 1 ? (
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="promote-search-query">
-                                    Search member
-                                </Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        id="promote-search-query"
-                                        value={promoteDialog.query}
-                                        placeholder="Name, email, or account number"
-                                        autoFocus
-                                        onChange={(event) =>
-                                            setPromoteDialog((current) => ({
-                                                ...current,
-                                                query: event.target.value,
-                                                searchError: null,
-                                            }))
-                                        }
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                                event.preventDefault();
-                                                void handleSearchNow();
-                                            }
-                                        }}
-                                    />
-                                    <Button
-                                        type="button"
-                                        disabled={
-                                            promoteDialog.query.trim().length <
-                                                2 || promoteDialog.searchLoading
-                                        }
-                                        onClick={() => void handleSearchNow()}
-                                    >
-                                        <Search className="h-4 w-4" />
-                                        {promoteDialog.searchLoading
-                                            ? 'Searching…'
-                                            : 'Search'}
-                                    </Button>
-                                </div>
-                                {promoteDialog.searchError ? (
-                                    <InputError
-                                        message={promoteDialog.searchError}
-                                    />
-                                ) : null}
-                            </div>
-                            <DialogFooter>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={resetPromoteDialog}
-                                >
-                                    Cancel
-                                </Button>
-                            </DialogFooter>
-                        </div>
-                    ) : promoteDialog.step === 2 ? (
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="promote-search-query-2">
-                                    Search member
-                                </Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        id="promote-search-query-2"
-                                        value={promoteDialog.query}
-                                        placeholder="Name, email, or account number"
-                                        onChange={(event) =>
-                                            setPromoteDialog((current) => ({
-                                                ...current,
-                                                query: event.target.value,
-                                                searchError: null,
-                                            }))
-                                        }
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                                event.preventDefault();
-                                                void handleSearchNow();
-                                            }
-                                        }}
-                                    />
-                                    <Button
-                                        type="button"
-                                        disabled={
-                                            promoteDialog.query.trim().length <
-                                                2 || promoteDialog.searchLoading
-                                        }
-                                        onClick={() => void handleSearchNow()}
-                                    >
-                                        <Search className="h-4 w-4" />
-                                        {promoteDialog.searchLoading
-                                            ? 'Searching…'
-                                            : 'Search'}
-                                    </Button>
-                                </div>
-                                {promoteDialog.searchError ? (
-                                    <InputError
-                                        message={promoteDialog.searchError}
-                                    />
-                                ) : null}
-                            </div>
+                    {promoteDialog.step === 1 ? (() => {
+                        const searchQuery = promoteDialog.query.trim();
+                        const memberCount = promoteDialog.searchResults.length;
+                        const countLabel = promoteDialog.searchLoading
+                            ? (searchQuery === '' ? 'Loading members…' : 'Searching…')
+                            : searchQuery !== ''
+                                ? `Showing results for “${searchQuery}”`
+                                : `${memberCount} registered member${memberCount !== 1 ? 's' : ''}`;
 
-                            <div className="overflow-hidden rounded-xl border border-border/40">
-                                <Table>
-                                    <TableHeader className="bg-muted/30">
-                                        <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Account No</TableHead>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Current roles</TableHead>
-                                            <TableHead className="text-right">
-                                                Action
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {promoteDialog.searchLoading ? (
+                        return (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="promote-search-query">
+                                        Filter members
+                                    </Label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                        <Input
+                                            id="promote-search-query"
+                                            value={promoteDialog.query}
+                                            placeholder="Name, email, or account number"
+                                            className="pl-9"
+                                            autoFocus
+                                            onChange={(event) =>
+                                                setPromoteDialog((current) => ({
+                                                    ...current,
+                                                    query: event.target.value,
+                                                    searchError: null,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    {promoteDialog.searchError ? (
+                                        <InputError message={promoteDialog.searchError} />
+                                    ) : null}
+                                </div>
+
+                                <p className="text-sm text-muted-foreground">{countLabel}</p>
+
+                                <div className="overflow-hidden rounded-xl border border-border/40">
+                                    <Table>
+                                        <TableHeader className="bg-muted/30">
                                             <TableRow>
-                                                <TableCell
-                                                    colSpan={5}
-                                                    className="h-24 text-center text-sm text-muted-foreground"
-                                                >
-                                                    Searching…
-                                                </TableCell>
+                                                <TableHead>Name</TableHead>
+                                                <TableHead>Account No</TableHead>
+                                                <TableHead>Email</TableHead>
+                                                <TableHead>Current roles</TableHead>
+                                                <TableHead className="text-right">Action</TableHead>
                                             </TableRow>
-                                        ) : promoteDialog.searchResults
-                                              .length === 0 ? (
-                                            <TableRow>
-                                                <TableCell
-                                                    colSpan={5}
-                                                    className="h-24 text-center text-sm text-muted-foreground"
-                                                >
-                                                    No members found.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            promoteDialog.searchResults.map(
-                                                (member) => {
-                                                    const staffRoles =
-                                                        member.roles.filter(
-                                                            (r) => r.editable,
-                                                        );
-                                                    const displayRoles =
-                                                        member.roles.filter(
-                                                            (r) =>
-                                                                r.name !==
-                                                                'member',
-                                                        );
+                                        </TableHeader>
+                                        <TableBody>
+                                            {promoteDialog.searchLoading ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                                                        {searchQuery === '' ? 'Loading members…' : 'Searching…'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : promoteDialog.searchResults.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                                                        {searchQuery === ''
+                                                            ? 'No registered members yet. Members must self-register before they can be promoted to staff.'
+                                                            : 'No members found.'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                promoteDialog.searchResults.map((member) => {
+                                                    const staffRoles = member.roles.filter((r) => r.editable);
+                                                    const displayRoles = member.roles.filter((r) => r.name !== 'member');
 
                                                     return (
-                                                        <TableRow
-                                                            key={member.user_id}
-                                                        >
+                                                        <TableRow key={member.user_id}>
                                                             <TableCell>
                                                                 <div className="space-y-1">
-                                                                    <p className="font-medium">
-                                                                        {
-                                                                            member.display_name
-                                                                        }
-                                                                    </p>
-                                                                    {staffRoles.length >
-                                                                    0 ? (
-                                                                        <Badge
-                                                                            variant="secondary"
-                                                                            className="text-xs"
-                                                                        >
-                                                                            Already
-                                                                            a
-                                                                            staff
-                                                                            member
+                                                                    <p className="font-medium">{member.display_name}</p>
+                                                                    {staffRoles.length > 0 ? (
+                                                                        <Badge variant="secondary" className="text-xs">
+                                                                            Already a staff member
                                                                         </Badge>
                                                                     ) : null}
                                                                 </div>
                                                             </TableCell>
+                                                            <TableCell>{member.acctno ?? '--'}</TableCell>
+                                                            <TableCell className="max-w-40 truncate">{member.email ?? '--'}</TableCell>
                                                             <TableCell>
-                                                                {member.acctno ??
-                                                                    '--'}
-                                                            </TableCell>
-                                                            <TableCell className="max-w-40 truncate">
-                                                                {member.email ??
-                                                                    '--'}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {displayRoles.length ===
-                                                                0 ? (
-                                                                    <span className="text-sm text-muted-foreground">
-                                                                        None
-                                                                    </span>
+                                                                {displayRoles.length === 0 ? (
+                                                                    <span className="text-sm text-muted-foreground">None</span>
                                                                 ) : (
                                                                     <div className="flex flex-wrap gap-1">
-                                                                        {displayRoles.map(
-                                                                            (
-                                                                                r,
-                                                                            ) => (
-                                                                                <Badge
-                                                                                    key={
-                                                                                        r.name
-                                                                                    }
-                                                                                    variant={roleBadgeVariant(
-                                                                                        r.name,
-                                                                                    )}
-                                                                                    className="text-xs"
-                                                                                >
-                                                                                    {
-                                                                                        r.label
-                                                                                    }
-                                                                                </Badge>
-                                                                            ),
-                                                                        )}
+                                                                        {displayRoles.map((r) => (
+                                                                            <Badge
+                                                                                key={r.name}
+                                                                                variant={roleBadgeVariant(r.name)}
+                                                                                className="text-xs"
+                                                                            >
+                                                                                {r.label}
+                                                                            </Badge>
+                                                                        ))}
                                                                     </div>
                                                                 )}
                                                             </TableCell>
@@ -2189,19 +2026,14 @@ export default function SuperadminStaffPage() {
                                                                     size="sm"
                                                                     variant="outline"
                                                                     onClick={() =>
-                                                                        setPromoteDialog(
-                                                                            (
-                                                                                current,
-                                                                            ) => ({
-                                                                                ...current,
-                                                                                step: 3,
-                                                                                selectedMember:
-                                                                                    member,
-                                                                                role: '',
-                                                                                reason: '',
-                                                                                errors: {},
-                                                                            }),
-                                                                        )
+                                                                        setPromoteDialog((current) => ({
+                                                                            ...current,
+                                                                            step: 2,
+                                                                            selectedMember: member,
+                                                                            role: '',
+                                                                            reason: '',
+                                                                            errors: {},
+                                                                        }))
                                                                     }
                                                                 >
                                                                     Select
@@ -2209,38 +2041,20 @@ export default function SuperadminStaffPage() {
                                                             </TableCell>
                                                         </TableRow>
                                                     );
-                                                },
-                                            )
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                                })
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
 
-                            <DialogFooter>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() =>
-                                        setPromoteDialog((current) => ({
-                                            ...current,
-                                            step: 1,
-                                            searchResults: [],
-                                            searchError: null,
-                                        }))
-                                    }
-                                >
-                                    Back
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={resetPromoteDialog}
-                                >
-                                    Cancel
-                                </Button>
-                            </DialogFooter>
-                        </div>
-                    ) : (
+                                <DialogFooter>
+                                    <Button type="button" variant="ghost" onClick={resetPromoteDialog}>
+                                        Cancel
+                                    </Button>
+                                </DialogFooter>
+                            </div>
+                        );
+                    })() : (
                         <form
                             className="space-y-4"
                             onSubmit={handlePromoteMember}
@@ -2248,34 +2062,25 @@ export default function SuperadminStaffPage() {
                             {promoteDialog.selectedMember ? (
                                 <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm">
                                     <p className="font-semibold">
-                                        {
-                                            promoteDialog.selectedMember
-                                                .display_name
-                                        }
+                                        {promoteDialog.selectedMember.display_name}
                                     </p>
                                     <p className="mt-0.5 text-muted-foreground">
-                                        {promoteDialog.selectedMember.email ??
-                                            '--'}
+                                        {promoteDialog.selectedMember.email ?? '--'}
                                     </p>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
                                         Account no:{' '}
-                                        {promoteDialog.selectedMember.acctno ??
-                                            '--'}
+                                        {promoteDialog.selectedMember.acctno ?? '--'}
                                     </p>
                                     {promoteDialog.selectedMember.roles.filter(
                                         (r) => r.name !== 'member',
                                     ).length > 0 ? (
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             {promoteDialog.selectedMember.roles
-                                                .filter(
-                                                    (r) => r.name !== 'member',
-                                                )
+                                                .filter((r) => r.name !== 'member')
                                                 .map((r) => (
                                                     <Badge
                                                         key={r.name}
-                                                        variant={roleBadgeVariant(
-                                                            r.name,
-                                                        )}
+                                                        variant={roleBadgeVariant(r.name)}
                                                     >
                                                         {r.label}
                                                     </Badge>
@@ -2289,8 +2094,7 @@ export default function SuperadminStaffPage() {
                                 <Label>Staff role to assign</Label>
                                 <div className="grid gap-3">
                                     {editableRoleOptions.map((role) => {
-                                        const checked =
-                                            promoteDialog.role === role.value;
+                                        const checked = promoteDialog.role === role.value;
 
                                         return (
                                             <label
@@ -2309,33 +2113,25 @@ export default function SuperadminStaffPage() {
                                                     value={role.value}
                                                     checked={checked}
                                                     onChange={() =>
-                                                        setPromoteDialog(
-                                                            (current) => ({
-                                                                ...current,
-                                                                role: role.value,
-                                                                errors: {
-                                                                    ...current.errors,
-                                                                    role: '',
-                                                                },
-                                                            }),
-                                                        )
+                                                        setPromoteDialog((current) => ({
+                                                            ...current,
+                                                            role: role.value,
+                                                            errors: {
+                                                                ...current.errors,
+                                                                role: '',
+                                                            },
+                                                        }))
                                                     }
                                                 />
                                                 <div className="space-y-1">
-                                                    <p className="text-sm font-medium">
-                                                        {role.label}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {role.description}
-                                                    </p>
+                                                    <p className="text-sm font-medium">{role.label}</p>
+                                                    <p className="text-xs text-muted-foreground">{role.description}</p>
                                                 </div>
                                             </label>
                                         );
                                     })}
                                 </div>
-                                <InputError
-                                    message={promoteDialog.errors.role}
-                                />
+                                <InputError message={promoteDialog.errors.role} />
                             </div>
 
                             <div className="space-y-2">
@@ -2368,7 +2164,7 @@ export default function SuperadminStaffPage() {
                                     onClick={() =>
                                         setPromoteDialog((current) => ({
                                             ...current,
-                                            step: 2,
+                                            step: 1,
                                             selectedMember: null,
                                             role: '',
                                             reason: '',
@@ -2386,9 +2182,7 @@ export default function SuperadminStaffPage() {
                                         !promoteDialog.selectedMember?.acctno
                                     }
                                 >
-                                    {promoteDialog.processing
-                                        ? 'Promoting…'
-                                        : 'Promote member'}
+                                    {promoteDialog.processing ? 'Promoting…' : 'Promote member'}
                                 </Button>
                             </DialogFooter>
                         </form>
