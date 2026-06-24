@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
+use App\Models\DocumentAccessLog;
 use App\Models\LoanRequest;
 use App\Models\Permission;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
@@ -110,6 +111,13 @@ class LoanRequestController extends Controller
         if (! $this->canViewPdf($loanRequest)) {
             abort(404);
         }
+
+        DocumentAccessLog::record(
+            (int) $request->user()?->user_id,
+            (int) $loanRequest->id,
+            'loan_request_pdf',
+            $request->boolean('download') ? DocumentAccessLog::ACTION_DOWNLOAD : DocumentAccessLog::ACTION_VIEW,
+        );
 
         return $pdfService->render(
             $loanRequest,
@@ -338,7 +346,18 @@ class LoanRequestController extends Controller
             );
         }
 
-        if ($request->boolean('download')) {
+        $action = $request->boolean('download')
+            ? DocumentAccessLog::ACTION_DOWNLOAD
+            : DocumentAccessLog::ACTION_VIEW;
+
+        DocumentAccessLog::record(
+            (int) $request->user()?->user_id,
+            (int) $loanRequest->id,
+            $documentKey->value,
+            $action,
+        );
+
+        if ($action === DocumentAccessLog::ACTION_DOWNLOAD) {
             return response()->download(
                 $absolutePath,
                 $downloadName !== '' ? $downloadName : null,

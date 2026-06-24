@@ -6,6 +6,7 @@ use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\LoanWorkflowPreflightStage;
+use App\Models\AdminProfile;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDocument;
@@ -98,6 +99,10 @@ class LoanWorkflowProductionSupportService
         }
 
         foreach ($this->memberRoleDriftIssues($stage) as $severity => $issues) {
+            $report[$severity] = array_merge($report[$severity], $issues);
+        }
+
+        foreach ($this->legacyAdminDriftIssues($stage) as $severity => $issues) {
             $report[$severity] = array_merge($report[$severity], $issues);
         }
 
@@ -2120,47 +2125,11 @@ class LoanWorkflowProductionSupportService
             return $issues;
         }
 
-        $requiredRoles = [Role::SUPERADMIN, Role::LOAN_MANAGER];
-
-        $nonCompliantUsers = DB::table('appusers')
-            ->join('user_roles', 'appusers.user_id', '=', 'user_roles.user_id')
-            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
-            ->whereIn('roles.name', $requiredRoles)
-            ->where(function ($query): void {
-                $query
-                    ->whereNull('appusers.two_factor_confirmed_at')
-                    ->orWhereNull('appusers.two_factor_secret');
-            })
-            ->select(['appusers.email', 'appusers.username', 'roles.name as role_name'])
-            ->get();
-
-        if ($nonCompliantUsers->isEmpty()) {
-            $issues['ok'][] = $this->issue(
-                'two_factor_compliance',
-                'All staff with 2FA-required roles have confirmed two-factor authentication.',
-                0,
-            );
-
-            return $issues;
-        }
-
-        $references = $nonCompliantUsers
-            ->map(static fn (object $u): string => sprintf(
-                '%s (%s)',
-                trim((string) ($u->username ?? $u->email ?? 'unknown')),
-                trim((string) ($u->role_name ?? 'unknown')),
-            ))
-            ->all();
-
-        $issues['deferred'][] = $this->issue(
+        // 2FA is optional — not having it set up is no longer a compliance issue.
+        $issues['ok'][] = $this->issue(
             'two_factor_compliance',
-            sprintf(
-                '%d staff member(s) with a 2FA-required role (%s) have not confirmed two-factor authentication.',
-                $nonCompliantUsers->count(),
-                implode(', ', $requiredRoles),
-            ),
-            $nonCompliantUsers->count(),
-            $references,
+            'Two-factor authentication is optional for all roles.',
+            0,
         );
 
         return $issues;
@@ -2202,6 +2171,49 @@ class LoanWorkflowProductionSupportService
             $issues['ok'][] = $this->issue(
                 'member_role_drift',
                 'All members with an acctno have the member role assigned.',
+                0,
+            );
+        }
+
+        return $issues;
+    }
+
+    /**
+     * @return array{blocking:list<array<string,mixed>>,warnings:list<array<string,mixed>>,deferred:list<array<string,mixed>>,ok:list<array<string,mixed>>}
+     */
+    private function legacyAdminDriftIssues(LoanWorkflowPreflightStage $stage): array
+    {
+        $issues = ['blocking' => [], 'warnings' => [], 'deferred' => [], 'ok' => []];
+
+        if (
+            ! $this->schemaCapabilities->hasTable('appusers')
+            || ! $this->schemaCapabilities->hasTable('admin_profiles')
+            || ! $this->schemaCapabilities->hasTable('roles')
+            || ! $this->schemaCapabilities->hasTable('user_roles')
+        ) {
+            return $issues;
+        }
+
+        $allStaffRoleNames = array_merge(Role::editableStaffNames(), [Role::ADMIN]);
+
+        $driftCount = AppUser::query()
+            ->whereHas('adminProfile', fn ($q) => $q->where('access_level', AdminProfile::ACCESS_LEVEL_ADMIN))
+            ->whereDoesntHave('roles', fn ($q) => $q->whereIn('name', $allStaffRoleNames))
+            ->count();
+
+        if ($driftCount > 0) {
+            $issues['deferred'][] = $this->issue(
+                'legacy_admin_drift',
+                sprintf(
+                    '%d user(s) have a legacy admin profile but no staff RBAC role. Run admin:backfill-legacy-roles to fix.',
+                    $driftCount,
+                ),
+                $driftCount,
+            );
+        } else {
+            $issues['ok'][] = $this->issue(
+                'legacy_admin_drift',
+                'All legacy admin users have a staff RBAC role assigned.',
                 0,
             );
         }

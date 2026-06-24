@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'retention_years' => (int) env('LOAN_WORKFLOW_RETENTION_YEARS', 5),
     'officer_workload_warning_threshold' => (int) env(
         'LOAN_WORKFLOW_OFFICER_WORKLOAD_WARNING_THRESHOLD',
         30,

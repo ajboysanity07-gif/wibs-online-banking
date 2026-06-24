@@ -756,9 +756,10 @@ export const adminApi = {
         query: string,
         signal?: AbortSignal,
     ): Promise<StaffAccount[]> {
+        const params = query !== '' ? { query } : {};
         const response = await client.get<ApiResponse<{ members: StaffAccount[] }>>(
             '/spa/superadmin/staff/search-members',
-            { params: { query }, signal },
+            { params, signal },
         );
 
         return unwrap(response).members;

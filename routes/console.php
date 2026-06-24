@@ -15,3 +15,7 @@ Schedule::command('loan-workflow:send-reminders')
 Schedule::command('loan-workflow:cleanup-temp-files')
     ->hourly()
     ->withoutOverlapping();
+
+Schedule::command('loan-requests:archive')
+    ->monthly()
+    ->withoutOverlapping();

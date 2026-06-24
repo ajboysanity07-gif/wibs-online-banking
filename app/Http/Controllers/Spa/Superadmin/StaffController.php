@@ -162,10 +162,10 @@ class StaffController extends Controller
         StaffManagementService $service,
     ): JsonResponse {
         $request->validate([
-            'query' => ['required', 'string', 'min:2', 'max:100'],
+            'query' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $members = $service->searchMembers((string) $request->input('query'));
+        $members = $service->searchMembers((string) $request->input('query', ''));
 
         return response()->json([
             'ok' => true,

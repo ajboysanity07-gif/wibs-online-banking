@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
+use App\Models\DocumentAccessLog;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
@@ -118,6 +119,13 @@ class LoanRequestController extends Controller
         if (! $this->canViewPdf($loanRequestRecord)) {
             abort(404);
         }
+
+        DocumentAccessLog::record(
+            (int) $request->user()?->user_id,
+            (int) $loanRequestRecord->id,
+            'loan_request_pdf',
+            $request->boolean('download') ? DocumentAccessLog::ACTION_DOWNLOAD : DocumentAccessLog::ACTION_VIEW,
+        );
 
         return $pdfService->render(
             $loanRequestRecord,

@@ -300,6 +300,11 @@ function createAuditTrailActor(
 
     $user->roles()->syncWithoutDetaching($roleIds);
 
+    $twoFactorRoles = [Role::SUPERADMIN, Role::LOAN_MANAGER];
+    if (! empty(array_intersect($roles, $twoFactorRoles))) {
+        $user->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
+    }
+
     return $user->load('roles.permissions', 'adminProfile');
 }
 

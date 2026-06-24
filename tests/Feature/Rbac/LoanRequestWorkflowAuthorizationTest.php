@@ -815,6 +815,11 @@ function syncWorkflowAuthorizationRoles(AppUser $user, array $roles): AppUser
     $user->roles()->sync($roleIds);
     $user->unsetRelation('roles');
 
+    $twoFactorRoles = [Role::SUPERADMIN, Role::LOAN_MANAGER];
+    if (! empty(array_intersect($roles, $twoFactorRoles))) {
+        $user->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
+    }
+
     return $user->load('roles.permissions');
 }
 

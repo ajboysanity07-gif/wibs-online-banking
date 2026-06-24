@@ -18,6 +18,7 @@ function createWibsStaff(): AppUser
 {
     $user = AppUser::factory()->create(['email_verified_at' => now()]);
     Role::attachNamedRole($user, Role::LOAN_MANAGER);
+    $user->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
 
     return $user->fresh(['roles.permissions', 'staffAccessControl']);
 }

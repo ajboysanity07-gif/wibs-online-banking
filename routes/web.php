@@ -55,6 +55,7 @@ use App\Http\Controllers\Spa\PasswordRecoveryPhoneOtpController as SpaPasswordRe
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneResetController as SpaPasswordRecoveryPhoneResetController;
 use App\Http\Controllers\Spa\PasswordRecoveryPhoneVerificationController as SpaPasswordRecoveryPhoneVerificationController;
 use App\Http\Controllers\Spa\Staff\RequestsController as SpaStaffRequestsController;
+use App\Http\Controllers\Spa\Superadmin\AuditController as SpaSuperadminAuditController;
 use App\Http\Controllers\Spa\Superadmin\StaffController as SpaSuperadminStaffController;
 use App\Http\Controllers\Spa\UsernameSuggestionController as SpaUsernameSuggestionController;
 use App\Http\Controllers\Staff\LoanRequestController as StaffLoanRequestController;
@@ -63,6 +64,7 @@ use App\Http\Controllers\Staff\WibsTrackingController;
 use App\Http\Controllers\Superadmin\StaffController as SuperadminStaffController;
 use App\Http\Controllers\WorkspaceSwitchController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -183,6 +185,11 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('staff.search-members');
             Route::post('staff/promote', [SpaSuperadminStaffController::class, 'promote'])
                 ->name('staff.promote');
+
+            Route::get('audit-log', [SpaSuperadminAuditController::class, 'index'])
+                ->name('audit-log.index');
+            Route::get('audit-log/export', [SpaSuperadminAuditController::class, 'export'])
+                ->name('audit-log.export');
         });
 
     Route::middleware(['auth', 'admin', 'verified'])->group(function () {
@@ -529,6 +536,9 @@ Route::prefix('superadmin')
     ->group(function () {
         Route::get('staff', SuperadminStaffController::class)
             ->name('staff.index');
+        Route::get('audit-log', function () {
+            return Inertia::render('superadmin/audit-log');
+        })->name('audit-log.index');
     });
 
 require __DIR__.'/settings.php';

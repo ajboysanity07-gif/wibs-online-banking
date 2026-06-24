@@ -40,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'member-profile-complete' => EnsureMemberProfileComplete::class,
             'member-verified' => EnsureMemberVerified::class,
             'superadmin' => EnsureSuperadmin::class,
+            // 2FA enforcement made optional (2026-06-24) — alias kept so it can be re-added to routes if compliance needs change.
             'two-factor-setup' => EnsureTwoFactorSetup::class,
         ]);
 

@@ -26,6 +26,11 @@ function createHybridMemberStaff(string $acctno, array $staffRoles): AppUser
             ->all(),
     );
 
+    $twoFactorRoles = [Role::SUPERADMIN, Role::LOAN_MANAGER];
+    if (! empty(array_intersect($staffRoles, $twoFactorRoles))) {
+        $user->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
+    }
+
     return $user->fresh()->load('adminProfile', 'roles.permissions', 'staffAccessControl');
 }
 

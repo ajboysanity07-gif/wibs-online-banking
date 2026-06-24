@@ -245,6 +245,7 @@ const initialAccessMutationState: StaffAccessMutationState = {
 type PromoteDialogState = {
     open: boolean;
     step: 1 | 2;
+    stepDirection: 'forward' | 'back';
     query: string;
     searchLoading: boolean;
     searchError: string | null;
@@ -259,6 +260,7 @@ type PromoteDialogState = {
 const initialPromoteDialogState: PromoteDialogState = {
     open: false,
     step: 1,
+    stepDirection: 'forward',
     query: '',
     searchLoading: false,
     searchError: null,
@@ -1904,7 +1906,7 @@ export default function SuperadminStaffPage() {
                                 <div
                                     key={s}
                                     className={cn(
-                                        'h-1.5 rounded-full transition-all duration-200',
+                                        'h-1.5 rounded-full motion-safe:transition-all motion-safe:duration-200',
                                         s === promoteDialog.step
                                             ? 'w-6 bg-primary'
                                             : s < promoteDialog.step
@@ -1919,6 +1921,15 @@ export default function SuperadminStaffPage() {
                         </div>
                     </DialogHeader>
 
+                    <div
+                        key={promoteDialog.step}
+                        className={cn(
+                            'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200',
+                            promoteDialog.stepDirection === 'forward'
+                                ? 'motion-safe:slide-in-from-right-2'
+                                : 'motion-safe:slide-in-from-left-2',
+                        )}
+                    >
                     {promoteDialog.step === 1 ? (() => {
                         const searchQuery = promoteDialog.query.trim();
                         const memberCount = promoteDialog.searchResults.length;
@@ -1958,7 +1969,7 @@ export default function SuperadminStaffPage() {
 
                                 <p className="text-sm text-muted-foreground">{countLabel}</p>
 
-                                <div className="overflow-hidden rounded-xl border border-border/40">
+                                <div className={cn('overflow-hidden rounded-xl border border-border/40 motion-safe:transition-opacity motion-safe:duration-150', promoteDialog.searchLoading ? 'opacity-60' : 'opacity-100')}>
                                     <Table>
                                         <TableHeader className="bg-muted/30">
                                             <TableRow>
@@ -2029,6 +2040,7 @@ export default function SuperadminStaffPage() {
                                                                         setPromoteDialog((current) => ({
                                                                             ...current,
                                                                             step: 2,
+                                                                            stepDirection: 'forward',
                                                                             selectedMember: member,
                                                                             role: '',
                                                                             reason: '',
@@ -2165,6 +2177,7 @@ export default function SuperadminStaffPage() {
                                         setPromoteDialog((current) => ({
                                             ...current,
                                             step: 1,
+                                            stepDirection: 'back',
                                             selectedMember: null,
                                             role: '',
                                             reason: '',
@@ -2187,6 +2200,7 @@ export default function SuperadminStaffPage() {
                             </DialogFooter>
                         </form>
                     )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </AppLayout>

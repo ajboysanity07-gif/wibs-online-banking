@@ -134,6 +134,10 @@ function createGeneratedDocumentStaffUser(string $roleName): AppUser
 
     Role::attachNamedRole($user, $roleName);
 
+    if (in_array($roleName, [Role::SUPERADMIN, Role::LOAN_MANAGER], true)) {
+        $user->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
+    }
+
     return $user->fresh(['roles.permissions', 'staffAccessControl']);
 }
 

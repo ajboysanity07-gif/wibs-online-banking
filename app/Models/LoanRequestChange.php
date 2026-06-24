@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LoanRequestChange extends Model
 {
+    /** @use HasFactory<\Database\Factories\LoanRequestChangeFactory> */
+    use HasFactory;
+
     public const ACTION_START_REVIEW = 'start_review';
 
     public const ACTION_ASSIGNMENT_CLAIMED = 'assignment_claimed';

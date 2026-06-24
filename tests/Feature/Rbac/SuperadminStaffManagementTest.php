@@ -195,13 +195,14 @@ test('superadmin can assign and remove editable staff roles while preserving mem
     );
 });
 
-test('staff role mutations require reasons and do not manage legacy admin accounts from the new interface', function (): void {
+test('staff role mutations require a reason; assigning a role to a legacy admin succeeds and records a migration audit entry', function (): void {
     $superadmin = createManagedSuperadmin();
     $target = AppUser::factory()->create([
         'acctno' => '400002',
     ]);
     $legacyAdmin = createLegacyAdmin();
 
+    // Empty reason must still be rejected
     $this
         ->actingAs($superadmin)
         ->patchJson(route('spa.superadmin.staff.roles.update', $target), [
@@ -212,15 +213,26 @@ test('staff role mutations require reasons and do not manage legacy admin accoun
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['reason']);
 
+    // Legacy admin is now migrated into RBAC — no longer blocked
     $this
         ->actingAs($superadmin)
         ->patchJson(route('spa.superadmin.staff.roles.update', $legacyAdmin), [
             'role' => Role::LOAN_MANAGER,
             'operation' => 'assign',
-            'reason' => 'Attempt to move legacy admin into the new flow.',
+            'reason' => 'Migrating legacy admin into the RBAC flow.',
         ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['staff']);
+        ->assertOk();
+
+    $legacyAdmin->refresh()->load('roles', 'adminProfile');
+    expect($legacyAdmin->hasRole(Role::LOAN_MANAGER))->toBeTrue();
+    expect($legacyAdmin->adminProfile?->access_level)->toBe(AdminProfile::ACCESS_LEVEL_ADMIN);
+
+    $audit = UserRoleChange::query()
+        ->where('target_user_id', $legacyAdmin->user_id)
+        ->latest('id')
+        ->first();
+    expect($audit)->not->toBeNull()
+        ->and($audit->metadata_json['migrated_from_legacy_admin'] ?? false)->toBeTrue();
 });
 
 test('staff-only account creation hashes the password, assigns selected roles, and hides raw secrets', function (): void {
@@ -393,6 +405,8 @@ function createManagedSuperadmin(?string $acctno = null): AppUser
     AdminProfile::factory()->superadmin()->create([
         'user_id' => $user->user_id,
     ]);
+
+    $user->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
 
     return $user->fresh()->load(
         'adminProfile',
