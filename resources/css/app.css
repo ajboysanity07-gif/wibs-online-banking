@@ -144,6 +144,14 @@
     }
 }
 
+@utility scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 .fc {
     --fc-page-bg-color: var(--card);
     --fc-border-color: var(--border);

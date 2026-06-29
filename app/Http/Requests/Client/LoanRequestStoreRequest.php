@@ -96,30 +96,33 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_diabetes' => ['required', 'boolean'],
             'health.health_recent_hospitalization' => ['required', 'boolean'],
             'health.health_declaration_notes' => ['nullable', 'string', 'max:1000'],
-            'authorization' => ['required', 'array:authorized_recipient_name,authorized_recipient_relationship,authorized_recipient_contact,authorization_reason,release_method'],
+            'authorization' => ['required', 'array:authorized_recipient_name,authorized_recipient_relationship,release_method'],
             'authorization.authorized_recipient_name' => ['required', 'string', 'max:255'],
             'authorization.authorized_recipient_relationship' => ['required', 'string', 'max:255'],
-            'authorization.authorized_recipient_contact' => ['required', 'string', 'max:255'],
-            'authorization.authorization_reason' => ['required', 'string', 'max:1000'],
             'authorization.release_method' => ['required', 'string', 'max:255'],
-            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,payout_atm_number'],
+            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
             'banking.payout_bank_name' => ['required', 'string', 'max:255'],
             'banking.payout_account_name' => ['required', 'string', 'max:255'],
             'banking.payout_account_number' => ['required', 'string', 'max:255'],
             'banking.payout_account_type' => ['required', 'string', 'max:255'],
             'banking.payout_atm_number' => ['nullable', 'string', 'max:255'],
-            'barangay' => ['required', 'array:barangay_name,barangay_clearance_reference,barangay_locality'],
+            'banking.payout_bank_branch' => ['nullable', 'string', 'max:255'],
+            'banking.payout_atm_holder_name' => ['nullable', 'string', 'max:255'],
+            'barangay' => ['required', 'array:barangay_name,barangay_clearance_reference,barangay_locality,barangay_official_designation,barangay_agency_name,barangay_agency_address'],
             'barangay.barangay_name' => ['required', 'string', 'max:255'],
             'barangay.barangay_clearance_reference' => ['required', 'string', 'max:255'],
             'barangay.barangay_locality' => ['required', 'string', 'max:255'],
+            'barangay.barangay_official_designation' => ['nullable', 'string', 'max:255'],
+            'barangay.barangay_agency_name' => ['nullable', 'string', 'max:255'],
+            'barangay.barangay_agency_address' => ['nullable', 'string', 'max:255'],
             'declarations' => ['required', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent'],
             'declarations.declaration_existing_loans' => ['required', 'boolean'],
             'declarations.declaration_pending_cases' => ['required', 'boolean'],
             'declarations.declaration_truth_confirmation' => ['accepted'],
             'declarations.declaration_data_privacy_consent' => ['accepted'],
-            ...$this->personRules('applicant', true, true),
-            ...$this->personRules('co_maker_1', false, false),
-            ...$this->personRules('co_maker_2', false, false),
+            ...$this->personRules('applicant', true, true, true),
+            ...$this->personRules('co_maker_1', false, false, false),
+            ...$this->personRules('co_maker_2', false, false, false),
         ];
     }
 
@@ -140,6 +143,7 @@ class LoanRequestStoreRequest extends FormRequest
         string $prefix,
         bool $includeSpouse,
         bool $includeChildren,
+        bool $includeCivilHousing = false,
     ): array {
         $rules = [
             "{$prefix}.first_name" => ['required', 'string', 'max:255'],
@@ -153,17 +157,7 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.address2" => ['required', 'string', 'max:255'],
             "{$prefix}.address3" => ['required', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
-            "{$prefix}.housing_status" => [
-                'required',
-                'string',
-                Rule::in(self::HOUSING_STATUS_OPTIONS),
-            ],
             "{$prefix}.cell_no" => ['required', 'string', 'digits:11'],
-            "{$prefix}.civil_status" => [
-                'required',
-                'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
-            ],
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['required', 'string', 'max:255'],
@@ -181,6 +175,19 @@ class LoanRequestStoreRequest extends FormRequest
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
+
+        if ($includeCivilHousing) {
+            $rules["{$prefix}.housing_status"] = [
+                'required',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ];
+            $rules["{$prefix}.civil_status"] = [
+                'required',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ];
+        }
 
         if ($includeChildren) {
             $rules["{$prefix}.number_of_children"] = [

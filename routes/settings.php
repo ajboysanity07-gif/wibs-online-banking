@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\LinkMembershipController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -19,6 +20,9 @@ Route::middleware(['auth', 'approved'])->group(function () {
 });
 
 Route::middleware(['auth', 'approved', 'verified'])->group(function () {
+    Route::post('settings/profile/link-membership', [LinkMembershipController::class, 'store'])
+        ->name('profile.link-membership');
+
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/password', [PasswordController::class, 'edit'])->name('user-password.edit');

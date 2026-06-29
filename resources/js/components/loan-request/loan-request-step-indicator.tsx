@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 type Step = {
@@ -24,10 +25,19 @@ export function LoanRequestStepIndicator({
     const progressPercentage =
         totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 0;
     const lineInsetPercent = totalSteps > 1 ? 100 / (totalSteps * 2) : 0;
+    const activeStepRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        activeStepRef.current?.scrollIntoView({
+            block: 'nearest',
+            inline: 'center',
+            behavior: 'smooth',
+        });
+    }, [currentStep]);
 
     return (
-        <div className={cn('overflow-x-auto pb-1', className)}>
-            <div className="relative min-w-150 px-3 sm:min-w-160">
+        <div className={cn('overflow-x-auto scrollbar-hide pb-1', className)}>
+            <div className="relative min-w-max px-3">
                 <div
                     className="absolute top-3.5 h-px bg-border/30"
                     style={{
@@ -51,7 +61,7 @@ export function LoanRequestStepIndicator({
                 </div>
 
                 <ol
-                    className="grid grid-cols-6 gap-2"
+                    className="flex flex-nowrap gap-x-2"
                     aria-label="Loan request steps"
                 >
                     {steps.map((step, index) => {
@@ -62,12 +72,13 @@ export function LoanRequestStepIndicator({
                         return (
                             <li
                                 key={step.id}
-                                className="flex min-w-24 flex-col items-center text-center sm:min-w-28"
+                                className="flex min-w-24 flex-1 flex-col items-center text-center sm:min-w-28"
                             >
                                 <button
+                                    ref={isActive ? activeStepRef : undefined}
                                     type="button"
                                     className={cn(
-                                        'group relative z-10 flex flex-col items-center gap-2 text-[10px] font-medium sm:text-xs',
+                                        'group relative z-10 flex w-full flex-col items-center gap-2 text-[10px] font-medium sm:text-xs',
                                         canNavigate
                                             ? 'cursor-pointer'
                                             : 'cursor-default',

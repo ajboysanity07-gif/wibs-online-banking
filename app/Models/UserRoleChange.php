@@ -21,6 +21,8 @@ class UserRoleChange extends Model
 
     public const ACTION_STAFF_REACTIVATED = 'staff_reactivated';
 
+    public const ACTION_MEMBERSHIP_LINKED = 'membership_linked';
+
     /**
      * @var list<string>
      */

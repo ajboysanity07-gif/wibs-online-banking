@@ -62,7 +62,7 @@ class ApprovedLoanDocumentService
         'loan_information' => '05-Loan-Information.xlsx',
         'plan_of_payment' => '06-Plan-of-Payment.xlsx',
         'disclosure_statement' => '07-Disclosure-Statement.xlsx',
-        'promissory_note' => '08-Promissory-Note.xlsx',
+        'promissory_note' => '08-Promissory-Note.pdf',
         'undertaking_barangay' => '09-Undertaking-Barangay-Officials.pdf',
         'loan_security_agreement' => '10-Loan-Security-Agreement.pdf',
     ];
@@ -78,7 +78,7 @@ class ApprovedLoanDocumentService
         'loan_information' => 'loan-information-%s.xlsx',
         'plan_of_payment' => 'plan-of-payment-%s.xlsx',
         'disclosure_statement' => 'disclosure-statement-%s.xlsx',
-        'promissory_note' => 'promissory-note-%s.xlsx',
+        'promissory_note' => 'promissory-note-%s.pdf',
         'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
         'loan_security_agreement' => '%s Loan Request Agreement.pdf',
     ];
@@ -98,6 +98,7 @@ class ApprovedLoanDocumentService
         private UndertakingBarangayPdfFieldMap $undertakingBarangayPdfFieldMap,
         private AffidavitUndertakingPdfFieldMap $affidavitUndertakingPdfFieldMap,
         private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
+        private PromissoryNotePdfService $promissoryNotePdfService,
     ) {}
 
     public function applicationForm(LoanRequest $loanRequest): Response
@@ -272,13 +273,9 @@ class ApprovedLoanDocumentService
         return $this->downloadApprovedDocument(
             $loanRequest,
             'promissory_note',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/pdf',
             function (string $outputPath, array $documentData): void {
-                $this->generateWorkbookSheetDocumentToPath(
-                    LoanRequestDocumentKey::PromissoryNote,
-                    $outputPath,
-                    $documentData,
-                );
+                $this->promissoryNotePdfService->generate($outputPath, $documentData);
             },
         );
     }
@@ -346,8 +343,7 @@ class ApprovedLoanDocumentService
                 $disclosureStatementPath,
                 $documentData,
             );
-            $this->generateWorkbookSheetDocumentToPath(
-                LoanRequestDocumentKey::PromissoryNote,
+            $this->promissoryNotePdfService->generate(
                 $promissoryNotePath,
                 $documentData,
             );
@@ -469,10 +465,16 @@ class ApprovedLoanDocumentService
                     );
                 },
             ),
+            LoanRequestDocumentKey::PromissoryNote => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->promissoryNotePdfService->generate($path, $documentData);
+                },
+            ),
             LoanRequestDocumentKey::LoanInformation,
             LoanRequestDocumentKey::PlanOfPayment,
-            LoanRequestDocumentKey::DisclosureStatement,
-            LoanRequestDocumentKey::PromissoryNote => $this->generateWorkbookSheetDocumentToPath(
+            LoanRequestDocumentKey::DisclosureStatement => $this->generateWorkbookSheetDocumentToPath(
                 $documentKey,
                 $outputPath,
                 $documentData,
@@ -737,9 +739,15 @@ class ApprovedLoanDocumentService
         $overrideProcessing = is_array($overrides['processing'] ?? null)
             ? $overrides['processing']
             : [];
+        $approverDisplayName = $loanRequest->approvedBy?->adminProfile?->fullname
+            ?? $loanRequest->approvedBy?->name
+            ?? $loanRequest->approvedBy?->username;
+        $approverName = $this->normalizeText($approverDisplayName);
         $reviewerName = $this->normalizeText($overrideReviewer['name'] ?? null)
+            ?? $approverName
             ?? $this->normalizeText($officialLoanManager['name']);
         $reviewerPosition = $this->normalizeText($overrideReviewer['position'] ?? null)
+            ?? ($approverName !== null ? $this->officialLoanManagerResolver->position() : null)
             ?? $this->normalizeText($officialLoanManager['position']);
         $processorName = $loanRequest->assignedProcessor?->adminProfile?->fullname
             ?? $loanRequest->assignedProcessor?->name
@@ -866,10 +874,10 @@ class ApprovedLoanDocumentService
         );
         $witnessOneName = $this->normalizeText(
             $overrideReviewer['witness_one_name'] ?? null,
-        ) ?? $reviewerName;
+        ) ?? $this->normalizeText($flatValues['witness_one_name'] ?? null);
         $witnessTwoName = $this->normalizeText(
             $overrideReviewer['witness_two_name'] ?? null,
-        ) ?? $reviewerName;
+        ) ?? $this->normalizeText($flatValues['witness_two_name'] ?? null);
 
         $documentData = [
             'organization' => [
@@ -960,6 +968,14 @@ class ApprovedLoanDocumentService
                 'amortization_loan_security_raw' => $loanSecurityAmortizationRaw,
                 'amortization_total_raw' => $amortizationTotalRaw,
                 'penalty_rate_raw' => $penaltyRateRaw,
+                'gnthp_raw' => $this->normalizeNumericValue(
+                    $overrideProcessing['guaranteed_net_take_home_pay'] ?? $flatValues['guaranteed_net_take_home_pay'] ?? null,
+                ),
+                'gnthp' => $this->formatCurrencyValue(
+                    $this->normalizeNumericValue(
+                        $overrideProcessing['guaranteed_net_take_home_pay'] ?? $flatValues['guaranteed_net_take_home_pay'] ?? null,
+                    ),
+                ),
             ],
             'authorization' => [
                 'authorized_recipient_name' => $this->normalizeText(
@@ -967,12 +983,6 @@ class ApprovedLoanDocumentService
                 ),
                 'authorized_recipient_relationship' => $this->normalizeText(
                     $overrideProcessing['authorized_recipient_relationship'] ?? $flatValues['authorized_recipient_relationship'] ?? null,
-                ),
-                'authorized_recipient_contact' => $this->normalizeText(
-                    $overrideProcessing['authorized_recipient_contact'] ?? $flatValues['authorized_recipient_contact'] ?? null,
-                ),
-                'authorization_reason' => $this->normalizeText(
-                    $overrideProcessing['authorization_reason'] ?? $flatValues['authorization_reason'] ?? null,
                 ),
                 'release_method' => $this->normalizeText(
                     $overrideProcessing['release_method'] ?? $flatValues['release_method'] ?? null,
@@ -992,6 +1002,12 @@ class ApprovedLoanDocumentService
                 'payout_atm_number' => $this->normalizeText(
                     $overrideProcessing['payout_atm_number'] ?? $flatValues['payout_atm_number'] ?? null,
                 ),
+                'payout_bank_branch' => $this->normalizeText(
+                    $overrideProcessing['payout_bank_branch'] ?? $flatValues['payout_bank_branch'] ?? null,
+                ),
+                'payout_atm_holder_name' => $this->normalizeText(
+                    $overrideProcessing['payout_atm_holder_name'] ?? $flatValues['payout_atm_holder_name'] ?? null,
+                ),
             ],
             'barangay' => [
                 'name' => $this->normalizeText(
@@ -1008,6 +1024,15 @@ class ApprovedLoanDocumentService
                 ),
                 'official_title' => $this->normalizeText(
                     $overrideProcessing['barangay_official_title'] ?? $flatValues['barangay_official_title'] ?? null,
+                ),
+                'official_designation' => $this->normalizeText(
+                    $overrideProcessing['barangay_official_designation'] ?? $flatValues['barangay_official_designation'] ?? null,
+                ),
+                'agency_name' => $this->normalizeText(
+                    $overrideProcessing['barangay_agency_name'] ?? $flatValues['barangay_agency_name'] ?? null,
+                ),
+                'agency_address' => $this->normalizeText(
+                    $overrideProcessing['barangay_agency_address'] ?? $flatValues['barangay_agency_address'] ?? null,
                 ),
             ],
             'security' => [

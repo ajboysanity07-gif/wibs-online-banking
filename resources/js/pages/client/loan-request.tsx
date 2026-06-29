@@ -10,6 +10,7 @@ import {
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
     LoanRequestDataSectionStep,
+    LoanRequestInsuranceBeneficiariesStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
 } from '@/components/loan-request/loan-request-steps';
@@ -693,7 +694,7 @@ export default function LoanRequestPage({
                             show={currentStep === 5}
                             direction={stepDirection}
                         >
-                            <LoanRequestDataSectionStep
+                            <LoanRequestInsuranceBeneficiariesStep
                                 sectionKey="insurance"
                                 title="Insurance and beneficiaries"
                                 description="Provide beneficiary details that will be reused across the required documents."

@@ -12,7 +12,10 @@ use App\Models\OrganizationSetting;
 use App\Models\UserProfile;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService;
+use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -252,6 +255,76 @@ test('loan security agreement pdf includes borrower and agreement details', func
         ->toContain('SALARYLOAN')
         ->toContain('22DAYOFMAY,2026')
         ->not->toContain('25,000.00');
+});
+
+test('promissory note route returns a pdf not xlsx', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.promissory-note', $loanRequest));
+
+    $content = approvedLoanDocumentsReadDownloadedFileContent($response);
+
+    $response->assertOk();
+    $response->assertHeaderContains('content-type', 'application/pdf');
+    $response->assertDownload('promissory-note-'.$loanRequest->reference.'.pdf');
+    expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
+});
+
+test('promissory note pdf includes borrower co-makers witnesses and amounts', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Annabelle M. Amora',
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Acme Cooperative',
+        'business_address' => 'Poblacion, Tagum City, Davao del Norte',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->update([
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => '15th & 30th',
+        'reviewed_at' => '2026-05-22 10:00:00',
+    ]);
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Helario',
+            'middle_name' => 'B.',
+            'last_name' => 'Tejero',
+            'address1' => 'Banahao',
+            'address2' => 'Lianga',
+            'address3' => 'Surigao del Sur',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.promissory-note', $loanRequest));
+
+    $response->assertOk();
+
+    $text = approvedLoanDocumentsExtractPdfText($response);
+    $searchable = strtoupper(str_replace(' ', '', $text));
+
+    expect($searchable)
+        ->toContain('PROMISSORYNOTE')
+        ->toContain('HELARIOB.TEJERO')
+        ->toContain('COAMAKERONE')
+        ->toContain('COBMAKERTWO')
+        ->toContain('ANNABELLEM.AMORA')
+        ->toContain('ACMECOOPERATIVE');
 });
 
 test('grepalife pdf includes structured applicant fields when available', function () {
@@ -629,6 +702,126 @@ test('grepalife field map keeps applicant values aligned with label padding', fu
     expect($pageTwoDateField['align'] ?? 'L')->toBe('L');
 });
 
+test('affidavit undertaking field map pins all field coordinates to calibrated values', function () {
+    $fields = collect((new AffidavitUndertakingPdfFieldMap)->fields());
+
+    $find = fn (string $value): array => $fields->first(
+        fn (array $f): bool => ($f['value'] ?? null) === $value,
+    );
+
+    $fullName = $find('applicant.full_name');
+    $address = $find('applicant.address');
+    $amount = $find('loan.approved_amount');
+    $type = $find('loan.type');
+    $date = $find('loan.approved_date');
+    $reviewer = $find('reviewer.name');
+
+    expect((float) $fullName['x'])->toBe(28.0);
+    expect((float) $fullName['y'])->toBe(40.0);
+    expect((int) $fullName['size'])->toBe(10);
+
+    expect((float) $address['x'])->toBe(28.0);
+    expect((float) $address['y'])->toBe(48.0);
+    expect((int) $address['size'])->toBe(8);
+    expect((float) $address['width'])->toBe(158.0);
+
+    expect((float) $amount['x'])->toBe(28.0);
+    expect((float) $amount['y'])->toBe(60.0);
+    expect((int) $amount['size'])->toBe(9);
+
+    expect((float) $type['x'])->toBe(94.0);
+    expect((float) $type['y'])->toBe(60.0);
+    expect((int) $type['size'])->toBe(9);
+
+    expect((float) $date['x'])->toBe(28.0);
+    expect((float) $date['y'])->toBe(70.0);
+    expect((int) $date['size'])->toBe(9);
+
+    expect((float) $reviewer['x'])->toBe(98.0);
+    expect((float) $reviewer['y'])->toBe(70.0);
+    expect((int) $reviewer['size'])->toBe(9);
+});
+
+test('authorization field map pins all field coordinates to calibrated values', function () {
+    $fields = collect((new AuthorizationPdfFieldMap)->fields());
+
+    $find = fn (string $value): array => $fields->first(
+        fn (array $f): bool => ($f['value'] ?? null) === $value,
+    );
+
+    $fullName = $find('applicant.full_name');
+    $address = $find('applicant.address');
+    $reference = $find('loan.reference');
+    $amount = $find('loan.approved_amount');
+    $date = $find('loan.approved_date');
+    $company = $find('organization.company_name');
+
+    expect((float) $fullName['x'])->toBe(26.0);
+    expect((float) $fullName['y'])->toBe(38.0);
+    expect((int) $fullName['size'])->toBe(10);
+
+    expect((float) $address['x'])->toBe(26.0);
+    expect((float) $address['y'])->toBe(46.0);
+    expect((int) $address['size'])->toBe(8);
+    expect((float) $address['width'])->toBe(162.0);
+
+    expect((float) $reference['x'])->toBe(26.0);
+    expect((float) $reference['y'])->toBe(58.0);
+    expect((int) $reference['size'])->toBe(9);
+
+    expect((float) $amount['x'])->toBe(88.0);
+    expect((float) $amount['y'])->toBe(58.0);
+    expect((int) $amount['size'])->toBe(9);
+
+    expect((float) $date['x'])->toBe(138.0);
+    expect((float) $date['y'])->toBe(58.0);
+    expect((int) $date['size'])->toBe(9);
+
+    expect((float) $company['x'])->toBe(26.0);
+    expect((float) $company['y'])->toBe(68.0);
+    expect((int) $company['size'])->toBe(9);
+});
+
+test('undertaking barangay field map pins all field coordinates to calibrated values', function () {
+    $fields = collect((new UndertakingBarangayPdfFieldMap)->fields());
+
+    $find = fn (string $value): array => $fields->first(
+        fn (array $f): bool => ($f['value'] ?? null) === $value,
+    );
+
+    $fullName = $find('applicant.full_name');
+    $address = $find('applicant.address');
+    $type = $find('loan.type');
+    $amount = $find('loan.approved_amount');
+    $date = $find('loan.approved_date');
+    $company = $find('organization.company_name');
+
+    expect((float) $fullName['x'])->toBe(27.0);
+    expect((float) $fullName['y'])->toBe(42.0);
+    expect((int) $fullName['size'])->toBe(10);
+
+    expect((float) $address['x'])->toBe(27.0);
+    expect((float) $address['y'])->toBe(50.0);
+    expect((int) $address['size'])->toBe(8);
+    expect((float) $address['width'])->toBe(160.0);
+
+    expect((float) $type['x'])->toBe(27.0);
+    expect((float) $type['y'])->toBe(62.0);
+    expect((int) $type['size'])->toBe(9);
+
+    expect((float) $amount['x'])->toBe(107.0);
+    expect((float) $amount['y'])->toBe(62.0);
+    expect((int) $amount['size'])->toBe(9);
+
+    expect((float) $date['x'])->toBe(27.0);
+    expect((float) $date['y'])->toBe(72.0);
+    expect((int) $date['size'])->toBe(9);
+
+    expect((float) $company['x'])->toBe(104.0);
+    expect((float) $company['y'])->toBe(72.0);
+    expect((int) $company['size'])->toBe(9);
+});
+
 test('grepalife pdf includes beneficiaries from direct wmaster beneficiary columns', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -835,20 +1028,6 @@ test('each workbook-derived route returns an xlsx response and generated documen
             )->toBe(Border::BORDER_NONE);
         }
 
-        if ($document['sheet'] === 'Promissory Note') {
-            expect($worksheet->getCell('I8')->getValue())->not->toBe('');
-            expect($worksheet->getCell('B50')->getValue())->toBe('SAMPLE Q MEMBER');
-            expect($worksheet->getCell('E50')->getValue())->toBe('CO A MAKERONE');
-            expect($worksheet->getCell('I50')->getValue())->toBe('CO B MAKERTWO');
-            expect(approvedLoanDocumentsWorksheetPrintAreaRange($worksheet))->toBeNull();
-            expect(
-                $worksheet->getStyle('A12')
-                    ->getBorders()
-                    ->getLeft()
-                    ->getBorderStyle(),
-            )->toBe(Border::BORDER_NONE);
-        }
-
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
     }
@@ -971,14 +1150,6 @@ test('workbook-derived documents keep printed names and no signature drawings on
             expect($worksheet->getCell('L57')->getValue())->toBe('HELARIO B TEJERO');
         }
 
-        if ($document['sheet'] === 'Promissory Note') {
-            expect($worksheet->getCell('B50')->getValue())->toBe('HELARIO B TEJERO');
-            expect($worksheet->getCell('E50')->getValue())->toBe('ANITA C RIVERA');
-            expect($worksheet->getCell('I50')->getValue())->toBe('BEN D SANTOS');
-            expect($worksheet->getCell('B58')->getValue())->toBe('ANNABELLE M. AMORA');
-            expect($worksheet->getCell('H58')->getValue())->toBe('ANNABELLE M. AMORA');
-        }
-
         expect(approvedLoanDocumentsWorkbookStringValues($spreadsheet))->not->toContain(
             'Sample Q Member',
             'Sample Address',
@@ -1098,33 +1269,6 @@ test('workbook-derived documents include a centered uploaded report header desig
             $drawing->getHeight() + 20,
         );
 
-        if ($worksheet->getTitle() === 'Promissory Note') {
-            expect($worksheet->getPageSetup()->getFitToPage())->toBeTrue();
-            expect($worksheet->getPageSetup()->getFitToWidth())->toBe(1);
-            expect($worksheet->getPageSetup()->getFitToHeight())->toBe(0);
-            expect($worksheet->getColumnDimension('L')->getVisible())->toBeFalse();
-            expect($worksheet->getColumnDimension('M')->getVisible())->toBeFalse();
-            expect($worksheet->getStyle('C12')->getAlignment()->getWrapText())->toBeTrue();
-            expect($worksheet->getStyle('H14')->getAlignment()->getWrapText())->toBeTrue();
-            expect($worksheet->getStyle('I50')->getAlignment()->getWrapText())->toBeTrue();
-            expect(
-                (float) $worksheet->getRowDimension(12)->getRowHeight(),
-            )->toBeGreaterThan(15.0);
-            expect(
-                (float) $worksheet->getRowDimension(14)->getRowHeight(),
-            )->toBeGreaterThan(15.0);
-            expect(
-                (float) $worksheet->getRowDimension(53)->getRowHeight(),
-            )->toBeGreaterThan(15.0);
-            expect(
-                approvedLoanDocumentsMaximumMergedEndColumnIndex($worksheet),
-            )->toBeLessThanOrEqual(
-                Coordinate::columnIndexFromString('K'),
-            );
-            expect((string) $worksheet->getCell('K15')->getValue())
-                ->toContain('L15');
-        }
-
         if ($worksheet->getTitle() === 'Loan Information') {
             expect($worksheet->getCell('C7')->getValue())->toBe('SAMPLE Q MEMBER');
         }
@@ -1133,10 +1277,6 @@ test('workbook-derived documents include a centered uploaded report header desig
             expect($worksheet->getCell('M7')->getValue())->toBe(
                 $loanRequest->reference,
             );
-        }
-
-        if ($worksheet->getTitle() === 'Promissory Note') {
-            expect($worksheet->getCell('I8')->getValue())->not->toBe('');
         }
 
         $spreadsheet->disconnectWorksheets();
@@ -1276,7 +1416,7 @@ test('approved document zip contains all required files and valid generated docu
         '05-Loan-Information.xlsx',
         '06-Plan-of-Payment.xlsx',
         '07-Disclosure-Statement.xlsx',
-        '08-Promissory-Note.xlsx',
+        '08-Promissory-Note.pdf',
         '09-Undertaking-Barangay-Officials.pdf',
         '10-Loan-Security-Agreement.pdf',
     ]);
@@ -1297,7 +1437,6 @@ test('approved document zip contains all required files and valid generated docu
         '05-Loan-Information.xlsx',
         '06-Plan-of-Payment.xlsx',
         '07-Disclosure-Statement.xlsx',
-        '08-Promissory-Note.xlsx',
     ] as $entryName) {
         expect($entries[$entryName] ?? null)
             ->toBeString()
@@ -1461,6 +1600,93 @@ test('template directory backup helpers preserve grepalife public image files', 
     File::deleteDirectory($backupDirectory);
 });
 
+test('loan manager on document reflects the actual approver name', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $approver = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $approver->user_id,
+        'fullname' => 'Rodrigo R. Reyes',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->update(['approved_by' => $approver->user_id]);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect(data_get($documentData, 'reviewer.name'))->toBe('Rodrigo R. Reyes');
+    expect(data_get($documentData, 'reviewer.position'))->toBe('Loan Manager');
+    expect(data_get($documentData, 'reviewer.name'))->not->toBe('Annabelle M. Amora');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.loan-information', $loanRequest));
+
+    $response->assertOk();
+
+    $spreadsheet = IOFactory::load(approvedLoanDocumentsDownloadedFilePath($response));
+    $worksheet = $spreadsheet->getSheet(0);
+
+    expect(trim((string) $worksheet->getCell('C14')->getValue()))->toBe('RODRIGO R. REYES');
+    expect(trim((string) $worksheet->getCell('C18')->getValue()))->toBe('RODRIGO R. REYES');
+
+    $spreadsheet->disconnectWorksheets();
+    unset($spreadsheet);
+});
+
+test('loan manager falls back to resolver constant when no approver is set', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->update(['approved_by' => null]);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect(data_get($documentData, 'reviewer.name'))->toBe('Annabelle M. Amora');
+    expect(data_get($documentData, 'reviewer.position'))->toBe('Loan Manager');
+});
+
+test('witnesses on document use stored data entries rather than manager name', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $approver = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $approver->user_id,
+        'fullname' => 'Maria Approving Manager',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->update(['approved_by' => $approver->user_id]);
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'witness_one_name', 'string', 'Witness Alpha');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'witness_two_name', 'string', 'Witness Beta');
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect(data_get($documentData, 'reviewer.name'))->toBe('Maria Approving Manager');
+    expect(data_get($documentData, 'reviewer.witness_one_name'))->toBe('Witness Alpha');
+    expect(data_get($documentData, 'reviewer.witness_two_name'))->toBe('Witness Beta');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.loan-information', $loanRequest));
+
+    $response->assertOk();
+
+    $spreadsheet = IOFactory::load(approvedLoanDocumentsDownloadedFilePath($response));
+    $worksheet = $spreadsheet->getSheet(0);
+
+    expect(trim((string) $worksheet->getCell('C18')->getValue()))->toBe('MARIA APPROVING MANAGER');
+    expect(trim((string) $worksheet->getCell('C42')->getValue()))->toBe('WITNESS ALPHA');
+    expect(trim((string) $worksheet->getCell('C43')->getValue()))->toBe('WITNESS BETA');
+
+    $spreadsheet->disconnectWorksheets();
+    unset($spreadsheet);
+});
+
 /**
  * @return array<int, array{route: string, filename: string, disposition: string}>
  */
@@ -1511,12 +1737,6 @@ function approvedLoanDocumentsWorkbookRouteDefinitions(LoanRequest $loanRequest)
             'disposition' => 'attachment',
             'sheet' => 'Disclosure Statement',
         ],
-        [
-            'route' => 'admin.requests.documents.promissory-note',
-            'filename' => 'promissory-note-'.$loanRequest->reference.'.xlsx',
-            'disposition' => 'attachment',
-            'sheet' => 'Promissory Note',
-        ],
     ];
 }
 
@@ -1557,6 +1777,12 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
             'disposition' => 'attachment',
             'page_count' => 1,
         ],
+        [
+            'route' => 'admin.requests.documents.promissory-note',
+            'filename' => 'promissory-note-'.$loanRequest->reference.'.pdf',
+            'disposition' => 'attachment',
+            'page_count' => 2,
+        ],
     ];
 }
 
@@ -1569,6 +1795,7 @@ function approvedLoanDocumentsTemplateBackedPdfZipEntryNames(): array
         '02-GREPALIFE.pdf',
         '03-Affidavit-of-Undertaking.pdf',
         '04-Authorization.pdf',
+        '08-Promissory-Note.pdf',
         '09-Undertaking-Barangay-Officials.pdf',
         '10-Loan-Security-Agreement.pdf',
     ];

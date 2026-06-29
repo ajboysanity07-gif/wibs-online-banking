@@ -500,6 +500,68 @@ class StaffManagementService
         return strtolower(trim((string) ($user->username ?? $user->email ?? '')));
     }
 
+    public function linkMembership(AppUser $actor, string $acctno): AppUser
+    {
+        Role::ensureWorkflowDefaults();
+
+        $trimmedAcctno = trim($acctno);
+
+        return DB::transaction(function () use ($actor, $trimmedAcctno): AppUser {
+            $user = $this->lockUser($actor->user_id);
+            $this->lockSupportingRows($user->user_id);
+
+            // GUARD 3 inside transaction (race-condition protection)
+            if ($user->acctno !== null && trim((string) $user->acctno) !== '') {
+                throw ValidationException::withMessages([
+                    'accntno' => 'Your account already has a linked WIBS membership.',
+                ]);
+            }
+
+            // GUARD 1 inside transaction (pessimistic lock)
+            $conflict = AppUser::query()
+                ->where('acctno', $trimmedAcctno)
+                ->where('user_id', '!=', $user->user_id)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($conflict) {
+                throw ValidationException::withMessages([
+                    'accntno' => 'That account number is already linked to another portal account.',
+                ]);
+            }
+
+            $beforeRoles = $this->visibleRoleNames($user);
+            $beforeStatus = $this->auditStaffStatus($user);
+
+            $user->acctno = $trimmedAcctno;
+            $user->save();
+
+            if (! $user->hasRole(Role::MEMBER)) {
+                Role::attachNamedRole($user, Role::MEMBER);
+            }
+
+            $user = $this->reloadUser($user->user_id);
+
+            $this->recordUserRoleChange(
+                $user,
+                $user,
+                UserRoleChange::ACTION_MEMBERSHIP_LINKED,
+                Role::MEMBER,
+                $beforeRoles,
+                $this->visibleRoleNames($user),
+                $beforeStatus,
+                $this->auditStaffStatus($user),
+                'Staff user self-linked WIBS membership.',
+                [
+                    'linked_acctno' => $trimmedAcctno,
+                    'flow' => 'staff_self_link',
+                ],
+            );
+
+            return $user;
+        });
+    }
+
     public function promoteMember(
         string $accountNumber,
         string $roleName,

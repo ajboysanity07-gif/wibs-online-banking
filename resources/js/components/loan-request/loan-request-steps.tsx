@@ -197,6 +197,7 @@ export function LoanRequestApplicantPersonalStep({
                 readOnly={readOnly}
                 includeSpouse
                 includeChildren
+                includeCivilHousing
                 onChange={onChange}
             />
         </LoanRequestSectionCard>
@@ -604,6 +605,112 @@ export function LoanRequestDataSectionStep({
     );
 }
 
+const PRIMARY_BENEFICIARY_KEYS = [
+    'beneficiary_primary_name',
+    'beneficiary_primary_relationship',
+    'beneficiary_primary_birthdate',
+] as const;
+
+const SECONDARY_BENEFICIARY_KEYS = [
+    'beneficiary_secondary_name',
+    'beneficiary_secondary_relationship',
+    'beneficiary_secondary_birthdate',
+] as const;
+
+export function LoanRequestInsuranceBeneficiariesStep({
+    sectionKey,
+    title,
+    description,
+    values,
+    definition,
+    errors,
+    onChange,
+}: DataSectionStepProps) {
+    const renderField = (fieldKey: string) => {
+        const field = definition.fields[fieldKey];
+        if (!field) return null;
+        const errorKey = `${sectionKey}.${fieldKey}`;
+        const value = values[fieldKey];
+
+        return (
+            <div key={fieldKey} className="grid gap-2">
+                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                    {field.label}
+                </Label>
+                {field.type === 'boolean' ? (
+                    <Select
+                        value={booleanSelectValue(value)}
+                        onValueChange={(nextValue) =>
+                            onChange(
+                                fieldKey,
+                                nextValue === ''
+                                    ? null
+                                    : nextValue === 'true',
+                            )
+                        }
+                    >
+                        <SelectTrigger id={`${sectionKey}_${fieldKey}`}>
+                            <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="true">Yes</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <Input
+                        id={`${sectionKey}_${fieldKey}`}
+                        type={field.type === 'date' ? 'date' : 'text'}
+                        value={value ? `${value}` : ''}
+                        onChange={(event) =>
+                            onChange(fieldKey, event.target.value)
+                        }
+                    />
+                )}
+                <InputError message={errors[errorKey]} />
+            </div>
+        );
+    };
+
+    return (
+        <LoanRequestSectionCard
+            title={title}
+            description={description}
+            contentClassName="space-y-5"
+        >
+            <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                    Primary beneficiary
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                    {PRIMARY_BENEFICIARY_KEYS.map(renderField)}
+                </div>
+            </div>
+            <Separator className="bg-border/40" />
+            <div className="space-y-3">
+                <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-semibold text-foreground">
+                        Secondary beneficiary
+                    </p>
+                    <span className="text-xs text-muted-foreground">
+                        (Optional)
+                    </span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    {SECONDARY_BENEFICIARY_KEYS.map(renderField)}
+                </div>
+            </div>
+            <Alert className="border-border/50 bg-muted/10">
+                <AlertTitle>Member-provided details</AlertTitle>
+                <AlertDescription>
+                    Complete the applicable fields in this section before
+                    submitting the request for processing.
+                </AlertDescription>
+            </Alert>
+        </LoanRequestSectionCard>
+    );
+}
+
 export function LoanRequestReviewStep({
     data,
     loanTypes,
@@ -731,15 +838,7 @@ export function LoanRequestReviewStep({
         { label: 'Birthplace', value: displayText(resolveBirthplace(person)) },
         { label: 'Address', value: displayText(resolveAddress(person)) },
         { label: 'Length of stay', value: displayText(person.length_of_stay) },
-        {
-            label: 'Housing status',
-            value: formatHousingStatus(person.housing_status),
-        },
         { label: 'Cell no.', value: displayValue(person.cell_no) },
-        {
-            label: 'Civil status',
-            value: formatCivilStatus(person.civil_status),
-        },
         {
             label: 'Educational attainment',
             value: displayText(person.educational_attainment),

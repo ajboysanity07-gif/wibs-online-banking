@@ -96,30 +96,33 @@ class LoanRequestDraftRequest extends FormRequest
             'health.health_diabetes' => ['sometimes', 'boolean'],
             'health.health_recent_hospitalization' => ['sometimes', 'boolean'],
             'health.health_declaration_notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'authorization' => ['sometimes', 'array:authorized_recipient_name,authorized_recipient_relationship,authorized_recipient_contact,authorization_reason,release_method'],
+            'authorization' => ['sometimes', 'array:authorized_recipient_name,authorized_recipient_relationship,release_method'],
             'authorization.authorized_recipient_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'authorization.authorized_recipient_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'authorization.authorized_recipient_contact' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'authorization.authorization_reason' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'authorization.release_method' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,payout_atm_number'],
+            'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
             'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'barangay' => ['sometimes', 'array:barangay_name,barangay_clearance_reference,barangay_locality'],
+            'banking.payout_bank_branch' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.payout_atm_holder_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'barangay' => ['sometimes', 'array:barangay_name,barangay_clearance_reference,barangay_locality,barangay_official_designation,barangay_agency_name,barangay_agency_address'],
             'barangay.barangay_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_clearance_reference' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_locality' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'barangay.barangay_official_designation' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'barangay.barangay_agency_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'barangay.barangay_agency_address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'declarations' => ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent'],
             'declarations.declaration_existing_loans' => ['sometimes', 'boolean'],
             'declarations.declaration_pending_cases' => ['sometimes', 'boolean'],
             'declarations.declaration_truth_confirmation' => ['sometimes', 'boolean'],
             'declarations.declaration_data_privacy_consent' => ['sometimes', 'boolean'],
-            ...$this->personRules('applicant', true, true),
-            ...$this->personRules('co_maker_1', false, false),
-            ...$this->personRules('co_maker_2', false, false),
+            ...$this->personRules('applicant', true, true, true),
+            ...$this->personRules('co_maker_1', false, false, false),
+            ...$this->personRules('co_maker_2', false, false, false),
         ];
     }
 
@@ -130,6 +133,7 @@ class LoanRequestDraftRequest extends FormRequest
         string $prefix,
         bool $includeSpouse,
         bool $includeChildren,
+        bool $includeCivilHousing = false,
     ): array {
         $rules = [
             "{$prefix}.first_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -143,19 +147,7 @@ class LoanRequestDraftRequest extends FormRequest
             "{$prefix}.address2" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.address3" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['sometimes', 'nullable', 'string', 'max:255'],
-            "{$prefix}.housing_status" => [
-                'sometimes',
-                'nullable',
-                'string',
-                Rule::in(self::HOUSING_STATUS_OPTIONS),
-            ],
             "{$prefix}.cell_no" => ['sometimes', 'nullable', 'string', 'digits:11'],
-            "{$prefix}.civil_status" => [
-                'sometimes',
-                'nullable',
-                'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
-            ],
             "{$prefix}.educational_attainment" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -174,6 +166,21 @@ class LoanRequestDraftRequest extends FormRequest
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
+
+        if ($includeCivilHousing) {
+            $rules["{$prefix}.housing_status"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ];
+            $rules["{$prefix}.civil_status"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ];
+        }
 
         if ($includeChildren) {
             $rules["{$prefix}.number_of_children"] = [

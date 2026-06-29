@@ -12,6 +12,8 @@ class MemberApplicationProfile extends Model
     /** @use HasFactory<\Database\Factories\MemberApplicationProfileFactory> */
     use HasFactory;
 
+    public const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner / Retired';
+
     /**
      * @var list<string>
      */
@@ -129,6 +131,16 @@ class MemberApplicationProfile extends Model
         ];
     }
 
+    /**
+     * Fields that are optional when employment_type is PENSIONER_EMPLOYMENT_TYPE.
+     *
+     * @return list<string>
+     */
+    public static function pensionerOptionalFields(): array
+    {
+        return ['employer_business_name', 'current_position', 'payday'];
+    }
+
     public function hasRequiredFields(): bool
     {
         return $this->missingRequiredFields() === [];
@@ -140,8 +152,14 @@ class MemberApplicationProfile extends Model
     public function missingRequiredFields(): array
     {
         $missing = [];
+        $isPensioner = trim((string) ($this->employment_type ?? '')) === self::PENSIONER_EMPLOYMENT_TYPE;
+        $optionalForPensioner = $isPensioner ? self::pensionerOptionalFields() : [];
 
         foreach (self::completionRequiredFields() as $field) {
+            if (in_array($field, $optionalForPensioner, true)) {
+                continue;
+            }
+
             $value = $this->getAttribute($field);
 
             if ($value === null) {

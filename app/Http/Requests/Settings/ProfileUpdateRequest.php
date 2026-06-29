@@ -287,6 +287,12 @@ class ProfileUpdateRequest extends FormRequest
             return 'nullable';
         }
 
+        $isPensioner = trim((string) $this->input('employment_type', '')) === MemberApplicationProfile::PENSIONER_EMPLOYMENT_TYPE;
+
+        if ($isPensioner && in_array($field, MemberApplicationProfile::pensionerOptionalFields(), true)) {
+            return 'nullable';
+        }
+
         return in_array($field, MemberApplicationProfile::completionRequiredFields(), true)
             ? 'required'
             : 'nullable';

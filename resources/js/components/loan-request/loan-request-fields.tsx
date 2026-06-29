@@ -142,6 +142,7 @@ type PersonalFieldsProps = {
     readOnly?: LoanRequestReadOnlyMap | null;
     includeSpouse?: boolean;
     includeChildren?: boolean;
+    includeCivilHousing?: boolean;
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
 
@@ -152,6 +153,7 @@ export function LoanRequestPersonalFields({
     readOnly = null,
     includeSpouse = false,
     includeChildren = false,
+    includeCivilHousing = false,
     onChange,
 }: PersonalFieldsProps) {
     const educationalAttainment = values.educational_attainment;
@@ -506,44 +508,50 @@ export function LoanRequestPersonalFields({
                     />
                 </div>
 
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_housing_status`}
-                        label="Housing status"
-                        isReadOnly={isReadOnly('housing_status')}
-                    />
-                    <Select
-                        value={values.housing_status || undefined}
-                        onValueChange={(value) =>
-                            onChange('housing_status', value)
-                        }
-                        disabled={isReadOnly('housing_status')}
-                    >
-                        <SelectTrigger
-                            id={`${prefix}_housing_status`}
-                            className={cn(
-                                'mt-1 w-full',
-                                isReadOnly('housing_status') &&
-                                    readOnlyInputClass,
-                            )}
+                {includeCivilHousing ? (
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_housing_status`}
+                            label="Housing status"
+                            isReadOnly={isReadOnly('housing_status')}
+                        />
+                        <Select
+                            value={values.housing_status || undefined}
+                            onValueChange={(value) =>
+                                onChange('housing_status', value)
+                            }
+                            disabled={isReadOnly('housing_status')}
                         >
-                            <SelectValue placeholder="Select housing status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {HOUSING_STATUS_OPTIONS.map((option) => (
-                                <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                >
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={fieldError(errors, prefix, 'housing_status')}
-                    />
-                </div>
+                            <SelectTrigger
+                                id={`${prefix}_housing_status`}
+                                className={cn(
+                                    'mt-1 w-full',
+                                    isReadOnly('housing_status') &&
+                                        readOnlyInputClass,
+                                )}
+                            >
+                                <SelectValue placeholder="Select housing status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {HOUSING_STATUS_OPTIONS.map((option) => (
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'housing_status',
+                            )}
+                        />
+                    </div>
+                ) : null}
 
                 <div className="grid gap-2">
                     <FieldLabel
@@ -570,41 +578,43 @@ export function LoanRequestPersonalFields({
             <Separator className="bg-border/40" />
 
             <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_civil_status`}
-                        label="Civil status"
-                        isReadOnly={isReadOnly('civil_status')}
-                    />
-                    <Select
-                        value={values.civil_status || undefined}
-                        onValueChange={(value) =>
-                            onChange('civil_status', value)
-                        }
-                        disabled={isReadOnly('civil_status')}
-                    >
-                        <SelectTrigger
-                            id={`${prefix}_civil_status`}
-                            className={cn(
-                                'mt-1 w-full',
-                                isReadOnly('civil_status') &&
-                                    readOnlyInputClass,
-                            )}
+                {includeCivilHousing ? (
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_civil_status`}
+                            label="Civil status"
+                            isReadOnly={isReadOnly('civil_status')}
+                        />
+                        <Select
+                            value={values.civil_status || undefined}
+                            onValueChange={(value) =>
+                                onChange('civil_status', value)
+                            }
+                            disabled={isReadOnly('civil_status')}
                         >
-                            <SelectValue placeholder="Select civil status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {CIVIL_STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={fieldError(errors, prefix, 'civil_status')}
-                    />
-                </div>
+                            <SelectTrigger
+                                id={`${prefix}_civil_status`}
+                                className={cn(
+                                    'mt-1 w-full',
+                                    isReadOnly('civil_status') &&
+                                        readOnlyInputClass,
+                                )}
+                            >
+                                <SelectValue placeholder="Select civil status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {CIVIL_STATUS_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError
+                            message={fieldError(errors, prefix, 'civil_status')}
+                        />
+                    </div>
+                ) : null}
 
                 <div className="grid gap-2">
                     <FieldLabel

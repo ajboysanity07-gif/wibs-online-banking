@@ -4,6 +4,7 @@ import { Camera } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
+import LinkMembershipController from '@/actions/App/Http/Controllers/Settings/LinkMembershipController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -132,7 +133,8 @@ const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'College',
     'Postgraduate',
 ];
-const EMPLOYMENT_TYPE_OPTIONS = ['Regular', 'Contract', 'Self-Employed'];
+const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner / Retired';
+const EMPLOYMENT_TYPE_OPTIONS = ['Regular', 'Contract', 'Self-Employed', PENSIONER_EMPLOYMENT_TYPE];
 const CIVIL_STATUS_OPTIONS = [
     'Single',
     'Married',
@@ -505,6 +507,7 @@ export default function Profile({
         !EMPLOYMENT_TYPE_OPTIONS.includes(employmentType)
             ? [employmentType, ...EMPLOYMENT_TYPE_OPTIONS]
             : EMPLOYMENT_TYPE_OPTIONS;
+    const isPensioner = employmentType === PENSIONER_EMPLOYMENT_TYPE;
     const initialNatureOfBusiness =
         memberApplicationProfile?.nature_of_business?.trim() ?? '';
     const hasPresetNatureOfBusiness =
@@ -743,6 +746,18 @@ export default function Profile({
                                                 </AlertDescription>
                                             </Alert>
                                         ) : null}
+
+                                        {status === 'membership-linked' && (
+                                            <Alert className="border-green-200 bg-green-50 text-green-950 dark:border-green-800/50 dark:bg-green-950/40 dark:text-green-100">
+                                                <AlertTitle>
+                                                    Membership linked
+                                                </AlertTitle>
+                                                <AlertDescription>
+                                                    You now have member portal
+                                                    access.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
 
                                         <Form
                                             {...ProfileController.update.form()}
@@ -1980,7 +1995,7 @@ export default function Profile({
                                                                                 ''
                                                                             }
                                                                             name="employer_business_name"
-                                                                            required
+                                                                            required={!isPensioner}
                                                                             placeholder="Employer or business name"
                                                                         />
 
@@ -2124,7 +2139,7 @@ export default function Profile({
                                                                                 resolvedCurrentPosition
                                                                             }
                                                                             name="current_position"
-                                                                            required
+                                                                            required={!isPensioner}
                                                                             placeholder="Current position"
                                                                         />
 
@@ -2471,6 +2486,145 @@ export default function Profile({
                                             )}
                                         </Form>
                                     </div>
+
+                                    {!hasMemberAccess && (
+                                        <div className="space-y-6">
+                                            <Separator />
+
+                                            <div className="space-y-1">
+                                                <h3 className="text-base font-semibold tracking-tight">
+                                                    Link your WIBS membership
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Already a WIBS member? Enter
+                                                    your WIBS account number to
+                                                    link your membership and gain
+                                                    member portal access. Your
+                                                    account number is created
+                                                    when you register as a member
+                                                    at the WIBS office — if you
+                                                    don&apos;t have one yet, set
+                                                    up your membership there
+                                                    first.
+                                                </p>
+                                            </div>
+
+                                            <Form
+                                                {...LinkMembershipController.store.form()}
+                                                options={{ preserveScroll: true }}
+                                                onSuccess={() => {
+                                                    showSuccessToast(
+                                                        'Membership linked — you now have member portal access.',
+                                                        { id: 'link-membership' },
+                                                    );
+                                                }}
+                                                onError={(formErrors) => {
+                                                    showErrorToast(
+                                                        formErrors,
+                                                        adminToastCopy.error.updated(
+                                                            'Membership link',
+                                                        ),
+                                                        { id: 'link-membership' },
+                                                    );
+                                                }}
+                                                className="space-y-4"
+                                            >
+                                                {({ processing, errors: linkErrors }) => (
+                                                    <>
+                                                        <div className="grid gap-4 md:grid-cols-2">
+                                                            <div className="grid gap-2 md:col-span-2">
+                                                                <Label htmlFor="link_accntno">
+                                                                    WIBS account
+                                                                    number
+                                                                </Label>
+                                                                <Input
+                                                                    id="link_accntno"
+                                                                    name="accntno"
+                                                                    className="mt-1 block w-full"
+                                                                    placeholder="e.g. 003001"
+                                                                    autoComplete="off"
+                                                                />
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        linkErrors.accntno
+                                                                    }
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="link_last_name">
+                                                                    Last name
+                                                                </Label>
+                                                                <Input
+                                                                    id="link_last_name"
+                                                                    name="last_name"
+                                                                    className="mt-1 block w-full"
+                                                                    placeholder="Last name"
+                                                                    autoComplete="family-name"
+                                                                />
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        linkErrors.last_name
+                                                                    }
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="link_first_name">
+                                                                    First name
+                                                                </Label>
+                                                                <Input
+                                                                    id="link_first_name"
+                                                                    name="first_name"
+                                                                    className="mt-1 block w-full"
+                                                                    placeholder="First name"
+                                                                    autoComplete="given-name"
+                                                                />
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        linkErrors.first_name
+                                                                    }
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="link_middle_initial">
+                                                                    Middle initial{' '}
+                                                                    <span className="text-muted-foreground">
+                                                                        (optional)
+                                                                    </span>
+                                                                </Label>
+                                                                <Input
+                                                                    id="link_middle_initial"
+                                                                    name="middle_initial"
+                                                                    className="mt-1 block w-full"
+                                                                    placeholder="M"
+                                                                    maxLength={1}
+                                                                    autoComplete="off"
+                                                                />
+                                                                <InputError
+                                                                    className="mt-2"
+                                                                    message={
+                                                                        linkErrors.middle_initial
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <Button
+                                                            type="submit"
+                                                            disabled={processing}
+                                                        >
+                                                            Link membership
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </Form>
+                                        </div>
+                                    )}
 
                                     <ProfileImageCropModal
                                         isOpen={showProfilePhotoCropModal}

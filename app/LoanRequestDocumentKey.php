@@ -51,7 +51,6 @@ enum LoanRequestDocumentKey: string
             self::LoanInformation,
             self::PlanOfPayment,
             self::DisclosureStatement,
-            self::PromissoryNote,
         ];
     }
 }
