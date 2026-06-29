@@ -18,7 +18,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use NumberFormatter;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,10 +46,6 @@ class ApprovedLoanDocumentService
         'authorization' => 'authorization.pdf',
     ];
 
-    private const EXCEL_TEMPLATE_FILENAMES = [
-        'plan_of_payment' => 'plan-of-payment-disclosure-promissory-note.xlsx',
-    ];
-
     /**
      * @var array<string, string>
      */
@@ -59,9 +54,9 @@ class ApprovedLoanDocumentService
         'grepalife' => '02-GREPALIFE.pdf',
         'affidavit_undertaking' => '03-Affidavit-of-Undertaking.pdf',
         'authorization' => '04-Authorization.pdf',
-        'loan_information' => '05-Loan-Information.xlsx',
+        'loan_information' => '05-Loan-Information.pdf',
         'plan_of_payment' => '06-Plan-of-Payment.pdf',
-        'disclosure_statement' => '07-Disclosure-Statement.xlsx',
+        'disclosure_statement' => '07-Disclosure-Statement.pdf',
         'promissory_note' => '08-Promissory-Note.pdf',
         'undertaking_barangay' => '09-Undertaking-Barangay-Officials.pdf',
         'loan_security_agreement' => '10-Loan-Security-Agreement.pdf',
@@ -75,9 +70,9 @@ class ApprovedLoanDocumentService
         'grepalife' => 'grepalife-%s.pdf',
         'affidavit_undertaking' => 'affidavit-undertaking-%s.pdf',
         'authorization' => 'authorization-%s.pdf',
-        'loan_information' => 'loan-information-%s.xlsx',
+        'loan_information' => 'loan-information-%s.pdf',
         'plan_of_payment' => 'plan-of-payment-%s.pdf',
-        'disclosure_statement' => 'disclosure-statement-%s.xlsx',
+        'disclosure_statement' => 'disclosure-statement-%s.pdf',
         'promissory_note' => 'promissory-note-%s.pdf',
         'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
         'loan_security_agreement' => '%s Loan Request Agreement.pdf',
@@ -90,7 +85,6 @@ class ApprovedLoanDocumentService
         private LoanSecurityAgreementPdfService $loanSecurityAgreementPdfService,
         private ApprovedLoanImageTemplatePdfService $approvedLoanImageTemplatePdfService,
         private ApprovedLoanPdfTemplateService $approvedLoanPdfTemplateService,
-        private ApprovedLoanExcelTemplateService $approvedLoanExcelTemplateService,
         private LoanRequestDataService $loanRequestDataService,
         private LoanRequestDocumentCatalog $documentCatalog,
         private LoanRequestDocumentStorage $documentStorage,
@@ -100,6 +94,8 @@ class ApprovedLoanDocumentService
         private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
         private PromissoryNotePdfService $promissoryNotePdfService,
         private PlanOfPaymentPdfService $planOfPaymentPdfService,
+        private LoanInformationPdfService $loanInformationPdfService,
+        private DisclosureStatementPdfService $disclosureStatementPdfService,
     ) {}
 
     public function applicationForm(LoanRequest $loanRequest): Response
@@ -238,13 +234,9 @@ class ApprovedLoanDocumentService
         return $this->downloadApprovedDocument(
             $loanRequest,
             'loan_information',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/pdf',
             function (string $outputPath, array $documentData): void {
-                $this->generateWorkbookSheetDocumentToPath(
-                    LoanRequestDocumentKey::LoanInformation,
-                    $outputPath,
-                    $documentData,
-                );
+                $this->loanInformationPdfService->generate($outputPath, $documentData);
             },
         );
     }
@@ -254,13 +246,9 @@ class ApprovedLoanDocumentService
         return $this->downloadApprovedDocument(
             $loanRequest,
             'disclosure_statement',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/pdf',
             function (string $outputPath, array $documentData): void {
-                $this->generateWorkbookSheetDocumentToPath(
-                    LoanRequestDocumentKey::DisclosureStatement,
-                    $outputPath,
-                    $documentData,
-                );
+                $this->disclosureStatementPdfService->generate($outputPath, $documentData);
             },
         );
     }
@@ -325,8 +313,7 @@ class ApprovedLoanDocumentService
                 $documentData,
                 $this->authorizationPdfFieldMap,
             );
-            $this->generateWorkbookSheetDocumentToPath(
-                LoanRequestDocumentKey::LoanInformation,
+            $this->loanInformationPdfService->generate(
                 $loanInformationPath,
                 $documentData,
             );
@@ -334,8 +321,7 @@ class ApprovedLoanDocumentService
                 $planOfPaymentPath,
                 $documentData,
             );
-            $this->generateWorkbookSheetDocumentToPath(
-                LoanRequestDocumentKey::DisclosureStatement,
+            $this->disclosureStatementPdfService->generate(
                 $disclosureStatementPath,
                 $documentData,
             );
@@ -475,11 +461,19 @@ class ApprovedLoanDocumentService
                     $this->planOfPaymentPdfService->generate($path, $documentData);
                 },
             ),
-            LoanRequestDocumentKey::LoanInformation,
-            LoanRequestDocumentKey::DisclosureStatement => $this->generateWorkbookSheetDocumentToPath(
-                $documentKey,
+            LoanRequestDocumentKey::LoanInformation => $this->generatePdfDocumentToPath(
                 $outputPath,
-                $documentData,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->loanInformationPdfService->generate($path, $documentData);
+                },
+            ),
+            LoanRequestDocumentKey::DisclosureStatement => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->disclosureStatementPdfService->generate($path, $documentData);
+                },
             ),
         };
     }
@@ -560,85 +554,8 @@ class ApprovedLoanDocumentService
         return [
             'mime_type' => 'application/pdf',
             'filename' => basename($outputPath),
-            'sheet_name' => in_array(
-                $documentKey,
-                LoanRequestDocumentKey::workbookDocuments(),
-                true,
-            )
-                ? $this->workbookSheetName($documentKey)
-                : null,
+            'sheet_name' => null,
         ];
-    }
-
-    /**
-     * @return array{mime_type:string, filename:string, sheet_name:string}
-     */
-    private function generateWorkbookSheetDocumentToPath(
-        LoanRequestDocumentKey $documentKey,
-        string $outputPath,
-        array $documentData,
-    ): array {
-        $temporaryWorkbookPath = $this->documentStorage->temporaryFilePath(
-            $documentKey->value,
-            'xlsx',
-        );
-
-        try {
-            $this->approvedLoanExcelTemplateService->generate(
-                self::EXCEL_TEMPLATE_FILENAMES['plan_of_payment'],
-                $temporaryWorkbookPath,
-                $documentData,
-            );
-
-            $sheetName = $this->workbookSheetName($documentKey);
-            $spreadsheet = IOFactory::load($temporaryWorkbookPath);
-
-            try {
-                for (
-                    $index = $spreadsheet->getSheetCount() - 1;
-                    $index >= 0;
-                    $index--
-                ) {
-                    $sheet = $spreadsheet->getSheet($index);
-
-                    if ($sheet->getTitle() !== $sheetName) {
-                        $spreadsheet->removeSheetByIndex($index);
-                    }
-                }
-
-                if ($spreadsheet->getSheetCount() === 0) {
-                    throw new RuntimeException(
-                        sprintf('Worksheet [%s] was not found in the approved-loan workbook.', $sheetName),
-                    );
-                }
-
-                $spreadsheet->setActiveSheetIndex(0);
-                IOFactory::createWriter($spreadsheet, 'Xlsx')->save($outputPath);
-            } finally {
-                $spreadsheet->disconnectWorksheets();
-                unset($spreadsheet);
-            }
-        } finally {
-            File::delete($temporaryWorkbookPath);
-        }
-
-        return [
-            'mime_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'filename' => basename($outputPath),
-            'sheet_name' => $this->workbookSheetName($documentKey),
-        ];
-    }
-
-    private function workbookSheetName(
-        LoanRequestDocumentKey $documentKey,
-    ): string {
-        return match ($documentKey) {
-            LoanRequestDocumentKey::LoanInformation => 'Loan Information',
-            LoanRequestDocumentKey::PlanOfPayment => 'Plan of Payment',
-            LoanRequestDocumentKey::DisclosureStatement => 'Disclosure Statement',
-            LoanRequestDocumentKey::PromissoryNote => 'Promissory Note',
-            default => '',
-        };
     }
 
     private function buildDownloadFilename(

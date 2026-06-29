@@ -47,9 +47,6 @@ enum LoanRequestDocumentKey: string
      */
     public static function workbookDocuments(): array
     {
-        return [
-            self::LoanInformation,
-            self::DisclosureStatement,
-        ];
+        return [];
     }
 }
