@@ -51,6 +51,35 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'reviewer.name',
             ],
+            // TODO(calibrate-au): verify x/y against loan-documents:calibrate-fields au overlay
+            [
+                'page' => 1,
+                'x' => 28,
+                'y' => 82,
+                'size' => 9,
+                'value' => 'authorization.payout_bank_name',
+            ],
+            [
+                'page' => 1,
+                'x' => 28,
+                'y' => 90,
+                'size' => 9,
+                'value' => 'authorization.payout_account_number',
+            ],
+            [
+                'page' => 1,
+                'x' => 28,
+                'y' => 98,
+                'size' => 9,
+                'value' => 'authorization.payout_account_name',
+            ],
+            [
+                'page' => 1,
+                'x' => 28,
+                'y' => 106,
+                'size' => 9,
+                'value' => 'authorization.payout_atm_number',
+            ],
         ];
     }
 }

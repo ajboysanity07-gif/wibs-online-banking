@@ -60,7 +60,7 @@ class ApprovedLoanDocumentService
         'affidavit_undertaking' => '03-Affidavit-of-Undertaking.pdf',
         'authorization' => '04-Authorization.pdf',
         'loan_information' => '05-Loan-Information.xlsx',
-        'plan_of_payment' => '06-Plan-of-Payment.xlsx',
+        'plan_of_payment' => '06-Plan-of-Payment.pdf',
         'disclosure_statement' => '07-Disclosure-Statement.xlsx',
         'promissory_note' => '08-Promissory-Note.pdf',
         'undertaking_barangay' => '09-Undertaking-Barangay-Officials.pdf',
@@ -76,7 +76,7 @@ class ApprovedLoanDocumentService
         'affidavit_undertaking' => 'affidavit-undertaking-%s.pdf',
         'authorization' => 'authorization-%s.pdf',
         'loan_information' => 'loan-information-%s.xlsx',
-        'plan_of_payment' => 'plan-of-payment-%s.xlsx',
+        'plan_of_payment' => 'plan-of-payment-%s.pdf',
         'disclosure_statement' => 'disclosure-statement-%s.xlsx',
         'promissory_note' => 'promissory-note-%s.pdf',
         'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
@@ -99,6 +99,7 @@ class ApprovedLoanDocumentService
         private AffidavitUndertakingPdfFieldMap $affidavitUndertakingPdfFieldMap,
         private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
         private PromissoryNotePdfService $promissoryNotePdfService,
+        private PlanOfPaymentPdfService $planOfPaymentPdfService,
     ) {}
 
     public function applicationForm(LoanRequest $loanRequest): Response
@@ -225,13 +226,9 @@ class ApprovedLoanDocumentService
         return $this->downloadApprovedDocument(
             $loanRequest,
             'plan_of_payment',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/pdf',
             function (string $outputPath, array $documentData): void {
-                $this->generateWorkbookSheetDocumentToPath(
-                    LoanRequestDocumentKey::PlanOfPayment,
-                    $outputPath,
-                    $documentData,
-                );
+                $this->planOfPaymentPdfService->generate($outputPath, $documentData);
             },
         );
     }
@@ -333,8 +330,7 @@ class ApprovedLoanDocumentService
                 $loanInformationPath,
                 $documentData,
             );
-            $this->generateWorkbookSheetDocumentToPath(
-                LoanRequestDocumentKey::PlanOfPayment,
+            $this->planOfPaymentPdfService->generate(
                 $planOfPaymentPath,
                 $documentData,
             );
@@ -472,8 +468,14 @@ class ApprovedLoanDocumentService
                     $this->promissoryNotePdfService->generate($path, $documentData);
                 },
             ),
+            LoanRequestDocumentKey::PlanOfPayment => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->planOfPaymentPdfService->generate($path, $documentData);
+                },
+            ),
             LoanRequestDocumentKey::LoanInformation,
-            LoanRequestDocumentKey::PlanOfPayment,
             LoanRequestDocumentKey::DisclosureStatement => $this->generateWorkbookSheetDocumentToPath(
                 $documentKey,
                 $outputPath,

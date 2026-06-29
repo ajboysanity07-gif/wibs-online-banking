@@ -82,9 +82,9 @@ test('loan manager can preview an assigned processors generated workbook package
     $loanRequest = createGeneratedDocumentLoanRequest($processor);
     $document = createGeneratedWorkbookDocument(
         $loanRequest,
-        LoanRequestDocumentKey::PlanOfPayment,
+        LoanRequestDocumentKey::DisclosureStatement,
         'Manager Preview',
-        'Plan of Payment',
+        'Disclosure Statement',
     );
 
     $this
@@ -99,7 +99,7 @@ test('loan manager can preview an assigned processors generated workbook package
         ->assertOk()
         ->assertHeaderContains('content-type', 'text/html')
         ->assertSee('Manager Preview')
-        ->assertSee('Plan of Payment');
+        ->assertSee('Disclosure Statement');
 });
 
 test('unassigned loan processor cannot access another processors generated workbook package', function (): void {

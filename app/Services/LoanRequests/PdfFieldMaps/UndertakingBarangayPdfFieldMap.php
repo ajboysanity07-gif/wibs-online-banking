@@ -51,6 +51,28 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'organization.company_name',
             ],
+            // TODO(calibrate-ub): verify x/y against loan-documents:calibrate-fields ub overlay
+            [
+                'page' => 1,
+                'x' => 27,
+                'y' => 82,
+                'size' => 9,
+                'value' => 'barangay.name',
+            ],
+            [
+                'page' => 1,
+                'x' => 27,
+                'y' => 90,
+                'size' => 9,
+                'value' => 'barangay.clearance_reference',
+            ],
+            [
+                'page' => 1,
+                'x' => 27,
+                'y' => 98,
+                'size' => 9,
+                'value' => 'barangay.locality',
+            ],
         ];
     }
 }

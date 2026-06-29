@@ -49,7 +49,6 @@ enum LoanRequestDocumentKey: string
     {
         return [
             self::LoanInformation,
-            self::PlanOfPayment,
             self::DisclosureStatement,
         ];
     }

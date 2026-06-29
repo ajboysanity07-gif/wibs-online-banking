@@ -327,6 +327,70 @@ test('promissory note pdf includes borrower co-makers witnesses and amounts', fu
         ->toContain('ACMECOOPERATIVE');
 });
 
+test('plan of payment route returns a pdf not xlsx', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
+
+    $content = approvedLoanDocumentsReadDownloadedFileContent($response);
+
+    $response->assertOk();
+    $response->assertHeaderContains('content-type', 'application/pdf');
+    $response->assertDownload('plan-of-payment-'.$loanRequest->reference.'.pdf');
+    expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
+});
+
+test('plan of payment pdf includes borrower and amortization values', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+        'fullname' => 'Annabelle M. Amora',
+    ]);
+
+    OrganizationSetting::factory()->create([
+        'company_name' => 'Acme Cooperative',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->update([
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => 'SEMI-MONTHLY',
+        'reviewed_at' => '2026-05-22 10:00:00',
+    ]);
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update([
+            'first_name' => 'Helario',
+            'middle_name' => 'B.',
+            'last_name' => 'Tejero',
+        ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.plan-of-payment', $loanRequest));
+
+    $response->assertOk();
+
+    $text = approvedLoanDocumentsExtractPdfText($response);
+    $searchable = strtoupper(str_replace(' ', '', $text));
+
+    expect($searchable)
+        ->toContain('PLANOFPAYMENT')
+        ->toContain('HELARIOB.TEJERO')
+        ->toContain('ANNABELLEM.AMORA')
+        ->toContain('ACMECOOPERATIVE');
+});
+
 test('grepalife pdf includes structured applicant fields when available', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -822,6 +886,440 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect((int) $company['size'])->toBe(9);
 });
 
+test('grepalife field map pins all field coordinates to calibrated values', function () {
+    $fields = collect((new GrepalifePdfFieldMap)->fields());
+
+    $findByPageValue = fn (int $page, string $value, ?float $y = null): array => $fields->first(
+        fn (array $f): bool => ($f['page'] ?? null) === $page
+            && ($f['value'] ?? null) === $value
+            && ($y === null || (float) ($f['y'] ?? -1) === $y),
+    );
+
+    $findCallableByPageY = fn (int $page, float $y, float $width): array => $fields->first(
+        fn (array $f): bool => ($f['page'] ?? null) === $page
+            && is_callable($f['value'] ?? null)
+            && ($f['type'] ?? 'text') === 'text'
+            && (float) ($f['y'] ?? -1) === $y
+            && (float) ($f['width'] ?? -1) === $width,
+    );
+
+    $findCheckByPageXY = fn (int $page, float $x, float $y): array => $fields->first(
+        fn (array $f): bool => ($f['page'] ?? null) === $page
+            && ($f['type'] ?? 'text') === 'check'
+            && (float) ($f['x'] ?? -1) === $x
+            && (float) ($f['y'] ?? -1) === $y,
+    );
+
+    // --- Page 1 string-valued text fields ---
+    $lastName = $findByPageValue(1, 'applicant.last_name');
+    $firstName = $findByPageValue(1, 'applicant.first_name');
+    $middleName = $findByPageValue(1, 'applicant.middle_name');
+    $nationality = $findByPageValue(1, 'applicant.nationality');
+    $placeOfBirth = $findByPageValue(1, 'applicant.place_of_birth');
+    $addressLine = $findByPageValue(1, 'applicant.address_line');
+    $addressCity = $findByPageValue(1, 'applicant.address_city');
+    $addressProvince = $findByPageValue(1, 'applicant.address_province');
+    $addressZip = $findByPageValue(1, 'applicant.address_zip');
+    $employer = $findByPageValue(1, 'applicant.employer_or_business');
+    $natureOfBusiness = $findByPageValue(1, 'applicant.nature_of_business');
+    $position = $findByPageValue(1, 'applicant.position_or_designation');
+    $yearsInWork = $findByPageValue(1, 'applicant.years_in_work_business');
+    $officeAddress = $findByPageValue(1, 'applicant.office_address');
+    $officeCity = $findByPageValue(1, 'applicant.office_city');
+    $officeProvince = $findByPageValue(1, 'applicant.office_province');
+    $officeZip = $findByPageValue(1, 'applicant.office_zip');
+    $homePhone = $findByPageValue(1, 'applicant.home_phone');
+    $workPhone = $findByPageValue(1, 'applicant.work_phone');
+    $mobile = $findByPageValue(1, 'applicant.mobile');
+    $email = $findByPageValue(1, 'applicant.email');
+    $companyNameP1 = $findByPageValue(1, 'organization.company_name');
+    $termLabel = $findByPageValue(1, 'loan.approved_term_label');
+    $amountP1Y119 = $findByPageValue(1, 'loan.approved_amount', 119.8);
+    $amountP1Y134 = $findByPageValue(1, 'loan.approved_amount', 134.1);
+    $existingLoanDate = $findByPageValue(1, 'loan.approved_date_short');
+    $existingLoanType = $findByPageValue(1, 'loan.type');
+    $ben0Name = $findByPageValue(1, 'beneficiaries.0.name');
+    $ben0Bday = $findByPageValue(1, 'beneficiaries.0.birthdate');
+    $ben0Rel = $findByPageValue(1, 'beneficiaries.0.relationship');
+    $ben1Name = $findByPageValue(1, 'beneficiaries.1.name');
+    $ben1Bday = $findByPageValue(1, 'beneficiaries.1.birthdate');
+    $ben1Rel = $findByPageValue(1, 'beneficiaries.1.relationship');
+    $ben2Name = $findByPageValue(1, 'beneficiaries.2.name');
+    $ben2Bday = $findByPageValue(1, 'beneficiaries.2.birthdate');
+    $ben2Rel = $findByPageValue(1, 'beneficiaries.2.relationship');
+
+    // --- Page 1 callable fields ---
+    $birthdate = $findCallableByPageY(1, 71.1, 74.0);
+    $addressCountry = $findCallableByPageY(1, 86.5, 17.0);
+    $officeCountry = $findCallableByPageY(1, 102.5, 17.0);
+
+    // --- Page 1 check fields ---
+    $checkSingle = $findCheckByPageXY(1, 130.8, 59.9);
+    $checkMarried = $findCheckByPageXY(1, 150.5, 59.9);
+    $checkWidowed = $findCheckByPageXY(1, 169.0, 59.9);
+    $checkSeparated = $findCheckByPageXY(1, 130.8, 63.8);
+    $checkExistingLoanYes = $findCheckByPageXY(1, 68.5, 125.0);
+
+    // --- Page 2 fields ---
+    $fullNameP2 = $findByPageValue(2, 'applicant.full_name');
+    $reviewerP2 = $findByPageValue(2, 'reviewer.name');
+    $companyNameP2 = $findByPageValue(2, 'organization.company_name');
+    $businessAddress = $findByPageValue(2, 'organization.business_address');
+    $dateP2 = $findByPageValue(2, 'loan.approved_date_short');
+
+    // --- Assertions: page 1 text string fields ---
+    expect((float) $lastName['x'])->toBe(11.8);
+    expect((float) $lastName['y'])->toBe(55.1);
+    expect((int) $lastName['size'])->toBe(7);
+    expect((float) $lastName['width'])->toBe(96.0);
+
+    expect((float) $firstName['x'])->toBe(11.8);
+    expect((float) $firstName['y'])->toBe(62.9);
+    expect((int) $firstName['size'])->toBe(7);
+    expect((float) $firstName['width'])->toBe(96.0);
+
+    expect((float) $middleName['x'])->toBe(11.8);
+    expect((float) $middleName['y'])->toBe(70.6);
+    expect((int) $middleName['size'])->toBe(7);
+    expect((float) $middleName['width'])->toBe(96.0);
+
+    expect((float) $nationality['x'])->toBe(11.8);
+    expect((float) $nationality['y'])->toBe(78.5);
+    expect((float) $nationality['width'])->toBe(50.0);
+
+    expect((float) $placeOfBirth['x'])->toBe(110.2);
+    expect((float) $placeOfBirth['y'])->toBe(78.5);
+    expect((float) $placeOfBirth['width'])->toBe(86.0);
+
+    expect((float) $addressLine['x'])->toBe(11.8);
+    expect((float) $addressLine['y'])->toBe(86.5);
+    expect((float) $addressLine['width'])->toBe(97.0);
+
+    expect((float) $addressCity['x'])->toBe(118.0);
+    expect((float) $addressCity['y'])->toBe(86.5);
+    expect((float) $addressCity['width'])->toBe(24.0);
+
+    expect((float) $addressProvince['x'])->toBe(143.3);
+    expect((float) $addressProvince['y'])->toBe(86.5);
+    expect((float) $addressProvince['width'])->toBe(25.0);
+
+    expect((float) $addressZip['x'])->toBe(191.7);
+    expect((float) $addressZip['y'])->toBe(86.5);
+    expect((float) $addressZip['width'])->toBe(11.0);
+
+    expect((float) $employer['x'])->toBe(11.8);
+    expect((float) $employer['y'])->toBe(94.0);
+    expect((float) $employer['width'])->toBe(45.0);
+
+    expect((float) $natureOfBusiness['x'])->toBe(61.0);
+    expect((float) $natureOfBusiness['y'])->toBe(94.0);
+    expect((float) $natureOfBusiness['width'])->toBe(56.0);
+
+    expect((float) $position['x'])->toBe(118.0);
+    expect((float) $position['y'])->toBe(94.0);
+    expect((float) $position['width'])->toBe(32.0);
+
+    expect((float) $yearsInWork['x'])->toBe(155.5);
+    expect((float) $yearsInWork['y'])->toBe(94.0);
+    expect((float) $yearsInWork['width'])->toBe(50.0);
+
+    expect((float) $officeAddress['x'])->toBe(11.8);
+    expect((float) $officeAddress['y'])->toBe(102.5);
+    expect((float) $officeAddress['width'])->toBe(97.0);
+
+    expect((float) $officeCity['x'])->toBe(118.0);
+    expect((float) $officeCity['y'])->toBe(102.5);
+    expect((float) $officeCity['width'])->toBe(24.0);
+
+    expect((float) $officeProvince['x'])->toBe(146.3);
+    expect((float) $officeProvince['y'])->toBe(102.5);
+    expect((float) $officeProvince['width'])->toBe(23.0);
+
+    expect((float) $officeZip['x'])->toBe(191.7);
+    expect((float) $officeZip['y'])->toBe(102.5);
+    expect((float) $officeZip['width'])->toBe(11.0);
+
+    expect((float) $homePhone['x'])->toBe(11.8);
+    expect((float) $homePhone['y'])->toBe(111.5);
+    expect((float) $homePhone['width'])->toBe(44.0);
+
+    expect((float) $workPhone['x'])->toBe(60.6);
+    expect((float) $workPhone['y'])->toBe(111.5);
+    expect((float) $workPhone['width'])->toBe(48.0);
+
+    expect((float) $mobile['x'])->toBe(110.5);
+    expect((float) $mobile['y'])->toBe(111.5);
+    expect((float) $mobile['width'])->toBe(41.0);
+
+    expect((float) $email['x'])->toBe(159.6);
+    expect((float) $email['y'])->toBe(111.5);
+    expect((float) $email['width'])->toBe(42.0);
+
+    expect((float) $companyNameP1['x'])->toBe(11.8);
+    expect((float) $companyNameP1['y'])->toBe(119.8);
+    expect((float) $companyNameP1['width'])->toBe(94.0);
+
+    expect((float) $termLabel['x'])->toBe(97.5);
+    expect((float) $termLabel['y'])->toBe(119.8);
+    expect((float) $termLabel['width'])->toBe(40.0);
+    expect($termLabel['align'] ?? 'L')->toBe('C');
+
+    expect((float) $amountP1Y119['x'])->toBe(145.6);
+    expect((float) $amountP1Y119['y'])->toBe(119.8);
+    expect((float) $amountP1Y119['width'])->toBe(42.0);
+    expect($amountP1Y119['align'] ?? 'L')->toBe('C');
+
+    expect((float) $existingLoanDate['x'])->toBe(71.5);
+    expect((float) $existingLoanDate['y'])->toBe(134.1);
+    expect((float) $existingLoanDate['width'])->toBe(40.0);
+    expect($existingLoanDate['align'] ?? 'L')->toBe('C');
+
+    expect((float) $existingLoanType['x'])->toBe(118.5);
+    expect((float) $existingLoanType['y'])->toBe(134.1);
+    expect((float) $existingLoanType['width'])->toBe(36.0);
+    expect($existingLoanType['align'] ?? 'L')->toBe('C');
+
+    expect((float) $amountP1Y134['x'])->toBe(170.2);
+    expect((float) $amountP1Y134['y'])->toBe(134.1);
+    expect((float) $amountP1Y134['width'])->toBe(24.0);
+    expect($amountP1Y134['align'] ?? 'L')->toBe('C');
+
+    expect((float) $ben0Name['x'])->toBe(15.0);
+    expect((float) $ben0Name['y'])->toBe(149.2);
+    expect((float) $ben0Bday['x'])->toBe(111.0);
+    expect((float) $ben0Bday['y'])->toBe(149.2);
+    expect($ben0Bday['align'] ?? 'L')->toBe('C');
+    expect((float) $ben0Rel['x'])->toBe(150.0);
+    expect((float) $ben0Rel['y'])->toBe(149.2);
+
+    expect((float) $ben1Name['x'])->toBe(15.0);
+    expect((float) $ben1Name['y'])->toBe(152.8);
+    expect((float) $ben1Bday['x'])->toBe(111.0);
+    expect((float) $ben1Bday['y'])->toBe(152.8);
+    expect((float) $ben1Rel['x'])->toBe(150.0);
+    expect((float) $ben1Rel['y'])->toBe(152.8);
+
+    expect((float) $ben2Name['x'])->toBe(15.0);
+    expect((float) $ben2Name['y'])->toBe(156.4);
+    expect((float) $ben2Bday['x'])->toBe(111.0);
+    expect((float) $ben2Bday['y'])->toBe(156.4);
+    expect((float) $ben2Rel['x'])->toBe(150.0);
+    expect((float) $ben2Rel['y'])->toBe(156.4);
+
+    // --- Assertions: page 1 callable fields ---
+    expect((float) $birthdate['x'])->toBe(100.0);
+    expect((float) $birthdate['y'])->toBe(71.1);
+    expect((int) $birthdate['size'])->toBe(7);
+    expect((float) $birthdate['width'])->toBe(74.0);
+    expect($birthdate['align'] ?? 'L')->toBe('C');
+
+    expect((float) $addressCountry['x'])->toBe(171.7);
+    expect((float) $addressCountry['y'])->toBe(86.5);
+    expect((float) $addressCountry['width'])->toBe(17.0);
+
+    expect((float) $officeCountry['x'])->toBe(171.7);
+    expect((float) $officeCountry['y'])->toBe(102.5);
+    expect((float) $officeCountry['width'])->toBe(17.0);
+
+    // --- Assertions: page 1 check fields ---
+    expect((float) $checkSingle['x'])->toBe(130.8);
+    expect((float) $checkSingle['y'])->toBe(59.9);
+    expect((float) $checkSingle['size'])->toBe(6.4);
+
+    expect((float) $checkMarried['x'])->toBe(150.5);
+    expect((float) $checkMarried['y'])->toBe(59.9);
+    expect((float) $checkMarried['size'])->toBe(6.4);
+
+    expect((float) $checkWidowed['x'])->toBe(169.0);
+    expect((float) $checkWidowed['y'])->toBe(59.9);
+    expect((float) $checkWidowed['size'])->toBe(6.4);
+
+    expect((float) $checkSeparated['x'])->toBe(130.8);
+    expect((float) $checkSeparated['y'])->toBe(63.8);
+    expect((float) $checkSeparated['size'])->toBe(6.4);
+
+    expect((float) $checkExistingLoanYes['x'])->toBe(68.5);
+    expect((float) $checkExistingLoanYes['y'])->toBe(125.0);
+    expect((float) $checkExistingLoanYes['size'])->toBe(6.4);
+
+    // --- Assertions: page 2 fields ---
+    expect((float) $fullNameP2['x'])->toBe(71.0);
+    expect((float) $fullNameP2['y'])->toBe(81.5);
+    expect((float) $fullNameP2['size'])->toBe(7.2);
+    expect((float) $fullNameP2['width'])->toBe(118.0);
+
+    expect((float) $reviewerP2['x'])->toBe(71.0);
+    expect((float) $reviewerP2['y'])->toBe(91.5);
+    expect((float) $reviewerP2['width'])->toBe(62.0);
+    expect($reviewerP2['align'] ?? 'L')->toBe('L');
+
+    expect((float) $companyNameP2['x'])->toBe(141.5);
+    expect((float) $companyNameP2['y'])->toBe(91.5);
+    expect((float) $companyNameP2['width'])->toBe(62.0);
+    expect($companyNameP2['align'] ?? 'L')->toBe('L');
+
+    expect((float) $businessAddress['x'])->toBe(15.0);
+    expect((float) $businessAddress['y'])->toBe(101.5);
+    expect((float) $businessAddress['width'])->toBe(86.0);
+    expect($businessAddress['align'] ?? 'L')->toBe('L');
+
+    expect((float) $dateP2['x'])->toBe(108.8);
+    expect((float) $dateP2['y'])->toBe(101.5);
+    expect((float) $dateP2['width'])->toBe(44.0);
+    expect($dateP2['align'] ?? 'L')->toBe('L');
+
+    // --- Assertions: page 1 health check fields (Q1-Q4) ---
+    // TODO(calibrate-gl): update x/y after confirming with loan-documents:calibrate-fields gl overlay
+    $findHealthCheck = fn (float $y): array => $fields->first(
+        fn (array $f): bool => ($f['page'] ?? null) === 1
+            && ($f['type'] ?? 'text') === 'check'
+            && (float) ($f['y'] ?? -1) === $y
+            && (float) ($f['x'] ?? -1) === 45.0,
+    );
+
+    $healthSmoker = $findHealthCheck(165.0);
+    $healthHypertension = $findHealthCheck(171.0);
+    $healthDiabetes = $findHealthCheck(177.0);
+    $healthHospitalization = $findHealthCheck(183.0);
+
+    expect($healthSmoker)->toBeArray();
+    expect((float) $healthSmoker['x'])->toBe(45.0);
+    expect((float) $healthSmoker['y'])->toBe(165.0);
+    expect((float) $healthSmoker['size'])->toBe(6.4);
+
+    expect($healthHypertension)->toBeArray();
+    expect((float) $healthHypertension['x'])->toBe(45.0);
+    expect((float) $healthHypertension['y'])->toBe(171.0);
+
+    expect($healthDiabetes)->toBeArray();
+    expect((float) $healthDiabetes['x'])->toBe(45.0);
+    expect((float) $healthDiabetes['y'])->toBe(177.0);
+
+    expect($healthHospitalization)->toBeArray();
+    expect((float) $healthHospitalization['x'])->toBe(45.0);
+    expect((float) $healthHospitalization['y'])->toBe(183.0);
+});
+
+test('affidavit undertaking pdf prints payout bank details', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'RURAL SAVINGS BANK');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '9876543210');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_name', 'string', 'JUAN B. DELA CRUZ');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_atm_number', 'string', '4444-3333-2222-1111');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('RURAL SAVINGS BANK')
+        ->toContain('9876543210')
+        ->toContain('JUAN B. DELA CRUZ')
+        ->toContain('4444-3333-2222-1111');
+});
+
+test('authorization pdf prints recipient and release details', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'authorized_recipient_name', 'string', 'MARIA C. SANTOS');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'authorized_recipient_relationship', 'string', 'SPOUSE');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_method', 'string', 'ATM');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'LANDBANK');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.authorization', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('MARIA C. SANTOS')
+        ->toContain('SPOUSE')
+        ->toContain('ATM')
+        ->toContain('LANDBANK')
+        ->toContain('1122334455');
+});
+
+test('undertaking barangay pdf prints barangay details', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_name', 'string', 'BARANGAY SAN PEDRO');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_clearance_reference', 'string', 'BCR-2026-00123');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_locality', 'string', 'TAGUM CITY');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.undertaking-barangay', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('BARANGAY SAN PEDRO')
+        ->toContain('BCR-2026-00123')
+        ->toContain('TAGUM CITY');
+});
+
+test('grepalife field map checks health answers when affirmative', function () {
+    $fieldMap = new GrepalifePdfFieldMap;
+    $fields = collect($fieldMap->fields());
+
+    $findHealthCheck = fn (float $y): array => $fields->first(
+        fn (array $f): bool => ($f['page'] ?? null) === 1
+            && ($f['type'] ?? 'text') === 'check'
+            && (float) ($f['y'] ?? -1) === $y
+            && (float) ($f['x'] ?? -1) === 45.0,
+    );
+
+    $smokerField = $findHealthCheck(165.0);
+    $hypertensionField = $findHealthCheck(171.0);
+    $diabetesField = $findHealthCheck(177.0);
+    $hospitalizationField = $findHealthCheck(183.0);
+
+    $documentDataYes = [
+        'health' => [
+            'health_smoker' => 'yes',
+            'health_hypertension' => true,
+            'health_diabetes' => '1',
+            'health_recent_hospitalization' => 1,
+        ],
+    ];
+
+    $documentDataNo = [
+        'health' => [
+            'health_smoker' => 'no',
+            'health_hypertension' => false,
+            'health_diabetes' => '0',
+            'health_recent_hospitalization' => null,
+        ],
+    ];
+
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($smokerField, $documentDataYes))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hypertensionField, $documentDataYes))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($diabetesField, $documentDataYes))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hospitalizationField, $documentDataYes))->toBeTrue();
+
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($smokerField, $documentDataNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hypertensionField, $documentDataNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($diabetesField, $documentDataNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hospitalizationField, $documentDataNo))->toBeFalse();
+});
+
 test('grepalife pdf includes beneficiaries from direct wmaster beneficiary columns', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -997,23 +1495,6 @@ test('each workbook-derived route returns an xlsx response and generated documen
             );
         }
 
-        if ($document['sheet'] === 'Plan of Payment') {
-            expect($worksheet->getCell('D9')->getValue())->toBe('SAMPLE Q MEMBER');
-            expect($worksheet->getCell('D10')->getValue())->toBe(
-                '123 Loan Street, Loan City, Loan Province',
-            );
-            expect(trim((string) $worksheet->getCell('G27')->getValue()))->toBe('ANNABELLE M. AMORA');
-            expect($worksheet->getCell('D41')->getValue())->toBe('SAMPLE Q MEMBER');
-            expect(trim((string) $worksheet->getCell('G59')->getValue()))->toBe('ANNABELLE M. AMORA');
-            expect(approvedLoanDocumentsWorksheetPrintAreaRange($worksheet))->toBeNull();
-            expect(
-                $worksheet->getStyle('B15')
-                    ->getBorders()
-                    ->getLeft()
-                    ->getBorderStyle(),
-            )->toBe(Border::BORDER_NONE);
-        }
-
         if ($document['sheet'] === 'Disclosure Statement') {
             expect($worksheet->getCell('M7')->getValue())->toBe($loanRequest->reference);
             expect($worksheet->getCell('D7')->getValue())->toBe('SAMPLE Q MEMBER');
@@ -1135,13 +1616,6 @@ test('workbook-derived documents keep printed names and no signature drawings on
                 ->not->toBe('0');
             expect($worksheet->getCell('C42')->getValue())->toBe('ANNABELLE M. AMORA');
             expect($worksheet->getCell('C43')->getValue())->toBe('ANNABELLE M. AMORA');
-        }
-
-        if ($document['sheet'] === 'Plan of Payment') {
-            expect($worksheet->getCell('D9')->getValue())->toBe('HELARIO B TEJERO');
-            expect($worksheet->getCell('G27')->getValue())->toBe('ANNABELLE M. AMORA');
-            expect($worksheet->getCell('D41')->getValue())->toBe('HELARIO B TEJERO');
-            expect($worksheet->getCell('G59')->getValue())->toBe('ANNABELLE M. AMORA');
         }
 
         if ($document['sheet'] === 'Disclosure Statement') {
@@ -1414,7 +1888,7 @@ test('approved document zip contains all required files and valid generated docu
         '03-Affidavit-of-Undertaking.pdf',
         '04-Authorization.pdf',
         '05-Loan-Information.xlsx',
-        '06-Plan-of-Payment.xlsx',
+        '06-Plan-of-Payment.pdf',
         '07-Disclosure-Statement.xlsx',
         '08-Promissory-Note.pdf',
         '09-Undertaking-Barangay-Officials.pdf',
@@ -1435,7 +1909,6 @@ test('approved document zip contains all required files and valid generated docu
 
     foreach ([
         '05-Loan-Information.xlsx',
-        '06-Plan-of-Payment.xlsx',
         '07-Disclosure-Statement.xlsx',
     ] as $entryName) {
         expect($entries[$entryName] ?? null)
@@ -1726,12 +2199,6 @@ function approvedLoanDocumentsWorkbookRouteDefinitions(LoanRequest $loanRequest)
             'sheet' => 'Loan Information',
         ],
         [
-            'route' => 'admin.requests.documents.plan-of-payment',
-            'filename' => 'plan-of-payment-'.$loanRequest->reference.'.xlsx',
-            'disposition' => 'attachment',
-            'sheet' => 'Plan of Payment',
-        ],
-        [
             'route' => 'admin.requests.documents.disclosure-statement',
             'filename' => 'disclosure-statement-'.$loanRequest->reference.'.xlsx',
             'disposition' => 'attachment',
@@ -1783,6 +2250,12 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
             'disposition' => 'attachment',
             'page_count' => 2,
         ],
+        [
+            'route' => 'admin.requests.documents.plan-of-payment',
+            'filename' => 'plan-of-payment-'.$loanRequest->reference.'.pdf',
+            'disposition' => 'attachment',
+            'page_count' => 1,
+        ],
     ];
 }
 
@@ -1795,6 +2268,7 @@ function approvedLoanDocumentsTemplateBackedPdfZipEntryNames(): array
         '02-GREPALIFE.pdf',
         '03-Affidavit-of-Undertaking.pdf',
         '04-Authorization.pdf',
+        '06-Plan-of-Payment.pdf',
         '08-Promissory-Note.pdf',
         '09-Undertaking-Barangay-Officials.pdf',
         '10-Loan-Security-Agreement.pdf',

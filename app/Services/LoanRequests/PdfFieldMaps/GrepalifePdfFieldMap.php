@@ -465,7 +465,57 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'align' => 'L',
                 'value' => 'loan.approved_date_short',
             ],
+            // TODO(calibrate-gl): verify x/y for Q1-Q4 health checks against loan-documents:calibrate-fields gl overlay
+            [
+                'type' => 'check',
+                'page' => 1,
+                'x' => 45.0,
+                'y' => 165.0,
+                'size' => 6.4,
+                'value' => $this->healthChecked('health_smoker'),
+            ],
+            [
+                'type' => 'check',
+                'page' => 1,
+                'x' => 45.0,
+                'y' => 171.0,
+                'size' => 6.4,
+                'value' => $this->healthChecked('health_hypertension'),
+            ],
+            [
+                'type' => 'check',
+                'page' => 1,
+                'x' => 45.0,
+                'y' => 177.0,
+                'size' => 6.4,
+                'value' => $this->healthChecked('health_diabetes'),
+            ],
+            [
+                'type' => 'check',
+                'page' => 1,
+                'x' => 45.0,
+                'y' => 183.0,
+                'size' => 6.4,
+                'value' => $this->healthChecked('health_recent_hospitalization'),
+            ],
         ];
+    }
+
+    private function healthChecked(string $key): callable
+    {
+        return static function (array $documentData) use ($key): bool {
+            $value = data_get($documentData, 'health.'.$key);
+
+            if ($value === null || $value === false || $value === 0 || $value === '') {
+                return false;
+            }
+
+            if (is_string($value)) {
+                return in_array(strtolower(trim($value)), ['yes', '1', 'true'], true);
+            }
+
+            return (bool) $value;
+        };
     }
 
     private function civilStatusChecked(string $expected): callable
