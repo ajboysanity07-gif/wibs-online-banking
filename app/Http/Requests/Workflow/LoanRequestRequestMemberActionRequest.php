@@ -48,7 +48,6 @@ class LoanRequestRequestMemberActionRequest extends FormRequest
                     'health_declaration_notes',
                     'authorized_recipient_name',
                     'authorized_recipient_relationship',
-                    'authorized_recipient_contact',
                     'payout_bank_name',
                     'payout_account_name',
                     'payout_account_number',

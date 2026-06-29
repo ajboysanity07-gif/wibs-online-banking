@@ -1381,7 +1381,8 @@ test('authorization pdf prints recipient and release details', function () {
         ->toContain('SPOUSE')
         ->toContain('ATM')
         ->toContain('LANDBANK')
-        ->toContain('1122334455');
+        ->toContain('1122334455')
+        ->not->toContain('Enterprise Bank');
 });
 
 test('undertaking barangay pdf prints barangay details', function () {
@@ -2456,8 +2457,6 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         'witness_two_name' => ['string', 'Annabelle M. Amora'],
         'authorized_recipient_name' => ['string', 'Authorized Recipient'],
         'authorized_recipient_relationship' => ['string', 'Sibling'],
-        'authorized_recipient_contact' => ['string', '09170000019'],
-        'authorization_reason' => ['string', 'Member will be out of town on release date.'],
         'release_method' => ['string', 'Bank transfer'],
         'payout_bank_name' => ['string', 'WIBS Cooperative Bank'],
         'payout_account_name' => ['string', 'Sample Q Member'],

@@ -105,8 +105,6 @@ class SaveDraftRequest extends FormRequest
             'authorization' => ['sometimes', 'nullable', 'array'],
             'authorization.authorized_recipient_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'authorization.authorized_recipient_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'authorization.authorized_recipient_contact' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'authorization.authorization_reason' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'authorization.release_method' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking' => ['sometimes', 'nullable', 'array'],
             'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -123,9 +121,9 @@ class SaveDraftRequest extends FormRequest
             'declarations.declaration_pending_cases' => ['sometimes', 'nullable', 'boolean'],
             'declarations.declaration_truth_confirmation' => ['sometimes', 'nullable', 'boolean'],
             'declarations.declaration_data_privacy_consent' => ['sometimes', 'nullable', 'boolean'],
-            ...$this->personRules('applicant', true, true),
-            ...$this->personRules('co_maker_1', false, false),
-            ...$this->personRules('co_maker_2', false, false),
+            ...$this->personRules('applicant', true, true, true),
+            ...$this->personRules('co_maker_1', false, false, false),
+            ...$this->personRules('co_maker_2', false, false, false),
         ];
     }
 
@@ -136,6 +134,7 @@ class SaveDraftRequest extends FormRequest
         string $prefix,
         bool $includeSpouse,
         bool $includeChildren,
+        bool $includeCivilHousing = false,
     ): array {
         $rules = [
             "{$prefix}" => ['sometimes', 'nullable', 'array'],
@@ -150,19 +149,7 @@ class SaveDraftRequest extends FormRequest
             "{$prefix}.address2" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.address3" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['sometimes', 'nullable', 'string', 'max:255'],
-            "{$prefix}.housing_status" => [
-                'sometimes',
-                'nullable',
-                'string',
-                Rule::in(self::HOUSING_STATUS_OPTIONS),
-            ],
             "{$prefix}.cell_no" => ['sometimes', 'nullable', 'string', 'max:20'],
-            "{$prefix}.civil_status" => [
-                'sometimes',
-                'nullable',
-                'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
-            ],
             "{$prefix}.educational_attainment" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -181,6 +168,21 @@ class SaveDraftRequest extends FormRequest
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
+
+        if ($includeCivilHousing) {
+            $rules["{$prefix}.housing_status"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ];
+            $rules["{$prefix}.civil_status"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ];
+        }
 
         if ($includeChildren) {
             $rules["{$prefix}.number_of_children"] = ['sometimes', 'nullable', 'integer', 'min:0'];

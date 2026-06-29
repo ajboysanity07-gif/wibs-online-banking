@@ -89,7 +89,6 @@ function loanRequestPayload(): array
         'authorization' => [
             'authorized_recipient_name' => 'Authorized Recipient',
             'authorized_recipient_relationship' => 'Sibling',
-            'authorized_recipient_contact' => '09123456780',
         ],
         'banking' => [
             'payout_bank_name' => 'WIBS Cooperative Bank',

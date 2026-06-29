@@ -73,7 +73,6 @@ class AuthorizationPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'authorization.release_method',
             ],
-            // TODO(WIBS Q1): template prints hardcoded "Enterprise Bank, Inc." — confirm before switching to authorization.payout_bank_name
             [
                 'page' => 1,
                 'x' => 26,

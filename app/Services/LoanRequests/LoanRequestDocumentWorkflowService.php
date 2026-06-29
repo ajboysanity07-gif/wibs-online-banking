@@ -615,8 +615,6 @@ class LoanRequestDocumentWorkflowService
                     'barangay_official_title' => $flatValues['barangay_official_title'] ?? null,
                     'authorized_recipient_name' => $flatValues['authorized_recipient_name'] ?? null,
                     'authorized_recipient_relationship' => $flatValues['authorized_recipient_relationship'] ?? null,
-                    'authorized_recipient_contact' => $flatValues['authorized_recipient_contact'] ?? null,
-                    'authorization_reason' => $flatValues['authorization_reason'] ?? null,
                     'release_method' => $flatValues['release_method'] ?? null,
                     'payout_bank_name' => $flatValues['payout_bank_name'] ?? null,
                     'payout_account_name' => $flatValues['payout_account_name'] ?? null,

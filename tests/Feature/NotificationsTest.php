@@ -1044,8 +1044,6 @@ function notificationLoanRequestPayload(): array
         'authorization' => [
             'authorized_recipient_name' => 'Authorized Recipient',
             'authorized_recipient_relationship' => 'Sibling',
-            'authorized_recipient_contact' => '09170000009',
-            'authorization_reason' => 'Member will be out of town on release date.',
             'release_method' => 'Bank transfer',
         ],
         'banking' => [

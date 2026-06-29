@@ -203,8 +203,6 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
         'authorization' => [
             'authorized_recipient_name' => 'Authorized Recipient',
             'authorized_recipient_relationship' => 'Sibling',
-            'authorized_recipient_contact' => '09123456781',
-            'authorization_reason' => 'Member will be out of town on release date.',
             'release_method' => 'Bank transfer',
         ],
         'banking' => [
@@ -1087,9 +1085,9 @@ test('loan request submissions persist snapshots and enter pending review', func
     expect($people[LoanRequestPersonRole::Applicant->value]->birthplace)->toBe('Manila, Metro Manila');
     expect($people[LoanRequestPersonRole::Applicant->value]->housing_status)->toBe('OWNED');
     expect($people[LoanRequestPersonRole::CoMakerOne->value]->birthplace)->toBe('Cebu, Cebu');
-    expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBe('RENT');
+    expect($people[LoanRequestPersonRole::CoMakerOne->value]->housing_status)->toBeNull();
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->birthplace)->toBe('Davao, Davao del Sur');
-    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBe('OWNED');
+    expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBeNull();
 });
 
 test('legacy applicant signature payload is ignored when signatures are collected physically', function () {

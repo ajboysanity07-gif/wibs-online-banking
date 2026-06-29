@@ -104,7 +104,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             'co_maker_1_signature_data' => $this->signatureDataRules(),
             'co_maker_2_signature_data' => $this->signatureDataRules(),
             'undertaking_accepted' => ['sometimes', 'boolean'],
-            ...$this->optionalPersonRules('applicant', true, true),
+            ...$this->optionalPersonRules('applicant', true, true, true),
             ...$this->coMakerRules('co_maker_1', $targetRole, LoanRequestPersonRole::CoMakerOne),
             ...$this->coMakerRules('co_maker_2', $targetRole, LoanRequestPersonRole::CoMakerTwo),
         ];
@@ -132,6 +132,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
         string $prefix,
         bool $includeSpouse,
         bool $includeChildren,
+        bool $includeCivilHousing = false,
     ): array {
         $rules = [
             "{$prefix}.first_name" => ['required', 'string', 'max:255'],
@@ -145,17 +146,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             "{$prefix}.address2" => ['required', 'string', 'max:255'],
             "{$prefix}.address3" => ['required', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
-            "{$prefix}.housing_status" => [
-                'required',
-                'string',
-                Rule::in(self::HOUSING_STATUS_OPTIONS),
-            ],
             "{$prefix}.cell_no" => ['required', 'string', 'digits:11'],
-            "{$prefix}.civil_status" => [
-                'required',
-                'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
-            ],
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['required', 'string', 'max:255'],
@@ -173,6 +164,19 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
+
+        if ($includeCivilHousing) {
+            $rules["{$prefix}.housing_status"] = [
+                'required',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ];
+            $rules["{$prefix}.civil_status"] = [
+                'required',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ];
+        }
 
         if ($includeChildren) {
             $rules["{$prefix}.number_of_children"] = [
@@ -198,6 +202,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
         string $prefix,
         bool $includeSpouse,
         bool $includeChildren,
+        bool $includeCivilHousing = false,
     ): array {
         $rules = [
             "{$prefix}.first_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -211,19 +216,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             "{$prefix}.address2" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.address3" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['sometimes', 'nullable', 'string', 'max:255'],
-            "{$prefix}.housing_status" => [
-                'sometimes',
-                'nullable',
-                'string',
-                Rule::in(self::HOUSING_STATUS_OPTIONS),
-            ],
             "{$prefix}.cell_no" => ['sometimes', 'nullable', 'string', 'digits:11'],
-            "{$prefix}.civil_status" => [
-                'sometimes',
-                'nullable',
-                'string',
-                Rule::in(self::CIVIL_STATUS_OPTIONS),
-            ],
             "{$prefix}.educational_attainment" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -242,6 +235,21 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
+
+        if ($includeCivilHousing) {
+            $rules["{$prefix}.housing_status"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::HOUSING_STATUS_OPTIONS),
+            ];
+            $rules["{$prefix}.civil_status"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ];
+        }
 
         if ($includeChildren) {
             $rules["{$prefix}.number_of_children"] = [
