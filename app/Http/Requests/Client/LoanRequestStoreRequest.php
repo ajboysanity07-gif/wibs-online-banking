@@ -145,6 +145,9 @@ class LoanRequestStoreRequest extends FormRequest
         bool $includeChildren,
         bool $includeCivilHousing = false,
     ): array {
+        $isPensioner = trim((string) $this->input("{$prefix}.employment_type", '')) === 'Pensioner';
+        $employerRule = $isPensioner ? 'nullable' : 'required';
+
         $rules = [
             "{$prefix}.first_name" => ['required', 'string', 'max:255'],
             "{$prefix}.last_name" => ['required', 'string', 'max:255'],
@@ -160,14 +163,14 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.cell_no" => ['required', 'string', 'digits:11'],
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
-            "{$prefix}.employer_business_name" => ['required', 'string', 'max:255'],
-            "{$prefix}.employer_business_address1" => ['required', 'string', 'max:255'],
-            "{$prefix}.employer_business_address2" => ['required', 'string', 'max:255'],
-            "{$prefix}.employer_business_address3" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_name" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.employer_business_address1" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.employer_business_address2" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.employer_business_address3" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.telephone_no" => ['nullable', 'string', 'max:20'],
-            "{$prefix}.current_position" => ['required', 'string', 'max:255'],
-            "{$prefix}.nature_of_business" => ['required', 'string', 'max:255'],
-            "{$prefix}.years_in_work_business" => ['required', 'string', 'max:255'],
+            "{$prefix}.current_position" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.nature_of_business" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.years_in_work_business" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.gross_monthly_income" => ['required', 'numeric', 'min:0'],
             "{$prefix}.payday" => [
                 'required',

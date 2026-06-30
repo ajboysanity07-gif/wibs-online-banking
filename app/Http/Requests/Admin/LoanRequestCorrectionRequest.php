@@ -65,10 +65,13 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['banking.payout_account_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_account_type'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_atm_number'] = ['sometimes', 'nullable', 'string', 'max:255'];
-        $rules['barangay'] = ['sometimes', 'array:barangay_name,barangay_clearance_reference,barangay_locality'];
+        $rules['barangay'] = ['sometimes', 'array:barangay_name,barangay_clearance_reference,barangay_locality,barangay_official_designation,barangay_agency_name,barangay_agency_address'];
         $rules['barangay.barangay_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['barangay.barangay_clearance_reference'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['barangay.barangay_locality'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['barangay.barangay_official_designation'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['barangay.barangay_agency_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['barangay.barangay_agency_address'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['declarations'] = ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent'];
         $rules['declarations.declaration_existing_loans'] = ['sometimes', 'boolean'];
         $rules['declarations.declaration_pending_cases'] = ['sometimes', 'boolean'];

@@ -17,13 +17,12 @@ beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
 });
 
-test('assigned loan processor can preview print and download generated workbook documents', function (): void {
+test('assigned loan processor can preview print and download generated pdf documents', function (): void {
     $processor = createGeneratedDocumentStaffUser(Role::LOAN_PROCESSOR);
     $loanRequest = createGeneratedDocumentLoanRequest($processor);
-    $document = createGeneratedWorkbookDocument(
+    $document = createGeneratedPdfDocument(
         $loanRequest,
         LoanRequestDocumentKey::LoanInformation,
-        'Preview Member',
     );
 
     $previewResponse = $this
@@ -38,9 +37,7 @@ test('assigned loan processor can preview print and download generated workbook 
 
     $previewResponse
         ->assertOk()
-        ->assertHeaderContains('content-type', 'text/html')
-        ->assertSee('Preview Member')
-        ->assertDontSee('window.print');
+        ->assertHeaderContains('content-type', 'application/pdf');
 
     $printResponse = $this
         ->actingAs($processor)
@@ -54,9 +51,7 @@ test('assigned loan processor can preview print and download generated workbook 
 
     $printResponse
         ->assertOk()
-        ->assertHeaderContains('content-type', 'text/html')
-        ->assertSee('window.print')
-        ->assertSee('Preview Member');
+        ->assertHeaderContains('content-type', 'application/pdf');
 
     $downloadResponse = $this
         ->actingAs($processor)
@@ -70,21 +65,16 @@ test('assigned loan processor can preview print and download generated workbook 
 
     $downloadResponse
         ->assertOk()
-        ->assertHeaderContains(
-            'content-type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        );
+        ->assertDownload();
 });
 
-test('loan manager can preview an assigned processors generated workbook package', function (): void {
+test('loan manager can preview an assigned processors generated pdf package', function (): void {
     $processor = createGeneratedDocumentStaffUser(Role::LOAN_PROCESSOR);
     $manager = createGeneratedDocumentStaffUser(Role::LOAN_MANAGER);
     $loanRequest = createGeneratedDocumentLoanRequest($processor);
-    $document = createGeneratedWorkbookDocument(
+    $document = createGeneratedPdfDocument(
         $loanRequest,
         LoanRequestDocumentKey::DisclosureStatement,
-        'Manager Preview',
-        'Disclosure Statement',
     );
 
     $this
@@ -97,9 +87,7 @@ test('loan manager can preview an assigned processors generated workbook package
             ]),
         )
         ->assertOk()
-        ->assertHeaderContains('content-type', 'text/html')
-        ->assertSee('Manager Preview')
-        ->assertSee('Disclosure Statement');
+        ->assertHeaderContains('content-type', 'application/pdf');
 });
 
 test('unassigned loan processor cannot access another processors generated workbook package', function (): void {
@@ -157,6 +145,39 @@ function createGeneratedDocumentLoanRequest(AppUser $processor): LoanRequest
             'submitted_at' => now(),
             'assigned_officer_id' => $processor->user_id,
         ]);
+}
+
+function createGeneratedPdfDocument(
+    LoanRequest $loanRequest,
+    LoanRequestDocumentKey $documentKey,
+): LoanRequestDocument {
+    $relativePath = sprintf(
+        'loan-request-documents/%d/%s/test-preview.pdf',
+        $loanRequest->id,
+        $documentKey->value,
+    );
+    $absolutePath = Storage::disk('local')->path($relativePath);
+
+    File::ensureDirectoryExists(dirname($absolutePath));
+    File::put($absolutePath, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n0\n%%EOF");
+
+    return LoanRequestDocument::query()->create([
+        'loan_request_id' => $loanRequest->id,
+        'document_key' => $documentKey->value,
+        'is_applicable' => true,
+        'readiness_status' => LoanRequestDocumentReadinessStatus::GeneratedCurrent,
+        'template_version' => 'test-preview-v1',
+        'source_hash' => sha1($documentKey->value.'-'.$loanRequest->id),
+        'source_version' => 1,
+        'generated_version' => 1,
+        'generated_disk' => 'local',
+        'generated_path' => $relativePath,
+        'generated_filename' => $documentKey->value.'.pdf',
+        'generated_mime_type' => 'application/pdf',
+        'generated_size_bytes' => File::size($absolutePath),
+        'generated_by' => $loanRequest->assigned_officer_id,
+        'generated_at' => now(),
+    ]);
 }
 
 function createGeneratedWorkbookDocument(

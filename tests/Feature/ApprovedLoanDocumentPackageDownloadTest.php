@@ -936,6 +936,11 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $reviewer['x'])->toBe(98.0);
     expect((float) $reviewer['y'])->toBe(70.0);
     expect((int) $reviewer['size'])->toBe(9);
+
+    $gnthp = $find('loan.gnthp');
+    expect((float) $gnthp['x'])->toBe(28.0);
+    expect((float) $gnthp['y'])->toBe(114.0);
+    expect((int) $gnthp['size'])->toBe(9);
 });
 
 test('authorization field map pins all field coordinates to calibrated values', function () {
@@ -1016,6 +1021,27 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect((float) $company['x'])->toBe(104.0);
     expect((float) $company['y'])->toBe(72.0);
     expect((int) $company['size'])->toBe(9);
+
+    $officialDesignation = $find('barangay.official_designation');
+    expect((float) $officialDesignation['x'])->toBe(27.0);
+    expect((float) $officialDesignation['y'])->toBe(106.0);
+    expect((int) $officialDesignation['size'])->toBe(9);
+
+    $agencyName = $find('barangay.agency_name');
+    expect((float) $agencyName['x'])->toBe(27.0);
+    expect((float) $agencyName['y'])->toBe(114.0);
+    expect((int) $agencyName['size'])->toBe(9);
+
+    $agencyAddress = $find('barangay.agency_address');
+    expect((float) $agencyAddress['x'])->toBe(27.0);
+    expect((float) $agencyAddress['y'])->toBe(122.0);
+    expect((int) $agencyAddress['size'])->toBe(8);
+    expect((float) $agencyAddress['width'])->toBe(160.0);
+
+    $gnthp = $find('loan.gnthp');
+    expect((float) $gnthp['x'])->toBe(107.0);
+    expect((float) $gnthp['y'])->toBe(62.0);
+    expect((int) $gnthp['size'])->toBe(9);
 });
 
 test('grepalife field map pins all field coordinates to calibrated values', function () {
@@ -1357,6 +1383,24 @@ test('affidavit undertaking pdf prints payout bank details', function () {
         ->toContain('4444-3333-2222-1111');
 });
 
+test('affidavit undertaking pdf prints guaranteed net take-home pay', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'numeric', 32500);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)->toContain('32,500.00');
+});
+
 test('authorization pdf prints recipient and release details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -1394,6 +1438,10 @@ test('undertaking barangay pdf prints barangay details', function () {
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_name', 'string', 'BARANGAY SAN PEDRO');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_clearance_reference', 'string', 'BCR-2026-00123');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_locality', 'string', 'TAGUM CITY');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_official_designation', 'string', 'PUNONG BARANGAY');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'BARANGAY HALL');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_address', 'string', '123 MAIN ST, TAGUM CITY');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'numeric', 25000);
 
     $response = $this
         ->actingAs($admin)
@@ -1405,7 +1453,11 @@ test('undertaking barangay pdf prints barangay details', function () {
     expect($text)
         ->toContain('BARANGAY SAN PEDRO')
         ->toContain('BCR-2026-00123')
-        ->toContain('TAGUM CITY');
+        ->toContain('TAGUM CITY')
+        ->toContain('PUNONG BARANGAY')
+        ->toContain('BARANGAY HALL')
+        ->toContain('123 MAIN ST, TAGUM CITY')
+        ->toContain('25,000.00');
 });
 
 test('grepalife field map checks health answers when affirmative', function () {

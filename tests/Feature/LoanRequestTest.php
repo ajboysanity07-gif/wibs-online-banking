@@ -1090,6 +1090,198 @@ test('loan request submissions persist snapshots and enter pending review', func
     expect($people[LoanRequestPersonRole::CoMakerTwo->value]->housing_status)->toBeNull();
 });
 
+function pensionerPersonPayload(array $overrides = []): array
+{
+    return array_replace_recursive([
+        'first_name' => 'Pension',
+        'last_name' => 'Member',
+        'middle_name' => null,
+        'nickname' => null,
+        'birthdate' => '1960-05-15',
+        'birthplace_city' => 'Manila',
+        'birthplace_province' => 'Metro Manila',
+        'address1' => 'Pension Street',
+        'address2' => 'Manila',
+        'address3' => 'Metro Manila',
+        'length_of_stay' => '20 years',
+        'housing_status' => 'OWNED',
+        'cell_no' => '09111111111',
+        'civil_status' => 'Widowed',
+        'educational_attainment' => 'College',
+        'number_of_children' => 2,
+        'spouse_name' => null,
+        'spouse_age' => null,
+        'spouse_cell_no' => null,
+        'employment_type' => 'Pensioner',
+        'employer_business_name' => '',
+        'employer_business_address1' => '',
+        'employer_business_address2' => '',
+        'employer_business_address3' => '',
+        'telephone_no' => null,
+        'current_position' => '',
+        'nature_of_business' => '',
+        'years_in_work_business' => '',
+        'gross_monthly_income' => 15000,
+        'payday' => '30th',
+    ], $overrides);
+}
+
+test('pensioner applicant may submit without employer fields', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000750']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Pension',
+        'fname' => 'Pension',
+        'lname' => 'Member',
+        'birthday' => '1960-05-15',
+        'address' => 'Pension Street',
+        'civilstat' => 'Widowed',
+        'occupation' => 'Pensioner',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-PEN', 'lntype' => 'Pensioner Loan']);
+
+    $coMakerPayload = [
+        'first_name' => 'Co',
+        'last_name' => 'Maker',
+        'middle_name' => null,
+        'nickname' => null,
+        'birthdate' => '1985-06-20',
+        'birthplace_city' => 'Cebu',
+        'birthplace_province' => 'Cebu',
+        'address1' => 'Co Street',
+        'address2' => 'Cebu City',
+        'address3' => 'Cebu',
+        'length_of_stay' => '5 years',
+        'housing_status' => 'RENT',
+        'cell_no' => '09222222222',
+        'civil_status' => 'Single',
+        'educational_attainment' => 'College',
+        'employment_type' => 'Government',
+        'employer_business_name' => 'GSIS Office',
+        'employer_business_address1' => 'GSIS Plaza',
+        'employer_business_address2' => 'Cebu City',
+        'employer_business_address3' => 'Cebu',
+        'telephone_no' => null,
+        'current_position' => 'Clerk',
+        'nature_of_business' => 'Government',
+        'years_in_work_business' => '10 years',
+        'gross_monthly_income' => 18000,
+        'payday' => '30th',
+    ];
+
+    $payload = [
+        'typecode' => 'LN-PEN',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Medical expenses',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => pensionerPersonPayload(),
+        'co_maker_1' => $coMakerPayload,
+        'co_maker_2' => array_merge($coMakerPayload, [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'cell_no' => '09333333333',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'housing_status' => 'OWNED',
+        ]),
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
+});
+
+test('non-pensioner applicant fails validation when employer fields are empty', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000751']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Private',
+        'fname' => 'Private',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Private Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-PRV', 'lntype' => 'Private Loan']);
+
+    $payload = [
+        'typecode' => 'LN-PRV',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => pensionerPersonPayload(['employment_type' => 'Private']),
+        'co_maker_1' => [],
+        'co_maker_2' => [],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionHasErrors(['applicant.employer_business_name']);
+});
+
+test('OFW applicant fails validation when employer fields are empty', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000752']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, OFW',
+        'fname' => 'OFW',
+        'lname' => 'Member',
+        'birthday' => '1988-07-22',
+        'address' => 'OFW Street',
+        'civilstat' => 'Married',
+        'occupation' => 'OFW',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-OFW', 'lntype' => 'OFW Loan']);
+
+    $payload = [
+        'typecode' => 'LN-OFW',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => pensionerPersonPayload(['employment_type' => 'OFW']),
+        'co_maker_1' => [],
+        'co_maker_2' => [],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionHasErrors(['applicant.employer_business_name']);
+});
+
 test('legacy applicant signature payload is ignored when signatures are collected physically', function () {
     Storage::fake('public');
 

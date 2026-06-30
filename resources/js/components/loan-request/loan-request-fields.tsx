@@ -29,11 +29,14 @@ const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'College',
     'Postgraduate',
 ];
+const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner';
 const EMPLOYMENT_TYPE_OPTIONS = [
     'Private',
     'Government',
     'Self Employed',
     'Retired',
+    PENSIONER_EMPLOYMENT_TYPE,
+    'OFW',
 ];
 const CIVIL_STATUS_OPTIONS = [
     'Single',
@@ -776,6 +779,7 @@ export function LoanRequestWorkFields({
     onChange,
 }: WorkFieldsProps) {
     const employmentType = values.employment_type;
+    const isPensioner = employmentType === PENSIONER_EMPLOYMENT_TYPE;
 
     const employmentTypeOptions = useMemo(() => {
         if (
@@ -862,234 +866,240 @@ export function LoanRequestWorkFields({
                     />
                 </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_employer_business_name`}>
-                        Employer/Business name
-                    </Label>
-                    <Input
-                        id={`${prefix}_employer_business_name`}
-                        name={fieldName(prefix, 'employer_business_name')}
-                        value={values.employer_business_name}
-                        className="mt-1 block w-full"
-                        required
-                        onChange={(event) =>
-                            onChange(
-                                'employer_business_name',
-                                event.target.value,
-                            )
-                        }
-                    />
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'employer_business_name',
-                        )}
-                    />
-                </div>
-
-                <div className="grid gap-2 md:col-span-2">
-                    <Label htmlFor={`${prefix}_employer_business_address1`}>
-                        Employer/Business address (street)
-                    </Label>
-                    <Input
-                        id={`${prefix}_employer_business_address1`}
-                        name={fieldName(prefix, 'employer_business_address1')}
-                        value={values.employer_business_address1}
-                        className="mt-1 block w-full"
-                        required
-                        onChange={(event) =>
-                            onChange(
-                                'employer_business_address1',
-                                event.target.value,
-                            )
-                        }
-                    />
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'employer_business_address1',
-                        )}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_employer_business_address2`}>
-                        City/Municipality
-                    </Label>
-                    <LocationAutocompleteInput
-                        id={`${prefix}_employer_business_address2`}
-                        name={fieldName(
-                            prefix,
-                            'employer_business_address2',
-                        )}
-                        search={employerCitySearch}
-                        placeholder="Select city or municipality"
-                        required
-                        inputClassName="mt-1 block w-full"
-                        loadingMessage="Searching city suggestions..."
-                        errorMessage="City suggestions are temporarily unavailable."
-                        onSelect={(suggestion) => {
-                            if (suggestion.province) {
-                                employerProvinceSearch.setSelectedValue(
-                                    suggestion.province,
-                                );
-                                onChange(
-                                    'employer_business_address3',
-                                    suggestion.province,
-                                );
-                            }
-                        }}
-                        onValueChange={(value) =>
-                            onChange('employer_business_address2', value)
-                        }
-                    />
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'employer_business_address2',
-                        )}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_employer_business_address3`}>
-                        Province
-                    </Label>
-                    <LocationAutocompleteInput
-                        id={`${prefix}_employer_business_address3`}
-                        name={fieldName(
-                            prefix,
-                            'employer_business_address3',
-                        )}
-                        search={employerProvinceSearch}
-                        placeholder="Select province"
-                        required
-                        inputClassName="mt-1 block w-full"
-                        loadingMessage="Searching province suggestions..."
-                        errorMessage="Province suggestions are temporarily unavailable."
-                        promptMessage="Type at least 2 characters to search provinces."
-                        onValueChange={(value) =>
-                            onChange('employer_business_address3', value)
-                        }
-                    />
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'employer_business_address3',
-                        )}
-                    />
-                </div>
-            </div>
-
-            <Separator className="bg-border/40" />
-
-            <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_telephone_no`}>Tel. no.</Label>
-                    <Input
-                        id={`${prefix}_telephone_no`}
-                        name={fieldName(prefix, 'telephone_no')}
-                        value={values.telephone_no}
-                        className="mt-1 block w-full"
-                        onChange={(event) =>
-                            onChange('telephone_no', event.target.value)
-                        }
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'telephone_no')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_current_position`}>
-                        Current position
-                    </Label>
-                    <Input
-                        id={`${prefix}_current_position`}
-                        name={fieldName(prefix, 'current_position')}
-                        value={values.current_position}
-                        className="mt-1 block w-full"
-                        required
-                        onChange={(event) =>
-                            onChange('current_position', event.target.value)
-                        }
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'current_position')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_nature_of_business`}>
-                        Nature of business
-                    </Label>
-                    <Select
-                        value={natureOfBusinessSelection || undefined}
-                        onValueChange={handleNatureOfBusinessSelection}
-                    >
-                        <SelectTrigger
-                            id={`${prefix}_nature_of_business`}
-                            className="mt-1 w-full"
-                        >
-                            <SelectValue placeholder="Select nature of business" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {NATURE_OF_BUSINESS_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {natureOfBusinessSelection ===
-                    NATURE_OF_BUSINESS_OTHER_VALUE ? (
+                {!isPensioner ? (
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${prefix}_employer_business_name`}>
+                            Employer/Business name
+                        </Label>
                         <Input
-                            className="mt-2 w-full"
-                            value={natureOfBusinessOther}
-                            placeholder="Specify industry"
-                            onChange={handleNatureOfBusinessOtherChange}
+                            id={`${prefix}_employer_business_name`}
+                            name={fieldName(prefix, 'employer_business_name')}
+                            value={values.employer_business_name}
+                            className="mt-1 block w-full"
+                            onChange={(event) =>
+                                onChange(
+                                    'employer_business_name',
+                                    event.target.value,
+                                )
+                            }
                         />
-                    ) : null}
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'nature_of_business',
-                        )}
-                    />
-                </div>
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'employer_business_name',
+                            )}
+                        />
+                    </div>
+                ) : null}
 
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_years_in_work_business`}>
-                        Total years in work/business
-                    </Label>
-                    <Input
-                        id={`${prefix}_years_in_work_business`}
-                        name={fieldName(prefix, 'years_in_work_business')}
-                        value={values.years_in_work_business}
-                        className="mt-1 block w-full"
-                        placeholder="e.g. 5 years"
-                        required
-                        onChange={(event) =>
-                            onChange(
-                                'years_in_work_business',
-                                event.target.value,
-                            )
-                        }
-                    />
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'years_in_work_business',
-                        )}
-                    />
-                </div>
+                {!isPensioner ? (
+                    <div className="grid gap-2 md:col-span-2">
+                        <Label htmlFor={`${prefix}_employer_business_address1`}>
+                            Employer/Business address (street)
+                        </Label>
+                        <Input
+                            id={`${prefix}_employer_business_address1`}
+                            name={fieldName(prefix, 'employer_business_address1')}
+                            value={values.employer_business_address1}
+                            className="mt-1 block w-full"
+                            onChange={(event) =>
+                                onChange(
+                                    'employer_business_address1',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'employer_business_address1',
+                            )}
+                        />
+                    </div>
+                ) : null}
+
+                {!isPensioner ? (
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${prefix}_employer_business_address2`}>
+                            City/Municipality
+                        </Label>
+                        <LocationAutocompleteInput
+                            id={`${prefix}_employer_business_address2`}
+                            name={fieldName(
+                                prefix,
+                                'employer_business_address2',
+                            )}
+                            search={employerCitySearch}
+                            placeholder="Select city or municipality"
+                            inputClassName="mt-1 block w-full"
+                            loadingMessage="Searching city suggestions..."
+                            errorMessage="City suggestions are temporarily unavailable."
+                            onSelect={(suggestion) => {
+                                if (suggestion.province) {
+                                    employerProvinceSearch.setSelectedValue(
+                                        suggestion.province,
+                                    );
+                                    onChange(
+                                        'employer_business_address3',
+                                        suggestion.province,
+                                    );
+                                }
+                            }}
+                            onValueChange={(value) =>
+                                onChange('employer_business_address2', value)
+                            }
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'employer_business_address2',
+                            )}
+                        />
+                    </div>
+                ) : null}
+
+                {!isPensioner ? (
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${prefix}_employer_business_address3`}>
+                            Province
+                        </Label>
+                        <LocationAutocompleteInput
+                            id={`${prefix}_employer_business_address3`}
+                            name={fieldName(
+                                prefix,
+                                'employer_business_address3',
+                            )}
+                            search={employerProvinceSearch}
+                            placeholder="Select province"
+                            inputClassName="mt-1 block w-full"
+                            loadingMessage="Searching province suggestions..."
+                            errorMessage="Province suggestions are temporarily unavailable."
+                            promptMessage="Type at least 2 characters to search provinces."
+                            onValueChange={(value) =>
+                                onChange('employer_business_address3', value)
+                            }
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'employer_business_address3',
+                            )}
+                        />
+                    </div>
+                ) : null}
             </div>
+
+            {!isPensioner ? (
+                <>
+                    <Separator className="bg-border/40" />
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_telephone_no`}>Tel. no.</Label>
+                            <Input
+                                id={`${prefix}_telephone_no`}
+                                name={fieldName(prefix, 'telephone_no')}
+                                value={values.telephone_no}
+                                className="mt-1 block w-full"
+                                onChange={(event) =>
+                                    onChange('telephone_no', event.target.value)
+                                }
+                            />
+                            <InputError
+                                message={fieldError(errors, prefix, 'telephone_no')}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_current_position`}>
+                                Current position
+                            </Label>
+                            <Input
+                                id={`${prefix}_current_position`}
+                                name={fieldName(prefix, 'current_position')}
+                                value={values.current_position}
+                                className="mt-1 block w-full"
+                                onChange={(event) =>
+                                    onChange('current_position', event.target.value)
+                                }
+                            />
+                            <InputError
+                                message={fieldError(errors, prefix, 'current_position')}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_nature_of_business`}>
+                                Nature of business
+                            </Label>
+                            <Select
+                                value={natureOfBusinessSelection || undefined}
+                                onValueChange={handleNatureOfBusinessSelection}
+                            >
+                                <SelectTrigger
+                                    id={`${prefix}_nature_of_business`}
+                                    className="mt-1 w-full"
+                                >
+                                    <SelectValue placeholder="Select nature of business" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {NATURE_OF_BUSINESS_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {natureOfBusinessSelection ===
+                            NATURE_OF_BUSINESS_OTHER_VALUE ? (
+                                <Input
+                                    className="mt-2 w-full"
+                                    value={natureOfBusinessOther}
+                                    placeholder="Specify industry"
+                                    onChange={handleNatureOfBusinessOtherChange}
+                                />
+                            ) : null}
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'nature_of_business',
+                                )}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_years_in_work_business`}>
+                                Total years in work/business
+                            </Label>
+                            <Input
+                                id={`${prefix}_years_in_work_business`}
+                                name={fieldName(prefix, 'years_in_work_business')}
+                                value={values.years_in_work_business}
+                                className="mt-1 block w-full"
+                                placeholder="e.g. 5 years"
+                                onChange={(event) =>
+                                    onChange(
+                                        'years_in_work_business',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'years_in_work_business',
+                                )}
+                            />
+                        </div>
+                    </div>
+                </>
+            ) : null}
 
             <Separator className="bg-border/40" />
 
