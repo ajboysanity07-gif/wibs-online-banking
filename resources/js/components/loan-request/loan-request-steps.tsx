@@ -444,7 +444,6 @@ type DataSectionStepProps = {
         LoanRequestFormData,
         | 'insurance'
         | 'health'
-        | 'authorization'
         | 'banking'
         | 'barangay'
         | 'declarations'
@@ -882,7 +881,6 @@ export function LoanRequestReviewStep({
         [
             'insurance',
             'health',
-            'authorization',
             'banking',
             'barangay',
             'declarations',

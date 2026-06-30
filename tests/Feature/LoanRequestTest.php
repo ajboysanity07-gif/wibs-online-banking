@@ -200,17 +200,13 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
             'health_recent_hospitalization' => false,
             'health_declaration_notes' => null,
         ],
-        'authorization' => [
-            'authorized_recipient_name' => 'Authorized Recipient',
-            'authorized_recipient_relationship' => 'Sibling',
-            'release_method' => 'Bank transfer',
-        ],
         'banking' => [
             'payout_bank_name' => 'WIBS Cooperative Bank',
             'payout_account_name' => 'Loan Member',
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'payout_atm_number' => '9876543210',
+            'release_method' => 'Bank transfer',
         ],
         'barangay' => [
             'barangay_name' => 'Barangay San Isidro',

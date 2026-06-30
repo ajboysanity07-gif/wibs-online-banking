@@ -96,11 +96,6 @@ const steps = [
         description: 'Complete the required health declarations for the request.',
     },
     {
-        id: 'authorization',
-        title: 'Authorization & release',
-        description: 'Confirm the authorized recipient and release details.',
-    },
-    {
         id: 'banking',
         title: 'Bank & payout',
         description: 'Provide the payout bank and account information.',
@@ -301,23 +296,18 @@ const resolveStepFromErrors = (
             return;
         }
 
-        if (key.startsWith('authorization.')) {
+        if (key.startsWith('banking.')) {
             stepMatches.push(7);
             return;
         }
 
-        if (key.startsWith('banking.')) {
+        if (key.startsWith('barangay.')) {
             stepMatches.push(8);
             return;
         }
 
-        if (key.startsWith('barangay.')) {
-            stepMatches.push(9);
-            return;
-        }
-
         if (key.startsWith('declarations.')) {
-            stepMatches.push(10);
+            stepMatches.push(9);
             return;
         }
 
@@ -334,7 +324,7 @@ const resolveStepFromErrors = (
         }
 
         if (key === 'undertaking_accepted') {
-            stepMatches.push(11);
+            stepMatches.push(10);
         }
     });
 
@@ -380,9 +370,6 @@ export default function LoanRequestPage({
             },
             health: {
                 ...dataSections.health,
-            },
-            authorization: {
-                ...dataSections.authorization,
             },
             banking: {
                 ...dataSections.banking,
@@ -485,7 +472,6 @@ export default function LoanRequestPage({
                 LoanRequestFormData,
                 | 'insurance'
                 | 'health'
-                | 'authorization'
                 | 'banking'
                 | 'barangay'
                 | 'declarations'
@@ -725,21 +711,6 @@ export default function LoanRequestPage({
                             direction={stepDirection}
                         >
                             <LoanRequestDataSectionStep
-                                sectionKey="authorization"
-                                title="Authorization and release"
-                                description="Provide the authorized recipient details for loan release."
-                                values={form.data.authorization}
-                                definition={dataSectionDefinitions.authorization}
-                                errors={form.errors}
-                                onChange={updateDataSection('authorization')}
-                            />
-                        </LoanRequestAnimatedStep>
-
-                        <LoanRequestAnimatedStep
-                            show={currentStep === 8}
-                            direction={stepDirection}
-                        >
-                            <LoanRequestDataSectionStep
                                 sectionKey="banking"
                                 title="Bank and payout information"
                                 description="Provide the payout bank account details that staff will use for processing."
@@ -751,7 +722,7 @@ export default function LoanRequestPage({
                         </LoanRequestAnimatedStep>
 
                         <LoanRequestAnimatedStep
-                            show={currentStep === 9}
+                            show={currentStep === 8}
                             direction={stepDirection}
                         >
                             <LoanRequestDataSectionStep
@@ -766,7 +737,7 @@ export default function LoanRequestPage({
                         </LoanRequestAnimatedStep>
 
                         <LoanRequestAnimatedStep
-                            show={currentStep === 10}
+                            show={currentStep === 9}
                             direction={stepDirection}
                         >
                             <LoanRequestDataSectionStep
@@ -781,7 +752,7 @@ export default function LoanRequestPage({
                         </LoanRequestAnimatedStep>
 
                         <LoanRequestAnimatedStep
-                            show={currentStep === 11}
+                            show={currentStep === 10}
                             direction={stepDirection}
                         >
                             <LoanRequestReviewStep

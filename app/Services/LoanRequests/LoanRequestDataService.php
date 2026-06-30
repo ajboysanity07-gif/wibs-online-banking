@@ -107,30 +107,6 @@ class LoanRequestDataService
             'section' => 'health',
             'type' => 'string',
         ],
-        'authorized_recipient_name' => [
-            'label' => 'Authorized recipient name',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'authorization',
-            'type' => 'string',
-        ],
-        'authorized_recipient_relationship' => [
-            'label' => 'Authorized recipient relationship',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'authorization',
-            'type' => 'string',
-        ],
-        'release_method' => [
-            'label' => 'Release method',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'authorization',
-            'type' => 'string',
-        ],
         'payout_bank_name' => [
             'label' => 'Payout bank name',
             'owner' => self::OWNER_MEMBER,
@@ -157,6 +133,14 @@ class LoanRequestDataService
         ],
         'payout_account_type' => [
             'label' => 'Payout account type',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'release_method' => [
+            'label' => 'Release method',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => true,
@@ -419,7 +403,6 @@ class LoanRequestDataService
     private const SECTION_LABELS = [
         'insurance' => 'Insurance and beneficiaries',
         'health' => 'Health declarations',
-        'authorization' => 'Authorization and release',
         'banking' => 'Bank and payout information',
         'barangay' => 'Barangay information',
         'declarations' => 'Personal declarations and consent',

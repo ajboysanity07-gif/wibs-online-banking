@@ -135,8 +135,6 @@ class LoanRequestDocumentCatalog
                 'payout_bank_branch',
                 'payout_atm_holder_name',
                 'release_method',
-                'authorized_recipient_name',
-                'authorized_recipient_relationship',
             ],
             'source_paths' => [
                 'loan_request.recommended_amount',
@@ -507,9 +505,6 @@ class LoanRequestDocumentCatalog
         }
 
         return $this->hasAnyValue($flatValues, [
-            'release_method',
-            'authorized_recipient_name',
-            'authorized_recipient_relationship',
             'payout_bank_name',
             'payout_account_number',
         ]);

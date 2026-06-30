@@ -450,7 +450,6 @@ export type LoanRequestFormData = {
     co_maker_2: LoanRequestPersonFormData;
     insurance: LoanRequestDataSectionValues;
     health: LoanRequestDataSectionValues;
-    authorization: LoanRequestDataSectionValues;
     banking: LoanRequestDataSectionValues;
     barangay: LoanRequestDataSectionValues;
     declarations: LoanRequestDataSectionValues;

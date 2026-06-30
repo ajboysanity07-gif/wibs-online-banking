@@ -897,12 +897,6 @@ class ApprovedLoanDocumentService
                 ),
             ],
             'authorization' => [
-                'authorized_recipient_name' => $this->normalizeText(
-                    $overrideProcessing['authorized_recipient_name'] ?? $flatValues['authorized_recipient_name'] ?? null,
-                ),
-                'authorized_recipient_relationship' => $this->normalizeText(
-                    $overrideProcessing['authorized_recipient_relationship'] ?? $flatValues['authorized_recipient_relationship'] ?? null,
-                ),
                 'release_method' => $this->normalizeText(
                     $overrideProcessing['release_method'] ?? $flatValues['release_method'] ?? null,
                 ),

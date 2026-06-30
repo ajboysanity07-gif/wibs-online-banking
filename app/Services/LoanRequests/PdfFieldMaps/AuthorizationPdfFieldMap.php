@@ -51,21 +51,6 @@ class AuthorizationPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'organization.company_name',
             ],
-            // TODO(calibrate-az): verify x/y against loan-documents:calibrate-fields az overlay
-            [
-                'page' => 1,
-                'x' => 26,
-                'y' => 78,
-                'size' => 9,
-                'value' => 'authorization.authorized_recipient_name',
-            ],
-            [
-                'page' => 1,
-                'x' => 26,
-                'y' => 86,
-                'size' => 9,
-                'value' => 'authorization.authorized_recipient_relationship',
-            ],
             [
                 'page' => 1,
                 'x' => 26,

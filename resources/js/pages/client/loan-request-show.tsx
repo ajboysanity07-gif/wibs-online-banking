@@ -390,7 +390,6 @@ export default function LoanRequestShow({
             {
                 insurance: currentDataSections.insurance,
                 health: currentDataSections.health,
-                authorization: currentDataSections.authorization,
                 banking: currentDataSections.banking,
                 barangay: currentDataSections.barangay,
                 declarations: currentDataSections.declarations,

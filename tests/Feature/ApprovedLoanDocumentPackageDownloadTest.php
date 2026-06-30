@@ -1401,14 +1401,12 @@ test('affidavit undertaking pdf prints guaranteed net take-home pay', function (
     expect($text)->toContain('32,500.00');
 });
 
-test('authorization pdf prints recipient and release details', function () {
+test('authorization pdf prints release and bank details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'authorized_recipient_name', 'string', 'MARIA C. SANTOS');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'authorized_recipient_relationship', 'string', 'SPOUSE');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_method', 'string', 'ATM');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'LANDBANK');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
@@ -1421,8 +1419,6 @@ test('authorization pdf prints recipient and release details', function () {
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)
-        ->toContain('MARIA C. SANTOS')
-        ->toContain('SPOUSE')
         ->toContain('ATM')
         ->toContain('LANDBANK')
         ->toContain('1122334455')
@@ -2507,8 +2503,6 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         'penalty_rate_per_month' => ['number', 0.05],
         'witness_one_name' => ['string', 'Annabelle M. Amora'],
         'witness_two_name' => ['string', 'Annabelle M. Amora'],
-        'authorized_recipient_name' => ['string', 'Authorized Recipient'],
-        'authorized_recipient_relationship' => ['string', 'Sibling'],
         'release_method' => ['string', 'Bank transfer'],
         'payout_bank_name' => ['string', 'WIBS Cooperative Bank'],
         'payout_account_name' => ['string', 'Sample Q Member'],
