@@ -15,12 +15,11 @@
 | ✅ | Wired — collected AND printed correctly |
 | ⚠️ | **Wiring gap** — collected by the app but NOT yet printed on the document |
 | ❌ | **Missing** — document needs it but the app doesn't collect it yet |
-| 🗑️ | Safe to remove — confirmed absent from all real MRDINC documents |
-| 🔒 | Do not remove — gates document `applicable()` logic |
-| ❓ | Pending WIBS confirmation before wiring or adding |
+| 🗑️ | Removed — confirmed deleted from app and absent from all real MRDINC documents |
+| ❓ | Pending confirmation before wiring or adding |
 
 **Who enters:**
-- **M** = Member (12-step loan wizard, `loan_requests` / `loan_request_people` / `loan_request_data_entries`)
+- **M** = Member (11-step loan wizard, `loan_requests` / `loan_request_people` / `loan_request_data_entries`)
 - **S** = Staff (processing screen, `loan_request_data_entries owner=staff` / `approved_*` / `recommended_*`)
 - **SYS** = System-derived (computed from existing data — no new field needed)
 
@@ -34,10 +33,10 @@
 | 2 | GL | Grepalife / Sun Life | PDF field map | PDF |
 | 3 | AU | Affidavit of Undertaking | PDF field map | PDF |
 | 4 | AZ | Authorization | PDF field map | PDF |
-| 5 | LI | Loan Information | Excel → PDF (pending) | XLSX today |
-| 6 | PP | Plan of Payment | Excel → PDF (pending) | XLSX today |
-| 7 | DS | Disclosure Statement | Excel → PDF (pending) | XLSX today |
-| 8 | PN | Promissory Note | Blade template | PDF (converted) ⚠️ not yet visually verified |
+| 5 | LI | Loan Information | Blade/PDF service | PDF |
+| 6 | PP | Plan of Payment | PDF service class | PDF |
+| 7 | DS | Disclosure Statement | Blade template | PDF (Browsershot/DomPDF) |
+| 8 | PN | Promissory Note | Blade template | PDF (Browsershot) ⚠️ not yet visually verified |
 | 9 | UB | Undertaking-Barangay | PDF field map | PDF |
 | 10 | LSA | Loan Security Agreement | Blade template | PDF (Browsershot) |
 
@@ -85,7 +84,7 @@
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Employment type (Private/Government/Self-employed/Retired/Pensioner) | M | ✅ | `loan_request_data_entries` |
+| Employment type (Private / Government / Self-employed / Retired / Pensioner / OFW) | M | ✅ | `loan_request_data_entries` |
 | Employer / Business name | M | ✅ | `loan_request_data_entries` |
 | Office address | M | ✅ | `loan_request_data_entries` |
 | Office city / province / country / ZIP | M | ✅ | `loan_request_data_entries` |
@@ -95,6 +94,9 @@
 | Years in work / business | M | ✅ | `loan_request_data_entries` |
 | Gross monthly income | M | ✅ | `loan_request_data_entries` |
 | Payday | M | ✅ | `loan_request_data_entries` |
+
+> **Employment type rules (resolved):** Private / Government / Self-employed / Retired / Pensioner / OFW.
+> Pensioner hides employer and office fields in the wizard (implemented). OFW keeps all employer fields.
 
 ### Co-Maker 1
 
@@ -115,16 +117,16 @@
 | Years in work / business | M | ✅ | `loan_request_data_entries` |
 | Gross monthly income | M | ✅ | `loan_request_data_entries` |
 | Payday | M | ✅ | `loan_request_data_entries` |
-| Civil status | M | 🗑️ | **REMOVE** — AF has no co-maker civil status field |
-| Housing status | M | 🗑️ | **REMOVE** — AF has no co-maker housing field |
+| Civil status | 🗑️ | 🗑️ | **Removed** — AF has no co-maker civil status field |
+| Housing status | 🗑️ | 🗑️ | **Removed** — AF has no co-maker housing field |
 
 ### Co-Maker 2
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
 | *(same fields as Co-Maker 1 except:)* | | | |
-| Civil status | M | 🗑️ | **REMOVE** |
-| Housing status | M | 🗑️ | **REMOVE** |
+| Civil status | 🗑️ | 🗑️ | **Removed** |
+| Housing status | 🗑️ | 🗑️ | **Removed** |
 
 ### Beneficiaries
 
@@ -145,19 +147,18 @@
 | Approved by + date | S | ✅ | `loan_requests.approved_by` + `approved_at` |
 | Application status | S | ✅ | `loan_requests.status` |
 
-> **Pending WIBS (Q6):** Confirm full list of employment types. Pensioner confirmed.
-> OFW? Confirm which fields are required per type (pensioner has no employer).
-
 ---
 
 ---
 
 ## 2 — Grepalife / Sun Life (GL)
 
-**PDF field map · Insurance form for borrower coverage**
+**PDF field map · "Debtor's Creditor Group Life" variant · Insurance form for borrower coverage**
 
-> **Pending WIBS (Q2):** Which variant does MRDINC use — "Group Insurance" or
-> "Debtor's Creditor Group Life"? This affects which fields are on the form.
+> Health answer checkboxes (Q1–Q4) are wired via `healthChecked()` factory. The x/y coordinates
+> carry a `TODO(calibrate-gl)` tag and must be verified against the physical form overlay before
+> printing. Note: field key is `health_recent_hospitalization` (not `health_hospitalization`) in
+> the GL map.
 
 ### Personal Data
 
@@ -166,12 +167,13 @@
 | Full name | M | ✅ | `loan_request_people` (borrower) |
 | Residence address | M | ✅ | `loan_request_data_entries` |
 | City / Province | M | ✅ | `loan_request_data_entries` |
-| Country / ZIP | M | ❌ | **ADD** — app collects these but Grepalife mapping missing country/zip |
+| Country | M | ✅ | `applicant.address_country` (defaults to "Philippines" if null) |
+| ZIP | M | ✅ | `applicant.address_zip` |
 | Birthdate | M | ✅ | `loan_request_people.birthdate` |
 | Civil status | M | ✅ | `loan_request_data_entries` |
 | Nationality | M | ✅ | `loan_request_data_entries` |
-| Home phone | M | ❌ | **ADD to GL mapping** — collected but not mapped to Grepalife |
-| Email address | M | ❌ | **ADD to GL mapping** — collected but not mapped to Grepalife |
+| Home phone | M | ✅ | `applicant.home_phone` |
+| Email address | M | ✅ | `applicant.email` |
 
 ### Beneficiaries
 
@@ -188,17 +190,18 @@
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Q1: Smoker (Yes/No) | M | ⚠️ | `loan_request_data_entries.health_smoker` — **collected, not printed** |
-| Q2: Hypertension (Yes/No) | M | ⚠️ | `loan_request_data_entries.health_hypertension` — **collected, not printed** |
-| Q3: Diabetes (Yes/No) | M | ⚠️ | `loan_request_data_entries.health_diabetes` — **collected, not printed** |
-| Q4: Hospitalization (Yes/No) | M | ⚠️ | `loan_request_data_entries.health_hospitalization` — **collected, not printed** |
-| Physician name | M | ❓ | Collected if any Yes — confirm wiring to GL |
-| Physician address | M | ❓ | Collected if any Yes — confirm wiring to GL |
-| Date seen | M | ❓ | Collected if any Yes — confirm wiring to GL |
-| Treatment received | M | ❓ | Collected if any Yes — confirm wiring to GL |
+| Q1: Smoker (Yes/No) | M | ✅ | `health.health_smoker` via `healthChecked()` ⚠️ coordinates need calibration |
+| Q2: Hypertension (Yes/No) | M | ✅ | `health.health_hypertension` via `healthChecked()` ⚠️ coordinates need calibration |
+| Q3: Diabetes (Yes/No) | M | ✅ | `health.health_diabetes` via `healthChecked()` ⚠️ coordinates need calibration |
+| Q4: Recent hospitalization (Yes/No) | M | ✅ | `health.health_recent_hospitalization` via `healthChecked()` ⚠️ coordinates need calibration |
+| Physician name | M | ❌ | **MISSING** — not in GL field map; not in FIELD_DEFINITIONS (app does not collect) |
+| Physician address | M | ❌ | **MISSING** — same as above |
+| Date seen | M | ❌ | **MISSING** — same as above |
+| Treatment received | M | ❌ | **MISSING** — same as above |
 
-> **Note:** Health fields currently gate `GL applicable()` — they are NOT yet printed
-> in the GL PDF field map. Wire up after WIBS confirms Q2.
+> Physician fields appear on the GL form when any health answer is Yes. Neither the wizard nor
+> `FIELD_DEFINITIONS` currently collects them, and they are absent from `GrepalifePdfFieldMap`.
+> Must add to both the wizard (conditional health section) and the field map.
 
 ### Insurance Terms
 
@@ -228,18 +231,18 @@
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Bank name | M | ⚠️ | `loan_request_data_entries.payout_bank_name` — **collected, not printed** |
-| Account number | M | ⚠️ | `loan_request_data_entries.payout_account_number` — **collected, not printed** |
-| Account name | M | ⚠️ | `loan_request_data_entries.account_name` — **collected, not printed** |
-| ATM account number | M | ⚠️ | `loan_request_data_entries.atm_number` — **collected, not printed** |
-| Bank branch | M | ❌ | **ADD** — Affidavit needs branch; app does not collect it yet |
+| Bank name | M | ✅ | `authorization.payout_bank_name` |
+| Account number | M | ✅ | `authorization.payout_account_number` |
+| Account name | M | ✅ | `authorization.payout_account_name` |
+| ATM account number | M | ✅ | `authorization.payout_atm_number` |
+| Bank branch | M | ✅ | `authorization.payout_bank_branch` — wired to AU field map (coordinates placeholder, `TODO(calibrate-au)`) |
 
 ### Loan Terms
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
 | Approved loan amount | S | ✅ | `loan_request_data_entries` (staff) |
-| Guaranteed Net Take-Home Pay (GNTHP) | ❓ | ❌ | **CONFIRM WITH WIBS (Q4)** — member or staff? |
+| Guaranteed Net Take-Home Pay (GNTHP) | S | ✅ | `loan.gnthp` — staff-entered, wired to AU |
 
 ### Notarization
 
@@ -264,7 +267,18 @@
 
 ## 4 — Authorization (AZ)
 
-**PDF field map · Authorises release of loan proceeds to borrower or alternate recipient**
+**PDF field map · Authorises release of loan proceeds to the borrower (borrower's own proceeds only)**
+
+> **Why the Authorized Recipient section was removed:** Third-party loan release is always
+> handled physically via a separate authorization letter prepared on release day — it is never
+> sourced from app data. The wizard's "Authorization & release" step (formerly step 12) has
+> been removed entirely; the wizard is now 11 steps.
+>
+> **`applicable()` gate:** AZ is generated when `payout_bank_name` OR `payout_account_number`
+> is non-empty. No longer gated on recipient name, relationship, or release method.
+>
+> **Bank name:** AZ now uses the member's entered `payout_bank_name` — the hardcoded
+> `"Enterprise Bank, Inc."` was removed.
 
 ### Borrower
 
@@ -273,27 +287,19 @@
 | Full name | M | ✅ | `loan_request_people` (borrower) |
 | Residence address | M | ✅ | `loan_request_data_entries` |
 
-### Authorized Recipient (conditional — if release to 3rd party)
-
-| Field | Who | Status | App source |
-|-------|-----|--------|------------|
-| Authorized recipient name | M | 🔒 | `loan_request_data_entries.authorized_recipient_name` — gates `AZ applicable()` |
-| Authorized recipient relationship | M | 🔒 | `loan_request_data_entries.authorized_recipient_relationship` |
-| Release method | M | 🔒 | `loan_request_data_entries.release_method` |
-| Authorized recipient contact number | M | 🗑️ | **REMOVE** — not on the Authorization document |
-| Authorization reason | M | 🗑️ | **REMOVE** — not on any document, gates nothing |
-
 ### Bank / Payout Details
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Bank name | M | ⚠️ | `loan_request_data_entries.payout_bank_name` — **collected, not printed** |
-| Account number | M | ⚠️ | `loan_request_data_entries.payout_account_number` — **collected, not printed** |
-| Bank branch | M | ❌ | **ADD** — same new field as AU above |
-| ATM card holder name | M | ❌ | **ADD** — only if different from borrower |
-
-> **Pending WIBS (Q1):** Bank name on Authorization is currently hardcoded
-> `"Enterprise Bank, Inc."`. Confirm: always that bank, or use member's entered bank?
+| Release method | M | ✅ | `authorization.release_method` — describes how member receives own proceeds (e.g. "Bank transfer", "ATM"); relocated from banking wizard step |
+| Bank name | M | ✅ | `authorization.payout_bank_name` — member's entered bank |
+| Account number | M | ✅ | `authorization.payout_account_number` |
+| Bank branch | M | ✅ | `authorization.payout_bank_branch` — wired to AZ field map (coordinates placeholder, `TODO(calibrate-az)`) |
+| ATM card holder name | M | ✅ | `authorization.payout_atm_holder_name` — wired to AZ field map (coordinates placeholder, `TODO(calibrate-az)`); nullable — field is skipped when empty (borrower uses their own card) |
+| Authorized recipient name | 🗑️ | 🗑️ | **Removed** — third-party release handled via separate physical letter |
+| Authorized recipient relationship | 🗑️ | 🗑️ | **Removed** — same reason |
+| Authorized recipient contact | 🗑️ | 🗑️ | **Removed** — not on the Authorization document |
+| Authorization reason | 🗑️ | 🗑️ | **Removed** — not on any document, gated nothing |
 
 ### Witnesses & Notarization
 
@@ -309,9 +315,7 @@
 
 ## 5 — Loan Information (LI)
 
-**Excel sheet 0 → PDF (pending conversion)**
-
-> Conversion order: Plan of Payment first, then this sheet.
+**Blade/PDF service · Converted to PDF**
 
 ### Borrower Header
 
@@ -344,18 +348,13 @@
 | Approved by + date | S | ✅ | `loan_requests.approved_by` → `adminProfile→fullname` (fixed Phase 1) |
 | Application status | S | ✅ | `loan_requests.status` |
 
-> **Pending WIBS (Q7):** Confirm converting this sheet to PDF for direct printing.
-
 ---
 
 ---
 
 ## 6 — Plan of Payment (PP)
 
-**Excel sheet 1 → PDF (next to convert after PN visual verification)**
-
-> ⚠️ **Do not start converting this sheet until the Promissory Note PDF has been
-> visually verified against the original Excel sheet.**
+**PDF service class · Converted to PDF**
 
 ### Header
 
@@ -379,16 +378,19 @@
 | Amortization amount | SYS | ✅ | Computed |
 | Balance | SYS | ✅ | Computed |
 
-> **Pending WIBS (Q7):** Confirm converting this to PDF for direct printing.
-
 ---
 
 ---
 
 ## 7 — Disclosure Statement (DS)
 
-**Excel sheet 2 → PDF (hardest — convert last)**
-**Governed by R.A. 3765 (Truth in Lending Act) — exact layout required**
+**Blade template · Converted to PDF · Governed by R.A. 3765 (Truth in Lending Act) — exact layout required**
+
+> **Open item — EIR rows:** Items 6 (percentage of finance charges) and 7 (effective interest
+> rate) are left **blank** in the blade template. `TODO(EIR)` comments in
+> `resources/views/reports/disclosure-statement.blade.php` confirm the formula has not been
+> confirmed with WIBS and the source workbook also had these blank. Do not compute or wire
+> until WIBS confirms the R.A. 3765 formula to use.
 
 ### Borrower
 
@@ -409,12 +411,10 @@
 | Notarial fee | S | ✅ | `loan_request_data_entries` (staff) |
 | Total finance charge | SYS | ✅ | Sum of above |
 | Net loan proceeds (amount released to borrower) | SYS | ✅ | Principal − charges |
-| Effective interest rate | SYS | ✅ | Computed per R.A. 3765 formula |
+| Percentage of finance charges (item 6) | SYS | ❌ | **PENDING** — blank in blade template, `TODO(EIR)`; confirm R.A. 3765 formula with WIBS |
+| Effective interest rate (item 7) | SYS | ❌ | **PENDING** — blank in blade template, `TODO(EIR)`; confirm R.A. 3765 formula with WIBS |
 | Term (months) | S | ✅ | `loan_request_data_entries` (staff) |
 | Mode of payment | S | ✅ | `loan_request_data_entries` (staff) |
-
-> **Pending WIBS (Q7):** Confirm converting this to PDF. Layout must match the
-> statutory R.A. 3765 disclosure format exactly.
 
 ---
 
@@ -422,10 +422,11 @@
 
 ## 8 — Promissory Note (PN)
 
-**Blade template · Converted to PDF this session · ⚠️ NOT yet visually verified**
+**Blade template · Converted to PDF · ⚠️ NOT yet visually verified against original Excel sheet**
 
-> **ACTION REQUIRED before any other conversion:** Generate a real PN PDF, open it,
-> and compare side-by-side against the original Excel Promissory Note sheet.
+> **ACTION REQUIRED:** Generate a real PN PDF and compare side-by-side against the original
+> Excel Promissory Note sheet. No git commit or session-summary file confirming this
+> comparison was found. Do not mark as verified until that comparison is done.
 
 ### Borrower
 
@@ -469,12 +470,13 @@
 
 ## 9 — Undertaking-Barangay (UB)
 
-**PDF field map · Conditional — only for barangay official borrowers**
+**PDF field map · Conditional — applies to any member who supplies barangay data**
 
-> `applicable()` is currently gated on: `barangay_name` OR `barangay_clearance_reference`
-> OR `barangay_locality` being non-empty. Fields gate correctly but do NOT yet print.
+> `applicable()` is gated on `barangay_name` OR `barangay_clearance_reference` OR
+> `barangay_locality` being non-empty. UB is **not** limited to barangay officials — any
+> member may trigger it by providing barangay information in the wizard.
 
-### Affiant (Borrower / Official)
+### Affiant (Borrower)
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
@@ -487,18 +489,18 @@
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Barangay name | M | ⚠️ | `loan_request_data_entries.barangay_name` — **collected, gates only, not printed** |
-| Barangay clearance reference | M | ⚠️ | `loan_request_data_entries.barangay_clearance_reference` — **collected, not printed** |
-| Barangay locality | M | ⚠️ | `loan_request_data_entries.barangay_locality` — **collected, not printed** |
-| Official's designation / position | M | ❌ | **ADD** — UB needs this; wizard collects barangay_name but NOT designation |
-| Agency name | M | ❌ | **ADD** — different from barangay_name; UB needs the LGU/agency |
-| Agency address | M | ❌ | **ADD** — UB needs the agency address |
+| Barangay name | M | ✅ | `barangay.name` |
+| Barangay clearance reference | M | ✅ | `barangay.clearance_reference` |
+| Barangay locality | M | ✅ | `barangay.locality` |
+| Official's designation / position | M | ✅ | `barangay.official_designation` — added and wired |
+| Agency name | M | ✅ | `barangay.agency_name` — added and wired |
+| Agency address | M | ✅ | `barangay.agency_address` — added and wired |
 
 ### Loan & Salary Terms
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Guaranteed Net Take-Home Pay | ❓ | ❌ | **CONFIRM WITH WIBS (Q4)** — member or staff? |
+| Guaranteed Net Take-Home Pay | S | ✅ | `loan.gnthp` — staff-entered, wired to UB |
 | Approved loan amount | S | ✅ | `loan_request_data_entries` (staff) |
 
 ### Witnesses & Notarization
@@ -508,9 +510,6 @@
 | Witness 1 name | S | ✅ | `loan_request_data_entries.witness_one_name` |
 | Witness 2 name | S | ✅ | `loan_request_data_entries.witness_two_name` |
 | Notarization fields (doc/page/book/series/place) | S | ✅ | `loan_request_data_entries` |
-
-> **Pending WIBS (Q3):** Confirm UB applies only to barangay officials. Should the
-> wizard add a conditional step for designation/agency/address for those members?
 
 ---
 
@@ -561,39 +560,26 @@
 
 ## Summary: Action Items by Type
 
-### 🗑️ Remove These Fields (confirmed safe — 6 fields)
+### 🗑️ Removed Fields (confirmed deleted — 8 fields total)
 
-| Field | Location |
-|-------|----------|
-| `co_maker_1.civil_status` | Wizard step, data_entries |
-| `co_maker_1.housing_status` | Wizard step, data_entries |
-| `co_maker_2.civil_status` | Wizard step, data_entries |
-| `co_maker_2.housing_status` | Wizard step, data_entries |
-| `authorization_reason` | Bank/payout step, data_entries |
-| `authorized_recipient_contact` | Bank/payout step, data_entries |
-
-> ⚠️ Do not remove until WIBS confirms (Q5).
+| Field | Location | Status |
+|-------|----------|--------|
+| `co_maker_1.civil_status` | Wizard step, data_entries | ✅ Done |
+| `co_maker_1.housing_status` | Wizard step, data_entries | ✅ Done |
+| `co_maker_2.civil_status` | Wizard step, data_entries | ✅ Done |
+| `co_maker_2.housing_status` | Wizard step, data_entries | ✅ Done |
+| `authorization_reason` | Banking wizard step, data_entries | ✅ Done |
+| `authorized_recipient_contact` | Banking wizard step, data_entries | ✅ Done |
+| `authorized_recipient_name` | Authorization wizard step (removed entirely), data_entries | ✅ Done |
+| `authorized_recipient_relationship` | Authorization wizard step (removed entirely), data_entries | ✅ Done |
 
 ---
 
-### ⚠️ Wire Up (collected but not printing — 7 fields)
+### ⚠️ Wire Up (collected but not printing)
 
-| Field key(s) | Document(s) that need it |
-|--------------|--------------------------|
-| `payout_bank_name` | AU (bank name), AZ (bank name) |
-| `payout_account_number` | AU (account no.), AZ (account no.) |
-| `account_name` | AU (account name) |
-| `atm_number` | AU (ATM account no.) |
-| `health_smoker` | GL (Q1) |
-| `health_hypertension` | GL (Q2) |
-| `health_diabetes` | GL (Q3) |
-| `health_hospitalization` | GL (Q4) |
-| `barangay_name` | UB (barangay name line) |
-| `barangay_clearance_reference` | UB (clearance ref) |
-| `barangay_locality` | UB (locality) |
-| `authorized_recipient_name` | AZ (recipient name) |
-| `authorized_recipient_relationship` | AZ (relationship) |
-| `release_method` | AZ (release method) |
+| Field key | Document(s) | Notes |
+|-----------|-------------|-------|
+*(No open wiring gaps — all collected fields are now mapped)*
 
 ---
 
@@ -601,34 +587,26 @@
 
 | Field | Where to add | Document(s) |
 |-------|-------------|-------------|
-| Bank branch | Bank/payout wizard step | AU, AZ |
-| ATM card holder name (if ≠ borrower) | Bank/payout wizard step | AZ |
-| Barangay official's designation | Conditional barangay step | UB |
-| Agency name | Conditional barangay step | UB |
-| Agency address | Conditional barangay step | UB |
-| Guaranteed Net Take-Home Pay | ❓ member or staff (Q4) | AU, UB |
-| Age (derived) | **No new field** — compute from `birthdate` at render | AU, UB |
+| Age (derived) | **No new field** — compute from `birthdate` at render time | AU, UB |
 | Civil status → AU | **No new field** — reuse `civil_status` from data_entries | AU |
 | Civil status → UB | **No new field** — reuse `civil_status` from data_entries | UB |
-| Home phone → GL | **No new field** — reuse `home_phone` from data_entries | GL |
-| Email → GL | **No new field** — reuse `email` from data_entries | GL |
-| Country/ZIP → GL | **No new field** — reuse address fields from data_entries | GL |
-| Physician name/address/date/treatment | Conditional health step (if any Yes) | GL |
+| Physician name / address / date / treatment | Add to FIELD_DEFINITIONS + conditional health wizard step | GL |
+| Percentage of finance charges + EIR (items 6 & 7) | Confirm R.A. 3765 formula with WIBS first, then wire into DS blade | DS |
 
 ---
 
-### ❓ Pending WIBS Answers (block work until confirmed)
+### ❓ Pending WIBS Answers
 
-| Q# | Question | Blocks |
+| Q# | Question | Answer |
 |----|----------|--------|
-| Q1 | Bank name on AZ hardcoded "Enterprise Bank, Inc." — use member's bank? | AZ wiring |
-| Q2 | Which Grepalife variant? Should health answers print on it? | GL wiring |
-| Q3 | UB applies only to barangay officials? Add wizard step for designation/agency? | UB fields |
-| Q4 | Guaranteed Net Take-Home Pay — member or staff entered? | AU, UB fields |
-| Q5 | Confirm safe removal of 6 fields | Field removal |
-| Q6 | Full list of employment types; required fields per type (pensioner edge case) | AF/wizard |
-| Q7 | Confirm converting LI/PP/DS from Excel to PDF for direct printing | LI, PP, DS |
-| Q8 | Can senior staff (loan managers/superadmin) hold their own loans? | RBAC |
+| Q1 | Bank name on AZ hardcoded "Enterprise Bank, Inc." — use member's bank? | ✅ **Resolved** — AZ now uses member's entered `payout_bank_name`; hardcode removed |
+| Q2 | Which Grepalife variant? Should health answers print on it? | ✅ **Resolved** — "Debtor's Creditor Group Life"; health booleans wired (coordinates need calibration) |
+| Q3 | UB applies only to barangay officials? Add wizard step for designation/agency? | ✅ **Resolved** — UB applies broadly (not officials-only); conditional wizard step added for all members |
+| Q4 | Guaranteed Net Take-Home Pay — member or staff entered? | ✅ **Resolved** — Staff-entered; wired to both AU and UB as `loan.gnthp` |
+| Q5 | Confirm safe removal of 6 fields | ✅ **Resolved** — 8 fields total removed (original 6 plus `authorized_recipient_name` and `authorized_recipient_relationship`) |
+| Q6 | Full list of employment types; required fields per type (pensioner edge case) | ✅ **Resolved** — Private, Government, Self-employed, Retired, Pensioner, OFW. Pensioner hides employer/office fields; OFW keeps all. |
+| Q7 | Confirm converting LI / PP / DS from Excel to PDF for direct printing | ✅ **Resolved** — All three converted to PDF. DS EIR rows still blank pending formula (see DS open item). |
+| Q8 | Can senior staff (loan managers / superadmin) hold their own loans? | ✅ **Resolved** — Allowed; existing permissions cover this case (no dedicated RBAC change documented in git log) |
 
 ---
 
@@ -640,13 +618,13 @@
 | GL | PDF (field map) | PDF | ✅ Done |
 | AU | PDF (field map) | PDF | ✅ Done (wiring gaps remain) |
 | AZ | PDF (field map) | PDF | ✅ Done (wiring gaps remain) |
-| LI | XLSX | PDF | ⏳ Pending (convert after PP) |
-| PP | XLSX | PDF | ⏳ Pending (next after PN verified) |
-| DS | XLSX | PDF | ⏳ Pending (hardest — do last) |
+| LI | PDF (Blade/service) | PDF | ✅ Done |
+| PP | PDF (service class) | PDF | ✅ Done |
+| DS | PDF (Blade) | PDF | ✅ Done (EIR rows blank — open item) |
 | PN | PDF (Blade) | PDF | ⚠️ Code done — **visual verification required** |
 | UB | PDF (field map) | PDF | ✅ Done (wiring gaps remain) |
 | LSA | PDF (Blade) | PDF | ✅ Done (reference pattern) |
 
 ---
 
-*Last updated: based on WIBS_SESSION_SUMMARY.md — feature branch `feature/rbac-loan-workflow`, 709 passing tests*
+*Last updated: 2026-06-30 — feature branch `feature/rbac-loan-workflow`*

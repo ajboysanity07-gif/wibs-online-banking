@@ -84,6 +84,14 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'page' => 1,
                 'x' => 28,
+                'y' => 110,
+                'size' => 9,
+                'value' => 'authorization.payout_bank_branch',
+            ],
+            // TODO(calibrate-au): placeholder — verify against loan-documents:calibrate-fields au overlay
+            [
+                'page' => 1,
+                'x' => 28,
                 'y' => 114,
                 'size' => 9,
                 'value' => 'loan.gnthp',

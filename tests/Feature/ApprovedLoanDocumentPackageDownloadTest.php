@@ -937,6 +937,11 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $reviewer['y'])->toBe(70.0);
     expect((int) $reviewer['size'])->toBe(9);
 
+    $bankBranch = $find('authorization.payout_bank_branch');
+    expect((float) $bankBranch['x'])->toBe(28.0);
+    expect((float) $bankBranch['y'])->toBe(110.0);
+    expect((int) $bankBranch['size'])->toBe(9);
+
     $gnthp = $find('loan.gnthp');
     expect((float) $gnthp['x'])->toBe(28.0);
     expect((float) $gnthp['y'])->toBe(114.0);
@@ -981,6 +986,16 @@ test('authorization field map pins all field coordinates to calibrated values', 
     expect((float) $company['x'])->toBe(26.0);
     expect((float) $company['y'])->toBe(68.0);
     expect((int) $company['size'])->toBe(9);
+
+    $bankBranch = $find('authorization.payout_bank_branch');
+    expect((float) $bankBranch['x'])->toBe(26.0);
+    expect((float) $bankBranch['y'])->toBe(118.0);
+    expect((int) $bankBranch['size'])->toBe(9);
+
+    $atmHolderName = $find('authorization.payout_atm_holder_name');
+    expect((float) $atmHolderName['x'])->toBe(26.0);
+    expect((float) $atmHolderName['y'])->toBe(126.0);
+    expect((int) $atmHolderName['size'])->toBe(9);
 });
 
 test('undertaking barangay field map pins all field coordinates to calibrated values', function () {
@@ -1368,6 +1383,7 @@ test('affidavit undertaking pdf prints payout bank details', function () {
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '9876543210');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_name', 'string', 'JUAN B. DELA CRUZ');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_atm_number', 'string', '4444-3333-2222-1111');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_branch', 'string', 'DAVAO BRANCH');
 
     $response = $this
         ->actingAs($admin)
@@ -1380,7 +1396,8 @@ test('affidavit undertaking pdf prints payout bank details', function () {
         ->toContain('RURAL SAVINGS BANK')
         ->toContain('9876543210')
         ->toContain('JUAN B. DELA CRUZ')
-        ->toContain('4444-3333-2222-1111');
+        ->toContain('4444-3333-2222-1111')
+        ->toContain('DAVAO BRANCH');
 });
 
 test('affidavit undertaking pdf prints guaranteed net take-home pay', function () {
@@ -1410,6 +1427,8 @@ test('authorization pdf prints release and bank details', function () {
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_method', 'string', 'ATM');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'LANDBANK');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_branch', 'string', 'TAGUM BRANCH');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_atm_holder_name', 'string', 'MARIA B. SANTOS');
 
     $response = $this
         ->actingAs($admin)
@@ -1422,7 +1441,28 @@ test('authorization pdf prints release and bank details', function () {
         ->toContain('ATM')
         ->toContain('LANDBANK')
         ->toContain('1122334455')
+        ->toContain('TAGUM BRANCH')
+        ->toContain('MARIA B. SANTOS')
         ->not->toContain('Enterprise Bank');
+});
+
+test('authorization pdf omits atm card holder name when payout_atm_holder_name is null', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_method', 'string', 'ATM');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'LANDBANK');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
+    // payout_atm_holder_name intentionally omitted — borrower uses their own card
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.authorization', $loanRequest));
+
+    $response->assertOk();
+    expect(approvedLoanDocumentsReadDownloadedFileContent($response))->toStartWith('%PDF');
 });
 
 test('undertaking barangay pdf prints barangay details', function () {

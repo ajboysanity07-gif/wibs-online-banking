@@ -72,6 +72,22 @@ class AuthorizationPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'authorization.payout_account_number',
             ],
+            // TODO(calibrate-az): placeholder — verify against loan-documents:calibrate-fields az overlay
+            [
+                'page' => 1,
+                'x' => 26,
+                'y' => 118,
+                'size' => 9,
+                'value' => 'authorization.payout_bank_branch',
+            ],
+            // TODO(calibrate-az): placeholder — verify against loan-documents:calibrate-fields az overlay
+            [
+                'page' => 1,
+                'x' => 26,
+                'y' => 126,
+                'size' => 9,
+                'value' => 'authorization.payout_atm_holder_name',
+            ],
         ];
     }
 }
