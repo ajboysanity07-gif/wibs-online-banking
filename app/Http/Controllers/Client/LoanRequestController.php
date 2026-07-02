@@ -88,14 +88,18 @@ class LoanRequestController extends Controller
     public function draft(
         LoanRequestDraftRequest $request,
         LoanRequestService $service,
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         $user = $request->user();
 
         if ($user === null) {
             return redirect()->route('login');
         }
 
-        $service->saveDraft($user, $request->validated());
+        $loanRequest = $service->saveDraft($user, $request->validated());
+
+        if ($request->expectsJson()) {
+            return response()->json($service->serializeLoanRequest($loanRequest));
+        }
 
         return redirect()->route('client.loan-requests.create');
     }

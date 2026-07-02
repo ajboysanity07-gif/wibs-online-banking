@@ -1,127 +1,197 @@
-import { Check } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import {
+    Building2,
+    Check,
+    ClipboardCheck,
+    FileText,
+    HeartPulse,
+    User,
+    Users,
+    type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Step = {
-    id: string;
-    title: string;
-    description?: string;
+type StepGroup = {
+    label: string;
+    icon: LucideIcon;
+    steps: number[];
+    stepNames: string[];
 };
+
+const STEP_GROUPS: StepGroup[] = [
+    {
+        label: 'Loan details',
+        icon: FileText,
+        steps: [0],
+        stepNames: ['Loan details'],
+    },
+    {
+        label: 'About you',
+        icon: User,
+        steps: [1, 2],
+        stepNames: ['Personal data', 'Work & finances'],
+    },
+    {
+        label: 'Co-makers',
+        icon: Users,
+        steps: [3, 4],
+        stepNames: ['Co-maker 1', 'Co-maker 2'],
+    },
+    {
+        label: 'Insurance & health',
+        icon: HeartPulse,
+        steps: [5, 6],
+        stepNames: ['Insurance & beneficiaries', 'Health declarations'],
+    },
+    {
+        label: 'Bank & payout',
+        icon: Building2,
+        steps: [7, 8],
+        stepNames: ['Bank & payout', 'Barangay information'],
+    },
+    {
+        label: 'Declarations & review',
+        icon: ClipboardCheck,
+        steps: [9, 10],
+        stepNames: ['Declarations', 'Review & submit'],
+    },
+];
+
+const TOTAL_STEPS = 11;
 
 type Props = {
-    steps: Step[];
     currentStep: number;
-    onStepChange?: (index: number) => void;
-    className?: string;
+    onStepClick?: (index: number) => void;
 };
 
-export function LoanRequestStepIndicator({
-    steps,
-    currentStep,
-    onStepChange,
-    className,
-}: Props) {
-    const totalSteps = steps.length;
-    const progressPercentage =
-        totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 0;
-    const lineInsetPercent = totalSteps > 1 ? 100 / (totalSteps * 2) : 0;
-    const activeStepRef = useRef<HTMLButtonElement>(null);
-
-    useEffect(() => {
-        activeStepRef.current?.scrollIntoView({
-            block: 'nearest',
-            inline: 'center',
-            behavior: 'smooth',
-        });
-    }, [currentStep]);
-
+export function LoanRequestStepIndicator({ currentStep, onStepClick }: Props) {
     return (
-        <div className={cn('overflow-x-auto scrollbar-hide pb-1', className)}>
-            <div className="relative min-w-max px-3">
-                <div
-                    className="absolute top-3.5 h-px bg-border/30"
-                    style={{
-                        left: `${lineInsetPercent}%`,
-                        right: `${lineInsetPercent}%`,
-                    }}
-                    aria-hidden="true"
-                />
-                <div
-                    className="absolute top-3.5 h-px"
-                    style={{
-                        left: `${lineInsetPercent}%`,
-                        right: `${lineInsetPercent}%`,
-                    }}
-                    aria-hidden="true"
-                >
-                    <span
-                        className="block h-full bg-primary/40 transition-all motion-reduce:transition-none"
-                        style={{ width: `${progressPercentage}%` }}
+        <div className="flex h-full flex-col py-5">
+            <nav
+                className="flex-1 overflow-y-auto px-3 scrollbar-hide"
+                aria-label="Loan request steps"
+            >
+                {STEP_GROUPS.map((group) => {
+                    const isDone = group.steps.every((s) => s < currentStep);
+                    const isActive = group.steps.includes(currentStep);
+                    const GroupIcon = group.icon;
+
+                    return (
+                        <div key={group.label} className="mb-0.5">
+                            <button
+                                type="button"
+                                className={cn(
+                                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
+                                    isActive
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'hover:bg-muted/50',
+                                )}
+                                onClick={() => onStepClick?.(group.steps[0])}
+                                aria-current={isActive ? 'step' : undefined}
+                            >
+                                <span
+                                    className={cn(
+                                        'flex h-5.5 w-5.5 shrink-0 items-center justify-center',
+                                        isDone
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : isActive
+                                              ? 'text-primary'
+                                              : 'text-muted-foreground',
+                                    )}
+                                >
+                                    {isDone ? (
+                                        <Check size={16} strokeWidth={2.5} />
+                                    ) : (
+                                        <GroupIcon size={18} strokeWidth={1.5} />
+                                    )}
+                                </span>
+                                <span
+                                    className={cn(
+                                        'text-[13px] font-medium leading-tight',
+                                        isDone
+                                            ? 'text-foreground/60'
+                                            : isActive
+                                              ? 'text-primary'
+                                              : 'text-foreground',
+                                    )}
+                                >
+                                    {group.label}
+                                </span>
+                            </button>
+
+                            {isActive && (
+                                <div className="mb-1 ml-5 mt-0.5 space-y-0.5 border-l border-border/50 pl-4">
+                                    {group.steps.map((stepIndex, i) => {
+                                        const isSubDone =
+                                            stepIndex < currentStep;
+                                        const isSubActive =
+                                            stepIndex === currentStep;
+
+                                        return (
+                                            <button
+                                                key={stepIndex}
+                                                type="button"
+                                                className={cn(
+                                                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
+                                                    isSubActive
+                                                        ? 'bg-primary/10'
+                                                        : 'hover:bg-muted/40',
+                                                )}
+                                                onClick={() =>
+                                                    onStepClick?.(stepIndex)
+                                                }
+                                                aria-current={
+                                                    isSubActive
+                                                        ? 'step'
+                                                        : undefined
+                                                }
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        'h-1.5 w-1.5 shrink-0 rounded-full',
+                                                        isSubDone
+                                                            ? 'bg-emerald-500 dark:bg-emerald-400'
+                                                            : isSubActive
+                                                              ? 'bg-primary'
+                                                              : 'bg-muted-foreground/40',
+                                                    )}
+                                                />
+                                                <span
+                                                    className={cn(
+                                                        'text-[12px] leading-tight',
+                                                        isSubActive
+                                                            ? 'font-medium text-primary'
+                                                            : isSubDone
+                                                              ? 'text-foreground/60'
+                                                              : 'text-muted-foreground',
+                                                    )}
+                                                >
+                                                    {group.stepNames[i]}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </nav>
+
+            <div className="px-5 pb-3 pt-4">
+                <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Progress</span>
+                    <span>
+                        Step {currentStep + 1} of {TOTAL_STEPS}
+                    </span>
+                </div>
+                <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/50">
+                    <div
+                        className="h-full bg-primary/50 transition-all duration-300 motion-reduce:transition-none"
+                        style={{
+                            width: `${((currentStep + 1) / TOTAL_STEPS) * 100}%`,
+                        }}
                     />
                 </div>
-
-                <ol
-                    className="flex flex-nowrap gap-x-2"
-                    aria-label="Loan request steps"
-                >
-                    {steps.map((step, index) => {
-                        const isActive = index === currentStep;
-                        const isComplete = index < currentStep;
-                        const canNavigate = Boolean(onStepChange);
-
-                        return (
-                            <li
-                                key={step.id}
-                                className="flex min-w-24 flex-1 flex-col items-center text-center sm:min-w-28"
-                            >
-                                <button
-                                    ref={isActive ? activeStepRef : undefined}
-                                    type="button"
-                                    className={cn(
-                                        'group relative z-10 flex w-full flex-col items-center gap-2 text-[10px] font-medium sm:text-xs',
-                                        canNavigate
-                                            ? 'cursor-pointer'
-                                            : 'cursor-default',
-                                        'focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none',
-                                    )}
-                                    onClick={() => onStepChange?.(index)}
-                                    aria-current={isActive ? 'step' : undefined}
-                                    disabled={!canNavigate}
-                                    title={step.description ?? step.title}
-                                >
-                                    <span
-                                        className={cn(
-                                            'flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors duration-200 sm:h-8 sm:w-8',
-                                            isComplete
-                                                ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                                                : isActive
-                                                  ? 'border-primary/70 bg-card text-primary ring-2 ring-primary/20'
-                                                  : 'border-border/30 bg-muted/15 text-muted-foreground',
-                                        )}
-                                    >
-                                        {isComplete ? (
-                                            <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                        ) : (
-                                            index + 1
-                                        )}
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            'max-w-26 truncate leading-tight transition-colors',
-                                            isActive
-                                                ? 'font-semibold text-foreground'
-                                                : isComplete
-                                                  ? 'text-foreground/70'
-                                                  : 'text-muted-foreground',
-                                        )}
-                                    >
-                                        {step.title}
-                                    </span>
-                                </button>
-                            </li>
-                        );
-                    })}
-                </ol>
             </div>
         </div>
     );
