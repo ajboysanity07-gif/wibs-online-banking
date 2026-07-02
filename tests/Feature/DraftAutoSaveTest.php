@@ -136,3 +136,204 @@ test('save draft accepts partial payload without validation errors', function ()
         ])
         ->assertNoContent();
 });
+
+test('manual save-draft button returns 204 not a redirect', function (): void {
+    // Confirms the endpoint the manual Save Draft button now calls
+    // (save-draft, not the old draft() redirect route).
+    $member = createDraftMember('002007');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'loan_purpose' => 'Business capital',
+            'requested_amount' => '50000',
+        ])
+        ->assertNoContent()
+        ->assertStatus(204);
+});
+
+test('manual save-draft creates draft row on brand new form with no prior draft', function (): void {
+    $member = createDraftMember('002008');
+
+    expect(LoanRequest::query()->where('user_id', $member->user_id)->count())->toBe(0);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.draft'), [
+            'loan_purpose' => 'Education',
+            'requested_amount' => '30000',
+        ])
+        ->assertOk()
+        ->assertJsonStructure(['id', 'reference', 'status', 'updated_at']);
+
+    expect(
+        LoanRequest::query()
+            ->where('user_id', $member->user_id)
+            ->where('status', LoanRequestStatus::Draft->value)
+            ->count()
+    )->toBe(1);
+});
+
+test('save draft with wizard_step persists wizard_current_step data entry', function (): void {
+    $member = createDraftMember('002010');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'wizard_step' => 5,
+        ])
+        ->assertNoContent();
+
+    $entry = $loanRequest->dataEntries()->where('field_key', 'wizard_current_step')->first();
+    expect($entry)->not->toBeNull();
+    expect($entry->value_json['value'])->toBe(5);
+});
+
+test('loan-request create page includes initialStep from saved wizard_current_step', function (): void {
+    $member = createDraftMember('002011');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $loanRequest->dataEntries()->create([
+        'field_key' => 'wizard_current_step',
+        'section_key' => 'system',
+        'owner_type' => 'system',
+        'is_sensitive' => false,
+        'confirmed_by_member' => false,
+        'confirmed_by_member_at' => null,
+        'value_json' => ['value' => 5],
+        'metadata_json' => ['label' => 'Wizard current step', 'type' => 'integer'],
+    ]);
+
+    $this->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('client/loan-request')
+            ->where('initialStep', 5),
+        );
+});
+
+test('loan-request create page returns initialStep 0 for legacy draft without wizard entry', function (): void {
+    $member = createDraftMember('002012');
+
+    LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('client/loan-request')
+            ->where('initialStep', 0),
+        );
+});
+
+test('draft endpoint accepts full form.data shape with empty strings and returns 200', function (): void {
+    // Regression: empty strings for numeric/in fields caused a 422 when the
+    // user clicked Save Draft on a freshly opened form (no prior draft).
+    $member = createDraftMember('002009');
+
+    $payload = [
+        'typecode' => '',
+        'requested_amount' => '',
+        'requested_term' => '',
+        'loan_purpose' => '',
+        'availment_status' => '',
+        'undertaking_accepted' => false,
+        'applicant' => [
+            'first_name' => '',
+            'last_name' => '',
+            'middle_name' => '',
+            'nickname' => '',
+            'birthdate' => '',
+            'birthplace_city' => '',
+            'birthplace_province' => '',
+            'address1' => '',
+            'address2' => '',
+            'address3' => '',
+            'length_of_stay' => '',
+            'housing_status' => '',
+            'civil_status' => '',
+            'cell_no' => '',
+            'educational_attainment' => '',
+            'number_of_children' => '',
+            'spouse_name' => '',
+            'spouse_age' => '',
+            'spouse_cell_no' => '',
+            'employment_type' => '',
+            'employer_business_name' => '',
+            'employer_business_address1' => '',
+            'employer_business_address2' => '',
+            'employer_business_address3' => '',
+            'telephone_no' => '',
+            'current_position' => '',
+            'nature_of_business' => '',
+            'years_in_work_business' => '',
+            'gross_monthly_income' => '',
+            'payday' => '',
+        ],
+        'co_maker_1' => [
+            'first_name' => '', 'last_name' => '', 'middle_name' => '',
+            'cell_no' => '', 'gross_monthly_income' => '', 'payday' => '',
+        ],
+        'co_maker_2' => [
+            'first_name' => '', 'last_name' => '', 'middle_name' => '',
+            'cell_no' => '', 'gross_monthly_income' => '', 'payday' => '',
+        ],
+        'insurance' => [
+            'beneficiary_primary_name' => null,
+            'beneficiary_primary_relationship' => null,
+            'beneficiary_primary_birthdate' => null,
+            'beneficiary_secondary_name' => null,
+            'beneficiary_secondary_relationship' => null,
+            'beneficiary_secondary_birthdate' => null,
+        ],
+        'health' => [
+            'health_smoker' => null,
+            'health_hypertension' => null,
+            'health_diabetes' => null,
+            'health_recent_hospitalization' => null,
+            'health_declaration_notes' => null,
+        ],
+        'banking' => [
+            'payout_bank_name' => null,
+            'payout_account_name' => null,
+            'payout_account_number' => null,
+            'payout_account_type' => null,
+            'release_method' => null,
+            'payout_atm_number' => null,
+            'payout_bank_branch' => null,
+            'payout_atm_holder_name' => null,
+        ],
+        'barangay' => [
+            'barangay_name' => null,
+            'barangay_clearance_reference' => null,
+            'barangay_locality' => null,
+            'barangay_official_designation' => null,
+            'barangay_agency_name' => null,
+            'barangay_agency_address' => null,
+        ],
+        'declarations' => [
+            'declaration_existing_loans' => null,
+            'declaration_pending_cases' => null,
+            'declaration_truth_confirmation' => null,
+            'declaration_data_privacy_consent' => null,
+        ],
+    ];
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.draft'), $payload)
+        ->assertOk()
+        ->assertJsonStructure(['id', 'reference', 'status', 'updated_at']);
+});

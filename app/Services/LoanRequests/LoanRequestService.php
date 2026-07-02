@@ -8,6 +8,7 @@ use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\Wlntype;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
@@ -57,6 +58,7 @@ class LoanRequestService
      *     member: array{name: string, acctno: string|null},
      *     dataSections: array<string, array<string, mixed>>,
      *     dataSectionDefinitions: array<string, mixed>,
+     *     initialStep: int,
      *     draft: array{
      *         id: int,
      *         status: string,
@@ -111,6 +113,17 @@ class LoanRequestService
             ? $this->normalizePersonSelectValues($coMakerTwo)
             : null;
 
+        $initialStep = 0;
+
+        if ($draft !== null) {
+            $flatValues = $this->dataService->loadFlatValues($draft);
+            $stepValue = $flatValues['wizard_current_step'] ?? null;
+
+            if (is_numeric($stepValue)) {
+                $initialStep = max(0, min(10, (int) $stepValue));
+            }
+        }
+
         return [
             'loanTypes' => $this->getLoanTypes()->values()->all(),
             'applicant' => $applicant,
@@ -125,6 +138,7 @@ class LoanRequestService
                 ? $this->dataService->serializeSections($draft)
                 : $this->dataService->emptySections(),
             'dataSectionDefinitions' => $this->dataService->sectionDefinitions(),
+            'initialStep' => $initialStep,
             'draft' => $draft !== null ? $this->serializeLoanRequest($draft) : null,
         ];
     }
@@ -160,6 +174,26 @@ class LoanRequestService
 
             $this->upsertPeopleSnapshots($loanRequest, $payload);
             $this->dataService->syncMemberSections($loanRequest, $payload);
+
+            if (array_key_exists('wizard_step', $payload) && $payload['wizard_step'] !== null) {
+                $stepValue = max(0, min(10, (int) $payload['wizard_step']));
+
+                LoanRequestDataEntry::query()->updateOrCreate(
+                    [
+                        'loan_request_id' => $loanRequest->id,
+                        'field_key' => 'wizard_current_step',
+                    ],
+                    [
+                        'section_key' => 'system',
+                        'owner_type' => 'system',
+                        'is_sensitive' => false,
+                        'confirmed_by_member' => false,
+                        'confirmed_by_member_at' => null,
+                        'value_json' => ['value' => $stepValue],
+                        'metadata_json' => ['label' => 'Wizard current step', 'type' => 'integer'],
+                    ],
+                );
+            }
 
             return $loanRequest->loadMissing('people');
         });
@@ -958,7 +992,7 @@ class LoanRequestService
      *     updated_at: string|null
      * }
      */
-    private function serializeLoanRequest(LoanRequest $loanRequest): array
+    public function serializeLoanRequest(LoanRequest $loanRequest): array
     {
         $status = LoanRequestStatus::memberVisibleValue($loanRequest->status)
             ?? (string) $loanRequest->status;

@@ -62,7 +62,7 @@ class LoanRequestDraftRequest extends FormRequest
      */
     public function rules(): array
     {
-        $loanTypeRules = ['sometimes', 'string', 'max:255'];
+        $loanTypeRules = ['sometimes', 'nullable', 'string', 'max:255'];
 
         if (Schema::hasTable('wlntype')) {
             if (Schema::hasColumn('wlntype', 'typecode')) {
@@ -74,15 +74,17 @@ class LoanRequestDraftRequest extends FormRequest
 
         return [
             'typecode' => $loanTypeRules,
-            'requested_amount' => ['sometimes', 'numeric', 'min:0'],
-            'requested_term' => ['sometimes', 'integer', 'min:0', 'max:360'],
-            'loan_purpose' => ['sometimes', 'string', 'max:255'],
+            'requested_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'requested_term' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:360'],
+            'loan_purpose' => ['sometimes', 'nullable', 'string', 'max:255'],
             'availment_status' => [
                 'sometimes',
+                'nullable',
                 'string',
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
             'undertaking_accepted' => ['sometimes', 'boolean'],
+            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10'],
             'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -91,10 +93,10 @@ class LoanRequestDraftRequest extends FormRequest
             'insurance.beneficiary_secondary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_secondary_birthdate' => ['sometimes', 'nullable', 'date'],
             'health' => ['sometimes', 'array:health_smoker,health_hypertension,health_diabetes,health_recent_hospitalization,health_declaration_notes'],
-            'health.health_smoker' => ['sometimes', 'boolean'],
-            'health.health_hypertension' => ['sometimes', 'boolean'],
-            'health.health_diabetes' => ['sometimes', 'boolean'],
-            'health.health_recent_hospitalization' => ['sometimes', 'boolean'],
+            'health.health_smoker' => ['sometimes', 'nullable', 'boolean'],
+            'health.health_hypertension' => ['sometimes', 'nullable', 'boolean'],
+            'health.health_diabetes' => ['sometimes', 'nullable', 'boolean'],
+            'health.health_recent_hospitalization' => ['sometimes', 'nullable', 'boolean'],
             'health.health_declaration_notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
             'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -113,10 +115,10 @@ class LoanRequestDraftRequest extends FormRequest
             'barangay.barangay_agency_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_agency_address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'declarations' => ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent'],
-            'declarations.declaration_existing_loans' => ['sometimes', 'boolean'],
-            'declarations.declaration_pending_cases' => ['sometimes', 'boolean'],
-            'declarations.declaration_truth_confirmation' => ['sometimes', 'boolean'],
-            'declarations.declaration_data_privacy_consent' => ['sometimes', 'boolean'],
+            'declarations.declaration_existing_loans' => ['sometimes', 'nullable', 'boolean'],
+            'declarations.declaration_pending_cases' => ['sometimes', 'nullable', 'boolean'],
+            'declarations.declaration_truth_confirmation' => ['sometimes', 'nullable', 'boolean'],
+            'declarations.declaration_data_privacy_consent' => ['sometimes', 'nullable', 'boolean'],
             ...$this->personRules('applicant', true, true, true),
             ...$this->personRules('co_maker_1', false, false, false),
             ...$this->personRules('co_maker_2', false, false, false),
