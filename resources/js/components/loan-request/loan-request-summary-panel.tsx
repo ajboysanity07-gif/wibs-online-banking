@@ -110,53 +110,58 @@ export function LoanRequestSummaryPanel({
                             label="Requested amount"
                             value={requestedAmount}
                         />
-                        <SummaryRow
-                            label="Requested term"
-                            value={
-                                data.requested_term.trim() !== ''
-                                    ? `${data.requested_term} months`
-                                    : '--'
-                            }
-                        />
-                        <SummaryRow
-                            label="Availment status"
-                            value={displayValue(data.availment_status)}
-                        />
-                        <SummaryRow
-                            label="Loan purpose"
-                            value={displayText(data.loan_purpose)}
-                        />
                     </div>
 
-                    <Separator className="bg-border/30" />
+                    <div className="hidden space-y-3 md:block">
+                        <div className="space-y-2">
+                            <SummaryRow
+                                label="Requested term"
+                                value={
+                                    data.requested_term.trim() !== ''
+                                        ? `${data.requested_term} months`
+                                        : '--'
+                                }
+                            />
+                            <SummaryRow
+                                label="Availment status"
+                                value={displayValue(data.availment_status)}
+                            />
+                            <SummaryRow
+                                label="Loan purpose"
+                                value={displayText(data.loan_purpose)}
+                            />
+                        </div>
 
-                    <div className="space-y-2">
-                        <SummaryRow
-                            label="Applicant"
-                            value={displayName(data.applicant)}
-                        />
-                        <SummaryRow
-                            label="Co-maker 1"
-                            value={displayName(data.co_maker_1)}
-                        />
-                        <SummaryRow
-                            label="Co-maker 2"
-                            value={displayName(data.co_maker_2)}
-                        />
+                        <Separator className="bg-border/30" />
+
+                        <div className="space-y-2">
+                            <SummaryRow
+                                label="Applicant"
+                                value={displayName(data.applicant)}
+                            />
+                            <SummaryRow
+                                label="Co-maker 1"
+                                value={displayName(data.co_maker_1)}
+                            />
+                            <SummaryRow
+                                label="Co-maker 2"
+                                value={displayName(data.co_maker_2)}
+                            />
+                        </div>
+
+                        {draftUpdatedAt ? (
+                            <>
+                                <Separator className="bg-border/30" />
+                                <p className="text-xs text-muted-foreground">
+                                    Last saved {draftUpdatedAt}
+                                </p>
+                            </>
+                        ) : null}
                     </div>
-
-                    {draftUpdatedAt ? (
-                        <>
-                            <Separator className="bg-border/30" />
-                            <p className="text-xs text-muted-foreground">
-                                Last saved {draftUpdatedAt}
-                            </p>
-                        </>
-                    ) : null}
                 </CardContent>
             </Card>
 
-            <Card className="border-border/20 bg-card/30">
+            <Card className="hidden border-border/20 bg-card/30 md:block">
                 <CardHeader>
                     <CardTitle className="text-base">
                         Tips for faster approval

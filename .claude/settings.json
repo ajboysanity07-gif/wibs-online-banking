@@ -1,0 +1,8 @@
+{
+  "enabledPlugins": {
+    "safety-hooks@dotclaude": true,
+    "ship@dotclaude": true,
+    "code-reviewer@dotclaude": true,
+    "security-reviewer@dotclaude": true
+  }
+}

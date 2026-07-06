@@ -146,6 +146,7 @@ type PersonalFieldsProps = {
     includeSpouse?: boolean;
     includeChildren?: boolean;
     includeCivilHousing?: boolean;
+    section?: 'all' | 'basic' | 'contact' | 'family';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
 
@@ -157,6 +158,7 @@ export function LoanRequestPersonalFields({
     includeSpouse = false,
     includeChildren = false,
     includeCivilHousing = false,
+    section = 'all',
     onChange,
 }: PersonalFieldsProps) {
     const educationalAttainment = values.educational_attainment;
@@ -174,6 +176,7 @@ export function LoanRequestPersonalFields({
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
     const hasReadOnlyFields = Object.values(readOnly ?? {}).some(Boolean);
+    const hasFamilySection = includeCivilHousing || includeChildren || includeSpouse;
     const birthplaceProvinceSearch = useLocationSearch({
         initialQuery: values.birthplace_province,
         searchUrl: provinces.url(),
@@ -234,6 +237,7 @@ export function LoanRequestPersonalFields({
                     you need changes.
                 </div>
             ) : null}
+            {(section === 'all' || section === 'basic') ? (
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                     <FieldLabel
@@ -410,9 +414,11 @@ export function LoanRequestPersonalFields({
                     />
                 </div>
             </div>
+            ) : null}
 
-            <Separator className="bg-border/40" />
+            {section === 'all' ? <Separator className="bg-border/40" /> : null}
 
+            {(section === 'all' || section === 'contact') ? (
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2 md:col-span-2">
                     <FieldLabel
@@ -576,10 +582,48 @@ export function LoanRequestPersonalFields({
                         message={fieldError(errors, prefix, 'cell_no')}
                     />
                 </div>
+
+                {!hasFamilySection ? (
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_educational_attainment`}
+                            label="Educational attainment"
+                        />
+                        <Select
+                            value={educationalAttainment || undefined}
+                            onValueChange={(value) =>
+                                onChange('educational_attainment', value)
+                            }
+                        >
+                            <SelectTrigger
+                                id={`${prefix}_educational_attainment`}
+                                className="mt-1 w-full"
+                            >
+                                <SelectValue placeholder="Select attainment" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {educationalAttainmentOptions.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'educational_attainment',
+                            )}
+                        />
+                    </div>
+                ) : null}
             </div>
+            ) : null}
 
-            <Separator className="bg-border/40" />
+            {section === 'all' ? <Separator className="bg-border/40" /> : null}
 
+            {(section === 'all' || section === 'family') ? (
             <div className="grid gap-5 md:grid-cols-2">
                 {includeCivilHousing ? (
                     <div className="grid gap-2">
@@ -619,6 +663,7 @@ export function LoanRequestPersonalFields({
                     </div>
                 ) : null}
 
+                {hasFamilySection ? (
                 <div className="grid gap-2">
                     <FieldLabel
                         htmlFor={`${prefix}_educational_attainment`}
@@ -652,6 +697,7 @@ export function LoanRequestPersonalFields({
                         )}
                     />
                 </div>
+                ) : null}
 
                 {includeChildren ? (
                     <div className="grid gap-2">
@@ -761,6 +807,7 @@ export function LoanRequestPersonalFields({
                     </>
                 ) : null}
             </div>
+            ) : null}
         </div>
     );
 }
@@ -769,6 +816,7 @@ type WorkFieldsProps = {
     prefix: string;
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
+    section?: 'all' | 'employment' | 'income';
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
 
@@ -776,6 +824,7 @@ export function LoanRequestWorkFields({
     prefix,
     values,
     errors,
+    section = 'all',
     onChange,
 }: WorkFieldsProps) {
     const employmentType = values.employment_type;
@@ -836,6 +885,7 @@ export function LoanRequestWorkFields({
 
     return (
         <div className="space-y-7">
+            {(section === 'all' || section === 'employment') ? (
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                     <Label htmlFor={`${prefix}_employment_type`}>
@@ -992,10 +1042,11 @@ export function LoanRequestWorkFields({
                     </div>
                 ) : null}
             </div>
+            ) : null}
 
-            {!isPensioner ? (
+            {(section === 'all' || section === 'income') && !isPensioner ? (
                 <>
-                    <Separator className="bg-border/40" />
+                    {section === 'all' ? <Separator className="bg-border/40" /> : null}
 
                     <div className="grid gap-5 md:grid-cols-2">
                         <div className="grid gap-2">
@@ -1101,8 +1152,11 @@ export function LoanRequestWorkFields({
                 </>
             ) : null}
 
-            <Separator className="bg-border/40" />
+            {(section === 'all' || (section === 'income' && !isPensioner)) ? (
+                <Separator className="bg-border/40" />
+            ) : null}
 
+            {(section === 'all' || section === 'income') ? (
             <div className="grid gap-5 md:grid-cols-2">
                 <div className="grid gap-2">
                     <Label htmlFor={`${prefix}_gross_monthly_income`}>
@@ -1164,6 +1218,7 @@ export function LoanRequestWorkFields({
                     />
                 </div>
             </div>
+            ) : null}
         </div>
     );
 }

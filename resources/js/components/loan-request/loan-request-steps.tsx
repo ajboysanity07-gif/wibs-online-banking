@@ -179,16 +179,33 @@ type PersonStepProps = {
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
 };
 
+type ApplicantPersonalStepProps = PersonStepProps & {
+    section: 'basic' | 'contact' | 'family';
+};
+
+const PERSONAL_STEP_TITLES: Record<ApplicantPersonalStepProps['section'], string> = {
+    basic: 'My personal data',
+    contact: 'Address & contact',
+    family: 'Family & background',
+};
+
+const PERSONAL_STEP_DESCS: Record<ApplicantPersonalStepProps['section'], string> = {
+    basic: 'Confirm your basic personal details.',
+    contact: 'Confirm your address and contact details.',
+    family: 'Confirm civil status, education, and family details.',
+};
+
 export function LoanRequestApplicantPersonalStep({
     values,
     errors,
     readOnly,
     onChange,
-}: PersonStepProps) {
+    section,
+}: ApplicantPersonalStepProps) {
     return (
         <LoanRequestSectionCard
-            title="My personal data"
-            description="Confirm your personal details."
+            title={PERSONAL_STEP_TITLES[section]}
+            description={PERSONAL_STEP_DESCS[section]}
         >
             <LoanRequestPersonalFields
                 prefix="applicant"
@@ -198,35 +215,51 @@ export function LoanRequestApplicantPersonalStep({
                 includeSpouse
                 includeChildren
                 includeCivilHousing
+                section={section}
                 onChange={onChange}
             />
         </LoanRequestSectionCard>
     );
 }
 
+type ApplicantWorkStepProps = Omit<PersonStepProps, 'readOnly'> & {
+    section: 'employment' | 'income';
+};
+
+const WORK_STEP_DESCS: Record<ApplicantWorkStepProps['section'], string> = {
+    employment: 'Share your employment and employer details.',
+    income: 'Share your income, position, and business details.',
+};
+
 export function LoanRequestApplicantWorkStep({
     values,
     errors,
     onChange,
-}: PersonStepProps) {
+    section,
+}: ApplicantWorkStepProps) {
     return (
         <LoanRequestSectionCard
             title="My work & finances"
-            description="Share your current employment and income details."
+            description={WORK_STEP_DESCS[section]}
         >
             <LoanRequestWorkFields
                 prefix="applicant"
                 values={values}
                 errors={errors}
+                section={section}
                 onChange={onChange}
             />
-            <Separator className="bg-border/40" />
-            <Alert className="border-border/50 bg-muted/10">
-                <AlertTitle>Physical signatures</AlertTitle>
-                <AlertDescription>
-                    Signatures will be collected physically upon loan release.
-                </AlertDescription>
-            </Alert>
+            {section === 'income' ? (
+                <>
+                    <Separator className="bg-border/40" />
+                    <Alert className="border-border/50 bg-muted/10">
+                        <AlertTitle>Physical signatures</AlertTitle>
+                        <AlertDescription>
+                            Signatures will be collected physically upon loan release.
+                        </AlertDescription>
+                    </Alert>
+                </>
+            ) : null}
         </LoanRequestSectionCard>
     );
 }
@@ -235,6 +268,7 @@ type CoMakerStepProps = {
     title: string;
     description: string;
     prefix: string;
+    section: 'basic' | 'contact' | 'employment' | 'income';
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
@@ -244,32 +278,43 @@ export function LoanRequestCoMakerStep({
     title,
     description,
     prefix,
+    section,
     values,
     errors,
     onChange,
 }: CoMakerStepProps) {
     return (
         <LoanRequestSectionCard title={title} description={description}>
-            <LoanRequestPersonalFields
-                prefix={prefix}
-                values={values}
-                errors={errors}
-                onChange={onChange}
-            />
-            <Separator className="bg-border/40" />
-            <LoanRequestWorkFields
-                prefix={prefix}
-                values={values}
-                errors={errors}
-                onChange={onChange}
-            />
-            <Separator className="bg-border/40" />
-            <Alert className="border-border/50 bg-muted/10">
-                <AlertTitle>Physical signatures</AlertTitle>
-                <AlertDescription>
-                    Signatures will be collected physically upon loan release.
-                </AlertDescription>
-            </Alert>
+            {section === 'basic' || section === 'contact' ? (
+                <LoanRequestPersonalFields
+                    prefix={prefix}
+                    values={values}
+                    errors={errors}
+                    section={section}
+                    onChange={onChange}
+                />
+            ) : (
+                <>
+                    <LoanRequestWorkFields
+                        prefix={prefix}
+                        values={values}
+                        errors={errors}
+                        section={section}
+                        onChange={onChange}
+                    />
+                    {section === 'income' ? (
+                        <>
+                            <Separator className="bg-border/40" />
+                            <Alert className="border-border/50 bg-muted/10">
+                                <AlertTitle>Physical signatures</AlertTitle>
+                                <AlertDescription>
+                                    Signatures will be collected physically upon loan release.
+                                </AlertDescription>
+                            </Alert>
+                        </>
+                    ) : null}
+                </>
+            )}
         </LoanRequestSectionCard>
     );
 }

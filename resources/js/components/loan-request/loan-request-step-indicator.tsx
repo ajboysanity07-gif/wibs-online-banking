@@ -27,36 +27,51 @@ const STEP_GROUPS: StepGroup[] = [
     {
         label: 'About you',
         icon: User,
-        steps: [1, 2],
-        stepNames: ['Personal data', 'Work & finances'],
+        steps: [1, 2, 3, 4, 5],
+        stepNames: [
+            'Personal: basic info',
+            'Personal: address & contact',
+            'Personal: family & spouse',
+            'Work: employment',
+            'Work: income & details',
+        ],
     },
     {
         label: 'Co-makers',
         icon: Users,
-        steps: [3, 4],
-        stepNames: ['Co-maker 1', 'Co-maker 2'],
+        steps: [6, 7, 8, 9, 10, 11, 12, 13],
+        stepNames: [
+            'Co-maker 1: basic info',
+            'Co-maker 1: address & contact',
+            'Co-maker 1: employment',
+            'Co-maker 1: income & details',
+            'Co-maker 2: basic info',
+            'Co-maker 2: address & contact',
+            'Co-maker 2: employment',
+            'Co-maker 2: income & details',
+        ],
     },
     {
         label: 'Insurance & health',
         icon: HeartPulse,
-        steps: [5, 6],
+        steps: [14, 15],
         stepNames: ['Insurance & beneficiaries', 'Health declarations'],
     },
     {
         label: 'Bank & payout',
         icon: Building2,
-        steps: [7, 8],
+        steps: [16, 17],
         stepNames: ['Bank & payout', 'Barangay information'],
     },
     {
         label: 'Declarations & review',
         icon: ClipboardCheck,
-        steps: [9, 10],
+        steps: [18, 19],
         stepNames: ['Declarations', 'Review & submit'],
     },
 ];
 
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 20;
 
 type Props = {
     currentStep: number;
@@ -67,7 +82,7 @@ export function LoanRequestStepIndicator({ currentStep, onStepClick }: Props) {
     return (
         <div className="flex h-full flex-col py-5">
             <nav
-                className="flex-1 overflow-y-auto px-3 scrollbar-hide"
+                className="scrollbar-hide hidden flex-1 overflow-y-auto px-3 lg:block"
                 aria-label="Loan request steps"
             >
                 {STEP_GROUPS.map((group) => {
@@ -101,12 +116,15 @@ export function LoanRequestStepIndicator({ currentStep, onStepClick }: Props) {
                                     {isDone ? (
                                         <Check size={16} strokeWidth={2.5} />
                                     ) : (
-                                        <GroupIcon size={18} strokeWidth={1.5} />
+                                        <GroupIcon
+                                            size={18}
+                                            strokeWidth={1.5}
+                                        />
                                     )}
                                 </span>
                                 <span
                                     className={cn(
-                                        'text-[13px] font-medium leading-tight',
+                                        'text-[13px] leading-tight font-medium',
                                         isDone
                                             ? 'text-foreground/60'
                                             : isActive
@@ -119,7 +137,7 @@ export function LoanRequestStepIndicator({ currentStep, onStepClick }: Props) {
                             </button>
 
                             {isActive && (
-                                <div className="mb-1 ml-5 mt-0.5 space-y-0.5 border-l border-border/50 pl-4">
+                                <div className="mt-0.5 mb-1 ml-5 space-y-0.5 border-l border-border/50 pl-4">
                                     {group.steps.map((stepIndex, i) => {
                                         const isSubDone =
                                             stepIndex < currentStep;
@@ -177,7 +195,7 @@ export function LoanRequestStepIndicator({ currentStep, onStepClick }: Props) {
                 })}
             </nav>
 
-            <div className="px-5 pb-3 pt-4">
+            <div className="px-5 pt-4 pb-3">
                 <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>Progress</span>
                     <span>

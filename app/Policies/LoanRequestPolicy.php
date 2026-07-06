@@ -66,6 +66,10 @@ class LoanRequestPolicy
             return false;
         }
 
+        if ($this->ownsLoanRequest($user, $loanRequest)) {
+            return false;
+        }
+
         if (! $this->isAssignableOperationalStatus($loanRequest)) {
             return false;
         }
@@ -82,6 +86,7 @@ class LoanRequestPolicy
 
         if (
             $user->hasActiveStaffAccess()
+            && ! $this->ownsLoanRequest($user, $loanRequest)
             && (
                 $user->hasPermission(Permission::LOAN_MANAGE_ASSIGNMENT)
                 || $user->isLegacySuperadmin()

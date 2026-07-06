@@ -89,7 +89,7 @@ class SaveDraftRequest extends FormRequest
                 'string',
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
-            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10'],
+            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:19'],
             'insurance' => ['sometimes', 'nullable', 'array'],
             'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],

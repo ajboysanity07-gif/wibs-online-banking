@@ -239,6 +239,67 @@ test('loan-request create page returns initialStep 0 for legacy draft without wi
         );
 });
 
+test('save draft with wizard_step 19 persists 19', function (): void {
+    $member = createDraftMember('002013');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'wizard_step' => 19,
+        ])
+        ->assertNoContent();
+
+    $entry = $loanRequest->dataEntries()->where('field_key', 'wizard_current_step')->first();
+    expect($entry)->not->toBeNull();
+    expect($entry->value_json['value'])->toBe(19);
+});
+
+test('save draft rejects wizard_step above 19 with 422', function (): void {
+    $member = createDraftMember('002014');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'wizard_step' => 20,
+        ])
+        ->assertUnprocessable();
+});
+
+test('create page resumes initialStep 19', function (): void {
+    $member = createDraftMember('002015');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $loanRequest->dataEntries()->create([
+        'field_key' => 'wizard_current_step',
+        'section_key' => 'system',
+        'owner_type' => 'system',
+        'is_sensitive' => false,
+        'confirmed_by_member' => false,
+        'confirmed_by_member_at' => null,
+        'value_json' => ['value' => 19],
+        'metadata_json' => ['label' => 'Wizard current step', 'type' => 'integer'],
+    ]);
+
+    $this->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('client/loan-request')
+            ->where('initialStep', 19),
+        );
+});
+
 test('draft endpoint accepts full form.data shape with empty strings and returns 200', function (): void {
     // Regression: empty strings for numeric/in fields caused a 422 when the
     // user clicked Save Draft on a freshly opened form (no prior draft).

@@ -163,6 +163,48 @@ test('loan manager cannot decline their own application', function (): void {
         ->assertForbidden();
 });
 
+test('hybrid loan manager cannot manage assignment on their own application', function (): void {
+    $hybridManager = createHybridMemberStaff('701008', [Role::LOAN_MANAGER]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'user_id' => $hybridManager->user_id,
+        'acctno' => $hybridManager->acctno,
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now(),
+        'assigned_officer_id' => null,
+    ]);
+
+    $processor = createPureStaff([Role::LOAN_PROCESSOR]);
+
+    $this->actingAs($hybridManager)
+        ->patchJson(route('spa.workflow.loan-requests.assignment.update', $loanRequest), [
+            'action' => 'assign',
+            'officer_user_id' => $processor->user_id,
+            'reason' => 'Conflict of interest assignment attempt.',
+        ])
+        ->assertForbidden();
+});
+
+test('hybrid loan manager cannot return their own application to queue', function (): void {
+    $hybridManager = createHybridMemberStaff('701009', [Role::LOAN_MANAGER]);
+
+    $processor = createPureStaff([Role::LOAN_PROCESSOR]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'user_id' => $hybridManager->user_id,
+        'acctno' => $hybridManager->acctno,
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'assigned_officer_id' => $processor->user_id,
+    ]);
+
+    $this->actingAs($hybridManager)
+        ->patchJson(route('spa.workflow.loan-requests.return-to-queue', $loanRequest), [
+            'reason' => 'Conflict of interest return-to-queue attempt.',
+        ])
+        ->assertForbidden();
+});
+
 test('different loan processor can claim an application that belongs to another member', function (): void {
     $applicant = createLoanApplicant('701005');
     $processor = createPureStaff([Role::LOAN_PROCESSOR]);

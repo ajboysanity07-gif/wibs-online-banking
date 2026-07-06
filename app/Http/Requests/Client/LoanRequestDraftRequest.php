@@ -84,7 +84,7 @@ class LoanRequestDraftRequest extends FormRequest
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
             'undertaking_accepted' => ['sometimes', 'boolean'],
-            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10'],
+            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:19'],
             'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
