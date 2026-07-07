@@ -106,6 +106,10 @@ type Props = {
 const textareaClassName =
     'flex min-h-[112px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
+const actionCardClassName =
+    'border-primary/25 bg-card/80 shadow-sm ring-1 ring-primary/10';
+const readOnlyCardClassName = 'border-border/20 bg-card/40 shadow-sm';
+
 const emptyPerson: LoanRequestPersonFormData = {
     first_name: '',
     middle_name: '',
@@ -1080,7 +1084,7 @@ export default function StaffLoanRequestShow({
             : '—';
 
     const memberSnapshotCard = (
-        <Card className="border-border/30 bg-card/70 shadow-sm">
+        <Card className={readOnlyCardClassName}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <User className="size-4 text-muted-foreground" />
@@ -1223,7 +1227,13 @@ export default function StaffLoanRequestShow({
     };
 
     const inlineProcessingPanel = (
-        <Card className="border-border/30 bg-card/70 shadow-sm">
+        <Card
+            className={
+                canUpdateProcessing
+                    ? actionCardClassName
+                    : 'border-border/30 bg-card/70 shadow-sm'
+            }
+        >
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <FileText
@@ -1495,7 +1505,7 @@ export default function StaffLoanRequestShow({
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="space-y-6">
                     <div className="grid gap-6">
-                        <Card className="border-border/30 bg-card/70 shadow-sm">
+                        <Card className={actionCardClassName}>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Workflow className="size-4 text-primary" />
@@ -1914,7 +1924,7 @@ export default function StaffLoanRequestShow({
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                    <Card className="border-border/30 bg-card/70 shadow-sm">
+                    <Card className={readOnlyCardClassName}>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <HeartPulse className="size-4 text-muted-foreground" />
@@ -1995,7 +2005,7 @@ export default function StaffLoanRequestShow({
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/30 bg-card/70 shadow-sm">
+                    <Card className={readOnlyCardClassName}>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Bell className="size-4 text-muted-foreground" />
