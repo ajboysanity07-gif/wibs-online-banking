@@ -237,6 +237,22 @@ const dotColorClass = (status: LoanRequestDocumentReadinessStatus): string => {
     return 'bg-border';
 };
 
+const cardTintClass = (status: LoanRequestDocumentReadinessStatus): string => {
+    if (status === 'ready_to_generate') {
+        return 'bg-primary/5';
+    }
+
+    if (status === 'incomplete') {
+        return 'bg-amber-500/5';
+    }
+
+    if (status === 'generated_current') {
+        return 'bg-emerald-500/5';
+    }
+
+    return 'bg-muted/10';
+};
+
 const displayNotificationStatusTone = (status: string | null): string => {
     return (
         {
@@ -1715,13 +1731,16 @@ export default function StaffLoanRequestShow({
                                 return (
                                     <div
                                         key={document.key}
-                                        className="rounded-xl border border-border/40 bg-muted/10 p-4"
+                                        className={cn(
+                                            'rounded-xl border border-border/40 p-4',
+                                            cardTintClass(document.status),
+                                        )}
                                     >
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-2">
                                                 <span
                                                     className={cn(
-                                                        'inline-block size-2 shrink-0 rounded-full',
+                                                        'inline-block size-2.5 shrink-0 rounded-full',
                                                         dotColorClass(
                                                             document.status,
                                                         ),
