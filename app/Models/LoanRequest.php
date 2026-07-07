@@ -251,6 +251,18 @@ class LoanRequest extends Model
     protected function casts(): array
     {
         return [
+            'user_id' => 'integer',
+            'corrected_from_id' => 'integer',
+            'assigned_officer_id' => 'integer',
+            'reviewed_by' => 'integer',
+            'rejected_by' => 'integer',
+            'approved_by' => 'integer',
+            'approval_signature_id' => 'integer',
+            'declined_by' => 'integer',
+            'member_action_requested_by' => 'integer',
+            'workflow_upgraded_by' => 'integer',
+            'reopened_by' => 'integer',
+            'cancelled_by' => 'integer',
             'requested_amount' => 'decimal:2',
             'approved_amount' => 'decimal:2',
             'approved_interest_rate' => 'decimal:4',

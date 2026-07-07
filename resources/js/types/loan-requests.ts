@@ -351,8 +351,8 @@ export type LoanRequestDetail = {
     loan_purpose: string | null;
     availment_status: string | null;
     submitted_at: string | null;
-    assigned_officer_id: number | null;
-    assigned_processor_id: number | null;
+    assigned_officer_id: number | string | null;
+    assigned_processor_id: number | string | null;
     assigned_officer: LoanRequestReviewer | null;
     assigned_processor: LoanRequestReviewer | null;
     assignment_state: LoanRequestAssignmentState;

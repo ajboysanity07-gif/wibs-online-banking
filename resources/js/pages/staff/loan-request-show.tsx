@@ -6,11 +6,7 @@ import {
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import {
-    Alert,
-    AlertDescription,
-    AlertTitle,
-} from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +30,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime } from '@/lib/formatters';
+import { formatCurrency, formatDateTime } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 import {
     approvedDocuments as requestsApprovedDocuments,
     index as requestsIndex,
@@ -70,6 +67,7 @@ import type {
     LoanRequestDetail,
     LoanRequestDocumentChecklistItem,
     LoanRequestDocumentKey,
+    LoanRequestDocumentReadinessStatus,
     LoanRequestMemberAction,
     LoanRequestNotificationHistoryItem,
     LoanRequestPersonData,
@@ -195,31 +193,54 @@ const toPersonForm = (
 };
 
 const displayChecklistStatusTone = (status: string): string => {
-    return {
-        generated_current:
-            'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-        generated_stale:
-            'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
-        ready_to_generate:
-            'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200',
-        awaiting_member_confirmation:
-            'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-200',
-        generation_failed:
-            'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
-    }[status] ?? 'border-border/60 bg-muted/20 text-muted-foreground';
+    return (
+        {
+            generated_current:
+                'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+            generated_stale:
+                'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
+            ready_to_generate:
+                'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200',
+            awaiting_member_confirmation:
+                'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-200',
+            generation_failed:
+                'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
+        }[status] ?? 'border-border/60 bg-muted/20 text-muted-foreground'
+    );
+};
+
+const dotColorClass = (status: LoanRequestDocumentReadinessStatus): string => {
+    if (status === 'ready_to_generate') {
+        return 'bg-primary';
+    }
+
+    if (status === 'incomplete') {
+        return 'bg-amber-500';
+    }
+
+    if (status === 'generated_current') {
+        return 'bg-emerald-500';
+    }
+
+    if (status === 'not_applicable') {
+        return 'bg-muted-foreground/40';
+    }
+
+    return 'bg-border';
 };
 
 const displayNotificationStatusTone = (status: string | null): string => {
-    return {
-        queued: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200',
-        sending:
-            'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
-        sent: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
-        failed:
-            'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
-        skipped:
-            'border-border/60 bg-muted/20 text-muted-foreground dark:text-muted-foreground',
-    }[status ?? ''] ?? 'border-border/60 bg-muted/20 text-muted-foreground';
+    return (
+        {
+            queued: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200',
+            sending:
+                'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
+            sent: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+            failed: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
+            skipped:
+                'border-border/60 bg-muted/20 text-muted-foreground dark:text-muted-foreground',
+        }[status ?? ''] ?? 'border-border/60 bg-muted/20 text-muted-foreground'
+    );
 };
 
 const documentResultStatusOrder = [
@@ -232,16 +253,8 @@ const documentResultStatusOrder = [
     'incomplete',
 ] as const;
 
-type ProcessingFormState = {
-    loan_request: {
-        requested_amount: string;
-        requested_term: string;
-        loan_purpose: string;
-        availment_status: string;
-    };
-    applicant: LoanRequestPersonFormData;
-    co_maker_1: LoanRequestPersonFormData;
-    co_maker_2: LoanRequestPersonFormData;
+// Category A — financial processing terms edited inline on the page.
+type InlineProcessingFormState = {
     processing: Record<string, string | number | boolean | null>;
     recommended_amount: string;
     recommended_term: string;
@@ -251,6 +264,71 @@ type ProcessingFormState = {
     reason: string;
     information_source: string;
 };
+
+// Category B — application-data corrections edited in the modal.
+type CorrectionFormState = {
+    loan_request: {
+        requested_amount: string;
+        requested_term: string;
+        loan_purpose: string;
+        availment_status: string;
+    };
+    applicant: LoanRequestPersonFormData;
+    co_maker_1: LoanRequestPersonFormData;
+    co_maker_2: LoanRequestPersonFormData;
+    reason: string;
+    information_source: string;
+};
+
+const personSnapshotName = (person: LoanRequestPersonData | null): string => {
+    if (!person) {
+        return '—';
+    }
+
+    const name = [person.first_name, person.middle_name, person.last_name]
+        .map((value) => (value ?? '').trim())
+        .filter((value) => value !== '')
+        .join(' ');
+
+    return name !== '' ? name : '—';
+};
+
+const snapshotDisplay = (value?: string | number | null): string => {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    const stringValue = `${value}`.trim();
+
+    return stringValue !== '' ? stringValue : '—';
+};
+
+const snapshotCurrency = (value?: string | number | null): string => {
+    if (value === null || value === undefined || `${value}`.trim() === '') {
+        return '—';
+    }
+
+    const numericValue = Number(value);
+
+    return Number.isNaN(numericValue)
+        ? `${value}`
+        : formatCurrency(numericValue);
+};
+
+const SnapshotRow = ({
+    label,
+    value,
+    className,
+}: {
+    label: string;
+    value: string;
+    className?: string;
+}) => (
+    <div className={cn('space-y-1', className)}>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm leading-relaxed font-medium">{value}</p>
+    </div>
+);
 
 export default function StaffLoanRequestShow({
     loanRequest,
@@ -291,8 +369,10 @@ export default function StaffLoanRequestShow({
     const [lastDocumentResults, setLastDocumentResults] = useState<
         LoanRequestDocumentChecklistItem[] | null
     >(null);
-    const [isProcessingDialogOpen, setIsProcessingDialogOpen] =
-        useState(false);
+    const [expandedDocumentBlockers, setExpandedDocumentBlockers] = useState<
+        Set<LoanRequestDocumentKey>
+    >(new Set());
+    const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
     const [isMemberActionDialogOpen, setIsMemberActionDialogOpen] =
         useState(false);
     const [isRejectDuringProcessingOpen, setIsRejectDuringProcessingOpen] =
@@ -301,6 +381,10 @@ export default function StaffLoanRequestShow({
         useState(false);
     const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
     const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
+    const [isRecommendApprovalOpen, setIsRecommendApprovalOpen] =
+        useState(false);
+    const [isReturnToQueueDialogOpen, setIsReturnToQueueDialogOpen] =
+        useState(false);
     const [wibsReference, setWibsReference] = useState('');
     const [wibsReleaseDate, setWibsReleaseDate] = useState('');
     const [isWibsSubmitting, setIsWibsSubmitting] = useState(false);
@@ -320,7 +404,25 @@ export default function StaffLoanRequestShow({
     const [retainAssignmentOnReopen, setRetainAssignmentOnReopen] =
         useState(false);
     const [upgradeReason, setUpgradeReason] = useState('');
-    const [processingForm, setProcessingForm] = useState<ProcessingFormState>({
+    const [recommendApprovalRemarks, setRecommendApprovalRemarks] =
+        useState('');
+    const [returnToQueueDialogReason, setReturnToQueueDialogReason] =
+        useState('');
+    const [processingForm, setProcessingForm] =
+        useState<InlineProcessingFormState>({
+            processing: { ...dataSections.processing },
+            recommended_amount: toStringValue(loanRequest.recommended_amount),
+            recommended_term: toStringValue(loanRequest.recommended_term),
+            recommended_interest_rate: toStringValue(
+                loanRequest.recommended_interest_rate,
+            ),
+            recommended_payment_frequency:
+                loanRequest.recommended_payment_frequency ?? '',
+            recommendation_remarks: loanRequest.recommendation_remarks ?? '',
+            reason: '',
+            information_source: '',
+        });
+    const [correctionForm, setCorrectionForm] = useState<CorrectionFormState>({
         loan_request: {
             requested_amount: toStringValue(loanRequest.requested_amount),
             requested_term: toStringValue(loanRequest.requested_term),
@@ -330,15 +432,6 @@ export default function StaffLoanRequestShow({
         applicant: toPersonForm(applicant),
         co_maker_1: toPersonForm(coMakerOne),
         co_maker_2: toPersonForm(coMakerTwo),
-        processing: { ...dataSections.processing },
-        recommended_amount: toStringValue(loanRequest.recommended_amount),
-        recommended_term: toStringValue(loanRequest.recommended_term),
-        recommended_interest_rate: toStringValue(
-            loanRequest.recommended_interest_rate,
-        ),
-        recommended_payment_frequency:
-            loanRequest.recommended_payment_frequency ?? '',
-        recommendation_remarks: loanRequest.recommendation_remarks ?? '',
         reason: '',
         information_source: '',
     });
@@ -436,17 +529,10 @@ export default function StaffLoanRequestShow({
 
     useEffect(() => {
         setProcessingForm({
-            loan_request: {
-                requested_amount: toStringValue(currentRequest.requested_amount),
-                requested_term: toStringValue(currentRequest.requested_term),
-                loan_purpose: currentRequest.loan_purpose ?? '',
-                availment_status: currentRequest.availment_status ?? '',
-            },
-            applicant: toPersonForm(currentApplicant),
-            co_maker_1: toPersonForm(currentCoMakerOne),
-            co_maker_2: toPersonForm(currentCoMakerTwo),
             processing: { ...currentDataSections.processing },
-            recommended_amount: toStringValue(currentRequest.recommended_amount),
+            recommended_amount: toStringValue(
+                currentRequest.recommended_amount,
+            ),
             recommended_term: toStringValue(currentRequest.recommended_term),
             recommended_interest_rate: toStringValue(
                 currentRequest.recommended_interest_rate,
@@ -458,17 +544,36 @@ export default function StaffLoanRequestShow({
             information_source: '',
         });
     }, [
-        currentApplicant,
-        currentCoMakerOne,
-        currentCoMakerTwo,
         currentDataSections.processing,
-        currentRequest.availment_status,
-        currentRequest.loan_purpose,
         currentRequest.recommendation_remarks,
         currentRequest.recommended_amount,
         currentRequest.recommended_interest_rate,
         currentRequest.recommended_payment_frequency,
         currentRequest.recommended_term,
+    ]);
+
+    useEffect(() => {
+        setCorrectionForm({
+            loan_request: {
+                requested_amount: toStringValue(
+                    currentRequest.requested_amount,
+                ),
+                requested_term: toStringValue(currentRequest.requested_term),
+                loan_purpose: currentRequest.loan_purpose ?? '',
+                availment_status: currentRequest.availment_status ?? '',
+            },
+            applicant: toPersonForm(currentApplicant),
+            co_maker_1: toPersonForm(currentCoMakerOne),
+            co_maker_2: toPersonForm(currentCoMakerTwo),
+            reason: '',
+            information_source: '',
+        });
+    }, [
+        currentApplicant,
+        currentCoMakerOne,
+        currentCoMakerTwo,
+        currentRequest.availment_status,
+        currentRequest.loan_purpose,
         currentRequest.requested_amount,
         currentRequest.requested_term,
     ]);
@@ -479,7 +584,21 @@ export default function StaffLoanRequestShow({
     const isOwnRequest = workflowContext.isOwnRequest;
     const actorUserId = auth.user.id;
     const assignedProcessorId =
-        currentRequest.assigned_processor_id ?? currentRequest.assigned_officer_id;
+        currentRequest.assigned_processor_id ??
+        currentRequest.assigned_officer_id;
+    const normalizeId = (
+        value: number | string | null | undefined,
+    ): number | null => {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        const numeric = Number(value);
+
+        return Number.isNaN(numeric) ? null : numeric;
+    };
+    const normalizedAssignedProcessorId = normalizeId(assignedProcessorId);
+    const normalizedActorUserId = normalizeId(actorUserId);
     const documentResultSummary = useMemo(() => {
         if (lastDocumentResults === null) {
             return [];
@@ -518,25 +637,26 @@ export default function StaffLoanRequestShow({
         !isOwnRequest &&
         currentRequest.status === 'pending_review' &&
         hasWorkflowPermission('loan.review') &&
-        (assignedProcessorId === null || assignedProcessorId === actorUserId);
+        (normalizedAssignedProcessorId === null ||
+            normalizedAssignedProcessorId === normalizedActorUserId);
     const canRequestRevision =
         !isV2Workflow &&
         !isOwnRequest &&
         (currentRequest.status === 'pending_review' ||
             currentRequest.status === 'under_review') &&
         hasWorkflowPermission('loan.request_revision') &&
-        assignedProcessorId === actorUserId;
+        normalizedAssignedProcessorId === normalizedActorUserId;
     const canReject =
         !isV2Workflow &&
         !isOwnRequest &&
         (currentRequest.status === 'pending_review' ||
             currentRequest.status === 'under_review') &&
         hasWorkflowPermission('loan.reject') &&
-        assignedProcessorId === actorUserId;
+        normalizedAssignedProcessorId === normalizedActorUserId;
     const canUpdateProcessing =
         !isOwnRequest &&
         hasWorkflowPermission('loan.review') &&
-        assignedProcessorId === actorUserId &&
+        normalizedAssignedProcessorId === normalizedActorUserId &&
         [
             'pending_review',
             'under_review',
@@ -544,11 +664,17 @@ export default function StaffLoanRequestShow({
             'awaiting_member_information',
         ].includes(currentRequest.status ?? '');
     const canRequestMemberAction = canUpdateProcessing;
+    const isProcessingStage = [
+        'pending_review',
+        'under_review',
+        'needs_revision',
+        'awaiting_member_information',
+    ].includes(currentRequest.status ?? '');
     const canRejectDuringProcessing =
         isV2Workflow &&
         !isOwnRequest &&
         hasWorkflowPermission('loan.reject') &&
-        assignedProcessorId === actorUserId &&
+        normalizedAssignedProcessorId === normalizedActorUserId &&
         [
             'pending_review',
             'under_review',
@@ -560,7 +686,7 @@ export default function StaffLoanRequestShow({
         !isOwnRequest &&
         currentRequest.status === 'under_review' &&
         hasWorkflowPermission('loan.recommend_approval') &&
-        assignedProcessorId === actorUserId;
+        normalizedAssignedProcessorId === normalizedActorUserId;
     const canWorkflowApprove =
         !isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
@@ -574,7 +700,8 @@ export default function StaffLoanRequestShow({
     const canReassign =
         currentRequest.can_reassign &&
         currentEligibleOfficers.some(
-            (officer) => officer.user_id !== assignedProcessorId,
+            (officer) =>
+                normalizeId(officer.user_id) !== normalizedAssignedProcessorId,
         );
     const canReturnToQueue = currentRequest.can_return_to_queue;
     const canReturnForProcessing =
@@ -593,15 +720,19 @@ export default function StaffLoanRequestShow({
         !isOwnRequest &&
         currentRequest.workflow_version === 'legacy_v1' &&
         hasWorkflowPermission('loan.manage_assignment') &&
-        !['approved', 'declined', 'rejected', 'cancelled', 'converted_to_loan'].includes(
-            currentRequest.status ?? '',
-        );
+        ![
+            'approved',
+            'declined',
+            'rejected',
+            'cancelled',
+            'converted_to_loan',
+        ].includes(currentRequest.status ?? '');
     const isWorkflowProcessing =
         workflowProcessingIds[currentRequest.id] ?? false;
     const memberFieldDefinitions = useMemo(
         () =>
-            Object.entries(dataSectionDefinitions)
-                .flatMap(([sectionKey, section]) =>
+            Object.entries(dataSectionDefinitions).flatMap(
+                ([sectionKey, section]) =>
                     Object.entries(section.fields)
                         .filter(([, field]) => field.owner === 'member')
                         .map(([fieldKey, field]) => ({
@@ -609,14 +740,39 @@ export default function StaffLoanRequestShow({
                             sectionKey,
                             field,
                         })),
-                ),
+            ),
         [dataSectionDefinitions],
     );
+    const memberFieldGroups = useMemo(() => {
+        const grouped = new Map<string, typeof memberFieldDefinitions>();
 
-    const updateProcessingPersonField =
+        memberFieldDefinitions.forEach((item) => {
+            const existing = grouped.get(item.sectionKey) ?? [];
+            existing.push(item);
+            grouped.set(item.sectionKey, existing);
+        });
+
+        const priorityOrder = ['insurance', 'health', 'banking', 'barangay'];
+        const priorityKeys = priorityOrder.filter((key) => grouped.has(key));
+        const remainingKeys = Array.from(grouped.keys())
+            .filter((key) => !priorityOrder.includes(key))
+            .sort((a, b) =>
+                (dataSectionDefinitions[a]?.label ?? a).localeCompare(
+                    dataSectionDefinitions[b]?.label ?? b,
+                ),
+            );
+
+        return [...priorityKeys, ...remainingKeys].map((sectionKey) => ({
+            sectionKey,
+            label: dataSectionDefinitions[sectionKey]?.label ?? sectionKey,
+            items: grouped.get(sectionKey) ?? [],
+        }));
+    }, [memberFieldDefinitions, dataSectionDefinitions]);
+
+    const updateCorrectionPersonField =
         (personKey: 'applicant' | 'co_maker_1' | 'co_maker_2') =>
         (field: keyof LoanRequestPersonFormData, value: string) => {
-            setProcessingForm((current) => ({
+            setCorrectionForm((current) => ({
                 ...current,
                 [personKey]: {
                     ...current[personKey],
@@ -625,11 +781,11 @@ export default function StaffLoanRequestShow({
             }));
         };
 
-    const updateProcessingDetailField = (
-        field: keyof ProcessingFormState['loan_request'],
+    const updateCorrectionDetailField = (
+        field: keyof CorrectionFormState['loan_request'],
         value: string,
     ) => {
-        setProcessingForm((current) => ({
+        setCorrectionForm((current) => ({
             ...current,
             loan_request: {
                 ...current.loan_request,
@@ -651,6 +807,63 @@ export default function StaffLoanRequestShow({
         }));
     };
 
+    // Build the processing payload: booleans are always sent as true/false
+    // (never null, which the endpoint rejects); empty text/number fields become
+    // null so they can be cleared without failing numeric validation.
+    const buildInlineProcessingPayload = (
+        values: Record<string, string | number | boolean | null>,
+    ): Record<string, string | number | boolean | null> => {
+        const payload: Record<string, string | number | boolean | null> = {};
+
+        Object.entries(dataSectionDefinitions.processing.fields).forEach(
+            ([fieldKey, field]) => {
+                const raw = values[fieldKey];
+
+                if (field.type === 'boolean') {
+                    payload[fieldKey] = raw === true;
+                } else if (raw === '' || raw === undefined) {
+                    payload[fieldKey] = null;
+                } else {
+                    payload[fieldKey] = raw;
+                }
+            },
+        );
+
+        return payload;
+    };
+
+    // The inline panel does not edit the loan request details, but the endpoint
+    // wipes them to zero/empty unless a `loan_request` object is present. Send a
+    // passthrough of the current (unchanged) values to protect them.
+    const buildLoanRequestPassthrough = (): Record<string, string | number> => {
+        const passthrough: Record<string, string | number> = {};
+
+        if (
+            currentRequest.requested_amount !== null &&
+            `${currentRequest.requested_amount}`.trim() !== ''
+        ) {
+            passthrough.requested_amount = currentRequest.requested_amount;
+        }
+
+        if (
+            currentRequest.requested_term !== null &&
+            `${currentRequest.requested_term}`.trim() !== ''
+        ) {
+            passthrough.requested_term = currentRequest.requested_term;
+        }
+
+        if ((currentRequest.loan_purpose ?? '').trim() !== '') {
+            passthrough.loan_purpose = currentRequest.loan_purpose as string;
+        }
+
+        if ((currentRequest.availment_status ?? '').trim() !== '') {
+            passthrough.availment_status =
+                currentRequest.availment_status as string;
+        }
+
+        return passthrough;
+    };
+
     const submitProcessingDetails = async (
         event: FormEvent<HTMLFormElement>,
     ) => {
@@ -659,11 +872,8 @@ export default function StaffLoanRequestShow({
         const result = await updateProcessingDetails(currentRequest.id, {
             reason: processingForm.reason,
             information_source: processingForm.information_source,
-            loan_request: processingForm.loan_request,
-            applicant: processingForm.applicant,
-            co_maker_1: processingForm.co_maker_1,
-            co_maker_2: processingForm.co_maker_2,
-            processing: processingForm.processing,
+            loan_request: buildLoanRequestPassthrough(),
+            processing: buildInlineProcessingPayload(processingForm.processing),
             recommended_amount: processingForm.recommended_amount || null,
             recommended_term: processingForm.recommended_term || null,
             recommended_interest_rate:
@@ -675,7 +885,28 @@ export default function StaffLoanRequestShow({
         });
 
         if (result) {
-            setIsProcessingDialogOpen(false);
+            setProcessingForm((current) => ({
+                ...current,
+                reason: '',
+                information_source: '',
+            }));
+        }
+    };
+
+    const submitCorrectionData = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const result = await updateProcessingDetails(currentRequest.id, {
+            reason: correctionForm.reason,
+            information_source: correctionForm.information_source,
+            loan_request: correctionForm.loan_request,
+            applicant: correctionForm.applicant,
+            co_maker_1: correctionForm.co_maker_1,
+            co_maker_2: correctionForm.co_maker_2,
+        });
+
+        if (result) {
+            setIsCorrectionDialogOpen(false);
         }
     };
 
@@ -747,9 +978,7 @@ export default function StaffLoanRequestShow({
         }
     };
 
-    const submitUpgradeWorkflow = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
+    const submitUpgradeWorkflow = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         const result = await upgradeWorkflow(currentRequest.id, {
@@ -762,6 +991,36 @@ export default function StaffLoanRequestShow({
         }
     };
 
+    const submitRecommendApproval = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        const result = await recommendApproval(currentRequest.id, {
+            review_remarks: recommendApprovalRemarks.trim() || null,
+        });
+
+        if (result) {
+            setIsRecommendApprovalOpen(false);
+            setRecommendApprovalRemarks('');
+        }
+    };
+
+    const submitReturnToQueueDialog = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        const result = await returnLoanRequestToQueue(currentRequest.id, {
+            reason: returnToQueueDialogReason,
+        });
+
+        if (result) {
+            setIsReturnToQueueDialogOpen(false);
+            setReturnToQueueDialogReason('');
+        }
+    };
+
     const submitGenerateDocuments = async (
         documentKey?: LoanRequestDocumentKey,
     ) => {
@@ -770,197 +1029,639 @@ export default function StaffLoanRequestShow({
         });
     };
 
+    const toggleDocumentBlockers = (key: LoanRequestDocumentKey) => {
+        setExpandedDocumentBlockers((current) => {
+            const next = new Set(current);
+
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+
+            return next;
+        });
+    };
+
+    const requestedTermLabel =
+        currentRequest.requested_term !== null &&
+        `${currentRequest.requested_term}`.trim() !== ''
+            ? `${currentRequest.requested_term} months`
+            : '—';
+    const recommendedTermLabel =
+        currentRequest.recommended_term !== null &&
+        `${currentRequest.recommended_term}`.trim() !== ''
+            ? `${currentRequest.recommended_term} months`
+            : '—';
+
+    const memberSnapshotCard = (
+        <Card className="border-border/30 bg-card/70 shadow-sm">
+            <CardHeader>
+                <CardTitle>Member snapshot</CardTitle>
+                <CardDescription>
+                    Key applicant figures to reference while entering processing
+                    terms.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                <SnapshotRow
+                    label="Applicant"
+                    value={personSnapshotName(currentApplicant)}
+                />
+                <SnapshotRow
+                    label="Loan type"
+                    value={snapshotDisplay(
+                        currentRequest.loan_type_label_snapshot,
+                    )}
+                />
+                <SnapshotRow
+                    label="Requested amount"
+                    value={snapshotCurrency(currentRequest.requested_amount)}
+                />
+                <SnapshotRow
+                    label="Requested term"
+                    value={requestedTermLabel}
+                />
+                <SnapshotRow
+                    label="Employment type"
+                    value={snapshotDisplay(currentApplicant?.employment_type)}
+                />
+                <SnapshotRow
+                    label="Gross monthly income"
+                    value={snapshotCurrency(
+                        currentApplicant?.gross_monthly_income,
+                    )}
+                />
+                <SnapshotRow
+                    label="Employer / Business"
+                    value={snapshotDisplay(
+                        currentApplicant?.employer_business_name,
+                    )}
+                    className="col-span-2"
+                />
+                <SnapshotRow
+                    label="Co-maker 1"
+                    value={personSnapshotName(currentCoMakerOne)}
+                />
+                <SnapshotRow
+                    label="Co-maker 2"
+                    value={personSnapshotName(currentCoMakerTwo)}
+                />
+            </CardContent>
+        </Card>
+    );
+
+    const processingSecurityRequired =
+        processingForm.processing['security_required'] === true;
+
+    const renderProcessingSectionLabel = (
+        title: string,
+        options?: { first?: boolean },
+    ) => (
+        <div className={options?.first ? undefined : 'mt-6'}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {title}
+            </p>
+            <Separator className="mb-4 bg-border/40" />
+        </div>
+    );
+
+    const renderProcessingField = (
+        fieldKey: string,
+        options?: { fullWidth?: boolean },
+    ) => {
+        const field = dataSectionDefinitions.processing.fields[fieldKey];
+
+        if (!field) {
+            return null;
+        }
+
+        if (field.type === 'boolean') {
+            return (
+                <label
+                    key={fieldKey}
+                    className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm sm:col-span-2"
+                >
+                    <Checkbox
+                        checked={
+                            processingForm.processing[fieldKey] === true
+                        }
+                        onCheckedChange={(checked) =>
+                            updateProcessingSectionField(
+                                fieldKey,
+                                checked === true,
+                            )
+                        }
+                    />
+                    <span>{field.label}</span>
+                </label>
+            );
+        }
+
+        return (
+            <div
+                key={fieldKey}
+                className={cn(
+                    'grid gap-2',
+                    options?.fullWidth && 'sm:col-span-2',
+                )}
+            >
+                <Label htmlFor={`inline_processing_${fieldKey}`}>
+                    {field.label}
+                </Label>
+                <Input
+                    id={`inline_processing_${fieldKey}`}
+                    type={
+                        field.type === 'number' || field.type === 'integer'
+                            ? 'number'
+                            : 'text'
+                    }
+                    step={field.type === 'number' ? '0.01' : undefined}
+                    value={
+                        processingForm.processing[fieldKey] !== null &&
+                        processingForm.processing[fieldKey] !== undefined
+                            ? `${processingForm.processing[fieldKey]}`
+                            : ''
+                    }
+                    onChange={(event) =>
+                        updateProcessingSectionField(
+                            fieldKey,
+                            event.target.value,
+                        )
+                    }
+                />
+            </div>
+        );
+    };
+
+    const inlineProcessingPanel = (
+        <Card className="border-border/30 bg-card/70 shadow-sm">
+            <CardHeader>
+                <CardTitle>Processing details</CardTitle>
+                <CardDescription>
+                    Recommendation and financial terms used across the document
+                    package.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {canUpdateProcessing ? (
+                    <form
+                        className="space-y-4"
+                        onSubmit={submitProcessingDetails}
+                    >
+                        {renderProcessingSectionLabel('Recommendation', {
+                            first: true,
+                        })}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="inline_recommended_amount">
+                                    Recommended amount
+                                </Label>
+                                <Input
+                                    id="inline_recommended_amount"
+                                    type="number"
+                                    value={processingForm.recommended_amount}
+                                    onChange={(event) =>
+                                        setProcessingForm((current) => ({
+                                            ...current,
+                                            recommended_amount:
+                                                event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="inline_recommended_term">
+                                    Recommended term
+                                </Label>
+                                <Input
+                                    id="inline_recommended_term"
+                                    type="number"
+                                    value={processingForm.recommended_term}
+                                    onChange={(event) =>
+                                        setProcessingForm((current) => ({
+                                            ...current,
+                                            recommended_term:
+                                                event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="inline_recommended_interest_rate">
+                                    Recommended interest rate
+                                </Label>
+                                <Input
+                                    id="inline_recommended_interest_rate"
+                                    type="number"
+                                    step="0.01"
+                                    value={
+                                        processingForm.recommended_interest_rate
+                                    }
+                                    onChange={(event) =>
+                                        setProcessingForm((current) => ({
+                                            ...current,
+                                            recommended_interest_rate:
+                                                event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="inline_recommended_payment_frequency">
+                                    Payment frequency
+                                </Label>
+                                <Input
+                                    id="inline_recommended_payment_frequency"
+                                    value={
+                                        processingForm.recommended_payment_frequency
+                                    }
+                                    onChange={(event) =>
+                                        setProcessingForm((current) => ({
+                                            ...current,
+                                            recommended_payment_frequency:
+                                                event.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="inline_recommendation_remarks">
+                                Recommendation remarks
+                            </Label>
+                            <textarea
+                                id="inline_recommendation_remarks"
+                                className={textareaClassName}
+                                value={processingForm.recommendation_remarks}
+                                onChange={(event) =>
+                                    setProcessingForm((current) => ({
+                                        ...current,
+                                        recommendation_remarks:
+                                            event.target.value,
+                                    }))
+                                }
+                            />
+                        </div>
+
+                        {renderProcessingSectionLabel('Charges & fees')}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {renderProcessingField('service_charge_rate')}
+                            {renderProcessingField('insurance_rate')}
+                            {renderProcessingField('insurance_required')}
+                            {renderProcessingField('insurance_term')}
+                            {renderProcessingField('loan_security_rate')}
+                            {renderProcessingField('documentary_stamp_rate')}
+                            {renderProcessingField('notarial_fee')}
+                            {renderProcessingField('notarial_venue')}
+                            {renderProcessingField('penalty_rate_per_month')}
+                        </div>
+
+                        {renderProcessingSectionLabel('Net take-home pay')}
+                        {renderProcessingField('guaranteed_net_take_home_pay')}
+
+                        {renderProcessingSectionLabel(
+                            'Document requirements',
+                        )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {renderProcessingField('authorization_required')}
+                            {renderProcessingField('barangay_required')}
+                            {renderProcessingField('security_required')}
+                            {renderProcessingField('loan_security_details', {
+                                fullWidth: processingSecurityRequired,
+                            })}
+                        </div>
+
+                        {renderProcessingSectionLabel('Personnel')}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {renderProcessingField('witness_one_name')}
+                            {renderProcessingField('witness_two_name')}
+                            {renderProcessingField('barangay_official_name')}
+                            {renderProcessingField('barangay_official_title')}
+                        </div>
+
+                        <Separator className="bg-border/40" />
+                        <div className="grid gap-2">
+                            <Label htmlFor="inline_processing_reason">
+                                Reason
+                            </Label>
+                            <textarea
+                                id="inline_processing_reason"
+                                className={textareaClassName}
+                                required
+                                value={processingForm.reason}
+                                onChange={(event) =>
+                                    setProcessingForm((current) => ({
+                                        ...current,
+                                        reason: event.target.value,
+                                    }))
+                                }
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="inline_processing_information_source">
+                                Information source
+                            </Label>
+                            <Input
+                                id="inline_processing_information_source"
+                                required
+                                value={processingForm.information_source}
+                                onChange={(event) =>
+                                    setProcessingForm((current) => ({
+                                        ...current,
+                                        information_source: event.target.value,
+                                    }))
+                                }
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={isWorkflowProcessing}
+                        >
+                            Save processing details
+                        </Button>
+                    </form>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <SnapshotRow
+                                label="Recommended amount"
+                                value={snapshotCurrency(
+                                    currentRequest.recommended_amount,
+                                )}
+                            />
+                            <SnapshotRow
+                                label="Recommended term"
+                                value={recommendedTermLabel}
+                            />
+                            <SnapshotRow
+                                label="Recommended interest rate"
+                                value={snapshotDisplay(
+                                    currentRequest.recommended_interest_rate,
+                                )}
+                            />
+                            <SnapshotRow
+                                label="Payment frequency"
+                                value={snapshotDisplay(
+                                    currentRequest.recommended_payment_frequency,
+                                )}
+                            />
+                        </div>
+                        <SnapshotRow
+                            label="Recommendation remarks"
+                            value={snapshotDisplay(
+                                currentRequest.recommendation_remarks,
+                            )}
+                        />
+                        <Separator className="bg-border/40" />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {Object.entries(
+                                dataSectionDefinitions.processing.fields,
+                            ).map(([fieldKey, field]) => {
+                                const value =
+                                    currentDataSections.processing[fieldKey];
+                                const display =
+                                    field.type === 'boolean'
+                                        ? value === true
+                                            ? 'Yes'
+                                            : value === false
+                                              ? 'No'
+                                              : '—'
+                                        : snapshotDisplay(
+                                              value as string | number | null,
+                                          );
+
+                                return (
+                                    <SnapshotRow
+                                        key={fieldKey}
+                                        label={field.label}
+                                        value={display}
+                                    />
+                                );
+                            })}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Only the assigned loan processor can edit processing
+                            terms.
+                        </p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                    <Card className="border-border/30 bg-card/70 shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Processing workspace</CardTitle>
-                            <CardDescription>
-                                Keep the request data, member follow-up, and
-                                document package current before recommendation.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="outline">
-                                    Workflow:{' '}
-                                    {currentRequest.workflow_version ===
-                                    'document_workflow_v2'
-                                        ? 'Document Workflow v2'
-                                        : 'Legacy v1'}
-                                </Badge>
-                                {assignedProcessorId !== null ? (
-                                    <Badge variant="secondary">
-                                        Assigned Loan Processor
+                <div className="space-y-6">
+                    <div className="grid gap-6">
+                        <Card className="border-border/30 bg-card/70 shadow-sm">
+                            <CardHeader>
+                                <CardTitle>Processing workspace</CardTitle>
+                                <CardDescription>
+                                    Keep the request data, member follow-up, and
+                                    document package current before
+                                    recommendation.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant="outline">
+                                        Workflow:{' '}
+                                        {currentRequest.workflow_version ===
+                                        'document_workflow_v2'
+                                            ? 'Document Workflow v2'
+                                            : 'Legacy v1'}
                                     </Badge>
-                                ) : null}
-                            </div>
-                            {lastDocumentResults !== null ? (
-                                <Alert className="border-sky-500/30 bg-sky-500/10">
-                                    <AlertTitle>
-                                        Document generation results
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        <p>
-                                            {lastDocumentResults.length}{' '}
-                                            document
-                                            {lastDocumentResults.length === 1
-                                                ? ''
-                                                : 's'}{' '}
-                                            refreshed from the latest
-                                            generation run.
-                                        </p>
-                                        {documentResultSummary.length > 0 ? (
-                                            <div className="mt-2 flex flex-wrap gap-2">
-                                                {documentResultSummary.map(
-                                                    (item) => (
-                                                        <span
-                                                            key={item.status}
-                                                            className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(item.status)}`}
-                                                        >
-                                                            {item.label}:{' '}
-                                                            {item.count}
-                                                        </span>
-                                                    ),
-                                                )}
-                                            </div>
-                                        ) : null}
-                                    </AlertDescription>
-                                </Alert>
-                            ) : null}
-                            {currentRequest.member_action_type !== null ? (
-                                <Alert className="border-violet-500/30 bg-violet-500/10">
-                                    <AlertTitle>
-                                        Pending member action
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        {currentRequest.member_action_message ??
-                                            'This request is waiting for a member response.'}
-                                    </AlertDescription>
-                                </Alert>
-                            ) : null}
-                            <div className="grid gap-2 md:grid-cols-2">
-                                {canUpdateProcessing ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={isWorkflowProcessing}
-                                        onClick={() =>
-                                            setIsProcessingDialogOpen(true)
-                                        }
-                                    >
-                                        Edit Processing Details
-                                    </Button>
-                                ) : null}
-                                {canRequestMemberAction ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={isWorkflowProcessing}
-                                        onClick={() =>
-                                            setIsMemberActionDialogOpen(true)
-                                        }
-                                    >
-                                        Request Member Action
-                                    </Button>
-                                ) : null}
-                                {canRejectDuringProcessing ? (
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        disabled={isWorkflowProcessing}
-                                        onClick={() =>
-                                            setIsRejectDuringProcessingOpen(
-                                                true,
-                                            )
-                                        }
-                                    >
-                                        Reject During Processing
-                                    </Button>
-                                ) : null}
-                                {canGenerateDocuments ? (
-                                    <Button
-                                        type="button"
-                                        disabled={isWorkflowProcessing}
-                                        onClick={() =>
-                                            void submitGenerateDocuments()
-                                        }
-                                    >
-                                        Generate All Required Documents
-                                    </Button>
-                                ) : null}
-                                {canReturnForProcessing ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={isWorkflowProcessing}
-                                        onClick={() =>
-                                            setIsReturnForProcessingOpen(true)
-                                        }
-                                    >
-                                        Return for Processing
-                                    </Button>
-                                ) : null}
-                                {canReopenRejectedRequest ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={isWorkflowProcessing}
-                                        onClick={() =>
-                                            setIsReopenDialogOpen(true)
-                                        }
-                                    >
-                                        Reopen Rejected Request
-                                    </Button>
-                                ) : null}
-                                {canUpgradeWorkflow ? (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={isWorkflowProcessing}
-                                        onClick={() =>
-                                            setIsUpgradeDialogOpen(true)
-                                        }
-                                    >
-                                        Upgrade to Document Workflow v2
-                                    </Button>
-                                ) : null}
-                            </div>
-                        </CardContent>
-                    </Card>
-                    {currentRequest.completeness?.missing_documents &&
-                    currentRequest.completeness.missing_documents.length > 0 ? (
-                        <Alert>
-                            <AlertTitle>Missing documents</AlertTitle>
-                            <AlertDescription>
-                                <ul className="mt-1 space-y-1">
-                                    {currentRequest.completeness.missing_documents.map(
-                                        (key: LoanRequestDocumentKey) => (
-                                            <li key={key} className="text-sm">
-                                                {key
-                                                    .replace(/_/g, ' ')
-                                                    .replace(/\b\w/g, (c) =>
-                                                        c.toUpperCase(),
+                                    {assignedProcessorId !== null ? (
+                                        <Badge variant="secondary">
+                                            Assigned Loan Processor
+                                        </Badge>
+                                    ) : null}
+                                </div>
+                                {lastDocumentResults !== null ? (
+                                    <Alert className="border-sky-500/30 bg-sky-500/10">
+                                        <AlertTitle>
+                                            Document generation results
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            <p>
+                                                {lastDocumentResults.length}{' '}
+                                                document
+                                                {lastDocumentResults.length ===
+                                                1
+                                                    ? ''
+                                                    : 's'}{' '}
+                                                refreshed from the latest
+                                                generation run.
+                                            </p>
+                                            {documentResultSummary.length >
+                                            0 ? (
+                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                    {documentResultSummary.map(
+                                                        (item) => (
+                                                            <span
+                                                                key={
+                                                                    item.status
+                                                                }
+                                                                className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(item.status)}`}
+                                                            >
+                                                                {item.label}:{' '}
+                                                                {item.count}
+                                                            </span>
+                                                        ),
                                                     )}
-                                            </li>
-                                        ),
-                                    )}
-                                </ul>
-                            </AlertDescription>
-                        </Alert>
-                    ) : null}
+                                                </div>
+                                            ) : null}
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
+                                {currentRequest.member_action_type !== null ? (
+                                    <Alert className="border-violet-500/30 bg-violet-500/10">
+                                        <AlertTitle>
+                                            Pending member action
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            {currentRequest.member_action_message ??
+                                                'This request is waiting for a member response.'}
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
+                                <div className="grid gap-2 md:grid-cols-2">
+                                    {canUpdateProcessing ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsCorrectionDialogOpen(true)
+                                            }
+                                        >
+                                            Correct Application Data
+                                        </Button>
+                                    ) : null}
+                                    {canRequestMemberAction ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsMemberActionDialogOpen(
+                                                    true,
+                                                )
+                                            }
+                                        >
+                                            Request Member Action
+                                        </Button>
+                                    ) : null}
+                                    {canRejectDuringProcessing ? (
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsRejectDuringProcessingOpen(
+                                                    true,
+                                                )
+                                            }
+                                        >
+                                            Reject During Processing
+                                        </Button>
+                                    ) : null}
+                                    {canGenerateDocuments ? (
+                                        <Button
+                                            type="button"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                void submitGenerateDocuments()
+                                            }
+                                        >
+                                            Generate All Required Documents
+                                        </Button>
+                                    ) : null}
+                                    {canReturnToQueue ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsReturnToQueueDialogOpen(
+                                                    true,
+                                                )
+                                            }
+                                        >
+                                            Return to Queue
+                                        </Button>
+                                    ) : null}
+                                    {canRecommendApproval ? (
+                                        <Button
+                                            type="button"
+                                            className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsRecommendApprovalOpen(
+                                                    true,
+                                                )
+                                            }
+                                        >
+                                            Recommend Approval
+                                        </Button>
+                                    ) : null}
+                                    {canReturnForProcessing ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsReturnForProcessingOpen(
+                                                    true,
+                                                )
+                                            }
+                                        >
+                                            Return for Processing
+                                        </Button>
+                                    ) : null}
+                                    {canReopenRejectedRequest ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsReopenDialogOpen(true)
+                                            }
+                                        >
+                                            Reopen Rejected Request
+                                        </Button>
+                                    ) : null}
+                                    {canUpgradeWorkflow ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={isWorkflowProcessing}
+                                            onClick={() =>
+                                                setIsUpgradeDialogOpen(true)
+                                            }
+                                        >
+                                            Upgrade to Document Workflow v2
+                                        </Button>
+                                    ) : null}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        {isProcessingStage ? memberSnapshotCard : null}
+                        {isProcessingStage ? inlineProcessingPanel : null}
+                    </div>
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardTitle>Document checklist</CardTitle>
                             <CardDescription>
-                                Every applicable document must be current
-                                before recommendation.
+                                Every applicable document must be current before
+                                recommendation.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                             {currentDocumentChecklist.map((document) => {
                                 const viewHref = `/staff/loan-requests/${currentRequest.id}/documents/generated/${document.key}`;
                                 const isWorkbookDocument = [
@@ -977,53 +1678,31 @@ export default function StaffLoanRequestShow({
                                     : viewHref;
                                 const downloadHref = `${viewHref}?download=1`;
 
+                                const hasBeenGenerated =
+                                    (document.generated_version ?? 0) > 0;
+                                const missingFieldCount =
+                                    document.blockers.length;
+                                const areBlockersExpanded =
+                                    expandedDocumentBlockers.has(document.key);
+
                                 return (
                                     <div
                                         key={document.key}
                                         className="rounded-xl border border-border/40 bg-muted/10 p-4"
                                     >
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div className="space-y-1">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className={cn(
+                                                        'inline-block size-2 shrink-0 rounded-full',
+                                                        dotColorClass(
+                                                            document.status,
+                                                        ),
+                                                    )}
+                                                />
                                                 <p className="text-sm font-semibold">
                                                     {document.label}
                                                 </p>
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span
-                                                        className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(document.status)}`}
-                                                    >
-                                                        {document.status_label}
-                                                    </span>
-                                                    {document.template_version ? (
-                                                        <span className="rounded-full border border-border/50 px-2 py-1 text-[11px] text-muted-foreground">
-                                                            {document.template_version}
-                                                        </span>
-                                                    ) : null}
-                                                    {document.generated_at ? (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            Last generated:{' '}
-                                                            {formatDateTime(
-                                                                document.generated_at,
-                                                            )}
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                                    <span>
-                                                        Generated by:{' '}
-                                                        {document.generated_by ??
-                                                            '-'}
-                                                    </span>
-                                                    <span>
-                                                        Generated version:{' '}
-                                                        {document.generated_version ??
-                                                            '-'}
-                                                    </span>
-                                                    <span>
-                                                        Source version:{' '}
-                                                        {document.source_version ??
-                                                            '-'}
-                                                    </span>
-                                                </div>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2">
                                                 {document.generated_filename ? (
@@ -1063,7 +1742,11 @@ export default function StaffLoanRequestShow({
                                                             size="sm"
                                                             variant="outline"
                                                         >
-                                                            <a href={downloadHref}>
+                                                            <a
+                                                                href={
+                                                                    downloadHref
+                                                                }
+                                                            >
                                                                 Download
                                                             </a>
                                                         </Button>
@@ -1088,21 +1771,90 @@ export default function StaffLoanRequestShow({
                                                 ) : null}
                                             </div>
                                         </div>
-                                        {document.blockers.length > 0 ? (
-                                            <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                                                {document.blockers.map(
-                                                    (blocker) => (
-                                                        <li key={blocker}>
-                                                            {blocker}
-                                                        </li>
-                                                    ),
-                                                )}
-                                            </ul>
+                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                            <span
+                                                className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(document.status)}`}
+                                            >
+                                                {document.status_label}
+                                            </span>
+                                            {document.template_version ? (
+                                                <span className="rounded-full border border-border/50 px-2 py-1 text-[11px] text-muted-foreground">
+                                                    {document.template_version}
+                                                </span>
+                                            ) : null}
+                                            {document.generated_at ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    Last generated:{' '}
+                                                    {formatDateTime(
+                                                        document.generated_at,
+                                                    )}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                        {hasBeenGenerated ? (
+                                            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                                <span>
+                                                    Generated by:{' '}
+                                                    {document.generated_by ??
+                                                        '-'}
+                                                </span>
+                                                <span>
+                                                    Generated version:{' '}
+                                                    {document.generated_version}
+                                                </span>
+                                                <span>
+                                                    Source version:{' '}
+                                                    {document.source_version ??
+                                                        '-'}
+                                                </span>
+                                            </div>
+                                        ) : null}
+                                        {missingFieldCount > 0 ? (
+                                            <div className="mt-3 text-xs">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="font-medium text-amber-700 dark:text-amber-300">
+                                                        {missingFieldCount}{' '}
+                                                        field
+                                                        {missingFieldCount === 1
+                                                            ? ''
+                                                            : 's'}{' '}
+                                                        required
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className="text-muted-foreground hover:text-foreground hover:underline"
+                                                        onClick={() =>
+                                                            toggleDocumentBlockers(
+                                                                document.key,
+                                                            )
+                                                        }
+                                                    >
+                                                        {areBlockersExpanded
+                                                            ? 'Hide details'
+                                                            : 'Show details'}
+                                                    </button>
+                                                </div>
+                                                {areBlockersExpanded ? (
+                                                    <ul className="mt-2 space-y-1 text-muted-foreground">
+                                                        {document.blockers.map(
+                                                            (blocker) => (
+                                                                <li
+                                                                    key={
+                                                                        blocker
+                                                                    }
+                                                                >
+                                                                    {blocker}
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                ) : null}
+                                            </div>
                                         ) : null}
                                         {document.failure_message ? (
-                                            <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">
+                                            <span className="mt-3 inline-block rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-200">
                                                 {document.failure_message}
-                                            </p>
+                                            </span>
                                         ) : null}
                                     </div>
                                 );
@@ -1123,7 +1875,7 @@ export default function StaffLoanRequestShow({
                         </CardHeader>
                         <CardContent className="grid gap-3 sm:grid-cols-2">
                             <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
-                                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Processing age
                                 </p>
                                 <p className="mt-2 text-2xl font-semibold">
@@ -1134,7 +1886,7 @@ export default function StaffLoanRequestShow({
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
-                                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Pending member action
                                 </p>
                                 <p className="mt-2 text-2xl font-semibold">
@@ -1144,17 +1896,15 @@ export default function StaffLoanRequestShow({
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
-                                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Stale documents
                                 </p>
                                 <p className="mt-2 text-2xl font-semibold">
-                                    {
-                                        currentWorkflowHealth.stale_document_count
-                                    }
+                                    {currentWorkflowHealth.stale_document_count}
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
-                                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Failed documents
                                 </p>
                                 <p className="mt-2 text-2xl font-semibold">
@@ -1164,17 +1914,15 @@ export default function StaffLoanRequestShow({
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
-                                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Legacy blockers
                                 </p>
                                 <p className="mt-2 text-2xl font-semibold">
-                                    {
-                                        currentWorkflowHealth.legacy_blocker_count
-                                    }
+                                    {currentWorkflowHealth.legacy_blocker_count}
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
-                                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Notification failures
                                 </p>
                                 <p className="mt-2 text-2xl font-semibold">
@@ -1184,7 +1932,7 @@ export default function StaffLoanRequestShow({
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border/40 bg-muted/10 p-4 sm:col-span-2">
-                                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Workflow failed jobs
                                 </p>
                                 <p className="mt-2 text-2xl font-semibold">
@@ -1226,7 +1974,8 @@ export default function StaffLoanRequestShow({
                                                     <span
                                                         className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayNotificationStatusTone(event.status)}`}
                                                     >
-                                                        {event.status ?? 'unknown'}
+                                                        {event.status ??
+                                                            'unknown'}
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -1262,8 +2011,7 @@ export default function StaffLoanRequestShow({
                                                     {event.attempt_count}
                                                 </p>
                                                 <p>
-                                                    Retries:{' '}
-                                                    {event.retry_count}
+                                                    Retries: {event.retry_count}
                                                 </p>
                                                 <p>
                                                     Reminders:{' '}
@@ -1305,13 +2053,17 @@ export default function StaffLoanRequestShow({
                                     Status:
                                 </span>
                                 <Badge variant="secondary">
-                                    {currentRequest.status === 'converted_to_loan'
+                                    {currentRequest.status ===
+                                    'converted_to_loan'
                                         ? 'Converted to Loan'
-                                        : currentRequest.status === 'for_wibs_encoding'
+                                        : currentRequest.status ===
+                                            'for_wibs_encoding'
                                           ? 'For WIBS Encoding'
-                                          : currentRequest.status === 'wibs_loan_created'
+                                          : currentRequest.status ===
+                                              'wibs_loan_created'
                                             ? 'WIBS Loan Created'
-                                            : currentRequest.status === 'release_scheduled'
+                                            : currentRequest.status ===
+                                                'release_scheduled'
                                               ? 'Release Scheduled'
                                               : 'Released'}
                                 </Badge>
@@ -1340,7 +2092,9 @@ export default function StaffLoanRequestShow({
                                     <span className="font-medium">
                                         Released at:
                                     </span>{' '}
-                                    {formatDateTime(currentRequest.wibs_released_at)}
+                                    {formatDateTime(
+                                        currentRequest.wibs_released_at,
+                                    )}
                                 </div>
                             ) : null}
 
@@ -1374,7 +2128,8 @@ export default function StaffLoanRequestShow({
                                             : 'Mark for WIBS Encoding'}
                                     </Button>
                                 </div>
-                            ) : currentRequest.status === 'for_wibs_encoding' ? (
+                            ) : currentRequest.status ===
+                              'for_wibs_encoding' ? (
                                 <form
                                     className="space-y-3"
                                     onSubmit={(e) => {
@@ -1403,9 +2158,7 @@ export default function StaffLoanRequestShow({
                                             id="wibs_loan_reference"
                                             value={wibsReference}
                                             onChange={(e) =>
-                                                setWibsReference(
-                                                    e.target.value,
-                                                )
+                                                setWibsReference(e.target.value)
                                             }
                                             maxLength={100}
                                             required
@@ -1421,7 +2174,8 @@ export default function StaffLoanRequestShow({
                                             : 'Record WIBS Reference'}
                                     </Button>
                                 </form>
-                            ) : currentRequest.status === 'wibs_loan_created' ? (
+                            ) : currentRequest.status ===
+                              'wibs_loan_created' ? (
                                 <form
                                     className="space-y-3"
                                     onSubmit={(e) => {
@@ -1467,7 +2221,8 @@ export default function StaffLoanRequestShow({
                                             : 'Schedule Release'}
                                     </Button>
                                 </form>
-                            ) : currentRequest.status === 'release_scheduled' ? (
+                            ) : currentRequest.status ===
+                              'release_scheduled' ? (
                                 <div className="space-y-2">
                                     <p className="text-sm text-muted-foreground">
                                         Confirm that the loan has been released
@@ -1528,10 +2283,7 @@ export default function StaffLoanRequestShow({
                               isProcessing: isWorkflowProcessing,
                               officerOptions: currentEligibleOfficers,
                               onSubmit: (payload) =>
-                                  assignLoanRequest(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
+                                  assignLoanRequest(currentRequest.id, payload),
                           }
                         : undefined,
                     reassign: canReassign
@@ -1578,10 +2330,7 @@ export default function StaffLoanRequestShow({
                               show: true,
                               isProcessing: isWorkflowProcessing,
                               onSubmit: (payload) =>
-                                  rejectLoanRequest(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
+                                  rejectLoanRequest(currentRequest.id, payload),
                           }
                         : undefined,
                     recommendApproval: canRecommendApproval
@@ -1589,10 +2338,7 @@ export default function StaffLoanRequestShow({
                               show: true,
                               isProcessing: isWorkflowProcessing,
                               onSubmit: (payload) =>
-                                  recommendApproval(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
+                                  recommendApproval(currentRequest.id, payload),
                           }
                         : undefined,
                     approve: canWorkflowApprove
@@ -1621,367 +2367,239 @@ export default function StaffLoanRequestShow({
             />
 
             <Dialog
-                open={isProcessingDialogOpen}
-                onOpenChange={setIsProcessingDialogOpen}
+                open={isCorrectionDialogOpen}
+                onOpenChange={setIsCorrectionDialogOpen}
             >
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+                <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-4xl">
                     <DialogHeader>
-                        <DialogTitle>Edit Processing Details</DialogTitle>
+                        <DialogTitle>Correct Application Data</DialogTitle>
                         <DialogDescription>
-                            Save verified request, applicant, co-maker, and
-                            processing values with a reason and information
-                            source.
+                            Correct the member-supplied request, applicant, and
+                            co-maker details when supported by a record. Provide
+                            a reason and information source for the audit trail.
                         </DialogDescription>
                     </DialogHeader>
-                    <form className="space-y-6" onSubmit={submitProcessingDetails}>
-                        <LoanRequestSectionCard
-                            title="Loan request details"
-                            description="Update the verified request details used throughout the document package."
-                        >
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="processing_requested_amount">
-                                        Requested amount
-                                    </Label>
-                                    <Input
-                                        id="processing_requested_amount"
-                                        type="number"
-                                        value={
-                                            processingForm.loan_request
-                                                .requested_amount
-                                        }
-                                        onChange={(event) =>
-                                            updateProcessingDetailField(
-                                                'requested_amount',
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="processing_requested_term">
-                                        Requested term
-                                    </Label>
-                                    <Input
-                                        id="processing_requested_term"
-                                        type="number"
-                                        value={
-                                            processingForm.loan_request
-                                                .requested_term
-                                        }
-                                        onChange={(event) =>
-                                            updateProcessingDetailField(
-                                                'requested_term',
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2 md:col-span-2">
-                                    <Label htmlFor="processing_loan_purpose">
-                                        Loan purpose
-                                    </Label>
-                                    <Input
-                                        id="processing_loan_purpose"
-                                        value={
-                                            processingForm.loan_request
-                                                .loan_purpose
-                                        }
-                                        onChange={(event) =>
-                                            updateProcessingDetailField(
-                                                'loan_purpose',
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2 md:col-span-2">
-                                    <Label htmlFor="processing_availment_status">
-                                        Availment status
-                                    </Label>
-                                    <Input
-                                        id="processing_availment_status"
-                                        value={
-                                            processingForm.loan_request
-                                                .availment_status
-                                        }
-                                        onChange={(event) =>
-                                            updateProcessingDetailField(
-                                                'availment_status',
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </div>
-                            </div>
-                        </LoanRequestSectionCard>
-
-                        <LoanRequestSectionCard
-                            title="Applicant information"
-                            description="Correct verified applicant data when supported by the processing record."
-                        >
-                            <div className="space-y-6">
-                                <LoanRequestPersonalFields
-                                    prefix="applicant"
-                                    values={processingForm.applicant}
-                                    errors={{}}
-                                    includeSpouse
-                                    includeChildren
-                                    onChange={updateProcessingPersonField(
-                                        'applicant',
-                                    )}
-                                />
-                                <Separator className="bg-border/40" />
-                                <LoanRequestWorkFields
-                                    prefix="applicant"
-                                    values={processingForm.applicant}
-                                    errors={{}}
-                                    onChange={updateProcessingPersonField(
-                                        'applicant',
-                                    )}
-                                />
-                            </div>
-                        </LoanRequestSectionCard>
-
-                        <LoanRequestSectionCard
-                            title="Co-maker 1"
-                            description="Update verified co-maker information when corrections are confirmed."
-                        >
-                            <div className="space-y-6">
-                                <LoanRequestPersonalFields
-                                    prefix="co_maker_1"
-                                    values={processingForm.co_maker_1}
-                                    errors={{}}
-                                    onChange={updateProcessingPersonField(
-                                        'co_maker_1',
-                                    )}
-                                />
-                                <Separator className="bg-border/40" />
-                                <LoanRequestWorkFields
-                                    prefix="co_maker_1"
-                                    values={processingForm.co_maker_1}
-                                    errors={{}}
-                                    onChange={updateProcessingPersonField(
-                                        'co_maker_1',
-                                    )}
-                                />
-                            </div>
-                        </LoanRequestSectionCard>
-
-                        <LoanRequestSectionCard
-                            title="Co-maker 2"
-                            description="Update verified co-maker information when corrections are confirmed."
-                        >
-                            <div className="space-y-6">
-                                <LoanRequestPersonalFields
-                                    prefix="co_maker_2"
-                                    values={processingForm.co_maker_2}
-                                    errors={{}}
-                                    onChange={updateProcessingPersonField(
-                                        'co_maker_2',
-                                    )}
-                                />
-                                <Separator className="bg-border/40" />
-                                <LoanRequestWorkFields
-                                    prefix="co_maker_2"
-                                    values={processingForm.co_maker_2}
-                                    errors={{}}
-                                    onChange={updateProcessingPersonField(
-                                        'co_maker_2',
-                                    )}
-                                />
-                            </div>
-                        </LoanRequestSectionCard>
-
-                        <LoanRequestSectionCard
-                            title="Processing fields"
-                            description="Update recommendation values and document-supporting processing details."
-                        >
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="recommended_amount">
-                                        Recommended amount
-                                    </Label>
-                                    <Input
-                                        id="recommended_amount"
-                                        type="number"
-                                        value={
-                                            processingForm.recommended_amount
-                                        }
-                                        onChange={(event) =>
-                                            setProcessingForm((current) => ({
-                                                ...current,
-                                                recommended_amount:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="recommended_term">
-                                        Recommended term
-                                    </Label>
-                                    <Input
-                                        id="recommended_term"
-                                        type="number"
-                                        value={processingForm.recommended_term}
-                                        onChange={(event) =>
-                                            setProcessingForm((current) => ({
-                                                ...current,
-                                                recommended_term:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="recommended_interest_rate">
-                                        Recommended interest rate
-                                    </Label>
-                                    <Input
-                                        id="recommended_interest_rate"
-                                        type="number"
-                                        step="0.01"
-                                        value={
-                                            processingForm.recommended_interest_rate
-                                        }
-                                        onChange={(event) =>
-                                            setProcessingForm((current) => ({
-                                                ...current,
-                                                recommended_interest_rate:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="recommended_payment_frequency">
-                                        Payment frequency
-                                    </Label>
-                                    <Input
-                                        id="recommended_payment_frequency"
-                                        value={
-                                            processingForm.recommended_payment_frequency
-                                        }
-                                        onChange={(event) =>
-                                            setProcessingForm((current) => ({
-                                                ...current,
-                                                recommended_payment_frequency:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2 md:col-span-2">
-                                    <Label htmlFor="recommendation_remarks">
-                                        Recommendation remarks
-                                    </Label>
-                                    <textarea
-                                        id="recommendation_remarks"
-                                        className={textareaClassName}
-                                        value={
-                                            processingForm.recommendation_remarks
-                                        }
-                                        onChange={(event) =>
-                                            setProcessingForm((current) => ({
-                                                ...current,
-                                                recommendation_remarks:
-                                                    event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                {Object.entries(
-                                    dataSectionDefinitions.processing.fields,
-                                ).map(([fieldKey, field]) => (
-                                    <div
-                                        key={fieldKey}
-                                        className="grid gap-2"
-                                    >
-                                        <Label htmlFor={`processing_${fieldKey}`}>
-                                            {field.label}
+                    <form
+                        className="flex min-h-0 flex-1 flex-col"
+                        onSubmit={submitCorrectionData}
+                    >
+                        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
+                            <LoanRequestSectionCard
+                                title="Loan request details"
+                                description="Update the verified request details used throughout the document package."
+                            >
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="correction_requested_amount">
+                                            Requested amount
                                         </Label>
                                         <Input
-                                            id={`processing_${fieldKey}`}
-                                            type={
-                                                field.type === 'number' ||
-                                                field.type === 'integer'
-                                                    ? 'number'
-                                                    : 'text'
-                                            }
-                                            step={
-                                                field.type === 'number'
-                                                    ? '0.01'
-                                                    : undefined
-                                            }
+                                            id="correction_requested_amount"
+                                            type="number"
                                             value={
-                                                processingForm.processing[
-                                                    fieldKey
-                                                ]
-                                                    ? `${processingForm.processing[fieldKey]}`
-                                                    : ''
+                                                correctionForm.loan_request
+                                                    .requested_amount
                                             }
                                             onChange={(event) =>
-                                                updateProcessingSectionField(
-                                                    fieldKey,
+                                                updateCorrectionDetailField(
+                                                    'requested_amount',
                                                     event.target.value,
                                                 )
                                             }
                                         />
                                     </div>
-                                ))}
-                            </div>
-                        </LoanRequestSectionCard>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="correction_requested_term">
+                                            Requested term
+                                        </Label>
+                                        <Input
+                                            id="correction_requested_term"
+                                            type="number"
+                                            value={
+                                                correctionForm.loan_request
+                                                    .requested_term
+                                            }
+                                            onChange={(event) =>
+                                                updateCorrectionDetailField(
+                                                    'requested_term',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2 md:col-span-2">
+                                        <Label htmlFor="correction_loan_purpose">
+                                            Loan purpose
+                                        </Label>
+                                        <Input
+                                            id="correction_loan_purpose"
+                                            value={
+                                                correctionForm.loan_request
+                                                    .loan_purpose
+                                            }
+                                            onChange={(event) =>
+                                                updateCorrectionDetailField(
+                                                    'loan_purpose',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2 md:col-span-2">
+                                        <Label htmlFor="correction_availment_status">
+                                            Availment status
+                                        </Label>
+                                        <Input
+                                            id="correction_availment_status"
+                                            value={
+                                                correctionForm.loan_request
+                                                    .availment_status
+                                            }
+                                            onChange={(event) =>
+                                                updateCorrectionDetailField(
+                                                    'availment_status',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </LoanRequestSectionCard>
 
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="processing_reason">Reason</Label>
-                                <textarea
-                                    id="processing_reason"
-                                    className={textareaClassName}
-                                    required
-                                    value={processingForm.reason}
-                                    onChange={(event) =>
-                                        setProcessingForm((current) => ({
-                                            ...current,
-                                            reason: event.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="information_source">
-                                    Information source
-                                </Label>
-                                <Input
-                                    id="information_source"
-                                    required
-                                    value={processingForm.information_source}
-                                    onChange={(event) =>
-                                        setProcessingForm((current) => ({
-                                            ...current,
-                                            information_source:
-                                                event.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
+                            <LoanRequestSectionCard
+                                title="Applicant information"
+                                description="Correct verified applicant data when supported by the processing record."
+                            >
+                                <div className="space-y-6">
+                                    <LoanRequestPersonalFields
+                                        prefix="applicant"
+                                        values={correctionForm.applicant}
+                                        errors={{}}
+                                        includeSpouse
+                                        includeChildren
+                                        onChange={updateCorrectionPersonField(
+                                            'applicant',
+                                        )}
+                                    />
+                                    <Separator className="bg-border/40" />
+                                    <LoanRequestWorkFields
+                                        prefix="applicant"
+                                        values={correctionForm.applicant}
+                                        errors={{}}
+                                        onChange={updateCorrectionPersonField(
+                                            'applicant',
+                                        )}
+                                    />
+                                </div>
+                            </LoanRequestSectionCard>
+
+                            <LoanRequestSectionCard
+                                title="Co-maker 1"
+                                description="Update verified co-maker information when corrections are confirmed."
+                            >
+                                <div className="space-y-6">
+                                    <LoanRequestPersonalFields
+                                        prefix="co_maker_1"
+                                        values={correctionForm.co_maker_1}
+                                        errors={{}}
+                                        onChange={updateCorrectionPersonField(
+                                            'co_maker_1',
+                                        )}
+                                    />
+                                    <Separator className="bg-border/40" />
+                                    <LoanRequestWorkFields
+                                        prefix="co_maker_1"
+                                        values={correctionForm.co_maker_1}
+                                        errors={{}}
+                                        onChange={updateCorrectionPersonField(
+                                            'co_maker_1',
+                                        )}
+                                    />
+                                </div>
+                            </LoanRequestSectionCard>
+
+                            <LoanRequestSectionCard
+                                title="Co-maker 2"
+                                description="Update verified co-maker information when corrections are confirmed."
+                            >
+                                <div className="space-y-6">
+                                    <LoanRequestPersonalFields
+                                        prefix="co_maker_2"
+                                        values={correctionForm.co_maker_2}
+                                        errors={{}}
+                                        onChange={updateCorrectionPersonField(
+                                            'co_maker_2',
+                                        )}
+                                    />
+                                    <Separator className="bg-border/40" />
+                                    <LoanRequestWorkFields
+                                        prefix="co_maker_2"
+                                        values={correctionForm.co_maker_2}
+                                        errors={{}}
+                                        onChange={updateCorrectionPersonField(
+                                            'co_maker_2',
+                                        )}
+                                    />
+                                </div>
+                            </LoanRequestSectionCard>
                         </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsProcessingDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Save Processing Details
-                            </Button>
-                        </DialogFooter>
+                        <div className="shrink-0 border-t border-border px-6 py-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="correction_reason">
+                                        Reason
+                                    </Label>
+                                    <textarea
+                                        id="correction_reason"
+                                        className={textareaClassName}
+                                        required
+                                        value={correctionForm.reason}
+                                        onChange={(event) =>
+                                            setCorrectionForm((current) => ({
+                                                ...current,
+                                                reason: event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="correction_information_source">
+                                        Information source
+                                    </Label>
+                                    <Input
+                                        id="correction_information_source"
+                                        required
+                                        value={
+                                            correctionForm.information_source
+                                        }
+                                        onChange={(event) =>
+                                            setCorrectionForm((current) => ({
+                                                ...current,
+                                                information_source:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter className="mt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() =>
+                                        setIsCorrectionDialogOpen(false)
+                                    }
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={isWorkflowProcessing}
+                                >
+                                    Save Corrections
+                                </Button>
+                            </DialogFooter>
+                        </div>
                     </form>
                 </DialogContent>
             </Dialog>
@@ -1990,7 +2608,7 @@ export default function StaffLoanRequestShow({
                 open={isMemberActionDialogOpen}
                 onOpenChange={setIsMemberActionDialogOpen}
             >
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Request Member Action</DialogTitle>
                         <DialogDescription>
@@ -1999,7 +2617,10 @@ export default function StaffLoanRequestShow({
                             their attention.
                         </DialogDescription>
                     </DialogHeader>
-                    <form className="space-y-5" onSubmit={submitMemberAction}>
+                    <form
+                        className="flex flex-1 flex-col space-y-5 overflow-hidden"
+                        onSubmit={submitMemberAction}
+                    >
                         <div className="grid gap-2">
                             <Label htmlFor="member_action_type">
                                 Action type
@@ -2037,9 +2658,7 @@ export default function StaffLoanRequestShow({
                                 required
                                 value={memberActionMessage}
                                 onChange={(event) =>
-                                    setMemberActionMessage(
-                                        event.target.value,
-                                    )
+                                    setMemberActionMessage(event.target.value)
                                 }
                             />
                         </div>
@@ -2049,7 +2668,11 @@ export default function StaffLoanRequestShow({
                             </Label>
                             <textarea
                                 id="member_action_reason"
-                                className={textareaClassName}
+                                className={cn(
+                                    textareaClassName,
+                                    'min-h-[80px]',
+                                )}
+                                rows={3}
                                 required
                                 value={memberActionReason}
                                 onChange={(event) =>
@@ -2057,47 +2680,51 @@ export default function StaffLoanRequestShow({
                                 }
                             />
                         </div>
-                        <div className="space-y-3">
+                        <div className="flex-1 space-y-3 overflow-y-auto px-6 pb-6">
                             <p className="text-sm font-medium">
                                 Fields requiring member action
                             </p>
-                            <div className="grid gap-3 md:grid-cols-2">
-                                {memberFieldDefinitions.map((item) => (
-                                    <label
-                                        key={item.fieldKey}
-                                        className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm"
-                                    >
-                                        <Checkbox
-                                            checked={selectedMemberFields.includes(
-                                                item.fieldKey,
-                                            )}
-                                            onCheckedChange={(checked) =>
-                                                setSelectedMemberFields(
-                                                    (current) =>
-                                                        checked === true
-                                                            ? [
-                                                                  ...current,
-                                                                  item.fieldKey,
-                                                              ]
-                                                            : current.filter(
-                                                                  (field) =>
-                                                                      field !==
-                                                                      item.fieldKey,
-                                                              ),
-                                                )
-                                            }
-                                        />
-                                        <span>
-                                            {item.field.label}
-                                            <span className="block text-xs text-muted-foreground">
-                                                {dataSectionDefinitions[
-                                                    item.sectionKey
-                                                ]?.label ?? item.sectionKey}
-                                            </span>
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
+                            {memberFieldGroups.map((group) => (
+                                <div key={group.sectionKey}>
+                                    <p className="mt-4 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                        {group.label}
+                                    </p>
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        {group.items.map((item) => (
+                                            <label
+                                                key={item.fieldKey}
+                                                className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm"
+                                            >
+                                                <Checkbox
+                                                    checked={selectedMemberFields.includes(
+                                                        item.fieldKey,
+                                                    )}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setSelectedMemberFields(
+                                                            (current) =>
+                                                                checked === true
+                                                                    ? [
+                                                                          ...current,
+                                                                          item.fieldKey,
+                                                                      ]
+                                                                    : current.filter(
+                                                                          (
+                                                                              field,
+                                                                          ) =>
+                                                                              field !==
+                                                                              item.fieldKey,
+                                                                      ),
+                                                        )
+                                                    }
+                                                />
+                                                <span>{item.field.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                         <DialogFooter>
                             <Button
@@ -2238,7 +2865,116 @@ export default function StaffLoanRequestShow({
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isReopenDialogOpen} onOpenChange={setIsReopenDialogOpen}>
+            <Dialog
+                open={isReturnToQueueDialogOpen}
+                onOpenChange={setIsReturnToQueueDialogOpen}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Return to Queue</DialogTitle>
+                        <DialogDescription>
+                            Remove your assignment from this request without
+                            changing the workflow status.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        className="space-y-4"
+                        onSubmit={submitReturnToQueueDialog}
+                    >
+                        <div className="grid gap-2">
+                            <Label htmlFor="processing_return_to_queue_reason">
+                                Reason
+                            </Label>
+                            <textarea
+                                id="processing_return_to_queue_reason"
+                                className={textareaClassName}
+                                required
+                                value={returnToQueueDialogReason}
+                                onChange={(event) =>
+                                    setReturnToQueueDialogReason(
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setIsReturnToQueueDialogOpen(false)
+                                }
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isWorkflowProcessing}
+                            >
+                                Return to Queue
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={isRecommendApprovalOpen}
+                onOpenChange={setIsRecommendApprovalOpen}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Recommend Approval</DialogTitle>
+                        <DialogDescription>
+                            Add optional remarks before forwarding this request
+                            to a loan manager.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        className="space-y-4"
+                        onSubmit={submitRecommendApproval}
+                    >
+                        <div className="grid gap-2">
+                            <Label htmlFor="processing_recommend_approval_remarks">
+                                Review remarks
+                            </Label>
+                            <textarea
+                                id="processing_recommend_approval_remarks"
+                                className={textareaClassName}
+                                value={recommendApprovalRemarks}
+                                onChange={(event) =>
+                                    setRecommendApprovalRemarks(
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setIsRecommendApprovalOpen(false)
+                                }
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                                disabled={isWorkflowProcessing}
+                            >
+                                Recommend Approval
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={isReopenDialogOpen}
+                onOpenChange={setIsReopenDialogOpen}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Reopen Rejected Request</DialogTitle>
@@ -2302,7 +3038,10 @@ export default function StaffLoanRequestShow({
                             document workflow with an audit reason.
                         </DialogDescription>
                     </DialogHeader>
-                    <form className="space-y-4" onSubmit={submitUpgradeWorkflow}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={submitUpgradeWorkflow}
+                    >
                         <div className="grid gap-2">
                             <Label htmlFor="upgrade_reason">Reason</Label>
                             <textarea
