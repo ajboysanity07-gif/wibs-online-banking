@@ -1894,7 +1894,7 @@ export default function SuperadminStaffPage() {
                     }
                 }}
             >
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="max-h-[calc(100vh-2rem)] overflow-hidden sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Promote existing member</DialogTitle>
                         <DialogDescription>
@@ -1924,7 +1924,7 @@ export default function SuperadminStaffPage() {
                     <div
                         key={promoteDialog.step}
                         className={cn(
-                            'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200',
+                            'overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200',
                             promoteDialog.stepDirection === 'forward'
                                 ? 'motion-safe:slide-in-from-right-2'
                                 : 'motion-safe:slide-in-from-left-2',
@@ -1969,15 +1969,15 @@ export default function SuperadminStaffPage() {
 
                                 <p className="text-sm text-muted-foreground">{countLabel}</p>
 
-                                <div className={cn('overflow-hidden rounded-xl border border-border/40 motion-safe:transition-opacity motion-safe:duration-150', promoteDialog.searchLoading ? 'opacity-60' : 'opacity-100')}>
+                                <div className={cn('overflow-x-auto overflow-y-hidden rounded-xl border border-border/40 motion-safe:transition-opacity motion-safe:duration-150', promoteDialog.searchLoading ? 'opacity-60' : 'opacity-100')}>
                                     <Table>
                                         <TableHeader className="bg-muted/30">
                                             <TableRow>
-                                                <TableHead>Name</TableHead>
-                                                <TableHead>Account No</TableHead>
-                                                <TableHead>Email</TableHead>
-                                                <TableHead>Current roles</TableHead>
-                                                <TableHead className="text-right">Action</TableHead>
+                                                <TableHead className="min-w-[180px]">Name</TableHead>
+                                                <TableHead className="whitespace-nowrap">Account No</TableHead>
+                                                <TableHead className="min-w-[160px]">Email</TableHead>
+                                                <TableHead className="min-w-[120px]">Current roles</TableHead>
+                                                <TableHead className="whitespace-nowrap text-right">Action</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -2002,18 +2002,23 @@ export default function SuperadminStaffPage() {
 
                                                     return (
                                                         <TableRow key={member.user_id}>
-                                                            <TableCell>
-                                                                <div className="space-y-1">
+                                                            <TableCell className="min-w-[180px]">
+                                                                <div className="flex flex-wrap items-center gap-2">
                                                                     <p className="font-medium">{member.display_name}</p>
                                                                     {staffRoles.length > 0 ? (
-                                                                        <Badge variant="secondary" className="text-xs">
+                                                                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
                                                                             Already a staff member
                                                                         </Badge>
                                                                     ) : null}
                                                                 </div>
                                                             </TableCell>
-                                                            <TableCell>{member.acctno ?? '--'}</TableCell>
-                                                            <TableCell className="max-w-40 truncate">{member.email ?? '--'}</TableCell>
+                                                            <TableCell className="whitespace-nowrap">{member.acctno ?? '--'}</TableCell>
+                                                            <TableCell
+                                                                className="max-w-[180px] truncate"
+                                                                title={member.email ?? undefined}
+                                                            >
+                                                                {member.email ?? '--'}
+                                                            </TableCell>
                                                             <TableCell>
                                                                 {displayRoles.length === 0 ? (
                                                                     <span className="text-sm text-muted-foreground">None</span>
@@ -2031,7 +2036,7 @@ export default function SuperadminStaffPage() {
                                                                     </div>
                                                                 )}
                                                             </TableCell>
-                                                            <TableCell className="text-right">
+                                                            <TableCell className="whitespace-nowrap text-right">
                                                                 <Button
                                                                     type="button"
                                                                     size="sm"
