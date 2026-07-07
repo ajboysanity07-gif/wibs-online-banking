@@ -1,5 +1,18 @@
 import { Link } from '@inertiajs/react';
-import { Ban, Calendar, Download, Eye, PencilLine, Printer } from 'lucide-react';
+import {
+    Activity,
+    Ban,
+    Calendar,
+    Download,
+    Eye,
+    FileText,
+    Info,
+    PencilLine,
+    Printer,
+    Users,
+    User as UserIcon,
+    Zap,
+} from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
@@ -880,7 +893,10 @@ export function LoanRequestDetailPage({
                 <div className="space-y-6">
                     <Card className="border-border/30 bg-card/60 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Loan details</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText className="size-4 text-muted-foreground" />
+                                Loan details
+                            </CardTitle>
                             <CardDescription>
                                 Key request information captured at submission.
                             </CardDescription>
@@ -914,7 +930,10 @@ export function LoanRequestDetailPage({
 
                     <Card className="border-border/30 bg-card/60 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Applicant</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserIcon className="size-4 text-muted-foreground" />
+                                Applicant
+                            </CardTitle>
                             <CardDescription>
                                 Primary borrower details from the request.
                             </CardDescription>
@@ -1003,7 +1022,10 @@ export function LoanRequestDetailPage({
 
                     <Card className="border-border/30 bg-card/60 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Co-makers</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="size-4 text-muted-foreground" />
+                                Co-makers
+                            </CardTitle>
                             <CardDescription>
                                 Supporting borrowers tied to this request.
                             </CardDescription>
@@ -1030,7 +1052,8 @@ export function LoanRequestDetailPage({
                     <Card className="border-border/30 bg-card/50 shadow-sm">
                         <CardHeader className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
-                                <CardTitle className="text-base">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Activity className="size-4 text-muted-foreground" />
                                     Request status
                                 </CardTitle>
                                 <LoanRequestStatusBadge
@@ -1361,7 +1384,8 @@ export function LoanRequestDetailPage({
 
                     <Card className="border-border/30 bg-card/50 shadow-sm">
                         <CardHeader>
-                            <CardTitle className="text-base">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Info className="size-4 text-muted-foreground" />
                                 Quick facts
                             </CardTitle>
                         </CardHeader>
@@ -1387,7 +1411,10 @@ export function LoanRequestDetailPage({
 
                     <Card className="border-border/30 bg-card/50 shadow-sm">
                         <CardHeader>
-                            <CardTitle className="text-base">Actions</CardTitle>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Zap className="size-4 text-muted-foreground" />
+                                Actions
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {showCorrectionAction ? (

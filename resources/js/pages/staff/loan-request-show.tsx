@@ -1,4 +1,12 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import {
+    Bell,
+    ClipboardCheck,
+    FileText,
+    HeartPulse,
+    User,
+    Workflow,
+} from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
 import {
@@ -1057,7 +1065,10 @@ export default function StaffLoanRequestShow({
     const memberSnapshotCard = (
         <Card className="border-border/30 bg-card/70 shadow-sm">
             <CardHeader>
-                <CardTitle>Member snapshot</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <User className="size-4 text-muted-foreground" />
+                    Member snapshot
+                </CardTitle>
                 <CardDescription>
                     Key applicant figures to reference while entering processing
                     terms.
@@ -1197,7 +1208,17 @@ export default function StaffLoanRequestShow({
     const inlineProcessingPanel = (
         <Card className="border-border/30 bg-card/70 shadow-sm">
             <CardHeader>
-                <CardTitle>Processing details</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <FileText
+                        className={cn(
+                            'size-4',
+                            canUpdateProcessing
+                                ? 'text-primary'
+                                : 'text-muted-foreground',
+                        )}
+                    />
+                    Processing details
+                </CardTitle>
                 <CardDescription>
                     Recommendation and financial terms used across the document
                     package.
@@ -1459,7 +1480,10 @@ export default function StaffLoanRequestShow({
                     <div className="grid gap-6">
                         <Card className="border-border/30 bg-card/70 shadow-sm">
                             <CardHeader>
-                                <CardTitle>Processing workspace</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Workflow className="size-4 text-primary" />
+                                    Processing workspace
+                                </CardTitle>
                                 <CardDescription>
                                     Keep the request data, member follow-up, and
                                     document package current before
@@ -1655,7 +1679,10 @@ export default function StaffLoanRequestShow({
                     </div>
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Document checklist</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <ClipboardCheck className="size-4 text-muted-foreground" />
+                                Document checklist
+                            </CardTitle>
                             <CardDescription>
                                 Every applicable document must be current before
                                 recommendation.
@@ -1867,7 +1894,10 @@ export default function StaffLoanRequestShow({
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Workflow health</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <HeartPulse className="size-4 text-muted-foreground" />
+                                Workflow health
+                            </CardTitle>
                             <CardDescription>
                                 Operational state for this request and the
                                 active workflow queues.
@@ -1945,7 +1975,10 @@ export default function StaffLoanRequestShow({
                     </Card>
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Notification history</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Bell className="size-4 text-muted-foreground" />
+                                Notification history
+                            </CardTitle>
                             <CardDescription>
                                 Delivery state for workflow-triggered member
                                 notifications.
