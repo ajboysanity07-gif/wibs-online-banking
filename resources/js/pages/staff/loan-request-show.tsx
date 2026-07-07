@@ -5,7 +5,6 @@ import {
     ClipboardCheck,
     FileText,
     HeartPulse,
-    User,
     Workflow,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
@@ -307,19 +306,6 @@ type CorrectionFormState = {
     co_maker_2: LoanRequestPersonFormData;
     reason: string;
     information_source: string;
-};
-
-const personSnapshotName = (person: LoanRequestPersonData | null): string => {
-    if (!person) {
-        return '—';
-    }
-
-    const name = [person.first_name, person.middle_name, person.last_name]
-        .map((value) => (value ?? '').trim())
-        .filter((value) => value !== '')
-        .join(' ');
-
-    return name !== '' ? name : '—';
 };
 
 const snapshotDisplay = (value?: string | number | null): string => {
@@ -1072,76 +1058,11 @@ export default function StaffLoanRequestShow({
         });
     };
 
-    const requestedTermLabel =
-        currentRequest.requested_term !== null &&
-        `${currentRequest.requested_term}`.trim() !== ''
-            ? `${currentRequest.requested_term} months`
-            : '—';
     const recommendedTermLabel =
         currentRequest.recommended_term !== null &&
         `${currentRequest.recommended_term}`.trim() !== ''
             ? `${currentRequest.recommended_term} months`
             : '—';
-
-    const memberSnapshotCard = (
-        <Card className={readOnlyCardClassName}>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <User className="size-4 text-muted-foreground" />
-                    Member snapshot
-                </CardTitle>
-                <CardDescription>
-                    Key applicant figures to reference while entering processing
-                    terms.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-                <SnapshotRow
-                    label="Applicant"
-                    value={personSnapshotName(currentApplicant)}
-                />
-                <SnapshotRow
-                    label="Loan type"
-                    value={snapshotDisplay(
-                        currentRequest.loan_type_label_snapshot,
-                    )}
-                />
-                <SnapshotRow
-                    label="Requested amount"
-                    value={snapshotCurrency(currentRequest.requested_amount)}
-                />
-                <SnapshotRow
-                    label="Requested term"
-                    value={requestedTermLabel}
-                />
-                <SnapshotRow
-                    label="Employment type"
-                    value={snapshotDisplay(currentApplicant?.employment_type)}
-                />
-                <SnapshotRow
-                    label="Gross monthly income"
-                    value={snapshotCurrency(
-                        currentApplicant?.gross_monthly_income,
-                    )}
-                />
-                <SnapshotRow
-                    label="Employer / Business"
-                    value={snapshotDisplay(
-                        currentApplicant?.employer_business_name,
-                    )}
-                    className="col-span-2"
-                />
-                <SnapshotRow
-                    label="Co-maker 1"
-                    value={personSnapshotName(currentCoMakerOne)}
-                />
-                <SnapshotRow
-                    label="Co-maker 2"
-                    value={personSnapshotName(currentCoMakerTwo)}
-                />
-            </CardContent>
-        </Card>
-    );
 
     const processingSecurityRequired =
         processingForm.processing['security_required'] === true;
@@ -1703,7 +1624,6 @@ export default function StaffLoanRequestShow({
                                 </div>
                             </CardContent>
                         </Card>
-                        {isProcessingStage ? memberSnapshotCard : null}
                         {isProcessingStage ? inlineProcessingPanel : null}
                     </div>
                     <Card className="border-border/30 bg-card/70 shadow-sm">
