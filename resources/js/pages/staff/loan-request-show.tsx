@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     Bell,
+    CheckCircle2,
     ClipboardCheck,
     FileText,
     HeartPulse,
@@ -1638,7 +1639,8 @@ export default function StaffLoanRequestShow({
                                     {canRecommendApproval ? (
                                         <Button
                                             type="button"
-                                            className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                                            size="lg"
+                                            className="order-first bg-emerald-600 text-white shadow-md ring-1 ring-emerald-500/30 hover:bg-emerald-600/90 md:col-span-2"
                                             disabled={isWorkflowProcessing}
                                             onClick={() =>
                                                 setIsRecommendApprovalOpen(
@@ -1646,6 +1648,7 @@ export default function StaffLoanRequestShow({
                                                 )
                                             }
                                         >
+                                            <CheckCircle2 className="size-4" />
                                             Recommend Approval
                                         </Button>
                                     ) : null}
