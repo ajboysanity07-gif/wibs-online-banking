@@ -616,9 +616,8 @@ export default function LoanRequestPage({
                                 Apply for a loan
                             </h1>
                             <p className="max-w-2xl text-sm text-muted-foreground">
-                                Complete the application form and save a draft
-                                at any time. Signatures will be collected
-                                physically upon loan release.
+                                Complete the application form and save a draft at any time.
+                                Signatures will be collected physically upon loan release.
                             </p>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 <span className="rounded-full bg-muted/30 px-2 py-1">
