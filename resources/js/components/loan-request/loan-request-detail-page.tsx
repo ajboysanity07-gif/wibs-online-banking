@@ -6,7 +6,6 @@ import {
     Download,
     Eye,
     FileText,
-    Info,
     PencilLine,
     Printer,
     Users,
@@ -895,32 +894,14 @@ export function LoanRequestDetailPage({
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <FileText className="size-4 text-muted-foreground" />
-                                Loan details
+                                Loan purpose
                             </CardTitle>
                             <CardDescription>
-                                Key request information captured at submission.
+                                Why the applicant is requesting this loan. See
+                                the summary above for amount, type, and term.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-5">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <DetailRow
-                                    label="Loan type"
-                                    value={loanTypeLabel}
-                                />
-                                <DetailRow
-                                    label="Requested amount"
-                                    value={amount}
-                                />
-                                <DetailRow
-                                    label="Requested term"
-                                    value={requestedTerm}
-                                />
-                                <DetailRow
-                                    label="Availment status"
-                                    value={availmentStatus}
-                                />
-                            </div>
-                            <Separator className="bg-border/40" />
+                        <CardContent>
                             <DetailRow
                                 label="Loan purpose"
                                 value={loanPurpose}
@@ -1381,33 +1362,6 @@ export function LoanRequestDetailPage({
                             </CardContent>
                         </Card>
                     ) : null}
-
-                    <Card className="border-border/30 bg-card/50 shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Info className="size-4 text-muted-foreground" />
-                                Quick facts
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-sm">
-                            <DetailRow
-                                label="Requested amount"
-                                value={amount}
-                            />
-                            <DetailRow
-                                label="Loan type"
-                                value={loanTypeLabel}
-                            />
-                            <DetailRow
-                                label="Requested term"
-                                value={requestedTerm}
-                            />
-                            <DetailRow
-                                label="Availment status"
-                                value={availmentStatus}
-                            />
-                        </CardContent>
-                    </Card>
 
                     <Card className="border-border/30 bg-card/50 shadow-sm">
                         <CardHeader>
