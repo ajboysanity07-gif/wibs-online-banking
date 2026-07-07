@@ -1553,7 +1553,7 @@ export default function StaffLoanRequestShow({
                                         </AlertDescription>
                                     </Alert>
                                 ) : null}
-                                <div className="grid gap-2 md:grid-cols-2">
+                                <div className="grid gap-3 md:grid-cols-2">
                                     {canUpdateProcessing ? (
                                         <Button
                                             type="button"
@@ -1903,8 +1903,8 @@ export default function StaffLoanRequestShow({
                                 active workflow queues.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
+                        <CardContent className="grid gap-2 sm:grid-cols-2">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Processing age
                                 </p>
@@ -1915,7 +1915,7 @@ export default function StaffLoanRequestShow({
                                         : `${currentWorkflowHealth.processing_age_days}d`}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Pending member action
                                 </p>
@@ -1925,7 +1925,7 @@ export default function StaffLoanRequestShow({
                                         : 'No'}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Stale documents
                                 </p>
@@ -1933,7 +1933,7 @@ export default function StaffLoanRequestShow({
                                     {currentWorkflowHealth.stale_document_count}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Failed documents
                                 </p>
@@ -1943,7 +1943,7 @@ export default function StaffLoanRequestShow({
                                     }
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Legacy blockers
                                 </p>
@@ -1951,7 +1951,7 @@ export default function StaffLoanRequestShow({
                                     {currentWorkflowHealth.legacy_blocker_count}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Notification failures
                                 </p>
@@ -1961,7 +1961,7 @@ export default function StaffLoanRequestShow({
                                     }
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-4 sm:col-span-2">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3 sm:col-span-2">
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Workflow failed jobs
                                 </p>
