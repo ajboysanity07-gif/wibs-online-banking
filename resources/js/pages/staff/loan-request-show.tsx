@@ -319,14 +319,9 @@ type CorrectionFormState = {
 };
 
 type StaffSectionKey =
-    | 'applicant'
-    | 'co-makers'
-    | 'audit-trail'
     | 'processing-workspace'
     | 'processing-details'
     | 'document-checklist'
-    | 'workflow-health'
-    | 'notification-history'
     | 'wibs-tracking';
 
 type StaffSectionMeta = {
@@ -723,14 +718,9 @@ export default function StaffLoanRequestShow({
             'released',
         ].includes(currentRequest.status ?? '');
     const STAFF_SECTIONS: StaffSectionMeta[] = [
-        { key: 'applicant', label: 'Applicant' },
-        { key: 'co-makers', label: 'Co-makers' },
-        { key: 'audit-trail', label: 'Audit trail' },
         { key: 'processing-workspace', label: 'Processing workspace' },
         { key: 'processing-details', label: 'Processing details' },
         { key: 'document-checklist', label: 'Document checklist' },
-        { key: 'workflow-health', label: 'Workflow health' },
-        { key: 'notification-history', label: 'Notification history' },
         ...(showWibsTrackingSection
             ? [{ key: 'wibs-tracking' as const, label: 'WIBS Tracking' }]
             : []),
@@ -1506,6 +1496,189 @@ export default function StaffLoanRequestShow({
                 />
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="space-y-6">
+                    <LoanRequestApplicantCard applicant={currentApplicant} />
+                    <LoanRequestCoMakersCard
+                        coMakerOne={currentCoMakerOne}
+                        coMakerTwo={currentCoMakerTwo}
+                    />
+                    <LoanRequestAuditTrail
+                        entries={currentAuditTrail}
+                        audience="staff"
+                    />
+                    <Card className={readOnlyCardClassName}>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <HeartPulse className="size-4 text-muted-foreground" />
+                                Workflow health
+                            </CardTitle>
+                            <CardDescription>
+                                Operational state for this request and the
+                                active workflow queues.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-2 sm:grid-cols-2">
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                    Processing age
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold">
+                                    {currentWorkflowHealth.processing_age_days ===
+                                    null
+                                        ? '-'
+                                        : `${currentWorkflowHealth.processing_age_days}d`}
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                    Pending member action
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold">
+                                    {currentWorkflowHealth.pending_member_action
+                                        ? 'Yes'
+                                        : 'No'}
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                    Stale documents
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold">
+                                    {currentWorkflowHealth.stale_document_count}
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                    Failed documents
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold">
+                                    {
+                                        currentWorkflowHealth.failed_document_count
+                                    }
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                    Legacy blockers
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold">
+                                    {currentWorkflowHealth.legacy_blocker_count}
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                    Notification failures
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold">
+                                    {
+                                        currentWorkflowHealth.notification_failure_count
+                                    }
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3 sm:col-span-2">
+                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                    Workflow failed jobs
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold">
+                                    {
+                                        currentWorkflowHealth.workflow_failed_job_count
+                                    }
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className={readOnlyCardClassName}>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Bell className="size-4 text-muted-foreground" />
+                                Notification history
+                            </CardTitle>
+                            <CardDescription>
+                                Delivery state for workflow-triggered member
+                                notifications.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {currentNotificationHistory.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No workflow notifications recorded yet.
+                                </p>
+                            ) : (
+                                currentNotificationHistory.map((event) => (
+                                    <div
+                                        key={event.id}
+                                        className="rounded-xl border border-border/40 bg-muted/10 p-4"
+                                    >
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div className="space-y-1">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <p className="text-sm font-semibold">
+                                                        {event.event_label}
+                                                    </p>
+                                                    <Badge variant="outline">
+                                                        {event.channel}
+                                                    </Badge>
+                                                    <span
+                                                        className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayNotificationStatusTone(event.status)}`}
+                                                    >
+                                                        {event.status ??
+                                                            'unknown'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                                    <span>
+                                                        Queued:{' '}
+                                                        {event.queued_at
+                                                            ? formatDateTime(
+                                                                  event.queued_at,
+                                                              )
+                                                            : '-'}
+                                                    </span>
+                                                    <span>
+                                                        Sent:{' '}
+                                                        {event.sent_at
+                                                            ? formatDateTime(
+                                                                  event.sent_at,
+                                                              )
+                                                            : '-'}
+                                                    </span>
+                                                    <span>
+                                                        Failed:{' '}
+                                                        {event.failed_at
+                                                            ? formatDateTime(
+                                                                  event.failed_at,
+                                                              )
+                                                            : '-'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="text-right text-xs text-muted-foreground">
+                                                <p>
+                                                    Attempts:{' '}
+                                                    {event.attempt_count}
+                                                </p>
+                                                <p>
+                                                    Retries: {event.retry_count}
+                                                </p>
+                                                <p>
+                                                    Reminders:{' '}
+                                                    {event.reminder_attempts}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {event.provider_error ? (
+                                            <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">
+                                                {event.provider_error}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                ))
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </section>
+            <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
                     <div className="lg:sticky lg:top-24">
                         <LoanRequestSectionNav
@@ -1517,41 +1690,6 @@ export default function StaffLoanRequestShow({
                         />
                     </div>
                     <div className="space-y-6">
-                        <div
-                            className={cn(
-                                activeSection === 'applicant'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
-                            <LoanRequestApplicantCard
-                                applicant={currentApplicant}
-                            />
-                        </div>
-                        <div
-                            className={cn(
-                                activeSection === 'co-makers'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
-                            <LoanRequestCoMakersCard
-                                coMakerOne={currentCoMakerOne}
-                                coMakerTwo={currentCoMakerTwo}
-                            />
-                        </div>
-                        <div
-                            className={cn(
-                                activeSection === 'audit-trail'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
-                            <LoanRequestAuditTrail
-                                entries={currentAuditTrail}
-                                audience="staff"
-                            />
-                        </div>
                         <div
                             className={cn(
                                 activeSection === 'processing-workspace'
@@ -1988,192 +2126,6 @@ export default function StaffLoanRequestShow({
                                     </div>
                                 );
                             })}
-                        </CardContent>
-                    </Card>
-                    </div>
-                    <div
-                        className={cn(
-                            activeSection === 'workflow-health'
-                                ? 'block'
-                                : 'hidden',
-                        )}
-                    >
-                    <Card className={readOnlyCardClassName}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <HeartPulse className="size-4 text-muted-foreground" />
-                                Workflow health
-                            </CardTitle>
-                            <CardDescription>
-                                Operational state for this request and the
-                                active workflow queues.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-2 sm:grid-cols-2">
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
-                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                    Processing age
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold">
-                                    {currentWorkflowHealth.processing_age_days ===
-                                    null
-                                        ? '-'
-                                        : `${currentWorkflowHealth.processing_age_days}d`}
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
-                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                    Pending member action
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold">
-                                    {currentWorkflowHealth.pending_member_action
-                                        ? 'Yes'
-                                        : 'No'}
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
-                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                    Stale documents
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold">
-                                    {currentWorkflowHealth.stale_document_count}
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
-                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                    Failed documents
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold">
-                                    {
-                                        currentWorkflowHealth.failed_document_count
-                                    }
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
-                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                    Legacy blockers
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold">
-                                    {currentWorkflowHealth.legacy_blocker_count}
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
-                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                    Notification failures
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold">
-                                    {
-                                        currentWorkflowHealth.notification_failure_count
-                                    }
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3 sm:col-span-2">
-                                <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                    Workflow failed jobs
-                                </p>
-                                <p className="mt-2 text-2xl font-semibold">
-                                    {
-                                        currentWorkflowHealth.workflow_failed_job_count
-                                    }
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    </div>
-                    <div
-                        className={cn(
-                            activeSection === 'notification-history'
-                                ? 'block'
-                                : 'hidden',
-                        )}
-                    >
-                    <Card className={readOnlyCardClassName}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Bell className="size-4 text-muted-foreground" />
-                                Notification history
-                            </CardTitle>
-                            <CardDescription>
-                                Delivery state for workflow-triggered member
-                                notifications.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {currentNotificationHistory.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No workflow notifications recorded yet.
-                                </p>
-                            ) : (
-                                currentNotificationHistory.map((event) => (
-                                    <div
-                                        key={event.id}
-                                        className="rounded-xl border border-border/40 bg-muted/10 p-4"
-                                    >
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div className="space-y-1">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <p className="text-sm font-semibold">
-                                                        {event.event_label}
-                                                    </p>
-                                                    <Badge variant="outline">
-                                                        {event.channel}
-                                                    </Badge>
-                                                    <span
-                                                        className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayNotificationStatusTone(event.status)}`}
-                                                    >
-                                                        {event.status ??
-                                                            'unknown'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                                    <span>
-                                                        Queued:{' '}
-                                                        {event.queued_at
-                                                            ? formatDateTime(
-                                                                  event.queued_at,
-                                                              )
-                                                            : '-'}
-                                                    </span>
-                                                    <span>
-                                                        Sent:{' '}
-                                                        {event.sent_at
-                                                            ? formatDateTime(
-                                                                  event.sent_at,
-                                                              )
-                                                            : '-'}
-                                                    </span>
-                                                    <span>
-                                                        Failed:{' '}
-                                                        {event.failed_at
-                                                            ? formatDateTime(
-                                                                  event.failed_at,
-                                                              )
-                                                            : '-'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="text-right text-xs text-muted-foreground">
-                                                <p>
-                                                    Attempts:{' '}
-                                                    {event.attempt_count}
-                                                </p>
-                                                <p>
-                                                    Retries: {event.retry_count}
-                                                </p>
-                                                <p>
-                                                    Reminders:{' '}
-                                                    {event.reminder_attempts}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {event.provider_error ? (
-                                            <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">
-                                                {event.provider_error}
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                ))
-                            )}
                         </CardContent>
                     </Card>
                     </div>
