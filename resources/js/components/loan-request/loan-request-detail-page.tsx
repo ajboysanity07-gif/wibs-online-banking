@@ -123,7 +123,7 @@ const displayValue = (value?: string | number | null): string => {
     return stringValue !== '' ? stringValue : '--';
 };
 
-const displayText = (value?: string | null): string => {
+export const displayText = (value?: string | null): string => {
     const normalized = formatDisplayText(value);
 
     return normalized !== '' ? normalized : '--';

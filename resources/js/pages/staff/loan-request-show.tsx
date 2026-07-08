@@ -8,7 +8,14 @@ import {
     Workflow,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
+import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
+import {
+    LoanRequestApplicantCard,
+    LoanRequestCoMakersCard,
+    LoanRequestDetailPage,
+    LoanRequestPurposeCard,
+    displayText,
+} from '@/components/loan-request/loan-request-detail-page';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
@@ -1468,6 +1475,58 @@ export default function StaffLoanRequestShow({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
+            {sectionNavActive ? (
+                <div
+                    className={cn(
+                        !sectionNavActive || activeSection === 'loan-purpose'
+                            ? 'block'
+                            : 'hidden',
+                    )}
+                >
+                    <LoanRequestPurposeCard
+                        loanPurpose={displayText(currentRequest.loan_purpose)}
+                    />
+                </div>
+            ) : null}
+            {sectionNavActive ? (
+                <div
+                    className={cn(
+                        !sectionNavActive || activeSection === 'applicant'
+                            ? 'block'
+                            : 'hidden',
+                    )}
+                >
+                    <LoanRequestApplicantCard applicant={currentApplicant} />
+                </div>
+            ) : null}
+            {sectionNavActive ? (
+                <div
+                    className={cn(
+                        !sectionNavActive || activeSection === 'co-makers'
+                            ? 'block'
+                            : 'hidden',
+                    )}
+                >
+                    <LoanRequestCoMakersCard
+                        coMakerOne={currentCoMakerOne}
+                        coMakerTwo={currentCoMakerTwo}
+                    />
+                </div>
+            ) : null}
+            {sectionNavActive ? (
+                <div
+                    className={cn(
+                        !sectionNavActive || activeSection === 'audit-trail'
+                            ? 'block'
+                            : 'hidden',
+                    )}
+                >
+                    <LoanRequestAuditTrail
+                        entries={currentAuditTrail}
+                        audience="staff"
+                    />
+                </div>
+            ) : null}
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="space-y-6">
                     <div className="grid gap-6">
