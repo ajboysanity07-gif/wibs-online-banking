@@ -21,6 +21,7 @@ import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
+import { LoanRequestProcessingReviewStrip } from '@/components/loan-request/loan-request-processing-review-strip';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestSectionNav } from '@/components/loan-request/loan-request-section-nav';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -1175,9 +1176,6 @@ export default function StaffLoanRequestShow({
         );
     };
 
-    // TODO(phase-4): remove this temporary fallback once activeProcessingSection drives visibility.
-    const showAllProcessingSections = true;
-
     const inlineProcessingPanel = (
         <Card
             className={
@@ -1209,11 +1207,29 @@ export default function StaffLoanRequestShow({
                         className="space-y-4"
                         onSubmit={submitProcessingDetails}
                     >
+                        <LoanRequestProcessingReviewStrip
+                            processingForm={processingForm}
+                            processingFieldDefinitions={
+                                dataSectionDefinitions.processing.fields
+                            }
+                            lastProcessingSavedAt={lastProcessingSavedAt}
+                        />
+                        <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+                        <div className="lg:sticky lg:top-24">
+                            <LoanRequestSectionNav
+                                sections={PROCESSING_SECTIONS}
+                                activeSection={activeProcessingSection}
+                                onSectionChange={(key) =>
+                                    setActiveProcessingSection(
+                                        key as ProcessingSectionKey,
+                                    )
+                                }
+                            />
+                        </div>
+                        <div className="space-y-4">
                         <div
                             className={cn(
-                                showAllProcessingSections ||
-                                    activeProcessingSection ===
-                                        'recommendation'
+                                activeProcessingSection === 'recommendation'
                                     ? 'block'
                                     : 'hidden',
                             )}
@@ -1316,9 +1332,7 @@ export default function StaffLoanRequestShow({
 
                         <div
                             className={cn(
-                                showAllProcessingSections ||
-                                    activeProcessingSection ===
-                                        'charges_fees'
+                                activeProcessingSection === 'charges_fees'
                                     ? 'block'
                                     : 'hidden',
                             )}
@@ -1339,9 +1353,8 @@ export default function StaffLoanRequestShow({
 
                         <div
                             className={cn(
-                                showAllProcessingSections ||
-                                    activeProcessingSection ===
-                                        'net_take_home_pay'
+                                activeProcessingSection ===
+                                    'net_take_home_pay'
                                     ? 'block'
                                     : 'hidden',
                             )}
@@ -1352,9 +1365,8 @@ export default function StaffLoanRequestShow({
 
                         <div
                             className={cn(
-                                showAllProcessingSections ||
-                                    activeProcessingSection ===
-                                        'document_requirements'
+                                activeProcessingSection ===
+                                    'document_requirements'
                                     ? 'block'
                                     : 'hidden',
                             )}
@@ -1374,8 +1386,7 @@ export default function StaffLoanRequestShow({
 
                         <div
                             className={cn(
-                                showAllProcessingSections ||
-                                    activeProcessingSection === 'personnel'
+                                activeProcessingSection === 'personnel'
                                     ? 'block'
                                     : 'hidden',
                             )}
@@ -1391,8 +1402,7 @@ export default function StaffLoanRequestShow({
 
                         <div
                             className={cn(
-                                showAllProcessingSections ||
-                                    activeProcessingSection === 'confirmation'
+                                activeProcessingSection === 'confirmation'
                                     ? 'block'
                                     : 'hidden',
                             )}
@@ -1430,6 +1440,8 @@ export default function StaffLoanRequestShow({
                                     }))
                                 }
                             />
+                        </div>
+                        </div>
                         </div>
                         </div>
                         <Button
