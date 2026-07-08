@@ -1,7 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     Bell,
-    CheckCircle2,
     ClipboardCheck,
     FileText,
     HeartPulse,
@@ -417,10 +416,6 @@ export default function StaffLoanRequestShow({
         useState(false);
     const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
     const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
-    const [isRecommendApprovalOpen, setIsRecommendApprovalOpen] =
-        useState(false);
-    const [isReturnToQueueDialogOpen, setIsReturnToQueueDialogOpen] =
-        useState(false);
     const [wibsReference, setWibsReference] = useState('');
     const [wibsReleaseDate, setWibsReleaseDate] = useState('');
     const [isWibsSubmitting, setIsWibsSubmitting] = useState(false);
@@ -440,10 +435,6 @@ export default function StaffLoanRequestShow({
     const [retainAssignmentOnReopen, setRetainAssignmentOnReopen] =
         useState(false);
     const [upgradeReason, setUpgradeReason] = useState('');
-    const [recommendApprovalRemarks, setRecommendApprovalRemarks] =
-        useState('');
-    const [returnToQueueDialogReason, setReturnToQueueDialogReason] =
-        useState('');
     const [processingForm, setProcessingForm] =
         useState<InlineProcessingFormState>({
             processing: { ...dataSections.processing },
@@ -1043,36 +1034,6 @@ export default function StaffLoanRequestShow({
         if (result) {
             setIsUpgradeDialogOpen(false);
             setUpgradeReason('');
-        }
-    };
-
-    const submitRecommendApproval = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
-        event.preventDefault();
-
-        const result = await recommendApproval(currentRequest.id, {
-            review_remarks: recommendApprovalRemarks.trim() || null,
-        });
-
-        if (result) {
-            setIsRecommendApprovalOpen(false);
-            setRecommendApprovalRemarks('');
-        }
-    };
-
-    const submitReturnToQueueDialog = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
-        event.preventDefault();
-
-        const result = await returnLoanRequestToQueue(currentRequest.id, {
-            reason: returnToQueueDialogReason,
-        });
-
-        if (result) {
-            setIsReturnToQueueDialogOpen(false);
-            setReturnToQueueDialogReason('');
         }
     };
 
@@ -1822,36 +1783,6 @@ export default function StaffLoanRequestShow({
                                             }
                                         >
                                             Generate All Required Documents
-                                        </Button>
-                                    ) : null}
-                                    {canReturnToQueue ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsReturnToQueueDialogOpen(
-                                                    true,
-                                                )
-                                            }
-                                        >
-                                            Return to Queue
-                                        </Button>
-                                    ) : null}
-                                    {canRecommendApproval ? (
-                                        <Button
-                                            type="button"
-                                            size="lg"
-                                            className="order-first bg-emerald-600 text-white shadow-md ring-1 ring-emerald-500/30 hover:bg-emerald-600/90 md:col-span-2"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsRecommendApprovalOpen(
-                                                    true,
-                                                )
-                                            }
-                                        >
-                                            <CheckCircle2 className="size-4" />
-                                            Recommend Approval
                                         </Button>
                                     ) : null}
                                     {canReturnForProcessing ? (
@@ -2964,112 +2895,6 @@ export default function StaffLoanRequestShow({
                                 disabled={isWorkflowProcessing}
                             >
                                 Return for Processing
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog
-                open={isReturnToQueueDialogOpen}
-                onOpenChange={setIsReturnToQueueDialogOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Return to Queue</DialogTitle>
-                        <DialogDescription>
-                            Remove your assignment from this request without
-                            changing the workflow status.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={submitReturnToQueueDialog}
-                    >
-                        <div className="grid gap-2">
-                            <Label htmlFor="processing_return_to_queue_reason">
-                                Reason
-                            </Label>
-                            <textarea
-                                id="processing_return_to_queue_reason"
-                                className={textareaClassName}
-                                required
-                                value={returnToQueueDialogReason}
-                                onChange={(event) =>
-                                    setReturnToQueueDialogReason(
-                                        event.target.value,
-                                    )
-                                }
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                    setIsReturnToQueueDialogOpen(false)
-                                }
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Return to Queue
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog
-                open={isRecommendApprovalOpen}
-                onOpenChange={setIsRecommendApprovalOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Recommend Approval</DialogTitle>
-                        <DialogDescription>
-                            Add optional remarks before forwarding this request
-                            to a loan manager.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={submitRecommendApproval}
-                    >
-                        <div className="grid gap-2">
-                            <Label htmlFor="processing_recommend_approval_remarks">
-                                Review remarks
-                            </Label>
-                            <textarea
-                                id="processing_recommend_approval_remarks"
-                                className={textareaClassName}
-                                value={recommendApprovalRemarks}
-                                onChange={(event) =>
-                                    setRecommendApprovalRemarks(
-                                        event.target.value,
-                                    )
-                                }
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                    setIsRecommendApprovalOpen(false)
-                                }
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-600/90"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Recommend Approval
                             </Button>
                         </DialogFooter>
                     </form>
