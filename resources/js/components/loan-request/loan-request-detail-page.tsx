@@ -77,6 +77,7 @@ type Props = {
     correctedCopy?: CorrectedCopyProps;
     workflow?: LoanRequestWorkflowProps;
     wrapInShell?: boolean;
+    hideSummaryHeader?: boolean;
 };
 
 type ApprovedDocumentHrefs = {
@@ -414,6 +415,59 @@ const SummaryStat = ({ label, value }: SummaryStatProps) => (
     </div>
 );
 
+export type LoanRequestSummaryHeaderProps = {
+    reference: string;
+    status: LoanRequestStatusValue | null;
+    submittedLabel: string;
+    amount: string;
+    loanTypeLabel: string;
+    requestedTerm: string;
+    availmentStatus: string;
+};
+
+export const LoanRequestSummaryHeader = ({
+    reference,
+    status,
+    submittedLabel,
+    amount,
+    loanTypeLabel,
+    requestedTerm,
+    availmentStatus,
+}: LoanRequestSummaryHeaderProps) => (
+    <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+                <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
+                    Loan request
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-3xl font-semibold tracking-tight">
+                        Request {reference}
+                    </h1>
+                    <LoanRequestStatusBadge status={status} className="text-xs" />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>{submittedLabel}</span>
+                </div>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                    Review the submitted snapshot of this loan request, including
+                    the applicant and co-maker details used for evaluation.
+                </p>
+            </div>
+            <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
+                <SummaryStat label="Requested amount" value={amount} />
+                <SummaryStat label="Loan type" value={loanTypeLabel} />
+                <SummaryStat label="Requested term" value={requestedTerm} />
+                <SummaryStat
+                    label="Availment status"
+                    value={availmentStatus}
+                />
+            </div>
+        </div>
+    </div>
+);
+
 type PersonPanelProps = {
     title: string;
     person: LoanRequestPersonData | null;
@@ -467,6 +521,7 @@ export function LoanRequestDetailPage({
     correctedCopy,
     workflow,
     wrapInShell = true,
+    hideSummaryHeader = false,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -809,45 +864,17 @@ export function LoanRequestDetailPage({
 
     return (
         <Shell {...shellProps}>
-            <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                        <p className="text-xs font-semibold tracking-[0.24em] text-muted-foreground uppercase">
-                            Loan request
-                        </p>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <h1 className="text-3xl font-semibold tracking-tight">
-                                Request {loanRequest.reference}
-                            </h1>
-                            <LoanRequestStatusBadge
-                                status={loanRequest.status}
-                                className="text-xs"
-                            />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{submittedLabel}</span>
-                        </div>
-                        <p className="max-w-2xl text-sm text-muted-foreground">
-                            Review the submitted snapshot of this loan request,
-                            including the applicant and co-maker details used
-                            for evaluation.
-                        </p>
-                    </div>
-                    <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
-                        <SummaryStat label="Requested amount" value={amount} />
-                        <SummaryStat label="Loan type" value={loanTypeLabel} />
-                        <SummaryStat
-                            label="Requested term"
-                            value={requestedTerm}
-                        />
-                        <SummaryStat
-                            label="Availment status"
-                            value={availmentStatus}
-                        />
-                    </div>
-                </div>
-            </div>
+            {!hideSummaryHeader ? (
+                <LoanRequestSummaryHeader
+                    reference={loanRequest.reference}
+                    status={loanRequest.status}
+                    submittedLabel={submittedLabel}
+                    amount={amount}
+                    loanTypeLabel={loanTypeLabel}
+                    requestedTerm={requestedTerm}
+                    availmentStatus={availmentStatus}
+                />
+            ) : null}
 
             {showCancelledNotice ? (
                 <Alert className="border-amber-500/35 bg-amber-500/10 text-foreground">
