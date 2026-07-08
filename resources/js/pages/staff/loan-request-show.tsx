@@ -1175,6 +1175,9 @@ export default function StaffLoanRequestShow({
         );
     };
 
+    // TODO(phase-4): remove this temporary fallback once activeProcessingSection drives visibility.
+    const showAllProcessingSections = true;
+
     const inlineProcessingPanel = (
         <Card
             className={
@@ -1206,6 +1209,15 @@ export default function StaffLoanRequestShow({
                         className="space-y-4"
                         onSubmit={submitProcessingDetails}
                     >
+                        <div
+                            className={cn(
+                                showAllProcessingSections ||
+                                    activeProcessingSection ===
+                                        'recommendation'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                         {renderProcessingSectionLabel('Recommendation', {
                             first: true,
                         })}
@@ -1300,7 +1312,17 @@ export default function StaffLoanRequestShow({
                                 }
                             />
                         </div>
+                        </div>
 
+                        <div
+                            className={cn(
+                                showAllProcessingSections ||
+                                    activeProcessingSection ===
+                                        'charges_fees'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                         {renderProcessingSectionLabel('Charges & fees')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('service_charge_rate')}
@@ -1313,10 +1335,30 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('notarial_venue')}
                             {renderProcessingField('penalty_rate_per_month')}
                         </div>
+                        </div>
 
+                        <div
+                            className={cn(
+                                showAllProcessingSections ||
+                                    activeProcessingSection ===
+                                        'net_take_home_pay'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                         {renderProcessingSectionLabel('Net take-home pay')}
                         {renderProcessingField('guaranteed_net_take_home_pay')}
+                        </div>
 
+                        <div
+                            className={cn(
+                                showAllProcessingSections ||
+                                    activeProcessingSection ===
+                                        'document_requirements'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                         {renderProcessingSectionLabel(
                             'Document requirements',
                         )}
@@ -1328,7 +1370,16 @@ export default function StaffLoanRequestShow({
                                 fullWidth: processingSecurityRequired,
                             })}
                         </div>
+                        </div>
 
+                        <div
+                            className={cn(
+                                showAllProcessingSections ||
+                                    activeProcessingSection === 'personnel'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                         {renderProcessingSectionLabel('Personnel')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('witness_one_name')}
@@ -1336,7 +1387,16 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('barangay_official_name')}
                             {renderProcessingField('barangay_official_title')}
                         </div>
+                        </div>
 
+                        <div
+                            className={cn(
+                                showAllProcessingSections ||
+                                    activeProcessingSection === 'confirmation'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
@@ -1370,6 +1430,7 @@ export default function StaffLoanRequestShow({
                                     }))
                                 }
                             />
+                        </div>
                         </div>
                         <Button
                             type="submit"
