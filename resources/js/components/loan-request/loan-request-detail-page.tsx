@@ -113,7 +113,7 @@ type DetailRowProps = {
     className?: string;
 };
 
-const displayValue = (value?: string | number | null): string => {
+export const displayValue = (value?: string | number | null): string => {
     if (value === null || value === undefined) {
         return '--';
     }
@@ -161,7 +161,7 @@ const resolveEmployerBusinessAddress = (
         : (person.employer_business_address ?? '');
 };
 
-const displayCurrency = (value?: string | number | null): string => {
+export const displayCurrency = (value?: string | number | null): string => {
     if (value === null || value === undefined || `${value}`.trim() === '') {
         return '--';
     }
@@ -1054,7 +1054,13 @@ export function LoanRequestDetailPage({
                 </Alert>
             ) : null}
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div
+                className={cn(
+                    'grid gap-6',
+                    !hideMainColumn &&
+                        'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]',
+                )}
+            >
                 {!hideMainColumn ? (
                     <div className="space-y-6">
                         <LoanRequestPurposeCard loanPurpose={loanPurpose} />

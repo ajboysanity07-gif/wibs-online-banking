@@ -14,13 +14,17 @@ import {
     LoanRequestCoMakersCard,
     LoanRequestDetailPage,
     LoanRequestPurposeCard,
+    LoanRequestSummaryHeader,
+    displayCurrency,
     displayText,
+    displayValue,
 } from '@/components/loan-request/loan-request-detail-page';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
+import { LoanRequestSectionNav } from '@/components/loan-request/loan-request-section-nav';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,7 +49,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency, formatDateTime } from '@/lib/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import {
     approvedDocuments as requestsApprovedDocuments,
@@ -734,9 +738,6 @@ export default function StaffLoanRequestShow({
             ? [{ key: 'wibs-tracking' as const, label: 'WIBS Tracking' }]
             : []),
     ];
-    // Nav (Phase 8) isn't mounted yet, so every section stays visible
-    // regardless of activeSection. Flip this on when the nav ships.
-    const sectionNavActive = false;
     const canRejectDuringProcessing =
         isV2Workflow &&
         !isOwnRequest &&
@@ -1472,68 +1473,103 @@ export default function StaffLoanRequestShow({
         </Card>
     );
 
+    const submittedAt = currentRequest.submitted_at
+        ? formatDate(currentRequest.submitted_at)
+        : null;
+    const summarySubmittedLabel = submittedAt
+        ? `Submitted ${submittedAt}`
+        : 'Not submitted yet';
+    const summaryAmount = displayCurrency(currentRequest.requested_amount);
+    const summaryLoanTypeLabel = displayText(
+        currentRequest.loan_type_label_snapshot,
+    );
+    const summaryRequestedTerm =
+        currentRequest.requested_term !== null &&
+        currentRequest.requested_term !== undefined &&
+        `${currentRequest.requested_term}`.trim() !== ''
+            ? `${currentRequest.requested_term} months`
+            : '--';
+    const summaryAvailmentStatus = displayValue(
+        currentRequest.availment_status,
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
-            {sectionNavActive ? (
-                <div
-                    className={cn(
-                        !sectionNavActive || activeSection === 'loan-purpose'
-                            ? 'block'
-                            : 'hidden',
-                    )}
-                >
-                    <LoanRequestPurposeCard
-                        loanPurpose={displayText(currentRequest.loan_purpose)}
-                    />
-                </div>
-            ) : null}
-            {sectionNavActive ? (
-                <div
-                    className={cn(
-                        !sectionNavActive || activeSection === 'applicant'
-                            ? 'block'
-                            : 'hidden',
-                    )}
-                >
-                    <LoanRequestApplicantCard applicant={currentApplicant} />
-                </div>
-            ) : null}
-            {sectionNavActive ? (
-                <div
-                    className={cn(
-                        !sectionNavActive || activeSection === 'co-makers'
-                            ? 'block'
-                            : 'hidden',
-                    )}
-                >
-                    <LoanRequestCoMakersCard
-                        coMakerOne={currentCoMakerOne}
-                        coMakerTwo={currentCoMakerTwo}
-                    />
-                </div>
-            ) : null}
-            {sectionNavActive ? (
-                <div
-                    className={cn(
-                        !sectionNavActive || activeSection === 'audit-trail'
-                            ? 'block'
-                            : 'hidden',
-                    )}
-                >
-                    <LoanRequestAuditTrail
-                        entries={currentAuditTrail}
-                        audience="staff"
-                    />
-                </div>
-            ) : null}
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="space-y-6">
-                    <div className="grid gap-6">
+                <LoanRequestSummaryHeader
+                    reference={currentRequest.reference}
+                    status={currentRequest.status}
+                    submittedLabel={summarySubmittedLabel}
+                    amount={summaryAmount}
+                    loanTypeLabel={summaryLoanTypeLabel}
+                    requestedTerm={summaryRequestedTerm}
+                    availmentStatus={summaryAvailmentStatus}
+                />
+            </section>
+            <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
+                    <div className="lg:sticky lg:top-24">
+                        <LoanRequestSectionNav
+                            sections={STAFF_SECTIONS}
+                            activeSection={activeSection}
+                            onSectionChange={(key) =>
+                                setActiveSection(key as StaffSectionKey)
+                            }
+                        />
+                    </div>
+                    <div className="space-y-6">
                         <div
                             className={cn(
-                                !sectionNavActive ||
-                                    activeSection === 'processing-workspace'
+                                activeSection === 'loan-purpose'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
+                            <LoanRequestPurposeCard
+                                loanPurpose={displayText(
+                                    currentRequest.loan_purpose,
+                                )}
+                            />
+                        </div>
+                        <div
+                            className={cn(
+                                activeSection === 'applicant'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
+                            <LoanRequestApplicantCard
+                                applicant={currentApplicant}
+                            />
+                        </div>
+                        <div
+                            className={cn(
+                                activeSection === 'co-makers'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
+                            <LoanRequestCoMakersCard
+                                coMakerOne={currentCoMakerOne}
+                                coMakerTwo={currentCoMakerTwo}
+                            />
+                        </div>
+                        <div
+                            className={cn(
+                                activeSection === 'audit-trail'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
+                            <LoanRequestAuditTrail
+                                entries={currentAuditTrail}
+                                audience="staff"
+                            />
+                        </div>
+                        <div
+                            className={cn(
+                                activeSection === 'processing-workspace'
                                     ? 'block'
                                     : 'hidden',
                             )}
@@ -1740,8 +1776,7 @@ export default function StaffLoanRequestShow({
                         {isProcessingStage ? (
                             <div
                                 className={cn(
-                                    !sectionNavActive ||
-                                        activeSection === 'processing-details'
+                                    activeSection === 'processing-details'
                                         ? 'block'
                                         : 'hidden',
                                 )}
@@ -1749,11 +1784,9 @@ export default function StaffLoanRequestShow({
                                 {inlineProcessingPanel}
                             </div>
                         ) : null}
-                    </div>
                     <div
                         className={cn(
-                            !sectionNavActive ||
-                                activeSection === 'document-checklist'
+                            activeSection === 'document-checklist'
                                 ? 'block'
                                 : 'hidden',
                         )}
@@ -1973,14 +2006,9 @@ export default function StaffLoanRequestShow({
                         </CardContent>
                     </Card>
                     </div>
-                </div>
-            </section>
-            <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                     <div
                         className={cn(
-                            !sectionNavActive ||
-                                activeSection === 'workflow-health'
+                            activeSection === 'workflow-health'
                                 ? 'block'
                                 : 'hidden',
                         )}
@@ -2069,8 +2097,7 @@ export default function StaffLoanRequestShow({
                     </div>
                     <div
                         className={cn(
-                            !sectionNavActive ||
-                                activeSection === 'notification-history'
+                            activeSection === 'notification-history'
                                 ? 'block'
                                 : 'hidden',
                         )}
@@ -2165,18 +2192,14 @@ export default function StaffLoanRequestShow({
                         </CardContent>
                     </Card>
                     </div>
-                </div>
-            </section>
-            {showWibsTrackingSection ? (
-                <div
-                    className={cn(
-                        !sectionNavActive ||
-                            activeSection === 'wibs-tracking'
-                            ? 'block'
-                            : 'hidden',
-                    )}
-                >
-                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    {showWibsTrackingSection ? (
+                        <div
+                            className={cn(
+                                activeSection === 'wibs-tracking'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardTitle>WIBS Tracking</CardTitle>
@@ -2391,9 +2414,10 @@ export default function StaffLoanRequestShow({
                             ) : null}
                         </CardContent>
                     </Card>
-                </section>
                 </div>
             ) : null}
+                    </div>
+                    <div>
             <LoanRequestDetailPage
                 loanRequest={currentRequest}
                 applicant={currentApplicant}
@@ -2502,7 +2526,13 @@ export default function StaffLoanRequestShow({
                           }
                         : undefined,
                 }}
+                hideSummaryHeader
+                hideMainColumn
+                wrapInShell={false}
             />
+                    </div>
+                </div>
+            </section>
 
             <Dialog
                 open={isCorrectionDialogOpen}
