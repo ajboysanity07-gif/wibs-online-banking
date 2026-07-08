@@ -424,6 +424,7 @@ export type LoanRequestSummaryHeaderProps = {
     loanTypeLabel: string;
     requestedTerm: string;
     availmentStatus: string;
+    loanPurpose?: string;
 };
 
 export const LoanRequestSummaryHeader = ({
@@ -434,6 +435,7 @@ export const LoanRequestSummaryHeader = ({
     loanTypeLabel,
     requestedTerm,
     availmentStatus,
+    loanPurpose,
 }: LoanRequestSummaryHeaderProps) => (
     <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -455,6 +457,16 @@ export const LoanRequestSummaryHeader = ({
                     Review the submitted snapshot of this loan request, including
                     the applicant and co-maker details used for evaluation.
                 </p>
+                {loanPurpose ? (
+                    <div className="max-w-2xl space-y-1">
+                        <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                            Loan purpose
+                        </p>
+                        <p className="text-sm leading-relaxed font-medium">
+                            {loanPurpose}
+                        </p>
+                    </div>
+                ) : null}
             </div>
             <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
                 <SummaryStat label="Requested amount" value={amount} />

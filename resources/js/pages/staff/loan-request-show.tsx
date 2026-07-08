@@ -13,7 +13,6 @@ import {
     LoanRequestApplicantCard,
     LoanRequestCoMakersCard,
     LoanRequestDetailPage,
-    LoanRequestPurposeCard,
     LoanRequestSummaryHeader,
     displayCurrency,
     displayText,
@@ -320,7 +319,6 @@ type CorrectionFormState = {
 };
 
 type StaffSectionKey =
-    | 'loan-purpose'
     | 'applicant'
     | 'co-makers'
     | 'audit-trail'
@@ -479,7 +477,7 @@ export default function StaffLoanRequestShow({
         information_source: '',
     });
     const [activeSection, setActiveSection] =
-        useState<StaffSectionKey>('loan-purpose');
+        useState<StaffSectionKey>('processing-workspace');
     const {
         claimLoanRequest,
         assignLoanRequest,
@@ -725,7 +723,6 @@ export default function StaffLoanRequestShow({
             'released',
         ].includes(currentRequest.status ?? '');
     const STAFF_SECTIONS: StaffSectionMeta[] = [
-        { key: 'loan-purpose', label: 'Loan purpose' },
         { key: 'applicant', label: 'Applicant' },
         { key: 'co-makers', label: 'Co-makers' },
         { key: 'audit-trail', label: 'Audit trail' },
@@ -1505,6 +1502,7 @@ export default function StaffLoanRequestShow({
                     loanTypeLabel={summaryLoanTypeLabel}
                     requestedTerm={summaryRequestedTerm}
                     availmentStatus={summaryAvailmentStatus}
+                    loanPurpose={displayText(currentRequest.loan_purpose)}
                 />
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -1519,19 +1517,6 @@ export default function StaffLoanRequestShow({
                         />
                     </div>
                     <div className="space-y-6">
-                        <div
-                            className={cn(
-                                activeSection === 'loan-purpose'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
-                            <LoanRequestPurposeCard
-                                loanPurpose={displayText(
-                                    currentRequest.loan_purpose,
-                                )}
-                            />
-                        </div>
                         <div
                             className={cn(
                                 activeSection === 'applicant'
