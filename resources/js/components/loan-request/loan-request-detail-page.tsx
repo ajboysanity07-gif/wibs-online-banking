@@ -78,6 +78,7 @@ type Props = {
     workflow?: LoanRequestWorkflowProps;
     wrapInShell?: boolean;
     hideSummaryHeader?: boolean;
+    hideMainColumn?: boolean;
 };
 
 type ApprovedDocumentHrefs = {
@@ -496,6 +497,135 @@ const PersonPanel = ({ title, person }: PersonPanelProps) => (
     </div>
 );
 
+export type LoanRequestPurposeCardProps = {
+    loanPurpose: string;
+};
+
+export const LoanRequestPurposeCard = ({
+    loanPurpose,
+}: LoanRequestPurposeCardProps) => (
+    <Card className="border-border/30 bg-card/60 shadow-sm">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <FileText className="size-4 text-muted-foreground" />
+                Loan purpose
+            </CardTitle>
+            <CardDescription>
+                Why the applicant is requesting this loan. See the summary
+                above for amount, type, and term.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <DetailRow label="Loan purpose" value={loanPurpose} />
+        </CardContent>
+    </Card>
+);
+
+export type LoanRequestApplicantCardProps = {
+    applicant: LoanRequestPersonData | null;
+};
+
+export const LoanRequestApplicantCard = ({
+    applicant,
+}: LoanRequestApplicantCardProps) => (
+    <Card className="border-border/30 bg-card/60 shadow-sm">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <UserIcon className="size-4 text-muted-foreground" />
+                Applicant
+            </CardTitle>
+            <CardDescription>
+                Primary borrower details from the request.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-3">
+                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                    Personal
+                </p>
+                <DetailRow label="Full name" value={personName(applicant)} />
+                <DetailRow
+                    label="Cell no."
+                    value={displayValue(applicant?.cell_no)}
+                />
+                <DetailRow
+                    label="Address"
+                    value={displayText(resolveAddress(applicant))}
+                />
+                <DetailRow
+                    label="Birthdate"
+                    value={displayDateValue(applicant?.birthdate)}
+                />
+                <DetailRow
+                    label="Civil status"
+                    value={displayValue(applicant?.civil_status)}
+                />
+                <DetailRow
+                    label="Number of children"
+                    value={displayValue(applicant?.number_of_children)}
+                />
+            </div>
+            <div className="space-y-3">
+                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                    Work & finances
+                </p>
+                <DetailRow
+                    label="Employment type"
+                    value={displayValue(applicant?.employment_type)}
+                />
+                <DetailRow
+                    label="Employer/Business"
+                    value={displayText(applicant?.employer_business_name)}
+                />
+                <DetailRow
+                    label="Business address"
+                    value={displayText(
+                        resolveEmployerBusinessAddress(applicant),
+                    )}
+                />
+                <DetailRow
+                    label="Current position"
+                    value={displayText(applicant?.current_position)}
+                />
+                <DetailRow
+                    label="Gross monthly income"
+                    value={displayCurrency(applicant?.gross_monthly_income)}
+                />
+                <DetailRow
+                    label="Payday"
+                    value={displayValue(applicant?.payday)}
+                />
+            </div>
+        </CardContent>
+    </Card>
+);
+
+export type LoanRequestCoMakersCardProps = {
+    coMakerOne: LoanRequestPersonData | null;
+    coMakerTwo: LoanRequestPersonData | null;
+};
+
+export const LoanRequestCoMakersCard = ({
+    coMakerOne,
+    coMakerTwo,
+}: LoanRequestCoMakersCardProps) => (
+    <Card className="border-border/30 bg-card/60 shadow-sm">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Users className="size-4 text-muted-foreground" />
+                Co-makers
+            </CardTitle>
+            <CardDescription>
+                Supporting borrowers tied to this request.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <PersonPanel title="Co-maker 1" person={coMakerOne} />
+            <PersonPanel title="Co-maker 2" person={coMakerTwo} />
+        </CardContent>
+    </Card>
+);
+
 const textareaClassName =
     'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[112px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
@@ -522,6 +652,7 @@ export function LoanRequestDetailPage({
     workflow,
     wrapInShell = true,
     hideSummaryHeader = false,
+    hideMainColumn = false,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -924,145 +1055,20 @@ export function LoanRequestDetailPage({
             ) : null}
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                <div className="space-y-6">
-                    <Card className="border-border/30 bg-card/60 shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <FileText className="size-4 text-muted-foreground" />
-                                Loan purpose
-                            </CardTitle>
-                            <CardDescription>
-                                Why the applicant is requesting this loan. See
-                                the summary above for amount, type, and term.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <DetailRow
-                                label="Loan purpose"
-                                value={loanPurpose}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-border/30 bg-card/60 shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <UserIcon className="size-4 text-muted-foreground" />
-                                Applicant
-                            </CardTitle>
-                            <CardDescription>
-                                Primary borrower details from the request.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-6 lg:grid-cols-2">
-                            <div className="space-y-3">
-                                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                    Personal
-                                </p>
-                                <DetailRow
-                                    label="Full name"
-                                    value={personName(applicant)}
-                                />
-                                <DetailRow
-                                    label="Cell no."
-                                    value={displayValue(applicant?.cell_no)}
-                                />
-                                <DetailRow
-                                    label="Address"
-                                    value={displayText(
-                                        resolveAddress(applicant),
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Birthdate"
-                                    value={displayDateValue(
-                                        applicant?.birthdate,
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Civil status"
-                                    value={displayValue(
-                                        applicant?.civil_status,
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Number of children"
-                                    value={displayValue(
-                                        applicant?.number_of_children,
-                                    )}
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                    Work & finances
-                                </p>
-                                <DetailRow
-                                    label="Employment type"
-                                    value={displayValue(
-                                        applicant?.employment_type,
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Employer/Business"
-                                    value={displayText(
-                                        applicant?.employer_business_name,
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Business address"
-                                    value={displayText(
-                                        resolveEmployerBusinessAddress(
-                                            applicant,
-                                        ),
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Current position"
-                                    value={displayText(
-                                        applicant?.current_position,
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Gross monthly income"
-                                    value={displayCurrency(
-                                        applicant?.gross_monthly_income,
-                                    )}
-                                />
-                                <DetailRow
-                                    label="Payday"
-                                    value={displayValue(applicant?.payday)}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-border/30 bg-card/60 shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Users className="size-4 text-muted-foreground" />
-                                Co-makers
-                            </CardTitle>
-                            <CardDescription>
-                                Supporting borrowers tied to this request.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <PersonPanel
-                                title="Co-maker 1"
-                                person={coMakerOne}
-                            />
-                            <PersonPanel
-                                title="Co-maker 2"
-                                person={coMakerTwo}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <LoanRequestAuditTrail
-                        entries={auditTrail}
-                        audience={auditTrailAudience}
-                    />
-                </div>
+                {!hideMainColumn ? (
+                    <div className="space-y-6">
+                        <LoanRequestPurposeCard loanPurpose={loanPurpose} />
+                        <LoanRequestApplicantCard applicant={applicant} />
+                        <LoanRequestCoMakersCard
+                            coMakerOne={coMakerOne}
+                            coMakerTwo={coMakerTwo}
+                        />
+                        <LoanRequestAuditTrail
+                            entries={auditTrail}
+                            audience={auditTrailAudience}
+                        />
+                    </div>
+                ) : null}
 
                 <div className="space-y-4 lg:sticky lg:top-24">
                     <Card className="border-border/30 bg-card/50 shadow-sm">
