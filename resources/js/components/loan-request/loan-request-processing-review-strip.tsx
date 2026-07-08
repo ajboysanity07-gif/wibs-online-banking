@@ -51,7 +51,7 @@ export function LoanRequestProcessingReviewStrip({
                         : 'Not saved yet'}
                 </p>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-3">
                 <SnapshotRow
                     label="Recommended amount"
                     value={snapshotCurrency(processingForm.recommended_amount)}
