@@ -308,6 +308,23 @@ type CorrectionFormState = {
     information_source: string;
 };
 
+type StaffSectionKey =
+    | 'loan-purpose'
+    | 'applicant'
+    | 'co-makers'
+    | 'audit-trail'
+    | 'processing-workspace'
+    | 'processing-details'
+    | 'document-checklist'
+    | 'workflow-health'
+    | 'notification-history'
+    | 'wibs-tracking';
+
+type StaffSectionMeta = {
+    key: StaffSectionKey;
+    label: string;
+};
+
 const snapshotDisplay = (value?: string | number | null): string => {
     if (value === null || value === undefined) {
         return '—';
@@ -450,6 +467,8 @@ export default function StaffLoanRequestShow({
         reason: '',
         information_source: '',
     });
+    const [activeSection, setActiveSection] =
+        useState<StaffSectionKey>('loan-purpose');
     const {
         claimLoanRequest,
         assignLoanRequest,
@@ -685,6 +704,29 @@ export default function StaffLoanRequestShow({
         'needs_revision',
         'awaiting_member_information',
     ].includes(currentRequest.status ?? '');
+    const showWibsTrackingSection =
+        hasWorkflowPermission('loan.wibs_encode') &&
+        [
+            'converted_to_loan',
+            'for_wibs_encoding',
+            'wibs_loan_created',
+            'release_scheduled',
+            'released',
+        ].includes(currentRequest.status ?? '');
+    const STAFF_SECTIONS: StaffSectionMeta[] = [
+        { key: 'loan-purpose', label: 'Loan purpose' },
+        { key: 'applicant', label: 'Applicant' },
+        { key: 'co-makers', label: 'Co-makers' },
+        { key: 'audit-trail', label: 'Audit trail' },
+        { key: 'processing-workspace', label: 'Processing workspace' },
+        { key: 'processing-details', label: 'Processing details' },
+        { key: 'document-checklist', label: 'Document checklist' },
+        { key: 'workflow-health', label: 'Workflow health' },
+        { key: 'notification-history', label: 'Notification history' },
+        ...(showWibsTrackingSection
+            ? [{ key: 'wibs-tracking' as const, label: 'WIBS Tracking' }]
+            : []),
+    ];
     const canRejectDuringProcessing =
         isV2Workflow &&
         !isOwnRequest &&
