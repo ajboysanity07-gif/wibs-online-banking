@@ -291,7 +291,7 @@ const documentResultStatusOrder = [
 ] as const;
 
 // Category A — financial processing terms edited inline on the page.
-type InlineProcessingFormState = {
+export type InlineProcessingFormState = {
     processing: Record<string, string | number | boolean | null>;
     recommended_amount: string;
     recommended_term: string;
@@ -350,7 +350,7 @@ type StaffSectionMeta = {
     label: string;
 };
 
-const snapshotDisplay = (value?: string | number | null): string => {
+export const snapshotDisplay = (value?: string | number | null): string => {
     if (value === null || value === undefined) {
         return '—';
     }
@@ -360,7 +360,7 @@ const snapshotDisplay = (value?: string | number | null): string => {
     return stringValue !== '' ? stringValue : '—';
 };
 
-const snapshotCurrency = (value?: string | number | null): string => {
+export const snapshotCurrency = (value?: string | number | null): string => {
     if (value === null || value === undefined || `${value}`.trim() === '') {
         return '—';
     }
@@ -372,7 +372,7 @@ const snapshotCurrency = (value?: string | number | null): string => {
         : formatCurrency(numericValue);
 };
 
-const SnapshotRow = ({
+export const SnapshotRow = ({
     label,
     value,
     className,
