@@ -12,7 +12,7 @@ import {
     User as UserIcon,
     Zap,
 } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -76,6 +76,7 @@ type Props = {
     correction?: CorrectionProps;
     correctedCopy?: CorrectedCopyProps;
     workflow?: LoanRequestWorkflowProps;
+    wrapInShell?: boolean;
 };
 
 type ApprovedDocumentHrefs = {
@@ -465,6 +466,7 @@ export function LoanRequestDetailPage({
     correction,
     correctedCopy,
     workflow,
+    wrapInShell = true,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -799,8 +801,14 @@ export function LoanRequestDetailPage({
         };
     }, [cancellation?.dialogEventName, cancellation?.reasonPrefill]);
 
+    // Default (wrapInShell=true) renders <PageShell size="wide" className="gap-8">, unchanged from before this prop existed.
+    const Shell = wrapInShell ? PageShell : Fragment;
+    const shellProps = wrapInShell
+        ? { size: 'wide' as const, className: 'gap-8' }
+        : {};
+
     return (
-        <PageShell size="wide" className="gap-8">
+        <Shell {...shellProps}>
             <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-3">
@@ -1864,6 +1872,6 @@ export function LoanRequestDetailPage({
                     </div>
                 </DialogContent>
             </Dialog>
-        </PageShell>
+        </Shell>
     );
 }
