@@ -727,6 +727,9 @@ export default function StaffLoanRequestShow({
             ? [{ key: 'wibs-tracking' as const, label: 'WIBS Tracking' }]
             : []),
     ];
+    // Nav (Phase 8) isn't mounted yet, so every section stays visible
+    // regardless of activeSection. Flip this on when the nav ships.
+    const sectionNavActive = false;
     const canRejectDuringProcessing =
         isV2Workflow &&
         !isOwnRequest &&
@@ -1468,6 +1471,14 @@ export default function StaffLoanRequestShow({
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="space-y-6">
                     <div className="grid gap-6">
+                        <div
+                            className={cn(
+                                !sectionNavActive ||
+                                    activeSection === 'processing-workspace'
+                                    ? 'block'
+                                    : 'hidden',
+                            )}
+                        >
                         <Card className={actionCardClassName}>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -1666,8 +1677,28 @@ export default function StaffLoanRequestShow({
                                 </div>
                             </CardContent>
                         </Card>
-                        {isProcessingStage ? inlineProcessingPanel : null}
+                        </div>
+                        {isProcessingStage ? (
+                            <div
+                                className={cn(
+                                    !sectionNavActive ||
+                                        activeSection === 'processing-details'
+                                        ? 'block'
+                                        : 'hidden',
+                                )}
+                            >
+                                {inlineProcessingPanel}
+                            </div>
+                        ) : null}
                     </div>
+                    <div
+                        className={cn(
+                            !sectionNavActive ||
+                                activeSection === 'document-checklist'
+                                ? 'block'
+                                : 'hidden',
+                        )}
+                    >
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -1882,10 +1913,19 @@ export default function StaffLoanRequestShow({
                             })}
                         </CardContent>
                     </Card>
+                    </div>
                 </div>
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div
+                        className={cn(
+                            !sectionNavActive ||
+                                activeSection === 'workflow-health'
+                                ? 'block'
+                                : 'hidden',
+                        )}
+                    >
                     <Card className={readOnlyCardClassName}>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -1967,6 +2007,15 @@ export default function StaffLoanRequestShow({
                             </div>
                         </CardContent>
                     </Card>
+                    </div>
+                    <div
+                        className={cn(
+                            !sectionNavActive ||
+                                activeSection === 'notification-history'
+                                ? 'block'
+                                : 'hidden',
+                        )}
+                    >
                     <Card className={readOnlyCardClassName}>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -2056,16 +2105,18 @@ export default function StaffLoanRequestShow({
                             )}
                         </CardContent>
                     </Card>
+                    </div>
                 </div>
             </section>
-            {hasWorkflowPermission('loan.wibs_encode') &&
-            [
-                'converted_to_loan',
-                'for_wibs_encoding',
-                'wibs_loan_created',
-                'release_scheduled',
-                'released',
-            ].includes(currentRequest.status ?? '') ? (
+            {showWibsTrackingSection ? (
+                <div
+                    className={cn(
+                        !sectionNavActive ||
+                            activeSection === 'wibs-tracking'
+                            ? 'block'
+                            : 'hidden',
+                    )}
+                >
                 <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
@@ -2282,6 +2333,7 @@ export default function StaffLoanRequestShow({
                         </CardContent>
                     </Card>
                 </section>
+                </div>
             ) : null}
             <LoanRequestDetailPage
                 loanRequest={currentRequest}
