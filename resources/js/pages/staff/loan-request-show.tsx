@@ -49,6 +49,7 @@ import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
+import { showErrorToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import {
     approvedDocuments as requestsApprovedDocuments,
@@ -942,6 +943,18 @@ export default function StaffLoanRequestShow({
     ) => {
         event.preventDefault();
 
+        if (
+            processingForm.reason.trim() === '' ||
+            processingForm.information_source.trim() === ''
+        ) {
+            setActiveProcessingSection('confirmation');
+            showErrorToast(
+                null,
+                'Reason and information source are required before saving processing details.',
+            );
+            return;
+        }
+
         const result = await updateProcessingDetails(currentRequest.id, {
             reason: processingForm.reason,
             information_source: processingForm.information_source,
@@ -1415,7 +1428,6 @@ export default function StaffLoanRequestShow({
                             <textarea
                                 id="inline_processing_reason"
                                 className={textareaClassName}
-                                required
                                 value={processingForm.reason}
                                 onChange={(event) =>
                                     setProcessingForm((current) => ({
@@ -1431,7 +1443,6 @@ export default function StaffLoanRequestShow({
                             </Label>
                             <Input
                                 id="inline_processing_information_source"
-                                required
                                 value={processingForm.information_source}
                                 onChange={(event) =>
                                     setProcessingForm((current) => ({
