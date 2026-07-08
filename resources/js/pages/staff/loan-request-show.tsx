@@ -302,6 +302,28 @@ type InlineProcessingFormState = {
     information_source: string;
 };
 
+type ProcessingSectionKey =
+    | 'recommendation'
+    | 'charges_fees'
+    | 'net_take_home_pay'
+    | 'document_requirements'
+    | 'personnel'
+    | 'confirmation';
+
+type ProcessingSectionMeta = {
+    key: ProcessingSectionKey;
+    label: string;
+};
+
+const PROCESSING_SECTIONS: ProcessingSectionMeta[] = [
+    { key: 'recommendation', label: 'Recommendation' },
+    { key: 'charges_fees', label: 'Charges & fees' },
+    { key: 'net_take_home_pay', label: 'Net take-home pay' },
+    { key: 'document_requirements', label: 'Document requirements' },
+    { key: 'personnel', label: 'Personnel' },
+    { key: 'confirmation', label: 'Confirmation' },
+];
+
 // Category B — application-data corrections edited in the modal.
 type CorrectionFormState = {
     loan_request: {
@@ -449,6 +471,10 @@ export default function StaffLoanRequestShow({
             reason: '',
             information_source: '',
         });
+    const [activeProcessingSection, setActiveProcessingSection] =
+        useState<ProcessingSectionKey>('recommendation');
+    const [lastProcessingSavedAt, setLastProcessingSavedAt] =
+        useState<Date | null>(null);
     const [correctionForm, setCorrectionForm] = useState<CorrectionFormState>({
         loan_request: {
             requested_amount: toStringValue(loanRequest.requested_amount),
@@ -936,6 +962,7 @@ export default function StaffLoanRequestShow({
                 reason: '',
                 information_source: '',
             }));
+            setLastProcessingSavedAt(new Date());
         }
     };
 
