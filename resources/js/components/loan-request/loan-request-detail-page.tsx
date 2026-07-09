@@ -1,16 +1,21 @@
 import { Link } from '@inertiajs/react';
 import {
     Activity,
+    Baby,
     Ban,
     Briefcase,
     Building2,
     Calendar,
     CalendarDays,
     ChevronDown,
+    Clock,
     Download,
     Eye,
+    Factory,
     FileText,
+    GraduationCap,
     Heart,
+    Home,
     IdCard,
     MapPin,
     PencilLine,
@@ -55,9 +60,12 @@ import { Separator } from '@/components/ui/separator';
 import {
     composeAddress,
     composeBirthplace,
+    formatCivilStatus,
     formatCurrency,
     formatDate,
     formatDisplayText,
+    formatHousingStatus,
+    formatPayday,
 } from '@/lib/formatters';
 import { showErrorToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -695,78 +703,155 @@ export type LoanRequestApplicantCardProps = {
 
 export const LoanRequestApplicantCard = ({
     applicant,
-}: LoanRequestApplicantCardProps) => (
-    <Card className="border-border/30 bg-card/60 shadow-sm">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <UserIcon className="size-4 text-muted-foreground" />
-                Applicant
-            </CardTitle>
-            <CardDescription>
-                Primary borrower details from the request.
-            </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-3">
-                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                    Personal
-                </p>
-                <DetailRow label="Full name" value={personName(applicant)} />
-                <DetailRow
-                    label="Cell no."
-                    value={displayValue(applicant?.cell_no)}
+}: LoanRequestApplicantCardProps) => {
+    const curatedFields: PersonFieldSpec[] = [
+        {
+            label: 'Cell no.',
+            icon: Phone,
+            value: displayValue(applicant?.cell_no),
+        },
+        {
+            label: 'Address',
+            icon: MapPin,
+            value: displayText(resolveAddress(applicant)),
+        },
+        {
+            label: 'Civil status',
+            icon: Heart,
+            value: applicant?.civil_status
+                ? formatCivilStatus(applicant.civil_status)
+                : '--',
+        },
+        {
+            label: 'Employment type',
+            icon: Briefcase,
+            value: displayValue(applicant?.employment_type),
+        },
+        {
+            label: 'Employer/Business',
+            icon: Building2,
+            value: displayText(applicant?.employer_business_name),
+        },
+        {
+            label: 'Current position',
+            icon: IdCard,
+            value: displayText(applicant?.current_position),
+        },
+        {
+            label: 'Gross monthly income',
+            icon: Wallet,
+            value: displayCurrency(applicant?.gross_monthly_income),
+        },
+        {
+            label: 'Payday',
+            icon: CalendarDays,
+            value: applicant?.payday ? formatPayday(applicant.payday) : '--',
+        },
+    ];
+
+    const moreFields: PersonFieldSpec[] = [
+        {
+            label: 'Nickname',
+            icon: UserIcon,
+            value: displayText(applicant?.nickname),
+        },
+        {
+            label: 'Birthdate',
+            icon: Calendar,
+            value: displayDateValue(applicant?.birthdate),
+        },
+        {
+            label: 'Birthplace',
+            icon: MapPin,
+            value: displayText(
+                composeBirthplace(
+                    applicant?.birthplace_city,
+                    applicant?.birthplace_province,
+                ),
+            ),
+        },
+        {
+            label: 'Length of stay',
+            icon: Clock,
+            value: displayText(applicant?.length_of_stay),
+        },
+        {
+            label: 'Housing status',
+            icon: Home,
+            value: applicant?.housing_status
+                ? formatHousingStatus(applicant.housing_status)
+                : '--',
+        },
+        {
+            label: 'Educational attainment',
+            icon: GraduationCap,
+            value: displayText(applicant?.educational_attainment),
+        },
+        {
+            label: 'Number of children',
+            icon: Baby,
+            value: displayValue(applicant?.number_of_children),
+        },
+        {
+            label: 'Spouse name',
+            icon: Heart,
+            value: displayText(applicant?.spouse_name),
+        },
+        {
+            label: 'Spouse age',
+            icon: CalendarDays,
+            value: displayValue(applicant?.spouse_age),
+        },
+        {
+            label: 'Spouse cell no.',
+            icon: Phone,
+            value: displayValue(applicant?.spouse_cell_no),
+        },
+        {
+            label: 'Business address',
+            icon: MapPin,
+            value: displayText(resolveEmployerBusinessAddress(applicant)),
+        },
+        {
+            label: 'Telephone no.',
+            icon: Phone,
+            value: displayValue(applicant?.telephone_no),
+        },
+        {
+            label: 'Nature of business',
+            icon: Factory,
+            value: displayText(applicant?.nature_of_business),
+        },
+        {
+            label: 'Years in work/business',
+            icon: Clock,
+            value: displayText(applicant?.years_in_work_business),
+        },
+    ];
+
+    return (
+        <Card className="border-border/30 bg-card/60 shadow-sm">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <UserIcon className="size-4 text-muted-foreground" />
+                    Applicant
+                </CardTitle>
+                <CardDescription>
+                    Primary borrower details from the request.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <PersonAccordionRow
+                    title="Applicant"
+                    person={applicant}
+                    subtitle={displayText(applicant?.employer_business_name)}
+                    curatedFields={curatedFields}
+                    moreFields={moreFields}
                 />
-                <DetailRow
-                    label="Address"
-                    value={displayText(resolveAddress(applicant))}
-                />
-                <DetailRow
-                    label="Birthdate"
-                    value={displayDateValue(applicant?.birthdate)}
-                />
-                <DetailRow
-                    label="Civil status"
-                    value={displayValue(applicant?.civil_status)}
-                />
-                <DetailRow
-                    label="Number of children"
-                    value={displayValue(applicant?.number_of_children)}
-                />
-            </div>
-            <div className="space-y-3">
-                <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                    Work & finances
-                </p>
-                <DetailRow
-                    label="Employment type"
-                    value={displayValue(applicant?.employment_type)}
-                />
-                <DetailRow
-                    label="Employer/Business"
-                    value={displayText(applicant?.employer_business_name)}
-                />
-                <DetailRow
-                    label="Business address"
-                    value={displayText(
-                        resolveEmployerBusinessAddress(applicant),
-                    )}
-                />
-                <DetailRow
-                    label="Current position"
-                    value={displayText(applicant?.current_position)}
-                />
-                <DetailRow
-                    label="Gross monthly income"
-                    value={displayCurrency(applicant?.gross_monthly_income)}
-                />
-                <DetailRow
-                    label="Payday"
-                    value={displayValue(applicant?.payday)}
-                />
-            </div>
-        </CardContent>
-    </Card>
-);
+            </CardContent>
+        </Card>
+    );
+};
 
 export type LoanRequestCoMakersCardProps = {
     coMakerOne: LoanRequestPersonData | null;
