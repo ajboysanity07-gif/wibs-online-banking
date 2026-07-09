@@ -67,6 +67,24 @@ export type LoanRequestWorkflowDeclinePayload = {
     decline_reason: string;
 };
 
+export type LoanRequestWorkflowRejectDuringProcessingPayload = {
+    rejection_category: string;
+    member_visible_reason: string;
+};
+
+export type LoanRequestWorkflowReturnForProcessingPayload = {
+    reason: string;
+};
+
+export type LoanRequestWorkflowReopenPayload = {
+    reason: string;
+    retain_assignment: boolean;
+};
+
+export type LoanRequestWorkflowUpgradeWorkflowPayload = {
+    reason: string;
+};
+
 type LoanRequestWorkflowActionConfig<TPayload> = {
     show?: boolean;
     isProcessing?: boolean;
@@ -74,6 +92,12 @@ type LoanRequestWorkflowActionConfig<TPayload> = {
 };
 
 type LoanRequestWorkflowClaimActionConfig = {
+    show?: boolean;
+    isProcessing?: boolean;
+    onSubmit?: () => AsyncResult;
+};
+
+type LoanRequestWorkflowGenerateDocumentsActionConfig = {
     show?: boolean;
     isProcessing?: boolean;
     onSubmit?: () => AsyncResult;
@@ -97,6 +121,11 @@ export type LoanRequestWorkflowProps = {
     recommendApproval?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowRecommendApprovalPayload>;
     approve?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowApprovePayload>;
     decline?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowDeclinePayload>;
+    rejectDuringProcessing?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowRejectDuringProcessingPayload>;
+    returnForProcessing?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowReturnForProcessingPayload>;
+    reopen?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowReopenPayload>;
+    upgradeWorkflow?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowUpgradeWorkflowPayload>;
+    generateDocuments?: LoanRequestWorkflowGenerateDocumentsActionConfig;
 };
 
 type Props = {
@@ -227,6 +256,12 @@ export function LoanRequestWorkflowActions({
         Boolean(workflow?.recommendApproval?.show);
     const hasManagerActions =
         Boolean(workflow?.approve?.show) || Boolean(workflow?.decline?.show);
+    const hasProcessingActions =
+        Boolean(workflow?.rejectDuringProcessing?.show) ||
+        Boolean(workflow?.returnForProcessing?.show) ||
+        Boolean(workflow?.reopen?.show) ||
+        Boolean(workflow?.upgradeWorkflow?.show) ||
+        Boolean(workflow?.generateDocuments?.show);
 
     useEffect(() => {
         const nextAmount =
@@ -283,7 +318,12 @@ export function LoanRequestWorkflowActions({
         }
     }, [reassignOfficerOptions, reassignOfficerUserId]);
 
-    if (!hasAssignmentActions && !hasOfficerActions && !hasManagerActions) {
+    if (
+        !hasAssignmentActions &&
+        !hasOfficerActions &&
+        !hasManagerActions &&
+        !hasProcessingActions
+    ) {
         return null;
     }
 
