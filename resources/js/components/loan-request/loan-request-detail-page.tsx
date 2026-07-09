@@ -2,17 +2,27 @@ import { Link } from '@inertiajs/react';
 import {
     Activity,
     Ban,
+    Briefcase,
+    Building2,
     Calendar,
+    CalendarDays,
+    ChevronDown,
     Download,
     Eye,
     FileText,
+    Heart,
+    IdCard,
+    MapPin,
     PencilLine,
+    Phone,
     Printer,
     Users,
     User as UserIcon,
+    Wallet,
     Zap,
 } from 'lucide-react';
-import { Fragment, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import { Fragment, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -510,6 +520,150 @@ const PersonPanel = ({ title, person }: PersonPanelProps) => (
         </div>
     </div>
 );
+
+export type PersonFieldSpec = {
+    label: string;
+    icon: LucideIcon;
+    value: string;
+};
+
+const PersonFieldRow = ({ label, icon: Icon, value }: PersonFieldSpec) => (
+    <div className="flex items-start gap-2">
+        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-sm leading-relaxed font-medium">{value}</p>
+        </div>
+    </div>
+);
+
+export type PersonAccordionRowProps = {
+    title: string;
+    person: LoanRequestPersonData | null;
+    subtitle: string;
+    curatedFields: PersonFieldSpec[];
+    moreFields: PersonFieldSpec[];
+};
+
+const PersonAccordionRow = ({
+    title,
+    person,
+    subtitle,
+    curatedFields,
+    moreFields,
+}: PersonAccordionRowProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isShowingMore, setIsShowingMore] = useState(false);
+    const contentId = useId();
+    const moreContentId = useId();
+
+    const toggleExpanded = () => {
+        setIsExpanded((current) => {
+            const next = !current;
+
+            if (!next) {
+                setIsShowingMore(false);
+            }
+
+            return next;
+        });
+    };
+
+    const name = personName(person);
+    const initial = person && name !== '--' ? name.charAt(0).toUpperCase() : '--';
+
+    return (
+        <div className="rounded-xl border border-border/20 bg-muted/10">
+            <button
+                type="button"
+                className="flex w-full items-center gap-3 p-4 text-left"
+                aria-expanded={isExpanded}
+                aria-controls={contentId}
+                onClick={toggleExpanded}
+            >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {initial}
+                </span>
+                <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-foreground">
+                        {title}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                        {name} · {subtitle}
+                    </span>
+                </span>
+                <ChevronDown
+                    className={cn(
+                        'size-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none',
+                        isExpanded ? 'rotate-0' : '-rotate-90',
+                    )}
+                />
+            </button>
+            <div
+                id={contentId}
+                className={cn(
+                    'grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none',
+                    isExpanded
+                        ? 'grid-rows-[1fr] opacity-100'
+                        : 'grid-rows-[0fr] opacity-0',
+                )}
+            >
+                <div className="overflow-hidden">
+                    <div className="space-y-4 px-4 pb-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {curatedFields.map((field) => (
+                                <PersonFieldRow key={field.label} {...field} />
+                            ))}
+                        </div>
+                        {moreFields.length > 0 ? (
+                            <div>
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                                    aria-expanded={isShowingMore}
+                                    aria-controls={moreContentId}
+                                    onClick={() =>
+                                        setIsShowingMore((current) => !current)
+                                    }
+                                >
+                                    {isShowingMore ? 'Show less' : 'Show more'}
+                                    <ChevronDown
+                                        className={cn(
+                                            'size-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none',
+                                            isShowingMore
+                                                ? 'rotate-0'
+                                                : '-rotate-90',
+                                        )}
+                                    />
+                                </button>
+                                <div
+                                    id={moreContentId}
+                                    className={cn(
+                                        'grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none',
+                                        isShowingMore
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0',
+                                    )}
+                                >
+                                    <div className="overflow-hidden">
+                                        <div className="grid gap-4 pt-4 sm:grid-cols-2">
+                                            {moreFields.map((field) => (
+                                                <PersonFieldRow
+                                                    key={field.label}
+                                                    {...field}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export type LoanRequestPurposeCardProps = {
     loanPurpose: string;
