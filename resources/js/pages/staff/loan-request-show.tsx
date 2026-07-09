@@ -1,5 +1,19 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Bell, ClipboardCheck, FileText, HeartPulse } from 'lucide-react';
+import {
+    AlertCircle,
+    Bell,
+    CheckCircle2,
+    Circle,
+    ClipboardCheck,
+    Clock,
+    FileText,
+    HeartPulse,
+    MinusCircle,
+    MoreHorizontal,
+    PlayCircle,
+    RefreshCw,
+    XCircle,
+} from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
@@ -37,6 +51,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -226,24 +246,29 @@ const displayChecklistStatusTone = (status: string): string => {
     );
 };
 
-const dotColorClass = (status: LoanRequestDocumentReadinessStatus): string => {
-    if (status === 'ready_to_generate') {
-        return 'bg-primary';
+const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
+    switch (status) {
+        case 'not_started':
+            return { Icon: Circle, className: 'text-muted-foreground' };
+        case 'incomplete':
+            return { Icon: AlertCircle, className: 'text-amber-600 dark:text-amber-300' };
+        case 'awaiting_member_confirmation':
+            return { Icon: Clock, className: 'text-violet-600 dark:text-violet-300' };
+        case 'ready_to_generate':
+            return { Icon: PlayCircle, className: 'text-sky-600 dark:text-sky-300' };
+        case 'generated_current':
+            return { Icon: CheckCircle2, className: 'text-emerald-600 dark:text-emerald-300' };
+        case 'generated_stale':
+            return { Icon: RefreshCw, className: 'text-amber-600 dark:text-amber-300' };
+        case 'generation_failed':
+            return { Icon: XCircle, className: 'text-rose-600 dark:text-rose-300' };
+        case 'not_applicable':
+            return { Icon: MinusCircle, className: 'text-muted-foreground' };
+        case 'legacy_data_incomplete':
+            return { Icon: AlertCircle, className: 'text-amber-600 dark:text-amber-300' };
+        default:
+            return { Icon: Circle, className: 'text-muted-foreground' };
     }
-
-    if (status === 'incomplete') {
-        return 'bg-amber-500';
-    }
-
-    if (status === 'generated_current') {
-        return 'bg-emerald-500';
-    }
-
-    if (status === 'not_applicable') {
-        return 'bg-muted-foreground/40';
-    }
-
-    return 'bg-border';
 };
 
 const cardTintClass = (status: LoanRequestDocumentReadinessStatus): string => {
@@ -411,9 +436,6 @@ export default function StaffLoanRequestShow({
     const [lastDocumentResults, setLastDocumentResults] = useState<
         LoanRequestDocumentChecklistItem[] | null
     >(null);
-    const [expandedDocumentBlockers, setExpandedDocumentBlockers] = useState<
-        Set<LoanRequestDocumentKey>
-    >(new Set());
     const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
     const [isMemberActionDialogOpen, setIsMemberActionDialogOpen] =
         useState(false);
@@ -979,20 +1001,6 @@ export default function StaffLoanRequestShow({
     ) => {
         await generateDocuments(currentRequest.id, {
             document_key: documentKey ?? null,
-        });
-    };
-
-    const toggleDocumentBlockers = (key: LoanRequestDocumentKey) => {
-        setExpandedDocumentBlockers((current) => {
-            const next = new Set(current);
-
-            if (next.has(key)) {
-                next.delete(key);
-            } else {
-                next.add(key);
-            }
-
-            return next;
         });
     };
 
@@ -1782,8 +1790,17 @@ export default function StaffLoanRequestShow({
                                 recommendation.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                            {currentDocumentChecklist.map((document) => {
+                        <CardContent className="flex flex-col divide-y divide-border/40">
+                            {[...currentDocumentChecklist]
+                                .sort((a, b) => {
+                                    const aIncomplete =
+                                        a.blockers.length > 0 ? 1 : 0;
+                                    const bIncomplete =
+                                        b.blockers.length > 0 ? 1 : 0;
+
+                                    return bIncomplete - aIncomplete;
+                                })
+                                .map((document) => {
                                 const viewHref = `/staff/loan-requests/${currentRequest.id}/documents/generated/${document.key}`;
                                 const isWorkbookDocument = [
                                     'loan_information',
@@ -1803,78 +1820,102 @@ export default function StaffLoanRequestShow({
                                     (document.generated_version ?? 0) > 0;
                                 const missingFieldCount =
                                     document.blockers.length;
-                                const areBlockersExpanded =
-                                    expandedDocumentBlockers.has(document.key);
+                                const { Icon: StatusIcon, className: statusIconClassName } =
+                                    checklistStatusIcon(document.status);
+                                const subtitle =
+                                    missingFieldCount > 0
+                                        ? `${missingFieldCount} field${missingFieldCount === 1 ? '' : 's'} required`
+                                        : (document.template_version ??
+                                          document.key);
 
                                 return (
                                     <div
                                         key={document.key}
                                         className={cn(
-                                            'rounded-xl border border-border/40 p-4',
+                                            'flex flex-col gap-2 py-3 first:pt-0 last:pb-0',
                                             cardTintClass(document.status),
                                         )}
                                     >
                                         <div className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2">
-                                                <span
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                <StatusIcon
                                                     className={cn(
-                                                        'inline-block size-2.5 shrink-0 rounded-full',
-                                                        dotColorClass(
-                                                            document.status,
-                                                        ),
+                                                        'size-4 shrink-0',
+                                                        statusIconClassName,
                                                     )}
                                                 />
-                                                <p className="text-sm font-semibold">
-                                                    {document.label}
-                                                </p>
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold">
+                                                        {document.label}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {subtitle}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-wrap items-center gap-2">
+                                            <div className="flex shrink-0 items-center gap-2">
+                                                <span
+                                                    className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(document.status)}`}
+                                                >
+                                                    {document.status_label}
+                                                </span>
                                                 {document.generated_filename ? (
-                                                    <>
-                                                        <Button
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger
                                                             asChild
-                                                            size="sm"
-                                                            variant="outline"
                                                         >
-                                                            <a
-                                                                href={
-                                                                    previewHref
-                                                                }
-                                                                target="_blank"
-                                                                rel="noreferrer"
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
                                                             >
-                                                                Preview
-                                                            </a>
-                                                        </Button>
-                                                        <Button
-                                                            asChild
-                                                            size="sm"
-                                                            variant="outline"
-                                                        >
-                                                            <a
-                                                                href={
-                                                                    printDocumentHref
-                                                                }
-                                                                target="_blank"
-                                                                rel="noreferrer"
+                                                                <MoreHorizontal className="size-4" />
+                                                                <span className="sr-only">
+                                                                    Document
+                                                                    actions
+                                                                </span>
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem
+                                                                asChild
                                                             >
-                                                                Print
-                                                            </a>
-                                                        </Button>
-                                                        <Button
-                                                            asChild
-                                                            size="sm"
-                                                            variant="outline"
-                                                        >
-                                                            <a
-                                                                href={
-                                                                    downloadHref
-                                                                }
+                                                                <a
+                                                                    href={
+                                                                        previewHref
+                                                                    }
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    Preview
+                                                                </a>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                asChild
                                                             >
-                                                                Download
-                                                            </a>
-                                                        </Button>
-                                                    </>
+                                                                <a
+                                                                    href={
+                                                                        printDocumentHref
+                                                                    }
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    Print
+                                                                </a>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                asChild
+                                                            >
+                                                                <a
+                                                                    href={
+                                                                        downloadHref
+                                                                    }
+                                                                >
+                                                                    Download
+                                                                </a>
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 ) : null}
                                                 {canGenerateDocuments &&
                                                 document.is_applicable ? (
@@ -1895,90 +1936,39 @@ export default function StaffLoanRequestShow({
                                                 ) : null}
                                             </div>
                                         </div>
-                                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                                            <span
-                                                className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(document.status)}`}
-                                            >
-                                                {document.status_label}
-                                            </span>
-                                            {document.template_version ? (
-                                                <span className="rounded-full border border-border/50 px-2 py-1 text-[11px] text-muted-foreground">
-                                                    {document.template_version}
-                                                </span>
-                                            ) : null}
-                                            {document.generated_at ? (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Last generated:{' '}
-                                                    {formatDateTime(
-                                                        document.generated_at,
-                                                    )}
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                        {hasBeenGenerated ? (
-                                            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                                <span>
-                                                    Generated by:{' '}
-                                                    {document.generated_by ??
-                                                        '-'}
-                                                </span>
-                                                <span>
-                                                    Generated version:{' '}
-                                                    {document.generated_version}
-                                                </span>
-                                                <span>
-                                                    Source version:{' '}
-                                                    {document.source_version ??
-                                                        '-'}
-                                                </span>
-                                            </div>
-                                        ) : null}
-                                        {missingFieldCount > 0 ? (
-                                            <div className="mt-3 text-xs">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="font-medium text-amber-700 dark:text-amber-300">
-                                                        {missingFieldCount}{' '}
-                                                        field
-                                                        {missingFieldCount === 1
-                                                            ? ''
-                                                            : 's'}{' '}
-                                                        required
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        className="text-muted-foreground hover:text-foreground hover:underline"
-                                                        onClick={() =>
-                                                            toggleDocumentBlockers(
-                                                                document.key,
-                                                            )
-                                                        }
-                                                    >
-                                                        {areBlockersExpanded
-                                                            ? 'Hide details'
-                                                            : 'Show details'}
-                                                    </button>
-                                                </div>
-                                                {areBlockersExpanded ? (
-                                                    <ul className="mt-2 space-y-1 text-muted-foreground">
-                                                        {document.blockers.map(
-                                                            (blocker) => (
-                                                                <li
-                                                                    key={
-                                                                        blocker
-                                                                    }
-                                                                >
-                                                                    {blocker}
-                                                                </li>
-                                                            ),
+                                        {document.generated_at ||
+                                        hasBeenGenerated ? (
+                                            <div className="flex flex-wrap items-center gap-3 pl-6 text-[11px] text-muted-foreground">
+                                                {document.generated_at ? (
+                                                    <span>
+                                                        Last generated:{' '}
+                                                        {formatDateTime(
+                                                            document.generated_at,
                                                         )}
-                                                    </ul>
+                                                    </span>
+                                                ) : null}
+                                                {hasBeenGenerated ? (
+                                                    <span>
+                                                        Generated by:{' '}
+                                                        {document.generated_by ??
+                                                            '-'}{' '}
+                                                        (v
+                                                        {
+                                                            document.generated_version
+                                                        }
+                                                        {document.source_version
+                                                            ? `, source v${document.source_version}`
+                                                            : ''}
+                                                        )
+                                                    </span>
                                                 ) : null}
                                             </div>
                                         ) : null}
-                                        {document.failure_message ? (
-                                            <span className="mt-3 inline-block rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-200">
+                                        {document.failure_message &&
+                                        document.status !== 'incomplete' ? (
+                                            <p className="pl-6 text-[11px] font-medium text-rose-700 dark:text-rose-200">
                                                 {document.failure_message}
-                                            </span>
+                                            </p>
                                         ) : null}
                                     </div>
                                 );
