@@ -54,6 +54,12 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(workflowActionsFile, /Recommend Approval/);
     assert.match(workflowActionsFile, /High workload/);
     assert.doesNotMatch(workflowActionsFile, /Convert to Loan/);
+    assert.match(workflowActionsFile, /Reject During Processing/);
+    assert.match(workflowActionsFile, /Return for Processing/);
+    assert.match(workflowActionsFile, /Reopen Rejected Request/);
+    assert.match(workflowActionsFile, /Upgrade to Document Workflow v2/);
+    assert.match(workflowActionsFile, /Generate All Required Documents/);
+    assert.match(workflowActionsFile, /hasProcessingActions/);
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
     assert.match(adminPageFile, /workflowPermissions/);
