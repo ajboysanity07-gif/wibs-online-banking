@@ -606,7 +606,6 @@ class LoanRequestDocumentWorkflowService
                     'payment_mode_workbook' => $loanRequest->recommended_payment_frequency,
                 ],
                 'processing' => [
-                    'loan_security_details' => $flatValues['loan_security_details'] ?? null,
                     'notarial_venue' => $flatValues['notarial_venue'] ?? null,
                     'barangay_name' => $flatValues['barangay_name'] ?? null,
                     'barangay_clearance_reference' => $flatValues['barangay_clearance_reference'] ?? null,
@@ -700,7 +699,6 @@ class LoanRequestDocumentWorkflowService
         if (($flatValues['security_required'] ?? null) === false) {
             $requiredFields = array_values(array_diff($requiredFields, [
                 'loan_security_rate',
-                'loan_security_details',
             ]));
         }
 

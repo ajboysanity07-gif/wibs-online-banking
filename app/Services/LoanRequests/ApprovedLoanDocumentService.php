@@ -949,9 +949,6 @@ class ApprovedLoanDocumentService
                 ),
             ],
             'security' => [
-                'loan_security_details' => $this->normalizeText(
-                    $overrideProcessing['loan_security_details'] ?? $flatValues['loan_security_details'] ?? null,
-                ),
                 'notarial_venue' => $this->normalizeText(
                     $overrideProcessing['notarial_venue'] ?? $flatValues['notarial_venue'] ?? null,
                 ),

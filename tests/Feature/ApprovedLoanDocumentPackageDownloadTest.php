@@ -2554,7 +2554,6 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         'barangay_locality' => ['string', 'Tagum City, Davao del Norte'],
         'barangay_official_name' => ['string', 'Hon. Pedro Santos'],
         'barangay_official_title' => ['string', 'Barangay Captain'],
-        'loan_security_details' => ['string', 'Salary receivables and related security undertakings'],
         'notarial_venue' => ['string', 'Tagum City, Davao del Norte'],
     ] as $fieldKey => [$valueType, $value]) {
         approvedLoanDocumentsPersistDataEntry(

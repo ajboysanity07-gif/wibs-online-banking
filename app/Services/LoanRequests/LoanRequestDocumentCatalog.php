@@ -127,8 +127,11 @@ class LoanRequestDocumentCatalog
         ],
         'authorization' => [
             'template_version' => 'authorization-v2',
-            'applicability' => 'authorization',
-            'required_fields' => [],
+            'applicability' => 'always',
+            'required_fields' => [
+                'payout_bank_name',
+                'payout_account_number',
+            ],
             'source_fields' => [
                 'payout_bank_name',
                 'payout_account_number',
@@ -316,8 +319,11 @@ class LoanRequestDocumentCatalog
         ],
         'undertaking_barangay' => [
             'template_version' => 'undertaking-barangay-v2',
-            'applicability' => 'barangay',
-            'required_fields' => [],
+            'applicability' => 'always',
+            'required_fields' => [
+                'barangay_name',
+                'barangay_clearance_reference',
+            ],
             'source_fields' => [
                 'barangay_name',
                 'barangay_clearance_reference',
@@ -341,7 +347,7 @@ class LoanRequestDocumentCatalog
         ],
         'loan_security_agreement' => [
             'template_version' => 'loan-security-agreement-v2',
-            'applicability' => 'security',
+            'applicability' => 'always',
             'required_fields' => [
                 'notarial_venue',
             ],
@@ -408,9 +414,6 @@ class LoanRequestDocumentCatalog
 
         return match ($rule) {
             'insurance' => $this->insuranceApplicable($flatValues),
-            'authorization' => $this->authorizationApplicable($flatValues),
-            'barangay' => $this->barangayApplicable($flatValues),
-            'security' => $this->securityApplicable($flatValues),
             default => true,
         };
     }
@@ -496,62 +499,5 @@ class LoanRequestDocumentCatalog
         }
 
         return true;
-    }
-
-    private function authorizationApplicable(array $flatValues): bool
-    {
-        if (($flatValues['authorization_required'] ?? null) === false) {
-            return false;
-        }
-
-        return $this->hasAnyValue($flatValues, [
-            'payout_bank_name',
-            'payout_account_number',
-        ]);
-    }
-
-    private function barangayApplicable(array $flatValues): bool
-    {
-        if (($flatValues['barangay_required'] ?? null) === false) {
-            return false;
-        }
-
-        return $this->hasAnyValue($flatValues, [
-            'barangay_name',
-            'barangay_clearance_reference',
-            'barangay_locality',
-        ]);
-    }
-
-    private function securityApplicable(array $flatValues): bool
-    {
-        if (($flatValues['security_required'] ?? null) === false) {
-            return false;
-        }
-
-        return $this->hasAnyValue($flatValues, [
-            'loan_security_details',
-            'loan_security_rate',
-        ]);
-    }
-
-    /**
-     * @param  list<string>  $fieldKeys
-     */
-    private function hasAnyValue(array $flatValues, array $fieldKeys): bool
-    {
-        foreach ($fieldKeys as $fieldKey) {
-            $value = $flatValues[$fieldKey] ?? null;
-
-            if (is_bool($value)) {
-                return true;
-            }
-
-            if ($value !== null && trim((string) $value) !== '') {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
