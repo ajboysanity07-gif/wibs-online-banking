@@ -1807,10 +1807,7 @@ export default function StaffLoanRequestShow({
                                 const { Icon: StatusIcon, className: statusIconClassName } =
                                     checklistStatusIcon(document.status);
                                 const subtitle =
-                                    missingFieldCount > 0
-                                        ? 'Missing required information'
-                                        : (document.template_version ??
-                                          document.key);
+                                    document.template_version ?? document.key;
 
                                 return (
                                     <div
@@ -1836,8 +1833,12 @@ export default function StaffLoanRequestShow({
                                             </div>
                                             <div className="flex shrink-0 items-center gap-2">
                                                 {missingFieldCount > 0 ? (
-                                                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-200">
+                                                    <span className="text-xs text-muted-foreground">
                                                         {missingFieldCount}{' '}
+                                                        field
+                                                        {missingFieldCount === 1
+                                                            ? ''
+                                                            : 's'}{' '}
                                                         missing
                                                     </span>
                                                 ) : null}

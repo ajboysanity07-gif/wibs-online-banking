@@ -29,3 +29,23 @@ test('document checklist renders as a flat row list with an overflow menu, not t
     assert.ok(pageFile.includes('checklistStatusIcon'));
     assert.ok(pageFile.includes("document.status !== 'incomplete'"));
 });
+
+test('document checklist rows show missing-field count as plain text, not a badge', async () => {
+    const pageFile = await readSource([
+        'resources',
+        'js',
+        'pages',
+        'staff',
+        'loan-request-show.tsx',
+    ]);
+
+    const rowsStart = pageFile.indexOf('const missingFieldCount =');
+    const rowsBlock = pageFile.slice(
+        rowsStart,
+        pageFile.indexOf('{showWibsTrackingSection ?', rowsStart),
+    );
+
+    assert.ok(rowsBlock.includes('missing'));
+    assert.ok(!rowsBlock.includes('rounded-full'));
+    assert.ok(!rowsBlock.includes('displayChecklistStatusTone'));
+});
