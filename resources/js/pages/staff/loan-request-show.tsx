@@ -342,7 +342,6 @@ type CorrectionFormState = {
 };
 
 type StaffSectionKey =
-    | 'processing-workspace'
     | 'processing-details'
     | 'document-checklist'
     | 'wibs-tracking';
@@ -434,12 +433,6 @@ export default function StaffLoanRequestShow({
     const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
     const [isMemberActionDialogOpen, setIsMemberActionDialogOpen] =
         useState(false);
-    const [isRejectDuringProcessingOpen, setIsRejectDuringProcessingOpen] =
-        useState(false);
-    const [isReturnForProcessingOpen, setIsReturnForProcessingOpen] =
-        useState(false);
-    const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
-    const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
     const [wibsReference, setWibsReference] = useState('');
     const [wibsReleaseDate, setWibsReleaseDate] = useState('');
     const [isWibsSubmitting, setIsWibsSubmitting] = useState(false);
@@ -451,14 +444,6 @@ export default function StaffLoanRequestShow({
     const [selectedMemberFields, setSelectedMemberFields] = useState<string[]>(
         [],
     );
-    const [rejectCategory, setRejectCategory] = useState('');
-    const [rejectReason, setRejectReason] = useState('');
-    const [returnForProcessingReason, setReturnForProcessingReason] =
-        useState('');
-    const [reopenReason, setReopenReason] = useState('');
-    const [retainAssignmentOnReopen, setRetainAssignmentOnReopen] =
-        useState(false);
-    const [upgradeReason, setUpgradeReason] = useState('');
     const [processingForm, setProcessingForm] =
         useState<InlineProcessingFormState>({
             processing: { ...dataSections.processing },
@@ -491,7 +476,7 @@ export default function StaffLoanRequestShow({
         information_source: '',
     });
     const [activeSection, setActiveSection] =
-        useState<StaffSectionKey>('processing-workspace');
+        useState<StaffSectionKey>('document-checklist');
     const {
         claimLoanRequest,
         assignLoanRequest,
@@ -737,7 +722,6 @@ export default function StaffLoanRequestShow({
             'released',
         ].includes(currentRequest.status ?? '');
     const STAFF_SECTIONS: StaffSectionMeta[] = [
-        { key: 'processing-workspace', label: 'Processing workspace' },
         { key: 'processing-details', label: 'Processing details' },
         { key: 'document-checklist', label: 'Document checklist' },
         ...(showWibsTrackingSection
@@ -1012,69 +996,6 @@ export default function StaffLoanRequestShow({
             setMemberActionMessage('');
             setMemberActionReason('');
             setSelectedMemberFields([]);
-        }
-    };
-
-    const submitRejectDuringProcessing = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
-        event.preventDefault();
-
-        const result = await rejectLoanRequestDuringProcessing(
-            currentRequest.id,
-            {
-                rejection_category: rejectCategory,
-                member_visible_reason: rejectReason,
-            },
-        );
-
-        if (result) {
-            setIsRejectDuringProcessingOpen(false);
-            setRejectCategory('');
-            setRejectReason('');
-        }
-    };
-
-    const submitReturnForProcessing = async (
-        event: FormEvent<HTMLFormElement>,
-    ) => {
-        event.preventDefault();
-
-        const result = await returnForProcessing(currentRequest.id, {
-            reason: returnForProcessingReason,
-        });
-
-        if (result) {
-            setIsReturnForProcessingOpen(false);
-            setReturnForProcessingReason('');
-        }
-    };
-
-    const submitReopen = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const result = await reopenLoanRequest(currentRequest.id, {
-            reason: reopenReason,
-            retain_assignment: retainAssignmentOnReopen,
-        });
-
-        if (result) {
-            setIsReopenDialogOpen(false);
-            setReopenReason('');
-            setRetainAssignmentOnReopen(false);
-        }
-    };
-
-    const submitUpgradeWorkflow = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const result = await upgradeWorkflow(currentRequest.id, {
-            reason: upgradeReason,
-        });
-
-        if (result) {
-            setIsUpgradeDialogOpen(false);
-            setUpgradeReason('');
         }
     };
 
@@ -1883,182 +1804,6 @@ export default function StaffLoanRequestShow({
                         />
                     </div>
                     <div className="space-y-6">
-                        <div
-                            className={cn(
-                                activeSection === 'processing-workspace'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
-                        <Card className={actionCardClassName}>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Workflow className="size-4 text-primary" />
-                                    Processing workspace
-                                </CardTitle>
-                                <CardDescription>
-                                    Keep the request data, member follow-up, and
-                                    document package current before
-                                    recommendation.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <Badge variant="outline">
-                                        Workflow:{' '}
-                                        {currentRequest.workflow_version ===
-                                        'document_workflow_v2'
-                                            ? 'Document Workflow v2'
-                                            : 'Legacy v1'}
-                                    </Badge>
-                                    {assignedProcessorId !== null ? (
-                                        <Badge variant="secondary">
-                                            Assigned Loan Processor
-                                        </Badge>
-                                    ) : null}
-                                </div>
-                                {lastDocumentResults !== null ? (
-                                    <Alert className="border-sky-500/30 bg-sky-500/10">
-                                        <AlertTitle>
-                                            Document generation results
-                                        </AlertTitle>
-                                        <AlertDescription>
-                                            <p>
-                                                {lastDocumentResults.length}{' '}
-                                                document
-                                                {lastDocumentResults.length ===
-                                                1
-                                                    ? ''
-                                                    : 's'}{' '}
-                                                refreshed from the latest
-                                                generation run.
-                                            </p>
-                                            {documentResultSummary.length >
-                                            0 ? (
-                                                <div className="mt-2 flex flex-wrap gap-2">
-                                                    {documentResultSummary.map(
-                                                        (item) => (
-                                                            <span
-                                                                key={
-                                                                    item.status
-                                                                }
-                                                                className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(item.status)}`}
-                                                            >
-                                                                {item.label}:{' '}
-                                                                {item.count}
-                                                            </span>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            ) : null}
-                                        </AlertDescription>
-                                    </Alert>
-                                ) : null}
-                                {currentRequest.member_action_type !== null ? (
-                                    <Alert className="border-violet-500/30 bg-violet-500/10">
-                                        <AlertTitle>
-                                            Pending member action
-                                        </AlertTitle>
-                                        <AlertDescription>
-                                            {currentRequest.member_action_message ??
-                                                'This request is waiting for a member response.'}
-                                        </AlertDescription>
-                                    </Alert>
-                                ) : null}
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {canUpdateProcessing ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsCorrectionDialogOpen(true)
-                                            }
-                                        >
-                                            Correct Application Data
-                                        </Button>
-                                    ) : null}
-                                    {canRequestMemberAction ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsMemberActionDialogOpen(
-                                                    true,
-                                                )
-                                            }
-                                        >
-                                            Request Member Action
-                                        </Button>
-                                    ) : null}
-                                    {canRejectDuringProcessing ? (
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsRejectDuringProcessingOpen(
-                                                    true,
-                                                )
-                                            }
-                                        >
-                                            Reject During Processing
-                                        </Button>
-                                    ) : null}
-                                    {canGenerateDocuments ? (
-                                        <Button
-                                            type="button"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                void submitGenerateDocuments()
-                                            }
-                                        >
-                                            Generate All Required Documents
-                                        </Button>
-                                    ) : null}
-                                    {canReturnForProcessing ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsReturnForProcessingOpen(
-                                                    true,
-                                                )
-                                            }
-                                        >
-                                            Return for Processing
-                                        </Button>
-                                    ) : null}
-                                    {canReopenRejectedRequest ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsReopenDialogOpen(true)
-                                            }
-                                        >
-                                            Reopen Rejected Request
-                                        </Button>
-                                    ) : null}
-                                    {canUpgradeWorkflow ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={isWorkflowProcessing}
-                                            onClick={() =>
-                                                setIsUpgradeDialogOpen(true)
-                                            }
-                                        >
-                                            Upgrade to Document Workflow v2
-                                        </Button>
-                                    ) : null}
-                                </div>
-                            </CardContent>
-                        </Card>
-                        </div>
                         {isProcessingStage ? (
                             <div
                                 className={cn(
@@ -2625,7 +2370,9 @@ export default function StaffLoanRequestShow({
                                   ),
                           }
                         : undefined,
+                    ...processingWorkflowActions,
                 }}
+                actionsPanelHeader={actionsHeaderContent}
                 hideSummaryHeader
                 hideMainColumn
                 wrapInShell={false}
@@ -3015,225 +2762,6 @@ export default function StaffLoanRequestShow({
                 </DialogContent>
             </Dialog>
 
-            <Dialog
-                open={isRejectDuringProcessingOpen}
-                onOpenChange={setIsRejectDuringProcessingOpen}
-            >
-                <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>Reject During Processing</DialogTitle>
-                        <DialogDescription>
-                            This closes the request and records the substantive
-                            rejection reason shown to the member.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={submitRejectDuringProcessing}
-                    >
-                        <div className="grid gap-2">
-                            <Label htmlFor="reject_category">
-                                Rejection category
-                            </Label>
-                            <Input
-                                id="reject_category"
-                                required
-                                value={rejectCategory}
-                                onChange={(event) =>
-                                    setRejectCategory(event.target.value)
-                                }
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="reject_reason">
-                                Member-visible reason
-                            </Label>
-                            <textarea
-                                id="reject_reason"
-                                className={textareaClassName}
-                                required
-                                value={rejectReason}
-                                onChange={(event) =>
-                                    setRejectReason(event.target.value)
-                                }
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                    setIsRejectDuringProcessingOpen(false)
-                                }
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                variant="destructive"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Confirm Rejection
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog
-                open={isReturnForProcessingOpen}
-                onOpenChange={setIsReturnForProcessingOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Return for Processing</DialogTitle>
-                        <DialogDescription>
-                            Send this package back to the loan processor with a
-                            required reason.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={submitReturnForProcessing}
-                    >
-                        <div className="grid gap-2">
-                            <Label htmlFor="return_for_processing_reason">
-                                Reason
-                            </Label>
-                            <textarea
-                                id="return_for_processing_reason"
-                                className={textareaClassName}
-                                required
-                                value={returnForProcessingReason}
-                                onChange={(event) =>
-                                    setReturnForProcessingReason(
-                                        event.target.value,
-                                    )
-                                }
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() =>
-                                    setIsReturnForProcessingOpen(false)
-                                }
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Return for Processing
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog
-                open={isReopenDialogOpen}
-                onOpenChange={setIsReopenDialogOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Reopen Rejected Request</DialogTitle>
-                        <DialogDescription>
-                            Reopen this rejected request and optionally retain
-                            the existing assignment.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form className="space-y-4" onSubmit={submitReopen}>
-                        <div className="grid gap-2">
-                            <Label htmlFor="reopen_reason">Reason</Label>
-                            <textarea
-                                id="reopen_reason"
-                                className={textareaClassName}
-                                required
-                                value={reopenReason}
-                                onChange={(event) =>
-                                    setReopenReason(event.target.value)
-                                }
-                            />
-                        </div>
-                        <label className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm">
-                            <Checkbox
-                                checked={retainAssignmentOnReopen}
-                                onCheckedChange={(checked) =>
-                                    setRetainAssignmentOnReopen(
-                                        checked === true,
-                                    )
-                                }
-                            />
-                            <span>Retain the current assignment on reopen</span>
-                        </label>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsReopenDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Reopen Request
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog
-                open={isUpgradeDialogOpen}
-                onOpenChange={setIsUpgradeDialogOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Upgrade Legacy Workflow</DialogTitle>
-                        <DialogDescription>
-                            Upgrade this unapproved legacy request into the v2
-                            document workflow with an audit reason.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        className="space-y-4"
-                        onSubmit={submitUpgradeWorkflow}
-                    >
-                        <div className="grid gap-2">
-                            <Label htmlFor="upgrade_reason">Reason</Label>
-                            <textarea
-                                id="upgrade_reason"
-                                className={textareaClassName}
-                                required
-                                value={upgradeReason}
-                                onChange={(event) =>
-                                    setUpgradeReason(event.target.value)
-                                }
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsUpgradeDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isWorkflowProcessing}
-                            >
-                                Upgrade Workflow
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </AppLayout>
     );
 }
