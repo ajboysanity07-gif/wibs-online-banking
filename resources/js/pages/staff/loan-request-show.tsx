@@ -1,11 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import {
-    Bell,
-    ClipboardCheck,
-    FileText,
-    HeartPulse,
-    Workflow,
-} from 'lucide-react';
+import { Bell, ClipboardCheck, FileText, HeartPulse } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
