@@ -12,7 +12,7 @@ import {
     User as UserIcon,
     Zap,
 } from 'lucide-react';
-import { Fragment, useEffect, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -76,6 +76,7 @@ type Props = {
     correction?: CorrectionProps;
     correctedCopy?: CorrectedCopyProps;
     workflow?: LoanRequestWorkflowProps;
+    actionsPanelHeader?: ReactNode;
     wrapInShell?: boolean;
     hideSummaryHeader?: boolean;
     hideMainColumn?: boolean;
@@ -662,6 +663,7 @@ export function LoanRequestDetailPage({
     correction,
     correctedCopy,
     workflow,
+    actionsPanelHeader,
     wrapInShell = true,
     hideSummaryHeader = false,
     hideMainColumn = false,
@@ -1444,6 +1446,9 @@ export function LoanRequestDetailPage({
                                     </Button>
                                     <Separator className="bg-border/40" />
                                 </div>
+                            ) : null}
+                            {actionsPanelHeader ? (
+                                <div className="space-y-3">{actionsPanelHeader}</div>
                             ) : null}
                             <LoanRequestWorkflowActions
                                 loanRequest={loanRequest}
