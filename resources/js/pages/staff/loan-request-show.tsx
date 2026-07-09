@@ -246,6 +246,8 @@ const displayChecklistStatusTone = (status: string): string => {
     );
 };
 
+const PROCESSING_AGE_ISSUE_THRESHOLD_DAYS = 3;
+
 const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
     switch (status) {
         case 'not_started':
@@ -660,6 +662,25 @@ export default function StaffLoanRequestShow({
                 } => item !== null,
             );
     }, [lastDocumentResults]);
+    const workflowHealthIssues = useMemo(
+        () => ({
+            processingAge:
+                currentWorkflowHealth.processing_age_days !== null &&
+                currentWorkflowHealth.processing_age_days >=
+                    PROCESSING_AGE_ISSUE_THRESHOLD_DAYS,
+            pendingMemberAction: currentWorkflowHealth.pending_member_action,
+            staleDocuments: currentWorkflowHealth.stale_document_count > 0,
+            failedDocuments: currentWorkflowHealth.failed_document_count > 0,
+            legacyBlockers: currentWorkflowHealth.legacy_blocker_count > 0,
+            notificationFailures:
+                currentWorkflowHealth.notification_failure_count > 0,
+            workflowFailedJobs:
+                currentWorkflowHealth.workflow_failed_job_count > 0,
+        }),
+        [currentWorkflowHealth],
+    );
+    const workflowHealthIssueCount =
+        Object.values(workflowHealthIssues).filter(Boolean).length;
     const isV2Workflow =
         currentRequest.workflow_version === 'document_workflow_v2';
     const canClaim = currentRequest.can_claim;
@@ -1593,74 +1614,95 @@ export default function StaffLoanRequestShow({
                                 <HeartPulse className="size-4 text-muted-foreground" />
                                 Workflow health
                             </CardTitle>
-                            <CardDescription>
-                                Operational state for this request and the
-                                active workflow queues.
-                            </CardDescription>
                         </CardHeader>
-                        <CardContent className="grid gap-2 sm:grid-cols-2">
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                        <CardContent className="grid gap-x-6 gap-y-4 grid-cols-2 sm:grid-cols-4">
+                            <div
+                                className={`col-span-2 rounded-lg border px-3 py-2 text-sm font-medium sm:col-span-4 ${
+                                    workflowHealthIssueCount === 0
+                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
+                                        : 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200'
+                                }`}
+                            >
+                                {workflowHealthIssueCount === 0
+                                    ? 'All clear — no issues detected'
+                                    : `${workflowHealthIssueCount} issue${workflowHealthIssueCount === 1 ? '' : 's'} need${workflowHealthIssueCount === 1 ? 's' : ''} attention`}
+                            </div>
+                            <div>
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Processing age
                                 </p>
-                                <p className="mt-2 text-2xl font-semibold">
+                                <p
+                                    className={`mt-2 text-2xl ${workflowHealthIssues.processingAge ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                                >
                                     {currentWorkflowHealth.processing_age_days ===
                                     null
                                         ? '-'
                                         : `${currentWorkflowHealth.processing_age_days}d`}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                            <div>
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Pending member action
                                 </p>
-                                <p className="mt-2 text-2xl font-semibold">
+                                <p
+                                    className={`mt-2 text-2xl ${workflowHealthIssues.pendingMemberAction ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                                >
                                     {currentWorkflowHealth.pending_member_action
                                         ? 'Yes'
                                         : 'No'}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                            <div>
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Stale documents
                                 </p>
-                                <p className="mt-2 text-2xl font-semibold">
+                                <p
+                                    className={`mt-2 text-2xl ${workflowHealthIssues.staleDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                                >
                                     {currentWorkflowHealth.stale_document_count}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                            <div>
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Failed documents
                                 </p>
-                                <p className="mt-2 text-2xl font-semibold">
+                                <p
+                                    className={`mt-2 text-2xl ${workflowHealthIssues.failedDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                                >
                                     {
                                         currentWorkflowHealth.failed_document_count
                                     }
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                            <div>
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Legacy blockers
                                 </p>
-                                <p className="mt-2 text-2xl font-semibold">
+                                <p
+                                    className={`mt-2 text-2xl ${workflowHealthIssues.legacyBlockers ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                                >
                                     {currentWorkflowHealth.legacy_blocker_count}
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3">
+                            <div>
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Notification failures
                                 </p>
-                                <p className="mt-2 text-2xl font-semibold">
+                                <p
+                                    className={`mt-2 text-2xl ${workflowHealthIssues.notificationFailures ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                                >
                                     {
                                         currentWorkflowHealth.notification_failure_count
                                     }
                                 </p>
                             </div>
-                            <div className="rounded-xl border border-border/40 bg-muted/10 p-3 sm:col-span-2">
+                            <div>
                                 <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                     Workflow failed jobs
                                 </p>
-                                <p className="mt-2 text-2xl font-semibold">
+                                <p
+                                    className={`mt-2 text-2xl ${workflowHealthIssues.workflowFailedJobs ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
+                                >
                                     {
                                         currentWorkflowHealth.workflow_failed_job_count
                                     }
