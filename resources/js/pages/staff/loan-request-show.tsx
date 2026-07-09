@@ -271,22 +271,6 @@ const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
     }
 };
 
-const cardTintClass = (status: LoanRequestDocumentReadinessStatus): string => {
-    if (status === 'ready_to_generate') {
-        return 'bg-primary/5';
-    }
-
-    if (status === 'incomplete') {
-        return 'bg-amber-500/5';
-    }
-
-    if (status === 'generated_current') {
-        return 'bg-emerald-500/5';
-    }
-
-    return 'bg-muted/10';
-};
-
 const displayNotificationStatusTone = (status: string | null): string => {
     return (
         {
@@ -1824,17 +1808,14 @@ export default function StaffLoanRequestShow({
                                     checklistStatusIcon(document.status);
                                 const subtitle =
                                     missingFieldCount > 0
-                                        ? `${missingFieldCount} field${missingFieldCount === 1 ? '' : 's'} required`
+                                        ? 'Missing required information'
                                         : (document.template_version ??
                                           document.key);
 
                                 return (
                                     <div
                                         key={document.key}
-                                        className={cn(
-                                            'flex flex-col gap-2 py-3 first:pt-0 last:pb-0',
-                                            cardTintClass(document.status),
-                                        )}
+                                        className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
                                     >
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex min-w-0 items-center gap-2">
@@ -1854,11 +1835,12 @@ export default function StaffLoanRequestShow({
                                                 </div>
                                             </div>
                                             <div className="flex shrink-0 items-center gap-2">
-                                                <span
-                                                    className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(document.status)}`}
-                                                >
-                                                    {document.status_label}
-                                                </span>
+                                                {missingFieldCount > 0 ? (
+                                                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-200">
+                                                        {missingFieldCount}{' '}
+                                                        missing
+                                                    </span>
+                                                ) : null}
                                                 {document.generated_filename ? (
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger
