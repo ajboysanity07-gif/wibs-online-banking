@@ -73,3 +73,88 @@ export const composeBirthplace = (
     city?: string | null,
     province?: string | null,
 ): string => normalizeLocationParts([city, province]).join(', ');
+
+export const formatHousingStatus = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '--';
+    }
+
+    const upper = trimmed.toUpperCase();
+
+    if (upper === 'OWNED') {
+        return 'Owned';
+    }
+
+    if (upper === 'RENT' || upper === 'RENTAL') {
+        return 'Rent';
+    }
+
+    return trimmed;
+};
+
+export const formatCivilStatus = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '--';
+    }
+
+    const upper = trimmed.toUpperCase();
+
+    if (upper === 'SINGLE') {
+        return 'Single';
+    }
+
+    if (upper === 'MARRIED') {
+        return 'Married';
+    }
+
+    if (upper === 'SEPARATED') {
+        return 'Separated';
+    }
+
+    if (upper === 'WIDOWED') {
+        return 'Widowed';
+    }
+
+    return trimmed;
+};
+
+export const formatPayday = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return '--';
+    }
+
+    const upper = trimmed.toUpperCase();
+    const compact = upper.replace(/[^0-9A-Z]/g, '');
+
+    if (upper === 'WEEKLY') {
+        return 'Weekly';
+    }
+
+    if (upper === 'MONTHLY') {
+        return 'Monthly';
+    }
+
+    if (compact === 'BIWEEKLY') {
+        return 'Bi-Weekly';
+    }
+
+    if (compact === '15') {
+        return '15th';
+    }
+
+    if (compact === '30') {
+        return '30th';
+    }
+
+    if (upper.includes('15') && upper.includes('30')) {
+        return '15th & 30th';
+    }
+
+    return trimmed;
+};

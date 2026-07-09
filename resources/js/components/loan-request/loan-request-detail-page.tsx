@@ -44,6 +44,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
     composeAddress,
+    composeBirthplace,
     formatCurrency,
     formatDate,
     formatDisplayText,
