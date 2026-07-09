@@ -1552,6 +1552,56 @@ export default function StaffLoanRequestShow({
         currentRequest.availment_status,
     );
 
+    const processingWorkflowActions = {
+        rejectDuringProcessing: canRejectDuringProcessing
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload: {
+                      rejection_category: string;
+                      member_visible_reason: string;
+                  }) =>
+                      rejectLoanRequestDuringProcessing(
+                          currentRequest.id,
+                          payload,
+                      ),
+              }
+            : undefined,
+        returnForProcessing: canReturnForProcessing
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload: { reason: string }) =>
+                      returnForProcessing(currentRequest.id, payload),
+              }
+            : undefined,
+        reopen: canReopenRejectedRequest
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload: {
+                      reason: string;
+                      retain_assignment: boolean;
+                  }) => reopenLoanRequest(currentRequest.id, payload),
+              }
+            : undefined,
+        upgradeWorkflow: canUpgradeWorkflow
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: (payload: { reason: string }) =>
+                      upgradeWorkflow(currentRequest.id, payload),
+              }
+            : undefined,
+        generateDocuments: canGenerateDocuments
+            ? {
+                  show: true,
+                  isProcessing: isWorkflowProcessing,
+                  onSubmit: () => submitGenerateDocuments(),
+              }
+            : undefined,
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
