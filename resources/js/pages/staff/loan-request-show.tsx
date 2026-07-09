@@ -335,16 +335,6 @@ type CorrectionFormState = {
     information_source: string;
 };
 
-type StaffSectionKey =
-    | 'processing-details'
-    | 'document-checklist'
-    | 'wibs-tracking';
-
-type StaffSectionMeta = {
-    key: StaffSectionKey;
-    label: string;
-};
-
 export const snapshotDisplay = (value?: string | number | null): string => {
     if (value === null || value === undefined) {
         return '—';
@@ -469,8 +459,6 @@ export default function StaffLoanRequestShow({
         reason: '',
         information_source: '',
     });
-    const [activeSection, setActiveSection] =
-        useState<StaffSectionKey>('document-checklist');
     const {
         claimLoanRequest,
         assignLoanRequest,
@@ -715,13 +703,6 @@ export default function StaffLoanRequestShow({
             'release_scheduled',
             'released',
         ].includes(currentRequest.status ?? '');
-    const STAFF_SECTIONS: StaffSectionMeta[] = [
-        { key: 'processing-details', label: 'Processing details' },
-        { key: 'document-checklist', label: 'Document checklist' },
-        ...(showWibsTrackingSection
-            ? [{ key: 'wibs-tracking' as const, label: 'WIBS Tracking' }]
-            : []),
-    ];
     const canRejectDuringProcessing =
         isV2Workflow &&
         !isOwnRequest &&
@@ -1787,35 +1768,9 @@ export default function StaffLoanRequestShow({
                 </div>
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_320px]">
-                    <div className="lg:sticky lg:top-24">
-                        <LoanRequestSectionNav
-                            sections={STAFF_SECTIONS}
-                            activeSection={activeSection}
-                            onSectionChange={(key) =>
-                                setActiveSection(key as StaffSectionKey)
-                            }
-                        />
-                    </div>
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="space-y-6">
-                        {isProcessingStage ? (
-                            <div
-                                className={cn(
-                                    activeSection === 'processing-details'
-                                        ? 'block'
-                                        : 'hidden',
-                                )}
-                            >
-                                {inlineProcessingPanel}
-                            </div>
-                        ) : null}
-                    <div
-                        className={cn(
-                            activeSection === 'document-checklist'
-                                ? 'block'
-                                : 'hidden',
-                        )}
-                    >
+                        {isProcessingStage ? inlineProcessingPanel : null}
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -2030,15 +1985,7 @@ export default function StaffLoanRequestShow({
                             })}
                         </CardContent>
                     </Card>
-                    </div>
                     {showWibsTrackingSection ? (
-                        <div
-                            className={cn(
-                                activeSection === 'wibs-tracking'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
                     <Card className="border-border/30 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardTitle>WIBS Tracking</CardTitle>
@@ -2253,8 +2200,7 @@ export default function StaffLoanRequestShow({
                             ) : null}
                         </CardContent>
                     </Card>
-                </div>
-            ) : null}
+                    ) : null}
                     </div>
                     <div>
             <LoanRequestDetailPage
