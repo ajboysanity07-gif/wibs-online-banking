@@ -501,34 +501,6 @@ export const LoanRequestSummaryHeader = ({
     </div>
 );
 
-type PersonPanelProps = {
-    title: string;
-    person: LoanRequestPersonData | null;
-};
-
-const PersonPanel = ({ title, person }: PersonPanelProps) => (
-    <div className="rounded-xl border border-border/20 bg-muted/10 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-foreground">{title}</p>
-            <span className="text-xs text-muted-foreground">
-                {person ? 'Details captured' : 'No details available'}
-            </span>
-        </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <DetailRow label="Name" value={personName(person)} />
-            <DetailRow label="Cell no." value={displayValue(person?.cell_no)} />
-            <DetailRow
-                label="Address"
-                value={displayText(resolveAddress(person))}
-            />
-            <DetailRow
-                label="Employer/Business"
-                value={displayText(person?.employer_business_name)}
-            />
-        </div>
-    </div>
-);
-
 export type PersonFieldSpec = {
     label: string;
     icon: LucideIcon;
@@ -853,6 +825,101 @@ export const LoanRequestApplicantCard = ({
     );
 };
 
+const buildCoMakerCuratedFields = (
+    person: LoanRequestPersonData | null,
+): PersonFieldSpec[] => [
+    {
+        label: 'Cell no.',
+        icon: Phone,
+        value: displayValue(person?.cell_no),
+    },
+    {
+        label: 'Address',
+        icon: MapPin,
+        value: displayText(resolveAddress(person)),
+    },
+    {
+        label: 'Employment type',
+        icon: Briefcase,
+        value: displayValue(person?.employment_type),
+    },
+    {
+        label: 'Employer/Business name',
+        icon: Building2,
+        value: displayText(person?.employer_business_name),
+    },
+    {
+        label: 'Current position',
+        icon: IdCard,
+        value: displayText(person?.current_position),
+    },
+    {
+        label: 'Gross monthly income',
+        icon: Wallet,
+        value: displayCurrency(person?.gross_monthly_income),
+    },
+    {
+        label: 'Payday',
+        icon: CalendarDays,
+        value: person?.payday ? formatPayday(person.payday) : '--',
+    },
+];
+
+const buildCoMakerMoreFields = (
+    person: LoanRequestPersonData | null,
+): PersonFieldSpec[] => [
+    {
+        label: 'Nickname',
+        icon: UserIcon,
+        value: displayText(person?.nickname),
+    },
+    {
+        label: 'Birthdate',
+        icon: Calendar,
+        value: displayDateValue(person?.birthdate),
+    },
+    {
+        label: 'Birthplace',
+        icon: MapPin,
+        value: displayText(
+            composeBirthplace(
+                person?.birthplace_city,
+                person?.birthplace_province,
+            ),
+        ),
+    },
+    {
+        label: 'Length of stay',
+        icon: Clock,
+        value: displayText(person?.length_of_stay),
+    },
+    {
+        label: 'Educational attainment',
+        icon: GraduationCap,
+        value: displayText(person?.educational_attainment),
+    },
+    {
+        label: 'Employer/Business address',
+        icon: MapPin,
+        value: displayText(resolveEmployerBusinessAddress(person)),
+    },
+    {
+        label: 'Telephone no.',
+        icon: Phone,
+        value: displayValue(person?.telephone_no),
+    },
+    {
+        label: 'Nature of business',
+        icon: Factory,
+        value: displayText(person?.nature_of_business),
+    },
+    {
+        label: 'Years in work/business',
+        icon: Clock,
+        value: displayText(person?.years_in_work_business),
+    },
+];
+
 export type LoanRequestCoMakersCardProps = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
@@ -873,8 +940,20 @@ export const LoanRequestCoMakersCard = ({
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <PersonPanel title="Co-maker 1" person={coMakerOne} />
-            <PersonPanel title="Co-maker 2" person={coMakerTwo} />
+            <PersonAccordionRow
+                title="Co-maker 1"
+                person={coMakerOne}
+                subtitle={displayText(coMakerOne?.employer_business_name)}
+                curatedFields={buildCoMakerCuratedFields(coMakerOne)}
+                moreFields={buildCoMakerMoreFields(coMakerOne)}
+            />
+            <PersonAccordionRow
+                title="Co-maker 2"
+                person={coMakerTwo}
+                subtitle={displayText(coMakerTwo?.employer_business_name)}
+                curatedFields={buildCoMakerCuratedFields(coMakerTwo)}
+                moreFields={buildCoMakerMoreFields(coMakerTwo)}
+            />
         </CardContent>
     </Card>
 );
