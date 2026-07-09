@@ -1602,6 +1602,77 @@ export default function StaffLoanRequestShow({
             : undefined,
     };
 
+    const actionsHeaderContent = (
+        <>
+            <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">
+                    Workflow:{' '}
+                    {currentRequest.workflow_version === 'document_workflow_v2'
+                        ? 'Document Workflow v2'
+                        : 'Legacy v1'}
+                </Badge>
+                {assignedProcessorId !== null ? (
+                    <Badge variant="secondary">Assigned Loan Processor</Badge>
+                ) : null}
+            </div>
+            {lastDocumentResults !== null ? (
+                <Alert className="border-sky-500/30 bg-sky-500/10">
+                    <AlertTitle>Document generation results</AlertTitle>
+                    <AlertDescription>
+                        <p>
+                            {lastDocumentResults.length} document
+                            {lastDocumentResults.length === 1 ? '' : 's'}{' '}
+                            refreshed from the latest generation run.
+                        </p>
+                        {documentResultSummary.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {documentResultSummary.map((item) => (
+                                    <span
+                                        key={item.status}
+                                        className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayChecklistStatusTone(item.status)}`}
+                                    >
+                                        {item.label}: {item.count}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            {currentRequest.member_action_type !== null ? (
+                <Alert className="border-violet-500/30 bg-violet-500/10">
+                    <AlertTitle>Pending member action</AlertTitle>
+                    <AlertDescription>
+                        {currentRequest.member_action_message ??
+                            'This request is waiting for a member response.'}
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            {canUpdateProcessing ? (
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={isWorkflowProcessing}
+                    onClick={() => setIsCorrectionDialogOpen(true)}
+                >
+                    Correct Application Data
+                </Button>
+            ) : null}
+            {canRequestMemberAction ? (
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={isWorkflowProcessing}
+                    onClick={() => setIsMemberActionDialogOpen(true)}
+                >
+                    Request Member Action
+                </Button>
+            ) : null}
+        </>
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
