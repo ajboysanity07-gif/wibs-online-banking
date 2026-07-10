@@ -1496,9 +1496,9 @@ export default function StaffLoanRequestShow({
                                 Workflow health
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="grid gap-x-6 gap-y-4 grid-cols-2 sm:grid-cols-4">
+                        <CardContent className="grid gap-x-6 gap-y-4 grid-cols-2">
                             <div
-                                className={`col-span-2 rounded-lg border px-3 py-2 text-sm font-medium sm:col-span-4 ${
+                                className={`col-span-2 rounded-lg border px-3 py-2 text-sm font-medium ${
                                     workflowHealthIssueCount === 0
                                         ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
                                         : 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200'

@@ -7,7 +7,7 @@ const readSource = (segments) => {
     return readFile(resolve(...segments), 'utf8');
 };
 
-test('workflow health card renders as a summary bar plus 4-column plain grid, not the old bordered tiles', async () => {
+test('workflow health card renders as a summary bar plus fixed 2-column plain grid, not the old bordered tiles', async () => {
     const pageFile = await readSource([
         'resources',
         'js',
@@ -27,7 +27,9 @@ test('workflow health card renders as a summary bar plus 4-column plain grid, no
             'rounded-xl border border-border/40 bg-muted/10',
         ),
     );
-    assert.ok(cardBlock.includes('grid-cols-2 sm:grid-cols-4'));
+    assert.ok(cardBlock.includes('grid gap-x-6 gap-y-4 grid-cols-2'));
+    assert.ok(!cardBlock.includes('sm:grid-cols-4'));
+    assert.ok(!cardBlock.includes('sm:col-span-4'));
 
     assert.ok(cardBlock.includes('All clear — no issues detected'));
     assert.ok(cardBlock.includes('issue${workflowHealthIssueCount === 1'));
