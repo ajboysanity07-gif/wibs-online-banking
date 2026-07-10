@@ -8,6 +8,7 @@ use App\Http\Requests\Workflow\LoanRequestClaimRequest;
 use App\Http\Requests\Workflow\LoanRequestGenerateDocumentsRequest;
 use App\Http\Requests\Workflow\LoanRequestProcessingUpdateRequest;
 use App\Http\Requests\Workflow\LoanRequestRecommendApprovalRequest;
+use App\Http\Requests\Workflow\LoanRequestRecommendationPreviewRequest;
 use App\Http\Requests\Workflow\LoanRequestRejectDuringProcessingRequest;
 use App\Http\Requests\Workflow\LoanRequestRejectRequest;
 use App\Http\Requests\Workflow\LoanRequestReopenRequest;
@@ -326,6 +327,21 @@ class LoanRequestWorkflowController extends Controller
             $documentWorkflowService,
             $dataService,
         );
+    }
+
+    public function previewProcessingDetails(
+        LoanRequestRecommendationPreviewRequest $request,
+        LoanRequest $loanRequest,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+    ): JsonResponse {
+        abort_unless($request->user() instanceof AppUser, 403);
+
+        return response()->json([
+            'data' => $documentWorkflowService->previewRecommendationFigures(
+                $loanRequest,
+                $request->validated(),
+            ),
+        ]);
     }
 
     public function requestMemberAction(

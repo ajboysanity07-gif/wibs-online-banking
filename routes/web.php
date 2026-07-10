@@ -144,6 +144,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('decline');
             Route::patch('{loanRequest}/processing-details', [SpaLoanRequestWorkflowController::class, 'updateProcessingDetails'])
                 ->name('processing-details');
+            Route::post('{loanRequest}/processing-details/preview', [SpaLoanRequestWorkflowController::class, 'previewProcessingDetails'])
+                ->name('processing-details.preview');
             Route::patch('{loanRequest}/request-member-action', [SpaLoanRequestWorkflowController::class, 'requestMemberAction'])
                 ->name('request-member-action');
             Route::patch('{loanRequest}/reject-during-processing', [SpaLoanRequestWorkflowController::class, 'rejectDuringProcessing'])

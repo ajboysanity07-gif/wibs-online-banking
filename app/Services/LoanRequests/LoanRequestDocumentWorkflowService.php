@@ -4,6 +4,7 @@ namespace App\Services\LoanRequests;
 
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
+use App\LoanRequestPersonRole;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -641,6 +642,111 @@ class LoanRequestDocumentWorkflowService
             ],
             false,
         );
+    }
+
+    /**
+     * Previews the net proceeds and suggested GNTHP for a recommendation
+     * using POSTed-but-not-yet-saved values, without persisting anything.
+     *
+     * @param  array<string, mixed>  $overrideInput  Validated POSTed values:
+     *                                               recommended_amount, recommended_term, recommended_interest_rate,
+     *                                               service_charge_rate, insurance_rate, insurance_term,
+     *                                               loan_security_rate, documentary_stamp_rate, notarial_fee,
+     *                                               penalty_rate_per_month.
+     * @return array{
+     *     net_proceeds_raw: float|int|null,
+     *     suggested_gnthp_raw: float|null,
+     *     failure_information: array{message: string, blockers: list<string>}|null,
+     * }
+     */
+    public function previewRecommendationFigures(
+        LoanRequest $loanRequest,
+        array $overrideInput,
+    ): array {
+        $loanRequest->loadMissing('people', 'user');
+
+        $workingLoanRequest = $loanRequest->replicate();
+        $workingLoanRequest->id = $loanRequest->id;
+        $workingLoanRequest->reference = $loanRequest->reference;
+        $workingLoanRequest->setRelation('people', $loanRequest->people);
+        $workingLoanRequest->setRelation('user', $loanRequest->user);
+        $workingLoanRequest->approved_amount = $overrideInput['recommended_amount'] ?? null;
+        $workingLoanRequest->approved_term = $overrideInput['recommended_term'] ?? null;
+        $workingLoanRequest->approved_interest_rate = $overrideInput['recommended_interest_rate'] ?? null;
+        $workingLoanRequest->recommended_payment_frequency = $loanRequest->recommended_payment_frequency;
+        $workingLoanRequest->reviewed_at = $loanRequest->reviewed_at
+            ?? $loanRequest->updated_at
+            ?? now();
+
+        $documentData = $this->approvedLoanDocumentService->buildDocumentData(
+            $workingLoanRequest,
+            [
+                'loan' => [
+                    'interest_rate_raw' => $overrideInput['recommended_interest_rate'] ?? null,
+                    'service_charge_rate_raw' => $overrideInput['service_charge_rate'] ?? null,
+                    'insurance_rate_raw' => $overrideInput['insurance_rate'] ?? null,
+                    'insurance_term' => $overrideInput['insurance_term'] ?? null,
+                    'loan_security_rate_raw' => $overrideInput['loan_security_rate'] ?? null,
+                    'documentary_stamp_rate_raw' => $overrideInput['documentary_stamp_rate'] ?? null,
+                    'notarial_fee_raw' => $overrideInput['notarial_fee'] ?? null,
+                    'penalty_rate_raw' => $overrideInput['penalty_rate_per_month'] ?? null,
+                ],
+            ],
+            false,
+        );
+
+        $netProceedsRaw = data_get($documentData, 'loan.net_proceeds_raw');
+        $amortizationTotalRaw = data_get($documentData, 'loan.amortization_total_raw');
+        $workbookPaymentMode = data_get($documentData, 'loan.payment_mode_workbook');
+
+        $applicant = $loanRequest->people
+            ->firstWhere('role', LoanRequestPersonRole::Applicant);
+        $grossMonthlyIncome = $applicant?->gross_monthly_income !== null
+            ? (float) $applicant->gross_monthly_income
+            : null;
+
+        // Monthly-equivalent multiplier, matching the day-based convention
+        // resolveAmortizationCount() already uses to derive payment counts
+        // (round(term*30/7) for WEEKLY, round(term*30/14) for BI-WEEKLY) —
+        // not calendar-accurate 52/12 ratios.
+        $monthlyMultiplier = match ($workbookPaymentMode) {
+            'WEEKLY' => 30 / 7,
+            'BI-WEEKLY' => 30 / 14,
+            'SEMI-MONTHLY' => 2.0,
+            default => 1.0, // MONTHLY and null
+        };
+        $monthlyAmortizationRaw = $amortizationTotalRaw !== null
+            ? $amortizationTotalRaw * $monthlyMultiplier
+            : null;
+        $suggestedGnthpRaw = ($grossMonthlyIncome !== null && $monthlyAmortizationRaw !== null)
+            ? round($grossMonthlyIncome - $monthlyAmortizationRaw, 2)
+            : null;
+
+        $blockers = [];
+
+        if (($overrideInput['recommended_amount'] ?? null) === null) {
+            $blockers[] = 'Recommended amount is required.';
+        }
+        if (($overrideInput['recommended_term'] ?? null) === null) {
+            $blockers[] = 'Recommended term is required.';
+        }
+        if (($overrideInput['recommended_interest_rate'] ?? null) === null) {
+            $blockers[] = 'Recommended interest rate is required.';
+        }
+        if ($grossMonthlyIncome === null) {
+            $blockers[] = "Applicant's gross monthly income is not on file.";
+        }
+
+        return [
+            'net_proceeds_raw' => $netProceedsRaw,
+            'suggested_gnthp_raw' => $suggestedGnthpRaw,
+            'failure_information' => $blockers === []
+                ? null
+                : [
+                    'message' => 'Not enough data to compute a preview.',
+                    'blockers' => $blockers,
+                ],
+        ];
     }
 
     /**
