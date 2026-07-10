@@ -16,11 +16,13 @@ import type {
 type Props = {
     entries: LoanRequestAuditEntry[];
     audience?: LoanRequestAuditTrailAudience;
+    compact?: boolean;
 };
 
 export function LoanRequestAuditTrail({
     entries,
     audience = 'staff',
+    compact = false,
 }: Props) {
     const showStaffMetadata = audience === 'staff';
     const emptyCopy =
@@ -66,7 +68,13 @@ export function LoanRequestAuditTrail({
                                         <span className="relative z-10 mt-1.5 size-3 rounded-full border border-primary/40 bg-primary/20" />
                                     </div>
                                     <div className="min-w-0 flex-1 space-y-2">
-                                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                        <div
+                                            className={
+                                                compact
+                                                    ? 'flex flex-col gap-1'
+                                                    : 'flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'
+                                            }
+                                        >
                                             <p className="text-sm font-semibold text-foreground">
                                                 {entry.action_label}
                                             </p>
@@ -118,7 +126,13 @@ export function LoanRequestAuditTrail({
                                         ) : null}
                                         {showStaffMetadata &&
                                         entry.metadata.length > 0 ? (
-                                            <div className="grid gap-2 sm:grid-cols-2">
+                                            <div
+                                                className={
+                                                    compact
+                                                        ? 'grid gap-2'
+                                                        : 'grid gap-2 sm:grid-cols-2'
+                                                }
+                                            >
                                                 {entry.metadata.map(
                                                     (metadataItem) => (
                                                         <div
