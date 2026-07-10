@@ -1151,10 +1151,6 @@ export default function StaffLoanRequestShow({
                         />
                         <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
                         <div className="lg:sticky lg:top-24">
-                            <p className="mb-2 text-xs text-muted-foreground">
-                                Step {currentStepIndex + 1} of{' '}
-                                {PROCESSING_SECTIONS.length}
-                            </p>
                             <LoanRequestSectionNav
                                 sections={PROCESSING_SECTIONS}
                                 activeSection={activeProcessingSection}
@@ -1164,6 +1160,23 @@ export default function StaffLoanRequestShow({
                                     )
                                 }
                             />
+                            <div className="mt-4">
+                                <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span>Progress</span>
+                                    <span>
+                                        Step {currentStepIndex + 1} of{' '}
+                                        {PROCESSING_SECTIONS.length}
+                                    </span>
+                                </div>
+                                <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/50">
+                                    <div
+                                        className="h-full bg-primary/50 transition-all duration-300 motion-reduce:transition-none"
+                                        style={{
+                                            width: `${((currentStepIndex + 1) / PROCESSING_SECTIONS.length) * 100}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
                         </div>
                         <div className="space-y-4">
                         <div
@@ -1375,7 +1388,6 @@ export default function StaffLoanRequestShow({
                             </Button>
                             <Button
                                 type="button"
-                                variant="outline"
                                 onClick={goToNextProcessingStep}
                                 disabled={
                                     currentStepIndex ===
