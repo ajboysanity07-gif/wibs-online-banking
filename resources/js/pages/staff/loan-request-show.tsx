@@ -29,9 +29,7 @@ import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
-import { LoanRequestProcessingReviewStrip } from '@/components/loan-request/loan-request-processing-review-strip';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import { LoanRequestSectionNav } from '@/components/loan-request/loan-request-section-nav';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -309,26 +307,6 @@ export type InlineProcessingFormState = {
     information_source: string;
 };
 
-type ProcessingSectionKey =
-    | 'recommendation'
-    | 'charges_fees'
-    | 'document_requirements'
-    | 'personnel'
-    | 'confirmation';
-
-type ProcessingSectionMeta = {
-    key: ProcessingSectionKey;
-    label: string;
-};
-
-const PROCESSING_SECTIONS: ProcessingSectionMeta[] = [
-    { key: 'recommendation', label: 'Recommendation' },
-    { key: 'charges_fees', label: 'Charges, fees & take-home pay' },
-    { key: 'document_requirements', label: 'Document requirements' },
-    { key: 'personnel', label: 'Personnel' },
-    { key: 'confirmation', label: 'Confirmation' },
-];
-
 // Category B — application-data corrections edited in the modal.
 type CorrectionFormState = {
     loan_request: {
@@ -448,10 +426,6 @@ export default function StaffLoanRequestShow({
             reason: '',
             information_source: '',
         });
-    const [activeProcessingSection, setActiveProcessingSection] =
-        useState<ProcessingSectionKey>('recommendation');
-    const [lastProcessingSavedAt, setLastProcessingSavedAt] =
-        useState<Date | null>(null);
     const [correctionForm, setCorrectionForm] = useState<CorrectionFormState>({
         loan_request: {
             requested_amount: toStringValue(loanRequest.requested_amount),
@@ -931,7 +905,6 @@ export default function StaffLoanRequestShow({
             processingForm.reason.trim() === '' ||
             processingForm.information_source.trim() === ''
         ) {
-            setActiveProcessingSection('confirmation');
             showErrorToast(
                 null,
                 'Reason and information source are required before saving processing details.',
@@ -960,7 +933,6 @@ export default function StaffLoanRequestShow({
                 reason: '',
                 information_source: '',
             }));
-            setLastProcessingSavedAt(new Date());
         }
     };
 
@@ -1093,24 +1065,6 @@ export default function StaffLoanRequestShow({
         );
     };
 
-    const currentStepIndex = PROCESSING_SECTIONS.findIndex(
-        (section) => section.key === activeProcessingSection,
-    );
-    const goToPreviousProcessingStep = () => {
-        if (currentStepIndex > 0) {
-            setActiveProcessingSection(
-                PROCESSING_SECTIONS[currentStepIndex - 1].key,
-            );
-        }
-    };
-    const goToNextProcessingStep = () => {
-        if (currentStepIndex < PROCESSING_SECTIONS.length - 1) {
-            setActiveProcessingSection(
-                PROCESSING_SECTIONS[currentStepIndex + 1].key,
-            );
-        }
-    };
-
     const inlineProcessingPanel = (
         <Card
             className={
@@ -1142,50 +1096,6 @@ export default function StaffLoanRequestShow({
                         className="space-y-4"
                         onSubmit={submitProcessingDetails}
                     >
-                        <LoanRequestProcessingReviewStrip
-                            processingForm={processingForm}
-                            processingFieldDefinitions={
-                                dataSectionDefinitions.processing.fields
-                            }
-                            lastProcessingSavedAt={lastProcessingSavedAt}
-                        />
-                        <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
-                        <div className="lg:sticky lg:top-24">
-                            <LoanRequestSectionNav
-                                sections={PROCESSING_SECTIONS}
-                                activeSection={activeProcessingSection}
-                                onSectionChange={(key) =>
-                                    setActiveProcessingSection(
-                                        key as ProcessingSectionKey,
-                                    )
-                                }
-                            />
-                            <div className="mt-4">
-                                <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                                    <span>Progress</span>
-                                    <span>
-                                        Step {currentStepIndex + 1} of{' '}
-                                        {PROCESSING_SECTIONS.length}
-                                    </span>
-                                </div>
-                                <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/50">
-                                    <div
-                                        className="h-full bg-primary/50 transition-all duration-300 motion-reduce:transition-none"
-                                        style={{
-                                            width: `${((currentStepIndex + 1) / PROCESSING_SECTIONS.length) * 100}%`,
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                        <div
-                            className={cn(
-                                activeProcessingSection === 'recommendation'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
                         {renderProcessingSectionLabel('Recommendation', {
                             first: true,
                         })}
@@ -1280,15 +1190,7 @@ export default function StaffLoanRequestShow({
                                 }
                             />
                         </div>
-                        </div>
 
-                        <div
-                            className={cn(
-                                activeProcessingSection === 'charges_fees'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
                         {renderProcessingSectionLabel('Charges & fees')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('service_charge_rate')}
@@ -1303,31 +1205,14 @@ export default function StaffLoanRequestShow({
                         </div>
                         {renderProcessingSectionLabel('Net take-home pay')}
                         {renderProcessingField('guaranteed_net_take_home_pay')}
-                        </div>
 
-                        <div
-                            className={cn(
-                                activeProcessingSection ===
-                                    'document_requirements'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
                         {renderProcessingSectionLabel(
                             'Document requirements',
                         )}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('security_required')}
                         </div>
-                        </div>
 
-                        <div
-                            className={cn(
-                                activeProcessingSection === 'personnel'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
                         {renderProcessingSectionLabel('Personnel')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('witness_one_name')}
@@ -1335,15 +1220,7 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('barangay_official_name')}
                             {renderProcessingField('barangay_official_title')}
                         </div>
-                        </div>
 
-                        <div
-                            className={cn(
-                                activeProcessingSection === 'confirmation'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
@@ -1375,29 +1252,6 @@ export default function StaffLoanRequestShow({
                                     }))
                                 }
                             />
-                        </div>
-                        </div>
-                        <div className="flex justify-between gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={goToPreviousProcessingStep}
-                                disabled={currentStepIndex === 0}
-                            >
-                                Back
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={goToNextProcessingStep}
-                                disabled={
-                                    currentStepIndex ===
-                                    PROCESSING_SECTIONS.length - 1
-                                }
-                            >
-                                Next
-                            </Button>
-                        </div>
-                        </div>
                         </div>
                         <Button
                             type="submit"
