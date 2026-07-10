@@ -74,3 +74,44 @@ test('loan request detail pages wire the audit trail for staff and member audien
     assert.match(clientPageFile, /auditTrailAudience="member"/);
     assert.match(clientPageFile, /setCurrentAuditTrail/);
 });
+
+test('loan request audit trail component supports a compact sidebar mode', async () => {
+    const componentFile = await readSource([
+        'resources',
+        'js',
+        'components',
+        'loan-request',
+        'loan-request-audit-trail.tsx',
+    ]);
+    const detailFile = await readSource([
+        'resources',
+        'js',
+        'components',
+        'loan-request',
+        'loan-request-detail-page.tsx',
+    ]);
+    const staffPageFile = await readSource([
+        'resources',
+        'js',
+        'pages',
+        'staff',
+        'loan-request-show.tsx',
+    ]);
+
+    assert.match(componentFile, /compact\?: boolean;/);
+    assert.match(componentFile, /compact = false,/);
+    assert.match(
+        componentFile,
+        /compact\s*\?\s*'flex flex-col gap-1'\s*:\s*'flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'/,
+    );
+    assert.match(
+        componentFile,
+        /compact\s*\?\s*'grid gap-2'\s*:\s*'grid gap-2 sm:grid-cols-2'/,
+    );
+
+    assert.match(detailFile, /sidebarFooter\?: ReactNode;/);
+    assert.match(detailFile, /\{sidebarFooter \?\? null\}/);
+
+    assert.match(staffPageFile, /<LoanRequestAuditTrail[\s\S]*?compact[\s\S]*?\/>/);
+    assert.match(staffPageFile, /sidebarFooter=\{sidebarFooterContent\}/);
+});
