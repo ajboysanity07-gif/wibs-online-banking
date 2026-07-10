@@ -495,7 +495,6 @@ function acceptanceProcessingPayload(): array
         'processing' => [
             'service_charge_rate' => 1.25,
             'insurance_rate' => 0.75,
-            'insurance_required' => true,
             'insurance_term' => 12,
             'loan_security_rate' => 0.5,
             'documentary_stamp_rate' => 0.2,

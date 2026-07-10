@@ -1195,7 +1195,6 @@ export default function StaffLoanRequestShow({
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('service_charge_rate')}
                             {renderProcessingField('insurance_rate')}
-                            {renderProcessingField('insurance_required')}
                             {renderProcessingField('insurance_term')}
                             {renderProcessingField('loan_security_rate')}
                             {renderProcessingField('documentary_stamp_rate')}

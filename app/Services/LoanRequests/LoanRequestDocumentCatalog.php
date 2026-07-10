@@ -60,7 +60,7 @@ class LoanRequestDocumentCatalog
         ],
         'grepalife' => [
             'template_version' => 'grepalife-v2',
-            'applicability' => 'insurance',
+            'applicability' => 'always',
             'required_fields' => [
                 'beneficiary_primary_name',
                 'beneficiary_primary_relationship',
@@ -410,12 +410,7 @@ class LoanRequestDocumentCatalog
         LoanRequest $loanRequest,
         array $flatValues,
     ): bool {
-        $rule = self::DEFINITIONS[$documentKey->value]['applicability'] ?? 'always';
-
-        return match ($rule) {
-            'insurance' => $this->insuranceApplicable($flatValues),
-            default => true,
-        };
+        return true;
     }
 
     /**
@@ -490,14 +485,5 @@ class LoanRequestDocumentCatalog
         }
 
         return false;
-    }
-
-    private function insuranceApplicable(array $flatValues): bool
-    {
-        if (($flatValues['insurance_required'] ?? null) === false) {
-            return false;
-        }
-
-        return true;
     }
 }

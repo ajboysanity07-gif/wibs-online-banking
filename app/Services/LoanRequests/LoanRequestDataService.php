@@ -267,14 +267,6 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'number',
         ],
-        'insurance_required' => [
-            'label' => 'Insurance required',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'boolean',
-        ],
         'insurance_term' => [
             'label' => 'Insurance term',
             'owner' => self::OWNER_STAFF,

@@ -50,7 +50,6 @@ test('processing update with loan_request passthrough preserves loan details whi
         ],
         'processing' => [
             'service_charge_rate' => 1.25,
-            'insurance_required' => true,
             'notarial_fee' => 250,
         ],
         'recommended_amount' => 24000,

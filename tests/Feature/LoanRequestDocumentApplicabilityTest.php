@@ -40,7 +40,7 @@ function applicabilityChecklistEntry(LoanRequest $loanRequest, LoanRequestDocume
     return collect($checklist)->firstWhere('key', $documentKey->value);
 }
 
-test('authorization, barangay, and loan security agreement are always applicable regardless of legacy flags or blank source fields', function (): void {
+test('authorization, barangay, loan security agreement, and grepalife are always applicable regardless of legacy flags or blank source fields', function (): void {
     $loanRequest = LoanRequest::factory()->make();
     $catalog = app(LoanRequestDocumentCatalog::class);
 
@@ -48,6 +48,7 @@ test('authorization, barangay, and loan security agreement are always applicable
         'authorization_required' => false,
         'barangay_required' => false,
         'security_required' => false,
+        'insurance_required' => false,
         'payout_bank_name' => null,
         'payout_account_number' => null,
         'barangay_name' => null,
@@ -59,7 +60,8 @@ test('authorization, barangay, and loan security agreement are always applicable
 
     expect($catalog->isApplicable(LoanRequestDocumentKey::Authorization, $loanRequest, $flatValues))->toBeTrue()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, $flatValues))->toBeTrue()
-        ->and($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, $flatValues))->toBeTrue();
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, $flatValues))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, $flatValues))->toBeTrue();
 });
 
 test('authorization surfaces a non-ready status when its required fields are blank', function (): void {
@@ -151,7 +153,7 @@ test('security_required=false still strips loan_security_rate from the financial
         ->and($documentData['loan']['loan_security_amount_raw'])->toBe(0.0);
 });
 
-test('grepalife applicability is unaffected by this change and still gates on insurance_required', function (): void {
+test('grepalife is applicable regardless of insurance_required value', function (): void {
     $loanRequest = LoanRequest::factory()->make();
     $catalog = app(LoanRequestDocumentCatalog::class);
 
@@ -159,7 +161,7 @@ test('grepalife applicability is unaffected by this change and still gates on in
         LoanRequestDocumentKey::Grepalife,
         $loanRequest,
         ['insurance_required' => false],
-    ))->toBeFalse()
+    ))->toBeTrue()
         ->and($catalog->isApplicable(
             LoanRequestDocumentKey::Grepalife,
             $loanRequest,
@@ -170,4 +172,100 @@ test('grepalife applicability is unaffected by this change and still gates on in
             $loanRequest,
             [],
         ))->toBeTrue();
+});
+
+test('insurance_required no longer strips insurance_rate/insurance_term from the financial documents\' required fields or blockers', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0.75],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.5],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    foreach ([
+        LoanRequestDocumentKey::LoanInformation,
+        LoanRequestDocumentKey::PlanOfPayment,
+        LoanRequestDocumentKey::DisclosureStatement,
+        LoanRequestDocumentKey::PromissoryNote,
+    ] as $documentKey) {
+        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+
+        expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
+            ->and($entry['blockers'])->not->toContain('Insurance rate must be numeric.')
+            ->and($entry['blockers'])->not->toContain('Insurance term must be greater than zero.');
+    }
+});
+
+test('blank insurance_rate/insurance_term produce financial blockers unconditionally, with no flag able to suppress them', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'loan_security_rate' => ['number', 0.5],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+
+    expect($entry['blockers'])->toContain('Insurance rate must be numeric.')
+        ->and($entry['blockers'])->toContain('Insurance term must be greater than zero.');
+});
+
+test('insurance_term requires a positive integer (isPositiveIntegerValue) while loan_security_rate only requires a non-negative number (isNumericValue)', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0.75],
+        'insurance_term' => ['number', 0],
+        'loan_security_rate' => ['number', 0],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+
+    expect($entry['blockers'])->toContain('Insurance term must be greater than zero.')
+        ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.');
 });

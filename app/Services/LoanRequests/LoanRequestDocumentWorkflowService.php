@@ -597,7 +597,6 @@ class LoanRequestDocumentWorkflowService
                     'service_charge_rate_raw' => $flatValues['service_charge_rate'] ?? null,
                     'insurance_rate_raw' => $flatValues['insurance_rate'] ?? null,
                     'insurance_term' => $flatValues['insurance_term'] ?? null,
-                    'insurance_required' => $flatValues['insurance_required'] ?? null,
                     'loan_security_rate_raw' => $flatValues['loan_security_rate'] ?? null,
                     'security_required' => $flatValues['security_required'] ?? null,
                     'documentary_stamp_rate_raw' => $flatValues['documentary_stamp_rate'] ?? null,
@@ -688,13 +687,6 @@ class LoanRequestDocumentWorkflowService
         array $flatValues,
     ): array {
         $requiredFields = $this->documentCatalog->requiredFieldKeys($documentKey);
-
-        if (($flatValues['insurance_required'] ?? null) === false) {
-            $requiredFields = array_values(array_diff($requiredFields, [
-                'insurance_rate',
-                'insurance_term',
-            ]));
-        }
 
         if (($flatValues['security_required'] ?? null) === false) {
             $requiredFields = array_values(array_diff($requiredFields, [
@@ -845,14 +837,12 @@ class LoanRequestDocumentWorkflowService
             }
         }
 
-        if (($flatValues['insurance_required'] ?? null) !== false) {
-            if (! $this->isNumericValue($flatValues['insurance_rate'] ?? null)) {
-                $blockers[] = 'Insurance rate must be numeric.';
-            }
+        if (! $this->isNumericValue($flatValues['insurance_rate'] ?? null)) {
+            $blockers[] = 'Insurance rate must be numeric.';
+        }
 
-            if (! $this->isPositiveIntegerValue($flatValues['insurance_term'] ?? null)) {
-                $blockers[] = 'Insurance term must be greater than zero.';
-            }
+        if (! $this->isPositiveIntegerValue($flatValues['insurance_term'] ?? null)) {
+            $blockers[] = 'Insurance term must be greater than zero.';
         }
 
         if (($flatValues['security_required'] ?? null) !== false) {
