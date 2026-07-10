@@ -67,18 +67,47 @@ test('staff page composes Audit trail, Workflow health, and Notification history
         /<LoanRequestDetailPage[\s\S]*?sidebarFooter=\{sidebarFooterContent\}/,
     );
 
-    const applicantCardIndex = pageFile.indexOf('<LoanRequestApplicantCard');
-    assert.ok(applicantCardIndex !== -1);
-    const sectionBStart = pageFile.lastIndexOf(
-        '<section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">',
-        applicantCardIndex,
+    const sectionWrapperMatches = [
+        ...pageFile.matchAll(
+            /<section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">/g,
+        ),
+    ];
+    assert.equal(
+        sectionWrapperMatches.length,
+        2,
+        'expected only the summary header section and the consolidated main section, no standalone Applicant/Co-makers section',
     );
-    const sectionBEnd = pageFile.indexOf('</section>', sectionBStart);
-    const sectionBBlock = pageFile.slice(sectionBStart, sectionBEnd);
 
-    assert.match(sectionBBlock, /LoanRequestApplicantCard/);
-    assert.match(sectionBBlock, /LoanRequestCoMakersCard/);
-    assert.ok(!sectionBBlock.includes('LoanRequestAuditTrail'));
-    assert.ok(!sectionBBlock.includes('Workflow health'));
-    assert.ok(!sectionBBlock.includes('Notification history'));
+    const mainSectionStart = sectionWrapperMatches[1].index;
+    const mainColumnStart = pageFile.indexOf(
+        '<div className="space-y-6">',
+        mainSectionStart,
+    );
+    const applicantCardIndex = pageFile.indexOf(
+        '<LoanRequestApplicantCard',
+        mainSectionStart,
+    );
+    const coMakersCardIndex = pageFile.indexOf(
+        '<LoanRequestCoMakersCard',
+        mainSectionStart,
+    );
+    const inlineProcessingPanelIndex = pageFile.indexOf(
+        '{isProcessingStage ? inlineProcessingPanel : null}',
+        mainSectionStart,
+    );
+    const documentChecklistIndex = pageFile.indexOf(
+        'Document checklist',
+        mainSectionStart,
+    );
+
+    assert.ok(mainColumnStart !== -1);
+    assert.ok(applicantCardIndex !== -1);
+    assert.ok(coMakersCardIndex !== -1);
+    assert.ok(inlineProcessingPanelIndex !== -1);
+    assert.ok(documentChecklistIndex !== -1);
+
+    assert.ok(mainColumnStart < applicantCardIndex);
+    assert.ok(applicantCardIndex < coMakersCardIndex);
+    assert.ok(coMakersCardIndex < inlineProcessingPanelIndex);
+    assert.ok(inlineProcessingPanelIndex < documentChecklistIndex);
 });
