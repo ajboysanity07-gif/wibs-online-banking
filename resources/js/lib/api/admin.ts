@@ -216,6 +216,33 @@ type LoanRequestWorkflowProcessingUpdatePayload = {
     recommendation_remarks?: string | null;
 };
 
+type LoanRequestRecommendationPreviewPayload = {
+    recommended_amount?: number | string | null;
+    recommended_term?: number | string | null;
+    recommended_interest_rate?: number | string | null;
+    service_charge_rate?: number | string | null;
+    insurance_rate?: number | string | null;
+    insurance_term?: number | string | null;
+    loan_security_rate?: number | string | null;
+    documentary_stamp_rate?: number | string | null;
+    notarial_fee?: number | string | null;
+    penalty_rate_per_month?: number | string | null;
+};
+
+type LoanRequestRecommendationPreviewFailureInformation = {
+    message: string;
+    blockers: string[];
+};
+
+type LoanRequestRecommendationPreviewResponse = {
+    net_proceeds_raw: number | null;
+    suggested_gnthp_raw: number | null;
+    failure_information: LoanRequestRecommendationPreviewFailureInformation | null;
+};
+
+type LoanRequestRecommendationPreviewResult =
+    LoanRequestRecommendationPreviewResponse;
+
 type LoanRequestWorkflowMemberActionPayload = {
     action_type: 'needs_revision' | 'awaiting_member_information';
     message: string;
@@ -343,14 +370,12 @@ export const adminApi = {
         params: Pick<RequestsQueryParams, 'search' | 'page' | 'perPage'>,
         signal?: AbortSignal,
     ): Promise<ReportedRequestsResponse> {
-        const response =
-            await client.get<ApiResponse<ReportedRequestsResponse>>(
-                '/spa/admin/requests/reported',
-                {
-                    params,
-                    signal,
-                },
-            );
+        const response = await client.get<
+            ApiResponse<ReportedRequestsResponse>
+        >('/spa/admin/requests/reported', {
+            params,
+            signal,
+        });
 
         return unwrap(response);
     },
@@ -414,10 +439,7 @@ export const adminApi = {
     ): Promise<LoanRequestAdminCorrectedCopyResult> {
         const response = await client.post<
             ApiResponse<LoanRequestAdminCorrectedCopyResult>
-        >(
-            `/spa/admin/requests/${loanRequestId}/admin-corrected-copy`,
-            payload,
-        );
+        >(`/spa/admin/requests/${loanRequestId}/admin-corrected-copy`, payload);
 
         return unwrap(response);
     },
@@ -425,10 +447,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowStartReviewPayload = {},
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowStartReviewRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowStartReviewRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -436,10 +457,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowClaimPayload = {},
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowClaimRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowClaimRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -447,10 +467,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowAssignmentPayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowAssignmentUpdateRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowAssignmentUpdateRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -458,10 +477,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowReturnToQueuePayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowReturnToQueueRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowReturnToQueueRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -469,10 +487,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowRequestRevisionPayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowRequestRevisionRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowRequestRevisionRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -480,10 +497,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowRejectPayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowRejectRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowRejectRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -491,10 +507,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowRecommendApprovalPayload = {},
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowRecommendApprovalRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowRecommendApprovalRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -502,10 +517,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowApprovePayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowApproveRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowApproveRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -513,10 +527,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowDeclinePayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            workflowDeclineRoute(loanRequestId).url,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(workflowDeclineRoute(loanRequestId).url, payload);
 
         return unwrap(response);
     },
@@ -524,8 +537,23 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowProcessingUpdatePayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(
             `/spa/workflow/loan-requests/${loanRequestId}/processing-details`,
+            payload,
+        );
+
+        return unwrap(response);
+    },
+    async previewLoanRequestProcessingDetails(
+        loanRequestId: number,
+        payload: LoanRequestRecommendationPreviewPayload,
+    ): Promise<LoanRequestRecommendationPreviewResult> {
+        const response = await client.post<
+            ApiResponse<LoanRequestRecommendationPreviewResponse>
+        >(
+            `/spa/workflow/loan-requests/${loanRequestId}/processing-details/preview`,
             payload,
         );
 
@@ -535,7 +563,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowMemberActionPayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(
             `/spa/workflow/loan-requests/${loanRequestId}/request-member-action`,
             payload,
         );
@@ -546,7 +576,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowRejectDuringProcessingPayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(
             `/spa/workflow/loan-requests/${loanRequestId}/reject-during-processing`,
             payload,
         );
@@ -557,7 +589,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowGenerateDocumentsPayload = {},
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.post<ApiResponse<LoanRequestWorkflowResponse>>(
+        const response = await client.post<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(
             `/spa/workflow/loan-requests/${loanRequestId}/documents/generate`,
             payload,
         );
@@ -568,7 +602,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowReturnForProcessingPayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(
             `/spa/workflow/loan-requests/${loanRequestId}/return-for-processing`,
             payload,
         );
@@ -579,10 +615,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowReopenPayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
-            `/spa/workflow/loan-requests/${loanRequestId}/reopen`,
-            payload,
-        );
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(`/spa/workflow/loan-requests/${loanRequestId}/reopen`, payload);
 
         return unwrap(response);
     },
@@ -590,7 +625,9 @@ export const adminApi = {
         loanRequestId: number,
         payload: LoanRequestWorkflowUpgradePayload,
     ): Promise<LoanRequestWorkflowResult> {
-        const response = await client.patch<ApiResponse<LoanRequestWorkflowResponse>>(
+        const response = await client.patch<
+            ApiResponse<LoanRequestWorkflowResponse>
+        >(
             `/spa/workflow/loan-requests/${loanRequestId}/upgrade-workflow`,
             payload,
         );
@@ -614,7 +651,10 @@ export const adminApi = {
     ): Promise<MemberAccountActionsResponse> {
         const response = await client.get<
             ApiResponse<MemberAccountActionsResponse>
-        >(`/admin/api/members/${memberKey}/accounts/actions`, { params, signal });
+        >(`/admin/api/members/${memberKey}/accounts/actions`, {
+            params,
+            signal,
+        });
 
         return unwrap(response);
     },
@@ -637,7 +677,10 @@ export const adminApi = {
     ): Promise<MemberLoanSecurityLedgerResponse> {
         const response = await client.get<
             ApiResponse<MemberLoanSecurityLedgerResponse>
-        >(`/admin/api/members/${memberKey}/accounts/savings`, { params, signal });
+        >(`/admin/api/members/${memberKey}/accounts/savings`, {
+            params,
+            signal,
+        });
 
         return unwrap(response);
     },
@@ -745,10 +788,12 @@ export const adminApi = {
         accountNumber: string,
         signal?: AbortSignal,
     ): Promise<StaffAccount> {
-        const response = await client.get<ApiResponse<{ member: StaffAccount }>>(
-            '/spa/superadmin/staff/member-lookup',
-            { params: { account_number: accountNumber }, signal },
-        );
+        const response = await client.get<
+            ApiResponse<{ member: StaffAccount }>
+        >('/spa/superadmin/staff/member-lookup', {
+            params: { account_number: accountNumber },
+            signal,
+        });
 
         return unwrap(response).member;
     },
@@ -757,10 +802,9 @@ export const adminApi = {
         signal?: AbortSignal,
     ): Promise<StaffAccount[]> {
         const params = query !== '' ? { query } : {};
-        const response = await client.get<ApiResponse<{ members: StaffAccount[] }>>(
-            '/spa/superadmin/staff/search-members',
-            { params, signal },
-        );
+        const response = await client.get<
+            ApiResponse<{ members: StaffAccount[] }>
+        >('/spa/superadmin/staff/search-members', { params, signal });
 
         return unwrap(response).members;
     },

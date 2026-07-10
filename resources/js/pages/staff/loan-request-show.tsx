@@ -60,6 +60,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
+import { adminApi } from '@/lib/api/admin';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
 import { showErrorToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -183,6 +184,11 @@ const toStringValue = (
     return stringValue;
 };
 
+const numericProcessingFieldValue = (
+    value: string | number | boolean | null | undefined,
+): string | number | null =>
+    typeof value === 'boolean' || value === undefined ? null : value;
+
 const toPersonForm = (
     person: LoanRequestPersonData | null,
 ): LoanRequestPersonFormData => {
@@ -251,21 +257,42 @@ const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
         case 'not_started':
             return { Icon: Circle, className: 'text-muted-foreground' };
         case 'incomplete':
-            return { Icon: AlertCircle, className: 'text-amber-600 dark:text-amber-300' };
+            return {
+                Icon: AlertCircle,
+                className: 'text-amber-600 dark:text-amber-300',
+            };
         case 'awaiting_member_confirmation':
-            return { Icon: Clock, className: 'text-violet-600 dark:text-violet-300' };
+            return {
+                Icon: Clock,
+                className: 'text-violet-600 dark:text-violet-300',
+            };
         case 'ready_to_generate':
-            return { Icon: PlayCircle, className: 'text-sky-600 dark:text-sky-300' };
+            return {
+                Icon: PlayCircle,
+                className: 'text-sky-600 dark:text-sky-300',
+            };
         case 'generated_current':
-            return { Icon: CheckCircle2, className: 'text-emerald-600 dark:text-emerald-300' };
+            return {
+                Icon: CheckCircle2,
+                className: 'text-emerald-600 dark:text-emerald-300',
+            };
         case 'generated_stale':
-            return { Icon: RefreshCw, className: 'text-amber-600 dark:text-amber-300' };
+            return {
+                Icon: RefreshCw,
+                className: 'text-amber-600 dark:text-amber-300',
+            };
         case 'generation_failed':
-            return { Icon: XCircle, className: 'text-rose-600 dark:text-rose-300' };
+            return {
+                Icon: XCircle,
+                className: 'text-rose-600 dark:text-rose-300',
+            };
         case 'not_applicable':
             return { Icon: MinusCircle, className: 'text-muted-foreground' };
         case 'legacy_data_incomplete':
-            return { Icon: AlertCircle, className: 'text-amber-600 dark:text-amber-300' };
+            return {
+                Icon: AlertCircle,
+                className: 'text-amber-600 dark:text-amber-300',
+            };
         default:
             return { Icon: Circle, className: 'text-muted-foreground' };
     }
@@ -305,6 +332,12 @@ export type InlineProcessingFormState = {
     recommendation_remarks: string;
     reason: string;
     information_source: string;
+};
+
+type RecommendationPreviewState = {
+    net_proceeds_raw: number | null;
+    suggested_gnthp_raw: number | null;
+    failure_information: { message: string; blockers: string[] } | null;
 };
 
 // Category B — application-data corrections edited in the modal.
@@ -426,6 +459,16 @@ export default function StaffLoanRequestShow({
             reason: '',
             information_source: '',
         });
+    const [recommendationPreview, setRecommendationPreview] =
+        useState<RecommendationPreviewState | null>(null);
+    const [isRecommendationPreviewLoading, setIsRecommendationPreviewLoading] =
+        useState(false);
+    const [recommendationPreviewError, setRecommendationPreviewError] =
+        useState<string | null>(null);
+    // Tracks whether staff has typed in the GNTHP field since the last
+    // auto-applied suggestion, so Recalculate never silently overwrites a
+    // manually entered value.
+    const [gnthpManuallyEdited, setGnthpManuallyEdited] = useState(false);
     const [correctionForm, setCorrectionForm] = useState<CorrectionFormState>({
         loan_request: {
             requested_amount: toStringValue(loanRequest.requested_amount),
@@ -830,6 +873,10 @@ export default function StaffLoanRequestShow({
         field: string,
         value: string | number | boolean | null,
     ) => {
+        if (field === 'guaranteed_net_take_home_pay') {
+            setGnthpManuallyEdited(true);
+        }
+
         setProcessingForm((current) => ({
             ...current,
             processing: {
@@ -837,6 +884,70 @@ export default function StaffLoanRequestShow({
                 [field]: value,
             },
         }));
+    };
+
+    const handleRecalculateSuggestedFigures = async () => {
+        setIsRecommendationPreviewLoading(true);
+        setRecommendationPreviewError(null);
+
+        try {
+            const result = await adminApi.previewLoanRequestProcessingDetails(
+                currentRequest.id,
+                {
+                    recommended_amount:
+                        processingForm.recommended_amount || null,
+                    recommended_term: processingForm.recommended_term || null,
+                    recommended_interest_rate:
+                        processingForm.recommended_interest_rate || null,
+                    service_charge_rate: numericProcessingFieldValue(
+                        processingForm.processing.service_charge_rate,
+                    ),
+                    insurance_rate: numericProcessingFieldValue(
+                        processingForm.processing.insurance_rate,
+                    ),
+                    insurance_term: numericProcessingFieldValue(
+                        processingForm.processing.insurance_term,
+                    ),
+                    loan_security_rate: numericProcessingFieldValue(
+                        processingForm.processing.loan_security_rate,
+                    ),
+                    documentary_stamp_rate: numericProcessingFieldValue(
+                        processingForm.processing.documentary_stamp_rate,
+                    ),
+                    notarial_fee: numericProcessingFieldValue(
+                        processingForm.processing.notarial_fee,
+                    ),
+                    penalty_rate_per_month: numericProcessingFieldValue(
+                        processingForm.processing.penalty_rate_per_month,
+                    ),
+                },
+            );
+
+            setRecommendationPreview(result);
+
+            // Auto-apply only if the field hasn't been touched since the
+            // last suggestion was applied (or was never applied, i.e. still
+            // blank). Any keystroke on the field — even retyping the same
+            // number — flips gnthpManuallyEdited via updateProcessingSectionField
+            // and blocks this from here on until the next fresh auto-apply.
+            if (result.suggested_gnthp_raw !== null && !gnthpManuallyEdited) {
+                setProcessingForm((current) => ({
+                    ...current,
+                    processing: {
+                        ...current.processing,
+                        guaranteed_net_take_home_pay:
+                            result.suggested_gnthp_raw,
+                    },
+                }));
+                setGnthpManuallyEdited(false);
+            }
+        } catch {
+            setRecommendationPreviewError(
+                'Unable to compute a preview. Please try again.',
+            );
+        } finally {
+            setIsRecommendationPreviewLoading(false);
+        }
     };
 
     // Build the processing payload: booleans are always sent as true/false
@@ -990,7 +1101,7 @@ export default function StaffLoanRequestShow({
         options?: { first?: boolean },
     ) => (
         <div className={options?.first ? undefined : 'mt-6'}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {title}
             </p>
             <Separator className="mb-4 bg-border/40" />
@@ -1014,9 +1125,7 @@ export default function StaffLoanRequestShow({
                     className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/10 p-3 text-sm sm:col-span-2"
                 >
                     <Checkbox
-                        checked={
-                            processingForm.processing[fieldKey] === true
-                        }
+                        checked={processingForm.processing[fieldKey] === true}
                         onCheckedChange={(checked) =>
                             updateProcessingSectionField(
                                 fieldKey,
@@ -1203,7 +1312,79 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('penalty_rate_per_month')}
                         </div>
                         {renderProcessingSectionLabel('Net take-home pay')}
-                        {renderProcessingField('guaranteed_net_take_home_pay')}
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Recalculate the net proceeds and suggested
+                                    GNTHP using the recommendation and charges
+                                    above.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isRecommendationPreviewLoading}
+                                    onClick={handleRecalculateSuggestedFigures}
+                                >
+                                    {isRecommendationPreviewLoading
+                                        ? 'Recalculating…'
+                                        : 'Recalculate suggested figures'}
+                                </Button>
+                            </div>
+
+                            {recommendationPreviewError && (
+                                <p className="text-sm text-destructive">
+                                    {recommendationPreviewError}
+                                </p>
+                            )}
+
+                            {recommendationPreview && (
+                                <p className="text-sm">
+                                    Net proceeds (at recommended terms):{' '}
+                                    {recommendationPreview.net_proceeds_raw !==
+                                    null ? (
+                                        <span className="font-medium">
+                                            {formatCurrency(
+                                                recommendationPreview.net_proceeds_raw,
+                                            )}
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground">
+                                            Not enough data to compute.
+                                        </span>
+                                    )}
+                                </p>
+                            )}
+
+                            {renderProcessingField(
+                                'guaranteed_net_take_home_pay',
+                            )}
+
+                            {recommendationPreview &&
+                                (recommendationPreview.suggested_gnthp_raw !==
+                                null ? (
+                                    gnthpManuallyEdited && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Suggested:{' '}
+                                            {formatCurrency(
+                                                recommendationPreview.suggested_gnthp_raw,
+                                            )}
+                                        </p>
+                                    )
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                        {
+                                            recommendationPreview
+                                                .failure_information?.message
+                                        }
+                                        {recommendationPreview
+                                            .failure_information?.blockers
+                                            .length
+                                            ? ` ${recommendationPreview.failure_information.blockers.join(' ')}`
+                                            : null}
+                                    </p>
+                                ))}
+                        </div>
 
                         {renderProcessingSectionLabel('Personnel')}
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -1477,7 +1658,7 @@ export default function StaffLoanRequestShow({
                         Workflow health
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-x-6 gap-y-4 grid-cols-2">
+                <CardContent className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div
                         className={`col-span-2 rounded-lg border px-3 py-2 text-sm font-medium ${
                             workflowHealthIssueCount === 0
@@ -1496,8 +1677,7 @@ export default function StaffLoanRequestShow({
                         <p
                             className={`mt-2 text-2xl ${workflowHealthIssues.processingAge ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
                         >
-                            {currentWorkflowHealth.processing_age_days ===
-                            null
+                            {currentWorkflowHealth.processing_age_days === null
                                 ? '-'
                                 : `${currentWorkflowHealth.processing_age_days}d`}
                         </p>
@@ -1531,9 +1711,7 @@ export default function StaffLoanRequestShow({
                         <p
                             className={`mt-2 text-2xl ${workflowHealthIssues.failedDocuments ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
                         >
-                            {
-                                currentWorkflowHealth.failed_document_count
-                            }
+                            {currentWorkflowHealth.failed_document_count}
                         </p>
                     </div>
                     <div>
@@ -1553,9 +1731,7 @@ export default function StaffLoanRequestShow({
                         <p
                             className={`mt-2 text-2xl ${workflowHealthIssues.notificationFailures ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
                         >
-                            {
-                                currentWorkflowHealth.notification_failure_count
-                            }
+                            {currentWorkflowHealth.notification_failure_count}
                         </p>
                     </div>
                     <div>
@@ -1565,9 +1741,7 @@ export default function StaffLoanRequestShow({
                         <p
                             className={`mt-2 text-2xl ${workflowHealthIssues.workflowFailedJobs ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-semibold'}`}
                         >
-                            {
-                                currentWorkflowHealth.workflow_failed_job_count
-                            }
+                            {currentWorkflowHealth.workflow_failed_job_count}
                         </p>
                     </div>
                 </CardContent>
@@ -1606,8 +1780,7 @@ export default function StaffLoanRequestShow({
                                             <span
                                                 className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${displayNotificationStatusTone(event.status)}`}
                                             >
-                                                {event.status ??
-                                                    'unknown'}
+                                                {event.status ?? 'unknown'}
                                             </span>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -1638,16 +1811,10 @@ export default function StaffLoanRequestShow({
                                         </div>
                                     </div>
                                     <div className="text-right text-xs text-muted-foreground">
+                                        <p>Attempts: {event.attempt_count}</p>
+                                        <p>Retries: {event.retry_count}</p>
                                         <p>
-                                            Attempts:{' '}
-                                            {event.attempt_count}
-                                        </p>
-                                        <p>
-                                            Retries: {event.retry_count}
-                                        </p>
-                                        <p>
-                                            Reminders:{' '}
-                                            {event.reminder_attempts}
+                                            Reminders: {event.reminder_attempts}
                                         </p>
                                     </div>
                                 </div>
@@ -1682,540 +1849,584 @@ export default function StaffLoanRequestShow({
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="space-y-6">
-                        <LoanRequestApplicantCard applicant={currentApplicant} />
+                        <LoanRequestApplicantCard
+                            applicant={currentApplicant}
+                        />
                         <LoanRequestCoMakersCard
                             coMakerOne={currentCoMakerOne}
                             coMakerTwo={currentCoMakerTwo}
                         />
                         {isProcessingStage ? inlineProcessingPanel : null}
-                    <Card className="border-border/30 bg-card/70 shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <ClipboardCheck className="size-4 text-muted-foreground" />
-                                Document checklist
-                            </CardTitle>
-                            <CardDescription>
-                                Every applicable document must be current before
-                                recommendation.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col divide-y divide-border/40">
-                            {[...currentDocumentChecklist]
-                                .sort((a, b) => {
-                                    const aIncomplete =
-                                        a.blockers.length > 0 ? 1 : 0;
-                                    const bIncomplete =
-                                        b.blockers.length > 0 ? 1 : 0;
+                        <Card className="border-border/30 bg-card/70 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ClipboardCheck className="size-4 text-muted-foreground" />
+                                    Document checklist
+                                </CardTitle>
+                                <CardDescription>
+                                    Every applicable document must be current
+                                    before recommendation.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col divide-y divide-border/40">
+                                {[...currentDocumentChecklist]
+                                    .sort((a, b) => {
+                                        const aIncomplete =
+                                            a.blockers.length > 0 ? 1 : 0;
+                                        const bIncomplete =
+                                            b.blockers.length > 0 ? 1 : 0;
 
-                                    return bIncomplete - aIncomplete;
-                                })
-                                .map((document) => {
-                                const viewHref = `/staff/loan-requests/${currentRequest.id}/documents/generated/${document.key}`;
-                                const isWorkbookDocument = [
-                                    'loan_information',
-                                    'plan_of_payment',
-                                    'disclosure_statement',
-                                    'promissory_note',
-                                ].includes(document.key);
-                                const previewHref = isWorkbookDocument
-                                    ? `${viewHref}?preview=1`
-                                    : viewHref;
-                                const printDocumentHref = isWorkbookDocument
-                                    ? `${viewHref}?print=1`
-                                    : viewHref;
-                                const downloadHref = `${viewHref}?download=1`;
+                                        return bIncomplete - aIncomplete;
+                                    })
+                                    .map((document) => {
+                                        const viewHref = `/staff/loan-requests/${currentRequest.id}/documents/generated/${document.key}`;
+                                        const isWorkbookDocument = [
+                                            'loan_information',
+                                            'plan_of_payment',
+                                            'disclosure_statement',
+                                            'promissory_note',
+                                        ].includes(document.key);
+                                        const previewHref = isWorkbookDocument
+                                            ? `${viewHref}?preview=1`
+                                            : viewHref;
+                                        const printDocumentHref =
+                                            isWorkbookDocument
+                                                ? `${viewHref}?print=1`
+                                                : viewHref;
+                                        const downloadHref = `${viewHref}?download=1`;
 
-                                const hasBeenGenerated =
-                                    (document.generated_version ?? 0) > 0;
-                                const missingFieldCount =
-                                    document.blockers.length;
-                                const { Icon: StatusIcon, className: statusIconClassName } =
-                                    checklistStatusIcon(document.status);
-                                const subtitle =
-                                    document.template_version ?? document.key;
+                                        const hasBeenGenerated =
+                                            (document.generated_version ?? 0) >
+                                            0;
+                                        const missingFieldCount =
+                                            document.blockers.length;
+                                        const {
+                                            Icon: StatusIcon,
+                                            className: statusIconClassName,
+                                        } = checklistStatusIcon(
+                                            document.status,
+                                        );
+                                        const subtitle =
+                                            document.template_version ??
+                                            document.key;
 
-                                return (
-                                    <div
-                                        key={document.key}
-                                        className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
-                                    >
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex min-w-0 items-center gap-2">
-                                                <StatusIcon
-                                                    className={cn(
-                                                        'size-4 shrink-0',
-                                                        statusIconClassName,
-                                                    )}
-                                                />
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-semibold">
-                                                        {document.label}
-                                                    </p>
-                                                    <p className="truncate text-xs text-muted-foreground">
-                                                        {subtitle}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex shrink-0 items-center gap-2">
-                                                {missingFieldCount > 0 ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {missingFieldCount}{' '}
-                                                        field
-                                                        {missingFieldCount === 1
-                                                            ? ''
-                                                            : 's'}{' '}
-                                                        missing
-                                                    </span>
-                                                ) : null}
-                                                {document.generated_filename ? (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger
-                                                            asChild
-                                                        >
+                                        return (
+                                            <div
+                                                key={document.key}
+                                                className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex min-w-0 items-center gap-2">
+                                                        <StatusIcon
+                                                            className={cn(
+                                                                'size-4 shrink-0',
+                                                                statusIconClassName,
+                                                            )}
+                                                        />
+                                                        <div className="min-w-0">
+                                                            <p className="truncate text-sm font-semibold">
+                                                                {document.label}
+                                                            </p>
+                                                            <p className="truncate text-xs text-muted-foreground">
+                                                                {subtitle}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex shrink-0 items-center gap-2">
+                                                        {missingFieldCount >
+                                                        0 ? (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {
+                                                                    missingFieldCount
+                                                                }{' '}
+                                                                field
+                                                                {missingFieldCount ===
+                                                                1
+                                                                    ? ''
+                                                                    : 's'}{' '}
+                                                                missing
+                                                            </span>
+                                                        ) : null}
+                                                        {document.generated_filename ? (
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                    >
+                                                                        <MoreHorizontal className="size-4" />
+                                                                        <span className="sr-only">
+                                                                            Document
+                                                                            actions
+                                                                        </span>
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        asChild
+                                                                    >
+                                                                        <a
+                                                                            href={
+                                                                                previewHref
+                                                                            }
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                        >
+                                                                            Preview
+                                                                        </a>
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        asChild
+                                                                    >
+                                                                        <a
+                                                                            href={
+                                                                                printDocumentHref
+                                                                            }
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                        >
+                                                                            Print
+                                                                        </a>
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        asChild
+                                                                    >
+                                                                        <a
+                                                                            href={
+                                                                                downloadHref
+                                                                            }
+                                                                        >
+                                                                            Download
+                                                                        </a>
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        ) : null}
+                                                        {canGenerateDocuments &&
+                                                        document.is_applicable ? (
                                                             <Button
                                                                 type="button"
-                                                                variant="ghost"
-                                                                size="icon"
+                                                                size="sm"
+                                                                disabled={
+                                                                    isWorkflowProcessing
+                                                                }
+                                                                onClick={() =>
+                                                                    void submitGenerateDocuments(
+                                                                        document.key,
+                                                                    )
+                                                                }
                                                             >
-                                                                <MoreHorizontal className="size-4" />
-                                                                <span className="sr-only">
-                                                                    Document
-                                                                    actions
-                                                                </span>
+                                                                Regenerate
                                                             </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem
-                                                                asChild
-                                                            >
-                                                                <a
-                                                                    href={
-                                                                        previewHref
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                >
-                                                                    Preview
-                                                                </a>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                asChild
-                                                            >
-                                                                <a
-                                                                    href={
-                                                                        printDocumentHref
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                >
-                                                                    Print
-                                                                </a>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                asChild
-                                                            >
-                                                                <a
-                                                                    href={
-                                                                        downloadHref
-                                                                    }
-                                                                >
-                                                                    Download
-                                                                </a>
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                                {document.generated_at ||
+                                                hasBeenGenerated ? (
+                                                    <div className="flex flex-wrap items-center gap-3 pl-6 text-[11px] text-muted-foreground">
+                                                        {document.generated_at ? (
+                                                            <span>
+                                                                Last generated:{' '}
+                                                                {formatDateTime(
+                                                                    document.generated_at,
+                                                                )}
+                                                            </span>
+                                                        ) : null}
+                                                        {hasBeenGenerated ? (
+                                                            <span>
+                                                                Generated by:{' '}
+                                                                {document.generated_by ??
+                                                                    '-'}{' '}
+                                                                (v
+                                                                {
+                                                                    document.generated_version
+                                                                }
+                                                                {document.source_version
+                                                                    ? `, source v${document.source_version}`
+                                                                    : ''}
+                                                                )
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
                                                 ) : null}
-                                                {canGenerateDocuments &&
-                                                document.is_applicable ? (
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        disabled={
-                                                            isWorkflowProcessing
-                                                        }
-                                                        onClick={() =>
-                                                            void submitGenerateDocuments(
-                                                                document.key,
-                                                            )
-                                                        }
-                                                    >
-                                                        Regenerate
-                                                    </Button>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                        {document.generated_at ||
-                                        hasBeenGenerated ? (
-                                            <div className="flex flex-wrap items-center gap-3 pl-6 text-[11px] text-muted-foreground">
-                                                {document.generated_at ? (
-                                                    <span>
-                                                        Last generated:{' '}
-                                                        {formatDateTime(
-                                                            document.generated_at,
-                                                        )}
-                                                    </span>
-                                                ) : null}
-                                                {hasBeenGenerated ? (
-                                                    <span>
-                                                        Generated by:{' '}
-                                                        {document.generated_by ??
-                                                            '-'}{' '}
-                                                        (v
+                                                {document.failure_message &&
+                                                document.status !==
+                                                    'incomplete' ? (
+                                                    <p className="pl-6 text-[11px] font-medium text-rose-700 dark:text-rose-200">
                                                         {
-                                                            document.generated_version
+                                                            document.failure_message
                                                         }
-                                                        {document.source_version
-                                                            ? `, source v${document.source_version}`
-                                                            : ''}
-                                                        )
-                                                    </span>
+                                                    </p>
                                                 ) : null}
                                             </div>
-                                        ) : null}
-                                        {document.failure_message &&
-                                        document.status !== 'incomplete' ? (
-                                            <p className="pl-6 text-[11px] font-medium text-rose-700 dark:text-rose-200">
-                                                {document.failure_message}
-                                            </p>
-                                        ) : null}
+                                        );
+                                    })}
+                            </CardContent>
+                        </Card>
+                        {showWibsTrackingSection ? (
+                            <Card className="border-border/30 bg-card/70 shadow-sm">
+                                <CardHeader>
+                                    <CardTitle>WIBS Tracking</CardTitle>
+                                    <CardDescription>
+                                        Official loan tracking in the WIBS
+                                        system.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-muted-foreground">
+                                            Status:
+                                        </span>
+                                        <Badge variant="secondary">
+                                            {currentRequest.status ===
+                                            'converted_to_loan'
+                                                ? 'Converted to Loan'
+                                                : currentRequest.status ===
+                                                    'for_wibs_encoding'
+                                                  ? 'For WIBS Encoding'
+                                                  : currentRequest.status ===
+                                                      'wibs_loan_created'
+                                                    ? 'WIBS Loan Created'
+                                                    : currentRequest.status ===
+                                                        'release_scheduled'
+                                                      ? 'Release Scheduled'
+                                                      : 'Released'}
+                                        </Badge>
                                     </div>
-                                );
-                            })}
-                        </CardContent>
-                    </Card>
-                    {showWibsTrackingSection ? (
-                    <Card className="border-border/30 bg-card/70 shadow-sm">
-                        <CardHeader>
-                            <CardTitle>WIBS Tracking</CardTitle>
-                            <CardDescription>
-                                Official loan tracking in the WIBS system.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">
-                                    Status:
-                                </span>
-                                <Badge variant="secondary">
+
+                                    {currentRequest.wibs_loan_reference ? (
+                                        <div className="text-sm">
+                                            <span className="font-medium">
+                                                WIBS Reference:
+                                            </span>{' '}
+                                            {currentRequest.wibs_loan_reference}
+                                        </div>
+                                    ) : null}
+
+                                    {currentRequest.wibs_release_date ? (
+                                        <div className="text-sm">
+                                            <span className="font-medium">
+                                                Scheduled Release:
+                                            </span>{' '}
+                                            {currentRequest.wibs_release_date}
+                                        </div>
+                                    ) : null}
+
+                                    {currentRequest.wibs_released_at ? (
+                                        <div className="text-sm">
+                                            <span className="font-medium">
+                                                Released at:
+                                            </span>{' '}
+                                            {formatDateTime(
+                                                currentRequest.wibs_released_at,
+                                            )}
+                                        </div>
+                                    ) : null}
+
+                                    <Separator />
+
                                     {currentRequest.status ===
-                                    'converted_to_loan'
-                                        ? 'Converted to Loan'
-                                        : currentRequest.status ===
-                                            'for_wibs_encoding'
-                                          ? 'For WIBS Encoding'
-                                          : currentRequest.status ===
-                                              'wibs_loan_created'
-                                            ? 'WIBS Loan Created'
-                                            : currentRequest.status ===
-                                                'release_scheduled'
-                                              ? 'Release Scheduled'
-                                              : 'Released'}
-                                </Badge>
-                            </div>
-
-                            {currentRequest.wibs_loan_reference ? (
-                                <div className="text-sm">
-                                    <span className="font-medium">
-                                        WIBS Reference:
-                                    </span>{' '}
-                                    {currentRequest.wibs_loan_reference}
-                                </div>
-                            ) : null}
-
-                            {currentRequest.wibs_release_date ? (
-                                <div className="text-sm">
-                                    <span className="font-medium">
-                                        Scheduled Release:
-                                    </span>{' '}
-                                    {currentRequest.wibs_release_date}
-                                </div>
-                            ) : null}
-
-                            {currentRequest.wibs_released_at ? (
-                                <div className="text-sm">
-                                    <span className="font-medium">
-                                        Released at:
-                                    </span>{' '}
-                                    {formatDateTime(
-                                        currentRequest.wibs_released_at,
-                                    )}
-                                </div>
-                            ) : null}
-
-                            <Separator />
-
-                            {currentRequest.status === 'converted_to_loan' ? (
-                                <div className="space-y-2">
-                                    <p className="text-sm text-muted-foreground">
-                                        Forward this loan to WIBS for encoding.
-                                    </p>
-                                    <Button
-                                        disabled={isWibsSubmitting}
-                                        onClick={() => {
-                                            setIsWibsSubmitting(true);
-                                            router.patch(
-                                                wibsMarkForEncoding(
-                                                    currentRequest.id,
-                                                ).url,
-                                                {},
-                                                {
-                                                    onFinish: () =>
-                                                        setIsWibsSubmitting(
-                                                            false,
-                                                        ),
-                                                },
-                                            );
-                                        }}
-                                    >
-                                        {isWibsSubmitting
-                                            ? 'Processing…'
-                                            : 'Mark for WIBS Encoding'}
-                                    </Button>
-                                </div>
-                            ) : currentRequest.status ===
-                              'for_wibs_encoding' ? (
-                                <form
-                                    className="space-y-3"
-                                    onSubmit={(e) => {
-                                        e.preventDefault();
-                                        setIsWibsSubmitting(true);
-                                        router.patch(
-                                            wibsRecordReference(
-                                                currentRequest.id,
-                                            ).url,
-                                            {
-                                                wibs_loan_reference:
-                                                    wibsReference,
-                                            },
-                                            {
-                                                onFinish: () =>
-                                                    setIsWibsSubmitting(false),
-                                            },
-                                        );
-                                    }}
-                                >
-                                    <div className="space-y-1">
-                                        <Label htmlFor="wibs_loan_reference">
-                                            WIBS Loan Reference
-                                        </Label>
-                                        <Input
-                                            id="wibs_loan_reference"
-                                            value={wibsReference}
-                                            onChange={(e) =>
-                                                setWibsReference(e.target.value)
-                                            }
-                                            maxLength={100}
-                                            required
-                                            placeholder="e.g. WIBS-2026-001"
-                                        />
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        disabled={isWibsSubmitting}
-                                    >
-                                        {isWibsSubmitting
-                                            ? 'Saving…'
-                                            : 'Record WIBS Reference'}
-                                    </Button>
-                                </form>
-                            ) : currentRequest.status ===
-                              'wibs_loan_created' ? (
-                                <form
-                                    className="space-y-3"
-                                    onSubmit={(e) => {
-                                        e.preventDefault();
-                                        setIsWibsSubmitting(true);
-                                        router.patch(
-                                            wibsScheduleRelease(
-                                                currentRequest.id,
-                                            ).url,
-                                            {
-                                                wibs_release_date:
-                                                    wibsReleaseDate,
-                                            },
-                                            {
-                                                onFinish: () =>
-                                                    setIsWibsSubmitting(false),
-                                            },
-                                        );
-                                    }}
-                                >
-                                    <div className="space-y-1">
-                                        <Label htmlFor="wibs_release_date">
-                                            Release Date
-                                        </Label>
-                                        <Input
-                                            id="wibs_release_date"
-                                            type="date"
-                                            value={wibsReleaseDate}
-                                            onChange={(e) =>
-                                                setWibsReleaseDate(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            required
-                                        />
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        disabled={isWibsSubmitting}
-                                    >
-                                        {isWibsSubmitting
-                                            ? 'Saving…'
-                                            : 'Schedule Release'}
-                                    </Button>
-                                </form>
-                            ) : currentRequest.status ===
-                              'release_scheduled' ? (
-                                <div className="space-y-2">
-                                    <p className="text-sm text-muted-foreground">
-                                        Confirm that the loan has been released
-                                        to the member.
-                                    </p>
-                                    <Button
-                                        disabled={isWibsSubmitting}
-                                        onClick={() => {
-                                            setIsWibsSubmitting(true);
-                                            router.patch(
-                                                wibsConfirmRelease(
-                                                    currentRequest.id,
-                                                ).url,
-                                                {},
-                                                {
-                                                    onFinish: () =>
-                                                        setIsWibsSubmitting(
-                                                            false,
-                                                        ),
-                                                },
-                                            );
-                                        }}
-                                    >
-                                        {isWibsSubmitting
-                                            ? 'Processing…'
-                                            : 'Confirm Release'}
-                                    </Button>
-                                </div>
-                            ) : null}
-                        </CardContent>
-                    </Card>
-                    ) : null}
+                                    'converted_to_loan' ? (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-muted-foreground">
+                                                Forward this loan to WIBS for
+                                                encoding.
+                                            </p>
+                                            <Button
+                                                disabled={isWibsSubmitting}
+                                                onClick={() => {
+                                                    setIsWibsSubmitting(true);
+                                                    router.patch(
+                                                        wibsMarkForEncoding(
+                                                            currentRequest.id,
+                                                        ).url,
+                                                        {},
+                                                        {
+                                                            onFinish: () =>
+                                                                setIsWibsSubmitting(
+                                                                    false,
+                                                                ),
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                {isWibsSubmitting
+                                                    ? 'Processing…'
+                                                    : 'Mark for WIBS Encoding'}
+                                            </Button>
+                                        </div>
+                                    ) : currentRequest.status ===
+                                      'for_wibs_encoding' ? (
+                                        <form
+                                            className="space-y-3"
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                setIsWibsSubmitting(true);
+                                                router.patch(
+                                                    wibsRecordReference(
+                                                        currentRequest.id,
+                                                    ).url,
+                                                    {
+                                                        wibs_loan_reference:
+                                                            wibsReference,
+                                                    },
+                                                    {
+                                                        onFinish: () =>
+                                                            setIsWibsSubmitting(
+                                                                false,
+                                                            ),
+                                                    },
+                                                );
+                                            }}
+                                        >
+                                            <div className="space-y-1">
+                                                <Label htmlFor="wibs_loan_reference">
+                                                    WIBS Loan Reference
+                                                </Label>
+                                                <Input
+                                                    id="wibs_loan_reference"
+                                                    value={wibsReference}
+                                                    onChange={(e) =>
+                                                        setWibsReference(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    maxLength={100}
+                                                    required
+                                                    placeholder="e.g. WIBS-2026-001"
+                                                />
+                                            </div>
+                                            <Button
+                                                type="submit"
+                                                disabled={isWibsSubmitting}
+                                            >
+                                                {isWibsSubmitting
+                                                    ? 'Saving…'
+                                                    : 'Record WIBS Reference'}
+                                            </Button>
+                                        </form>
+                                    ) : currentRequest.status ===
+                                      'wibs_loan_created' ? (
+                                        <form
+                                            className="space-y-3"
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                setIsWibsSubmitting(true);
+                                                router.patch(
+                                                    wibsScheduleRelease(
+                                                        currentRequest.id,
+                                                    ).url,
+                                                    {
+                                                        wibs_release_date:
+                                                            wibsReleaseDate,
+                                                    },
+                                                    {
+                                                        onFinish: () =>
+                                                            setIsWibsSubmitting(
+                                                                false,
+                                                            ),
+                                                    },
+                                                );
+                                            }}
+                                        >
+                                            <div className="space-y-1">
+                                                <Label htmlFor="wibs_release_date">
+                                                    Release Date
+                                                </Label>
+                                                <Input
+                                                    id="wibs_release_date"
+                                                    type="date"
+                                                    value={wibsReleaseDate}
+                                                    onChange={(e) =>
+                                                        setWibsReleaseDate(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    required
+                                                />
+                                            </div>
+                                            <Button
+                                                type="submit"
+                                                disabled={isWibsSubmitting}
+                                            >
+                                                {isWibsSubmitting
+                                                    ? 'Saving…'
+                                                    : 'Schedule Release'}
+                                            </Button>
+                                        </form>
+                                    ) : currentRequest.status ===
+                                      'release_scheduled' ? (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-muted-foreground">
+                                                Confirm that the loan has been
+                                                released to the member.
+                                            </p>
+                                            <Button
+                                                disabled={isWibsSubmitting}
+                                                onClick={() => {
+                                                    setIsWibsSubmitting(true);
+                                                    router.patch(
+                                                        wibsConfirmRelease(
+                                                            currentRequest.id,
+                                                        ).url,
+                                                        {},
+                                                        {
+                                                            onFinish: () =>
+                                                                setIsWibsSubmitting(
+                                                                    false,
+                                                                ),
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                {isWibsSubmitting
+                                                    ? 'Processing…'
+                                                    : 'Confirm Release'}
+                                            </Button>
+                                        </div>
+                                    ) : null}
+                                </CardContent>
+                            </Card>
+                        ) : null}
                     </div>
                     <div>
-            <LoanRequestDetailPage
-                loanRequest={currentRequest}
-                applicant={currentApplicant}
-                coMakerOne={currentCoMakerOne}
-                coMakerTwo={currentCoMakerTwo}
-                backHref={requestsIndex().url}
-                backLabel="Back to workflow queue"
-                pdfHref={pdfHref}
-                printHref={printHref}
-                approvedDocumentHrefs={approvedDocumentHrefs}
-                auditTrail={currentAuditTrail}
-                auditTrailAudience="staff"
-                workflow={{
-                    claim: canClaim
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: () =>
-                                  claimLoanRequest(currentRequest.id),
-                          }
-                        : undefined,
-                    assign: canAssign
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              officerOptions: currentEligibleOfficers,
-                              onSubmit: (payload) =>
-                                  assignLoanRequest(currentRequest.id, payload),
-                          }
-                        : undefined,
-                    reassign: canReassign
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              officerOptions: currentEligibleOfficers,
-                              onSubmit: (payload) =>
-                                  reassignLoanRequest(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
-                          }
-                        : undefined,
-                    returnToQueue: canReturnToQueue
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  returnLoanRequestToQueue(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
-                          }
-                        : undefined,
-                    startReview: canStartReview
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  startReview(currentRequest.id, payload),
-                          }
-                        : undefined,
-                    requestRevision: canRequestRevision
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  requestRevision(currentRequest.id, payload),
-                          }
-                        : undefined,
-                    reject: canReject
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  rejectLoanRequest(currentRequest.id, payload),
-                          }
-                        : undefined,
-                    recommendApproval: canRecommendApproval
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  recommendApproval(currentRequest.id, payload),
-                          }
-                        : undefined,
-                    approve: canWorkflowApprove
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  approveLoanRequest(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
-                          }
-                        : undefined,
-                    decline: canWorkflowDecline
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: (payload) =>
-                                  declineLoanRequest(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
-                          }
-                        : undefined,
-                    ...processingWorkflowActions,
-                }}
-                actionsPanelHeader={actionsHeaderContent}
-                hideSummaryHeader
-                hideMainColumn
-                wrapInShell={false}
-                sidebarFooter={sidebarFooterContent}
-            />
+                        <LoanRequestDetailPage
+                            loanRequest={currentRequest}
+                            applicant={currentApplicant}
+                            coMakerOne={currentCoMakerOne}
+                            coMakerTwo={currentCoMakerTwo}
+                            backHref={requestsIndex().url}
+                            backLabel="Back to workflow queue"
+                            pdfHref={pdfHref}
+                            printHref={printHref}
+                            approvedDocumentHrefs={approvedDocumentHrefs}
+                            auditTrail={currentAuditTrail}
+                            auditTrailAudience="staff"
+                            workflow={{
+                                claim: canClaim
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: () =>
+                                              claimLoanRequest(
+                                                  currentRequest.id,
+                                              ),
+                                      }
+                                    : undefined,
+                                assign: canAssign
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          officerOptions:
+                                              currentEligibleOfficers,
+                                          onSubmit: (payload) =>
+                                              assignLoanRequest(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                reassign: canReassign
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          officerOptions:
+                                              currentEligibleOfficers,
+                                          onSubmit: (payload) =>
+                                              reassignLoanRequest(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                returnToQueue: canReturnToQueue
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: (payload) =>
+                                              returnLoanRequestToQueue(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                startReview: canStartReview
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: (payload) =>
+                                              startReview(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                requestRevision: canRequestRevision
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: (payload) =>
+                                              requestRevision(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                reject: canReject
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: (payload) =>
+                                              rejectLoanRequest(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                recommendApproval: canRecommendApproval
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: (payload) =>
+                                              recommendApproval(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                approve: canWorkflowApprove
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: (payload) =>
+                                              approveLoanRequest(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                decline: canWorkflowDecline
+                                    ? {
+                                          show: true,
+                                          isProcessing: isWorkflowProcessing,
+                                          onSubmit: (payload) =>
+                                              declineLoanRequest(
+                                                  currentRequest.id,
+                                                  payload,
+                                              ),
+                                      }
+                                    : undefined,
+                                ...processingWorkflowActions,
+                            }}
+                            actionsPanelHeader={actionsHeaderContent}
+                            hideSummaryHeader
+                            hideMainColumn
+                            wrapInShell={false}
+                            sidebarFooter={sidebarFooterContent}
+                        />
                     </div>
                 </div>
             </section>
@@ -2600,7 +2811,6 @@ export default function StaffLoanRequestShow({
                     </form>
                 </DialogContent>
             </Dialog>
-
         </AppLayout>
     );
 }
