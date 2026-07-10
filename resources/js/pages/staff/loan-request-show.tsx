@@ -312,7 +312,6 @@ export type InlineProcessingFormState = {
 type ProcessingSectionKey =
     | 'recommendation'
     | 'charges_fees'
-    | 'net_take_home_pay'
     | 'document_requirements'
     | 'personnel'
     | 'confirmation';
@@ -324,8 +323,7 @@ type ProcessingSectionMeta = {
 
 const PROCESSING_SECTIONS: ProcessingSectionMeta[] = [
     { key: 'recommendation', label: 'Recommendation' },
-    { key: 'charges_fees', label: 'Charges & fees' },
-    { key: 'net_take_home_pay', label: 'Net take-home pay' },
+    { key: 'charges_fees', label: 'Charges, fees & take-home pay' },
     { key: 'document_requirements', label: 'Document requirements' },
     { key: 'personnel', label: 'Personnel' },
     { key: 'confirmation', label: 'Confirmation' },
@@ -1095,6 +1093,24 @@ export default function StaffLoanRequestShow({
         );
     };
 
+    const currentStepIndex = PROCESSING_SECTIONS.findIndex(
+        (section) => section.key === activeProcessingSection,
+    );
+    const goToPreviousProcessingStep = () => {
+        if (currentStepIndex > 0) {
+            setActiveProcessingSection(
+                PROCESSING_SECTIONS[currentStepIndex - 1].key,
+            );
+        }
+    };
+    const goToNextProcessingStep = () => {
+        if (currentStepIndex < PROCESSING_SECTIONS.length - 1) {
+            setActiveProcessingSection(
+                PROCESSING_SECTIONS[currentStepIndex + 1].key,
+            );
+        }
+    };
+
     const inlineProcessingPanel = (
         <Card
             className={
@@ -1135,6 +1151,10 @@ export default function StaffLoanRequestShow({
                         />
                         <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
                         <div className="lg:sticky lg:top-24">
+                            <p className="mb-2 text-xs text-muted-foreground">
+                                Step {currentStepIndex + 1} of{' '}
+                                {PROCESSING_SECTIONS.length}
+                            </p>
                             <LoanRequestSectionNav
                                 sections={PROCESSING_SECTIONS}
                                 activeSection={activeProcessingSection}
@@ -1268,16 +1288,6 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('notarial_venue')}
                             {renderProcessingField('penalty_rate_per_month')}
                         </div>
-                        </div>
-
-                        <div
-                            className={cn(
-                                activeProcessingSection ===
-                                    'net_take_home_pay'
-                                    ? 'block'
-                                    : 'hidden',
-                            )}
-                        >
                         {renderProcessingSectionLabel('Net take-home pay')}
                         {renderProcessingField('guaranteed_net_take_home_pay')}
                         </div>
@@ -1353,6 +1363,27 @@ export default function StaffLoanRequestShow({
                                 }
                             />
                         </div>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={goToPreviousProcessingStep}
+                                disabled={currentStepIndex === 0}
+                            >
+                                Back
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={goToNextProcessingStep}
+                                disabled={
+                                    currentStepIndex ===
+                                    PROCESSING_SECTIONS.length - 1
+                                }
+                            >
+                                Next
+                            </Button>
                         </div>
                         </div>
                         </div>
