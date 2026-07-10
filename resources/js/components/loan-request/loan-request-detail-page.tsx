@@ -99,6 +99,7 @@ type Props = {
     wrapInShell?: boolean;
     hideSummaryHeader?: boolean;
     hideMainColumn?: boolean;
+    sidebarFooter?: ReactNode;
 };
 
 type ApprovedDocumentHrefs = {
@@ -986,6 +987,7 @@ export function LoanRequestDetailPage({
     wrapInShell = true,
     hideSummaryHeader = false,
     hideMainColumn = false,
+    sidebarFooter,
 }: Props) {
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
@@ -1963,6 +1965,8 @@ export function LoanRequestDetailPage({
                                               : 'This request remains available as read-only history.'}
                         </CardContent>
                     </Card>
+
+                    {sidebarFooter ?? null}
                 </div>
             </div>
             <Dialog
