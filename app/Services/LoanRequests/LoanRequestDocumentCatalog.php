@@ -353,7 +353,6 @@ class LoanRequestDocumentCatalog
             ],
             'source_fields' => [
                 'notarial_venue',
-                'security_required',
             ],
             'source_paths' => [
                 'loan_request.recommended_amount',

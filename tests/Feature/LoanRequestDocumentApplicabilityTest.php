@@ -109,7 +109,7 @@ test('authorization and undertaking barangay become ready to generate once their
         ->and($barangay['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });
 
-test('security_required=false still strips loan_security_rate from the financial documents and zeroes generated security amounts', function (): void {
+test('loan_security_rate stays required and generates blockers unconditionally, with no flag in the fixture at all', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 25000,
@@ -123,7 +123,6 @@ test('security_required=false still strips loan_security_rate from the financial
 
     applicabilityPersistDataEntries($loanRequest, [
         'service_charge_rate' => ['number', 1.25],
-        'insurance_required' => ['boolean', true],
         'insurance_rate' => ['number', 0.75],
         'insurance_term' => ['number', 12],
         'documentary_stamp_rate' => ['number', 0.2],
@@ -131,7 +130,35 @@ test('security_required=false still strips loan_security_rate from the financial
         'penalty_rate_per_month' => ['number', 3],
         'witness_one_name' => ['string', 'Witness One'],
         'witness_two_name' => ['string', 'Witness Two'],
-        'security_required' => ['boolean', false],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanInformation);
+
+    expect($entry['blockers'])->toContain('Loan security rate must be numeric.');
+});
+
+test('a legitimately-set loan_security_rate of exactly 0 is accepted as valid, not a policy-driven zero', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0.75],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
     ]);
 
     foreach ([
@@ -143,14 +170,43 @@ test('security_required=false still strips loan_security_rate from the financial
         $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
 
         expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
-            ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.')
-            ->and($entry['blockers'])->not->toContain('Loan security rate is required.');
+            ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.');
     }
 
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
     expect($documentData['loan']['loan_security_rate_raw'])->toBe(0.0)
         ->and($documentData['loan']['loan_security_amount_raw'])->toBe(0.0);
+});
+
+test('a nonzero loan_security_rate passes through unmodified with no flag present in the fixture at all', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0.75],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 2.5],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['loan_security_rate_raw'])->toBe(2.5)
+        ->and($documentData['loan']['loan_security_amount_raw'])->toBe(62500.0);
 });
 
 test('grepalife is applicable regardless of insurance_required value', function (): void {

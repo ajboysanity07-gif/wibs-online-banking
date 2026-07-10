@@ -598,7 +598,6 @@ class LoanRequestDocumentWorkflowService
                     'insurance_rate_raw' => $flatValues['insurance_rate'] ?? null,
                     'insurance_term' => $flatValues['insurance_term'] ?? null,
                     'loan_security_rate_raw' => $flatValues['loan_security_rate'] ?? null,
-                    'security_required' => $flatValues['security_required'] ?? null,
                     'documentary_stamp_rate_raw' => $flatValues['documentary_stamp_rate'] ?? null,
                     'notarial_fee_raw' => $flatValues['notarial_fee'] ?? null,
                     'penalty_rate_raw' => $flatValues['penalty_rate_per_month'] ?? null,
@@ -686,15 +685,7 @@ class LoanRequestDocumentWorkflowService
         LoanRequestDocumentKey $documentKey,
         array $flatValues,
     ): array {
-        $requiredFields = $this->documentCatalog->requiredFieldKeys($documentKey);
-
-        if (($flatValues['security_required'] ?? null) === false) {
-            $requiredFields = array_values(array_diff($requiredFields, [
-                'loan_security_rate',
-            ]));
-        }
-
-        return $requiredFields;
+        return $this->documentCatalog->requiredFieldKeys($documentKey);
     }
 
     /**
@@ -845,10 +836,8 @@ class LoanRequestDocumentWorkflowService
             $blockers[] = 'Insurance term must be greater than zero.';
         }
 
-        if (($flatValues['security_required'] ?? null) !== false) {
-            if (! $this->isNumericValue($flatValues['loan_security_rate'] ?? null)) {
-                $blockers[] = 'Loan security rate must be numeric.';
-            }
+        if (! $this->isNumericValue($flatValues['loan_security_rate'] ?? null)) {
+            $blockers[] = 'Loan security rate must be numeric.';
         }
 
         return array_values(array_unique($blockers));

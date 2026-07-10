@@ -500,7 +500,6 @@ function acceptanceProcessingPayload(): array
             'documentary_stamp_rate' => 0.2,
             'notarial_fee' => 250,
             'penalty_rate_per_month' => 3,
-            'security_required' => true,
             'notarial_venue' => 'Tagum City',
             'witness_one_name' => 'Witness One',
             'witness_two_name' => 'Witness Two',

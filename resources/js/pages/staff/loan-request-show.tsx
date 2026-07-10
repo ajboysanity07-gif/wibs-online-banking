@@ -1205,13 +1205,6 @@ export default function StaffLoanRequestShow({
                         {renderProcessingSectionLabel('Net take-home pay')}
                         {renderProcessingField('guaranteed_net_take_home_pay')}
 
-                        {renderProcessingSectionLabel(
-                            'Document requirements',
-                        )}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField('security_required')}
-                        </div>
-
                         {renderProcessingSectionLabel('Personnel')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('witness_one_name')}

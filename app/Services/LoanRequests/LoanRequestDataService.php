@@ -315,14 +315,6 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'number',
         ],
-        'security_required' => [
-            'label' => 'Loan is security-backed (affects security rate on other documents)',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'boolean',
-        ],
         'notarial_venue' => [
             'label' => 'Notarial venue',
             'owner' => self::OWNER_STAFF,

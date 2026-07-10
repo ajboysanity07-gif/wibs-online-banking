@@ -681,7 +681,6 @@ class ApprovedLoanDocumentService
             $overrideLoan['interest_rate_raw'] ?? null,
             $this->normalizeNumericValue($loanRequest->approved_interest_rate),
         );
-        $securityRequired = ($overrideLoan['security_required'] ?? $flatValues['security_required'] ?? null) !== false;
         $serviceChargeRateRaw = $this->resolveNumericOverride(
             $overrideLoan['service_charge_rate_raw']
                 ?? $flatValues['service_charge_rate']
@@ -719,7 +718,7 @@ class ApprovedLoanDocumentService
             $overrideLoan['loan_security_rate_raw']
                 ?? $flatValues['loan_security_rate']
                 ?? null,
-            $securityRequired ? null : 0.0,
+            0.0,
         );
         $loanSecurityAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $loanSecurityRateRaw !== null
