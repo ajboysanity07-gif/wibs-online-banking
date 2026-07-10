@@ -1015,9 +1015,6 @@ export default function StaffLoanRequestShow({
             ? `${currentRequest.recommended_term} months`
             : '—';
 
-    const processingSecurityRequired =
-        processingForm.processing['security_required'] === true;
-
     const renderProcessingSectionLabel = (
         title: string,
         options?: { first?: boolean },
@@ -1297,12 +1294,7 @@ export default function StaffLoanRequestShow({
                             'Document requirements',
                         )}
                         <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField('authorization_required')}
-                            {renderProcessingField('barangay_required')}
                             {renderProcessingField('security_required')}
-                            {renderProcessingField('loan_security_details', {
-                                fullWidth: processingSecurityRequired,
-                            })}
                         </div>
                         </div>
 
