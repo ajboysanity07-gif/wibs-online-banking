@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
@@ -682,6 +683,33 @@ class LoanRequestProcessingService
                 $before,
                 $after,
             );
+
+            if ($isDocumentWorkflowV2) {
+                $approverDisplayName = $actor->adminProfile?->fullname
+                    ?? $actor->name
+                    ?? $actor->username;
+
+                $this->dataService->applyStaffUpdates(
+                    $lockedLoanRequest,
+                    $actor,
+                    ['witness_two_name' => $approverDisplayName],
+                    'Witness 2 recorded upon approval',
+                    'System — automated on loan approval',
+                );
+
+                $lockedLoanRequest->load('dataEntries');
+
+                $this->documentWorkflowService->generateDocument(
+                    $lockedLoanRequest,
+                    LoanRequestDocumentKey::LoanInformation,
+                    $actor,
+                );
+                $this->documentWorkflowService->generateDocument(
+                    $lockedLoanRequest,
+                    LoanRequestDocumentKey::PromissoryNote,
+                    $actor,
+                );
+            }
 
             return $lockedLoanRequest->refresh();
         });

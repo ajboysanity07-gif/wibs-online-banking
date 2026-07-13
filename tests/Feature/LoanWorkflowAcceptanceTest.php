@@ -5,12 +5,18 @@ use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
+use App\Models\LoanRequestDataChange;
+use App\Models\LoanRequestDocument;
 use App\Models\MemberApplicationProfile;
 use App\Models\Role;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 
 beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
@@ -286,6 +292,206 @@ test('v2 workflow reaches recommended-for-approval with witness_two_name omitted
         ->sole();
 
     expect($witnessOneEntry->value_json['value'])->toBe($expectedProcessorDisplayName);
+});
+
+test('manager approval writes witness_two_name as the manager\'s own name and regenerates only loan_information and promissory_note', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940003', 'Approval', 'Witness');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+    $manager = createAcceptanceActor([Role::LOAN_MANAGER]);
+
+    $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+    $loanRequest = LoanRequest::query()->sole();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Starting full acceptance review.',
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), acceptanceProcessingPayload())
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Ready for manager review.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
+
+    $preApprovalVersions = LoanRequestDocument::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->whereIn('document_key', ['loan_information', 'plan_of_payment', 'promissory_note'])
+        ->pluck('generated_version', 'document_key');
+
+    $this
+        ->actingAs($manager)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 25000,
+            'approved_term' => 12,
+            'approved_interest_rate' => 1.5,
+            'approved_payment_frequency' => '15th & 30th',
+            'approval_remarks' => 'Approved as recommended.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value);
+
+    $expectedManagerDisplayName = $manager->adminProfile?->fullname
+        ?? $manager->name
+        ?? $manager->username;
+
+    $dataChange = LoanRequestDataChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'witness_two_name')
+        ->where('information_source', 'System — automated on loan approval')
+        ->sole();
+
+    expect($dataChange->after_value_json['value'])->toBe($expectedManagerDisplayName)
+        ->and($dataChange->reason)->toBe('Witness 2 recorded upon approval');
+
+    $documentsAfter = LoanRequestDocument::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->whereIn('document_key', ['loan_information', 'plan_of_payment', 'promissory_note'])
+        ->get()
+        ->keyBy('document_key');
+
+    expect($documentsAfter['loan_information']->generated_version)
+        ->toBe($preApprovalVersions['loan_information'] + 1)
+        ->and($documentsAfter['promissory_note']->generated_version)
+        ->toBe($preApprovalVersions['promissory_note'] + 1)
+        ->and($documentsAfter['plan_of_payment']->generated_version)
+        ->toBe($preApprovalVersions['plan_of_payment']);
+
+    $loanInformationText = acceptancePdfText(
+        Storage::disk($documentsAfter['loan_information']->generated_disk)
+            ->path($documentsAfter['loan_information']->generated_path),
+    );
+    $promissoryNoteText = acceptancePdfText(
+        Storage::disk($documentsAfter['promissory_note']->generated_disk)
+            ->path($documentsAfter['promissory_note']->generated_path),
+    );
+
+    expect(mb_strtoupper($loanInformationText))->toContain(mb_strtoupper($expectedManagerDisplayName))
+        ->and(mb_strtoupper($promissoryNoteText))->toContain(mb_strtoupper($expectedManagerDisplayName));
+});
+
+test('manager approval rolls back completely when document regeneration fails', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940004', 'Rollback', 'Witness');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+    $manager = createAcceptanceActor([Role::LOAN_MANAGER]);
+
+    $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+    $loanRequest = LoanRequest::query()->sole();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Starting full acceptance review.',
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), acceptanceProcessingPayload())
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Ready for manager review.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
+
+    $preApprovalVersions = LoanRequestDocument::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->whereIn('document_key', ['loan_information', 'promissory_note'])
+        ->pluck('generated_version', 'document_key');
+
+    $viewPath = resource_path('views/reports/loan-information.blade.php');
+    $brokenViewPath = resource_path('views/reports/loan-information.blade.php.broken-for-test');
+
+    File::move($viewPath, $brokenViewPath);
+
+    try {
+        $this
+            ->actingAs($manager)
+            ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+                'approved_amount' => 25000,
+                'approved_term' => 12,
+                'approved_interest_rate' => 1.5,
+                'approved_payment_frequency' => '15th & 30th',
+                'approval_remarks' => 'Approved as recommended.',
+            ])
+            ->assertStatus(500);
+    } finally {
+        File::move($brokenViewPath, $viewPath);
+    }
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::RecommendedForApproval)
+        ->and($loanRequest->approved_by)->toBeNull()
+        ->and($loanRequest->approved_at)->toBeNull();
+
+    expect(
+        LoanRequestChange::query()
+            ->where('loan_request_id', $loanRequest->id)
+            ->where('action', LoanRequestChange::ACTION_APPROVE)
+            ->exists(),
+    )->toBeFalse();
+
+    expect(
+        LoanRequestDataChange::query()
+            ->where('loan_request_id', $loanRequest->id)
+            ->where('field_key', 'witness_two_name')
+            ->where('information_source', 'System — automated on loan approval')
+            ->exists(),
+    )->toBeFalse();
+
+    $documentsAfter = LoanRequestDocument::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->whereIn('document_key', ['loan_information', 'promissory_note'])
+        ->get()
+        ->keyBy('document_key');
+
+    expect($documentsAfter['loan_information']->generated_version)
+        ->toBe($preApprovalVersions['loan_information'])
+        ->and($documentsAfter['promissory_note']->generated_version)
+        ->toBe($preApprovalVersions['promissory_note']);
 });
 
 test('member can decline revised terms and processor rejection can be reopened by an authorized staff user', function (): void {
@@ -570,4 +776,12 @@ function acceptanceProcessingPayload(): array
         'recommended_payment_frequency' => '15th & 30th',
         'recommendation_remarks' => 'Recommend approval after full review.',
     ];
+}
+
+function acceptancePdfText(string $absolutePath): string
+{
+    $process = new Process(['pdftotext', $absolutePath, '-']);
+    $process->run();
+
+    return $process->getOutput();
 }
