@@ -1125,7 +1125,12 @@ export default function StaffLoanRequestShow({
 
     const renderProcessingField = (
         fieldKey: string,
-        options?: { fullWidth?: boolean },
+        options?: {
+            fullWidth?: boolean;
+            disabled?: boolean;
+            placeholder?: string;
+            tooltip?: string;
+        },
     ) => {
         const field = dataSectionDefinitions.processing.fields[fieldKey];
 
@@ -1161,8 +1166,27 @@ export default function StaffLoanRequestShow({
                     options?.fullWidth && 'sm:col-span-2',
                 )}
             >
-                <Label htmlFor={`inline_processing_${fieldKey}`}>
+                <Label
+                    htmlFor={`inline_processing_${fieldKey}`}
+                    className={
+                        options?.tooltip
+                            ? 'inline-flex items-center gap-1.5'
+                            : undefined
+                    }
+                >
                     {field.label}
+                    {options?.tooltip && (
+                        <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Info className="size-3.5 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{options.tooltip}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
                 </Label>
                 <Input
                     id={`inline_processing_${fieldKey}`}
@@ -1184,6 +1208,8 @@ export default function StaffLoanRequestShow({
                             event.target.value,
                         )
                     }
+                    disabled={options?.disabled}
+                    placeholder={options?.placeholder}
                 />
             </div>
         );
@@ -1438,13 +1464,13 @@ export default function StaffLoanRequestShow({
                         {renderProcessingSectionLabel('Personnel')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('witness_one_name')}
-                            <div className="grid gap-2">
-                                {renderProcessingField('witness_two_name')}
-                                <p className="text-xs text-muted-foreground">
-                                    Optional — recorded automatically using the approving manager's
-                                    name if left blank when the request is approved.
-                                </p>
-                            </div>
+                            {renderProcessingField('witness_two_name', {
+                                disabled: true,
+                                placeholder:
+                                    'Filled automatically upon approval',
+                                tooltip:
+                                    "Recorded automatically using the approving manager's name when the request is approved.",
+                            })}
                             {renderProcessingField('barangay_official_name')}
                             {renderProcessingField('barangay_official_title')}
                         </div>

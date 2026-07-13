@@ -262,8 +262,10 @@ test('v2 workflow reaches recommended-for-approval with witness_two_name omitted
         ])
         ->assertOk();
 
+    // witness_two_name is never part of the fixture payload — the field is
+    // staff-disabled and always deferred to approval time.
     $processingPayload = acceptanceProcessingPayload();
-    unset($processingPayload['processing']['witness_one_name'], $processingPayload['processing']['witness_two_name']);
+    unset($processingPayload['processing']['witness_one_name']);
 
     $this
         ->actingAs($processor)
@@ -766,7 +768,6 @@ function acceptanceProcessingPayload(): array
             'penalty_rate_per_month' => 3,
             'notarial_venue' => 'Tagum City',
             'witness_one_name' => 'Witness One',
-            'witness_two_name' => 'Witness Two',
             'barangay_official_name' => 'Barangay Captain',
             'barangay_official_title' => 'Punong Barangay',
         ],

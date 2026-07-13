@@ -18,11 +18,15 @@ test('staff loan request page shows the witness-2 auto-fill caveat under the Per
 
     assert.match(
         staffShowPageFile,
-        /Optional — recorded automatically using the approving manager's\s*\n\s*name if left blank when the request is approved\./,
+        /Witness 2 recorded automatically at approval if left blank/,
     );
     assert.match(
         staffShowPageFile,
-        /Witness 2 recorded automatically at approval if left blank/,
+        /renderProcessingField\('witness_two_name',\s*\{\s*\n\s*disabled:\s*true,\s*\n\s*placeholder:\s*\n?\s*'Filled automatically upon approval',\s*\n\s*tooltip:\s*\n?\s*"Recorded automatically using the approving manager's name when the request is approved\.",\s*\n\s*\}\)/,
+    );
+    assert.match(
+        staffShowPageFile,
+        /options\?\.tooltip &&[\s\S]{0,300}<TooltipTrigger>[\s\S]{0,100}<Info /,
     );
     assert.match(
         staffShowPageFile,
