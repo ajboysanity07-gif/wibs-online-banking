@@ -1389,7 +1389,13 @@ export default function StaffLoanRequestShow({
                         {renderProcessingSectionLabel('Personnel')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('witness_one_name')}
-                            {renderProcessingField('witness_two_name')}
+                            <div className="grid gap-2">
+                                {renderProcessingField('witness_two_name')}
+                                <p className="text-xs text-muted-foreground">
+                                    Optional — recorded automatically using the approving manager's
+                                    name if left blank when the request is approved.
+                                </p>
+                            </div>
                             {renderProcessingField('barangay_official_name')}
                             {renderProcessingField('barangay_official_title')}
                         </div>
@@ -1909,6 +1915,11 @@ export default function StaffLoanRequestShow({
                                         const subtitle =
                                             document.template_version ??
                                             document.key;
+                                        const showWitnessTwoCaveat =
+                                            document.key ===
+                                                'loan_information' ||
+                                            document.key ===
+                                                'promissory_note';
 
                                         return (
                                             <div
@@ -1930,6 +1941,11 @@ export default function StaffLoanRequestShow({
                                                             <p className="truncate text-xs text-muted-foreground">
                                                                 {subtitle}
                                                             </p>
+                                                            {showWitnessTwoCaveat && (
+                                                                <p className="truncate text-xs text-muted-foreground/70">
+                                                                    Witness 2 recorded automatically at approval if left blank
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="flex shrink-0 items-center gap-2">
