@@ -8,6 +8,7 @@ import {
     Clock,
     FileText,
     HeartPulse,
+    Info,
     MinusCircle,
     MoreHorizontal,
     PlayCircle,
@@ -66,6 +67,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
 import { adminApi } from '@/lib/api/admin';
@@ -1272,8 +1279,25 @@ export default function StaffLoanRequestShow({
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="inline_recommended_payment_frequency">
+                                <Label
+                                    htmlFor="inline_recommended_payment_frequency"
+                                    className="inline-flex items-center gap-1.5"
+                                >
                                     Payment frequency
+                                    <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <Info className="size-3.5 text-muted-foreground" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    Member&apos;s payday:{' '}
+                                                    {currentApplicant?.payday ||
+                                                        '—'}
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </Label>
                                 <Select
                                     value={
@@ -1305,10 +1329,6 @@ export default function StaffLoanRequestShow({
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <p className="text-xs text-muted-foreground">
-                                    Member&apos;s payday:{' '}
-                                    {currentApplicant?.payday || '—'}
-                                </p>
                             </div>
                         </div>
                         <div className="grid gap-2">
