@@ -28,6 +28,7 @@ import {
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
+    PAYDAY_OPTIONS,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -57,6 +58,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
@@ -1267,19 +1275,40 @@ export default function StaffLoanRequestShow({
                                 <Label htmlFor="inline_recommended_payment_frequency">
                                     Payment frequency
                                 </Label>
-                                <Input
-                                    id="inline_recommended_payment_frequency"
+                                <Select
                                     value={
-                                        processingForm.recommended_payment_frequency
+                                        processingForm.recommended_payment_frequency ||
+                                        undefined
                                     }
-                                    onChange={(event) =>
+                                    onValueChange={(value) =>
                                         setProcessingForm((current) => ({
                                             ...current,
                                             recommended_payment_frequency:
-                                                event.target.value,
+                                                value,
                                         }))
                                     }
-                                />
+                                >
+                                    <SelectTrigger
+                                        id="inline_recommended_payment_frequency"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select payment frequency" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {PAYDAY_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    Member&apos;s payday:{' '}
+                                    {currentApplicant?.payday || '—'}
+                                </p>
                             </div>
                         </div>
                         <div className="grid gap-2">

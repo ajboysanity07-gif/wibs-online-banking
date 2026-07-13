@@ -79,6 +79,41 @@ test('processing update with loan_request passthrough preserves loan details whi
         ->and($loanRequest->recommended_amount)->toBe('24000.00');
 });
 
+test('processing update rejects a non-canonical recommended_payment_frequency value', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950002');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $payload = [
+        'reason' => 'Recorded verified processing terms.',
+        'information_source' => 'Verified staff review',
+        'loan_request' => [
+            'requested_amount' => '25000.00',
+            'requested_term' => 12,
+            'loan_purpose' => 'Home improvement',
+            'availment_status' => 'New',
+        ],
+        'recommended_payment_frequency' => 'SEMI-MONTHLY',
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['recommended_payment_frequency']);
+});
+
 /**
  * @param  list<string>  $roles
  */

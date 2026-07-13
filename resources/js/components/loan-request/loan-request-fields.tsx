@@ -48,7 +48,7 @@ const HOUSING_STATUS_OPTIONS = [
     { value: 'OWNED', label: 'Owned' },
     { value: 'RENT', label: 'Rent' },
 ] as const;
-const PAYDAY_OPTIONS = [
+export const PAYDAY_OPTIONS = [
     'Weekly',
     '15th',
     '30th',
