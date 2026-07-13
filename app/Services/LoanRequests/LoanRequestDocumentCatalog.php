@@ -163,7 +163,6 @@ class LoanRequestDocumentCatalog
                 'notarial_fee',
                 'penalty_rate_per_month',
                 'witness_one_name',
-                'witness_two_name',
             ],
             'source_fields' => [
                 'service_charge_rate',
@@ -206,7 +205,6 @@ class LoanRequestDocumentCatalog
                 'notarial_fee',
                 'penalty_rate_per_month',
                 'witness_one_name',
-                'witness_two_name',
             ],
             'source_fields' => [
                 'service_charge_rate',
@@ -286,7 +284,6 @@ class LoanRequestDocumentCatalog
                 'notarial_fee',
                 'penalty_rate_per_month',
                 'witness_one_name',
-                'witness_two_name',
             ],
             'source_fields' => [
                 'service_charge_rate',

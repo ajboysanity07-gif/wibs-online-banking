@@ -230,6 +230,64 @@ test('v2 workflow happy path reaches final approval after revised terms are acce
     )->toBeTrue();
 });
 
+test('v2 workflow reaches recommended-for-approval with witness_two_name omitted, and witness_one_name auto-fills to the processor\'s own name', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940002', 'Witness', 'Member');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+
+    $submitResponse = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+    $loanRequest = LoanRequest::query()->sole();
+
+    $submitResponse->assertRedirect(route('client.loan-requests.show', $loanRequest));
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Starting review without a second witness.',
+        ])
+        ->assertOk();
+
+    $processingPayload = acceptanceProcessingPayload();
+    unset($processingPayload['processing']['witness_one_name'], $processingPayload['processing']['witness_two_name']);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Ready for manager review without Witness 2.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
+
+    $expectedProcessorDisplayName = $processor->adminProfile?->fullname
+        ?? $processor->name
+        ?? $processor->username;
+
+    $witnessOneEntry = $loanRequest->fresh()->dataEntries()
+        ->where('field_key', 'witness_one_name')
+        ->sole();
+
+    expect($witnessOneEntry->value_json['value'])->toBe($expectedProcessorDisplayName);
+});
+
 test('member can decline revised terms and processor rejection can be reopened by an authorized staff user', function (): void {
     config()->set('mail.default', 'array');
 

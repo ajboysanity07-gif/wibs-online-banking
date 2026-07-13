@@ -325,3 +325,71 @@ test('insurance_term requires a positive integer (isPositiveIntegerValue) while 
     expect($entry['blockers'])->toContain('Insurance term must be greater than zero.')
         ->and($entry['blockers'])->not->toContain('Loan security rate must be numeric.');
 });
+
+test('witness_two_name is no longer required for loan_information, plan_of_payment, or promissory_note', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0.75],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.5],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+        'witness_one_name' => ['string', 'Witness One'],
+    ]);
+
+    foreach ([
+        LoanRequestDocumentKey::LoanInformation,
+        LoanRequestDocumentKey::PlanOfPayment,
+        LoanRequestDocumentKey::PromissoryNote,
+    ] as $documentKey) {
+        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+
+        expect($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
+            ->and($entry['blockers'])->not->toContain('Witness two name is required.');
+    }
+});
+
+test('witness_one_name stays required for loan_information, plan_of_payment, and promissory_note', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 1.5,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 1.25],
+        'insurance_rate' => ['number', 0.75],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.5],
+        'documentary_stamp_rate' => ['number', 0.2],
+        'notarial_fee' => ['number', 250],
+        'penalty_rate_per_month' => ['number', 3],
+    ]);
+
+    foreach ([
+        LoanRequestDocumentKey::LoanInformation,
+        LoanRequestDocumentKey::PlanOfPayment,
+        LoanRequestDocumentKey::PromissoryNote,
+    ] as $documentKey) {
+        $entry = applicabilityChecklistEntry($loanRequest, $documentKey);
+
+        expect($entry['blockers'])->toContain('Witness one name is required.');
+    }
+});

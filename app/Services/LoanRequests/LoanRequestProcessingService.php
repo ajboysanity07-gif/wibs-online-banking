@@ -76,6 +76,18 @@ class LoanRequestProcessingService
                 ? $payload['processing']
                 : [];
 
+            if (! array_key_exists('witness_one_name', $processingPayload)
+                || trim((string) ($processingPayload['witness_one_name'] ?? '')) === ''
+            ) {
+                $processorDisplayName = $lockedLoanRequest->assignedProcessor?->adminProfile?->fullname
+                    ?? $lockedLoanRequest->assignedProcessor?->name
+                    ?? $lockedLoanRequest->assignedProcessor?->username;
+
+                if ($processorDisplayName !== null) {
+                    $processingPayload['witness_one_name'] = $processorDisplayName;
+                }
+            }
+
             $changedProcessingFields = $this->dataService->applyStaffUpdates(
                 $lockedLoanRequest,
                 $actor,
