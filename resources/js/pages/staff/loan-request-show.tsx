@@ -2638,17 +2638,16 @@ export default function StaffLoanRequestShow({
                                         <Label htmlFor="correction_requested_term">
                                             Requested term
                                         </Label>
-                                        <Input
+                                        <MonthsInput
                                             id="correction_requested_term"
-                                            type="number"
                                             value={
                                                 correctionForm.loan_request
                                                     .requested_term
                                             }
-                                            onChange={(event) =>
+                                            onChange={(value) =>
                                                 updateCorrectionDetailField(
                                                     'requested_term',
-                                                    event.target.value,
+                                                    value,
                                                 )
                                             }
                                         />
