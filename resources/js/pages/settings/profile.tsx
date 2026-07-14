@@ -7,7 +7,7 @@ import LinkMembershipController from '@/actions/App/Http/Controllers/Settings/Li
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { CurrencyInput } from '@/components/loan-request/currency-percent-inputs';
+import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
-import { CurrencyInput } from '@/components/loan-request/currency-percent-inputs';
+import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,

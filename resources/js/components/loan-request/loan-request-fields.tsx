@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
-import { CurrencyInput } from '@/components/loan-request/currency-percent-inputs';
+import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

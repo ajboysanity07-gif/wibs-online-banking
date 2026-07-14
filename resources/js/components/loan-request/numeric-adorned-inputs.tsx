@@ -110,3 +110,45 @@ export function PercentInput({
         </div>
     );
 }
+
+type MonthsInputProps = {
+    id?: string;
+    value: string;
+    onChange: (value: string) => void;
+    className?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    required?: boolean;
+};
+
+export function MonthsInput({
+    id,
+    value,
+    onChange,
+    className,
+    placeholder,
+    disabled,
+    required,
+}: MonthsInputProps) {
+    return (
+        <div className="relative">
+            <NumericFormat
+                id={id}
+                className={cn('pr-16', className)}
+                value={value}
+                onValueChange={(values) => onChange(values.value)}
+                decimalScale={0}
+                allowNegative={false}
+                placeholder={placeholder}
+                inputMode="numeric"
+                valueIsNumericString
+                customInput={Input}
+                disabled={disabled}
+                required={required}
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground">
+                months
+            </span>
+        </div>
+    );
+}

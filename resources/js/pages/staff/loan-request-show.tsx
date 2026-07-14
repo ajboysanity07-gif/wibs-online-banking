@@ -18,8 +18,9 @@ import {
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
     CurrencyInput,
+    MonthsInput,
     PercentInput,
-} from '@/components/loan-request/currency-percent-inputs';
+} from '@/components/loan-request/numeric-adorned-inputs';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
     LoanRequestApplicantCard,
@@ -439,36 +440,6 @@ export const SnapshotRow = ({
     <div className={cn('space-y-1', className)}>
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="text-sm leading-relaxed font-medium">{value}</p>
-    </div>
-);
-
-const MonthsInput = ({
-    id,
-    value,
-    onChange,
-    disabled,
-    placeholder,
-}: {
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-    placeholder?: string;
-}) => (
-    <div className="relative">
-        <Input
-            id={id}
-            type="text"
-            inputMode="numeric"
-            className="pr-16"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            disabled={disabled}
-            placeholder={placeholder}
-        />
-        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground">
-            months
-        </span>
     </div>
 );
 
