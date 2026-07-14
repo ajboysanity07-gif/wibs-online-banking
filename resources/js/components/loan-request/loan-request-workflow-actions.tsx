@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
+import { MonthsInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1410,17 +1411,14 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 <Label htmlFor="workflow_approved_term">
                                     Approved term
                                 </Label>
-                                <Input
+                                <MonthsInput
                                     id="workflow_approved_term"
-                                    type="number"
-                                    min="1"
-                                    step="1"
                                     required
                                     value={approvedTerm}
                                     className={inputClassName}
                                     disabled={workflow?.approve?.isProcessing}
-                                    onChange={(event) =>
-                                        setApprovedTerm(event.target.value)
+                                    onChange={(value) =>
+                                        setApprovedTerm(value)
                                     }
                                 />
                             </div>

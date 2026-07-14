@@ -35,6 +35,7 @@ import {
     LoanRequestWorkflowActions,
     type LoanRequestWorkflowProps,
 } from '@/components/loan-request/loan-request-workflow-actions';
+import { MonthsInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -1533,20 +1534,14 @@ export function LoanRequestDetailPage({
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="approved_term">
-                                                Approved term (months)
+                                                Approved term
                                             </Label>
-                                            <Input
+                                            <MonthsInput
                                                 id="approved_term"
-                                                type="number"
-                                                inputMode="numeric"
-                                                min="1"
-                                                step="1"
                                                 placeholder="Enter approved term"
                                                 value={approvedTerm}
-                                                onChange={(event) =>
-                                                    setApprovedTerm(
-                                                        event.target.value,
-                                                    )
+                                                onChange={(value) =>
+                                                    setApprovedTerm(value)
                                                 }
                                                 disabled={
                                                     decision?.isProcessing
