@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Symfony\Component\Process\Process;
 
 beforeEach(function (): void {
@@ -294,6 +295,26 @@ test('v2 workflow reaches recommended-for-approval with witness_two_name omitted
         ->sole();
 
     expect($witnessOneEntry->value_json['value'])->toBe($expectedProcessorDisplayName);
+});
+
+test('assigned_processor payload name matches the value the server would auto-fill for witness_one_name', function (): void {
+    $member = createAcceptanceMember('940003', 'Prefill', 'Member');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+
+    $loanRequest = createAcceptanceWorkflowRequest($member, $processor);
+
+    $showResponse = $this
+        ->actingAs($processor)
+        ->get(route('staff.loan-requests.show', $loanRequest))
+        ->assertOk();
+
+    $expectedProcessorDisplayName = $processor->adminProfile?->fullname
+        ?? $processor->name
+        ?? $processor->username;
+
+    $showResponse->assertInertia(fn (Assert $page) => $page
+        ->component('staff/loan-request-show')
+        ->where('loanRequest.assigned_processor.name', $expectedProcessorDisplayName));
 });
 
 test('manager approval writes witness_two_name as the manager\'s own name and regenerates only loan_information and promissory_note', function (): void {

@@ -119,6 +119,7 @@ import type {
     LoanRequestNotificationHistoryItem,
     LoanRequestPersonData,
     LoanRequestPersonFormData,
+    LoanRequestReviewer,
     LoanRequestWorkflowContext,
     LoanRequestWorkflowHealth,
     LoanRequestWorkflowPermission,
@@ -197,6 +198,21 @@ const toStringValue = (
     }
 
     return stringValue;
+};
+
+const withWitnessOneAutoFill = (
+    processing: Record<string, string | number | boolean | null>,
+    assignedProcessor: LoanRequestReviewer | null,
+): Record<string, string | number | boolean | null> => {
+    const current = processing.witness_one_name;
+    const isBlank =
+        current === null || current === undefined || `${current}`.trim() === '';
+
+    if (!isBlank || !assignedProcessor?.name) {
+        return processing;
+    }
+
+    return { ...processing, witness_one_name: assignedProcessor.name };
 };
 
 const numericProcessingFieldValue = (
@@ -462,7 +478,10 @@ export default function StaffLoanRequestShow({
     );
     const [processingForm, setProcessingForm] =
         useState<InlineProcessingFormState>({
-            processing: { ...dataSections.processing },
+            processing: withWitnessOneAutoFill(
+                { ...dataSections.processing },
+                loanRequest.assigned_processor,
+            ),
             recommended_amount: toStringValue(loanRequest.recommended_amount),
             recommended_term: toStringValue(loanRequest.recommended_term),
             recommended_interest_rate: toStringValue(
@@ -591,7 +610,10 @@ export default function StaffLoanRequestShow({
 
     useEffect(() => {
         setProcessingForm({
-            processing: { ...currentDataSections.processing },
+            processing: withWitnessOneAutoFill(
+                { ...currentDataSections.processing },
+                currentRequest.assigned_processor,
+            ),
             recommended_amount: toStringValue(
                 currentRequest.recommended_amount,
             ),

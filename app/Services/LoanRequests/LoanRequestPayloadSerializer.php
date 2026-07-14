@@ -276,7 +276,7 @@ class LoanRequestPayloadSerializer
 
         return [
             'user_id' => $actor->user_id,
-            'name' => $actor->adminProfile?->fullname ?? $actor->name,
+            'name' => $actor->adminProfile?->fullname ?? $actor->name ?? $actor->username,
             'display_code' => $actor->display_code,
         ];
     }
