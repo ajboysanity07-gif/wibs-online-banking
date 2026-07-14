@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
-import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
+import {
+    CurrencyInput,
+    MonthsInput,
+} from '@/components/loan-request/numeric-adorned-inputs';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
@@ -102,16 +105,14 @@ export function LoanRequestLoanDetailsStep({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="requested_term">Loan term (months)</Label>
-                    <Input
+                    <Label htmlFor="requested_term">Loan term</Label>
+                    <MonthsInput
                         id="requested_term"
-                        type="number"
                         value={data.requested_term}
-                        className="mt-1 block w-full"
                         placeholder="e.g. 12"
                         required
-                        onChange={(event) =>
-                            onChange('requested_term', event.target.value)
+                        onChange={(value) =>
+                            onChange('requested_term', value)
                         }
                     />
                     <InputError message={errors.requested_term} />
