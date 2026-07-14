@@ -174,6 +174,12 @@ class ApprovedLoanPdfTemplateService
             return;
         }
 
+        if ($type === 'image') {
+            $this->renderImageField($pdf, $field, $documentData);
+
+            return;
+        }
+
         $value = $this->resolveValue($field['value'] ?? null, $documentData);
         $text = $this->blank(is_scalar($value) ? (string) $value : null);
 
@@ -244,6 +250,25 @@ class ApprovedLoanPdfTemplateService
         $relativePath = $this->resolveValue($field['value'] ?? null, $documentData);
 
         $this->writeSignature(
+            $pdf,
+            (float) ($field['x'] ?? 0),
+            (float) ($field['y'] ?? 0),
+            (float) ($field['width'] ?? 0),
+            (float) ($field['height'] ?? 0),
+            is_string($relativePath) ? $relativePath : null,
+            $this->signaturePlacementOptions($field),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $field
+     * @param  array<string, mixed>  $documentData
+     */
+    private function renderImageField(Fpdi $pdf, array $field, array $documentData): void
+    {
+        $relativePath = $this->resolveValue($field['value'] ?? null, $documentData);
+
+        $this->writeImage(
             $pdf,
             (float) ($field['x'] ?? 0),
             (float) ($field['y'] ?? 0),
@@ -363,6 +388,55 @@ class ApprovedLoanPdfTemplateService
                 File::delete($overlayImage['path']);
             }
         }
+    }
+
+    public function writeImage(
+        Fpdi $pdf,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+        ?string $imagePath,
+        array $placementOptions = [],
+    ): void {
+        if ($imagePath === null || trim($imagePath) === '') {
+            return;
+        }
+
+        $absolutePath = $this->resolveSignaturePath($imagePath);
+
+        if ($absolutePath === null) {
+            return;
+        }
+
+        $dimensions = $this->fitImageToBox(
+            $absolutePath,
+            $x,
+            $y,
+            $width,
+            $height,
+            $placementOptions,
+        );
+
+        $pdf->Image(
+            $absolutePath,
+            $dimensions['x'],
+            $dimensions['y'],
+            $dimensions['width'],
+            $dimensions['height'],
+            '',
+            '',
+            '',
+            false,
+            300,
+            '',
+            false,
+            false,
+            0,
+            false,
+            false,
+            false,
+        );
     }
 
     public function blank(?string $value): string
