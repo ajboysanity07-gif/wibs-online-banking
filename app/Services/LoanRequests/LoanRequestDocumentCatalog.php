@@ -106,7 +106,6 @@ class LoanRequestDocumentCatalog
             'required_fields' => [],
             'source_fields' => [
                 'payout_bank_name',
-                'payout_account_name',
                 'payout_account_number',
                 'payout_atm_number',
                 'payout_bank_branch',

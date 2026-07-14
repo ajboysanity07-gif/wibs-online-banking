@@ -905,47 +905,75 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
         fn (array $f): bool => ($f['value'] ?? null) === $value,
     );
 
-    $fullName = $find('applicant.full_name');
-    $address = $find('applicant.address');
-    $amount = $find('loan.approved_amount');
-    $type = $find('loan.type');
-    $date = $find('loan.approved_date');
-    $reviewer = $find('reviewer.name');
+    // Fields dropped in the Phase 1/2 rebuild: the real AU reference document has no
+    // loan amount, loan type, or reviewer line, and no separate "account name" blank.
+    foreach (['loan.approved_amount', 'loan.type', 'reviewer.name', 'authorization.payout_account_name'] as $droppedValue) {
+        expect($fields->contains(fn (array $f): bool => ($f['value'] ?? null) === $droppedValue))->toBeFalse();
+    }
 
-    expect((float) $fullName['x'])->toBe(28.0);
-    expect((float) $fullName['y'])->toBe(40.0);
+    $fullName = $find('applicant.full_name');
+    expect((float) $fullName['x'])->toBe(40.5);
+    expect((float) $fullName['y'])->toBe(47.7);
     expect((int) $fullName['size'])->toBe(10);
 
-    expect((float) $address['x'])->toBe(28.0);
-    expect((float) $address['y'])->toBe(48.0);
+    $age = $find('applicant.age');
+    expect((float) $age['x'])->toBe(25.17);
+    expect((float) $age['y'])->toBe(55.7);
+    expect((int) $age['size'])->toBe(9);
+
+    $civilStatus = $find('applicant.civil_status');
+    expect((float) $civilStatus['x'])->toBe(80.16);
+    expect((float) $civilStatus['y'])->toBe(55.7);
+
+    $nationality = $find('applicant.nationality');
+    expect((float) $nationality['x'])->toBe(137.83);
+    expect((float) $nationality['y'])->toBe(55.7);
+
+    $address = $find('applicant.address');
+    expect((float) $address['x'])->toBe(18.0);
+    expect((float) $address['y'])->toBe(65.0);
     expect((int) $address['size'])->toBe(8);
-    expect((float) $address['width'])->toBe(158.0);
+    expect((float) $address['width'])->toBe(174.0);
 
-    expect((float) $amount['x'])->toBe(28.0);
-    expect((float) $amount['y'])->toBe(60.0);
-    expect((int) $amount['size'])->toBe(9);
+    $designation = $find('applicant.position_or_designation');
+    expect((float) $designation['x'])->toBe(48.34);
+    expect((float) $designation['y'])->toBe(76.7);
 
-    expect((float) $type['x'])->toBe(94.0);
-    expect((float) $type['y'])->toBe(60.0);
-    expect((int) $type['size'])->toBe(9);
+    $agency = $find('applicant.employer_or_business');
+    expect((float) $agency['x'])->toBe(29.83);
+    expect((float) $agency['y'])->toBe(84.7);
 
-    expect((float) $date['x'])->toBe(28.0);
-    expect((float) $date['y'])->toBe(70.0);
-    expect((int) $date['size'])->toBe(9);
-
-    expect((float) $reviewer['x'])->toBe(98.0);
-    expect((float) $reviewer['y'])->toBe(70.0);
-    expect((int) $reviewer['size'])->toBe(9);
-
-    $bankBranch = $find('authorization.payout_bank_branch');
-    expect((float) $bankBranch['x'])->toBe(28.0);
-    expect((float) $bankBranch['y'])->toBe(110.0);
-    expect((int) $bankBranch['size'])->toBe(9);
+    $officeAddress = $find('applicant.office_address');
+    expect((float) $officeAddress['x'])->toBe(18.0);
+    expect((float) $officeAddress['y'])->toBe(94.0);
+    expect((float) $officeAddress['width'])->toBe(174.0);
 
     $gnthp = $find('loan.gnthp');
-    expect((float) $gnthp['x'])->toBe(28.0);
-    expect((float) $gnthp['y'])->toBe(114.0);
+    expect((float) $gnthp['x'])->toBe(63.33);
+    expect((float) $gnthp['y'])->toBe(123.7);
     expect((int) $gnthp['size'])->toBe(9);
+
+    $accountNumber = $find('authorization.payout_account_number');
+    expect((float) $accountNumber['x'])->toBe(50.0);
+    expect((float) $accountNumber['y'])->toBe(129.7);
+
+    $atmNumber = $find('authorization.payout_atm_number');
+    expect((float) $atmNumber['x'])->toBe(51.16);
+    expect((float) $atmNumber['y'])->toBe(135.7);
+
+    $bankName = $find('authorization.payout_bank_name');
+    expect((float) $bankName['x'])->toBe(43.33);
+    expect((float) $bankName['y'])->toBe(141.7);
+
+    $bankBranch = $find('authorization.payout_bank_branch');
+    expect((float) $bankBranch['x'])->toBe(37.17);
+    expect((float) $bankBranch['y'])->toBe(147.7);
+    expect((int) $bankBranch['size'])->toBe(9);
+
+    $date = $find('loan.approved_date');
+    expect((float) $date['x'])->toBe(92.33);
+    expect((float) $date['y'])->toBe(219.97);
+    expect((int) $date['size'])->toBe(9);
 });
 
 test('authorization field map pins all field coordinates to calibrated values', function () {
@@ -1381,7 +1409,6 @@ test('affidavit undertaking pdf prints payout bank details', function () {
 
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'RURAL SAVINGS BANK');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '9876543210');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_name', 'string', 'JUAN B. DELA CRUZ');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_atm_number', 'string', '4444-3333-2222-1111');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_branch', 'string', 'DAVAO BRANCH');
 
@@ -1392,12 +1419,34 @@ test('affidavit undertaking pdf prints payout bank details', function () {
     $response->assertOk();
     $text = approvedLoanDocumentsExtractPdfText($response);
 
+    // payout_account_name is intentionally not asserted here — the real AU reference document has
+    // no "account name" blank (the deposit account is already the affiant's own, named in the header
+    // table), so it is not wired into the AU field map.
     expect($text)
         ->toContain('RURAL SAVINGS BANK')
         ->toContain('9876543210')
-        ->toContain('JUAN B. DELA CRUZ')
         ->toContain('4444-3333-2222-1111')
         ->toContain('DAVAO BRANCH');
+});
+
+test('affidavit undertaking pdf prints applicant identity and employment details', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('Married')
+        ->toContain('FILIPINO')
+        ->toContain('Manager')
+        ->toContain('Sample Enterprise');
 });
 
 test('affidavit undertaking pdf prints guaranteed net take-home pay', function () {
