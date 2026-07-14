@@ -1142,9 +1142,10 @@ export default function StaffLoanRequestShow({
     const submitGenerateDocuments = async (
         documentKey?: LoanRequestDocumentKey,
     ) => {
-        await generateDocuments(currentRequest.id, {
-            document_key: documentKey ?? null,
-        });
+        await generateDocuments(
+            currentRequest.id,
+            documentKey ? { document_key: documentKey } : {},
+        );
     };
 
     const recommendedTermLabel =
