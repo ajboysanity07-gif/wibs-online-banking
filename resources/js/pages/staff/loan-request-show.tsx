@@ -16,6 +16,10 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+    CurrencyInput,
+    PercentInput,
+} from '@/components/loan-request/currency-percent-inputs';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
     LoanRequestApplicantCard,
@@ -219,6 +223,17 @@ const numericProcessingFieldValue = (
     value: string | number | boolean | null | undefined,
 ): string | number | null =>
     typeof value === 'boolean' || value === undefined ? null : value;
+
+// Frontend-only override: dataSectionDefinitions field metadata has no currency/percent distinction, only 'number'.
+const PROCESSING_FIELD_KIND: Record<string, 'currency' | 'percent'> = {
+    notarial_fee: 'currency',
+    guaranteed_net_take_home_pay: 'currency',
+    service_charge_rate: 'percent',
+    insurance_rate: 'percent',
+    loan_security_rate: 'percent',
+    documentary_stamp_rate: 'percent',
+    penalty_rate_per_month: 'percent',
+};
 
 const toPersonForm = (
     person: LoanRequestPersonData | null,
@@ -1180,6 +1195,13 @@ export default function StaffLoanRequestShow({
             );
         }
 
+        const fieldValue =
+            processingForm.processing[fieldKey] !== null &&
+            processingForm.processing[fieldKey] !== undefined
+                ? `${processingForm.processing[fieldKey]}`
+                : '';
+        const fieldKind = PROCESSING_FIELD_KIND[fieldKey];
+
         return (
             <div
                 key={fieldKey}
@@ -1210,29 +1232,47 @@ export default function StaffLoanRequestShow({
                         </TooltipProvider>
                     )}
                 </Label>
-                <Input
-                    id={`inline_processing_${fieldKey}`}
-                    type={
-                        field.type === 'number' || field.type === 'integer'
-                            ? 'number'
-                            : 'text'
-                    }
-                    step={field.type === 'number' ? '0.01' : undefined}
-                    value={
-                        processingForm.processing[fieldKey] !== null &&
-                        processingForm.processing[fieldKey] !== undefined
-                            ? `${processingForm.processing[fieldKey]}`
-                            : ''
-                    }
-                    onChange={(event) =>
-                        updateProcessingSectionField(
-                            fieldKey,
-                            event.target.value,
-                        )
-                    }
-                    disabled={options?.disabled}
-                    placeholder={options?.placeholder}
-                />
+                {fieldKind === 'currency' ? (
+                    <CurrencyInput
+                        id={`inline_processing_${fieldKey}`}
+                        value={fieldValue}
+                        onValueChange={(value) =>
+                            updateProcessingSectionField(fieldKey, value)
+                        }
+                        disabled={options?.disabled}
+                        placeholder={options?.placeholder}
+                    />
+                ) : fieldKind === 'percent' ? (
+                    <PercentInput
+                        id={`inline_processing_${fieldKey}`}
+                        value={fieldValue}
+                        onValueChange={(value) =>
+                            updateProcessingSectionField(fieldKey, value)
+                        }
+                        disabled={options?.disabled}
+                        placeholder={options?.placeholder}
+                    />
+                ) : (
+                    <Input
+                        id={`inline_processing_${fieldKey}`}
+                        type={
+                            field.type === 'number' ||
+                            field.type === 'integer'
+                                ? 'number'
+                                : 'text'
+                        }
+                        step={field.type === 'number' ? '0.01' : undefined}
+                        value={fieldValue}
+                        onChange={(event) =>
+                            updateProcessingSectionField(
+                                fieldKey,
+                                event.target.value,
+                            )
+                        }
+                        disabled={options?.disabled}
+                        placeholder={options?.placeholder}
+                    />
+                )}
             </div>
         );
     };
@@ -1276,15 +1316,13 @@ export default function StaffLoanRequestShow({
                                 <Label htmlFor="inline_recommended_amount">
                                     Recommended amount
                                 </Label>
-                                <Input
+                                <CurrencyInput
                                     id="inline_recommended_amount"
-                                    type="number"
                                     value={processingForm.recommended_amount}
-                                    onChange={(event) =>
+                                    onValueChange={(value) =>
                                         setProcessingForm((current) => ({
                                             ...current,
-                                            recommended_amount:
-                                                event.target.value,
+                                            recommended_amount: value,
                                         }))
                                     }
                                 />
@@ -1310,18 +1348,15 @@ export default function StaffLoanRequestShow({
                                 <Label htmlFor="inline_recommended_interest_rate">
                                     Recommended interest rate
                                 </Label>
-                                <Input
+                                <PercentInput
                                     id="inline_recommended_interest_rate"
-                                    type="number"
-                                    step="0.01"
                                     value={
                                         processingForm.recommended_interest_rate
                                     }
-                                    onChange={(event) =>
+                                    onValueChange={(value) =>
                                         setProcessingForm((current) => ({
                                             ...current,
-                                            recommended_interest_rate:
-                                                event.target.value,
+                                            recommended_interest_rate: value,
                                         }))
                                     }
                                 />
