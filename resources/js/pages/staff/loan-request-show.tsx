@@ -1546,6 +1546,18 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('barangay_official_title')}
                         </div>
 
+                        {renderProcessingSectionLabel('Notarization')}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {renderProcessingField('signing_place')}
+                            {renderProcessingField('notarial_province')}
+                            {renderProcessingField('valid_id_number')}
+                            {renderProcessingField('valid_id_issued_at')}
+                            {renderProcessingField('doc_number')}
+                            {renderProcessingField('page_number')}
+                            {renderProcessingField('book_number')}
+                            {renderProcessingField('series_year')}
+                        </div>
+
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">

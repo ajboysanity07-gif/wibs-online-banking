@@ -1449,6 +1449,38 @@ test('affidavit undertaking pdf prints applicant identity and employment details
         ->toContain('Sample Enterprise');
 });
 
+test('affidavit undertaking pdf prints notarization details', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'signing_place', 'string', 'Tagum City');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'notarial_province', 'string', 'Davao del Norte');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'valid_id_number', 'string', 'DL-N01-23-456789');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'valid_id_issued_at', 'string', 'LTO Tagum');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'doc_number', 'string', '12');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'page_number', 'string', '3');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'book_number', 'string', 'IV');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'series_year', 'string', '2026');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('Tagum City')
+        ->toContain('Davao del Norte')
+        ->toContain('DL-N01-23-456789')
+        ->toContain('LTO Tagum')
+        ->toContain('12')
+        ->toContain('IV')
+        ->toContain('2026');
+});
+
 test('affidavit undertaking pdf prints guaranteed net take-home pay', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);

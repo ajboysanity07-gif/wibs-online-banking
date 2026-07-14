@@ -109,6 +109,62 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'loan.approved_date',
             ],
+            [
+                'page' => 1,
+                'x' => 159.04,
+                'y' => 219.97,
+                'size' => 9,
+                'value' => 'notarial.signing_place',
+            ],
+            [
+                'page' => 1,
+                'x' => 58,
+                'y' => 258.42,
+                'size' => 8,
+                'value' => 'notarial.province',
+            ],
+            [
+                'page' => 1,
+                'x' => 43.17,
+                'y' => 264.42,
+                'size' => 8,
+                'value' => 'notarial.valid_id_number',
+            ],
+            [
+                'page' => 1,
+                'x' => 43.5,
+                'y' => 270.42,
+                'size' => 8,
+                'value' => 'notarial.valid_id_issued_at',
+            ],
+            [
+                'page' => 1,
+                'x' => 30.5,
+                'y' => 280.42,
+                'size' => 8,
+                'value' => 'notarial.doc_number',
+            ],
+            [
+                'page' => 1,
+                'x' => 76.67,
+                'y' => 280.42,
+                'size' => 8,
+                'value' => 'notarial.page_number',
+            ],
+            [
+                'page' => 1,
+                'x' => 121,
+                'y' => 280.42,
+                'size' => 8,
+                'value' => 'notarial.book_number',
+            ],
+            [
+                'page' => 1,
+                'x' => 164.17,
+                'y' => 280.42,
+                'size' => 8,
+                'value' => 'notarial.series_year',
+            ],
         ];
     }
 }

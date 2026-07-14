@@ -114,6 +114,103 @@ test('processing update rejects a non-canonical recommended_payment_frequency va
         ->assertJsonValidationErrors(['recommended_payment_frequency']);
 });
 
+test('processing update accepts the affidavit of undertaking notarization fields', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950003');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $payload = [
+        'reason' => 'Recorded notarization details.',
+        'information_source' => 'Verified staff review',
+        'loan_request' => [
+            'requested_amount' => '25000.00',
+            'requested_term' => 12,
+            'loan_purpose' => 'Home improvement',
+            'availment_status' => 'New',
+        ],
+        'processing' => [
+            'signing_place' => 'Tagum City',
+            'notarial_province' => 'Davao del Norte',
+            'valid_id_number' => 'DL-N01-23-456789',
+            'valid_id_issued_at' => 'LTO Tagum',
+            'doc_number' => '12',
+            'page_number' => '3',
+            'book_number' => 'IV',
+            'series_year' => '2026',
+        ],
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertOk();
+
+    $entries = $loanRequest->dataEntries()
+        ->whereIn('field_key', [
+            'signing_place', 'notarial_province', 'valid_id_number', 'valid_id_issued_at',
+            'doc_number', 'page_number', 'book_number', 'series_year',
+        ])
+        ->get()
+        ->pluck('value_json', 'field_key');
+
+    expect($entries['signing_place']['value'])->toBe('Tagum City')
+        ->and($entries['notarial_province']['value'])->toBe('Davao del Norte')
+        ->and($entries['valid_id_number']['value'])->toBe('DL-N01-23-456789')
+        ->and($entries['valid_id_issued_at']['value'])->toBe('LTO Tagum')
+        ->and($entries['doc_number']['value'])->toBe('12')
+        ->and($entries['page_number']['value'])->toBe('3')
+        ->and($entries['book_number']['value'])->toBe('IV')
+        ->and($entries['series_year']['value'])->toBe('2026');
+});
+
+test('processing update rejects an oversized notarization field value', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950004');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'requested_amount' => '25000.00',
+        'requested_term' => 12,
+        'loan_purpose' => 'Home improvement',
+        'availment_status' => 'New',
+        'submitted_at' => now(),
+    ]);
+
+    $payload = [
+        'reason' => 'Recorded notarization details.',
+        'information_source' => 'Verified staff review',
+        'loan_request' => [
+            'requested_amount' => '25000.00',
+            'requested_term' => 12,
+            'loan_purpose' => 'Home improvement',
+            'availment_status' => 'New',
+        ],
+        'processing' => [
+            'signing_place' => str_repeat('A', 256),
+        ],
+    ];
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['processing.signing_place']);
+});
+
 /**
  * @param  list<string>  $roles
  */
