@@ -137,27 +137,9 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 8,
                 'value' => 'notarial.valid_id_issued_at',
             ],
-            [
-                'page' => 1,
-                'x' => 30.5,
-                'y' => 280.42,
-                'size' => 8,
-                'value' => 'notarial.doc_number',
-            ],
-            [
-                'page' => 1,
-                'x' => 76.67,
-                'y' => 280.42,
-                'size' => 8,
-                'value' => 'notarial.page_number',
-            ],
-            [
-                'page' => 1,
-                'x' => 121,
-                'y' => 280.42,
-                'size' => 8,
-                'value' => 'notarial.book_number',
-            ],
+            // Doc No. / Page No. / Book No. (x≈30.5/76.67/121, y=280.42) are intentionally
+            // left blank space on the artwork for the notary to fill by hand — see
+            // buildDocumentData()'s 'notarial' block for why.
             [
                 'page' => 1,
                 'x' => 164.17,

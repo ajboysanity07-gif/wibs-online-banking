@@ -952,30 +952,18 @@ class ApprovedLoanDocumentService
                 ),
             ],
             'notarial' => [
-                'signing_place' => $this->normalizeText(
-                    $overrideProcessing['signing_place'] ?? $flatValues['signing_place'] ?? null,
-                ),
-                'province' => $this->normalizeText(
-                    $overrideProcessing['notarial_province'] ?? $flatValues['notarial_province'] ?? null,
-                ),
+                // Place of signing, notarial province, and ID-issuance location are the
+                // notary's own fixed office facts, not per-loan staff input — they resolve
+                // to the org's configured business address (OrganizationSettingsService).
+                'signing_place' => $this->normalizeText($branding['businessAddress2'] ?? null),
+                'province' => $this->normalizeText($branding['businessAddress3'] ?? null),
                 'valid_id_number' => $this->normalizeText(
                     $overrideProcessing['valid_id_number'] ?? $flatValues['valid_id_number'] ?? null,
                 ),
-                'valid_id_issued_at' => $this->normalizeText(
-                    $overrideProcessing['valid_id_issued_at'] ?? $flatValues['valid_id_issued_at'] ?? null,
-                ),
-                'doc_number' => $this->normalizeText(
-                    $overrideProcessing['doc_number'] ?? $flatValues['doc_number'] ?? null,
-                ),
-                'page_number' => $this->normalizeText(
-                    $overrideProcessing['page_number'] ?? $flatValues['page_number'] ?? null,
-                ),
-                'book_number' => $this->normalizeText(
-                    $overrideProcessing['book_number'] ?? $flatValues['book_number'] ?? null,
-                ),
-                'series_year' => $this->normalizeText(
-                    $overrideProcessing['series_year'] ?? $flatValues['series_year'] ?? null,
-                ),
+                'valid_id_issued_at' => $this->normalizeText($branding['businessAddress2'] ?? null),
+                // Doc/Page/Book No. are the notary's own register counters, unknowable to
+                // WIBS staff — left blank on the printed form for the notary to fill by hand.
+                'series_year' => $documentDate?->format('Y'),
             ],
             'health' => [
                 'health_smoker' => $overrideProcessing['health_smoker'] ?? $flatValues['health_smoker'] ?? null,

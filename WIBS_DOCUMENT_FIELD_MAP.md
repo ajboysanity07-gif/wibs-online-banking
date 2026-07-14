@@ -223,7 +223,8 @@ prior pass had inspected a different, misleadingly-named file and produced sever
 rows below — corrected here). The base PDF template, field-map coordinates, and the 8 new
 notarization fields all shipped together; see git history on
 `app/Services/LoanRequests/PdfFieldMaps/AffidavitUndertakingPdfFieldMap.php` for the 3-commit
-rebuild (artwork → applicant fields → notarization fields).
+rebuild (artwork → applicant fields → notarization fields), followed by a correction commit that
+fixed a scope error in the notarization phase — see the Notarization sub-table below.
 
 ### Borrower Identification
 
@@ -257,21 +258,35 @@ rebuild (artwork → applicant fields → notarization fields).
 
 ### Notarization
 
+**Corrected — the Phase 3 commit shipped this section against the wrong design (all 8 fields
+as per-loan staff UI inputs). This table reflects the corrected wiring, not the original Phase 3
+implementation.**
+
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Place of signing | S | ✅ | `loan_request_data_entries.signing_place` → `notarial.signing_place` |
-| Notarial province | S | ✅ | `loan_request_data_entries.notarial_province` → `notarial.province` |
-| Valid ID number | S | ✅ | `loan_request_data_entries.valid_id_number` → `notarial.valid_id_number` |
-| Valid ID issued at | S | ✅ | `loan_request_data_entries.valid_id_issued_at` → `notarial.valid_id_issued_at` |
-| Document number | S | ✅ | `loan_request_data_entries.doc_number` → `notarial.doc_number` |
-| Page number | S | ✅ | `loan_request_data_entries.page_number` → `notarial.page_number` |
-| Book number | S | ✅ | `loan_request_data_entries.book_number` → `notarial.book_number` |
-| Series year | S | ✅ | `loan_request_data_entries.series_year` → `notarial.series_year` |
+| Place of signing | — | ✅ | Not staff data — the notary's own fixed office fact. `OrganizationSetting.business_address2` (city) → `notarial.signing_place` |
+| Notarial province | — | ✅ | Not staff data — fixed office fact. `OrganizationSetting.business_address3` (province) → `notarial.province` |
+| Valid ID number | S | ✅ | Genuine per-loan staff data. `loan_request_data_entries.valid_id_number` → `notarial.valid_id_number` |
+| Valid ID issued at | — | ✅ | Not staff data — fixed office fact, same source as place of signing. `OrganizationSetting.business_address2` (city) → `notarial.valid_id_issued_at` |
+| Document number | — | ❌ | **Not wired, intentionally.** The notary's own private register counter — unknowable to WIBS staff. Phase 1's blank space on the artwork is reserved for the notary to fill by hand |
+| Page number | — | ❌ | Same as Document number — notary fills by hand |
+| Book number | — | ❌ | Same as Document number — notary fills by hand |
+| Series year | — | ✅ | Computed, not staff-entered — the calendar year the document is notarized is always derivable, unlike Doc/Page/Book No. Derived from the document date (`approved_at`/`reviewed_at` fallback chain) → `notarial.series_year` |
 
-All 8 fields are staff-entered via the "Notarization" sub-section of the Processing Details
-panel, EAV-backed (`loan_request_data_entries`, `section_key = 'processing'`) — no dedicated
-schema/migration. Naming is generic (`doc_number`, not `au_doc_number`) so other documents can
-reuse the same keys later without new wiring; no other document does so today.
+> **Follow-up (flagged, not yet built):** `signing_place` / `notarial_province` / `valid_id_issued_at`
+> currently read `OrganizationSetting.business_address2/3` directly — the same columns that already
+> back the report header address elsewhere in the app. There is no dedicated admin-only "notarial
+> office address" setting; if the org's notarial venue should ever differ from its general business
+> address, that would need its own settings field. Not built here — out of scope for this correction.
+
+**Correction to the original Phase 3 commit:** only `valid_id_number` is genuinely per-loan
+staff data. It is entered via the "Notarization" sub-section of the Processing Details panel,
+EAV-backed (`loan_request_data_entries`, `section_key = 'processing'`) — no dedicated
+schema/migration. The other 7 fields Phase 3 had shipped as staff UI inputs were a scope error:
+`doc_number`/`page_number`/`book_number` are the notary's own private register counters (not
+app data at all — left blank on the artwork), `series_year` is computed from the document date,
+and `signing_place`/`notarial_province`/`valid_id_issued_at` are fixed org facts read from
+`OrganizationSetting`, not per-loan input.
 
 Witnesses are **not part of this document** — the real AU form has a single affiant/borrower
 signature line, not a witness block. A prior pass claimed `witness_one_name`/`witness_two_name`
@@ -644,4 +659,4 @@ place, since it does not belong on this document at all.
 
 ---
 
-*Last updated: 2026-06-30 — feature branch `feature/rbac-loan-workflow`*
+*Last updated: 2026-07-14 — feature branch `feature/rbac-loan-workflow`*

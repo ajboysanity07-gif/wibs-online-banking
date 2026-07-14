@@ -907,7 +907,13 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
 
     // Fields dropped in the Phase 1/2 rebuild: the real AU reference document has no
     // loan amount, loan type, or reviewer line, and no separate "account name" blank.
-    foreach (['loan.approved_amount', 'loan.type', 'reviewer.name', 'authorization.payout_account_name'] as $droppedValue) {
+    // Doc/Page/Book No. (dropped in the Phase 3 correction) are the notary's own
+    // register counters — unknowable to WIBS staff, left blank for the notary to
+    // fill by hand rather than stamped from app data.
+    foreach ([
+        'loan.approved_amount', 'loan.type', 'reviewer.name', 'authorization.payout_account_name',
+        'notarial.doc_number', 'notarial.page_number', 'notarial.book_number',
+    ] as $droppedValue) {
         expect($fields->contains(fn (array $f): bool => ($f['value'] ?? null) === $droppedValue))->toBeFalse();
     }
 
@@ -1453,16 +1459,17 @@ test('affidavit undertaking pdf prints notarization details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
+    // Place of signing, notarial province, and ID-issuance location are the notary's
+    // own fixed office facts — they come from the org's configured business address,
+    // not a per-loan staff input.
+    OrganizationSetting::factory()->create([
+        'business_address2' => 'Tagum City',
+        'business_address3' => 'Davao del Norte',
+    ]);
+
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'signing_place', 'string', 'Tagum City');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'notarial_province', 'string', 'Davao del Norte');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'valid_id_number', 'string', 'DL-N01-23-456789');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'valid_id_issued_at', 'string', 'LTO Tagum');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'doc_number', 'string', '12');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'page_number', 'string', '3');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'book_number', 'string', 'IV');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'series_year', 'string', '2026');
 
     $response = $this
         ->actingAs($admin)
@@ -1475,10 +1482,7 @@ test('affidavit undertaking pdf prints notarization details', function () {
         ->toContain('Tagum City')
         ->toContain('Davao del Norte')
         ->toContain('DL-N01-23-456789')
-        ->toContain('LTO Tagum')
-        ->toContain('12')
-        ->toContain('IV')
-        ->toContain('2026');
+        ->toContain((string) now()->year);
 });
 
 test('affidavit undertaking pdf prints guaranteed net take-home pay', function () {
