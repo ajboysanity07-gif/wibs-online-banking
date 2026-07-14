@@ -3,11 +3,11 @@ import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { Camera } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { NumericFormat } from 'react-number-format';
 import LinkMembershipController from '@/actions/App/Http/Controllers/Settings/LinkMembershipController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { CurrencyInput } from '@/components/loan-request/currency-percent-inputs';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
@@ -2290,40 +2290,16 @@ export default function Profile({
                                                                             income
                                                                         </Label>
 
-                                                                        <div className="relative">
-                                                                            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
-                                                                                PHP
-                                                                            </span>
-                                                                            <NumericFormat
-                                                                                id="gross_monthly_income"
-                                                                                className="mt-1 block w-full pl-12"
-                                                                                value={
-                                                                                    grossMonthlyIncome
-                                                                                }
-                                                                                onValueChange={(
-                                                                                    values,
-                                                                                ) => {
-                                                                                    setGrossMonthlyIncome(
-                                                                                        values.value,
-                                                                                    );
-                                                                                }}
-                                                                                thousandSeparator
-                                                                                decimalScale={
-                                                                                    2
-                                                                                }
-                                                                                fixedDecimalScale
-                                                                                allowNegative={
-                                                                                    false
-                                                                                }
-                                                                                placeholder="0.00"
-                                                                                inputMode="decimal"
-                                                                                required
-                                                                                valueIsNumericString
-                                                                                customInput={
-                                                                                    Input
-                                                                                }
-                                                                            />
-                                                                        </div>
+                                                                        <CurrencyInput
+                                                                            id="gross_monthly_income"
+                                                                            value={
+                                                                                grossMonthlyIncome
+                                                                            }
+                                                                            onValueChange={
+                                                                                setGrossMonthlyIncome
+                                                                            }
+                                                                            required
+                                                                        />
 
                                                                         <input
                                                                             type="hidden"

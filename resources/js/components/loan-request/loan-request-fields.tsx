@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useMemo, useState } from 'react';
-import { NumericFormat } from 'react-number-format';
 import InputError from '@/components/input-error';
+import { CurrencyInput } from '@/components/loan-request/currency-percent-inputs';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1162,28 +1162,14 @@ export function LoanRequestWorkFields({
                     <Label htmlFor={`${prefix}_gross_monthly_income`}>
                         Gross monthly income
                     </Label>
-                    <div className="relative">
-                        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
-                            PHP
-                        </span>
-                        <NumericFormat
-                            id={`${prefix}_gross_monthly_income`}
-                            className="mt-1 block w-full pl-12"
-                            value={values.gross_monthly_income}
-                            onValueChange={(value) => {
-                                onChange('gross_monthly_income', value.value);
-                            }}
-                            thousandSeparator
-                            decimalScale={2}
-                            fixedDecimalScale
-                            allowNegative={false}
-                            placeholder="0.00"
-                            inputMode="decimal"
-                            valueIsNumericString
-                            customInput={Input}
-                            required
-                        />
-                    </div>
+                    <CurrencyInput
+                        id={`${prefix}_gross_monthly_income`}
+                        value={values.gross_monthly_income}
+                        onValueChange={(value) =>
+                            onChange('gross_monthly_income', value)
+                        }
+                        required
+                    />
                     <InputError
                         message={fieldError(
                             errors,

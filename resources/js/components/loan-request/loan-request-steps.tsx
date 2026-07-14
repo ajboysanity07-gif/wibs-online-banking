@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { NumericFormat } from 'react-number-format';
 import InputError from '@/components/input-error';
+import { CurrencyInput } from '@/components/loan-request/currency-percent-inputs';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
@@ -91,27 +91,13 @@ export function LoanRequestLoanDetailsStep({
 
                 <div className="grid gap-2">
                     <Label htmlFor="requested_amount">Requested amount</Label>
-                    <div className="relative">
-                        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">
-                            PHP
-                        </span>
-                        <NumericFormat
-                            id="requested_amount"
-                            className="mt-1 block w-full pl-12"
-                            value={data.requested_amount}
-                            onValueChange={(values) => {
-                                onChange('requested_amount', values.value);
-                            }}
-                            thousandSeparator
-                            decimalScale={2}
-                            fixedDecimalScale
-                            allowNegative={false}
-                            placeholder="0.00"
-                            inputMode="decimal"
-                            valueIsNumericString
-                            customInput={Input}
-                        />
-                    </div>
+                    <CurrencyInput
+                        id="requested_amount"
+                        value={data.requested_amount}
+                        onValueChange={(value) =>
+                            onChange('requested_amount', value)
+                        }
+                    />
                     <InputError message={errors.requested_amount} />
                 </div>
 
