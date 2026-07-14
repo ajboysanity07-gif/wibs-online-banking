@@ -224,8 +224,11 @@ const numericProcessingFieldValue = (
 ): string | number | null =>
     typeof value === 'boolean' || value === undefined ? null : value;
 
-// Frontend-only override: dataSectionDefinitions field metadata has no currency/percent distinction, only 'number'.
-const PROCESSING_FIELD_KIND: Record<string, 'currency' | 'percent'> = {
+// Frontend-only override: dataSectionDefinitions field metadata has no currency/percent/months distinction, only 'number'/'integer'.
+const PROCESSING_FIELD_KIND: Record<
+    string,
+    'currency' | 'percent' | 'months'
+> = {
     notarial_fee: 'currency',
     guaranteed_net_take_home_pay: 'currency',
     service_charge_rate: 'percent',
@@ -233,6 +236,7 @@ const PROCESSING_FIELD_KIND: Record<string, 'currency' | 'percent'> = {
     loan_security_rate: 'percent',
     documentary_stamp_rate: 'percent',
     penalty_rate_per_month: 'percent',
+    insurance_term: 'months',
 };
 
 const toPersonForm = (
@@ -435,6 +439,36 @@ export const SnapshotRow = ({
     <div className={cn('space-y-1', className)}>
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="text-sm leading-relaxed font-medium">{value}</p>
+    </div>
+);
+
+const MonthsInput = ({
+    id,
+    value,
+    onChange,
+    disabled,
+    placeholder,
+}: {
+    id: string;
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+    placeholder?: string;
+}) => (
+    <div className="relative">
+        <Input
+            id={id}
+            type="text"
+            inputMode="numeric"
+            className="pr-16"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            disabled={disabled}
+            placeholder={placeholder}
+        />
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground">
+            months
+        </span>
     </div>
 );
 
@@ -1252,6 +1286,16 @@ export default function StaffLoanRequestShow({
                         disabled={options?.disabled}
                         placeholder={options?.placeholder}
                     />
+                ) : fieldKind === 'months' ? (
+                    <MonthsInput
+                        id={`inline_processing_${fieldKey}`}
+                        value={fieldValue}
+                        onChange={(value) =>
+                            updateProcessingSectionField(fieldKey, value)
+                        }
+                        disabled={options?.disabled}
+                        placeholder={options?.placeholder}
+                    />
                 ) : (
                     <Input
                         id={`inline_processing_${fieldKey}`}
@@ -1331,15 +1375,13 @@ export default function StaffLoanRequestShow({
                                 <Label htmlFor="inline_recommended_term">
                                     Recommended term
                                 </Label>
-                                <Input
+                                <MonthsInput
                                     id="inline_recommended_term"
-                                    type="number"
                                     value={processingForm.recommended_term}
-                                    onChange={(event) =>
+                                    onChange={(value) =>
                                         setProcessingForm((current) => ({
                                             ...current,
-                                            recommended_term:
-                                                event.target.value,
+                                            recommended_term: value,
                                         }))
                                     }
                                 />
