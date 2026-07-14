@@ -216,50 +216,68 @@
 
 ## 3 — Affidavit of Undertaking (AU)
 
-**PDF field map · Borrower swears to repay; co-makers witness**
+**PDF field map · Borrower swears not to interfere with the salary-deduction/ATM authority securing the loan — single affiant signature, no co-maker/witness role**
+
+**Rebuilt from scratch against the real `AFFIDAVIT OF UNDERTAKING (1).docx` reference** (a
+prior pass had inspected a different, misleadingly-named file and produced several inaccurate
+rows below — corrected here). The base PDF template, field-map coordinates, and the 8 new
+notarization fields all shipped together; see git history on
+`app/Services/LoanRequests/PdfFieldMaps/AffidavitUndertakingPdfFieldMap.php` for the 3-commit
+rebuild (artwork → applicant fields → notarization fields).
 
 ### Borrower Identification
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Full name | M | ✅ | `loan_request_people` (borrower) |
-| Age | M | ❌ | **DERIVE** from `birthdate` — do not add a new field; compute at render time |
-| Civil status | M | ❌ | **REUSE** `loan_request_data_entries.civil_status` — not yet wired to AU |
-| Residence address | M | ✅ | `loan_request_data_entries` |
+| Full name | M | ✅ | `applicant.full_name` |
+| Age | M | ✅ | `applicant.age` — derived from `birthdate` at render time |
+| Civil status | M | ✅ | `applicant.civil_status` |
+| Nationality | M | ✅ | `applicant.nationality` — always `FILIPINO` |
+| Residence address | M | ✅ | `applicant.address` |
+| Designation | M | ✅ | `applicant.position_or_designation` |
+| Agency name | M | ✅ | `applicant.employer_or_business` |
+| Agency address | M | ✅ | `applicant.office_address` |
 
 ### Bank / Payout Details
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Bank name | M | ✅ | `authorization.payout_bank_name` |
-| Account number | M | ✅ | `authorization.payout_account_number` |
-| Account name | M | ✅ | `authorization.payout_account_name` |
-| ATM account number | M | ✅ | `authorization.payout_atm_number` |
-| Bank branch | M | ✅ | `authorization.payout_bank_branch` — wired to AU field map (coordinates placeholder, `TODO(calibrate-au)`) |
+| Bank name | S | ✅ | `authorization.payout_bank_name` |
+| Account number | S | ✅ | `authorization.payout_account_number` |
+| Account name | S | ❌ | Not present on the real AU form (the deposit account is already the affiant's own, named in the header table) — **not wired**, and should not be |
+| ATM account number | S | ✅ | `authorization.payout_atm_number` |
+| Bank branch | S | ✅ | `authorization.payout_bank_branch` — calibrated coordinates, no longer a placeholder |
 
 ### Loan Terms
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Approved loan amount | S | ✅ | `loan_request_data_entries` (staff) |
+| Approved loan amount | S | ❌ | Not present on the real AU form (the undertaking references GNTHP, not a specific peso loan amount) — **not wired**, and should not be |
 | Guaranteed Net Take-Home Pay (GNTHP) | S | ✅ | `loan.gnthp` — staff-entered, wired to AU |
 
 ### Notarization
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Document number | S | ✅ | `loan_request_data_entries.doc_number` |
-| Page number | S | ✅ | `loan_request_data_entries.page_number` |
-| Book number | S | ✅ | `loan_request_data_entries.book_number` |
-| Series year | S | ✅ | `loan_request_data_entries.series_year` |
-| Place of signing | S | ✅ | `loan_request_data_entries.signing_place` |
+| Place of signing | S | ✅ | `loan_request_data_entries.signing_place` → `notarial.signing_place` |
+| Notarial province | S | ✅ | `loan_request_data_entries.notarial_province` → `notarial.province` |
+| Valid ID number | S | ✅ | `loan_request_data_entries.valid_id_number` → `notarial.valid_id_number` |
+| Valid ID issued at | S | ✅ | `loan_request_data_entries.valid_id_issued_at` → `notarial.valid_id_issued_at` |
+| Document number | S | ✅ | `loan_request_data_entries.doc_number` → `notarial.doc_number` |
+| Page number | S | ✅ | `loan_request_data_entries.page_number` → `notarial.page_number` |
+| Book number | S | ✅ | `loan_request_data_entries.book_number` → `notarial.book_number` |
+| Series year | S | ✅ | `loan_request_data_entries.series_year` → `notarial.series_year` |
 
-### Witnesses
+All 8 fields are staff-entered via the "Notarization" sub-section of the Processing Details
+panel, EAV-backed (`loan_request_data_entries`, `section_key = 'processing'`) — no dedicated
+schema/migration. Naming is generic (`doc_number`, not `au_doc_number`) so other documents can
+reuse the same keys later without new wiring; no other document does so today.
 
-| Field | Who | Status | App source |
-|-------|-----|--------|------------|
-| Witness 1 name | S | ✅ | `loan_request_data_entries.witness_one_name` (fixed Phase 1) |
-| Witness 2 name | S | ✅ | `loan_request_data_entries.witness_two_name` (fixed Phase 1) |
+Witnesses are **not part of this document** — the real AU form has a single affiant/borrower
+signature line, not a witness block. A prior pass claimed `witness_one_name`/`witness_two_name`
+were wired to the AU field map; they never were (confirmed by direct inspection of
+`AffidavitUndertakingPdfFieldMap.php`) and the row has been removed rather than corrected in
+place, since it does not belong on this document at all.
 
 ---
 
@@ -587,8 +605,7 @@
 
 | Field | Where to add | Document(s) |
 |-------|-------------|-------------|
-| Age (derived) | **No new field** — compute from `birthdate` at render time | AU, UB |
-| Civil status → AU | **No new field** — reuse `civil_status` from data_entries | AU |
+| Age (derived) | **No new field** — compute from `birthdate` at render time | UB |
 | Civil status → UB | **No new field** — reuse `civil_status` from data_entries | UB |
 | Physician name / address / date / treatment | Add to FIELD_DEFINITIONS + conditional health wizard step | GL |
 | Percentage of finance charges + EIR (items 6 & 7) | Confirm R.A. 3765 formula with WIBS first, then wire into DS blade | DS |
@@ -616,7 +633,7 @@
 |----------|-------------|--------|--------|
 | AF | PDF (Blade) | PDF | ✅ Done |
 | GL | PDF (field map) | PDF | ✅ Done |
-| AU | PDF (field map) | PDF | ✅ Done (wiring gaps remain) |
+| AU | PDF (field map) | PDF | ✅ Done — rebuilt from the real reference doc, no known wiring gaps |
 | AZ | PDF (field map) | PDF | ✅ Done (wiring gaps remain) |
 | LI | PDF (Blade/service) | PDF | ✅ Done |
 | PP | PDF (service class) | PDF | ✅ Done |
