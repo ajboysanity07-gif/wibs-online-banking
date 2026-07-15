@@ -118,17 +118,22 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'authorization.payout_bank_branch',
             ],
+            // Signature over Printed Name / Date / Place of Signing / BORROWER now sits
+            // in a bordered 3-column table (x=18-192, y=252-268) instead of freeform
+            // underlines -- see the throwaway artwork builder script referenced in the
+            // commit that rebuilt this section. Coordinates below are remeasured fresh
+            // against the new cell geometry, not reused from the old freeform layout.
             [
                 'page' => 1,
-                'x' => 97.5,
-                'y' => 254.56,
+                'x' => 98,
+                'y' => 259,
                 'size' => 9,
                 'value' => 'loan.approved_date',
             ],
             [
                 'page' => 1,
-                'x' => 157.5,
-                'y' => 254.56,
+                'x' => 150,
+                'y' => 259,
                 'size' => 9,
                 'value' => 'notarial.signing_place',
             ],

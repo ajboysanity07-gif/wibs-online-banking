@@ -1000,14 +1000,18 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $bankBranch['y'])->toBe(154.10);
     expect((int) $bankBranch['size'])->toBe(9);
 
+    // Signature/Date/Place-of-Signing row: rebuilt as a real bordered 3-column table
+    // (x=18-192, y=252-268) replacing the old freeform underlines -- coordinates below
+    // are remeasured fresh against the new cell geometry, confirmed by rendering against
+    // the real production artwork and rasterizing.
     $date = $find('loan.approved_date');
-    expect((float) $date['x'])->toBe(97.5);
-    expect((float) $date['y'])->toBe(254.56);
+    expect((float) $date['x'])->toBe(98.0);
+    expect((float) $date['y'])->toBe(259.0);
     expect((int) $date['size'])->toBe(9);
 
     $signingPlace = $find('notarial.signing_place');
-    expect((float) $signingPlace['x'])->toBe(157.5);
-    expect((float) $signingPlace['y'])->toBe(254.56);
+    expect((float) $signingPlace['x'])->toBe(150.0);
+    expect((float) $signingPlace['y'])->toBe(259.0);
 
     $seriesYear = $find('notarial.series_year');
     expect((float) $seriesYear['x'])->toBe(34.9);
