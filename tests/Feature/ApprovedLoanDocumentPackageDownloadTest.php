@@ -971,26 +971,30 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $officeAddress['width'])->toBe(129.0);
     expect((float) $officeAddress['line_height'])->toBe(3.0);
 
+    // Baseline correction pass: TCPDF's Text() y is not the drawn underline's y --
+    // each field shifts up by its own measured baseline offset (2.11/2.10/1.89/1.89/1.90mm)
+    // so the printed value rests on its line instead of floating below/through it,
+    // confirmed by rendering against the real production artwork and rasterizing.
     $gnthp = $find('loan.gnthp');
     expect((float) $gnthp['x'])->toBe(74.28);
-    expect((float) $gnthp['y'])->toBe(127.0);
+    expect((float) $gnthp['y'])->toBe(124.89);
     expect((int) $gnthp['size'])->toBe(9);
 
     $accountNumber = $find('authorization.payout_account_number');
     expect((float) $accountNumber['x'])->toBe(82.51);
-    expect((float) $accountNumber['y'])->toBe(132.0);
+    expect((float) $accountNumber['y'])->toBe(129.90);
 
     $atmNumber = $find('authorization.payout_atm_number');
     expect((float) $atmNumber['x'])->toBe(59.14);
-    expect((float) $atmNumber['y'])->toBe(140.0);
+    expect((float) $atmNumber['y'])->toBe(138.11);
 
     $bankName = $find('authorization.payout_bank_name');
     expect((float) $bankName['x'])->toBe(50.91);
-    expect((float) $bankName['y'])->toBe(148.0);
+    expect((float) $bankName['y'])->toBe(146.11);
 
     $bankBranch = $find('authorization.payout_bank_branch');
     expect((float) $bankBranch['x'])->toBe(43.66);
-    expect((float) $bankBranch['y'])->toBe(156.0);
+    expect((float) $bankBranch['y'])->toBe(154.10);
     expect((int) $bankBranch['size'])->toBe(9);
 
     $date = $find('loan.approved_date');
