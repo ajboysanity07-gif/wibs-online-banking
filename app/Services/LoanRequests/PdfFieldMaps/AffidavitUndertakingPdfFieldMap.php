@@ -9,28 +9,37 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
         return [
             [
                 'page' => 1,
-                'x' => 40.5,
+                'type' => 'image',
+                'x' => 18,
+                'y' => 10,
+                'width' => 174,
+                'height' => 18,
+                'value' => 'organization.report_header.designPath',
+            ],
+            [
+                'page' => 1,
+                'x' => 44.79,
                 'y' => 47.7,
                 'size' => 10,
                 'value' => 'applicant.full_name',
             ],
             [
                 'page' => 1,
-                'x' => 25.17,
+                'x' => 25.78,
                 'y' => 55.7,
                 'size' => 9,
                 'value' => 'applicant.age',
             ],
             [
                 'page' => 1,
-                'x' => 80.16,
+                'x' => 83.07,
                 'y' => 55.7,
                 'size' => 9,
                 'value' => 'applicant.civil_status',
             ],
             [
                 'page' => 1,
-                'x' => 137.83,
+                'x' => 140.95,
                 'y' => 55.7,
                 'size' => 9,
                 'value' => 'applicant.nationality',
@@ -38,7 +47,7 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'page' => 1,
                 'x' => 18,
-                'y' => 65,
+                'y' => 66,
                 'size' => 8,
                 'width' => 174,
                 'line_height' => 4,
@@ -46,14 +55,14 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
             ],
             [
                 'page' => 1,
-                'x' => 48.34,
+                'x' => 54.01,
                 'y' => 76.7,
                 'size' => 9,
                 'value' => 'applicant.position_or_designation',
             ],
             [
                 'page' => 1,
-                'x' => 29.83,
+                'x' => 32.25,
                 'y' => 84.7,
                 'size' => 9,
                 'value' => 'applicant.employer_or_business',
@@ -61,90 +70,83 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'page' => 1,
                 'x' => 18,
-                'y' => 94,
+                'y' => 95,
                 'size' => 8,
                 'width' => 174,
                 'line_height' => 4,
                 'value' => 'applicant.office_address',
             ],
+            // GNTHP and payout account number now sit inline in paragraph 1's rewritten
+            // sentence (Phase 2 artwork) rather than on separate labeled sub-lines.
             [
                 'page' => 1,
-                'x' => 63.33,
-                'y' => 123.7,
+                'x' => 74.28,
+                'y' => 127.0,
                 'size' => 9,
                 'value' => 'loan.gnthp',
             ],
             [
                 'page' => 1,
-                'x' => 50,
-                'y' => 129.7,
+                'x' => 82.51,
+                'y' => 132.0,
                 'size' => 9,
                 'value' => 'authorization.payout_account_number',
             ],
             [
                 'page' => 1,
-                'x' => 51.16,
-                'y' => 135.7,
+                'x' => 59.14,
+                'y' => 140.0,
                 'size' => 9,
                 'value' => 'authorization.payout_atm_number',
             ],
             [
                 'page' => 1,
-                'x' => 43.33,
-                'y' => 141.7,
+                'x' => 50.91,
+                'y' => 148.0,
                 'size' => 9,
                 'value' => 'authorization.payout_bank_name',
             ],
             [
                 'page' => 1,
-                'x' => 37.17,
-                'y' => 147.7,
+                'x' => 43.66,
+                'y' => 156.0,
                 'size' => 9,
                 'value' => 'authorization.payout_bank_branch',
             ],
             [
                 'page' => 1,
-                'x' => 92.33,
-                'y' => 219.97,
+                'x' => 97.5,
+                'y' => 254.56,
                 'size' => 9,
                 'value' => 'loan.approved_date',
             ],
             [
                 'page' => 1,
-                'x' => 159.04,
-                'y' => 219.97,
+                'x' => 157.5,
+                'y' => 254.56,
                 'size' => 9,
                 'value' => 'notarial.signing_place',
             ],
+            // notarial.province now stamps inline into the "for and in ___" blank within
+            // the existing "SUBSCRIBED AND SWORN..." sentence, instead of a separate
+            // labeled line below it. notarial.valid_id_number and
+            // notarial.valid_id_issued_at are dropped entirely -- no reference equivalent;
+            // those blanks (and the "due ___" blank) are filled by hand by the notary.
             [
                 'page' => 1,
-                'x' => 58,
-                'y' => 258.42,
+                'x' => 127.2,
+                'y' => 275.56,
                 'size' => 8,
                 'value' => 'notarial.province',
             ],
-            [
-                'page' => 1,
-                'x' => 43.17,
-                'y' => 264.42,
-                'size' => 8,
-                'value' => 'notarial.valid_id_number',
-            ],
-            [
-                'page' => 1,
-                'x' => 43.5,
-                'y' => 270.42,
-                'size' => 8,
-                'value' => 'notarial.valid_id_issued_at',
-            ],
-            // Doc No. / Page No. / Book No. (x≈30.5/76.67/121, y=280.42) are intentionally
+            // Doc No. / Page No. / Book No. (x=18, y=297.56/305.56/313.56) are intentionally
             // left blank space on the artwork for the notary to fill by hand — see
             // buildDocumentData()'s 'notarial' block for why.
             [
                 'page' => 1,
-                'x' => 164.17,
-                'y' => 280.42,
-                'size' => 8,
+                'x' => 34.9,
+                'y' => 321.56,
+                'size' => 10,
                 'value' => 'notarial.series_year',
             ],
         ];

@@ -957,12 +957,9 @@ class ApprovedLoanDocumentService
                 // to the org's configured business address (OrganizationSettingsService).
                 'signing_place' => $this->normalizeText($branding['businessAddress2'] ?? null),
                 'province' => $this->normalizeText($branding['businessAddress3'] ?? null),
-                'valid_id_number' => $this->normalizeText(
-                    $overrideProcessing['valid_id_number'] ?? $flatValues['valid_id_number'] ?? null,
-                ),
-                'valid_id_issued_at' => $this->normalizeText($branding['businessAddress2'] ?? null),
-                // Doc/Page/Book No. are the notary's own register counters, unknowable to
-                // WIBS staff — left blank on the printed form for the notary to fill by hand.
+                // Doc/Page/Book No., valid ID number, and ID-issuance location have no
+                // reference-document equivalent on AU — left blank on the printed form
+                // for the notary to fill by hand.
                 'series_year' => $documentDate?->format('Y'),
             ],
             'health' => [

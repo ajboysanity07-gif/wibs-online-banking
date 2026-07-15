@@ -101,7 +101,7 @@ class LoanRequestDocumentCatalog
             'requires_financials' => false,
         ],
         'affidavit_undertaking' => [
-            'template_version' => 'affidavit-undertaking-v2',
+            'template_version' => 'affidavit-undertaking-v3',
             'applicability' => 'always',
             'required_fields' => [],
             'source_fields' => [
@@ -110,7 +110,6 @@ class LoanRequestDocumentCatalog
                 'payout_atm_number',
                 'payout_bank_branch',
                 'guaranteed_net_take_home_pay',
-                'valid_id_number',
             ],
             'source_paths' => [
                 'loan_request.recommended_amount',
