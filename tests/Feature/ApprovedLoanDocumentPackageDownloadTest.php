@@ -907,79 +907,103 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
 
     // Fields dropped in the Phase 1/2 rebuild: the real AU reference document has no
     // loan amount, loan type, or reviewer line, and no separate "account name" blank.
-    // Doc/Page/Book No. (dropped in the Phase 3 correction) are the notary's own
-    // register counters — unknowable to WIBS staff, left blank for the notary to
-    // fill by hand rather than stamped from app data.
+    // Doc/Page/Book No. are the notary's own register counters — unknowable to WIBS
+    // staff, left blank for the notary to fill by hand rather than stamped from app
+    // data. notarial.valid_id_number / valid_id_issued_at (dropped in the visual
+    // fidelity pass) have no reference-document equivalent either.
     foreach ([
         'loan.approved_amount', 'loan.type', 'reviewer.name', 'authorization.payout_account_name',
         'notarial.doc_number', 'notarial.page_number', 'notarial.book_number',
+        'notarial.valid_id_number', 'notarial.valid_id_issued_at',
     ] as $droppedValue) {
         expect($fields->contains(fn (array $f): bool => ($f['value'] ?? null) === $droppedValue))->toBeFalse();
     }
 
+    $header = $fields->first(fn (array $f): bool => ($f['type'] ?? null) === 'image');
+    expect($header)->toBeArray();
+    expect($header['value'])->toBe('organization.report_header.designPath');
+    expect((float) $header['x'])->toBe(18.0);
+    expect((float) $header['y'])->toBe(10.0);
+    expect((float) $header['width'])->toBe(174.0);
+    expect((float) $header['height'])->toBe(18.0);
+
     $fullName = $find('applicant.full_name');
-    expect((float) $fullName['x'])->toBe(40.5);
+    expect((float) $fullName['x'])->toBe(44.79);
     expect((float) $fullName['y'])->toBe(47.7);
     expect((int) $fullName['size'])->toBe(10);
 
     $age = $find('applicant.age');
-    expect((float) $age['x'])->toBe(25.17);
+    expect((float) $age['x'])->toBe(25.78);
     expect((float) $age['y'])->toBe(55.7);
     expect((int) $age['size'])->toBe(9);
 
     $civilStatus = $find('applicant.civil_status');
-    expect((float) $civilStatus['x'])->toBe(80.16);
+    expect((float) $civilStatus['x'])->toBe(83.07);
     expect((float) $civilStatus['y'])->toBe(55.7);
 
     $nationality = $find('applicant.nationality');
-    expect((float) $nationality['x'])->toBe(137.83);
+    expect((float) $nationality['x'])->toBe(140.95);
     expect((float) $nationality['y'])->toBe(55.7);
 
     $address = $find('applicant.address');
     expect((float) $address['x'])->toBe(18.0);
-    expect((float) $address['y'])->toBe(65.0);
+    expect((float) $address['y'])->toBe(66.0);
     expect((int) $address['size'])->toBe(8);
     expect((float) $address['width'])->toBe(174.0);
 
     $designation = $find('applicant.position_or_designation');
-    expect((float) $designation['x'])->toBe(48.34);
+    expect((float) $designation['x'])->toBe(54.01);
     expect((float) $designation['y'])->toBe(76.7);
 
     $agency = $find('applicant.employer_or_business');
-    expect((float) $agency['x'])->toBe(29.83);
+    expect((float) $agency['x'])->toBe(32.25);
     expect((float) $agency['y'])->toBe(84.7);
 
     $officeAddress = $find('applicant.office_address');
     expect((float) $officeAddress['x'])->toBe(18.0);
-    expect((float) $officeAddress['y'])->toBe(94.0);
+    expect((float) $officeAddress['y'])->toBe(95.0);
     expect((float) $officeAddress['width'])->toBe(174.0);
 
     $gnthp = $find('loan.gnthp');
-    expect((float) $gnthp['x'])->toBe(63.33);
-    expect((float) $gnthp['y'])->toBe(123.7);
+    expect((float) $gnthp['x'])->toBe(74.28);
+    expect((float) $gnthp['y'])->toBe(127.0);
     expect((int) $gnthp['size'])->toBe(9);
 
     $accountNumber = $find('authorization.payout_account_number');
-    expect((float) $accountNumber['x'])->toBe(50.0);
-    expect((float) $accountNumber['y'])->toBe(129.7);
+    expect((float) $accountNumber['x'])->toBe(82.51);
+    expect((float) $accountNumber['y'])->toBe(132.0);
 
     $atmNumber = $find('authorization.payout_atm_number');
-    expect((float) $atmNumber['x'])->toBe(51.16);
-    expect((float) $atmNumber['y'])->toBe(135.7);
+    expect((float) $atmNumber['x'])->toBe(59.14);
+    expect((float) $atmNumber['y'])->toBe(140.0);
 
     $bankName = $find('authorization.payout_bank_name');
-    expect((float) $bankName['x'])->toBe(43.33);
-    expect((float) $bankName['y'])->toBe(141.7);
+    expect((float) $bankName['x'])->toBe(50.91);
+    expect((float) $bankName['y'])->toBe(148.0);
 
     $bankBranch = $find('authorization.payout_bank_branch');
-    expect((float) $bankBranch['x'])->toBe(37.17);
-    expect((float) $bankBranch['y'])->toBe(147.7);
+    expect((float) $bankBranch['x'])->toBe(43.66);
+    expect((float) $bankBranch['y'])->toBe(156.0);
     expect((int) $bankBranch['size'])->toBe(9);
 
     $date = $find('loan.approved_date');
-    expect((float) $date['x'])->toBe(92.33);
-    expect((float) $date['y'])->toBe(219.97);
+    expect((float) $date['x'])->toBe(97.5);
+    expect((float) $date['y'])->toBe(254.56);
     expect((int) $date['size'])->toBe(9);
+
+    $signingPlace = $find('notarial.signing_place');
+    expect((float) $signingPlace['x'])->toBe(157.5);
+    expect((float) $signingPlace['y'])->toBe(254.56);
+
+    $province = $find('notarial.province');
+    expect((float) $province['x'])->toBe(127.2);
+    expect((float) $province['y'])->toBe(275.56);
+    expect((int) $province['size'])->toBe(8);
+
+    $seriesYear = $find('notarial.series_year');
+    expect((float) $seriesYear['x'])->toBe(34.9);
+    expect((float) $seriesYear['y'])->toBe(321.56);
+    expect((int) $seriesYear['size'])->toBe(10);
 });
 
 test('authorization field map pins all field coordinates to calibrated values', function () {
@@ -1459,17 +1483,16 @@ test('affidavit undertaking pdf prints notarization details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
-    // Place of signing, notarial province, and ID-issuance location are the notary's
-    // own fixed office facts — they come from the org's configured business address,
-    // not a per-loan staff input.
+    // Place of signing and notarial province are the notary's own fixed office facts —
+    // they come from the org's configured business address, not a per-loan staff input.
+    // valid_id_number / valid_id_issued_at have no reference-document equivalent and are
+    // no longer wired into AU at all (see AffidavitUndertakingPdfFieldMap).
     OrganizationSetting::factory()->create([
         'business_address2' => 'Tagum City',
         'business_address3' => 'Davao del Norte',
     ]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'valid_id_number', 'string', 'DL-N01-23-456789');
 
     $response = $this
         ->actingAs($admin)
@@ -1481,7 +1504,6 @@ test('affidavit undertaking pdf prints notarization details', function () {
     expect($text)
         ->toContain('Tagum City')
         ->toContain('Davao del Norte')
-        ->toContain('DL-N01-23-456789')
         ->toContain((string) now()->year);
 });
 
@@ -1501,6 +1523,110 @@ test('affidavit undertaking pdf prints guaranteed net take-home pay', function (
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)->toContain('32,500.00');
+});
+
+test('affidavit undertaking pdf stamps GNTHP and account number inline for paragraph 1', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'numeric', 32500);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '9876543210');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    // The rewritten paragraph 1 sentence itself is baked into the template artwork (an
+    // FPDI-imported XObject), which approvedLoanDocumentsExtractPdfText() cannot see --
+    // only the overlay values it stamps are extractable here. The field map pinning test
+    // covers the inline coordinates directly; this confirms both values that now live in
+    // the same sentence actually render through the real HTTP route with persisted data.
+    expect($text)
+        ->toContain('32,500.00')
+        ->toContain('9876543210');
+
+    $fields = collect((new AffidavitUndertakingPdfFieldMap)->fields());
+    $gnthp = $fields->first(fn (array $f): bool => ($f['value'] ?? null) === 'loan.gnthp');
+    $accountNumber = $fields->first(fn (array $f): bool => ($f['value'] ?? null) === 'authorization.payout_account_number');
+
+    // Both now sit within the same rewritten paragraph-1 block, a few mm apart --
+    // not on separate labeled sub-lines many mm apart as before the visual fidelity pass.
+    expect(abs((float) $gnthp['y'] - (float) $accountNumber['y']))->toBeLessThan(10.0);
+});
+
+test('affidavit undertaking pdf is Legal size, not A4', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+
+    $pdf = new Fpdi('P', 'mm');
+    $pageCount = $pdf->setSourceFile(approvedLoanDocumentsDownloadedFilePath($response));
+    $templateId = $pdf->importPage(1);
+    $size = $pdf->getTemplateSize($templateId);
+
+    expect($pageCount)->toBe(1);
+    // TCPDF round-trips mm through internal points (AddPage() re-derives the MediaBox from
+    // the page-format array), which can drift by a fraction of a mm -- compare with a
+    // tolerance rather than exact equality.
+    expect(abs((float) $size['width'] - 215.9))->toBeLessThan(0.5);
+    expect(abs((float) $size['height'] - 330.2))->toBeLessThan(0.5);
+});
+
+test('affidavit undertaking pdf includes the org report header image when configured', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $headerPath = 'branding/report-headers/test-header.png';
+    Storage::disk('public')->put($headerPath, testPngSignatureBinary('one'));
+
+    OrganizationSetting::factory()->create([
+        'report_header_design_path' => $headerPath,
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+
+    expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBeGreaterThan(0);
+});
+
+test('affidavit undertaking pdf omits the header image gracefully when unconfigured', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    OrganizationSetting::factory()->create([
+        'report_header_design_path' => null,
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+
+    expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(0);
 });
 
 test('authorization pdf prints release and bank details', function () {

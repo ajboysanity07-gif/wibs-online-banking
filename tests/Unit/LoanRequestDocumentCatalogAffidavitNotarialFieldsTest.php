@@ -3,16 +3,12 @@
 use App\LoanRequestDocumentKey;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 
-test('affidavit undertaking regenerates when a notarization field changes', function (string $fieldKey): void {
+test('affidavit undertaking template version is bumped to v3 for the visual fidelity pass', function (): void {
     $catalog = app(LoanRequestDocumentCatalog::class);
 
-    expect($catalog->usesChangedFields(
-        LoanRequestDocumentKey::AffidavitUndertaking,
-        [$fieldKey],
-    ))->toBeTrue();
-})->with([
-    'valid_id_number',
-]);
+    expect($catalog->templateVersionFor(LoanRequestDocumentKey::AffidavitUndertaking))
+        ->toBe('affidavit-undertaking-v3');
+});
 
 test('affidavit undertaking no longer regenerates on the dropped payout_account_name field', function (): void {
     $catalog = app(LoanRequestDocumentCatalog::class);
@@ -33,6 +29,7 @@ test('affidavit undertaking no longer regenerates on the org-address-sourced or 
 })->with([
     'signing_place',
     'notarial_province',
+    'valid_id_number',
     'valid_id_issued_at',
     'doc_number',
     'page_number',
