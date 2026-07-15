@@ -927,10 +927,11 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $header['width'])->toBe(174.0);
     expect((float) $header['height'])->toBe(18.0);
 
-    // Phase 3 of the table-borders plan (2004c36/16f7f51): the affiant-info section was
-    // rebuilt with real bordered cells, so every one of these 8 coordinates was
-    // remeasured against the new geometry -- none of the old borderless-underline
-    // values are reused.
+    // Table-borders plan, corrected against the real reference document (ce3e961/1682d97):
+    // "Name of Affiant:" sits above the table (unbordered); the table itself is 5 rows,
+    // with Age/Marital Status/Nationality sharing one unified cell (no internal column
+    // borders) -- confirmed by rendering the actual reference .docx and pixel-scanning it,
+    // not inferred from the plan document alone.
     $fullName = $find('applicant.full_name');
     expect((float) $fullName['x'])->toBe(46.5);
     expect((float) $fullName['y'])->toBe(41.5);
@@ -938,37 +939,37 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
 
     $age = $find('applicant.age');
     expect((float) $age['x'])->toBe(26.5);
-    expect((float) $age['y'])->toBe(47.6);
+    expect((float) $age['y'])->toBe(49.1);
     expect((int) $age['size'])->toBe(9);
 
     $civilStatus = $find('applicant.civil_status');
     expect((float) $civilStatus['x'])->toBe(83.5);
-    expect((float) $civilStatus['y'])->toBe(47.6);
+    expect((float) $civilStatus['y'])->toBe(49.1);
 
     $nationality = $find('applicant.nationality');
     expect((float) $nationality['x'])->toBe(141.5);
-    expect((float) $nationality['y'])->toBe(47.6);
+    expect((float) $nationality['y'])->toBe(49.1);
 
     $address = $find('applicant.address');
-    expect((float) $address['x'])->toBe(19.0);
-    expect((float) $address['y'])->toBe(59.0);
+    expect((float) $address['x'])->toBe(78.0);
+    expect((float) $address['y'])->toBe(54.5);
     expect((int) $address['size'])->toBe(8);
-    expect((float) $address['width'])->toBe(172.0);
-    expect((float) $address['line_height'])->toBe(3.5);
+    expect((float) $address['width'])->toBe(113.0);
+    expect((float) $address['line_height'])->toBe(3.0);
 
     $designation = $find('applicant.position_or_designation');
     expect((float) $designation['x'])->toBe(52.0);
-    expect((float) $designation['y'])->toBe(67.6);
+    expect((float) $designation['y'])->toBe(63.1);
 
     $agency = $find('applicant.employer_or_business');
     expect((float) $agency['x'])->toBe(32.5);
-    expect((float) $agency['y'])->toBe(73.6);
+    expect((float) $agency['y'])->toBe(68.1);
 
     $officeAddress = $find('applicant.office_address');
-    expect((float) $officeAddress['x'])->toBe(19.0);
-    expect((float) $officeAddress['y'])->toBe(85.0);
-    expect((float) $officeAddress['width'])->toBe(172.0);
-    expect((float) $officeAddress['line_height'])->toBe(3.5);
+    expect((float) $officeAddress['x'])->toBe(62.0);
+    expect((float) $officeAddress['y'])->toBe(73.5);
+    expect((float) $officeAddress['width'])->toBe(129.0);
+    expect((float) $officeAddress['line_height'])->toBe(3.0);
 
     $gnthp = $find('loan.gnthp');
     expect((float) $gnthp['x'])->toBe(74.28);
