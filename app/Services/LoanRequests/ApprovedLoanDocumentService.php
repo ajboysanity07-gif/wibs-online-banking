@@ -952,13 +952,12 @@ class ApprovedLoanDocumentService
                 ),
             ],
             'notarial' => [
-                // Place of signing, notarial province, and ID-issuance location are the
-                // notary's own fixed office facts, not per-loan staff input — they resolve
-                // to the org's configured business address (OrganizationSettingsService).
+                // Place of signing is the notary's own fixed office fact, not per-loan
+                // staff input — it resolves to the org's configured business address
+                // (OrganizationSettingsService).
                 'signing_place' => $this->normalizeText($branding['businessAddress2'] ?? null),
-                'province' => $this->normalizeText($branding['businessAddress3'] ?? null),
-                // Doc/Page/Book No., valid ID number, and ID-issuance location have no
-                // reference-document equivalent on AU — left blank on the printed form
+                // Province, Doc/Page/Book No., and valid ID number/issuance location have
+                // no reference-document equivalent on AU — left blank on the printed form
                 // for the notary to fill by hand.
                 'series_year' => $documentDate?->format('Y'),
             ],

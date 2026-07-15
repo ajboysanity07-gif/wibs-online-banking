@@ -914,7 +914,7 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     foreach ([
         'loan.approved_amount', 'loan.type', 'reviewer.name', 'authorization.payout_account_name',
         'notarial.doc_number', 'notarial.page_number', 'notarial.book_number',
-        'notarial.valid_id_number', 'notarial.valid_id_issued_at',
+        'notarial.valid_id_number', 'notarial.valid_id_issued_at', 'notarial.province',
     ] as $droppedValue) {
         expect($fields->contains(fn (array $f): bool => ($f['value'] ?? null) === $droppedValue))->toBeFalse();
     }
@@ -1005,11 +1005,6 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     $signingPlace = $find('notarial.signing_place');
     expect((float) $signingPlace['x'])->toBe(157.5);
     expect((float) $signingPlace['y'])->toBe(254.56);
-
-    $province = $find('notarial.province');
-    expect((float) $province['x'])->toBe(127.2);
-    expect((float) $province['y'])->toBe(275.56);
-    expect((int) $province['size'])->toBe(8);
 
     $seriesYear = $find('notarial.series_year');
     expect((float) $seriesYear['x'])->toBe(34.9);
@@ -1516,10 +1511,10 @@ test('affidavit undertaking pdf prints notarization details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
-    // Place of signing and notarial province are the notary's own fixed office facts —
-    // they come from the org's configured business address, not a per-loan staff input.
-    // valid_id_number / valid_id_issued_at have no reference-document equivalent and are
-    // no longer wired into AU at all (see AffidavitUndertakingPdfFieldMap).
+    // Place of signing is the notary's own fixed office fact — it comes from the org's
+    // configured business address, not a per-loan staff input. province / valid_id_number
+    // / valid_id_issued_at have no reference-document equivalent and are no longer wired
+    // into AU at all (see AffidavitUndertakingPdfFieldMap) — the notary fills them by hand.
     OrganizationSetting::factory()->create([
         'business_address2' => 'Tagum City',
         'business_address3' => 'Davao del Norte',
@@ -1536,7 +1531,7 @@ test('affidavit undertaking pdf prints notarization details', function () {
 
     expect($text)
         ->toContain('Tagum City')
-        ->toContain('Davao del Norte')
+        ->not->toContain('Davao del Norte')
         ->toContain((string) now()->year);
 });
 

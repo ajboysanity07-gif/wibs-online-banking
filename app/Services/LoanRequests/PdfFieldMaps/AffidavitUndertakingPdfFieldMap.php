@@ -127,18 +127,9 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 9,
                 'value' => 'notarial.signing_place',
             ],
-            // notarial.province now stamps inline into the "for and in ___" blank within
-            // the existing "SUBSCRIBED AND SWORN..." sentence, instead of a separate
-            // labeled line below it. notarial.valid_id_number and
-            // notarial.valid_id_issued_at are dropped entirely -- no reference equivalent;
-            // those blanks (and the "due ___" blank) are filled by hand by the notary.
-            [
-                'page' => 1,
-                'x' => 127.2,
-                'y' => 275.56,
-                'size' => 8,
-                'value' => 'notarial.province',
-            ],
+            // notarial.province is intentionally not wired here -- the "for and in ___"
+            // blank is filled by hand by the notary, same as valid_id_number/
+            // valid_id_issued_at/doc_number/etc below.
             // Doc No. / Page No. / Book No. (x=18, y=297.56/305.56/313.56) are intentionally
             // left blank space on the artwork for the notary to fill by hand — see
             // buildDocumentData()'s 'notarial' block for why.
