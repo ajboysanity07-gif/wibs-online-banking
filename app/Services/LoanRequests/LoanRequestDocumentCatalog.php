@@ -101,7 +101,7 @@ class LoanRequestDocumentCatalog
             'requires_financials' => false,
         ],
         'affidavit_undertaking' => [
-            'template_version' => 'affidavit-undertaking-v4',
+            'template_version' => 'affidavit-undertaking-v5',
             'applicability' => 'always',
             'required_fields' => [],
             'source_fields' => [
