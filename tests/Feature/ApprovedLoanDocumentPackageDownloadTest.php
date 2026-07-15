@@ -926,6 +926,9 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $header['y'])->toBe(10.0);
     expect((float) $header['width'])->toBe(174.0);
     expect((float) $header['height'])->toBe(18.0);
+    // Overrides DocumentSignaturePlacement's default 2x SIGNATURE_SCALE_FACTOR (tuned for
+    // small hand-drawn signature stamps) -- the header must fit its declared box as-is.
+    expect((float) $header['scale'])->toBe(1.0);
 
     // Table-borders plan, corrected against the real reference document (ce3e961/1682d97):
     // "Name of Affiant:" sits above the table (unbordered); the table itself is 5 rows,

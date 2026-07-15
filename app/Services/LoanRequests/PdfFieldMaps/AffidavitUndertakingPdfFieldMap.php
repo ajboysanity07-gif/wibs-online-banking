@@ -14,6 +14,11 @@ class AffidavitUndertakingPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'y' => 10,
                 'width' => 174,
                 'height' => 18,
+                // Override DocumentSignaturePlacement's default 2x SIGNATURE_SCALE_FACTOR
+                // (tuned for small hand-drawn signature stamps) -- the header image must
+                // fit the declared 174x18mm box as-is, not be blown up and bleed into the
+                // title below it.
+                'scale' => 1.0,
                 'value' => 'organization.report_header.designPath',
             ],
             [
