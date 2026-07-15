@@ -1162,7 +1162,7 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     $natureOfBusiness = $findByPageValue(1, 'applicant.nature_of_business');
     $position = $findByPageValue(1, 'applicant.position_or_designation');
     $yearsInWork = $findByPageValue(1, 'applicant.years_in_work_business');
-    $officeAddress = $findByPageValue(1, 'applicant.office_address');
+    $officeAddress = $findByPageValue(1, 'applicant.office_address_line');
     $officeCity = $findByPageValue(1, 'applicant.office_city');
     $officeProvince = $findByPageValue(1, 'applicant.office_province');
     $officeZip = $findByPageValue(1, 'applicant.office_zip');
@@ -1484,6 +1484,28 @@ test('affidavit undertaking pdf prints applicant identity and employment details
         ->toContain('FILIPINO')
         ->toContain('Manager')
         ->toContain('Sample Enterprise');
+});
+
+test('affidavit undertaking pdf composes the full agency address, not just the street line', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $loanRequest->applicant()->first()->update([
+        'employer_business_address1' => 'Poblacion',
+        'employer_business_address2' => 'Lianga',
+        'employer_business_address3' => 'Surigao del Sur',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)->toContain('Poblacion, Lianga, Surigao del Sur');
 });
 
 test('affidavit undertaking pdf prints notarization details', function () {

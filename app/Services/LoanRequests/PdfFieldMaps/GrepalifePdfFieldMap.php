@@ -184,7 +184,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 7,
                 'width' => 97,
                 'line_height' => 1.8,
-                'value' => 'applicant.office_address',
+                'value' => 'applicant.office_address_line',
             ],
             [
                 'page' => 1,

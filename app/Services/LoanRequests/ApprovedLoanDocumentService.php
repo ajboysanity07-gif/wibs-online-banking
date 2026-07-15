@@ -995,7 +995,7 @@ class ApprovedLoanDocumentService
             $person?->composedEmployerBusinessAddress(),
         );
         $addressLine = $this->normalizeText($person?->address1) ?? $composedAddress;
-        $officeAddress = $this->normalizeText($person?->employer_business_address1)
+        $officeAddressLine = $this->normalizeText($person?->employer_business_address1)
             ?? $composedOfficeAddress;
 
         return [
@@ -1024,7 +1024,8 @@ class ApprovedLoanDocumentService
             'work_phone' => $this->normalizeText($person?->telephone_no),
             'email' => $this->normalizeText($loanRequest->user?->email),
             'employer_or_business' => $this->normalizeText($person?->employer_business_name),
-            'office_address' => $officeAddress,
+            'office_address' => $composedOfficeAddress,
+            'office_address_line' => $officeAddressLine,
             'office_city' => $this->normalizeText($person?->employer_business_address2),
             'office_province' => $this->normalizeText(
                 $person?->employer_business_address3,
