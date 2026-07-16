@@ -1075,7 +1075,19 @@ class LoanRequestDocumentWorkflowService
             sprintf('loan-workflow:documents:%d', $loanRequest->id),
             120,
         );
-        $result = $lock->get($callback);
+
+        $released = false;
+        register_shutdown_function(static function () use ($lock, &$released): void {
+            if (! $released) {
+                $lock->release();
+            }
+        });
+
+        try {
+            $result = $lock->get($callback);
+        } finally {
+            $released = true;
+        }
 
         if ($result !== false) {
             return $result;
