@@ -204,6 +204,14 @@ class ApprovedLoanPdfTemplateService
         $lineHeight = (float) ($field['line_height'] ?? 4);
         $align = (string) ($field['align'] ?? 'L');
 
+        if ($align !== 'L' && ! is_numeric($width)) {
+            throw new RuntimeException(sprintf(
+                'Field "%s" sets align "%s" but no width; alignment only takes effect via MultiCell, which needs a width to align within.',
+                (string) ($field['value'] ?? '?'),
+                $align,
+            ));
+        }
+
         if (is_numeric($width)) {
             $this->writeText(
                 $pdf,
