@@ -16,6 +16,17 @@ class ApprovedLoanPdfTemplateService
 {
     private const TEMPLATE_DIRECTORY = 'templates/approved-loan-documents/pdf';
 
+    private const CUSTOM_FONT_DIRECTORY = 'fonts/tcpdf';
+
+    /**
+     * TCPDF's core "helvetica" font uses a non-Unicode encoding that silently
+     * renders the Philippine Peso sign (₱, U+20B1) as "?" -- Calibri (converted
+     * from the system TTF, see storage/app/fonts/tcpdf/) renders it correctly
+     * and is used as the default text font across all approved-loan PDF
+     * documents, unless a field explicitly overrides 'font'.
+     */
+    private const DEFAULT_FONT = 'calibri';
+
     public function __construct(
         private SignaturePngService $signaturePngService,
         private DocumentSignaturePlacement $signaturePlacement,
@@ -200,7 +211,7 @@ class ApprovedLoanPdfTemplateService
                 $y,
                 $text,
                 (int) ($field['size'] ?? 7),
-                (string) ($field['font'] ?? 'helvetica'),
+                (string) ($field['font'] ?? self::DEFAULT_FONT),
                 (string) ($field['style'] ?? ''),
                 (float) $width,
                 $lineHeight,
@@ -216,7 +227,7 @@ class ApprovedLoanPdfTemplateService
             $y,
             $text,
             (int) ($field['size'] ?? 7),
-            (string) ($field['font'] ?? 'helvetica'),
+            (string) ($field['font'] ?? self::DEFAULT_FONT),
             (string) ($field['style'] ?? ''),
         );
     }
@@ -285,7 +296,7 @@ class ApprovedLoanPdfTemplateService
         float $y,
         ?string $text,
         int $size = 7,
-        string $font = 'helvetica',
+        string $font = self::DEFAULT_FONT,
         string $style = '',
         ?float $width = null,
         float $lineHeight = 4,
@@ -297,7 +308,10 @@ class ApprovedLoanPdfTemplateService
             return;
         }
 
-        $pdf->SetFont($this->normalizeFontName($font), $style, $size);
+        $normalizedFont = $this->normalizeFontName($font);
+        $this->assertFontStyleAvailable($normalizedFont, $style);
+
+        $pdf->SetFont($normalizedFont, $style, $size);
         $pdf->SetTextColor(0, 0, 0);
 
         if ($width !== null) {
@@ -553,7 +567,55 @@ class ApprovedLoanPdfTemplateService
         $pdf->SetMargins(0, 0, 0, true);
         $pdf->SetAutoPageBreak(false, 0);
         $pdf->SetCompression(false);
+        $this->registerCustomFonts($pdf);
 
         return $pdf;
+    }
+
+    private function registerCustomFonts(Fpdi $pdf): void
+    {
+        $this->registerCustomFontStyle($pdf, '');
+        $this->registerCustomFontStyle($pdf, 'B');
+    }
+
+    private function registerCustomFontStyle(Fpdi $pdf, string $style): void
+    {
+        $fontDefinitionPath = $this->customFontDefinitionPath($style);
+
+        if (is_file($fontDefinitionPath)) {
+            $pdf->AddFont(self::DEFAULT_FONT, $style, $fontDefinitionPath);
+        }
+    }
+
+    /**
+     * TCPDF's SetFont() falls back to its own filename-guessing search when
+     * a font+style combination was never registered via AddFont(), and its
+     * failure path is a raw die() (see registerCustomFonts()). Check the
+     * definition file ourselves first so a missing style becomes a normal
+     * catchable exception instead.
+     */
+    private function assertFontStyleAvailable(string $font, string $style): void
+    {
+        if ($font !== self::DEFAULT_FONT) {
+            return;
+        }
+
+        $fontDefinitionPath = $this->customFontDefinitionPath($style);
+
+        if (! is_file($fontDefinitionPath)) {
+            throw new RuntimeException(sprintf(
+                'Missing PDF font definition for font "%s" style "%s" (expected %s). Regenerate it with TCPDF_FONTS::addTTFfont().',
+                $font,
+                $style === '' ? '(regular)' : $style,
+                $fontDefinitionPath,
+            ));
+        }
+    }
+
+    private function customFontDefinitionPath(string $style): string
+    {
+        return storage_path(
+            'app/'.self::CUSTOM_FONT_DIRECTORY.'/'.self::DEFAULT_FONT.strtolower($style).'.php',
+        );
     }
 }
