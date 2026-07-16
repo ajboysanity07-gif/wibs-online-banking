@@ -66,8 +66,14 @@ test('an orphaned expired lock row is stolen and the acquisition self-heals', fu
     $loanRequest = makeLockResilienceLoanRequest();
     // Cache::lock() writes cache_locks rows under cache.prefix + key, not the
     // bare key — without this, direct row manipulation silently targets a
-    // different row than the one the lock actually reads/writes.
-    $lockKey = config('cache.prefix').sprintf('loan-workflow:documents:%d', $loanRequest->id);
+    // different row than the one the lock actually reads/writes. generateDocument()
+    // acquires the per-document key (loan-workflow:documents:{id}:{key}), not
+    // the request-level umbrella key, since Phase 2's key split.
+    $lockKey = config('cache.prefix').sprintf(
+        'loan-workflow:documents:%d:%s',
+        $loanRequest->id,
+        LoanRequestDocumentKey::ApplicationForm->value,
+    );
 
     DB::table('cache_locks')->insert([
         'key' => $lockKey,
@@ -93,7 +99,11 @@ test('an orphaned expired lock row is stolen and the acquisition self-heals', fu
 
 test('a still-valid lock row under a different owner blocks acquisition', function (): void {
     $loanRequest = makeLockResilienceLoanRequest();
-    $lockKey = config('cache.prefix').sprintf('loan-workflow:documents:%d', $loanRequest->id);
+    $lockKey = config('cache.prefix').sprintf(
+        'loan-workflow:documents:%d:%s',
+        $loanRequest->id,
+        LoanRequestDocumentKey::ApplicationForm->value,
+    );
 
     DB::table('cache_locks')->insert([
         'key' => $lockKey,
