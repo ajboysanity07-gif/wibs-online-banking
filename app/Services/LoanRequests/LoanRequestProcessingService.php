@@ -80,9 +80,7 @@ class LoanRequestProcessingService
             if (! array_key_exists('witness_one_name', $processingPayload)
                 || trim((string) ($processingPayload['witness_one_name'] ?? '')) === ''
             ) {
-                $processorDisplayName = $lockedLoanRequest->assignedProcessor?->adminProfile?->fullname
-                    ?? $lockedLoanRequest->assignedProcessor?->name
-                    ?? $lockedLoanRequest->assignedProcessor?->username;
+                $processorDisplayName = $lockedLoanRequest->assignedProcessor?->resolvedDisplayName();
 
                 if ($processorDisplayName !== null) {
                     $processingPayload['witness_one_name'] = $processorDisplayName;
@@ -685,9 +683,7 @@ class LoanRequestProcessingService
             );
 
             if ($isDocumentWorkflowV2) {
-                $approverDisplayName = $actor->adminProfile?->fullname
-                    ?? $actor->name
-                    ?? $actor->username;
+                $approverDisplayName = $actor->resolvedDisplayName();
 
                 $this->dataService->applyStaffUpdates(
                     $lockedLoanRequest,

@@ -13,6 +13,7 @@ use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
+use App\Support\PersonName;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
@@ -1596,17 +1597,9 @@ class ApprovedLoanDocumentService
             return null;
         }
 
-        $parts = array_filter([
-            trim((string) $person->first_name),
-            trim((string) $person->middle_name),
-            trim((string) $person->last_name),
-        ], static fn (string $value): bool => $value !== '');
+        $formatted = PersonName::format($person->first_name, $person->middle_name, $person->last_name);
 
-        if ($parts === []) {
-            return null;
-        }
-
-        return implode(' ', $parts);
+        return $formatted !== '' ? $formatted : null;
     }
 
     private function resolvePerson(

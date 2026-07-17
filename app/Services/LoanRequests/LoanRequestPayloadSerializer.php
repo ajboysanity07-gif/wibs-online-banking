@@ -180,16 +180,30 @@ class LoanRequestPayloadSerializer
      */
     public function serializeLoanRequest(LoanRequest $loanRequest): array
     {
-        $loanRequest->loadMissing(
+        $actorRelations = [
             'assignedOfficer.adminProfile',
             'reviewedBy.adminProfile',
             'rejectedBy.adminProfile',
             'approvedBy.adminProfile',
             'declinedBy.adminProfile',
+        ];
+
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
+            $actorRelations = array_merge($actorRelations, [
+                'assignedOfficer.wmaster',
+                'reviewedBy.wmaster',
+                'rejectedBy.wmaster',
+                'approvedBy.wmaster',
+                'declinedBy.wmaster',
+            ]);
+        }
+
+        $loanRequest->loadMissing([
+            ...$actorRelations,
             'cancelledBy',
             'correctedFrom',
             'correctedRequests',
-        );
+        ]);
         $correctedRequest = $this->resolveCorrectedRequest($loanRequest);
         $correctionSaved = $loanRequest->corrected_from_id !== null
             ? $this->decisionService->hasSavedCorrectionAfterCreation(
@@ -276,7 +290,7 @@ class LoanRequestPayloadSerializer
 
         return [
             'user_id' => $actor->user_id,
-            'name' => $actor->adminProfile?->fullname ?? $actor->name ?? $actor->username,
+            'name' => $actor->resolvedDisplayName(),
             'display_code' => $actor->display_code,
         ];
     }
@@ -288,17 +302,30 @@ class LoanRequestPayloadSerializer
         LoanRequest $loanRequest,
         bool $memberSafe,
     ): array {
-        $loanRequest->loadMissing(
-            'user',
+        $auditActorRelations = [
             'assignedOfficer.adminProfile',
             'reviewedBy.adminProfile',
             'rejectedBy.adminProfile',
             'approvedBy.adminProfile',
             'declinedBy.adminProfile',
-        );
+        ];
+        $changedByRelation = 'changedBy.adminProfile';
+
+        if ($this->schemaCapabilities->hasTable('wmaster')) {
+            $auditActorRelations = array_merge($auditActorRelations, [
+                'assignedOfficer.wmaster',
+                'reviewedBy.wmaster',
+                'rejectedBy.wmaster',
+                'approvedBy.wmaster',
+                'declinedBy.wmaster',
+            ]);
+            $changedByRelation = ['changedBy.adminProfile', 'changedBy.wmaster'];
+        }
+
+        $loanRequest->loadMissing(['user', ...$auditActorRelations]);
 
         $changes = $loanRequest->changes()
-            ->with('changedBy.adminProfile')
+            ->with($changedByRelation)
             ->orderBy('created_at')
             ->orderBy('id')
             ->get();
@@ -636,7 +663,11 @@ class LoanRequestPayloadSerializer
             return null;
         }
 
-        $change->loadMissing('changedBy.adminProfile');
+        $change->loadMissing(
+            $this->schemaCapabilities->hasTable('wmaster')
+                ? ['changedBy.adminProfile', 'changedBy.wmaster']
+                : 'changedBy.adminProfile',
+        );
 
         return $this->buildAuditEntry(
             id: (string) $change->id,
@@ -726,7 +757,7 @@ class LoanRequestPayloadSerializer
 
         return [
             'user_id' => $actor->user_id,
-            'name' => $actor->adminProfile?->fullname ?? $actor->name,
+            'name' => $actor->resolvedDisplayName(),
             'acctno' => $this->normalizeOptionalString($actor->acctno),
         ];
     }

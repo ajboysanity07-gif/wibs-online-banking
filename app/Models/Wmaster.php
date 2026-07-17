@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PersonName;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -169,20 +170,7 @@ class Wmaster extends Model
 
     public function structuredName(): string
     {
-        $parts = [
-            $this->fname,
-            $this->mname,
-            $this->lname,
-        ];
-
-        $parts = array_map(
-            static fn (mixed $value): string => trim((string) $value),
-            $parts,
-        );
-
-        $parts = array_values(array_filter($parts, static fn (string $value): bool => $value !== ''));
-
-        return implode(' ', $parts);
+        return PersonName::format($this->fname, $this->mname, $this->lname);
     }
 
     /**

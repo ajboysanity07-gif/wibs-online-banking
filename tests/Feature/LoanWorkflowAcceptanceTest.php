@@ -297,6 +297,59 @@ test('v2 workflow reaches recommended-for-approval with witness_two_name omitted
     expect($witnessOneEntry->value_json['value'])->toBe($expectedProcessorDisplayName);
 });
 
+test('witness_one_name auto-fills from the linked wmaster record when the processor has no AdminProfile', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940005', 'Wmaster', 'Fallback');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR], '900321');
+
+    DB::table('wmaster')->updateOrInsert(
+        ['acctno' => '900321'],
+        [
+            'fname' => 'Emma',
+            'mname' => 'Alcantara',
+            'lname' => 'Requilme',
+            'bname' => 'Requilme, Emma Alcantara',
+        ],
+    );
+
+    expect($processor->fresh('adminProfile')->adminProfile)->toBeNull();
+
+    $submitResponse = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+    $loanRequest = LoanRequest::query()->sole();
+
+    $submitResponse->assertRedirect(route('client.loan-requests.show', $loanRequest));
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Starting review without a second witness.',
+        ])
+        ->assertOk();
+
+    $processingPayload = acceptanceProcessingPayload();
+    unset($processingPayload['processing']['witness_one_name']);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+        ->assertOk();
+
+    $witnessOneEntry = $loanRequest->fresh()->dataEntries()
+        ->where('field_key', 'witness_one_name')
+        ->sole();
+
+    expect($witnessOneEntry->value_json['value'])->toBe('Emma A. Requilme');
+});
+
 test('assigned_processor payload name matches the value the server would auto-fill for witness_one_name', function (): void {
     $member = createAcceptanceMember('940003', 'Prefill', 'Member');
     $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);

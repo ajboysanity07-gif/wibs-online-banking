@@ -321,8 +321,8 @@ test('promissory note pdf includes borrower co-makers witnesses and amounts', fu
     expect($searchable)
         ->toContain('PROMISSORYNOTE')
         ->toContain('HELARIOB.TEJERO')
-        ->toContain('COAMAKERONE')
-        ->toContain('COBMAKERTWO')
+        ->toContain('COA.MAKERONE')
+        ->toContain('COB.MAKERTWO')
         ->toContain('ANNABELLEM.AMORA')
         ->toContain('ACMECOOPERATIVE');
 });
@@ -660,7 +660,7 @@ test('grepalife signature section keeps printed names and blank signature areas 
             'applicant.full_name',
         ),
         $documentData,
-    ))->toBe('JUAN PAULO CRUZ');
+    ))->toBe('JUAN P. CRUZ');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
@@ -702,7 +702,7 @@ test('grepalife signature section keeps printed names and blank signature areas 
     $pdfText = approvedLoanDocumentsExtractPdfText($response);
 
     expect($pdfText)
-        ->toContain('JUAN PAULO CRUZ')
+        ->toContain('JUAN P. CRUZ')
         ->toContain('ANNABELLE M. AMORA')
         ->not->toContain('ANNABELLE MONGADO AMORA')
         ->not->toContain('N/A')
@@ -759,7 +759,7 @@ test('grepalife signature section keeps the official loan manager name when appr
             'applicant.full_name',
         ),
         $documentData,
-    ))->toBe('HELARIO BONIFACIO TEJERO');
+    ))->toBe('HELARIO B. TEJERO');
     expect(approvedLoanDocumentsResolveImageTemplateFieldValue(
         approvedLoanDocumentsFindGrepalifeField(
             $fieldMap,
@@ -793,7 +793,7 @@ test('grepalife signature section keeps the official loan manager name when appr
     $pdfText = approvedLoanDocumentsExtractPdfText($response);
 
     expect($pdfText)
-        ->toContain('HELARIO BONIFACIO TEJERO')
+        ->toContain('HELARIO B. TEJERO')
         ->toContain('ANNABELLE M. AMORA')
         ->not->toContain('ANNABELLE MONGADO AMORA')
         ->not->toContain('N/A')
@@ -1662,8 +1662,10 @@ test('affidavit undertaking pdf renders an unusually long name, address, and GNT
     $response->assertOk();
     $text = approvedLoanDocumentsExtractPdfText($response);
 
+    // personFullName() abbreviates the middle name to an initial (PersonName) -- still long
+    // enough to force the signature-row shrink-to-fit field to shrink.
     expect($text)
-        ->toContain('Maria Concepcion Villanueva-Fernandez de la Santisima Trinidad')
+        ->toContain('Maria Concepcion V. de la Santisima Trinidad')
         ->toContain('Purok 2, Barangay San Isidro, Cagayan de Oro City, Misamis Oriental')
         ->toContain('1,250,000.00');
 });
@@ -1978,9 +1980,9 @@ test('grepalife pdf falls back to linked wmaster beneficiary account numbers', f
 
     $response->assertOk();
     expect($content)
-        ->toContain('BENEFICIARY ONE')
+        ->toContain('Beneficiary One')
         ->toContain('04/05/1999')
-        ->toContain('BENEFICIARY TWO')
+        ->toContain('Beneficiary Two')
         ->toContain('06/07/2000');
 });
 

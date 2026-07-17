@@ -296,6 +296,33 @@ class AppUser extends Authenticatable
         return trim((string) $acctno) !== '';
     }
 
+    /**
+     * Resolves a human display name for staff/actor contexts (audit trail,
+     * witness auto-fill). loan_processor/loan_manager staff are not routed
+     * through MemberAdminAccessService::grant() and so never receive an
+     * AdminProfile — for them the linked wmaster record is the only source
+     * of a real name.
+     */
+    public function resolvedDisplayName(): ?string
+    {
+        $fullname = $this->adminProfile?->fullname;
+
+        if (is_string($fullname) && trim($fullname) !== '') {
+            return $fullname;
+        }
+
+        if ($this->hasMemberAccess() && Schema::hasTable('wmaster')) {
+            $this->loadMissing('wmaster');
+            $memberName = $this->wmaster?->displayName();
+
+            if (is_string($memberName) && trim($memberName) !== '') {
+                return $memberName;
+            }
+        }
+
+        return $this->name ?? $this->username;
+    }
+
     public function isAdminOnly(): bool
     {
         return $this->isAdmin() && ! $this->hasMemberAccess();
