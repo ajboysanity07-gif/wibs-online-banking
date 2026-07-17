@@ -990,10 +990,16 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     // each field shifts up by its own measured baseline offset (2.11/2.10/1.89/1.89/1.90mm)
     // so the printed value rests on its line instead of floating below/through it,
     // confirmed by rendering against the real production artwork and rasterizing.
+    // Inline blank inside paragraph 1's sentence, between "...Pay of " and
+    // "(Guaranteed NTHP)" -- shrinks to fit rather than overflowing into the parenthetical
+    // when the approved amount is large.
     $gnthp = $find('loan.gnthp');
-    expect((float) $gnthp['x'])->toBe(74.28);
-    expect((float) $gnthp['y'])->toBe(124.89);
-    expect((int) $gnthp['size'])->toBe(9);
+    expect((float) $gnthp['x'])->toBe(59.0);
+    expect((float) $gnthp['y'])->toBe(120.5);
+    expect((int) $gnthp['size'])->toBe(11);
+    expect((float) $gnthp['width'])->toBe(20.0);
+    expect($gnthp['shrink_to_fit'] ?? false)->toBeTrue();
+    expect((float) $gnthp['min_size'])->toBe(6.0);
 
     $accountNumber = $find('authorization.payout_account_number');
     expect((float) $accountNumber['x'])->toBe(82.51);
@@ -1012,18 +1018,38 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((float) $bankBranch['y'])->toBe(154.10);
     expect((int) $bankBranch['size'])->toBe(9);
 
-    // Signature/Date/Place-of-Signing row: rebuilt as a real bordered 3-column table
-    // (x=18-192, y=252-268) replacing the old freeform underlines -- coordinates below
-    // are remeasured fresh against the new cell geometry, confirmed by rendering against
-    // the real production artwork and rasterizing.
+    // Signature/Date/Place-of-Signing row: three equal ~50mm columns (x=33/83/133, y=250)
+    // over the artwork's freeform underlines -- coordinates below are remeasured fresh
+    // against the real artwork's content stream, confirmed by rendering and rasterizing.
     $date = $find('loan.approved_date');
-    expect((float) $date['x'])->toBe(98.0);
-    expect((float) $date['y'])->toBe(259.0);
-    expect((int) $date['size'])->toBe(9);
+    expect((float) $date['x'])->toBe(83.0);
+    expect((float) $date['y'])->toBe(250.0);
+    expect((int) $date['size'])->toBe(11);
+    expect((float) $date['width'])->toBe(50.0);
 
+    // A width so signing_place can carry the full composed org address, not just a short
+    // city name -- shrinks to fit this column on one line instead of wrapping (which risked
+    // colliding with the "Place of Signing" caption directly beneath it).
     $signingPlace = $find('notarial.signing_place');
-    expect((float) $signingPlace['x'])->toBe(150.0);
-    expect((float) $signingPlace['y'])->toBe(259.0);
+    expect((float) $signingPlace['x'])->toBe(133.0);
+    expect((float) $signingPlace['y'])->toBe(250.0);
+    expect((int) $signingPlace['size'])->toBe(11);
+    expect((float) $signingPlace['width'])->toBe(50.0);
+    expect($signingPlace['shrink_to_fit'] ?? false)->toBeTrue();
+    expect((float) $signingPlace['min_size'])->toBe(6.0);
+
+    // The signature-row applicant.full_name (distinct from the "Name of Affiant:" one
+    // above) also shrinks to fit -- a long name shouldn't overflow into the Date column.
+    $signatureRowFullName = $fields
+        ->filter(fn (array $f): bool => ($f['value'] ?? null) === 'applicant.full_name')
+        ->values()
+        ->get(1);
+    expect($signatureRowFullName)->toBeArray();
+    expect((float) $signatureRowFullName['x'])->toBe(33.0);
+    expect((float) $signatureRowFullName['y'])->toBe(250.0);
+    expect((float) $signatureRowFullName['width'])->toBe(50.0);
+    expect($signatureRowFullName['shrink_to_fit'] ?? false)->toBeTrue();
+    expect((float) $signatureRowFullName['min_size'])->toBe(7.0);
 
     $seriesYear = $find('notarial.series_year');
     expect((float) $seriesYear['x'])->toBe(34.9);
@@ -1531,10 +1557,14 @@ test('affidavit undertaking pdf prints notarization details', function () {
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     // Place of signing is the notary's own fixed office fact — it comes from the org's
-    // configured business address, not a per-loan staff input. province / valid_id_number
-    // / valid_id_issued_at have no reference-document equivalent and are no longer wired
-    // into AU at all (see AffidavitUndertakingPdfFieldMap) — the notary fills them by hand.
+    // full configured business address (street/barangay, city, province), not a per-loan
+    // staff input. Doc/Page/Book No. and valid ID number/issuance location have no
+    // reference-document equivalent and are no longer wired into AU at all (see
+    // AffidavitUndertakingPdfFieldMap) — the notary fills them by hand. The separate
+    // notarial_province "for and in ___" blank stays unwired too, unaffected by
+    // signing_place now carrying the full composed address (province included).
     OrganizationSetting::factory()->create([
+        'business_address1' => 'Purok 1, Barangay Poblacion',
         'business_address2' => 'Tagum City',
         'business_address3' => 'Davao del Norte',
     ]);
@@ -1549,9 +1579,36 @@ test('affidavit undertaking pdf prints notarization details', function () {
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)
-        ->toContain('Tagum City')
-        ->not->toContain('Davao del Norte')
+        ->toContain('Purok 1, Barangay Poblacion, Tagum City, Davao del Norte')
         ->toContain((string) now()->year);
+});
+
+test('affidavit undertaking pdf composes the full org address for signing place, not just the city', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    // Same "don't silently drop a blank component" precedent as
+    // composedEmployerBusinessAddress() -- business_address1 left blank here should not
+    // produce a leading ", " before the city.
+    OrganizationSetting::factory()->create([
+        'business_address1' => null,
+        'business_address2' => 'Lianga',
+        'business_address3' => 'Surigao del Sur',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('Lianga, Surigao del Sur')
+        ->not->toContain(', Lianga, Surigao del Sur, ')
+        ->not->toContain(' , Lianga');
 });
 
 test('affidavit undertaking pdf prints guaranteed net take-home pay', function () {
@@ -1570,6 +1627,45 @@ test('affidavit undertaking pdf prints guaranteed net take-home pay', function (
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)->toContain('32,500.00');
+});
+
+test('affidavit undertaking pdf renders an unusually long name, address, and GNTHP amount without failing', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    OrganizationSetting::factory()->create([
+        'business_address1' => 'Purok 2, Barangay San Isidro',
+        'business_address2' => 'Cagayan de Oro City',
+        'business_address3' => 'Misamis Oriental',
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $loanRequest->applicant()->first()->update([
+        'first_name' => 'Maria Concepcion',
+        'middle_name' => 'Villanueva-Fernandez',
+        'last_name' => 'de la Santisima Trinidad',
+    ]);
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'numeric', 1250000);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    // The shrink-to-fit fields (applicant.full_name signature row, notarial.signing_place,
+    // loan.gnthp) reduce font size rather than wrap or truncate -- the full value should
+    // still reach the page and be extractable in full, just rendered smaller. The actual
+    // font-size-shrinking behavior itself is covered directly in
+    // ApprovedLoanPdfTemplateServiceShrinkToFitTest; this only proves the real document
+    // generation path doesn't drop or break on an unusually long real-world value.
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('Maria Concepcion Villanueva-Fernandez de la Santisima Trinidad')
+        ->toContain('Purok 2, Barangay San Isidro, Cagayan de Oro City, Misamis Oriental')
+        ->toContain('1,250,000.00');
 });
 
 test('affidavit undertaking pdf stamps GNTHP and account number inline for paragraph 1', function () {
@@ -2436,6 +2532,7 @@ function approvedLoanDocumentsExtractPdfText(
 ): string {
     $content = approvedLoanDocumentsReadDownloadedFileContent($response);
     $text = '';
+    $cmap = approvedLoanDocumentsParseToUnicodeCMaps($content);
 
     if (
         preg_match_all(
@@ -2450,7 +2547,7 @@ function approvedLoanDocumentsExtractPdfText(
 
     foreach ($matches[1] as $stream) {
         $decoded = approvedLoanDocumentsDecodePdfStream($stream);
-        $text .= ' '.approvedLoanDocumentsExtractPdfOperators($decoded);
+        $text .= ' '.approvedLoanDocumentsExtractPdfOperators($decoded, $cmap);
     }
 
     $text = str_replace(["\x00", "\r", "\n", "\t", "\f"], ' ', $text);
@@ -2549,7 +2646,10 @@ function approvedLoanDocumentsDecodePdfStream(string $stream): string
     return is_string($decoded) ? $decoded : $candidate;
 }
 
-function approvedLoanDocumentsExtractPdfOperators(string $decoded): string
+/**
+ * @param  array<string, string>  $cmap
+ */
+function approvedLoanDocumentsExtractPdfOperators(string $decoded, array $cmap = []): string
 {
     $text = '';
 
@@ -2573,9 +2673,17 @@ function approvedLoanDocumentsExtractPdfOperators(string $decoded): string
                 continue;
             }
 
+            // Segments within one TJ array are one continuous text run split
+            // only by kerning/position adjustments (common for CID/Unicode
+            // fonts, which emit one hex code per glyph) -- concatenate them
+            // directly, don't insert a space between every glyph.
+            $run = '';
+
             foreach ($segments[0] as $segment) {
-                $text .= ' '.approvedLoanDocumentsDecodePdfTextOperand($segment);
+                $run .= approvedLoanDocumentsDecodePdfTextOperand($segment, $cmap);
             }
+
+            $text .= ' '.$run;
         }
     }
 
@@ -2597,6 +2705,7 @@ function approvedLoanDocumentsExtractPdfOperators(string $decoded): string
             ) {
                 $text .= ' '.approvedLoanDocumentsDecodePdfTextOperand(
                     $operand[1],
+                    $cmap,
                 );
             }
         }
@@ -2614,6 +2723,7 @@ function approvedLoanDocumentsExtractPdfOperators(string $decoded): string
             if (preg_match('/(<[0-9A-Fa-f]+>)\s*Tj/s', $match, $operand) === 1) {
                 $text .= ' '.approvedLoanDocumentsDecodePdfTextOperand(
                     $operand[1],
+                    $cmap,
                 );
             }
         }
@@ -2622,7 +2732,153 @@ function approvedLoanDocumentsExtractPdfOperators(string $decoded): string
     return $text;
 }
 
-function approvedLoanDocumentsDecodePdfTextOperand(string $operand): string
+/**
+ * Parses every /ToUnicode CMap stream in a raw PDF into a single CID(hex,
+ * 4-digit)->Unicode(string) lookup table. Required for text extraction from
+ * CID/Unicode fonts (e.g. TCPDF's TrueTypeUnicode-converted fonts): the
+ * 2-byte codes in their Tj/TJ operators are glyph indices assigned by the
+ * font's own subsetting order, not Unicode code points, so they can only be
+ * decoded correctly via the CMap the font itself embeds for this purpose.
+ *
+ * @return array<string, string>
+ */
+function approvedLoanDocumentsParseToUnicodeCMaps(string $pdfContent): array
+{
+    $map = [];
+
+    if (preg_match_all('/\/ToUnicode\s+(\d+)\s+0\s+R/', $pdfContent, $refs) === 0) {
+        return $map;
+    }
+
+    foreach (array_unique($refs[1]) as $objectNumber) {
+        if (
+            preg_match(
+                '/(?:^|[^0-9])'.$objectNumber.'\s+0\s+obj(.*?)endobj/s',
+                $pdfContent,
+                $object,
+            ) !== 1
+        ) {
+            continue;
+        }
+
+        if (preg_match('/stream\r?\n(.*?)\r?\nendstream/s', $object[1], $stream) !== 1) {
+            continue;
+        }
+
+        $cmapText = approvedLoanDocumentsDecodePdfStream($stream[1]);
+
+        // bfchar: individual "<src> <dst>" pairs.
+        if (preg_match_all('/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/', $cmapText, $chars, PREG_SET_ORDER) > 0) {
+            foreach ($chars as $pair) {
+                $map[strtoupper($pair[1])] = approvedLoanDocumentsHexToUnicodeString($pair[2]);
+            }
+        }
+
+        // bfrange: "<srcLo> <srcHi> <dstLo>" contiguous ranges.
+        if (
+            preg_match_all(
+                '/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/',
+                $cmapText,
+                $ranges,
+                PREG_SET_ORDER,
+            ) > 0
+        ) {
+            foreach ($ranges as $range) {
+                $lo = hexdec($range[1]);
+                $hi = hexdec($range[2]);
+                $dst = hexdec($range[3]);
+
+                // Ranges spanning more than a few hundred code points aren't
+                // meaningful for this test suite's assertions and would be
+                // wasteful to expand -- cap defensively.
+                if ($hi < $lo || ($hi - $lo) > 512) {
+                    continue;
+                }
+
+                for ($cid = $lo; $cid <= $hi; $cid++) {
+                    $key = strtoupper(str_pad(dechex($cid), 4, '0', STR_PAD_LEFT));
+                    $map[$key] = approvedLoanDocumentsHexToUnicodeString(
+                        str_pad(dechex($dst + ($cid - $lo)), 4, '0', STR_PAD_LEFT),
+                    );
+                }
+            }
+        }
+    }
+
+    return $map;
+}
+
+function approvedLoanDocumentsHexToUnicodeString(string $hex): string
+{
+    $hex = strlen($hex) % 4 === 0 ? $hex : str_pad($hex, (int) (ceil(strlen($hex) / 4) * 4), '0', STR_PAD_LEFT);
+    $binary = hex2bin($hex);
+
+    if (! is_string($binary)) {
+        return '';
+    }
+
+    $converted = @mb_convert_encoding($binary, 'UTF-8', 'UTF-16BE');
+
+    return is_string($converted) ? $converted : '';
+}
+
+/**
+ * Attempts to decode a raw byte string as 2-byte-per-character CID/Unicode
+ * text -- via the font's own /ToUnicode CMap first (required for TCPDF's
+ * TrueTypeUnicode-converted fonts, which use arbitrary glyph indices, not
+ * Unicode code points, as their 2-byte codes), then a UTF-16BE heuristic
+ * fallback. Returns null if $bytes doesn't look like 2-byte CID text at all,
+ * so the caller can fall back to treating it as single-byte content.
+ *
+ * @param  array<string, string>  $cmap
+ */
+function approvedLoanDocumentsDecodeCidBytes(string $bytes, array $cmap): ?string
+{
+    if ($bytes === '' || strlen($bytes) % 2 !== 0) {
+        return null;
+    }
+
+    $hex = strtoupper(bin2hex($bytes));
+
+    if ($cmap !== []) {
+        $mapped = '';
+        $allFound = true;
+
+        for ($i = 0; $i < strlen($hex); $i += 4) {
+            $code = substr($hex, $i, 4);
+
+            if (! isset($cmap[$code])) {
+                $allFound = false;
+
+                break;
+            }
+
+            $mapped .= $cmap[$code];
+        }
+
+        if ($allFound) {
+            return $mapped;
+        }
+    }
+
+    $looksUtf16Le = str_starts_with($bytes, "\xFF\xFE")
+        || preg_match('/^(?:[\x00-\x7F]\x00)+[\x00-\x7F]?$/', $bytes) === 1;
+    $looksUtf16Be = str_starts_with($bytes, "\xFE\xFF")
+        || preg_match('/^(?:\x00[\x00-\x7F])+\x00?$/', $bytes) === 1;
+
+    if (! $looksUtf16Le && ! $looksUtf16Be) {
+        return null;
+    }
+
+    $converted = @mb_convert_encoding($bytes, 'UTF-8', $looksUtf16Le ? 'UTF-16LE' : 'UTF-16BE');
+
+    return is_string($converted) ? $converted : null;
+}
+
+/**
+ * @param  array<string, string>  $cmap
+ */
+function approvedLoanDocumentsDecodePdfTextOperand(string $operand, array $cmap = []): string
 {
     if (str_starts_with($operand, '(')) {
         $text = substr($operand, 1, -1);
@@ -2643,34 +2899,33 @@ function approvedLoanDocumentsDecodePdfTextOperand(string $operand): string
             '\\f' => '',
             '\\b' => '',
         ]);
+        $text = (string) $text;
 
-        return trim($text);
+        // TCPDF writes CID/Unicode-font text as a literal parenthesized
+        // string containing raw 2-byte codes (not always hex-wrapped) --
+        // try that decoding before falling back to single-byte content.
+        // Don't trim on success: a lone space-only glyph is legitimate
+        // mid-run content once per-glyph segments are concatenated.
+        $decoded = approvedLoanDocumentsDecodeCidBytes($text, $cmap);
+
+        return $decoded ?? trim($text);
     }
 
     if (! str_starts_with($operand, '<')) {
         return '';
     }
 
-    $hex = substr($operand, 1, -1);
-    $binary = hex2bin((strlen($hex) % 2 === 0 ? $hex : $hex.'0'));
+    $hex = strtoupper(substr($operand, 1, -1));
+    $hex = strlen($hex) % 2 === 0 ? $hex : $hex.'0';
+    $binary = hex2bin($hex);
 
     if (! is_string($binary)) {
         return '';
     }
 
-    $looksUtf16Le = str_starts_with($binary, "\xFF\xFE")
-        || preg_match('/^(?:[\x00-\x7F]\x00)+[\x00-\x7F]?$/', $binary) === 1;
-    $looksUtf16Be = str_starts_with($binary, "\xFE\xFF")
-        || preg_match('/^(?:\x00[\x00-\x7F])+\x00?$/', $binary) === 1;
+    $decoded = approvedLoanDocumentsDecodeCidBytes($binary, $cmap);
 
-    if ($looksUtf16Le || $looksUtf16Be) {
-        $encoding = $looksUtf16Le ? 'UTF-16LE' : 'UTF-16BE';
-        $converted = @mb_convert_encoding($binary, 'UTF-8', $encoding);
-
-        return is_string($converted) ? trim($converted) : '';
-    }
-
-    return trim($binary);
+    return $decoded ?? $binary;
 }
 
 function approvedLoanDocumentsDownloadedFilePath(

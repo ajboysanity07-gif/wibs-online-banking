@@ -204,6 +204,30 @@ class ApprovedLoanPdfTemplateService
             ));
         }
 
+        if ((bool) ($field['shrink_to_fit'] ?? false)) {
+            if (! is_numeric($width)) {
+                throw new RuntimeException(sprintf(
+                    'Field "%s" sets shrink_to_fit but no width; shrink-to-fit measures the text against a width to decide how far to shrink.',
+                    (string) ($field['value'] ?? '?'),
+                ));
+            }
+
+            $this->writeShrinkToFitText(
+                $pdf,
+                $x,
+                $y,
+                $text,
+                (int) ($field['size'] ?? 7),
+                (string) ($field['font'] ?? self::DEFAULT_FONT),
+                (string) ($field['style'] ?? ''),
+                (float) $width,
+                $align === '' ? 'L' : $align,
+                (float) ($field['min_size'] ?? 6.0),
+            );
+
+            return;
+        }
+
         if (is_numeric($width)) {
             $this->writeText(
                 $pdf,
@@ -319,6 +343,81 @@ class ApprovedLoanPdfTemplateService
         }
 
         $pdf->Text($x, $y, $text);
+    }
+
+    /**
+     * Single-line "shrink to fit" text: unlike writeText()'s MultiCell path, this never
+     * wraps to a second line -- it measures the text at $maxSize and steps the font size
+     * down (in 0.5pt increments, never below $minSize) until it fits $width, then draws it
+     * once via Cell() at whatever size fit. Intended for values whose natural length varies
+     * a lot per record (a person's full name, a peso amount, a composed address) where
+     * wrapping would look broken (a name split mid-word) or isn't physically possible
+     * (an inline blank inside a sentence).
+     */
+    public function writeShrinkToFitText(
+        Fpdi $pdf,
+        float $x,
+        float $y,
+        ?string $text,
+        int $maxSize,
+        string $font = self::DEFAULT_FONT,
+        string $style = '',
+        float $width = 0,
+        string $align = 'L',
+        float $minSize = 6.0,
+    ): void {
+        $text = $this->blank($text);
+
+        if ($text === '') {
+            return;
+        }
+
+        $normalizedFont = $this->normalizeFontName($font);
+        $this->assertFontStyleAvailable($normalizedFont, $style);
+
+        $size = $this->resolveShrinkToFitSize(
+            $pdf,
+            $text,
+            $normalizedFont,
+            $style,
+            (float) $maxSize,
+            $width,
+            $minSize,
+        );
+
+        $pdf->SetFont($normalizedFont, $style, $size);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetXY($x, $y);
+        $pdf->Cell($width, $size * 0.3528 * 1.4, $text, 0, 0, $align, false, '', 0, false, 'T', 'T');
+    }
+
+    /**
+     * Steps font size down from $maxSize to $minSize (0.5pt increments) until
+     * GetStringWidth() fits within $width, minus a small safety margin for Cell()'s own
+     * internal cMargin padding (not reflected in GetStringWidth() itself). Never returns
+     * below $minSize -- a value that still doesn't fit at the floor size renders at that
+     * floor and is left to overflow slightly, rather than shrinking to unreadable size.
+     */
+    private function resolveShrinkToFitSize(
+        Fpdi $pdf,
+        string $text,
+        string $font,
+        string $style,
+        float $maxSize,
+        float $width,
+        float $minSize,
+    ): float {
+        $availableWidth = max($width - 2.0, 1.0);
+
+        for ($size = $maxSize; $size > $minSize; $size -= 0.5) {
+            $pdf->SetFont($font, $style, $size);
+
+            if ($pdf->GetStringWidth($text) <= $availableWidth) {
+                return $size;
+            }
+        }
+
+        return $minSize;
     }
 
     public function writeCheck(Fpdi $pdf, float $x, float $y, int $size = 8): void

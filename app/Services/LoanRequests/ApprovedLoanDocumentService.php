@@ -785,6 +785,11 @@ class ApprovedLoanDocumentService
                 ?? null,
             null,
         );
+        $gnthpRaw = $this->normalizeNumericValue(
+            $overrideProcessing['guaranteed_net_take_home_pay'] ?? $flatValues['guaranteed_net_take_home_pay'] ?? null,
+        );
+        $gnthpFormatted = $this->formatCurrencyValue($gnthpRaw);
+        $gnthp = $gnthpFormatted !== null ? '₱'.$gnthpFormatted : null;
         $witnessOneName = $this->normalizeText(
             $overrideReviewer['witness_one_name'] ?? null,
         ) ?? $this->normalizeText($flatValues['witness_one_name'] ?? null);
@@ -882,14 +887,8 @@ class ApprovedLoanDocumentService
                 'amortization_loan_security_raw' => $loanSecurityAmortizationRaw,
                 'amortization_total_raw' => $amortizationTotalRaw,
                 'penalty_rate_raw' => $penaltyRateRaw,
-                'gnthp_raw' => $this->normalizeNumericValue(
-                    $overrideProcessing['guaranteed_net_take_home_pay'] ?? $flatValues['guaranteed_net_take_home_pay'] ?? null,
-                ),
-                'gnthp' => $this->formatCurrencyValue(
-                    $this->normalizeNumericValue(
-                        $overrideProcessing['guaranteed_net_take_home_pay'] ?? $flatValues['guaranteed_net_take_home_pay'] ?? null,
-                    ),
-                ),
+                'gnthp_raw' => $gnthpRaw,
+                'gnthp' => $gnthp,
             ],
             'authorization' => [
                 'release_method' => $this->normalizeText(
@@ -950,12 +949,16 @@ class ApprovedLoanDocumentService
             ],
             'notarial' => [
                 // Place of signing is the notary's own fixed office fact, not per-loan
-                // staff input — it resolves to the org's configured business address
-                // (OrganizationSettingsService).
-                'signing_place' => $this->normalizeText($branding['businessAddress2'] ?? null),
-                // Province, Doc/Page/Book No., and valid ID number/issuance location have
-                // no reference-document equivalent on AU — left blank on the printed form
-                // for the notary to fill by hand.
+                // staff input — it resolves to the org's full configured business address
+                // (street/barangay, city, province via OrganizationSettingsService's
+                // LocationComposer-composed 'businessAddress'), not just the city
+                // (businessAddress2) alone.
+                'signing_place' => $this->normalizeText($branding['businessAddress'] ?? null),
+                // Doc/Page/Book No. and valid ID number/issuance location have no
+                // reference-document equivalent on AU — left blank on the printed form for
+                // the notary to fill by hand. notarial_province (the separate "for and in
+                // ___" blank) is likewise left unwired for the same reason — unaffected by
+                // signing_place now carrying the full composed address, province included.
                 'series_year' => $documentDate?->format('Y'),
             ],
             'health' => [

@@ -3,11 +3,11 @@
 use App\LoanRequestDocumentKey;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 
-test('affidavit undertaking template version is bumped to v5 for the visual-defects fix pass', function (): void {
+test('affidavit undertaking template version is bumped to v6 for the shrink-to-fit artwork rebuild', function (): void {
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     expect($catalog->templateVersionFor(LoanRequestDocumentKey::AffidavitUndertaking))
-        ->toBe('affidavit-undertaking-v5');
+        ->toBe('affidavit-undertaking-v6');
 });
 
 test('affidavit undertaking no longer regenerates on the dropped payout_account_name field', function (): void {
