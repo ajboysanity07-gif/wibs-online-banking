@@ -166,7 +166,6 @@ class LoanRequestDocumentCatalog
             'source_fields' => [
                 'service_charge_rate',
                 'insurance_rate',
-                'insurance_required',
                 'insurance_term',
                 'loan_security_rate',
                 'documentary_stamp_rate',
@@ -208,7 +207,6 @@ class LoanRequestDocumentCatalog
             'source_fields' => [
                 'service_charge_rate',
                 'insurance_rate',
-                'insurance_required',
                 'insurance_term',
                 'loan_security_rate',
                 'documentary_stamp_rate',
@@ -249,7 +247,6 @@ class LoanRequestDocumentCatalog
             'source_fields' => [
                 'service_charge_rate',
                 'insurance_rate',
-                'insurance_required',
                 'insurance_term',
                 'loan_security_rate',
                 'documentary_stamp_rate',
@@ -287,7 +284,6 @@ class LoanRequestDocumentCatalog
             'source_fields' => [
                 'service_charge_rate',
                 'insurance_rate',
-                'insurance_required',
                 'insurance_term',
                 'loan_security_rate',
                 'documentary_stamp_rate',

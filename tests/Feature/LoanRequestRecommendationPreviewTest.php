@@ -29,6 +29,7 @@ function previewChargesOverridePayload(): array
         'insurance_rate' => 1.0,
         'insurance_term' => 12,
         'loan_security_rate' => 0.02,
+        'savings_rate' => 0.02,
         'documentary_stamp_rate' => 0.0075,
         'notarial_fee' => 100.0,
         'penalty_rate_per_month' => 0.05,
@@ -67,8 +68,10 @@ test('happy path preview computes net proceeds and suggested GNTHP for MONTHLY f
     $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
 
     // amortizationCount for MONTHLY/12 months = 12. principal 25000/12=2083.33,
-    // interest 9000/12=750, loan security 2083.33*0.02=41.67 -> total 2875.00
-    // per payment; MONTHLY multiplier is x1, so monthly-equivalent is 2875.00.
+    // interest 9000/12=750, savings 2083.33*0.02=41.67 (savings_rate is
+    // independent from loan_security_rate but set to the same 0.02 here)
+    // -> total 2875.00 per payment; MONTHLY multiplier is x1, so
+    // monthly-equivalent is 2875.00.
     // suggested GNTHP = 15000 - 2875.00 = 12125.00.
     $this->assertEqualsWithDelta(12125.0, $response->json('data.suggested_gnthp_raw'), 0.01);
 
@@ -106,7 +109,7 @@ test('non-monthly frequency converts the suggested GNTHP using the x30/14 bi-wee
 
     // BI-WEEKLY amortizationCount = round(12*30/14) = round(25.714...) = 26.
     // principal 25000/26=961.54, interest 9000/26=346.15,
-    // loan security 961.54*0.02=19.23 -> per-payment total 1326.92.
+    // savings 961.54*0.02=19.23 -> per-payment total 1326.92.
     // Monthly-equivalent multiplier is x30/14 (NOT x30) -> 1326.92*30/14=2843.4.
     // suggested GNTHP = 15000 - 2843.4 = 12156.6.
     //
@@ -155,6 +158,7 @@ test('preview never persists POSTed override values to the database', function (
         'insurance_rate',
         'insurance_term',
         'loan_security_rate',
+        'savings_rate',
         'documentary_stamp_rate',
         'notarial_fee',
         'penalty_rate_per_month',

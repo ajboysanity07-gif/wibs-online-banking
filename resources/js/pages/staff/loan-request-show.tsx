@@ -235,6 +235,7 @@ const PROCESSING_FIELD_KIND: Record<
     service_charge_rate: 'percent',
     insurance_rate: 'percent',
     loan_security_rate: 'percent',
+    savings_rate: 'percent',
     documentary_stamp_rate: 'percent',
     penalty_rate_per_month: 'percent',
     insurance_term: 'months',
@@ -968,6 +969,9 @@ export default function StaffLoanRequestShow({
                     loan_security_rate: numericProcessingFieldValue(
                         processingForm.processing.loan_security_rate,
                     ),
+                    savings_rate: numericProcessingFieldValue(
+                        processingForm.processing.savings_rate,
+                    ),
                     documentary_stamp_rate: numericProcessingFieldValue(
                         processingForm.processing.documentary_stamp_rate,
                     ),
@@ -1452,6 +1456,7 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('insurance_rate')}
                             {renderProcessingField('insurance_term')}
                             {renderProcessingField('loan_security_rate')}
+                            {renderProcessingField('savings_rate')}
                             {renderProcessingField('documentary_stamp_rate')}
                             {renderProcessingField('notarial_fee')}
                             {renderProcessingField('notarial_venue')}

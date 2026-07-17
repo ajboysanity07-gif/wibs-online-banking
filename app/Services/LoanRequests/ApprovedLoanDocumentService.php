@@ -715,6 +715,12 @@ class ApprovedLoanDocumentService
                 ? $approvedAmountRaw * $loanSecurityRateRaw
                 : null,
         );
+        $savingsRateRaw = $this->resolveNumericOverride(
+            $overrideLoan['savings_rate_raw']
+                ?? $flatValues['savings_rate']
+                ?? null,
+            0.0,
+        );
         $documentaryStampRateRaw = $this->resolveNumericOverride(
             $overrideLoan['documentary_stamp_rate_raw']
                 ?? $flatValues['documentary_stamp_rate']
@@ -743,8 +749,8 @@ class ApprovedLoanDocumentService
                 : null,
         );
         $loanSecurityAmortizationRaw = $this->roundCurrency(
-            $principalAmortizationRaw !== null && $loanSecurityRateRaw !== null
-                ? $principalAmortizationRaw * $loanSecurityRateRaw
+            $principalAmortizationRaw !== null && $savingsRateRaw !== null
+                ? $principalAmortizationRaw * $savingsRateRaw
                 : null,
         );
         $amortizationTotalRaw = $this->roundCurrency(
@@ -858,6 +864,7 @@ class ApprovedLoanDocumentService
                 'service_charge_rate_raw' => $serviceChargeRateRaw,
                 'insurance_rate_raw' => $insuranceRateRaw,
                 'loan_security_rate_raw' => $loanSecurityRateRaw,
+                'savings_rate_raw' => $savingsRateRaw,
                 'documentary_stamp_rate_raw' => $documentaryStampRateRaw,
                 'interest_rate_words' => $this->formatPercentWords($interestRateRaw),
                 'interest_not_deducted_raw' => $interestNotDeductedRaw,

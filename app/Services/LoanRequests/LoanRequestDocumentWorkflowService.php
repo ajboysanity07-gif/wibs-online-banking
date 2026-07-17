@@ -635,6 +635,7 @@ class LoanRequestDocumentWorkflowService
                     'insurance_rate_raw' => $flatValues['insurance_rate'] ?? null,
                     'insurance_term' => $flatValues['insurance_term'] ?? null,
                     'loan_security_rate_raw' => $flatValues['loan_security_rate'] ?? null,
+                    'savings_rate_raw' => $flatValues['savings_rate'] ?? null,
                     'documentary_stamp_rate_raw' => $flatValues['documentary_stamp_rate'] ?? null,
                     'notarial_fee_raw' => $flatValues['notarial_fee'] ?? null,
                     'penalty_rate_raw' => $flatValues['penalty_rate_per_month'] ?? null,
@@ -687,7 +688,7 @@ class LoanRequestDocumentWorkflowService
      * @param  array<string, mixed>  $overrideInput  Validated POSTed values:
      *                                               recommended_amount, recommended_term, recommended_interest_rate,
      *                                               service_charge_rate, insurance_rate, insurance_term,
-     *                                               loan_security_rate, documentary_stamp_rate, notarial_fee,
+     *                                               loan_security_rate, savings_rate, documentary_stamp_rate, notarial_fee,
      *                                               penalty_rate_per_month.
      * @return array{
      *     net_proceeds_raw: float|int|null,
@@ -723,6 +724,7 @@ class LoanRequestDocumentWorkflowService
                     'insurance_rate_raw' => $overrideInput['insurance_rate'] ?? null,
                     'insurance_term' => $overrideInput['insurance_term'] ?? null,
                     'loan_security_rate_raw' => $overrideInput['loan_security_rate'] ?? null,
+                    'savings_rate_raw' => $overrideInput['savings_rate'] ?? null,
                     'documentary_stamp_rate_raw' => $overrideInput['documentary_stamp_rate'] ?? null,
                     'notarial_fee_raw' => $overrideInput['notarial_fee'] ?? null,
                     'penalty_rate_raw' => $overrideInput['penalty_rate_per_month'] ?? null,

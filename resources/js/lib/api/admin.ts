@@ -224,6 +224,7 @@ type LoanRequestRecommendationPreviewPayload = {
     insurance_rate?: number | string | null;
     insurance_term?: number | string | null;
     loan_security_rate?: number | string | null;
+    savings_rate?: number | string | null;
     documentary_stamp_rate?: number | string | null;
     notarial_fee?: number | string | null;
     penalty_rate_per_month?: number | string | null;

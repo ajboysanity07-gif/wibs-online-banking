@@ -32,6 +32,7 @@ class LoanRequestRecommendationPreviewRequest extends FormRequest
             'insurance_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'insurance_term' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:360'],
             'loan_security_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'savings_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'documentary_stamp_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'notarial_fee' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'penalty_rate_per_month' => ['sometimes', 'nullable', 'numeric', 'min:0'],

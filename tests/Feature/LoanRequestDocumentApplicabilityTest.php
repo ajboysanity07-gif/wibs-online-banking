@@ -209,6 +209,76 @@ test('a nonzero loan_security_rate passes through unmodified with no flag presen
         ->and($documentData['loan']['loan_security_amount_raw'])->toBe(62500.0);
 });
 
+test('savings_rate drives the amortization savings figure independently from loan_security_rate', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'savings_rate' => ['number', 0.05],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    // Principal amortization = 24000/12 = 2000.00 per payment.
+    // The one-time Loan Security deduction still uses loan_security_rate (0.02):
+    // 24000*0.02 = 480.00.
+    // The per-payment amortization savings line now uses the independent
+    // savings_rate (0.05), not loan_security_rate: 2000.00*0.05 = 100.00
+    // (it would be 40.00 if it were still reusing loan_security_rate).
+    expect($documentData['loan']['loan_security_rate_raw'])->toBe(0.02)
+        ->and($documentData['loan']['savings_rate_raw'])->toBe(0.05)
+        ->and($documentData['loan']['loan_security_amount_raw'])->toBe(480.0)
+        ->and($documentData['loan']['amortization_principal_raw'])->toBe(2000.0)
+        ->and($documentData['loan']['amortization_loan_security_raw'])->toBe(100.0);
+});
+
+test('savings_rate defaults to 0.0 when not set, mirroring loan_security_rate\'s default-handling pattern', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['savings_rate_raw'])->toBe(0.0)
+        ->and($documentData['loan']['amortization_loan_security_raw'])->toBe(0.0);
+});
+
 test('grepalife is applicable regardless of insurance_required value', function (): void {
     $loanRequest = LoanRequest::factory()->make();
     $catalog = app(LoanRequestDocumentCatalog::class);

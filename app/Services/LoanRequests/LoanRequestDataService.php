@@ -283,6 +283,14 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'number',
         ],
+        'savings_rate' => [
+            'label' => 'Savings rate',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'number',
+        ],
         'documentary_stamp_rate' => [
             'label' => 'Documentary stamp rate',
             'owner' => self::OWNER_STAFF,

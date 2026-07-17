@@ -2794,6 +2794,7 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         'insurance_rate' => ['number', 1.0],
         'insurance_term' => ['number', 12],
         'loan_security_rate' => ['number', 0.02],
+        'savings_rate' => ['number', 0.02],
         'documentary_stamp_rate' => ['number', 0.0075],
         'notarial_fee' => ['number', 100.0],
         'penalty_rate_per_month' => ['number', 0.05],

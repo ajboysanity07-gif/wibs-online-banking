@@ -784,6 +784,7 @@ function acceptanceProcessingPayload(): array
             'insurance_rate' => 0.75,
             'insurance_term' => 12,
             'loan_security_rate' => 0.5,
+            'savings_rate' => 0.5,
             'documentary_stamp_rate' => 0.2,
             'notarial_fee' => 250,
             'penalty_rate_per_month' => 3,
