@@ -603,11 +603,6 @@ test('grepalife signature section keeps printed names and blank signature areas 
     ]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    $approvalSignature = createActiveAdminSignatureRecord($admin, 'two');
-    $applicantSignaturePath = storeTestSignatureFile(
-        sprintf('loan-requests/signatures/%d-grepalife-applicant.png', $loanRequest->id),
-        'one',
-    );
 
     LoanRequestPerson::query()
         ->where('loan_request_id', $loanRequest->id)
@@ -617,13 +612,11 @@ test('grepalife signature section keeps printed names and blank signature areas 
             'first_name' => 'Juan',
             'middle_name' => 'Paulo',
             'last_name' => 'Cruz',
-            'signature_path' => $applicantSignaturePath,
         ]);
 
     $loanRequest->update([
         'reviewed_by' => $admin->user_id,
         'reviewed_at' => '2026-05-22 10:00:00',
-        'approval_signature_id' => $approvalSignature->id,
     ]);
 
     $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
@@ -726,13 +719,11 @@ test('grepalife signature section keeps the official loan manager name when appr
             'first_name' => 'Helario',
             'middle_name' => 'Bonifacio',
             'last_name' => 'Tejero',
-            'signature_path' => 'loan-requests/signatures/legacy-ignored.png',
         ]);
 
     $loanRequest->update([
         'reviewed_by' => null,
         'reviewed_at' => null,
-        'approval_signature_id' => null,
     ]);
 
     $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest->fresh());
@@ -1941,7 +1932,6 @@ test('missing optional fields do not break approved document generation', functi
             'address1' => null,
             'address2' => null,
             'address3' => null,
-            'signature_path' => null,
         ]);
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
@@ -1953,7 +1943,6 @@ test('missing optional fields do not break approved document generation', functi
             'address1' => null,
             'address2' => null,
             'address3' => null,
-            'signature_path' => null,
         ]);
 
     $this->actingAs($admin);

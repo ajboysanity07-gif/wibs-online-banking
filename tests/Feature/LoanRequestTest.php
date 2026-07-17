@@ -234,19 +234,6 @@ function sampleSignatureDataUrl(string $variant = 'one'): string
     return 'data:image/png;base64,'.$base64;
 }
 
-function sampleSignatureBinary(string $variant = 'one'): string
-{
-    $dataUrl = sampleSignatureDataUrl($variant);
-    $encoded = str_replace('data:image/png;base64,', '', $dataUrl);
-    $decoded = base64_decode($encoded, true);
-
-    if ($decoded === false) {
-        throw new RuntimeException('Unable to decode sample signature data.');
-    }
-
-    return $decoded;
-}
-
 function createLoanRequestPeopleSnapshots(LoanRequest $loanRequest): void
 {
     LoanRequestPerson::factory()
@@ -1345,12 +1332,7 @@ test('legacy applicant signature payload is ignored when signatures are collecte
         ->assertRedirect(route('client.loan-requests.create'));
 
     $loanRequest = LoanRequest::query()->sole();
-    $firstSignaturePath = LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::Applicant->value)
-        ->value('signature_path');
 
-    expect($firstSignaturePath)->toBeNull();
     expect(Storage::disk('public')->allFiles('loan-requests/signatures'))->toBe([]);
 
     $payload['applicant_signature_data'] = sampleSignatureDataUrl('two');
@@ -1361,17 +1343,11 @@ test('legacy applicant signature payload is ignored when signatures are collecte
         ->patch(route('client.loan-requests.draft'), $payload)
         ->assertRedirect(route('client.loan-requests.create'));
 
-    $secondSignaturePath = LoanRequestPerson::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('role', LoanRequestPersonRole::Applicant->value)
-        ->value('signature_path');
-
-    expect($secondSignaturePath)->toBeNull();
     expect($loanRequest->fresh()->loan_purpose)->toBe('Tuition');
     expect(Storage::disk('public')->allFiles('loan-requests/signatures'))->toBe([]);
 });
 
-test('loan request print preview omits signature images even when stored signatures exist', function () {
+test('loan request print preview renders blank wet-ink signature areas', function () {
     Storage::fake('public');
 
     $user = User::factory()->create();
@@ -1397,22 +1373,6 @@ test('loan request print preview omits signature images even when stored signatu
         'user_id' => $user->user_id,
     ]);
 
-    $applicantSignaturePath = 'loan-requests/signatures/applicant.png';
-    $coMakerOneSignaturePath = 'loan-requests/signatures/co-maker-one.png';
-    $coMakerTwoSignaturePath = 'loan-requests/signatures/co-maker-two.png';
-    Storage::disk('public')->put(
-        $applicantSignaturePath,
-        sampleSignatureBinary('one'),
-    );
-    Storage::disk('public')->put(
-        $coMakerOneSignaturePath,
-        sampleSignatureBinary('two'),
-    );
-    Storage::disk('public')->put(
-        $coMakerTwoSignaturePath,
-        sampleSignatureBinary('one'),
-    );
-
     $loanRequest = LoanRequest::factory()
         ->forUser($user)
         ->create([
@@ -1424,21 +1384,15 @@ test('loan request print preview omits signature images even when stored signatu
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::Applicant)
-        ->create([
-            'signature_path' => $applicantSignaturePath,
-        ]);
+        ->create();
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerOne)
-        ->create([
-            'signature_path' => $coMakerOneSignaturePath,
-        ]);
+        ->create();
     LoanRequestPerson::factory()
         ->forLoanRequest($loanRequest)
         ->role(LoanRequestPersonRole::CoMakerTwo)
-        ->create([
-            'signature_path' => $coMakerTwoSignaturePath,
-        ]);
+        ->create();
 
     $response = $this
         ->actingAs($user)
@@ -1553,7 +1507,6 @@ test('loan request application form pdf stays on one long bond page', function (
 test('loan request pdf service defaults to long bond paper size', function () {
     $service = new LoanRequestPdfService(
         Mockery::mock(OrganizationSettingsService::class),
-        Mockery::mock(\App\Services\SignaturePngService::class),
         new OfficialLoanManagerResolver,
     );
 

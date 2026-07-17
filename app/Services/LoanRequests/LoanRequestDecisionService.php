@@ -47,7 +47,6 @@ class LoanRequestDecisionService
             'status' => LoanRequestStatus::Approved,
             'reviewed_by' => $actor->user_id,
             'reviewed_at' => now(),
-            'approval_signature_id' => null,
             'approval_ip_address' => $this->normalizeOptionalText(
                 $payload['approval_ip_address'] ?? null,
             ),
@@ -63,7 +62,7 @@ class LoanRequestDecisionService
 
         $this->notifyMember($loanRequest);
 
-        return $loanRequest->refresh()->loadMissing('reviewedBy', 'approvalSignature');
+        return $loanRequest->refresh()->loadMissing('reviewedBy');
     }
 
     public function decline(
@@ -501,7 +500,6 @@ class LoanRequestDecisionService
             'requested_term' => $loanRequest->requested_term,
             'reviewed_by' => $loanRequest->reviewed_by,
             'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
-            'approval_signature_id' => $loanRequest->approval_signature_id,
             'approval_ip_address' => $loanRequest->approval_ip_address,
             'approval_user_agent' => $loanRequest->approval_user_agent,
             'approved_amount' => $loanRequest->approved_amount,

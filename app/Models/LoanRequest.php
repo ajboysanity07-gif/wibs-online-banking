@@ -51,7 +51,6 @@ class LoanRequest extends Model
         'approved_by',
         'approved_at',
         'approval_remarks',
-        'approval_signature_id',
         'approval_ip_address',
         'approval_user_agent',
         'approved_amount',
@@ -127,11 +126,6 @@ class LoanRequest extends Model
         return $this->belongsTo(AppUser::class, 'approved_by', 'user_id');
     }
 
-    public function approvalSignature(): BelongsTo
-    {
-        return $this->belongsTo(AdminSignature::class, 'approval_signature_id');
-    }
-
     public function declinedBy(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'declined_by', 'user_id');
@@ -199,11 +193,6 @@ class LoanRequest extends Model
         return $this->hasMany(LoanRequestPerson::class);
     }
 
-    public function signatureLinks(): HasMany
-    {
-        return $this->hasMany(LoanRequestSignatureLink::class);
-    }
-
     public function applicant(): HasOne
     {
         return $this->hasOne(LoanRequestPerson::class)
@@ -257,7 +246,6 @@ class LoanRequest extends Model
             'reviewed_by' => 'integer',
             'rejected_by' => 'integer',
             'approved_by' => 'integer',
-            'approval_signature_id' => 'integer',
             'declined_by' => 'integer',
             'member_action_requested_by' => 'integer',
             'workflow_upgraded_by' => 'integer',

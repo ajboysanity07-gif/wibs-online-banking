@@ -87,18 +87,6 @@ class AppUser extends Authenticatable
         )->withTimestamps();
     }
 
-    public function adminSignatures(): HasMany
-    {
-        return $this->hasMany(AdminSignature::class, 'user_id', 'user_id');
-    }
-
-    public function activeAdminSignature(): HasOne
-    {
-        return $this->hasOne(AdminSignature::class, 'user_id', 'user_id')
-            ->where('is_active', true)
-            ->latestOfMany();
-    }
-
     public function assignedLoanRequests(): HasMany
     {
         return $this->hasMany(LoanRequest::class, 'assigned_officer_id', 'user_id');

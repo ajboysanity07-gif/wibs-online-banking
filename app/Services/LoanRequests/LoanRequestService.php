@@ -335,7 +335,6 @@ class LoanRequestService
             $corrected->submitted_at = now();
             $corrected->reviewed_by = null;
             $corrected->reviewed_at = null;
-            $corrected->approval_signature_id = null;
             $corrected->approval_ip_address = null;
             $corrected->approval_user_agent = null;
             $corrected->approved_amount = null;
