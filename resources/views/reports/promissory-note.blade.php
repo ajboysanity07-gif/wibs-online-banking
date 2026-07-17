@@ -16,6 +16,7 @@
     $amortizationTotal = $loan['amortization_total_raw'] ?? null;
     $paymentMode = trim((string) ($loan['payment_mode_workbook'] ?? ''));
     $amortizationCount = $loan['amortization_count'] ?? null;
+    $penaltyRate = $loan['penalty_rate_raw'] ?? null;
 
     $borrowerName = trim((string) ($applicant['full_name'] ?? ''));
     $borrowerAddress = trim((string) ($applicant['address'] ?? ''));
@@ -31,6 +32,13 @@
             return '';
         }
         return number_format((float) $value, 2, '.', ',');
+    };
+
+    $pct = static function (mixed $value): string {
+        if ($value === null || !is_numeric((string) $value)) {
+            return '';
+        }
+        return number_format((float) $value * 100, 2, '.', '') . '%';
     };
 
     $renderValue = static function (
@@ -363,7 +371,7 @@
 
                 <p class="paragraph">
                     In case I/we fail to pay this note on any of the amortization installments payments when due,
-                    I/we further agree to pay a penalty of 5% per month of any unpaid arrears starting from the date of default.
+                    I/we further agree to pay a penalty of {!! $renderValue($penaltyRate !== null ? $pct($penaltyRate) : null, '4em') !!} per month of any unpaid arrears starting from the date of default.
                 </p>
 
                 <p class="paragraph">

@@ -327,6 +327,27 @@ test('promissory note pdf includes borrower co-makers witnesses and amounts', fu
         ->toContain('ACMECOOPERATIVE');
 });
 
+test('promissory note pdf prints the staff-entered penalty rate, not a hardcoded 5%', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'penalty_rate_per_month', 'numeric', 0.07);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.promissory-note', $loanRequest));
+
+    $response->assertOk();
+
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('7.00%')
+        ->not->toContain('5.00%')
+        ->not->toContain('a penalty of 5%');
+});
+
 test('plan of payment route returns a pdf not xlsx', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
