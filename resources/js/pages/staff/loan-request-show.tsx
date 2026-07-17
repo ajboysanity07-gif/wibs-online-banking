@@ -1551,11 +1551,6 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('barangay_official_title')}
                         </div>
 
-                        {renderProcessingSectionLabel('Notarization')}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField('valid_id_number')}
-                        </div>
-
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">

@@ -363,14 +363,6 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'string',
         ],
-        'valid_id_number' => [
-            'label' => 'Valid ID number',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-        ],
     ];
 
     /**

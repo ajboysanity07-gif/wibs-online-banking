@@ -258,15 +258,15 @@ fixed a scope error in the notarization phase — see the Notarization sub-table
 
 ### Notarization
 
-**Corrected — the Phase 3 commit shipped this section against the wrong design (all 8 fields
-as per-loan staff UI inputs). This table reflects the corrected wiring, not the original Phase 3
-implementation.**
+**Corrected twice — the Phase 3 commit shipped this section against the wrong design (all 8
+fields as per-loan staff UI inputs), and a follow-up correction dropped `valid_id_number` as
+well. No field in this section has a staff UI input; the table below reflects that end state.**
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
 | Place of signing | — | ✅ | Not staff data — the notary's own fixed office fact. `OrganizationSetting.business_address2` (city) → `notarial.signing_place` |
 | Notarial province | — | ✅ | Not staff data — fixed office fact. `OrganizationSetting.business_address3` (province) → `notarial.province` |
-| Valid ID number | S | ✅ | Genuine per-loan staff data. `loan_request_data_entries.valid_id_number` → `notarial.valid_id_number` |
+| Valid ID number | — | ❌ | **Not wired, intentionally.** Left blank on the artwork for the notary to fill by hand |
 | Valid ID issued at | — | ✅ | Not staff data — fixed office fact, same source as place of signing. `OrganizationSetting.business_address2` (city) → `notarial.valid_id_issued_at` |
 | Document number | — | ❌ | **Not wired, intentionally.** The notary's own private register counter — unknowable to WIBS staff. Phase 1's blank space on the artwork is reserved for the notary to fill by hand |
 | Page number | — | ❌ | Same as Document number — notary fills by hand |
@@ -279,14 +279,15 @@ implementation.**
 > office address" setting; if the org's notarial venue should ever differ from its general business
 > address, that would need its own settings field. Not built here — out of scope for this correction.
 
-**Correction to the original Phase 3 commit:** only `valid_id_number` is genuinely per-loan
-staff data. It is entered via the "Notarization" sub-section of the Processing Details panel,
-EAV-backed (`loan_request_data_entries`, `section_key = 'processing'`) — no dedicated
-schema/migration. The other 7 fields Phase 3 had shipped as staff UI inputs were a scope error:
-`doc_number`/`page_number`/`book_number` are the notary's own private register counters (not
-app data at all — left blank on the artwork), `series_year` is computed from the document date,
-and `signing_place`/`notarial_province`/`valid_id_issued_at` are fixed org facts read from
-`OrganizationSetting`, not per-loan input.
+**Correction to the original Phase 3 commit:** the original Phase 3 shipped all 8 fields as
+per-loan staff UI inputs — a scope error. `doc_number`/`page_number`/`book_number` are the
+notary's own private register counters (not app data at all — left blank on the artwork),
+`series_year` is computed from the document date, and `signing_place`/`notarial_province`/
+`valid_id_issued_at` are fixed org facts read from `OrganizationSetting`, not per-loan input.
+`valid_id_number` was initially kept as genuine per-loan staff data, but a follow-up correction
+dropped it too — no `FIELD_DEFINITIONS` entry, no validation rule, no staff UI, no
+`buildDocumentData()` wiring, no AU field-map entry. It is now left blank on the artwork for the
+notary to fill by hand, same as Doc/Page/Book No.
 
 Witnesses are **not part of this document** — the real AU form has a single affiant/borrower
 signature line, not a witness block. A prior pass claimed `witness_one_name`/`witness_two_name`
