@@ -3,10 +3,8 @@
 namespace App\Services\LoanRequests;
 
 use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
-use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use TCPDF;
@@ -24,11 +22,6 @@ class ApprovedLoanImageTemplatePdfService
 
     private const LEGACY_PUBLIC_TEMPLATE_DIRECTORY =
         'public/app/templates/approved-loan-documents';
-
-    public function __construct(
-        private SignaturePngService $signaturePngService,
-        private DocumentSignaturePlacement $signaturePlacement,
-    ) {}
 
     /**
      * @param  array<int, array<string, mixed>>  $pages
@@ -218,12 +211,6 @@ class ApprovedLoanImageTemplatePdfService
     {
         $type = (string) ($field['type'] ?? 'text');
 
-        if ($type === 'signature') {
-            $this->renderSignatureField($pdf, $field, $documentData);
-
-            return;
-        }
-
         if ($type === 'check') {
             $this->renderCheckField($pdf, $field, $documentData);
 
@@ -295,28 +282,6 @@ class ApprovedLoanImageTemplatePdfService
         );
     }
 
-    /**
-     * @param  array<string, mixed>  $field
-     * @param  array<string, mixed>  $documentData
-     */
-    private function renderSignatureField(
-        TCPDF $pdf,
-        array $field,
-        array $documentData,
-    ): void {
-        $relativePath = $this->resolveValue($field['value'] ?? null, $documentData);
-
-        $this->writeSignature(
-            $pdf,
-            (float) ($field['x'] ?? 0),
-            (float) ($field['y'] ?? 0),
-            (float) ($field['width'] ?? 0),
-            (float) ($field['height'] ?? 0),
-            is_string($relativePath) ? $relativePath : null,
-            $this->signaturePlacementOptions($field),
-        );
-    }
-
     public function writeText(
         TCPDF $pdf,
         float $x,
@@ -371,63 +336,6 @@ class ApprovedLoanImageTemplatePdfService
         $pdf->Text($x, $y, '4');
     }
 
-    public function writeSignature(
-        TCPDF $pdf,
-        float $x,
-        float $y,
-        float $width,
-        float $height,
-        ?string $signaturePath,
-        array $placementOptions = [],
-    ): void {
-        if ($signaturePath === null || trim($signaturePath) === '') {
-            return;
-        }
-
-        $absolutePath = $this->resolveSignaturePath($signaturePath);
-
-        if ($absolutePath === null) {
-            return;
-        }
-
-        $overlayImage = $this->signaturePngService->prepareOverlayImage($absolutePath);
-
-        try {
-            $dimensions = $this->fitImageToBox(
-                $overlayImage['path'],
-                $x,
-                $y,
-                $width,
-                $height,
-                $placementOptions,
-            );
-
-            $pdf->Image(
-                $overlayImage['path'],
-                $dimensions['x'],
-                $dimensions['y'],
-                $dimensions['width'],
-                $dimensions['height'],
-                '',
-                '',
-                '',
-                false,
-                300,
-                '',
-                false,
-                false,
-                0,
-                false,
-                false,
-                false,
-            );
-        } finally {
-            if (($overlayImage['temporary'] ?? false) === true) {
-                File::delete($overlayImage['path']);
-            }
-        }
-    }
-
     public function blank(?string $value): string
     {
         if ($value === null) {
@@ -473,171 +381,6 @@ class ApprovedLoanImageTemplatePdfService
         ]);
 
         throw new RuntimeException('Missing image template file: '.$templateImage);
-    }
-
-    private function resolveSignaturePath(string $relativePath): ?string
-    {
-        $normalizedPath = trim($relativePath);
-
-        if ($normalizedPath === '') {
-            return null;
-        }
-
-        if (is_file($normalizedPath)) {
-            return $normalizedPath;
-        }
-
-        $normalizedPath = $this->normalizePublicSignaturePath($normalizedPath);
-
-        if ($normalizedPath === null) {
-            $this->logUnresolvedSignaturePath($relativePath, null, []);
-
-            return null;
-        }
-
-        if (Storage::disk('public')->exists($normalizedPath)) {
-            return Storage::disk('public')->path($normalizedPath);
-        }
-
-        $candidatePaths = $this->signatureAbsolutePathCandidates($normalizedPath);
-
-        foreach ($candidatePaths as $absolutePath) {
-            if (is_file($absolutePath)) {
-                return $absolutePath;
-            }
-        }
-
-        $this->logUnresolvedSignaturePath(
-            $relativePath,
-            $normalizedPath,
-            $candidatePaths,
-        );
-
-        return null;
-    }
-
-    private function normalizePublicSignaturePath(string $path): ?string
-    {
-        $normalizedPath = trim($path);
-
-        if ($normalizedPath === '') {
-            return null;
-        }
-
-        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $normalizedPath) === 1) {
-            $parsedPath = parse_url($normalizedPath, PHP_URL_PATH);
-            $normalizedPath = is_string($parsedPath) ? $parsedPath : '';
-        }
-
-        $normalizedPath = str_replace('\\', '/', rawurldecode($normalizedPath));
-        $normalizedPath = explode('?', $normalizedPath, 2)[0];
-        $normalizedPath = explode('#', $normalizedPath, 2)[0];
-        $normalizedPath = preg_replace(
-            '#^/?(?:storage/app/public/|public/storage/|storage/)#i',
-            '',
-            $normalizedPath,
-        ) ?? $normalizedPath;
-
-        foreach ([
-            '/storage/app/public/',
-            '/public/storage/',
-            '/storage/',
-        ] as $marker) {
-            $markerPosition = stripos($normalizedPath, $marker);
-
-            if ($markerPosition === false) {
-                continue;
-            }
-
-            $normalizedPath = substr(
-                $normalizedPath,
-                $markerPosition + strlen($marker),
-            );
-
-            break;
-        }
-
-        $normalizedPath = ltrim($normalizedPath, '/');
-        $normalizedPath = preg_replace(
-            '#^(?:app/public/|public/)+#i',
-            '',
-            $normalizedPath,
-        ) ?? $normalizedPath;
-        $normalizedPath = ltrim($normalizedPath, '/');
-
-        return $normalizedPath !== '' ? $normalizedPath : null;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function signatureAbsolutePathCandidates(string $relativePath): array
-    {
-        return [
-            storage_path('app/public/'.$relativePath),
-            public_path('storage/'.$relativePath),
-        ];
-    }
-
-    /**
-     * @param  list<string>  $candidatePaths
-     */
-    private function logUnresolvedSignaturePath(
-        string $signaturePath,
-        ?string $normalizedPath,
-        array $candidatePaths,
-    ): void {
-        Log::warning('Signature file could not be resolved for approved loan PDF.', [
-            'signature_path' => $signaturePath,
-            'normalized_signature_path' => $normalizedPath,
-            'checked_public_disk_path' => $normalizedPath !== null
-                ? Storage::disk('public')->path($normalizedPath)
-                : null,
-            'checked_storage_path' => $candidatePaths[0] ?? null,
-            'checked_public_storage_path' => $candidatePaths[1] ?? null,
-        ]);
-    }
-
-    /**
-     * @return array{x: float, y: float, width: float, height: float}
-     */
-    private function fitImageToBox(
-        string $absolutePath,
-        float $x,
-        float $y,
-        float $width,
-        float $height,
-        array $placementOptions = [],
-    ): array {
-        return $this->signaturePlacement->calculateFromImagePath(
-            $absolutePath,
-            $x,
-            $y,
-            $width,
-            $height,
-            $placementOptions,
-        );
-    }
-
-    /**
-     * @param  array<string, mixed>  $field
-     * @return array{
-     *     scale?: float|int|null,
-     *     max_width?: float|int|null,
-     *     max_height?: float|int|null,
-     *     offset_x?: float|int|null,
-     *     offset_y?: float|int|null
-     * }
-     */
-    private function signaturePlacementOptions(array $field): array
-    {
-        return array_filter([
-            'scale' => $field['scale'] ?? null,
-            'max_width' => $field['max_width'] ?? null,
-            'max_height' => $field['max_height'] ?? null,
-            'offset_x' => $field['offset_x'] ?? null,
-            'offset_y' => $field['offset_y'] ?? null,
-        ], static fn (mixed $value): bool => $value !== null);
     }
 
     private function transformValue(mixed $transformer, mixed $value): mixed

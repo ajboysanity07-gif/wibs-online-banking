@@ -5,13 +5,11 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestPersonRole;
 use App\Models\LoanRequest;
 use App\Services\OrganizationSettingsService;
-use App\Services\SignaturePngService;
 use App\Support\LocationComposer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Browsershot\Browsershot;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,7 +18,6 @@ class LoanRequestPdfService
 {
     public function __construct(
         private OrganizationSettingsService $brandingService,
-        private SignaturePngService $signaturePngService,
         private OfficialLoanManagerResolver $officialLoanManagerResolver,
     ) {}
 
@@ -137,101 +134,6 @@ class LoanRequestPdfService
         $person['signatureData'] = null;
 
         return $person;
-    }
-
-    private function signatureDataUri(?string $path): ?string
-    {
-        $normalizedPath = $this->normalizeSignaturePath($path);
-
-        if ($normalizedPath === null || ! Storage::disk('public')->exists($normalizedPath)) {
-            return null;
-        }
-
-        $contents = Storage::disk('public')->get($normalizedPath);
-        $mime = Storage::disk('public')->mimeType($normalizedPath)
-            ?: $this->resolveImageMimeType($normalizedPath);
-
-        if (strtolower($mime) === 'image/png') {
-            $contents = $this->signaturePngService->normalizePngBinary($contents)
-                ?? $contents;
-        }
-
-        return 'data:'.$mime.';base64,'.base64_encode($contents);
-    }
-
-    private function resolveImageMimeType(string $path): string
-    {
-        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
-
-        return match ($extension) {
-            'jpg', 'jpeg' => 'image/jpeg',
-            'webp' => 'image/webp',
-            'svg' => 'image/svg+xml',
-            default => 'image/png',
-        };
-    }
-
-    private function normalizeSignaturePath(?string $value): ?string
-    {
-        $normalizedPath = $this->blank($value);
-
-        if ($normalizedPath === null) {
-            return null;
-        }
-
-        if (preg_match('#^[a-z][a-z0-9+.\-]*://#i', $normalizedPath) === 1) {
-            $parsedPath = parse_url($normalizedPath, PHP_URL_PATH);
-            $normalizedPath = is_string($parsedPath) ? $parsedPath : '';
-        }
-
-        $normalizedPath = str_replace('\\', '/', rawurldecode($normalizedPath));
-        $normalizedPath = explode('?', $normalizedPath, 2)[0];
-        $normalizedPath = explode('#', $normalizedPath, 2)[0];
-        $normalizedPath = preg_replace(
-            '#^/?(?:storage/app/public/|public/storage/|storage/)#i',
-            '',
-            $normalizedPath,
-        ) ?? $normalizedPath;
-
-        foreach ([
-            '/storage/app/public/',
-            '/public/storage/',
-            '/storage/',
-        ] as $marker) {
-            $markerPosition = stripos($normalizedPath, $marker);
-
-            if ($markerPosition === false) {
-                continue;
-            }
-
-            $normalizedPath = substr(
-                $normalizedPath,
-                $markerPosition + strlen($marker),
-            );
-
-            break;
-        }
-
-        $normalizedPath = ltrim($normalizedPath, '/');
-        $normalizedPath = preg_replace(
-            '#^(?:app/public/|public/)+#i',
-            '',
-            $normalizedPath,
-        ) ?? $normalizedPath;
-        $normalizedPath = ltrim($normalizedPath, '/');
-
-        return $normalizedPath !== '' ? $normalizedPath : null;
-    }
-
-    private function blank(?string $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $trimmed = trim($value);
-
-        return $trimmed !== '' ? $trimmed : null;
     }
 
     /**

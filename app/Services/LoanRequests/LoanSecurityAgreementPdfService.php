@@ -2,19 +2,13 @@
 
 namespace App\Services\LoanRequests;
 
-use App\Services\SignaturePngService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Spatie\Browsershot\Browsershot;
 use Throwable;
 
 class LoanSecurityAgreementPdfService
 {
-    public function __construct(
-        private SignaturePngService $signaturePngService,
-    ) {}
-
     /**
      * @param  array<string, mixed>  $documentData
      */
@@ -188,41 +182,6 @@ class LoanSecurityAgreementPdfService
         }
 
         return implode(', ', $parts);
-    }
-
-    private function signatureDataUri(?string $path): ?string
-    {
-        $path = $this->blank($path);
-
-        if ($path === null || ! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        $contents = Storage::disk('public')->get($path);
-        $mimeType = $this->resolveImageMimeType($path);
-
-        if ($mimeType === 'image/png') {
-            $contents = $this->signaturePngService->normalizePngBinary($contents)
-                ?? $contents;
-        }
-
-        return sprintf(
-            'data:%s;base64,%s',
-            $mimeType,
-            base64_encode($contents),
-        );
-    }
-
-    private function resolveImageMimeType(string $path): string
-    {
-        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
-
-        return match ($extension) {
-            'jpg', 'jpeg' => 'image/jpeg',
-            'webp' => 'image/webp',
-            'svg' => 'image/svg+xml',
-            default => 'image/png',
-        };
     }
 
     private function blank(?string $value): ?string

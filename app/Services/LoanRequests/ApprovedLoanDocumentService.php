@@ -103,8 +103,6 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
-            'reviewedBy.activeAdminSignature',
-            'approvalSignature',
             'user',
         );
 
@@ -137,8 +135,6 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
-            'reviewedBy.activeAdminSignature',
-            'approvalSignature',
             'user',
         );
 
@@ -271,8 +267,6 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
-            'reviewedBy.activeAdminSignature',
-            'approvalSignature',
             'user',
         );
 
@@ -526,8 +520,6 @@ class ApprovedLoanDocumentService
         $loanRequest->loadMissing(
             'people',
             'reviewedBy.adminProfile',
-            'reviewedBy.activeAdminSignature',
-            'approvalSignature',
             'user',
         );
 
@@ -626,9 +618,7 @@ class ApprovedLoanDocumentService
             'people',
             'assignedProcessor.adminProfile',
             'reviewedBy.adminProfile',
-            'reviewedBy.activeAdminSignature',
             'approvedBy.adminProfile',
-            'approvalSignature',
             'user',
         );
 

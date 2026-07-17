@@ -3,7 +3,6 @@
 namespace App\Services\LoanRequests;
 
 use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
-use App\Services\SignaturePngService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -28,7 +27,6 @@ class ApprovedLoanPdfTemplateService
     private const DEFAULT_FONT = 'calibri';
 
     public function __construct(
-        private SignaturePngService $signaturePngService,
         private DocumentSignaturePlacement $signaturePlacement,
     ) {}
 
@@ -173,12 +171,6 @@ class ApprovedLoanPdfTemplateService
     {
         $type = (string) ($field['type'] ?? 'text');
 
-        if ($type === 'signature') {
-            $this->renderSignatureField($pdf, $field, $documentData);
-
-            return;
-        }
-
         if ($type === 'check') {
             $this->renderCheckField($pdf, $field, $documentData);
 
@@ -264,25 +256,6 @@ class ApprovedLoanPdfTemplateService
      * @param  array<string, mixed>  $field
      * @param  array<string, mixed>  $documentData
      */
-    private function renderSignatureField(Fpdi $pdf, array $field, array $documentData): void
-    {
-        $relativePath = $this->resolveValue($field['value'] ?? null, $documentData);
-
-        $this->writeSignature(
-            $pdf,
-            (float) ($field['x'] ?? 0),
-            (float) ($field['y'] ?? 0),
-            (float) ($field['width'] ?? 0),
-            (float) ($field['height'] ?? 0),
-            is_string($relativePath) ? $relativePath : null,
-            $this->signaturePlacementOptions($field),
-        );
-    }
-
-    /**
-     * @param  array<string, mixed>  $field
-     * @param  array<string, mixed>  $documentData
-     */
     private function renderImageField(Fpdi $pdf, array $field, array $documentData): void
     {
         $relativePath = $this->resolveValue($field['value'] ?? null, $documentData);
@@ -353,63 +326,6 @@ class ApprovedLoanPdfTemplateService
         $pdf->SetFont('zapfdingbats', '', $size);
         $pdf->SetTextColor(0, 0, 0);
         $pdf->Text($x, $y, '4');
-    }
-
-    public function writeSignature(
-        Fpdi $pdf,
-        float $x,
-        float $y,
-        float $width,
-        float $height,
-        ?string $signaturePath,
-        array $placementOptions = [],
-    ): void {
-        if ($signaturePath === null || trim($signaturePath) === '') {
-            return;
-        }
-
-        $absolutePath = $this->resolveSignaturePath($signaturePath);
-
-        if ($absolutePath === null) {
-            return;
-        }
-
-        $overlayImage = $this->signaturePngService->prepareOverlayImage($absolutePath);
-
-        try {
-            $dimensions = $this->fitImageToBox(
-                $overlayImage['path'],
-                $x,
-                $y,
-                $width,
-                $height,
-                $placementOptions,
-            );
-
-            $pdf->Image(
-                $overlayImage['path'],
-                $dimensions['x'],
-                $dimensions['y'],
-                $dimensions['width'],
-                $dimensions['height'],
-                '',
-                '',
-                '',
-                false,
-                300,
-                '',
-                false,
-                false,
-                0,
-                false,
-                false,
-                false,
-            );
-        } finally {
-            if (($overlayImage['temporary'] ?? false) === true) {
-                File::delete($overlayImage['path']);
-            }
-        }
     }
 
     public function writeImage(

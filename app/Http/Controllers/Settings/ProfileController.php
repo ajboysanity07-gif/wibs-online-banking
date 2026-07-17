@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ProfileController extends Controller
 {
@@ -115,12 +114,6 @@ class ProfileController extends Controller
         }
 
         return to_route('profile.edit');
-    }
-
-    public function updateLoanManagerSignature(
-        Request $request,
-    ): never {
-        abort(HttpResponse::HTTP_NOT_FOUND);
     }
 
     /**
