@@ -854,7 +854,7 @@ class ApprovedLoanDocumentService
                 'approved_date' => $documentDate?->format('F d, Y'),
                 'approved_date_short' => $documentDate?->format('m/d/Y'),
                 'maturity_date_short' => $maturityDate?->format('m/d/Y'),
-                'term_days' => $approvedTerm !== null ? $approvedTerm * 30 : null,
+                'term_days' => $approvedTerm !== null ? $approvedTerm * 25 : null,
                 'recommended_by' => $processorDisplayName,
                 'recommendation_remarks' => $this->normalizeText(
                     $loanRequest->recommendation_remarks,

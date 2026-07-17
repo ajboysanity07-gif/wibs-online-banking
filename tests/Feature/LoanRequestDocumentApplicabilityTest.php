@@ -209,6 +209,23 @@ test('a nonzero loan_security_rate passes through unmodified with no flag presen
         ->and($documentData['loan']['loan_security_amount_raw'])->toBe(62500.0);
 });
 
+test('term_days uses a x25 multiplier matching the source workbook (12 month term = 300 days, not 360)', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['term_days'])->toBe(300);
+});
+
 test('savings_rate drives the amortization savings figure independently from loan_security_rate', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
