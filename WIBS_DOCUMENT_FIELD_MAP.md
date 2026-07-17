@@ -450,6 +450,13 @@ place, since it does not belong on this document at all.
 | Term (months) | S | ✅ | `loan_request_data_entries` (staff) |
 | Mode of payment | S | ✅ | `loan_request_data_entries` (staff) |
 
+### Certified Correct
+
+| Field | Who | Status | App source |
+|-------|-----|--------|------------|
+| Printed name | FIXED | ✅ | Hardcoded `"VELINA P. GAMUTAN"` in `disclosure-statement.blade.php` — not staff-entered or database-derived. Substitute Bookkeeper (Jozel Uriarte) selection is out of scope unless MRDINC requests it. |
+| Position | FIXED | ✅ | Hardcoded `"BOOKKEEPER"` in `disclosure-statement.blade.php` |
+
 ---
 
 ---

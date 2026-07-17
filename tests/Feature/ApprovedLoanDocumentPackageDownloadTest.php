@@ -541,7 +541,9 @@ test('disclosure statement pdf includes statutory labels and computed totals', f
         ->toContain('NETPROCEEDSOFLOAN')
         ->toContain('EFFECTIVEINTERESTRATE')
         ->toContain('HELARIOB.TEJERO')
-        ->toContain('25,000.00');
+        ->toContain('25,000.00')
+        ->toContain('VELINAP.GAMUTAN')
+        ->toContain('BOOKKEEPER');
 });
 
 test('grepalife pdf includes structured applicant fields when available', function () {

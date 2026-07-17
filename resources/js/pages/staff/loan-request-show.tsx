@@ -1539,7 +1539,13 @@ export default function StaffLoanRequestShow({
 
                         {renderProcessingSectionLabel('Personnel')}
                         <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField('witness_one_name')}
+                            {renderProcessingField('witness_one_name', {
+                                disabled: true,
+                                placeholder:
+                                    "Filled automatically from the assigned processor's name",
+                                tooltip:
+                                    "Recorded automatically using the assigned processor's name.",
+                            })}
                             {renderProcessingField('witness_two_name', {
                                 disabled: true,
                                 placeholder:

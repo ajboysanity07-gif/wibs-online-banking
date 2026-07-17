@@ -24,9 +24,6 @@
     $paymentMode         = trim((string) ($loan['payment_mode_workbook'] ?? ''));
     $approvedTerm        = $loan['approved_term_raw'] ?? null;
 
-    $reviewerName = mb_strtoupper(trim((string) ($reviewer['name'] ?? '')));
-    $reviewerPos  = trim((string) ($reviewer['position'] ?? ''));
-
     $fmt = static function (mixed $value): string {
         if ($value === null || !is_numeric((string) $value)) {
             return '';
@@ -472,9 +469,9 @@
                 <td class="sig-col">&nbsp;</td>
                 <td class="sig-col">
                     <div style="font-size:7.5pt;font-weight:700;">Certified Correct:</div>
-                    <div class="sig-name">{{ $reviewerName !== '' ? $reviewerName : ' ' }}</div>
+                    <div class="sig-name">VELINA P. GAMUTAN</div>
                     <div class="sig-lbl">Signature Over Printed Name</div>
-                    <div class="sig-name" style="padding-top:8pt;">{{ $reviewerPos !== '' ? $reviewerPos : ' ' }}</div>
+                    <div class="sig-name" style="padding-top:8pt;">BOOKKEEPER</div>
                     <div class="sig-lbl">Position</div>
                 </td>
             </tr>
