@@ -125,18 +125,19 @@ class LoanRequestDocumentCatalog
             'requires_financials' => false,
         ],
         'authorization' => [
-            'template_version' => 'authorization-v2',
+            'template_version' => 'authorization-v3',
             'applicability' => 'always',
             'required_fields' => [
-                'payout_bank_name',
                 'payout_account_number',
             ],
             'source_fields' => [
-                'payout_bank_name',
+                // payout_bank_name and release_method dropped: "Enterprise Bank, Inc." is
+                // now static artwork text (MRDINC's fixed partner bank), and release_method
+                // was confirmed dead -- neither is printed dynamically anymore.
                 'payout_account_number',
                 'payout_bank_branch',
                 'payout_atm_holder_name',
-                'release_method',
+                'loan_security_amount',
             ],
             'source_paths' => [
                 'loan_request.recommended_amount',

@@ -20,10 +20,18 @@ function approvedLoanPdfTemplateServiceShrinkFieldMap(array $field): ApprovedLoa
  * makePdf() disables PDF stream compression (SetCompression(false)), so the font-size
  * operator ("<size> Tf") is readable directly in the raw returned bytes without needing
  * to inflate any content stream -- used here as a cheap, direct way to observe which font
- * size the renderer actually chose, without reaching into private internals. The base
- * template PDF has its own baked-in text at various sizes, so this takes the *last* "Tf" in
- * the byte stream, not the smallest overall -- the field map under test renders on top of
- * (i.e. after, in stream order) the imported template page.
+ * size the renderer actually chose, without reaching into private internals. This takes
+ * the *last* "Tf" in the byte stream, not the smallest overall, on the assumption the
+ * field map under test's own stamped value is the only (or last) text in the file.
+ *
+ * That assumption breaks if the base template itself bakes in substantial real text at
+ * varying sizes (its own "Tf" operators sit in the same raw file bytes, in an XObject
+ * whose physical byte position isn't guaranteed to precede the overlay's) -- this is why
+ * these tests deliberately use loan-security-agreement.pdf (still a near-blank
+ * placeholder) rather than authorization.pdf, which now has real multi-size artwork text
+ * after its Phase 2 rebuild. Confirmed by direct investigation: swapping in
+ * authorization.pdf here made two of these tests fail, picking up 8.0 (a size baked into
+ * the new AZ artwork) instead of the field map's own declared/shrunk size.
  */
 function approvedLoanPdfTemplateServiceLastFontSize(string $pdfContent): ?float
 {
@@ -50,7 +58,7 @@ test('shrink to fit renders at the declared size when the text already fits the 
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     $content = $service->renderContent(
-        'authorization.pdf',
+        'loan-security-agreement.pdf',
         ['sample' => ['text' => 'Short']],
         $fieldMap,
     );
@@ -75,7 +83,7 @@ test('shrink to fit reduces font size until a long value fits its declared width
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     $content = $service->renderContent(
-        'authorization.pdf',
+        'loan-security-agreement.pdf',
         ['sample' => ['text' => 'Maria Concepcion Villanueva-Fernandez de la Santisima Trinidad']],
         $fieldMap,
     );
@@ -103,7 +111,7 @@ test('shrink to fit never renders below the configured minimum size, even for an
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     $content = $service->renderContent(
-        'authorization.pdf',
+        'loan-security-agreement.pdf',
         ['sample' => ['text' => str_repeat('Extraordinarily Long Value ', 5)]],
         $fieldMap,
     );
@@ -125,7 +133,7 @@ test('shrink to fit without a width throws a catchable exception instead of sile
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     expect(fn () => $service->renderContent(
-        'authorization.pdf',
+        'loan-security-agreement.pdf',
         ['sample' => ['text' => 'Some text']],
         $fieldMap,
     ))->toThrow(RuntimeException::class, 'shrink_to_fit but no width');

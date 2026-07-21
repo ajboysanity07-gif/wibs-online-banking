@@ -791,6 +791,8 @@ class ApprovedLoanDocumentService
         );
         $gnthpFormatted = $this->formatCurrencyValue($gnthpRaw);
         $gnthp = $gnthpFormatted !== null ? '₱'.$gnthpFormatted : null;
+        $loanSecurityAmountFormatted = $this->formatCurrencyValue($loanSecurityAmountRaw);
+        $loanSecurityAmount = $loanSecurityAmountFormatted !== null ? '₱'.$loanSecurityAmountFormatted : null;
         $witnessOneName = $this->normalizeText(
             $overrideReviewer['witness_one_name'] ?? null,
         ) ?? $this->normalizeText($flatValues['witness_one_name'] ?? null);
@@ -877,6 +879,7 @@ class ApprovedLoanDocumentService
                 'service_charge_amount_raw' => $serviceChargeAmountRaw,
                 'insurance_premium_raw' => $insurancePremiumRaw,
                 'loan_security_amount_raw' => $loanSecurityAmountRaw,
+                'loan_security_amount' => $loanSecurityAmount,
                 'documentary_stamp_amount_raw' => $documentaryStampAmountRaw,
                 'notarial_fee_raw' => $notarialFeeRaw,
                 'finance_charge_total_raw' => $financeChargeTotalRaw,

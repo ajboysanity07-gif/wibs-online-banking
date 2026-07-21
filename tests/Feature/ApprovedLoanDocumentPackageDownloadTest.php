@@ -1065,11 +1065,14 @@ test('authorization field map pins all field coordinates to calibrated values', 
     $find = fn (string $value): array => $fields->first(
         fn (array $f): bool => ($f['value'] ?? null) === $value,
     );
+    $findOrNull = fn (string $value): ?array => $fields->first(
+        fn (array $f): bool => ($f['value'] ?? null) === $value,
+    );
 
     $fullName = $find('applicant.full_name');
     $address = $find('applicant.address');
     $reference = $find('loan.reference');
-    $amount = $find('loan.approved_amount');
+    $amount = $find('loan.loan_security_amount');
     $date = $find('loan.approved_date');
     $company = $find('organization.company_name');
 
@@ -1086,6 +1089,8 @@ test('authorization field map pins all field coordinates to calibrated values', 
     expect((float) $reference['y'])->toBe(58.0);
     expect((int) $reference['size'])->toBe(9);
 
+    // Repointed from loan.approved_amount -- position unchanged (108,58 -> now the loan
+    // security amount, not the raw approved principal).
     expect((float) $amount['x'])->toBe(88.0);
     expect((float) $amount['y'])->toBe(58.0);
     expect((int) $amount['size'])->toBe(9);
@@ -1098,6 +1103,11 @@ test('authorization field map pins all field coordinates to calibrated values', 
     expect((float) $company['y'])->toBe(68.0);
     expect((int) $company['size'])->toBe(9);
 
+    $accountNumber = $find('authorization.payout_account_number');
+    expect((float) $accountNumber['x'])->toBe(26.0);
+    expect((float) $accountNumber['y'])->toBe(110.0);
+    expect((int) $accountNumber['size'])->toBe(9);
+
     $bankBranch = $find('authorization.payout_bank_branch');
     expect((float) $bankBranch['x'])->toBe(26.0);
     expect((float) $bankBranch['y'])->toBe(118.0);
@@ -1107,6 +1117,23 @@ test('authorization field map pins all field coordinates to calibrated values', 
     expect((float) $atmHolderName['x'])->toBe(26.0);
     expect((float) $atmHolderName['y'])->toBe(126.0);
     expect((int) $atmHolderName['size'])->toBe(9);
+
+    // Dead/converted-to-static fields confirmed removed.
+    expect($findOrNull('loan.approved_amount'))->toBeNull();
+    expect($findOrNull('authorization.release_method'))->toBeNull();
+    expect($findOrNull('authorization.payout_bank_name'))->toBeNull();
+
+    // Signature block -- new fields, new positions, distinct from each other.
+    $signatures = $fields->filter(
+        fn (array $f): bool => ($f['align'] ?? null) === 'C'
+            && in_array($f['value'] ?? null, ['applicant.full_name', 'authorization.payout_atm_holder_name'], true),
+    );
+    expect($signatures)->toHaveCount(2);
+    expect($signatures->pluck('y')->unique())->toHaveCount(2);
+
+    $header = $fields->first(fn (array $f): bool => ($f['type'] ?? null) === 'image');
+    expect($header)->not->toBeNull();
+    expect($header['value'])->toBe('organization.report_header.designPath');
 });
 
 test('undertaking barangay field map pins all field coordinates to calibrated values', function () {
@@ -1827,12 +1854,15 @@ test('affidavit undertaking pdf omits the header image gracefully when unconfigu
     expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(0);
 });
 
-test('authorization pdf prints release and bank details', function () {
+test('authorization pdf prints static bank name and payout details, not release_method or a dynamic bank name', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
+    // release_method (CONFIRMED DEAD) and payout_bank_name (bank name is now static artwork
+    // text, "Enterprise Bank, Inc." -- MRDINC's fixed partner bank) are persisted here to
+    // prove they no longer surface on AZ, not because AZ still reads them.
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_method', 'string', 'ATM');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'LANDBANK');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
@@ -1846,13 +1876,40 @@ test('authorization pdf prints release and bank details', function () {
     $response->assertOk();
     $text = approvedLoanDocumentsExtractPdfText($response);
 
+    // "Enterprise Bank, Inc." is baked into the real production artwork as static text
+    // (not stamped by the field map), so it can't be asserted here -- this Feature test
+    // suite stamps values onto a synthetic placeholder template
+    // (approvedLoanDocumentsSeedTemplateFilesForTests()), not a copy of the real artwork
+    // file. What IS testable here is that the dynamic fields this bug fix removed no
+    // longer print, regardless of what's persisted for them.
     expect($text)
-        ->toContain('ATM')
-        ->toContain('LANDBANK')
         ->toContain('1122334455')
         ->toContain('TAGUM BRANCH')
         ->toContain('MARIA B. SANTOS')
-        ->not->toContain('Enterprise Bank');
+        ->not->toContain('LANDBANK')
+        ->not->toContain('ATM ');
+});
+
+test('authorization pdf prints the loan security amount, not the raw approved amount', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'loan_security_rate', 'number', 0.02);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.authorization', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    // approved_amount is 25,000 (fixture default); loan_security_rate 0.02 -> 500.00,
+    // distinct from the full approved amount -- proves the repointed field, not a stale one.
+    expect($text)
+        ->toContain('500.00')
+        ->not->toContain('25,000.00');
 });
 
 test('authorization pdf omits atm card holder name when payout_atm_holder_name is null', function () {
