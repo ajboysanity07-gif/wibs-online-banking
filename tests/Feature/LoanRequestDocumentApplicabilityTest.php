@@ -98,8 +98,7 @@ test('authorization and undertaking barangay become ready to generate once their
     applicabilityPersistDataEntries($loanRequest, [
         'payout_bank_name' => ['string', 'WIBS Cooperative Bank'],
         'payout_account_number' => ['string', '1234567890'],
-        'barangay_name' => ['string', 'Barangay San Isidro'],
-        'barangay_clearance_reference' => ['string', 'BCL-2026-030'],
+        'guaranteed_net_take_home_pay' => ['number', 15000],
     ]);
 
     $authorization = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::Authorization);

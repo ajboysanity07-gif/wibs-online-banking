@@ -1115,6 +1115,9 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     $find = fn (string $value): array => $fields->first(
         fn (array $f): bool => ($f['value'] ?? null) === $value,
     );
+    $findOrNull = fn (string $value): ?array => $fields->first(
+        fn (array $f): bool => ($f['value'] ?? null) === $value,
+    );
 
     $fullName = $find('applicant.full_name');
     $address = $find('applicant.address');
@@ -1136,6 +1139,8 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect((float) $type['y'])->toBe(62.0);
     expect((int) $type['size'])->toBe(9);
 
+    // Collision fix: loan.approved_amount keeps the original (107,62) position;
+    // loan.gnthp (below) is the field that moved.
     expect((float) $amount['x'])->toBe(107.0);
     expect((float) $amount['y'])->toBe(62.0);
     expect((int) $amount['size'])->toBe(9);
@@ -1148,26 +1153,72 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect((float) $company['y'])->toBe(72.0);
     expect((int) $company['size'])->toBe(9);
 
-    $officialDesignation = $find('barangay.official_designation');
-    expect((float) $officialDesignation['x'])->toBe(27.0);
-    expect((float) $officialDesignation['y'])->toBe(106.0);
-    expect((int) $officialDesignation['size'])->toBe(9);
+    // Age/Civil Status/Nationality -- new fields, occupying the space vacated by the
+    // three removed barangay.name/clearance_reference/locality entries.
+    $age = $find('applicant.age');
+    expect((float) $age['x'])->toBe(27.0);
+    expect((float) $age['y'])->toBe(86.0);
+    expect((int) $age['size'])->toBe(9);
 
-    $agencyName = $find('barangay.agency_name');
+    $civilStatus = $find('applicant.civil_status');
+    expect((float) $civilStatus['x'])->toBe(88.0);
+    expect((float) $civilStatus['y'])->toBe(86.0);
+
+    $nationality = $find('applicant.nationality');
+    expect((float) $nationality['x'])->toBe(148.0);
+    expect((float) $nationality['y'])->toBe(86.0);
+
+    // Designation/Agency/Agency Address now source from the applicant's own employment
+    // record (bug fix) -- position unchanged from the original barangay.* entries.
+    $designation = $find('applicant.position_or_designation');
+    expect((float) $designation['x'])->toBe(27.0);
+    expect((float) $designation['y'])->toBe(106.0);
+    expect((int) $designation['size'])->toBe(9);
+
+    $agencyName = $find('applicant.employer_or_business');
     expect((float) $agencyName['x'])->toBe(27.0);
     expect((float) $agencyName['y'])->toBe(114.0);
     expect((int) $agencyName['size'])->toBe(9);
 
-    $agencyAddress = $find('barangay.agency_address');
+    $agencyAddress = $find('applicant.office_address');
     expect((float) $agencyAddress['x'])->toBe(27.0);
     expect((float) $agencyAddress['y'])->toBe(122.0);
     expect((int) $agencyAddress['size'])->toBe(8);
     expect((float) $agencyAddress['width'])->toBe(160.0);
 
+    // Dead fields confirmed removed.
+    expect($findOrNull('barangay.name'))->toBeNull();
+    expect($findOrNull('barangay.clearance_reference'))->toBeNull();
+    expect($findOrNull('barangay.locality'))->toBeNull();
+    expect($findOrNull('barangay.official_designation'))->toBeNull();
+    expect($findOrNull('barangay.agency_name'))->toBeNull();
+    expect($findOrNull('barangay.agency_address'))->toBeNull();
+
+    // GNTHP moved off the collision -- now inline in paragraph 1, a new position distinct
+    // from loan.approved_amount's (107,62).
     $gnthp = $find('loan.gnthp');
-    expect((float) $gnthp['x'])->toBe(107.0);
-    expect((float) $gnthp['y'])->toBe(62.0);
-    expect((int) $gnthp['size'])->toBe(9);
+    expect((float) $gnthp['x'])->not->toBe(107.0);
+    expect((float) $gnthp['y'])->not->toBe(62.0);
+    expect((bool) $gnthp['shrink_to_fit'])->toBeTrue();
+
+    // Signature/notarial block -- new fields, new positions.
+    $signatureName = $fields->first(
+        fn (array $f): bool => ($f['value'] ?? null) === 'applicant.full_name'
+            && ($f['align'] ?? null) === 'C',
+    );
+    expect($signatureName)->not->toBeNull();
+
+    $signingPlace = $find('notarial.signing_place');
+    expect($signingPlace)->not->toBeNull();
+
+    $seriesYear = $find('notarial.series_year');
+    expect($seriesYear)->not->toBeNull();
+
+    $header = $fields->first(
+        fn (array $f): bool => ($f['type'] ?? null) === 'image',
+    );
+    expect($header)->not->toBeNull();
+    expect($header['value'])->toBe('organization.report_header.designPath');
 });
 
 test('grepalife field map pins all field coordinates to calibrated values', function () {
@@ -1823,19 +1874,27 @@ test('authorization pdf omits atm card holder name when payout_atm_holder_name i
     expect(approvedLoanDocumentsReadDownloadedFileContent($response))->toStartWith('%PDF');
 });
 
-test('undertaking barangay pdf prints barangay details', function () {
+test('undertaking barangay pdf prints applicant employment details, not staff barangay overrides', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
 
+    // Bug fix under test: Designation/Agency/Agency Address now come from the applicant's
+    // own employment record, not a barangay_* staff override.
+    $loanRequest->applicant()->first()->update([
+        'current_position' => 'Barangay Health Worker',
+        'employer_business_name' => 'Barangay San Isidro',
+        'employer_business_address1' => 'Purok 3',
+        'employer_business_address2' => 'Tagum City',
+        'employer_business_address3' => 'Davao del Norte',
+    ]);
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'number', 15000);
+    // Staff barangay_* overrides are persisted too, to prove they no longer surface on UB.
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_name', 'string', 'BARANGAY SAN PEDRO');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_clearance_reference', 'string', 'BCR-2026-00123');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_locality', 'string', 'TAGUM CITY');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_official_designation', 'string', 'PUNONG BARANGAY');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'BARANGAY HALL');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_address', 'string', '123 MAIN ST, TAGUM CITY');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'numeric', 25000);
 
     $response = $this
         ->actingAs($admin)
@@ -1845,13 +1904,32 @@ test('undertaking barangay pdf prints barangay details', function () {
     $text = approvedLoanDocumentsExtractPdfText($response);
 
     expect($text)
-        ->toContain('BARANGAY SAN PEDRO')
-        ->toContain('BCR-2026-00123')
-        ->toContain('TAGUM CITY')
-        ->toContain('PUNONG BARANGAY')
-        ->toContain('BARANGAY HALL')
-        ->toContain('123 MAIN ST, TAGUM CITY')
-        ->toContain('25,000.00');
+        ->toContain('Barangay Health Worker')
+        ->toContain('Barangay San Isidro')
+        ->toContain('Purok 3, Tagum City, Davao del Norte')
+        ->toContain('15,000.00')
+        ->not->toContain('BARANGAY SAN PEDRO')
+        ->not->toContain('PUNONG BARANGAY')
+        ->not->toContain('BARANGAY HALL');
+});
+
+test('undertaking barangay pdf prints age, civil status, and nationality', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'number', 15000);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.undertaking-barangay', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('Married')
+        ->toContain('FILIPINO');
 });
 
 test('grepalife field map checks health answers when affirmative', function () {

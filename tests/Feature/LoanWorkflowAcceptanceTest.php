@@ -845,6 +845,7 @@ function acceptanceProcessingPayload(): array
             'witness_one_name' => 'Witness One',
             'barangay_official_name' => 'Barangay Captain',
             'barangay_official_title' => 'Punong Barangay',
+            'guaranteed_net_take_home_pay' => 15000,
         ],
         'recommended_amount' => 25000,
         'recommended_term' => 12,

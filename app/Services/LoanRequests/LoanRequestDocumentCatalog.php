@@ -310,19 +310,16 @@ class LoanRequestDocumentCatalog
             'requires_financials' => true,
         ],
         'undertaking_barangay' => [
-            'template_version' => 'undertaking-barangay-v2',
+            'template_version' => 'undertaking-barangay-v3',
             'applicability' => 'always',
             'required_fields' => [
-                'barangay_name',
-                'barangay_clearance_reference',
+                'guaranteed_net_take_home_pay',
             ],
             'source_fields' => [
-                'barangay_name',
-                'barangay_clearance_reference',
-                'barangay_locality',
-                'barangay_official_designation',
-                'barangay_agency_name',
-                'barangay_agency_address',
+                // barangay_official_designation/agency_name/agency_address dropped: the
+                // field map now sources these from applicant.* (bug fix), already covered
+                // by the 'applicant.' source_paths wildcard below -- same pattern AU uses
+                // for its own applicant.* fields (no explicit source_fields entries).
                 'guaranteed_net_take_home_pay',
             ],
             'source_paths' => [

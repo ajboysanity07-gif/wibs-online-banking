@@ -918,15 +918,6 @@ class ApprovedLoanDocumentService
                 ),
             ],
             'barangay' => [
-                'name' => $this->normalizeText(
-                    $overrideProcessing['barangay_name'] ?? $flatValues['barangay_name'] ?? null,
-                ),
-                'clearance_reference' => $this->normalizeText(
-                    $overrideProcessing['barangay_clearance_reference'] ?? $flatValues['barangay_clearance_reference'] ?? null,
-                ),
-                'locality' => $this->normalizeText(
-                    $overrideProcessing['barangay_locality'] ?? $flatValues['barangay_locality'] ?? null,
-                ),
                 'official_name' => $this->normalizeText(
                     $overrideProcessing['barangay_official_name'] ?? $flatValues['barangay_official_name'] ?? null,
                 ),
