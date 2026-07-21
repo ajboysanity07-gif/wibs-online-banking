@@ -226,6 +226,14 @@ notarization fields all shipped together; see git history on
 rebuild (artwork → applicant fields → notarization fields), followed by a correction commit that
 fixed a scope error in the notarization phase — see the Notarization sub-table below.
 
+> **AU vs. Undertaking-Barangay (§9) is a manual staff choice, not app-enforced.**
+> `LoanRequestDocumentCatalog::isApplicable()` is hardcoded to always return `true` for every
+> document — there is no classification field or gating logic that picks between AU and UB. The
+> real-world rule staff apply by hand: ATM/private-bank salary-deduction members get this document
+> (AU); barangay, hospital, and other government-payroll personnel get Undertaking-Barangay (§9).
+> No system enforcement exists or is planned — an explicit decision, see
+> `AUTHORIZATION_AND_UNDERTAKING_BARANGAY_BUILD_PLAN.md`.
+
 ### Borrower Identification
 
 | Field | Who | Status | App source |
@@ -301,47 +309,55 @@ place, since it does not belong on this document at all.
 
 ## 4 — Authorization (AZ)
 
-**PDF field map · Authorises release of loan proceeds to the borrower (borrower's own proceeds only)**
+**PDF field map · Authorizes release of the loan security to the borrower's own deposit account**
 
 > **Why the Authorized Recipient section was removed:** Third-party loan release is always
 > handled physically via a separate authorization letter prepared on release day — it is never
 > sourced from app data. The wizard's "Authorization & release" step (formerly step 12) has
 > been removed entirely; the wizard is now 11 steps.
 >
-> **`applicable()` gate:** AZ is generated when `payout_bank_name` OR `payout_account_number`
-> is non-empty. No longer gated on recipient name, relationship, or release method.
+> **Applicability is not app-enforced, same as every other document.**
+> `LoanRequestDocumentCatalog::isApplicable()` is hardcoded to always return `true` (confirmed
+> deliberate and locked in by `LoanRequestDocumentApplicabilityTest.php`). The prior claim here — a
+> gate keyed on `payout_bank_name` OR `payout_account_number` — was never accurate; corrected.
 >
-> **Bank name:** AZ now uses the member's entered `payout_bank_name` — the hardcoded
-> `"Enterprise Bank, Inc."` was removed.
+> **Bank name is static artwork text, not app data.** "Enterprise Bank, Inc." is MRDINC's fixed
+> partner bank for loan-security deposits, baked directly into the AZ artwork — not read from a
+> per-loan `payout_bank_name` field. A prior pass had this reversed (dynamic bank name, with the
+> hardcoded text described as "removed"); corrected per
+> `AUTHORIZATION_AND_UNDERTAKING_BARANGAY_BUILD_PLAN.md`.
 
 ### Borrower
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Full name | M | ✅ | `loan_request_people` (borrower) |
-| Residence address | M | ✅ | `loan_request_data_entries` |
+| Full name | M | ✅ | `applicant.full_name` |
+| Residence address | M | ✅ | `applicant.address` |
+| Loan reference | S | ✅ | `loan.reference` |
+| Loan security amount | S | ✅ | `loan.loan_security_amount` — repointed from `loan.approved_amount`; the real reference text authorizes crediting the loan security deduction, not the full approved principal |
+| Approved date | S | ✅ | `loan.approved_date` |
+| Financing institution | SYS | ✅ | `organization.company_name` |
 
 ### Bank / Payout Details
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Release method | M | ✅ | `authorization.release_method` — describes how member receives own proceeds (e.g. "Bank transfer", "ATM"); relocated from banking wizard step |
-| Bank name | M | ✅ | `authorization.payout_bank_name` — member's entered bank |
+| Bank name | — | ✅ | Static artwork text, "Enterprise Bank, Inc." — not a per-loan field |
 | Account number | M | ✅ | `authorization.payout_account_number` |
-| Bank branch | M | ✅ | `authorization.payout_bank_branch` — wired to AZ field map (coordinates placeholder, `TODO(calibrate-az)`) |
-| ATM card holder name | M | ✅ | `authorization.payout_atm_holder_name` — wired to AZ field map (coordinates placeholder, `TODO(calibrate-az)`); nullable — field is skipped when empty (borrower uses their own card) |
+| Bank branch | M | ✅ | `authorization.payout_bank_branch` |
+| ATM card holder name | M | ✅ | `authorization.payout_atm_holder_name` — printed twice: once in the Bank/Payout Details block, once on the ATM Card Holder signature line; nullable in the block — skipped when empty (borrower uses their own card) |
+| Release method | 🗑️ | 🗑️ | **Removed** — confirmed dead, no reference content ever needed it |
 | Authorized recipient name | 🗑️ | 🗑️ | **Removed** — third-party release handled via separate physical letter |
 | Authorized recipient relationship | 🗑️ | 🗑️ | **Removed** — same reason |
 | Authorized recipient contact | 🗑️ | 🗑️ | **Removed** — not on the Authorization document |
 | Authorization reason | 🗑️ | 🗑️ | **Removed** — not on any document, gated nothing |
 
-### Witnesses & Notarization
-
-| Field | Who | Status | App source |
-|-------|-----|--------|------------|
-| Witness 1 name | S | ✅ | `loan_request_data_entries.witness_one_name` |
-| Witness 2 name | S | ✅ | `loan_request_data_entries.witness_two_name` |
-| Notarization fields (doc/page/book/series/place) | S | ✅ | `loan_request_data_entries` |
+Witnesses and notarization are **not part of this document** — the real reference content is a
+brief single-page authorization with no notarial acknowledgment block, only Borrower and ATM Card
+Holder signature lines. A prior "Witnesses & Notarization" section here claiming these were wired
+was copy-paste leftover from another document's section, not real AZ content — removed rather than
+corrected in place (confirmed by direct inspection of `AuthorizationPdfFieldMap.php`: no
+`witness_one_name`/`witness_two_name`/notarization entries exist).
 
 ---
 
@@ -511,46 +527,59 @@ place, since it does not belong on this document at all.
 
 ## 9 — Undertaking-Barangay (UB)
 
-**PDF field map · Conditional — applies to any member who supplies barangay data**
+**PDF field map · Manual staff choice — for barangay, hospital, and government-payroll borrowers**
 
-> `applicable()` is gated on `barangay_name` OR `barangay_clearance_reference` OR
-> `barangay_locality` being non-empty. UB is **not** limited to barangay officials — any
-> member may trigger it by providing barangay information in the wizard.
+> **Applicability is a manual staff decision, not app-enforced.**
+> `LoanRequestDocumentCatalog::isApplicable()` is hardcoded to always return `true` for every
+> document (confirmed deliberate, locked in by `LoanRequestDocumentApplicabilityTest.php`) — there
+> is no classification field or gating logic distinguishing UB from the Affidavit of Undertaking
+> (AU). The prior claim here — a gate keyed on `barangay_name` OR `barangay_clearance_reference` OR
+> `barangay_locality` — was never accurate; corrected. The real-world rule staff apply by hand:
+> ATM/private-bank salary-deduction members get the Affidavit of Undertaking; barangay, hospital,
+> and other government-payroll personnel get Undertaking-Barangay. No system enforcement exists or
+> is planned — an explicit decision, see `AUTHORIZATION_AND_UNDERTAKING_BARANGAY_BUILD_PLAN.md`.
 
 ### Affiant (Borrower)
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Full name | M | ✅ | `loan_request_people` (borrower) |
-| Age | M | ❌ | **DERIVE** from `birthdate` — compute at render time, no new field |
-| Civil status | M | ❌ | **REUSE** `loan_request_data_entries.civil_status` — not yet wired to UB |
-| Residence address | M | ✅ | `loan_request_data_entries` |
+| Full name | M | ✅ | `applicant.full_name` |
+| Age | M | ✅ | `applicant.age` — derived from `birthdate` at render time |
+| Civil status | M | ✅ | `applicant.civil_status` |
+| Nationality | M | ✅ | `applicant.nationality` — always `FILIPINO` |
+| Residence address | M | ✅ | `applicant.address` |
 
-### Barangay Info (conditional step in wizard)
+### Employment Details
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Barangay name | M | ✅ | `barangay.name` |
-| Barangay clearance reference | M | ✅ | `barangay.clearance_reference` |
-| Barangay locality | M | ✅ | `barangay.locality` |
-| Official's designation / position | M | ✅ | `barangay.official_designation` — added and wired |
-| Agency name | M | ✅ | `barangay.agency_name` — added and wired |
-| Agency address | M | ✅ | `barangay.agency_address` — added and wired |
+| Designation / position | M | ✅ | `applicant.position_or_designation` — bug fix: previously read a staff `barangay.official_designation` override instead of the applicant's own employment record |
+| Agency / employer name | M | ✅ | `applicant.employer_or_business` — same bug fix |
+| Agency address | M | ✅ | `applicant.office_address` — same bug fix |
+| Barangay name | 🗑️ | 🗑️ | **Removed** — confirmed dead (no other document reads `barangay.name`), deleted from the field map, `buildDocumentData()`, and the catalog |
+| Barangay clearance reference | 🗑️ | 🗑️ | **Removed** — same reason |
+| Barangay locality | 🗑️ | 🗑️ | **Removed** — same reason |
 
 ### Loan & Salary Terms
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Guaranteed Net Take-Home Pay | S | ✅ | `loan.gnthp` — staff-entered, wired to UB |
-| Approved loan amount | S | ✅ | `loan_request_data_entries` (staff) |
+| Loan type | M | ✅ | `loan.type` |
+| Approved loan amount | S | ✅ | `loan.approved_amount` |
+| Guaranteed Net Take-Home Pay | S | ✅ | `loan.gnthp` — staff-entered, inline in paragraph 1; now the catalog's `required_fields` (was `barangay_name`/`barangay_clearance_reference`) |
 
-### Witnesses & Notarization
+### Notarization
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Witness 1 name | S | ✅ | `loan_request_data_entries.witness_one_name` |
-| Witness 2 name | S | ✅ | `loan_request_data_entries.witness_two_name` |
-| Notarization fields (doc/page/book/series/place) | S | ✅ | `loan_request_data_entries` |
+| Place of signing | — | ✅ | Not staff data — the notary's own fixed office fact, same source as AU. `notarial.signing_place` |
+| Series year | — | ✅ | Computed from the document date, same as AU. `notarial.series_year` |
+| Document/Page/Book number | — | ❌ | **Not wired, intentionally.** Left blank on the artwork for the notary to fill by hand, same convention as AU |
+
+Witnesses are **not part of this document** — confirmed by direct inspection of
+`UndertakingBarangayPdfFieldMap.php`: no `witness_one_name`/`witness_two_name` entries exist. The
+prior "Witnesses & Notarization" row claiming they were wired was never accurate and has been
+corrected rather than preserved.
 
 ---
 
