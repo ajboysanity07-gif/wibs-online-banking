@@ -1409,6 +1409,14 @@ test('loan request print preview renders blank wet-ink signature areas', functio
 
     $content = $response->getContent();
 
+    // Strip the embedded Calibri font-face payload before the text assertions
+    // below: it is a multi-megabyte base64 blob, and short substrings like
+    // "N/A" turn up in it by pure chance, unrelated to the actual rendered
+    // fields this test is guarding.
+    $content = is_string($content)
+        ? preg_replace('#data:font/ttf;base64,[A-Za-z0-9+/=]+#', 'data:font/ttf;base64,STRIPPED', $content)
+        : $content;
+
     expect($content)->not->toBeFalse();
     expect($loanRequest->fresh()->reviewed_by)->toBe($reviewer->user_id);
     expect($content)->toContain('Loan Manager / Approved By');

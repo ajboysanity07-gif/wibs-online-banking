@@ -50,6 +50,9 @@
     <head>
         <meta charset="utf-8" />
         <title>Disclosure Statement</title>
+        @if (! empty($reportTypography['fontFaceCss'] ?? null))
+            <style>{!! $reportTypography['fontFaceCss'] !!}</style>
+        @endif
         <style>
             @page {
                 size: 8.5in 13in;
@@ -59,7 +62,7 @@
             body {
                 margin: 0;
                 color: #111;
-                font-family: Arial, Helvetica, sans-serif;
+                font-family: "Calibri", Arial, sans-serif;
                 font-size: 8pt;
                 line-height: 1.25;
                 -webkit-print-color-adjust: exact;

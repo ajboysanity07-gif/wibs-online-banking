@@ -66,6 +66,9 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Promissory Note</title>
+        @if (! empty($reportTypography['fontFaceCss'] ?? null))
+            <style>{!! $reportTypography['fontFaceCss'] !!}</style>
+        @endif
         <style>
             @page {
                 size: 8.5in 13in;
@@ -75,7 +78,7 @@
             body {
                 margin: 0;
                 color: #111111;
-                font-family: "Times New Roman", Times, serif;
+                font-family: "Calibri", Arial, sans-serif;
                 font-size: 11pt;
                 line-height: 1.4;
                 -webkit-print-color-adjust: exact;

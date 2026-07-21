@@ -29,7 +29,14 @@ class OrganizationSettingsService
 
     private const DEFAULT_FAVICON_ASSET = 'favicon.ico';
 
-    private const REPORT_FONT_DEFAULT_FAMILY = 'DejaVu Sans';
+    private const REPORT_FONT_DEFAULT_FAMILY = 'Calibri';
+
+    private const REPORT_FONT_EMBED_DIRECTORY = 'fonts/tcpdf';
+
+    private const REPORT_FONT_EMBED_FILES = [
+        400 => 'calibri.z',
+        700 => 'calibrib.z',
+    ];
 
     private const REPORT_FONT_WEIGHT_OPTIONS = [
         300,
@@ -605,6 +612,7 @@ class OrganizationSettingsService
     /**
      * @return array{
      *     googleFontUrl: ?string,
+     *     fontFaceCss: ?string,
      *     label: array{
      *         family: string,
      *         variant: string,
@@ -664,8 +672,55 @@ class OrganizationSettingsService
             $reportTypography['label'],
             $reportTypography['value'],
         ]);
+        $reportTypography['fontFaceCss'] = $this->resolveCalibriFontFaceCss();
 
         return $reportTypography;
+    }
+
+    /**
+     * Blade/Browsershot reports render through headless Chromium, which has no
+     * reason to have the proprietary Calibri font installed on the host OS (unlike
+     * this dev machine, which ships it with Windows). Rather than trust an OS-level
+     * font, embed the same real Calibri font program already used to stamp the
+     * FPDI-overlay documents (AU/AZ/UB/LI/GL) via TCPDF -- see
+     * storage/app/fonts/tcpdf/calibri*.z, gitignored for the same licensing reason
+     * TCPDF's copy is: it must be provisioned locally in every environment, not
+     * committed. Returns null (silent fallback to whatever sans-serif Chromium
+     * substitutes) when that provisioning hasn't happened.
+     */
+    private function resolveCalibriFontFaceCss(): ?string
+    {
+        $faces = [];
+
+        foreach (self::REPORT_FONT_EMBED_FILES as $weight => $filename) {
+            $path = storage_path(
+                'app/'.self::REPORT_FONT_EMBED_DIRECTORY.'/'.$filename,
+            );
+
+            if (! is_file($path)) {
+                return null;
+            }
+
+            $compressed = file_get_contents($path);
+            $fontProgram = $compressed !== false ? @gzuncompress($compressed) : false;
+
+            if (! is_string($fontProgram) || $fontProgram === '') {
+                return null;
+            }
+
+            $faces[] = sprintf(
+                "@font-face {\n"
+                    ."    font-family: 'Calibri';\n"
+                    .'    src: url(data:font/ttf;base64,%s) format(\'truetype\');'."\n"
+                    ."    font-weight: %d;\n"
+                    ."    font-style: normal;\n"
+                    .'}',
+                base64_encode($fontProgram),
+                $weight,
+            );
+        }
+
+        return $faces === [] ? null : implode("\n", $faces);
     }
 
     /**

@@ -339,7 +339,7 @@ test('loan security agreement report keeps printed names and blank signature lin
     ])->render();
 
     expect($html)
-        ->toContain('size: 8.5in 11in;')
+        ->toContain('size: 8.5in 13in;')
         ->toContain('margin: .75in 1in 1in 1in;')
         ->toContain('<span class="agreement-fill">Helario B. Tejero</span>')
         ->toContain('<span class="agreement-fill">Banahao, Lianga, Surigao del Sur</span>')
@@ -376,6 +376,148 @@ test('loan security agreement report keeps printed names and blank signature lin
         ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Borrower</div>'));
     expect(strpos($signatureSection, 'Annabelle M. Amora'))
         ->toBeLessThan(strpos($signatureSection, '<div class="signature-label">Lender</div>'));
+});
+
+test('blade reports use calibri as the font family by default', function () {
+    $branding = app(OrganizationSettingsService::class)->branding();
+
+    $lsaHtml = view('reports.loan-security-agreement', [
+        'organization' => ['company_name' => 'Acme Cooperative'],
+        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_date' => 'May 22, 2026', 'approved_term_label' => '12 months'],
+        'applicant' => ['full_name' => 'Loan Member', 'address' => 'Sample Address', 'signature_data' => null],
+        'reviewer' => ['name' => 'Annabelle M. Amora', 'position' => 'Authorized Representative'],
+        'reportHeader' => ['designData' => null],
+        'reportTypography' => $branding['reportTypography'],
+        'organizationLogoDataUri' => null,
+        'placeOfSigning' => 'Sample City',
+    ])->render();
+
+    $pnHtml = view('reports.promissory-note', [
+        'organization' => ['company_name' => 'Acme Cooperative'],
+        'loan' => [],
+        'applicant' => [],
+        'co_maker_one' => [],
+        'co_maker_two' => [],
+        'reviewer' => [],
+        'reportHeader' => ['designData' => null],
+        'reportTypography' => $branding['reportTypography'],
+        'organizationLogoDataUri' => null,
+    ])->render();
+
+    $ppHtml = view('reports.plan-of-payment', [
+        'organization' => ['company_name' => 'Acme Cooperative'],
+        'loan' => ['amortization_principal_raw' => null],
+        'applicant' => [],
+        'reviewer' => [],
+        'reportHeader' => ['designData' => null],
+        'reportTypography' => $branding['reportTypography'],
+        'organizationLogoDataUri' => null,
+    ])->render();
+
+    $dsHtml = view('reports.disclosure-statement', [
+        'organization' => ['company_name' => 'Acme Cooperative'],
+        'loan' => [],
+        'applicant' => [],
+        'reportHeader' => ['designData' => null],
+        'reportTypography' => $branding['reportTypography'],
+        'organizationLogoDataUri' => null,
+    ])->render();
+
+    expect($lsaHtml)->toContain('font-family: "Calibri", Arial, sans-serif;');
+    expect($pnHtml)->toContain('font-family: "Calibri", Arial, sans-serif;');
+    expect($ppHtml)->toContain('font-family: "Calibri", Arial, sans-serif;');
+    expect($dsHtml)->toContain('font-family: "Calibri", Arial, sans-serif;');
+
+    // The disclosure statement's checkbox brackets are deliberately fixed-width
+    // monospace (a real design need, not an oversight) -- confirmed unchanged.
+    expect($dsHtml)->toContain('.ds-opt .box { font-family: "Courier New", monospace; }');
+});
+
+test('loan security agreement page size is 8.5in by 13in, not letter', function () {
+    $html = view('reports.loan-security-agreement', [
+        'organization' => ['company_name' => 'Acme Cooperative'],
+        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_date' => 'May 22, 2026', 'approved_term_label' => '12 months'],
+        'applicant' => ['full_name' => 'Loan Member', 'address' => 'Sample Address', 'signature_data' => null],
+        'reviewer' => ['name' => 'Annabelle M. Amora', 'position' => 'Authorized Representative'],
+        'reportHeader' => ['designData' => null],
+        'reportTypography' => [],
+        'organizationLogoDataUri' => null,
+        'placeOfSigning' => 'Sample City',
+    ])->render();
+
+    expect($html)
+        ->toContain('size: 8.5in 13in;')
+        ->not->toContain('size: 8.5in 11in;');
+});
+
+test('application form report resolves calibri as the css custom-property default', function () {
+    OrganizationSetting::factory()->create(['company_name' => 'Acme Corp']);
+    $branding = app(OrganizationSettingsService::class)->branding();
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $html = view('reports.loan-request', [
+        'loanRequest' => $loanRequest,
+        'applicant' => [],
+        'coMakerOne' => [],
+        'coMakerTwo' => [],
+        'companyName' => $branding['companyName'],
+        'reportHeader' => $branding['reportHeader'],
+        'reportTypography' => $branding['reportTypography'],
+        'generatedAt' => Carbon::now(),
+    ])->render();
+
+    expect($html)
+        ->toContain('--report-font-value-family: "Calibri", sans-serif;')
+        ->toContain('--report-font-label-family: "Calibri", sans-serif;');
+});
+
+test('blade reports embed the real calibri font program as a standalone style tag, not nested', function () {
+    $branding = app(OrganizationSettingsService::class)->branding();
+
+    expect($branding['reportTypography']['fontFaceCss'])
+        ->not->toBeNull()
+        ->toContain("font-family: 'Calibri'")
+        ->not->toContain('<style>');
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $afHtml = view('reports.loan-request', [
+        'loanRequest' => $loanRequest,
+        'applicant' => [],
+        'coMakerOne' => [],
+        'coMakerTwo' => [],
+        'companyName' => $branding['companyName'],
+        'reportHeader' => $branding['reportHeader'],
+        'reportTypography' => $branding['reportTypography'],
+        'generatedAt' => Carbon::now(),
+    ])->render();
+
+    // The font-face embed is included INSIDE loan-request's existing <style>
+    // block (via the report-typography partial) -- it must never bring its own
+    // <style> wrapper here, or Chromium silently drops the whole block and
+    // falls back to a generic serif font (regressed once, see git history).
+    expect($afHtml)->toContain('@font-face')
+        ->not->toContain('<style><style>');
+
+    $lsaHtml = view('reports.loan-security-agreement', [
+        'organization' => ['company_name' => 'Acme Cooperative'],
+        'loan' => ['type' => 'SALARY LOAN', 'approved_amount' => '25,000.00', 'approved_date' => 'May 22, 2026', 'approved_term_label' => '12 months'],
+        'applicant' => ['full_name' => 'Loan Member', 'address' => 'Sample Address', 'signature_data' => null],
+        'reviewer' => ['name' => 'Annabelle M. Amora', 'position' => 'Authorized Representative'],
+        'reportHeader' => ['designData' => null],
+        'reportTypography' => $branding['reportTypography'],
+        'organizationLogoDataUri' => null,
+        'placeOfSigning' => 'Sample City',
+    ])->render();
+
+    // LSA embeds the font-face as a sibling <style> tag in <head>, since it
+    // does not include the report-typography partial -- it DOES need its own
+    // wrapper here.
+    expect($lsaHtml)->toContain('<style>@font-face');
 });
 
 test('loan payments report renders uploaded header design when available', function () {

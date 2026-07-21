@@ -17,6 +17,7 @@
     $valueSizeTight = max($valueSize - 1, 6);
     $valueSizeTightest = max($valueSize - 1.5, 6);
 @endphp
+{!! $reportTypography['fontFaceCss'] ?? '' !!}
 :root {
     --report-font-label-family: {!! $labelFamily !!};
     --report-font-label-weight: {{ $labelWeight }};

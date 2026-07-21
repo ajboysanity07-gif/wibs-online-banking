@@ -32,7 +32,7 @@ class LoanSecurityAgreementPdfService
 
         $pdf = Pdf::setOption('isPhpEnabled', true)
             ->setOption('isFontSubsettingEnabled', false)
-            ->setPaper('letter', 'portrait')
+            ->setPaper([0, 0, 612, 936], 'portrait')
             ->loadView('reports.loan-security-agreement', $this->buildViewData(
                 $documentData,
             ));
@@ -114,7 +114,7 @@ class LoanSecurityAgreementPdfService
                 null,
                 5000,
             )
-            ->paperSize(8.5, 11, 'in')
+            ->paperSize(8.5, 13, 'in')
             ->margins(0, 0, 0, 0);
 
         if (config('reports.chromium.no_sandbox', true)) {

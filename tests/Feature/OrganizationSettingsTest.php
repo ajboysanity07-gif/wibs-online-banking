@@ -44,7 +44,7 @@ test('branding falls back to defaults when no settings exist', function () {
     expect($branding['reportHeader']['designUrl'])->toBeNull();
     expect($branding['reportHeader']['designData'])->toBeNull();
     expect($branding['reportTypography']['label']['family'])
-        ->toBe('DejaVu Sans');
+        ->toBe('Calibri');
     expect($branding['reportTypography']['label']['color'])->toBeNull();
     expect($branding['reportTypography']['value']['color'])->toBeNull();
     expect($branding['reportTypography']['label']['size'])->toBe(8);
@@ -137,6 +137,19 @@ test('branding uses stored organization settings when available', function () {
         ->toBe('Approved {loan_reference}.');
     expect($branding['communications']['loanSmsTemplates']['declined'])
         ->toBe('Declined {loan_reference}.');
+});
+
+test('custom org font family keeps calibri as a fallback and fetches its own google font', function () {
+    OrganizationSetting::factory()->create([
+        'report_value_font_family' => 'Roboto',
+    ]);
+
+    $branding = app(OrganizationSettingsService::class)->branding();
+
+    expect($branding['reportTypography']['value']['cssFamily'])
+        ->toBe('"Roboto", "Calibri", sans-serif');
+    expect($branding['reportTypography']['googleFontUrl'])
+        ->toContain('family=Roboto');
 });
 
 test('organization setting fillable includes business address fields', function () {
