@@ -2152,6 +2152,25 @@ test('undertaking barangay pdf prints age, civil status, and nationality', funct
         ->toContain('FILIPINO');
 });
 
+test('undertaking barangay pdf spells out the approved amount in words', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    $loanRequest->update(['approved_amount' => 50000]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.undertaking-barangay', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('FIFTY THOUSAND PESOS ONLY')
+        ->toContain('50,000.00');
+});
+
 test('grepalife field map checks health answers when affirmative', function () {
     $fieldMap = new GrepalifePdfFieldMap;
     $fields = collect($fieldMap->fields());
