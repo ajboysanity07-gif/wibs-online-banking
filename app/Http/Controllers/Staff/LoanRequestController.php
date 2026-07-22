@@ -331,6 +331,10 @@ class LoanRequestController extends Controller
         $headers = $document->generated_mime_type !== null
             ? ['Content-Type' => $document->generated_mime_type]
             : [];
+        // Regenerating a document keeps the same URL but changes the file
+        // content, so the response must never be cached -- otherwise staff
+        // can be shown a stale, already-regenerated document.
+        $headers['Cache-Control'] = 'no-store, must-revalidate';
         $downloadName = basename(
             $document->generated_filename ?: $documentKey->label(),
         );

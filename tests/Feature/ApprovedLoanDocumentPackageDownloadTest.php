@@ -2747,6 +2747,16 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
             'route' => 'admin.requests.documents.promissory-note',
             'filename' => 'promissory-note-'.$loanRequest->reference.'.pdf',
             'disposition' => 'attachment',
+            // Was 2 pages: excess whitespace/margins pushed total content past the
+            // page-1 boundary, and page-break-inside:avoid on the signature/witness
+            // tables then rolled those blocks onto an otherwise-empty page 2. Tightened
+            // spacing (and brought @page margins in line with sibling reports) reclaims
+            // enough room to fit on 1 page under the real Chromium driver (verified with
+            // a real Chromium render of this route, realistic co-maker/witness data).
+            // This test forces the 'dompdf' driver (see beforeEach); same dompdf-fallback-
+            // path artifact already documented on 'disclosure-statement' below -- DomPDF's
+            // PHP-based font metrics measure Calibri wider than Chromium's real text-shaping
+            // engine at these tightened margins, spilling onto a 2nd page there only.
             'page_count' => 2,
         ],
         [

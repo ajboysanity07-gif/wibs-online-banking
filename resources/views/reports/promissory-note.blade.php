@@ -72,7 +72,7 @@
         <style>
             @page {
                 size: 8.5in 13in;
-                margin: .75in 1in 1in 1in;
+                margin: .6in .8in .8in .8in;
             }
 
             body {
@@ -80,7 +80,7 @@
                 color: #111111;
                 font-family: "Calibri", Arial, sans-serif;
                 font-size: 11pt;
-                line-height: 1.4;
+                line-height: 1.25;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -90,7 +90,7 @@
             }
 
             .report-header {
-                margin: 0 0 10pt;
+                margin: 0 0 6pt;
                 text-align: center;
             }
 
@@ -103,7 +103,7 @@
             }
 
             .report-header--fallback {
-                padding-bottom: 7pt;
+                padding-bottom: 4pt;
                 text-align: center;
             }
 
@@ -123,7 +123,7 @@
             }
 
             .document-title {
-                margin: 0 0 12pt;
+                margin: 0 0 8pt;
                 font-size: 14pt;
                 font-weight: 700;
                 letter-spacing: 0.04em;
@@ -155,7 +155,7 @@
             }
 
             .note-body {
-                margin: 0 0 10pt;
+                margin: 0 0 4pt;
                 text-align: justify;
             }
 
@@ -174,7 +174,7 @@
             }
 
             .paragraph {
-                margin: 0 0 8pt;
+                margin: 0 0 4pt;
                 text-align: justify;
                 text-indent: 34pt;
             }
@@ -184,13 +184,13 @@
             }
 
             .dishonor-block {
-                margin: 10pt 0 10pt;
+                margin: 5pt 0;
                 font-weight: 700;
                 text-align: justify;
             }
 
             .sign-instruction {
-                margin: 8pt 0 12pt;
+                margin: 3pt 0 5pt;
                 text-align: center;
                 font-style: italic;
                 font-size: 10pt;
@@ -200,7 +200,7 @@
                 width: 100%;
                 border-collapse: separate;
                 table-layout: fixed;
-                margin: 0 0 6pt;
+                margin: 0 0 3pt;
                 page-break-inside: avoid;
             }
 
@@ -216,12 +216,12 @@
 
             .signature-signing-area {
                 position: relative;
-                min-height: 54pt;
+                min-height: 38pt;
             }
 
             .signature-name {
                 min-height: 14pt;
-                padding-top: 34pt;
+                padding-top: 24pt;
                 font-size: 10.5pt;
                 font-weight: 700;
                 text-align: center;
@@ -240,7 +240,7 @@
                 width: 100%;
                 border-collapse: separate;
                 table-layout: fixed;
-                margin: 4pt 0 14pt;
+                margin: 3pt 0 6pt;
             }
 
             .address-column {
@@ -264,11 +264,11 @@
             }
 
             .witness-section {
-                margin: 8pt 0 0;
+                margin: 3pt 0 0;
             }
 
             .witness-instruction {
-                margin: 0 0 6pt;
+                margin: 0 0 3pt;
                 text-align: center;
                 font-size: 10pt;
                 font-style: italic;
@@ -290,7 +290,7 @@
 
             .witness-name {
                 min-height: 14pt;
-                padding-top: 30pt;
+                padding-top: 18pt;
                 font-size: 10.5pt;
                 font-weight: 700;
                 text-align: center;
@@ -332,7 +332,7 @@
 
             <div class="document-title">Promissory Note</div>
 
-            <table class="meta-block" style="float:right; width:auto; margin-bottom:8pt;">
+            <table class="meta-block" style="float:right; width:auto; margin-bottom:6pt;">
                 <tr>
                     <td class="meta-label">Date Granted:</td>
                     <td class="meta-value">{{ $approvedDateShort !== '' ? $approvedDateShort : ' ' }}</td>
