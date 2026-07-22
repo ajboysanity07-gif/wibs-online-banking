@@ -947,95 +947,89 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect($header)->toBeArray();
     expect($header['value'])->toBe('organization.report_header.designPath');
     expect((float) $header['x'])->toBe(18.0);
-    expect((float) $header['y'])->toBe(10.0);
+    expect((float) $header['y'])->toBe(15.0);
     expect((float) $header['width'])->toBe(174.0);
     expect((float) $header['height'])->toBe(18.0);
     // Overrides DocumentSignaturePlacement's default 2x SIGNATURE_SCALE_FACTOR (tuned for
-    // small hand-drawn signature stamps) -- the header must fit its declared box as-is.
-    expect((float) $header['scale'])->toBe(1.0);
+    // small hand-drawn signature stamps) -- the header must fit its declared 174x18mm box
+    // as-is, not be blown up and bleed into the title below it.
+    expect((float) $header['scale'])->toBe(1.5);
 
-    // Table-borders plan, corrected against the real reference document (ce3e961/1682d97):
-    // "Name of Affiant:" sits above the table (unbordered); the table itself is 5 rows,
-    // with Age/Marital Status/Nationality sharing one unified cell (no internal column
-    // borders) -- confirmed by rendering the actual reference .docx and pixel-scanning it,
-    // not inferred from the plan document alone.
+    // Rebuilt artwork pass (commit 060e7a1): applicant/loan fields bumped from regular
+    // 9-10pt to bold 11pt for consistency with the other approved-loan documents.
     $fullName = $find('applicant.full_name');
-    expect((float) $fullName['x'])->toBe(46.5);
-    expect((float) $fullName['y'])->toBe(41.5);
-    expect((int) $fullName['size'])->toBe(10);
+    expect((float) $fullName['x'])->toBe(55.5);
+    expect((float) $fullName['y'])->toBe(62.25);
+    expect((int) $fullName['size'])->toBe(11);
+    expect($fullName['style'] ?? null)->toBe('B');
 
     $age = $find('applicant.age');
-    expect((float) $age['x'])->toBe(26.5);
-    expect((float) $age['y'])->toBe(49.1);
-    expect((int) $age['size'])->toBe(9);
+    expect((float) $age['x'])->toBe(37.5);
+    expect((float) $age['y'])->toBe(69.0);
+    expect((int) $age['size'])->toBe(11);
 
     $civilStatus = $find('applicant.civil_status');
-    expect((float) $civilStatus['x'])->toBe(83.5);
-    expect((float) $civilStatus['y'])->toBe(49.1);
+    expect((float) $civilStatus['x'])->toBe(110.0);
+    expect((float) $civilStatus['y'])->toBe(69.0);
 
     $nationality = $find('applicant.nationality');
-    expect((float) $nationality['x'])->toBe(141.5);
-    expect((float) $nationality['y'])->toBe(49.1);
+    expect((float) $nationality['x'])->toBe(160.0);
+    expect((float) $nationality['y'])->toBe(69.0);
 
     $address = $find('applicant.address');
-    expect((float) $address['x'])->toBe(78.0);
-    expect((float) $address['y'])->toBe(54.5);
-    expect((int) $address['size'])->toBe(8);
+    expect((float) $address['x'])->toBe(92.5);
+    expect((float) $address['y'])->toBe(74.5);
+    expect((int) $address['size'])->toBe(11);
     expect((float) $address['width'])->toBe(113.0);
-    expect((float) $address['line_height'])->toBe(3.0);
 
     $designation = $find('applicant.position_or_designation');
-    expect((float) $designation['x'])->toBe(52.0);
-    expect((float) $designation['y'])->toBe(63.1);
+    expect((float) $designation['x'])->toBe(65.0);
+    expect((float) $designation['y'])->toBe(80.25);
 
     $agency = $find('applicant.employer_or_business');
-    expect((float) $agency['x'])->toBe(32.5);
-    expect((float) $agency['y'])->toBe(68.1);
+    expect((float) $agency['x'])->toBe(42.5);
+    expect((float) $agency['y'])->toBe(86.0);
 
     $officeAddress = $find('applicant.office_address');
-    expect((float) $officeAddress['x'])->toBe(62.0);
-    expect((float) $officeAddress['y'])->toBe(73.5);
+    expect((float) $officeAddress['x'])->toBe(72.5);
+    expect((float) $officeAddress['y'])->toBe(91.75);
     expect((float) $officeAddress['width'])->toBe(129.0);
-    expect((float) $officeAddress['line_height'])->toBe(3.0);
 
-    // Baseline correction pass: TCPDF's Text() y is not the drawn underline's y --
-    // each field shifts up by its own measured baseline offset (2.11/2.10/1.89/1.89/1.90mm)
-    // so the printed value rests on its line instead of floating below/through it,
-    // confirmed by rendering against the real production artwork and rasterizing.
-    // Inline blank inside paragraph 1's sentence, between "...Pay of " and
-    // "(Guaranteed NTHP)" -- shrinks to fit rather than overflowing into the parenthetical
-    // when the approved amount is large.
+    // GNTHP and payout account number sit inline in paragraph 1's rewritten sentence
+    // (Phase 2 artwork) rather than on separate labeled sub-lines -- shrinks to fit rather
+    // than overflowing into the parenthetical when the approved amount is large.
     $gnthp = $find('loan.gnthp');
     expect((float) $gnthp['x'])->toBe(59.0);
-    expect((float) $gnthp['y'])->toBe(120.5);
+    expect((float) $gnthp['y'])->toBe(120.75);
     expect((int) $gnthp['size'])->toBe(11);
     expect((float) $gnthp['width'])->toBe(20.0);
     expect($gnthp['shrink_to_fit'] ?? false)->toBeTrue();
     expect((float) $gnthp['min_size'])->toBe(6.0);
 
+    // Payout account/ATM/bank fields now share a single x=107.5 column.
     $accountNumber = $find('authorization.payout_account_number');
-    expect((float) $accountNumber['x'])->toBe(82.51);
-    expect((float) $accountNumber['y'])->toBe(129.90);
+    expect((float) $accountNumber['x'])->toBe(107.5);
+    expect((float) $accountNumber['y'])->toBe(130.5);
 
     $atmNumber = $find('authorization.payout_atm_number');
-    expect((float) $atmNumber['x'])->toBe(59.14);
-    expect((float) $atmNumber['y'])->toBe(138.11);
+    expect((float) $atmNumber['x'])->toBe(107.5);
+    expect((float) $atmNumber['y'])->toBe(135.5);
 
     $bankName = $find('authorization.payout_bank_name');
-    expect((float) $bankName['x'])->toBe(50.91);
-    expect((float) $bankName['y'])->toBe(146.11);
+    expect((float) $bankName['x'])->toBe(107.5);
+    expect((float) $bankName['y'])->toBe(140.0);
 
     $bankBranch = $find('authorization.payout_bank_branch');
-    expect((float) $bankBranch['x'])->toBe(43.66);
-    expect((float) $bankBranch['y'])->toBe(154.10);
-    expect((int) $bankBranch['size'])->toBe(9);
+    expect((float) $bankBranch['x'])->toBe(107.5);
+    expect((float) $bankBranch['y'])->toBe(145.0);
+    expect((int) $bankBranch['size'])->toBe(11);
 
-    // Signature/Date/Place-of-Signing row: three equal ~50mm columns (x=33/83/133, y=250)
-    // over the artwork's freeform underlines -- coordinates below are remeasured fresh
-    // against the real artwork's content stream, confirmed by rendering and rasterizing.
+    // Signature/Date/Place-of-Signing row: bordered 3-column table (x=18-192, y=252-268),
+    // three equal ~50mm columns (x=33/83/133, y=250.75) -- coordinates remeasured fresh
+    // against the new cell geometry, not reused from the old freeform layout.
     $date = $find('loan.approved_date');
     expect((float) $date['x'])->toBe(83.0);
-    expect((float) $date['y'])->toBe(250.0);
+    expect((float) $date['y'])->toBe(250.75);
     expect((int) $date['size'])->toBe(11);
     expect((float) $date['width'])->toBe(50.0);
 
@@ -1044,7 +1038,7 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     // colliding with the "Place of Signing" caption directly beneath it).
     $signingPlace = $find('notarial.signing_place');
     expect((float) $signingPlace['x'])->toBe(133.0);
-    expect((float) $signingPlace['y'])->toBe(250.0);
+    expect((float) $signingPlace['y'])->toBe(250.75);
     expect((int) $signingPlace['size'])->toBe(11);
     expect((float) $signingPlace['width'])->toBe(50.0);
     expect($signingPlace['shrink_to_fit'] ?? false)->toBeTrue();
@@ -1058,14 +1052,14 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
         ->get(1);
     expect($signatureRowFullName)->toBeArray();
     expect((float) $signatureRowFullName['x'])->toBe(33.0);
-    expect((float) $signatureRowFullName['y'])->toBe(250.0);
+    expect((float) $signatureRowFullName['y'])->toBe(250.75);
     expect((float) $signatureRowFullName['width'])->toBe(50.0);
     expect($signatureRowFullName['shrink_to_fit'] ?? false)->toBeTrue();
     expect((float) $signatureRowFullName['min_size'])->toBe(7.0);
 
     $seriesYear = $find('notarial.series_year');
-    expect((float) $seriesYear['x'])->toBe(34.9);
-    expect((float) $seriesYear['y'])->toBe(321.56);
+    expect((float) $seriesYear['x'])->toBe(42.5);
+    expect((float) $seriesYear['y'])->toBe(300.0);
     expect((int) $seriesYear['size'])->toBe(10);
 });
 
@@ -1157,69 +1151,81 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
 
     $fullName = $find('applicant.full_name');
     $address = $find('applicant.address');
-    $type = $find('loan.type');
-    $amount = $find('loan.approved_amount');
-    $date = $find('loan.approved_date');
-    $company = $find('organization.company_name');
 
-    expect((float) $fullName['x'])->toBe(27.0);
-    expect((float) $fullName['y'])->toBe(42.0);
-    expect((int) $fullName['size'])->toBe(10);
+    expect((float) $fullName['x'])->toBe(55.0);
+    expect((float) $fullName['y'])->toBe(71.0);
+    expect((int) $fullName['size'])->toBe(11);
+    expect($fullName['style'] ?? null)->toBe('B');
 
-    expect((float) $address['x'])->toBe(27.0);
-    expect((float) $address['y'])->toBe(50.0);
-    expect((int) $address['size'])->toBe(8);
+    expect((float) $address['x'])->toBe(92.5);
+    expect((float) $address['y'])->toBe(83.25);
+    expect((int) $address['size'])->toBe(11);
     expect((float) $address['width'])->toBe(160.0);
 
-    expect((float) $type['x'])->toBe(27.0);
-    expect((float) $type['y'])->toBe(62.0);
-    expect((int) $type['size'])->toBe(9);
+    // loan.type and the paragraph-1 organization.company_name line are dead code, removed
+    // in the artwork rebuild (see LoanRequestDocumentCatalog and buildDocumentData()) --
+    // confirm they're gone, not silently broken.
+    expect($findOrNull('loan.type'))->toBeNull();
+    expect($findOrNull('organization.company_name'))->toBeNull();
 
-    // Collision fix: loan.approved_amount keeps the original (107,62) position;
-    // loan.gnthp (below) is the field that moved.
-    expect((float) $amount['x'])->toBe(107.0);
-    expect((float) $amount['y'])->toBe(62.0);
-    expect((int) $amount['size'])->toBe(9);
+    // Paragraph 2's "...in the amount of Pesos: ___ (P ___)" blank -- spelled-out amount
+    // and numeric amount now sit either side of the artwork's baked-in "(P" parenthetical,
+    // both shrinking to fit rather than overflowing into it.
+    $amountWords = $find('loan.approved_amount_words');
+    expect((float) $amountWords['x'])->toBe(94.5);
+    expect((float) $amountWords['y'])->toBe(152.75);
+    expect((int) $amountWords['size'])->toBe(11);
+    expect((float) $amountWords['width'])->toBe(60.0);
+    expect($amountWords['shrink_to_fit'] ?? false)->toBeTrue();
+    expect((float) $amountWords['min_size'])->toBe(6.0);
 
-    expect((float) $date['x'])->toBe(27.0);
-    expect((float) $date['y'])->toBe(72.0);
-    expect((int) $date['size'])->toBe(9);
+    $amount = $find('loan.approved_amount');
+    expect((float) $amount['x'])->toBe(164.0);
+    expect((float) $amount['y'])->toBe(152.75);
+    expect((int) $amount['size'])->toBe(11);
+    expect((float) $amount['width'])->toBe(23.0);
+    expect($amount['shrink_to_fit'] ?? false)->toBeTrue();
+    expect((float) $amount['min_size'])->toBe(6.0);
 
-    expect((float) $company['x'])->toBe(104.0);
-    expect((float) $company['y'])->toBe(72.0);
-    expect((int) $company['size'])->toBe(9);
+    // loan.approved_date's only active entry is now on the signature line (see below) --
+    // the old paragraph-position entry is dead code, removed alongside loan.type/
+    // organization.company_name above.
+    $date = $find('loan.approved_date');
+    expect((float) $date['x'])->toBe(85.0);
+    expect((float) $date['y'])->toBe(205.0);
 
-    // Age/Civil Status/Nationality -- new fields, occupying the space vacated by the
-    // three removed barangay.name/clearance_reference/locality entries.
+    // Age/Civil Status/Nationality -- new row occupying the space vacated by the three
+    // dead barangay.* fields (removed, see LoanRequestDocumentCatalog and
+    // buildDocumentData()).
     $age = $find('applicant.age');
-    expect((float) $age['x'])->toBe(27.0);
-    expect((float) $age['y'])->toBe(86.0);
-    expect((int) $age['size'])->toBe(9);
+    expect((float) $age['x'])->toBe(37.0);
+    expect((float) $age['y'])->toBe(77.5);
+    expect((int) $age['size'])->toBe(11);
 
     $civilStatus = $find('applicant.civil_status');
-    expect((float) $civilStatus['x'])->toBe(88.0);
-    expect((float) $civilStatus['y'])->toBe(86.0);
+    expect((float) $civilStatus['x'])->toBe(110.0);
+    expect((float) $civilStatus['y'])->toBe(77.5);
 
     $nationality = $find('applicant.nationality');
-    expect((float) $nationality['x'])->toBe(148.0);
-    expect((float) $nationality['y'])->toBe(86.0);
+    expect((float) $nationality['x'])->toBe(158.0);
+    expect((float) $nationality['y'])->toBe(77.5);
 
     // Designation/Agency/Agency Address now source from the applicant's own employment
-    // record (bug fix) -- position unchanged from the original barangay.* entries.
+    // record (bug fix), position unchanged from the original barangay.* entries.
     $designation = $find('applicant.position_or_designation');
-    expect((float) $designation['x'])->toBe(27.0);
-    expect((float) $designation['y'])->toBe(106.0);
-    expect((int) $designation['size'])->toBe(9);
+    expect((float) $designation['x'])->toBe(65.0);
+    expect((float) $designation['y'])->toBe(88.75);
+    expect((int) $designation['size'])->toBe(11);
 
     $agencyName = $find('applicant.employer_or_business');
-    expect((float) $agencyName['x'])->toBe(27.0);
-    expect((float) $agencyName['y'])->toBe(114.0);
-    expect((int) $agencyName['size'])->toBe(9);
+    expect((float) $agencyName['x'])->toBe(42.5);
+    expect((float) $agencyName['y'])->toBe(94.5);
+    expect((int) $agencyName['size'])->toBe(11);
 
     $agencyAddress = $find('applicant.office_address');
-    expect((float) $agencyAddress['x'])->toBe(27.0);
-    expect((float) $agencyAddress['y'])->toBe(122.0);
-    expect((int) $agencyAddress['size'])->toBe(8);
+    expect((float) $agencyAddress['x'])->toBe(72.5);
+    expect((float) $agencyAddress['y'])->toBe(100.25);
+    expect((int) $agencyAddress['size'])->toBe(11);
     expect((float) $agencyAddress['width'])->toBe(160.0);
 
     // Dead fields confirmed removed.
@@ -1230,12 +1236,14 @@ test('undertaking barangay field map pins all field coordinates to calibrated va
     expect($findOrNull('barangay.agency_name'))->toBeNull();
     expect($findOrNull('barangay.agency_address'))->toBeNull();
 
-    // GNTHP moved off the collision -- now inline in paragraph 1, a new position distinct
-    // from loan.approved_amount's (107,62).
+    // GNTHP sits inline in paragraph 1, off its old collision with loan.approved_amount
+    // at (107,62) -- a new position distinct from both amount fields above.
     $gnthp = $find('loan.gnthp');
-    expect((float) $gnthp['x'])->not->toBe(107.0);
-    expect((float) $gnthp['y'])->not->toBe(62.0);
+    expect((float) $gnthp['x'])->toBe(62.5);
+    expect((float) $gnthp['y'])->toBe(133.75);
+    expect((float) $gnthp['width'])->toBe(33.0);
     expect((bool) $gnthp['shrink_to_fit'])->toBeTrue();
+    expect((float) $gnthp['min_size'])->toBe(6.0);
 
     // Signature/notarial block -- new fields, new positions.
     $signatureName = $fields->first(

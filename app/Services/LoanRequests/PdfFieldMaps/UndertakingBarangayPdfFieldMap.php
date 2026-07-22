@@ -38,28 +38,10 @@ class UndertakingBarangayPdfFieldMap implements ApprovedLoanPdfFieldMap
                 'width' => 160,
                 'value' => 'applicant.address',
             ],
-            // [
-            //     'page' => 1,
-            //     'x' => 27,
-            //     'y' => 86,
-            //     'size' => 11,
-            //     'value' => 'loan.type',
-            // ],
-
-            // [
-            //     'page' => 1,
-            //     'x' => 27,
-            //     'y' => 72,
-            //     'size' => 11,
-            //     'value' => 'loan.approved_date',
-            // ],
-            // [
-            //     'page' => 1,
-            //     'x' => 104,
-            //     'y' => 72,
-            //     'size' => 11,
-            //     'value' => 'organization.company_name',
-            // ],
+            // loan.type, the old-position loan.approved_date, and organization.company_name
+            // were dropped here in the artwork rebuild (loan.approved_date now lives only
+            // on the signature line below; loan.type and organization.company_name have no
+            // remaining slot in the rewritten paragraph text).
             // Age/Civil Status/Nationality -- new row occupying the space vacated by the
             // three dead barangay.* fields (removed, see LoanRequestDocumentCatalog and
             // buildDocumentData()). Column boundaries: 27-82, 88-142, 148-196.
