@@ -1,10 +1,14 @@
 <?php
 
+use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestDataEntry;
+use App\Models\LoanRequestPerson;
 use App\Models\Role;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
@@ -156,6 +160,106 @@ test('processing update rejects the removed doc/page/book/series/valid-id notari
         ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
         ->assertStatus(422)
         ->assertJsonValidationErrors(['processing']);
+});
+
+/**
+ * Regression guard for the Charges & Fees "did not appear populated after
+ * reload" investigation: confirmed via a real Playwright browser session
+ * (typed input -> outgoing PATCH payload -> save response -> hard reload)
+ * that the current code round-trips correctly. This pins that behavior at
+ * three layers so a future regression can't silently reintroduce it: the
+ * save response, a subsequent full-page reload, and the raw DB rows,
+ * bypassing every serializer.
+ */
+test('processing update round-trips all Charges & Fees fields through save response, reload, and raw database', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950006');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $chargesAndFees = [
+        'service_charge_rate' => '0.02',
+        'insurance_rate' => '0.01',
+        'insurance_term' => '12',
+        'loan_security_rate' => '0.01',
+        'savings_rate' => '0.03',
+        'documentary_stamp_rate' => '0.015',
+        'notarial_fee' => '500',
+        'penalty_rate_per_month' => '0.02',
+    ];
+
+    // Mirrors the full 14-key payload buildInlineProcessingPayload() sends
+    // from the real "Processing details" form, not just the 8 fields under
+    // test, so this exercises the exact shape the frontend submits.
+    $payload = [
+        'reason' => 'Regression test save',
+        'information_source' => 'Automated regression test',
+        'loan_request' => [],
+        'processing' => [
+            ...$chargesAndFees,
+            'notarial_venue' => null,
+            'witness_one_name' => null,
+            'witness_two_name' => null,
+            'barangay_official_name' => null,
+            'barangay_official_title' => null,
+            'guaranteed_net_take_home_pay' => '21333.34',
+        ],
+        'recommended_amount' => null,
+        'recommended_term' => null,
+        'recommended_interest_rate' => null,
+        'recommended_payment_frequency' => null,
+        'recommendation_remarks' => null,
+    ];
+
+    $expectedInsuranceTerm = (int) $chargesAndFees['insurance_term'];
+
+    $saveResponse = $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertOk();
+
+    foreach ($chargesAndFees as $field => $value) {
+        $expected = $field === 'insurance_term' ? $expectedInsuranceTerm : $value;
+
+        $saveResponse->assertJsonPath("data.dataSections.processing.{$field}", $expected);
+    }
+
+    $reloadResponse = $this
+        ->actingAs($processor)
+        ->get(route('staff.loan-requests.show', $loanRequest))
+        ->assertOk();
+
+    $reloadResponse->assertInertia(function (Assert $page) use ($chargesAndFees, $expectedInsuranceTerm): void {
+        foreach ($chargesAndFees as $field => $value) {
+            $expected = $field === 'insurance_term' ? $expectedInsuranceTerm : $value;
+
+            $page->where("dataSections.processing.{$field}", $expected);
+        }
+    });
+
+    $rawEntries = LoanRequestDataEntry::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->whereIn('field_key', array_keys($chargesAndFees))
+        ->get()
+        ->keyBy('field_key');
+
+    foreach ($chargesAndFees as $field => $value) {
+        $expected = $field === 'insurance_term' ? $expectedInsuranceTerm : $value;
+
+        expect($rawEntries->get($field))
+            ->not->toBeNull()
+            ->and($rawEntries->get($field)->value_json['value'] ?? null)->toBe($expected);
+    }
 });
 
 /**

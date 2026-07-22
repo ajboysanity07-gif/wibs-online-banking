@@ -26,6 +26,16 @@ class ApprovedLoanPdfTemplateService
      */
     private const DEFAULT_FONT = 'calibri';
 
+    /**
+     * Every non-core font a field map might reference via 'font' => '...'.
+     * Registered up front so SetFont() never falls back to TCPDF's own
+     * filename-guessing search (which die()s on a miss -- see
+     * assertFontStyleAvailable()).
+     */
+    private const CUSTOM_FONTS = ['calibri', 'georgia'];
+
+    private const CORE_FONTS = ['helvetica', 'times', 'courier', 'zapfdingbats'];
+
     public function __construct(
         private DocumentSignaturePlacement $signaturePlacement,
     ) {}
@@ -597,16 +607,18 @@ class ApprovedLoanPdfTemplateService
 
     private function registerCustomFonts(Fpdi $pdf): void
     {
-        $this->registerCustomFontStyle($pdf, '');
-        $this->registerCustomFontStyle($pdf, 'B');
+        foreach (self::CUSTOM_FONTS as $font) {
+            $this->registerCustomFontStyle($pdf, $font, '');
+            $this->registerCustomFontStyle($pdf, $font, 'B');
+        }
     }
 
-    private function registerCustomFontStyle(Fpdi $pdf, string $style): void
+    private function registerCustomFontStyle(Fpdi $pdf, string $font, string $style): void
     {
-        $fontDefinitionPath = $this->customFontDefinitionPath($style);
+        $fontDefinitionPath = $this->customFontDefinitionPath($font, $style);
 
         if (is_file($fontDefinitionPath)) {
-            $pdf->AddFont(self::DEFAULT_FONT, $style, $fontDefinitionPath);
+            $pdf->AddFont($font, $style, $fontDefinitionPath);
         }
     }
 
@@ -619,11 +631,11 @@ class ApprovedLoanPdfTemplateService
      */
     private function assertFontStyleAvailable(string $font, string $style): void
     {
-        if ($font !== self::DEFAULT_FONT) {
+        if (in_array($font, self::CORE_FONTS, true)) {
             return;
         }
 
-        $fontDefinitionPath = $this->customFontDefinitionPath($style);
+        $fontDefinitionPath = $this->customFontDefinitionPath($font, $style);
 
         if (! is_file($fontDefinitionPath)) {
             throw new RuntimeException(sprintf(
@@ -635,10 +647,10 @@ class ApprovedLoanPdfTemplateService
         }
     }
 
-    private function customFontDefinitionPath(string $style): string
+    private function customFontDefinitionPath(string $font, string $style): string
     {
         return storage_path(
-            'app/'.self::CUSTOM_FONT_DIRECTORY.'/'.self::DEFAULT_FONT.strtolower($style).'.php',
+            'app/'.self::CUSTOM_FONT_DIRECTORY.'/'.$font.strtolower($style).'.php',
         );
     }
 }

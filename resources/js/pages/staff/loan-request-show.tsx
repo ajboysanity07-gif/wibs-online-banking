@@ -957,6 +957,8 @@ export default function StaffLoanRequestShow({
                     recommended_term: processingForm.recommended_term || null,
                     recommended_interest_rate:
                         processingForm.recommended_interest_rate || null,
+                    recommended_payment_frequency:
+                        processingForm.recommended_payment_frequency || null,
                     service_charge_rate: numericProcessingFieldValue(
                         processingForm.processing.service_charge_rate,
                     ),

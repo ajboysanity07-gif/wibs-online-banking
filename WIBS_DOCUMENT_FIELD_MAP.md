@@ -33,7 +33,7 @@
 | 2 | GL | Grepalife / Sun Life | PDF field map | PDF |
 | 3 | AU | Affidavit of Undertaking | PDF field map | PDF |
 | 4 | AZ | Authorization | PDF field map | PDF |
-| 5 | LI | Loan Information | Blade/PDF service | PDF |
+| 5 | LI | Loan Information | PDF field map | PDF |
 | 6 | PP | Plan of Payment | PDF service class | PDF |
 | 7 | DS | Disclosure Statement | Blade template | PDF (Browsershot/DomPDF) |
 | 8 | PN | Promissory Note | Blade template | PDF (Browsershot) ⚠️ not yet visually verified |
@@ -365,38 +365,76 @@ corrected in place (confirmed by direct inspection of `AuthorizationPdfFieldMap.
 
 ## 5 — Loan Information (LI)
 
-**Blade/PDF service · Converted to PDF**
+**PDF field map · Converted from Blade/Browsershot/DomPDF (`LoanInformationPdfService`, deleted
+2026-07-20) to the FPDI-overlay pattern shared with AU/AZ/UB/GL — static base artwork stamped via
+`LoanInformationPdfFieldMap`. See `LOAN_INFORMATION_FPDI_CONVERSION_PLAN.md` for the full
+investigation/conversion history (coordinate map, font/embedding notes, phase breakdown).**
 
-### Borrower Header
+> **Known cosmetic defect, deliberately deprioritized (2026-07-19):** Section 2's
+> "BORROWER & LOAN DETAILS" header prints twice in the base artwork. Not fixed as part of the
+> FPDI conversion — tracked as a future artwork-fix item, not silently dropped.
 
-| Field | Who | Status | App source |
-|-------|-----|--------|------------|
-| Full name | M | ✅ | `loan_request_people` (borrower) |
-| Address | M | ✅ | `loan_request_data_entries` |
-| Loan purpose | M | ✅ | `loan_requests.loan_purpose` |
-
-### Financial Terms (Staff-entered)
-
-| Field | Who | Status | App source |
-|-------|-----|--------|------------|
-| Approved loan amount | S | ✅ | `loan_request_data_entries` (staff) |
-| Interest rate (per annum) | S | ✅ | `loan_request_data_entries` (staff) |
-| Term (months) | S | ✅ | `loan_request_data_entries` (staff) |
-| Service charge rate | S | ✅ | `loan_request_data_entries` (staff) |
-| Insurance rate | S | ✅ | `loan_request_data_entries` (staff) |
-| Insurance term (max 12) | S | ✅ | `loan_request_data_entries` (staff) |
-| Penalty per month | S | ✅ | `loan_request_data_entries` (staff) |
-| Notarial fee | S | ✅ | `loan_request_data_entries` (staff) |
-| Mode of payment | S | ✅ | `loan_request_data_entries` (staff) |
-| Kind of loan | S | ✅ | `loan_request_data_entries` (staff) |
-
-### Approval Details
+### Section 1 — Borrower & Loan Details
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Recommended by + date | S | ✅ | `loan_requests.recommended_by` + `recommended_at` |
-| Approved by + date | S | ✅ | `loan_requests.approved_by` → `adminProfile→fullname` (fixed Phase 1) |
-| Application status | S | ✅ | `loan_requests.status` |
+| Full name | M | ✅ | `applicant.full_name` |
+| Address | M | ✅ | `applicant.address` |
+| Employer / business | M | ✅ | `applicant.employer_or_business` |
+| Position / designation | M | ✅ | `applicant.position_or_designation` — same path AU already stamps |
+| Loan type | S | ✅ | `loan.type` |
+| Approved loan amount | S | ✅ | `loan.approved_amount_raw` |
+| Interest rate (per annum) | S | ✅ | `loan.interest_rate_raw` |
+| Term (months) | S | ✅ | `loan.approved_term_raw` |
+| Mode of payment | S | ✅ | `loan.payment_mode_workbook` |
+| Loan Manager | S | ✅ | `reviewer.name` — confirmed live-wired (not stale, unlike DS's situation before commit `0d9d2a3`) |
+
+### Section 2 — Deductions / Computed Amounts
+
+| Field | Who | Status | App source |
+|-------|-----|--------|------------|
+| Service charge | SYS | ✅ | `loan.service_charge_amount_raw` |
+| Insurance premium | SYS | ✅ | `loan.insurance_premium_raw` |
+| Loan security | SYS | ✅ | `loan.loan_security_amount_raw` |
+| Documentary stamp | SYS | ✅ | `loan.documentary_stamp_amount_raw` |
+| Notarial fee | S | ✅ | `loan.notarial_fee_raw` |
+
+### Section 3 — Monthly Amortization
+
+| Field | Who | Status | App source |
+|-------|-----|--------|------------|
+| Principal | SYS | ✅ | `loan.amortization_principal_raw` |
+| Interest | SYS | ✅ | `loan.amortization_interest_raw` |
+| Savings | SYS | ✅ | `loan.amortization_loan_security_raw` — **deliberate:** the artwork's "Savings" label is a wording choice, not a relabel; it reuses the same figure the legacy Blade's third amortization row read. Do **not** repoint this to the newer, unrelated `loan.savings_rate_raw` field just because the label says "Savings" |
+| Total | SYS | ✅ | `loan.amortization_total_raw` |
+
+### Section 4 — Promissory Note Details
+
+| Field | Who | Status | App source |
+|-------|-----|--------|------------|
+| Co-maker 1 full name | M | ✅ | `co_maker_one.full_name` |
+| Co-maker 1 address | M | ✅ | `co_maker_one.address` |
+| Co-maker 2 full name | M | ✅ | `co_maker_two.full_name` |
+| Co-maker 2 address | M | ✅ | `co_maker_two.address` |
+| Term (months) | S | ✅ | `loan.approved_term_raw` |
+| Loan amount | S | ✅ | `loan.approved_amount_raw` |
+| Interest rate | S | ✅ | `loan.interest_rate_raw` |
+| Payable Every | S | ✅ | `loan.payment_mode_workbook` — **deliberate:** the legacy Blade had no field by this name at all (Section 4 is an artwork-only addition); intentionally restates Section 1's Mode of Payment, same source, no separate formatting |
+| No. of amortizations | SYS | ✅ | `loan.amortization_count` |
+| Penalty rate | S | ✅ | `loan.penalty_rate_raw` |
+
+### Section 5 — Signatories
+
+| Field | Who | Status | App source |
+|-------|-----|--------|------------|
+| Certified Correct (name + role) | FIXED | ✅ | Hardcoded `"VELINA P. GAMUTAN, BOOKKEEPER"` (single inline line) — **deliberate:** matches Disclosure Statement's commit `0d9d2a3` precedent for cross-document consistency, even though `reviewer.name`/`reviewer.position` are properly wired here (unlike DS at the time). Inline "Name, ROLE" rather than DS's stacked two-line block — this artwork's Certified Correct row is a single ~6mm baked-in line; a second line collided with the ruled divider above "Witnessed By". Do not "fix" to live reviewer fields or split to two lines without re-verifying visually |
+| Witnessed By | S | ✅ | `reviewer.witness_one_name` — **deliberate: single-source only.** The assigned processor's auto-filled `witness_one_name` (`LoanRequestProcessingService::updateProcessingDetails()`), matching the legacy Blade's `$witness1` usage. Do not use `witness_two_name` or concatenate both |
+| Approved By | S | ✅ | `reviewer.name` — same value as "Loan Manager" above; intentional reuse, matching the legacy Blade's existing pattern of reusing `$certifierName` for multiple signature slots |
+
+> Two blank Calibri text runs near y=313/316mm on the artwork are intentionally **not** wired —
+> confirmed (Phase 2, visual inspection of the raw unstamped artwork) to be leftover empty design-tool
+> text frames with no visible ruled line, caption, or blank space, unlike AU/UB's notarization blocks
+> which always show a "Doc No./Page No./Book No." caption. Not a notarization slot.
 
 ---
 
@@ -687,7 +725,7 @@ corrected rather than preserved.
 | GL | PDF (field map) | PDF | ✅ Done |
 | AU | PDF (field map) | PDF | ✅ Done — rebuilt from the real reference doc, no known wiring gaps |
 | AZ | PDF (field map) | PDF | ✅ Done (wiring gaps remain) |
-| LI | PDF (Blade/service) | PDF | ✅ Done |
+| LI | PDF (field map) | PDF | ✅ Done — converted from Blade/service to FPDI-overlay field map 2026-07-20; legacy `LoanInformationPdfService`/blade view deleted |
 | PP | PDF (service class) | PDF | ✅ Done |
 | DS | PDF (Blade) | PDF | ✅ Done (EIR rows blank — open item) |
 | PN | PDF (Blade) | PDF | ⚠️ Code done — **visual verification required** |
@@ -696,4 +734,4 @@ corrected rather than preserved.
 
 ---
 
-*Last updated: 2026-07-14 — feature branch `feature/rbac-loan-workflow`*
+*Last updated: 2026-07-20 — feature branch `feature/rbac-loan-workflow`*

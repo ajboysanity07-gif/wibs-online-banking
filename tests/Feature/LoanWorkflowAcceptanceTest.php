@@ -517,8 +517,16 @@ test('manager approval rolls back completely when document regeneration fails', 
         ->whereIn('document_key', ['loan_information', 'promissory_note'])
         ->pluck('generated_version', 'document_key');
 
-    $viewPath = resource_path('views/reports/loan-information.blade.php');
-    $brokenViewPath = resource_path('views/reports/loan-information.blade.php.broken-for-test');
+    // Injects a document-regeneration failure via promissory_note's Blade view rather than
+    // loan_information's -- loan-information.blade.php is no longer read by the pipeline
+    // since the FPDI conversion (see LOAN_INFORMATION_FPDI_CONVERSION_PLAN.md), and its FPDI
+    // replacement fails a different way: a missing base artwork file is caught by a
+    // preflight template-existence check and returns a controlled 422, not the 500 this test
+    // needs to exercise the transactional-rollback path. promissory_note is still
+    // Blade-rendered, so the same "move the view away" injection still produces a raw
+    // rendering exception.
+    $viewPath = resource_path('views/reports/promissory-note.blade.php');
+    $brokenViewPath = resource_path('views/reports/promissory-note.blade.php.broken-for-test');
 
     File::move($viewPath, $brokenViewPath);
 

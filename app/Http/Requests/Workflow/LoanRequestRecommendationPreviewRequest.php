@@ -28,6 +28,7 @@ class LoanRequestRecommendationPreviewRequest extends FormRequest
             'recommended_amount' => ['sometimes', 'nullable', 'numeric', 'min:1'],
             'recommended_term' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:360'],
             'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', 'in:Weekly,15th,30th,15th & 30th,Bi-Weekly,Monthly'],
             'service_charge_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'insurance_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'insurance_term' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:360'],

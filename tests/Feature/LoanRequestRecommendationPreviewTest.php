@@ -121,6 +121,49 @@ test('non-monthly frequency converts the suggested GNTHP using the x30/14 bi-wee
     expect($response->json('data.failure_information'))->toBeNull();
 });
 
+test('unsaved recommended_payment_frequency override is used instead of the persisted DB value', function (): void {
+    $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
+    $member = previewCreateActor([Role::MEMBER], '950108');
+
+    // Persisted frequency is MONTHLY; the request below overrides it to
+    // BI-WEEKLY, simulating an unsaved dropdown change on the staff screen.
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'recommended_payment_frequency' => 'Monthly',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $response = $this
+        ->actingAs($processor)
+        ->postJson(
+            route('spa.workflow.loan-requests.processing-details.preview', $loanRequest),
+            [
+                ...previewChargesOverridePayload(),
+                'recommended_payment_frequency' => 'Bi-Weekly',
+            ],
+        )
+        ->assertOk();
+
+    // net proceeds does not depend on payment frequency, so it matches the
+    // MONTHLY-frequency happy-path case exactly.
+    $this->assertEqualsWithDelta(13662.5, $response->json('data.net_proceeds_raw'), 0.01);
+
+    // If the stale persisted MONTHLY value were used instead of the BI-WEEKLY
+    // override, this would equal the MONTHLY case's 12125.0 rather than the
+    // BI-WEEKLY case's 12156.6 (see the two happy-path tests above).
+    $this->assertEqualsWithDelta(12156.6, $response->json('data.suggested_gnthp_raw'), 0.01);
+
+    $loanRequest->refresh();
+    expect($loanRequest->recommended_payment_frequency)->toBe('Monthly');
+});
+
 test('preview never persists POSTed override values to the database', function (): void {
     $processor = previewCreateActor([Role::LOAN_PROCESSOR]);
     $member = previewCreateActor([Role::MEMBER], '950103');

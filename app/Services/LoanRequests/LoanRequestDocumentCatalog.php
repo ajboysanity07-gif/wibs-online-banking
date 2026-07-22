@@ -125,7 +125,7 @@ class LoanRequestDocumentCatalog
             'requires_financials' => false,
         ],
         'authorization' => [
-            'template_version' => 'authorization-v3',
+            'template_version' => 'authorization-v4',
             'applicability' => 'always',
             'required_fields' => [
                 'payout_account_number',
@@ -152,7 +152,7 @@ class LoanRequestDocumentCatalog
             'requires_financials' => false,
         ],
         'loan_information' => [
-            'template_version' => 'loan-information-workbook-v2',
+            'template_version' => 'loan-information-pdf-v1',
             'applicability' => 'always',
             'required_fields' => [
                 'service_charge_rate',
@@ -186,8 +186,8 @@ class LoanRequestDocumentCatalog
             ],
             'template_files' => [
                 [
-                    'path' => 'storage/app/templates/approved-loan-documents/excel/plan-of-payment-disclosure-promissory-note.xlsx',
-                    'description' => 'Workbook template for loan information',
+                    'path' => 'storage/app/templates/approved-loan-documents/pdf/loan information sheet.pdf',
+                    'description' => 'Loan Information Sheet PDF template',
                 ],
             ],
             'requires_financials' => true,

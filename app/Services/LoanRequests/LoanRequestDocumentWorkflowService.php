@@ -687,9 +687,9 @@ class LoanRequestDocumentWorkflowService
      *
      * @param  array<string, mixed>  $overrideInput  Validated POSTed values:
      *                                               recommended_amount, recommended_term, recommended_interest_rate,
-     *                                               service_charge_rate, insurance_rate, insurance_term,
-     *                                               loan_security_rate, savings_rate, documentary_stamp_rate, notarial_fee,
-     *                                               penalty_rate_per_month.
+     *                                               recommended_payment_frequency, service_charge_rate, insurance_rate,
+     *                                               insurance_term, loan_security_rate, savings_rate, documentary_stamp_rate,
+     *                                               notarial_fee, penalty_rate_per_month.
      * @return array{
      *     net_proceeds_raw: float|int|null,
      *     suggested_gnthp_raw: float|null,
@@ -710,7 +710,8 @@ class LoanRequestDocumentWorkflowService
         $workingLoanRequest->approved_amount = $overrideInput['recommended_amount'] ?? null;
         $workingLoanRequest->approved_term = $overrideInput['recommended_term'] ?? null;
         $workingLoanRequest->approved_interest_rate = $overrideInput['recommended_interest_rate'] ?? null;
-        $workingLoanRequest->recommended_payment_frequency = $loanRequest->recommended_payment_frequency;
+        $workingLoanRequest->recommended_payment_frequency = $overrideInput['recommended_payment_frequency']
+            ?? $loanRequest->recommended_payment_frequency;
         $workingLoanRequest->reviewed_at = $loanRequest->reviewed_at
             ?? $loanRequest->updated_at
             ?? now();

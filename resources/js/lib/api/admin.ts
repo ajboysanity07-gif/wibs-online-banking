@@ -220,6 +220,7 @@ type LoanRequestRecommendationPreviewPayload = {
     recommended_amount?: number | string | null;
     recommended_term?: number | string | null;
     recommended_interest_rate?: number | string | null;
+    recommended_payment_frequency?: string | null;
     service_charge_rate?: number | string | null;
     insurance_rate?: number | string | null;
     insurance_term?: number | string | null;

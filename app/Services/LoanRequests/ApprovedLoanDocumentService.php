@@ -11,6 +11,7 @@ use App\Models\Wmaster;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
 use App\Support\PersonName;
@@ -45,6 +46,7 @@ class ApprovedLoanDocumentService
         'undertaking_barangay' => 'undertaking-barangay-officials.pdf',
         'affidavit_undertaking' => 'affidavit-undertaking.pdf',
         'authorization' => 'authorization.pdf',
+        'loan_information' => 'loan information sheet.pdf',
     ];
 
     /**
@@ -93,9 +95,9 @@ class ApprovedLoanDocumentService
         private UndertakingBarangayPdfFieldMap $undertakingBarangayPdfFieldMap,
         private AffidavitUndertakingPdfFieldMap $affidavitUndertakingPdfFieldMap,
         private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
+        private LoanInformationPdfFieldMap $loanInformationPdfFieldMap,
         private PromissoryNotePdfService $promissoryNotePdfService,
         private PlanOfPaymentPdfService $planOfPaymentPdfService,
-        private LoanInformationPdfService $loanInformationPdfService,
         private DisclosureStatementPdfService $disclosureStatementPdfService,
     ) {}
 
@@ -233,7 +235,12 @@ class ApprovedLoanDocumentService
             'loan_information',
             'application/pdf',
             function (string $outputPath, array $documentData): void {
-                $this->loanInformationPdfService->generate($outputPath, $documentData);
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['loan_information'],
+                    $outputPath,
+                    $documentData,
+                    $this->loanInformationPdfFieldMap,
+                );
             },
         );
     }
@@ -308,9 +315,11 @@ class ApprovedLoanDocumentService
                 $documentData,
                 $this->authorizationPdfFieldMap,
             );
-            $this->loanInformationPdfService->generate(
+            $this->approvedLoanPdfTemplateService->generate(
+                self::PDF_TEMPLATE_FILENAMES['loan_information'],
                 $loanInformationPath,
                 $documentData,
+                $this->loanInformationPdfFieldMap,
             );
             $this->planOfPaymentPdfService->generate(
                 $planOfPaymentPath,
@@ -460,7 +469,12 @@ class ApprovedLoanDocumentService
                 $outputPath,
                 $documentKey,
                 function (string $path) use ($documentData): void {
-                    $this->loanInformationPdfService->generate($path, $documentData);
+                    $this->approvedLoanPdfTemplateService->generate(
+                        self::PDF_TEMPLATE_FILENAMES['loan_information'],
+                        $path,
+                        $documentData,
+                        $this->loanInformationPdfFieldMap,
+                    );
                 },
             ),
             LoanRequestDocumentKey::DisclosureStatement => $this->generatePdfDocumentToPath(
@@ -793,6 +807,10 @@ class ApprovedLoanDocumentService
         $gnthp = $gnthpFormatted !== null ? '₱'.$gnthpFormatted : null;
         $loanSecurityAmountFormatted = $this->formatCurrencyValue($loanSecurityAmountRaw);
         $loanSecurityAmount = $loanSecurityAmountFormatted !== null ? '₱'.$loanSecurityAmountFormatted : null;
+        // AZ's own artwork bakes "(Php. ___)" as static text (matching the real reference
+        // document), so its inline blank needs the bare number -- not the same ₱-prefixed
+        // string AU/UB stamp inline, since those documents don't print a "Php." label first.
+        $loanSecurityAmountPlain = $loanSecurityAmountFormatted;
         $witnessOneName = $this->normalizeText(
             $overrideReviewer['witness_one_name'] ?? null,
         ) ?? $this->normalizeText($flatValues['witness_one_name'] ?? null);
@@ -880,6 +898,7 @@ class ApprovedLoanDocumentService
                 'insurance_premium_raw' => $insurancePremiumRaw,
                 'loan_security_amount_raw' => $loanSecurityAmountRaw,
                 'loan_security_amount' => $loanSecurityAmount,
+                'loan_security_amount_plain' => $loanSecurityAmountPlain,
                 'documentary_stamp_amount_raw' => $documentaryStampAmountRaw,
                 'notarial_fee_raw' => $notarialFeeRaw,
                 'finance_charge_total_raw' => $financeChargeTotalRaw,

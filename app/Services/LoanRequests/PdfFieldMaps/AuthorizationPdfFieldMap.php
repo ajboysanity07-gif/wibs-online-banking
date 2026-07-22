@@ -10,94 +10,73 @@ class AuthorizationPdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'page' => 1,
                 'type' => 'image',
-                'x' => 18,
-                'y' => 10,
-                'width' => 174,
-                'height' => 14,
-                'scale' => 1.5,
+                'x' => 20,
+                'y' => 12,
+                'width' => 176,
+                'height' => 20,
+                'scale' => 1.0,
                 'value' => 'organization.report_header.designPath',
             ],
+            // Inline blanks in paragraph 1 -- coordinates captured live from the artwork
+            // builder script at generation time (build_authorization_artwork.php,
+            // throwaway/not committed, see the rebuild commit message), not guessed
+            // against the rendered PDF after the fact. The "amount in words" blank ahead
+            // of this one has no data source and is left for hand-fill, same convention
+            // as AU/UB's notary-filled blanks.
             [
                 'page' => 1,
-                'x' => 26,
-                'y' => 38,
-                'size' => 10,
-                'value' => 'applicant.full_name',
+                'x' => 83.18,
+                'y' => 80.5,
+                'size' => 11,
+                'style' => 'B',
+                'width' => 34,
+                'shrink_to_fit' => true,
+                'min_size' => 7.0,
+                'value' => 'loan.loan_security_amount_plain',
             ],
             [
                 'page' => 1,
-                'x' => 26,
-                'y' => 46,
-                'size' => 8,
-                'width' => 162,
-                'line_height' => 4,
-                'value' => 'applicant.address',
+                'x' => 25.4,
+                'y' => 87.0,
+                'size' => 11,
+                'style' => 'B',
+                'width' => 52,
+                'shrink_to_fit' => true,
+                'min_size' => 7.0,
+                'value' => 'authorization.payout_atm_holder_name',
             ],
             [
                 'page' => 1,
-                'x' => 26,
-                'y' => 58,
-                'size' => 9,
-                'value' => 'loan.reference',
-            ],
-            // Repointed from loan.approved_amount -- the real reference paragraph says
-            // "...credit the loan security of my loan in the amount of ___", which is the
-            // loan security deduction, not the raw approved principal. Position unchanged.
-            [
-                'page' => 1,
-                'x' => 88,
-                'y' => 58,
-                'size' => 9,
-                'value' => 'loan.loan_security_amount',
-            ],
-            [
-                'page' => 1,
-                'x' => 138,
-                'y' => 58,
-                'size' => 9,
-                'value' => 'loan.approved_date',
-            ],
-            [
-                'page' => 1,
-                'x' => 26,
-                'y' => 68,
-                'size' => 9,
-                'value' => 'organization.company_name',
-            ],
-            // authorization.release_method (CONFIRMED DEAD) and authorization.payout_bank_name
-            // (bank name is now static artwork text -- "Enterprise Bank, Inc." is MRDINC's
-            // fixed partner bank, not a per-loan data field) are intentionally not wired here.
-            [
-                'page' => 1,
-                'x' => 26,
-                'y' => 110,
-                'size' => 9,
+                'x' => 121.32,
+                'y' => 87.0,
+                'size' => 11,
+                'style' => 'B',
+                'width' => 38,
+                'shrink_to_fit' => true,
+                'min_size' => 7.0,
                 'value' => 'authorization.payout_account_number',
             ],
             [
                 'page' => 1,
-                'x' => 26,
-                'y' => 118,
-                'size' => 9,
+                'x' => 58.75,
+                'y' => 93.5,
+                'size' => 11,
+                'style' => 'B',
+                'width' => 38,
+                'shrink_to_fit' => true,
+                'min_size' => 7.0,
                 'value' => 'authorization.payout_bank_branch',
             ],
+            // Signature block -- values print above the underline strokes drawn in the
+            // artwork (y=132 Borrower, y=180 ATM Card Holder). ~5mm clearance mirrors the
+            // same class of fix already applied on AU/UB's own signature lines.
             [
                 'page' => 1,
-                'x' => 26,
-                'y' => 126,
-                'size' => 9,
-                'value' => 'authorization.payout_atm_holder_name',
-            ],
-            // Signature block -- values print above the underline strokes drawn at y=150
-            // and y=195 in the artwork. y offset of -4.2mm from the line confirmed by real
-            // rendering (mirrors the same fix applied to UndertakingBarangayPdfFieldMap).
-            [
-                'page' => 1,
-                'x' => 20,
-                'y' => 145.8,
-                'size' => 10,
+                'x' => 45.4,
+                'y' => 127.0,
+                'size' => 11,
                 'style' => 'B',
-                'width' => 70,
+                'width' => 65,
                 'align' => 'C',
                 'shrink_to_fit' => true,
                 'min_size' => 7.0,
@@ -105,11 +84,11 @@ class AuthorizationPdfFieldMap implements ApprovedLoanPdfFieldMap
             ],
             [
                 'page' => 1,
-                'x' => 20,
-                'y' => 190.8,
-                'size' => 10,
+                'x' => 95.4,
+                'y' => 175.0,
+                'size' => 11,
                 'style' => 'B',
-                'width' => 70,
+                'width' => 65,
                 'align' => 'C',
                 'shrink_to_fit' => true,
                 'min_size' => 7.0,

@@ -15,6 +15,7 @@ use App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -23,10 +24,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing as WorksheetDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -35,12 +34,7 @@ use setasign\Fpdi\Fpdi;
 beforeEach(function () {
     config()->set('reports.pdf_driver', 'dompdf');
     approvedLoanDocumentsEnsureWmasterTable();
-    approvedLoanDocumentsBackupTemplateFilesForTests();
     approvedLoanDocumentsSeedTemplateFilesForTests();
-});
-
-afterEach(function () {
-    approvedLoanDocumentsRestoreTemplateFilesAfterTests();
 });
 
 function approvedLoanDocumentsEnsureWmasterTable(): void
@@ -469,12 +463,28 @@ test('loan information pdf includes borrower financial and approval values', fun
     $text = approvedLoanDocumentsExtractPdfText($response);
     $searchable = strtoupper(str_replace(' ', '', $text));
 
+    // Title text is baked into the base artwork PDF, not stamped by the field map (and, in
+    // tests, into the synthetic bold-title placeholder template -- see
+    // approvedLoanDocumentsCreateTemplatePdf()). It's not something this pipeline controls,
+    // so it isn't asserted here; only field-map-stamped values are.
+    //
+    // The organization/company name is likewise not asserted: like
+    // AffidavitUndertakingPdfFieldMap (the closest structural analog -- both artworks have a
+    // header logo *image* box), LoanInformationPdfFieldMap only stamps the header image, with
+    // no text fallback when no header design is configured. The old Blade pipeline printed
+    // the company name as a text fallback in that case, but the FPDI pattern doesn't
+    // replicate that anywhere in this codebase (see LOAN_INFORMATION_FPDI_CONVERSION_PLAN.md).
+    // "Certified Correct" is deliberately hardcoded to match Disclosure Statement's
+    // precedent (commit 0d9d2a3), not sourced from reviewer.name -- see
+    // LOAN_INFORMATION_FPDI_CONVERSION_PLAN.md §3. Role is appended inline on the same
+    // line ("Name, BOOKKEEPER"), not a stacked second line like DS -- see the field-map
+    // comment on this entry.
     expect($searchable)
-        ->toContain('LOANINFORMATION')
         ->toContain('HELARIOB.TEJERO')
         ->toContain('ANNABELLEM.AMORA')
-        ->toContain('ACMECOOPERATIVE')
-        ->toContain('25,000.00');
+        ->toContain('25,000.00')
+        ->toContain('VELINAP.GAMUTAN')
+        ->toContain('BOOKKEEPER');
 });
 
 test('disclosure statement route returns a pdf not xlsx', function () {
@@ -1069,61 +1079,58 @@ test('authorization field map pins all field coordinates to calibrated values', 
         fn (array $f): bool => ($f['value'] ?? null) === $value,
     );
 
-    $fullName = $find('applicant.full_name');
-    $address = $find('applicant.address');
-    $reference = $find('loan.reference');
-    $amount = $find('loan.loan_security_amount');
-    $date = $find('loan.approved_date');
-    $company = $find('organization.company_name');
+    // Visual-fidelity rebuild against the real reference document: the reference is a
+    // single Letter-size (8.5x11in) paragraph letter with no identification table at all
+    // (no separate full_name/address/loan.reference/approved_date/company_name lines) --
+    // those five fields are gone, not repositioned.
+    foreach ([
+        'applicant.address', 'loan.reference', 'loan.approved_amount',
+        'loan.loan_security_amount', 'loan.approved_date', 'organization.company_name',
+        'authorization.release_method', 'authorization.payout_bank_name',
+    ] as $droppedValue) {
+        expect($findOrNull($droppedValue))->toBeNull();
+    }
 
-    expect((float) $fullName['x'])->toBe(26.0);
-    expect((float) $fullName['y'])->toBe(38.0);
-    expect((int) $fullName['size'])->toBe(10);
+    $header = $fields->first(fn (array $f): bool => ($f['type'] ?? null) === 'image');
+    expect($header)->not->toBeNull();
+    expect($header['value'])->toBe('organization.report_header.designPath');
+    // Header box is as generous as AU/LI's, so it takes their scale convention rather
+    // than UB's 1.5 (tuned for UB's much tighter 14mm box).
+    expect((float) $header['scale'])->toBe(1.0);
 
-    expect((float) $address['x'])->toBe(26.0);
-    expect((float) $address['y'])->toBe(46.0);
-    expect((int) $address['size'])->toBe(8);
-    expect((float) $address['width'])->toBe(162.0);
+    // Inline blanks in paragraph 1 -- "Php." is baked as static artwork text, so the
+    // stamped value must be the bare formatted number, not the ₱-prefixed string AU/UB
+    // use for their own inline blanks.
+    $amount = $find('loan.loan_security_amount_plain');
+    expect((float) $amount['x'])->toBe(83.18);
+    expect((float) $amount['y'])->toBe(80.5);
+    // No explicit font -- falls through to ApprovedLoanPdfTemplateService::DEFAULT_FONT
+    // (calibri), matching AU/UB/LI's convention.
+    expect($amount['font'] ?? null)->toBeNull();
+    expect($amount['shrink_to_fit'] ?? false)->toBeTrue();
 
-    expect((float) $reference['x'])->toBe(26.0);
-    expect((float) $reference['y'])->toBe(58.0);
-    expect((int) $reference['size'])->toBe(9);
-
-    // Repointed from loan.approved_amount -- position unchanged (108,58 -> now the loan
-    // security amount, not the raw approved principal).
-    expect((float) $amount['x'])->toBe(88.0);
-    expect((float) $amount['y'])->toBe(58.0);
-    expect((int) $amount['size'])->toBe(9);
-
-    expect((float) $date['x'])->toBe(138.0);
-    expect((float) $date['y'])->toBe(58.0);
-    expect((int) $date['size'])->toBe(9);
-
-    expect((float) $company['x'])->toBe(26.0);
-    expect((float) $company['y'])->toBe(68.0);
-    expect((int) $company['size'])->toBe(9);
+    $accountHolder = $find('authorization.payout_atm_holder_name');
+    // payout_atm_holder_name is wired twice: once as the inline "to the account of ___"
+    // blank, once on the ATM Card Holder signature line below -- confirm both exist and
+    // are distinct positions, not the same entry appearing once.
+    $accountHolderEntries = $fields->filter(
+        fn (array $f): bool => ($f['value'] ?? null) === 'authorization.payout_atm_holder_name',
+    );
+    expect($accountHolderEntries)->toHaveCount(2);
+    expect($accountHolderEntries->pluck('y')->unique())->toHaveCount(2);
+    expect((float) $accountHolder['x'])->toBe(25.4);
+    expect((float) $accountHolder['y'])->toBe(87.0);
 
     $accountNumber = $find('authorization.payout_account_number');
-    expect((float) $accountNumber['x'])->toBe(26.0);
-    expect((float) $accountNumber['y'])->toBe(110.0);
-    expect((int) $accountNumber['size'])->toBe(9);
+    expect((float) $accountNumber['x'])->toBe(121.32);
+    expect((float) $accountNumber['y'])->toBe(87.0);
 
     $bankBranch = $find('authorization.payout_bank_branch');
-    expect((float) $bankBranch['x'])->toBe(26.0);
-    expect((float) $bankBranch['y'])->toBe(118.0);
-    expect((int) $bankBranch['size'])->toBe(9);
+    expect((float) $bankBranch['x'])->toBe(58.75);
+    expect((float) $bankBranch['y'])->toBe(93.5);
 
-    $atmHolderName = $find('authorization.payout_atm_holder_name');
-    expect((float) $atmHolderName['x'])->toBe(26.0);
-    expect((float) $atmHolderName['y'])->toBe(126.0);
-    expect((int) $atmHolderName['size'])->toBe(9);
-
-    // Dead/converted-to-static fields confirmed removed.
-    expect($findOrNull('loan.approved_amount'))->toBeNull();
-    expect($findOrNull('authorization.release_method'))->toBeNull();
-    expect($findOrNull('authorization.payout_bank_name'))->toBeNull();
-
-    // Signature block -- new fields, new positions, distinct from each other.
+    // Signature block -- Borrower (applicant.full_name) and ATM Card Holder
+    // (authorization.payout_atm_holder_name), distinct centered positions.
     $signatures = $fields->filter(
         fn (array $f): bool => ($f['align'] ?? null) === 'C'
             && in_array($f['value'] ?? null, ['applicant.full_name', 'authorization.payout_atm_holder_name'], true),
@@ -1131,9 +1138,11 @@ test('authorization field map pins all field coordinates to calibrated values', 
     expect($signatures)->toHaveCount(2);
     expect($signatures->pluck('y')->unique())->toHaveCount(2);
 
-    $header = $fields->first(fn (array $f): bool => ($f['type'] ?? null) === 'image');
-    expect($header)->not->toBeNull();
-    expect($header['value'])->toBe('organization.report_header.designPath');
+    $borrowerSignature = $fields->first(
+        fn (array $f): bool => ($f['value'] ?? null) === 'applicant.full_name',
+    );
+    expect((float) $borrowerSignature['x'])->toBe(45.4);
+    expect((float) $borrowerSignature['y'])->toBe(127.0);
 });
 
 test('undertaking barangay field map pins all field coordinates to calibrated values', function () {
@@ -1562,6 +1571,115 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     expect((float) $healthHospitalization['y'])->toBe(183.0);
 });
 
+test('loan information field map pins all field coordinates and resolves the deliberate data-source decisions', function () {
+    $fields = collect((new LoanInformationPdfFieldMap)->fields());
+
+    // Every field's y is unique and baseline-corrected against the real artwork (Phase 2
+    // calibration) -- find by y rather than by 'value', since several fields use a closure
+    // (money/percent/integer formatting) rather than a plain documentData path string.
+    $findByY = fn (float $y): array => $fields->first(
+        fn (array $f): bool => abs((float) ($f['y'] ?? -1) - $y) < 0.001,
+    );
+
+    // Mirrors ApprovedLoanPdfTemplateService::resolveValue() -- a closure is called with
+    // documentData, a string is a data_get() path, anything else passes through as-is.
+    $resolve = function (mixed $resolver, array $documentData): mixed {
+        if (is_callable($resolver)) {
+            return $resolver($documentData);
+        }
+
+        return is_string($resolver) ? data_get($documentData, $resolver) : $resolver;
+    };
+
+    $header = $fields->first(fn (array $f): bool => ($f['type'] ?? null) === 'image');
+    expect($header)->toBeArray();
+    expect($header['value'])->toBe('organization.report_header.designPath');
+    expect((float) $header['x'])->toBe(18.0);
+    expect((float) $header['y'])->toBe(10.0);
+    expect((float) $header['width'])->toBe(174.0);
+    expect((float) $header['height'])->toBe(24.0);
+
+    $fullName = $findByY(55.25);
+    expect($fullName['value'])->toBe('applicant.full_name');
+    expect((int) $fullName['size'])->toBe(9);
+    expect($fullName['shrink_to_fit'] ?? false)->toBeTrue();
+
+    $address = $findByY(61.23);
+    expect($address['value'])->toBe('applicant.address');
+    expect($address['shrink_to_fit'] ?? false)->toBeTrue();
+
+    $employer = $findByY(67.21);
+    expect($employer['value'])->toBe('applicant.employer_or_business');
+    expect($employer['shrink_to_fit'] ?? false)->toBeTrue();
+
+    // Resolved decision: reuses the same path AffidavitUndertakingPdfFieldMap already
+    // stamps, not a new field -- see LOAN_INFORMATION_FPDI_CONVERSION_PLAN.md §3.
+    $position = $findByY(73.19);
+    expect($position['value'])->toBe('applicant.position_or_designation');
+
+    $loanManager = $findByY(109.06);
+    expect($loanManager['value'])->toBe('reviewer.name');
+
+    // Resolved decision: "Payable Every" (Section 4) intentionally restates "Mode of
+    // Payment" (Section 1) -- same source, same literal value, no separate formatting.
+    $modeOfPayment = $findByY(103.08);
+    $payableEvery = $findByY(263.15);
+    expect($modeOfPayment['value'])->toBe('loan.payment_mode_workbook');
+    expect($payableEvery['value'])->toBe('loan.payment_mode_workbook');
+
+    $documentData = [
+        'loan' => [
+            'approved_amount_raw' => 25000.0,
+            'interest_rate_raw' => 0.36,
+            'amortization_loan_security_raw' => 20.83,
+            'savings_rate_raw' => 999999.99,
+            'penalty_rate_raw' => 0.05,
+        ],
+    ];
+
+    // Resolved decision: the "Savings" row is an artwork wording choice, not a genuine
+    // relabel -- it must read the SAME figure the current Blade's third amortization row
+    // already reads (loan.amortization_loan_security_raw), never the newer, independent
+    // loan.savings_rate_raw (commit b3c7e0f). Asserting the resolved VALUE, not just the
+    // field's 'value' path, so this test fails loudly if that path is ever swapped.
+    $savingsRow = $findByY(197.70);
+    expect($resolve($savingsRow['value'], $documentData))->toBe('20.83');
+
+    $loanApproved = $findByY(85.15);
+    expect($resolve($loanApproved['value'], $documentData))->toBe('25,000.00');
+
+    $interestRate = $findByY(91.12);
+    expect($resolve($interestRate['value'], $documentData))->toBe('36.00%');
+
+    $penaltyPerMonth = $findByY(275.11);
+    expect($resolve($penaltyPerMonth['value'], $documentData))->toBe('5.00%');
+
+    // Resolved decision (explicit, deliberate): hardcoded to match Disclosure Statement's
+    // commit 0d9d2a3 precedent exactly, even though reviewer.name/position are properly
+    // wired here (unlike DS at the time) -- a cross-document consistency choice, not an
+    // oversight. Must never be "fixed" to use the live reviewer fields.
+    //
+    // Role is appended inline ("Name, ROLE"), not stacked on a second line like DS's
+    // block -- confirmed (2026-07-20) that a second line collides with the ruled divider
+    // above "Witnessed By" in this artwork's tighter row spacing.
+    $certifiedCorrect = $findByY(291.78);
+    expect($resolve($certifiedCorrect['value'], []))->toBe('VELINA P. GAMUTAN, BOOKKEEPER');
+    expect((string) $certifiedCorrect['style'])->toBe('B');
+
+    // Resolved decision: single-source field only -- witness_one_name, never
+    // witness_two_name or a concatenation of both.
+    $witnessedBy = $findByY(297.76);
+    expect($witnessedBy['value'])->toBe('reviewer.witness_one_name');
+    expect($fields->contains(fn (array $f): bool => ($f['value'] ?? null) === 'reviewer.witness_two_name'))->toBeFalse();
+
+    $approvedBy = $findByY(303.74);
+    expect($approvedBy['value'])->toBe('reviewer.name');
+
+    // The two blank Calibri runs (y=313.11/316.49mm in the artwork) are resolved as having
+    // no visual footprint (Phase 2) and must stay permanently unwired.
+    expect($fields->contains(fn (array $f): bool => abs((float) ($f['y'] ?? -1) - 313.11) < 1.0))->toBeFalse();
+});
+
 test('affidavit undertaking pdf prints payout bank details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -1848,6 +1966,51 @@ test('affidavit undertaking pdf omits the header image gracefully when unconfigu
     $response = $this
         ->actingAs($admin)
         ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+
+    expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(0);
+});
+
+test('loan information pdf includes the org report header image when configured', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $headerPath = 'branding/report-headers/test-header.png';
+    Storage::disk('public')->put($headerPath, testPngSignatureBinary('one'));
+
+    OrganizationSetting::factory()->create([
+        'report_header_design_path' => $headerPath,
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.loan-information', $loanRequest));
+
+    $response->assertOk();
+
+    expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBeGreaterThan(0);
+});
+
+test('loan information pdf omits the header image gracefully when unconfigured', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    OrganizationSetting::factory()->create([
+        'report_header_design_path' => null,
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.loan-information', $loanRequest));
 
     $response->assertOk();
 
@@ -2401,39 +2564,6 @@ test('grepalife image templates fall back to the public template root directory'
     }
 });
 
-test('template directory backup helpers preserve grepalife public image files', function () {
-    $sourceDirectory = storage_path(
-        'app/testing-backups/approved-loan-documents-public-source',
-    );
-    $backupDirectory = storage_path(
-        'app/testing-backups/approved-loan-documents-public-source-backup',
-    );
-    $imagePath = $sourceDirectory.DIRECTORY_SEPARATOR.'images'.DIRECTORY_SEPARATOR.'grepalife-page-1.png';
-
-    File::deleteDirectory($sourceDirectory);
-    File::deleteDirectory($backupDirectory);
-    File::ensureDirectoryExists(dirname($imagePath));
-    File::put($imagePath, 'public-grepalife-template-image');
-
-    approvedLoanDocumentsBackupDirectoryForTests(
-        $sourceDirectory,
-        $backupDirectory,
-    );
-
-    File::delete($imagePath);
-
-    approvedLoanDocumentsRestoreDirectoryForTests(
-        $sourceDirectory,
-        $backupDirectory,
-    );
-
-    expect(File::exists($imagePath))->toBeTrue();
-    expect(File::get($imagePath))->toBe('public-grepalife-template-image');
-
-    File::deleteDirectory($sourceDirectory);
-    File::deleteDirectory($backupDirectory);
-});
-
 test('loan manager on document reflects the actual approver name', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -2511,10 +2641,14 @@ test('witnesses on document use stored data entries rather than manager name', f
     $text = approvedLoanDocumentsExtractPdfText($response);
     $searchable = strtoupper(str_replace(' ', '', $text));
 
+    // The artwork's "Witnessed By" is a single slot (unlike the old Blade template's two-
+    // column witness table) -- LoanInformationPdfFieldMap deliberately stamps only
+    // witness_one_name, never witness_two_name or a concatenation of both. See
+    // LOAN_INFORMATION_FPDI_CONVERSION_PLAN.md §3.
     expect($searchable)
         ->toContain('MARIAAPPROVINGMANAGER')
         ->toContain('WITNESSALPHA')
-        ->toContain('WITNESSBETA');
+        ->not->toContain('WITNESSBETA');
 });
 
 /**
@@ -3503,80 +3637,6 @@ function approvedLoanDocumentsExpectedWorksheetPrintAreaRange(
 }
 
 /**
- * @return array{startColumn: string, endColumn: string, startRow: int, endRow: int}
- */
-function approvedLoanDocumentsExpectedLoanInformationBorderRange(
-    Worksheet $worksheet,
-): array {
-    return [
-        'startColumn' => 'A',
-        'endColumn' => 'H',
-        'startRow' => 6,
-        'endRow' => $worksheet->getHighestRow(),
-    ];
-}
-
-/**
- * @param  array{startColumn: string, endColumn: string, startRow: int, endRow: int}  $borderRange
- */
-function approvedLoanDocumentsAssertWorksheetOuterBorder(
-    Worksheet $worksheet,
-    array $borderRange,
-): void {
-    for ($row = $borderRange['startRow']; $row <= $borderRange['endRow']; $row++) {
-        approvedLoanDocumentsAssertBorderEdge(
-            $worksheet,
-            $borderRange['startColumn'].$row,
-            'left',
-        );
-        approvedLoanDocumentsAssertBorderEdge(
-            $worksheet,
-            $borderRange['endColumn'].$row,
-            'right',
-        );
-    }
-
-    $startColumnIndex = Coordinate::columnIndexFromString(
-        $borderRange['startColumn'],
-    );
-    $endColumnIndex = Coordinate::columnIndexFromString(
-        $borderRange['endColumn'],
-    );
-
-    for ($column = $startColumnIndex; $column <= $endColumnIndex; $column++) {
-        $coordinate = Coordinate::stringFromColumnIndex($column);
-
-        approvedLoanDocumentsAssertBorderEdge(
-            $worksheet,
-            $coordinate.$borderRange['startRow'],
-            'top',
-        );
-        approvedLoanDocumentsAssertBorderEdge(
-            $worksheet,
-            $coordinate.$borderRange['endRow'],
-            'bottom',
-        );
-    }
-}
-
-function approvedLoanDocumentsAssertBorderEdge(
-    Worksheet $worksheet,
-    string $coordinate,
-    string $edge,
-): void {
-    $borders = $worksheet->getStyle($coordinate)->getBorders();
-    $border = match ($edge) {
-        'left' => $borders->getLeft(),
-        'right' => $borders->getRight(),
-        'top' => $borders->getTop(),
-        'bottom' => $borders->getBottom(),
-    };
-
-    expect($border->getBorderStyle())->toBe(Border::BORDER_MEDIUM);
-    expect(strtoupper((string) $border->getColor()->getRGB()))->toBe('000000');
-}
-
-/**
  * @return array{startColumn: string, endColumn: string}|null
  */
 function approvedLoanDocumentsUsedColumnRange(
@@ -3780,11 +3840,9 @@ function approvedLoanDocumentsCreateTemplatePdf(
 function approvedLoanDocumentsSeedTemplateFilesForTests(): void
 {
     $templateDirectory = approvedLoanDocumentsTemplateDirectory();
-    $excelDirectory = $templateDirectory.DIRECTORY_SEPARATOR.'excel';
     $pdfDirectory = $templateDirectory.DIRECTORY_SEPARATOR.'pdf';
 
     File::ensureDirectoryExists($templateDirectory);
-    File::ensureDirectoryExists($excelDirectory);
     File::ensureDirectoryExists($pdfDirectory);
     approvedLoanDocumentsSeedGrepalifeTemplateImagesForTests();
 
@@ -3828,261 +3886,15 @@ function approvedLoanDocumentsSeedTemplateFilesForTests(): void
     approvedLoanDocumentsCreateTemplatePdf(
         $pdfDirectory.DIRECTORY_SEPARATOR.'authorization.pdf',
         [
-            ['width' => 216.0, 'height' => 330.0, 'title' => 'Authorization'],
+            ['width' => 215.9, 'height' => 279.4, 'title' => 'Authorization'],
         ],
     );
-
-    $spreadsheet = new Spreadsheet;
-    $loanInformationSheet = $spreadsheet->getActiveSheet();
-    $loanInformationSheet->setTitle('Loan Information');
-    $loanInformationSheet->setCellValue('A5', 'LOAN INFORMATION SHEET');
-    $loanInformationSheet->mergeCells('A5:I5');
-    $loanInformationSheet->setCellValue('A6', 'A. FOR DISCLOSURE STATEMENT');
-    $loanInformationSheet->setCellValue('C7', 'SAMPLE BORROWER');
-    $loanInformationSheet->setCellValue('F7', 'SAMPLE EMPLOYER');
-    $loanInformationSheet->setCellValue('H7', 'Input Data');
-    $loanInformationSheet->setCellValue('C8', 'SAMPLE ADDRESS');
-    $loanInformationSheet->setCellValue('H8', 'Input Data');
-    $loanInformationSheet->setCellValue('C9', 99999);
-    $loanInformationSheet->setCellValue('H9', 'Input Data');
-    $loanInformationSheet->setCellValue('C10', 0.36);
-    $loanInformationSheet->setCellValue('H10', 'Input Data');
-    $loanInformationSheet->setCellValue('C11', 10);
-    $loanInformationSheet->setCellValue('H11', 'Input Data');
-    $loanInformationSheet->setCellValue('C12', 0.05);
-    $loanInformationSheet->setCellValue('H12', 'Input Data');
-    $loanInformationSheet->setCellValue('C13', '=C9*C10/12*C11');
-    $loanInformationSheet->setCellValue('H13', 'No Input Data');
-    $loanInformationSheet->setCellValue('C14', 'SAMPLE CERTIFIER');
-    $loanInformationSheet->setCellValue('C15', 'SAMPLE POSITION');
-    $loanInformationSheet->setCellValue('C16', 'SAMPLE LOAN');
-    $loanInformationSheet->setCellValue('C17', 'MONTHLY');
-    $loanInformationSheet->setCellValue('D17', 'Input Data');
-    $loanInformationSheet->setCellValue('E17', 10);
-    $loanInformationSheet->setCellValue('H17', 'Input Data');
-    $loanInformationSheet->setCellValue('C18', 'SAMPLE MANAGER');
-    $loanInformationSheet->setCellValue('C19', 10);
-    $loanInformationSheet->setCellValue('C20', 1);
-    $loanInformationSheet->setCellValue('C21', '=C9*C12');
-    $loanInformationSheet->setCellValue('E21', 'DO NOT INPUT ANYTHING');
-    $loanInformationSheet->setCellValue('C22', '=C9/1000*C19*C20');
-    $loanInformationSheet->setCellValue('E22', 'DO NOT INPUT ANYTHING');
-    $loanInformationSheet->setCellValue('C23', '=C9*2%');
-    $loanInformationSheet->setCellValue('E23', 'DO NOT INPUT ANYTHING');
-    $loanInformationSheet->setCellValue('C24', '=C9*1.5/200');
-    $loanInformationSheet->setCellValue('E24', 'DO NOT INPUT ANYTHING');
-    $loanInformationSheet->setCellValue('C25', 100);
-    $loanInformationSheet->setCellValue('E25', 'DO NOT INPUT ANYTHING');
-    $loanInformationSheet->setCellValue('C27', '=C9/E17');
-    $loanInformationSheet->setCellValue('H27', 'No Input Data');
-    $loanInformationSheet->setCellValue('C28', '=C13/E17');
-    $loanInformationSheet->setCellValue('H28', 'No Input Data');
-    $loanInformationSheet->setCellValue('C29', '=C27*2%');
-    $loanInformationSheet->setCellValue('H29', 'No Input Data');
-    $loanInformationSheet->setCellValue('C30', '=SUM(C27:C29)');
-    $loanInformationSheet->setCellValue('H30', 'No Input Data');
-    $loanInformationSheet->setCellValue('C32', 'SAMPLE CO-MAKER 1');
-    $loanInformationSheet->setCellValue('H32', 'Input Data');
-    $loanInformationSheet->setCellValue('C33', 'SAMPLE CO-MAKER 2');
-    $loanInformationSheet->setCellValue('H33', 'Input Data');
-    $loanInformationSheet->setCellValue('C34', 'SAMPLE CO-MAKER 1 ADDRESS');
-    $loanInformationSheet->setCellValue('H34', 'Input Data');
-    $loanInformationSheet->setCellValue('C35', 'SAMPLE CO-MAKER 2 ADDRESS');
-    $loanInformationSheet->setCellValue('H35', 'Input Data');
-    $loanInformationSheet->setCellValue('C36', 300);
-    $loanInformationSheet->setCellValue('H36', 'No Input Data');
-    $loanInformationSheet->setCellValue('C37', 'SAMPLE AMOUNT IN WORDS');
-    $loanInformationSheet->setCellValue('H37', 'Input Data');
-    $loanInformationSheet->setCellValue('C38', 'SAMPLE RATE WORDS');
-    $loanInformationSheet->setCellValue('H38', 'Input Data');
-    $loanInformationSheet->setCellValue('C39', 'MONTHLY');
-    $loanInformationSheet->setCellValue('H39', 'Input Data');
-    $loanInformationSheet->setCellValue('C40', '=E17');
-    $loanInformationSheet->setCellValue('H40', 'No Input Data');
-    $loanInformationSheet->setCellValue('C41', 0.05);
-    $loanInformationSheet->setCellValue('H41', 'Input Data');
-    $loanInformationSheet->setCellValue('C42', 'SAMPLE WITNESS ONE');
-    $loanInformationSheet->setCellValue('H42', 'Input Data');
-    $loanInformationSheet->setCellValue('C43', 'SAMPLE WITNESS TWO');
-    $loanInformationSheet->setCellValue('H43', 'Input Data');
-
-    $planSheet = $spreadsheet->createSheet();
-    $planSheet->setTitle('Plan of Payment');
-    $planSheet->setCellValue('G6', 'Date');
-    $planSheet->mergeCells('G6:I6');
-    $planSheet->setCellValue('B8', 'PLAN OF PAYMENT');
-    $planSheet->mergeCells('B8:H8');
-    $planSheet->setCellValue('A9', 'Name');
-    $planSheet->setCellValue('C9', ':');
-    $planSheet->mergeCells('D9:G9');
-    $planSheet->setCellValue('D9', "='Loan Information'!C7");
-    $planSheet->setCellValue('A10', 'Address');
-    $planSheet->setCellValue('C10', ':');
-    $planSheet->mergeCells('D10:G10');
-    $planSheet->setCellValue('D10', "='Loan Information'!C8");
-    $planSheet->setCellValue('A11', 'Amount of Loan');
-    $planSheet->setCellValue('C11', ':');
-    $planSheet->setCellValue('D11', "='Loan Information'!C9");
-    $planSheet->setCellValue('A12', 'Kind of Loan');
-    $planSheet->setCellValue('C12', ':');
-    $planSheet->mergeCells('D12:G12');
-    $planSheet->setCellValue('D12', "='Loan Information'!C16");
-    $planSheet->setCellValue('B14', 'MODE OF PAYMENT');
-    $planSheet->mergeCells('B14:H14');
-    $planSheet->setCellValue('B15', "='Loan Information'!C17");
-    $planSheet->mergeCells('B15:H15');
-    $planSheet->setCellValue('D17', "='Loan Information'!C27");
-    $planSheet->setCellValue('D18', "='Loan Information'!C28");
-    $planSheet->setCellValue('D19', "='Loan Information'!C29");
-    $planSheet->setCellValue('D20', "='Loan Information'!C30");
-    $planSheet->setCellValue('C22', '01/01/2025');
-    $planSheet->setCellValue('G22', '12/31/2025');
-    $planSheet->mergeCells('G22:H22');
-    $planSheet->setCellValue('A25', 'CONFORME:');
-    $planSheet->setCellValue('F25', 'APPROVED:');
-    $planSheet->setCellValue('B27', 'Sample Q Member');
-    $planSheet->setCellValue('G27', '0');
-    $planSheet->setCellValue('G28', 'Loan Manager');
-    $planSheet->setCellValue('A41', 'Name');
-    $planSheet->setCellValue('C41', ':');
-    $planSheet->setCellValue('D41', 'Sample Q Member');
-    $planSheet->setCellValue('A42', 'Address');
-    $planSheet->setCellValue('C42', ':');
-    $planSheet->setCellValue('D42', 'Sample Address');
-    $planSheet->setCellValue('A43', 'Amount of Loan');
-    $planSheet->setCellValue('C43', ':');
-    $planSheet->setCellValue('D43', 99999);
-    $planSheet->setCellValue('A44', 'Kind of Loan');
-    $planSheet->setCellValue('C44', ':');
-    $planSheet->setCellValue('D44', 'Sample Loan');
-    $planSheet->setCellValue('B47', 'MONTHLY');
-    $planSheet->setCellValue('D49', 1000);
-    $planSheet->setCellValue('D50', 500);
-    $planSheet->setCellValue('D51', 20);
-    $planSheet->setCellValue('D52', 1520);
-    $planSheet->setCellValue('C54', '01/01/2025');
-    $planSheet->setCellValue('G54', '12/31/2025');
-    $planSheet->setCellValue('B59', 'Sample Q Member');
-    $planSheet->setCellValue('G59', '0');
-
-    $disclosureSheet = $spreadsheet->createSheet();
-    $disclosureSheet->setTitle('Disclosure Statement');
-    $disclosureSheet->setCellValue(
-        'B4',
-        'DISCLOSURE STATEMENT ON LOAN/CREDIT TRANSACTION',
+    approvedLoanDocumentsCreateTemplatePdf(
+        $pdfDirectory.DIRECTORY_SEPARATOR.'loan information sheet.pdf',
+        [
+            ['width' => 215.9, 'height' => 330.2, 'title' => 'Loan Information Sheet'],
+        ],
     );
-    $disclosureSheet->mergeCells('B4:N4');
-    $disclosureSheet->setCellValue(
-        'D5',
-        '(As Required Under R.A. 3765 Truth In Lending Act)',
-    );
-    $disclosureSheet->mergeCells('D5:M5');
-    $disclosureSheet->setCellValue('A7', 'NAME OF BORROWER:');
-    $disclosureSheet->setCellValue('D7', "='Loan Information'!C7");
-    $disclosureSheet->setCellValue('L7', 'LOAN NUMBER');
-    $disclosureSheet->setCellValue('A8', 'ADDRESS:');
-    $disclosureSheet->setCellValue('C8', "='Loan Information'!C8");
-    $disclosureSheet->setCellValue('A9', 1);
-    $disclosureSheet->setCellValue(
-        'B9',
-        'LOAN GRANTED (Amount to be financed)',
-    );
-    $disclosureSheet->setCellValue('M9', '(Php)');
-    $disclosureSheet->setCellValue('N9', "='Loan Information'!C9");
-    $disclosureSheet->setCellValue('O9', '( A )');
-    $disclosureSheet->setCellValue('A10', 2);
-    $disclosureSheet->setCellValue('B10', 'FINANCE CHARGES');
-    $disclosureSheet->setCellValue('J11', 'Not Deducted');
-    $disclosureSheet->setCellValue('L11', 'Deducted');
-    $disclosureSheet->setCellValue('J12', 'From');
-    $disclosureSheet->setCellValue('L12', 'From');
-    $disclosureSheet->setCellValue('J13', 'Proceeds of Loan');
-    $disclosureSheet->mergeCells('J13:L13');
-    $disclosureSheet->setCellValue('A14', 'a.');
-    $disclosureSheet->setCellValue('B14', 'Interest');
-    $disclosureSheet->setCellValue('D14', "='Loan Information'!C10");
-    $disclosureSheet->setCellValue('F14', '01/01/2025');
-    $disclosureSheet->setCellValue('H14', '12/31/2025');
-    $disclosureSheet->setCellValue('I14', 'P');
-    $disclosureSheet->setCellValue('J14', "='Loan Information'!C13");
-    $disclosureSheet->setCellValue('K14', 'P');
-    $disclosureSheet->setCellValue('F23', "='Loan Information'!C12");
-    $disclosureSheet->setCellValue('L23', "='Loan Information'!C21");
-    $disclosureSheet->setCellValue('F28', "='Loan Information'!C22");
-    $disclosureSheet->setCellValue('F29', "='Loan Information'!C23");
-    $disclosureSheet->setCellValue('F30', "='Loan Information'!C24");
-    $disclosureSheet->setCellValue('F31', "='Loan Information'!C25");
-    $disclosureSheet->setCellValue('M7', 'SAMPLE-LOAN-REFERENCE');
-    $disclosureSheet->setCellValue('F40', '12/31/2025');
-    $disclosureSheet->setCellValue('F41', 1234);
-    $disclosureSheet->setCellValue('D42', 10);
-    $disclosureSheet->setCellValue('L50', '0');
-    $disclosureSheet->setCellValue('L52', 'Sample Position');
-    $disclosureSheet->setCellValue('L57', 'Sample Q Member');
-
-    $promissoryNoteSheet = $spreadsheet->createSheet();
-    $promissoryNoteSheet->setTitle('Promissory Note');
-    $promissoryNoteSheet->setCellValue('D6', 'PROMISSORY NOTE');
-    $promissoryNoteSheet->mergeCells('D6:H6');
-    $promissoryNoteSheet->setCellValue('H8', 'Date Granted:');
-    $promissoryNoteSheet->setCellValue('J10', "='Loan Information'!C9");
-    $promissoryNoteSheet->setCellValue('H9', 'Date Due:');
-    $promissoryNoteSheet->setCellValue('H10', 'Amount:      ');
-    $promissoryNoteSheet->setCellValue('I10', 'P');
-    $promissoryNoteSheet->setCellValue('A12', "='Loan Information'!C36");
-    $promissoryNoteSheet->mergeCells('A12:B12');
-    $promissoryNoteSheet->setCellValue(
-        'C12',
-        'days after date for value received,   I/we promise to pay jointly and severally to the order of  MICROFINANCE FOR RURAL',
-    );
-    $promissoryNoteSheet->setCellValue(
-        'A13',
-        'DEVELOPMENT INC. the sum of',
-    );
-    $promissoryNoteSheet->mergeCells('D13:H13');
-    $promissoryNoteSheet->setCellValue('D13', "='Loan Information'!C37");
-    $promissoryNoteSheet->setCellValue('I13', 'P');
-    $promissoryNoteSheet->setCellValue('J13', "='Loan Information'!C9");
-    $promissoryNoteSheet->setCellValue(
-        'A14',
-        'Philippine Currency with an interest rate of',
-    );
-    $promissoryNoteSheet->mergeCells('E14:G14');
-    $promissoryNoteSheet->setCellValue('E14', "='Loan Information'!C38");
-    $promissoryNoteSheet->setCellValue(
-        'H14',
-        'per annum. Amortization/Installment payment of',
-    );
-    $promissoryNoteSheet->setCellValue('A15', "='Loan Information'!C30");
-    $promissoryNoteSheet->mergeCells('A15:B15');
-    $promissoryNoteSheet->setCellValue('C15', 'inclusive of interest every');
-    $promissoryNoteSheet->setCellValue('E15', "='Loan Information'!C39");
-    $promissoryNoteSheet->mergeCells('G15:H15');
-    $promissoryNoteSheet->setCellValue('F15', 'starting');
-    $promissoryNoteSheet->setCellValue('I15', 'to');
-    $promissoryNoteSheet->setCellValue('I8', '01/01/2025');
-    $promissoryNoteSheet->setCellValue('I9', '12/31/2025');
-    $promissoryNoteSheet->setCellValue('G15', '01/01/2025');
-    $promissoryNoteSheet->setCellValue('J15', '12/31/2025');
-    $promissoryNoteSheet->setCellValue('K15', 'for ');
-    $promissoryNoteSheet->setCellValue('L15', "='Loan Information'!C40");
-    $promissoryNoteSheet->mergeCells('I8:K8');
-    $promissoryNoteSheet->mergeCells('I9:K9');
-    $promissoryNoteSheet->setCellValue('B50', 'Sample Q Member');
-    $promissoryNoteSheet->setCellValue('E50', 'Sample Co-maker One');
-    $promissoryNoteSheet->setCellValue('I50', 'Sample Co-maker Two');
-    $promissoryNoteSheet->setCellValue('C53', 'Sample Address');
-    $promissoryNoteSheet->setCellValue('E53', 'Sample Co-maker One Address');
-    $promissoryNoteSheet->setCellValue('I53', 'Sample Co-maker Two Address');
-    $promissoryNoteSheet->setCellValue('B58', 'Sample Witness One');
-    $promissoryNoteSheet->setCellValue('H58', 'Sample Witness Two');
-
-    IOFactory::createWriter($spreadsheet, 'Xlsx')->save(
-        $excelDirectory.DIRECTORY_SEPARATOR.'plan-of-payment-disclosure-promissory-note.xlsx',
-    );
-
-    $spreadsheet->disconnectWorksheets();
-    unset($spreadsheet);
 }
 
 function approvedLoanDocumentsTemplateDirectory(): string
@@ -4093,129 +3905,6 @@ function approvedLoanDocumentsTemplateDirectory(): string
 function approvedLoanDocumentsPublicTemplateDirectory(): string
 {
     return storage_path('app/public/app/templates/approved-loan-documents');
-}
-
-function approvedLoanDocumentsTemplateBackupDirectory(): string
-{
-    return storage_path('app/testing-backups/approved-loan-documents');
-}
-
-function approvedLoanDocumentsPublicTemplateBackupDirectory(): string
-{
-    return storage_path('app/testing-backups/public-approved-loan-documents');
-}
-
-function approvedLoanDocumentsBackupDirectoryForTests(
-    string $sourceDirectory,
-    string $backupDirectory,
-): void {
-    File::deleteDirectory($backupDirectory);
-
-    if (! File::isDirectory($sourceDirectory)) {
-        File::ensureDirectoryExists($backupDirectory);
-
-        return;
-    }
-
-    File::copyDirectory($sourceDirectory, $backupDirectory);
-}
-
-function approvedLoanDocumentsRestoreDirectoryForTests(
-    string $sourceDirectory,
-    string $backupDirectory,
-): void {
-    File::deleteDirectory($sourceDirectory);
-
-    if (File::isDirectory($backupDirectory)) {
-        File::ensureDirectoryExists($sourceDirectory);
-        File::copyDirectory($backupDirectory, $sourceDirectory);
-    }
-
-    File::deleteDirectory($backupDirectory);
-}
-
-function approvedLoanDocumentsBackupTemplateFilesForTests(): void
-{
-    $backupDirectory = approvedLoanDocumentsTemplateBackupDirectory();
-
-    File::deleteDirectory($backupDirectory);
-    File::ensureDirectoryExists($backupDirectory);
-
-    foreach (approvedLoanDocumentsManagedTemplateFilesForTests() as $index => $sourcePath) {
-        approvedLoanDocumentsBackupFileForTests(
-            $sourcePath,
-            $backupDirectory.DIRECTORY_SEPARATOR.$index,
-        );
-    }
-}
-
-function approvedLoanDocumentsRestoreTemplateFilesAfterTests(): void
-{
-    $backupDirectory = approvedLoanDocumentsTemplateBackupDirectory();
-
-    foreach (approvedLoanDocumentsManagedTemplateFilesForTests() as $index => $sourcePath) {
-        approvedLoanDocumentsRestoreFileForTests(
-            $sourcePath,
-            $backupDirectory.DIRECTORY_SEPARATOR.$index,
-        );
-    }
-
-    File::deleteDirectory($backupDirectory);
-}
-
-/**
- * @return array<int, string>
- */
-function approvedLoanDocumentsManagedTemplateFilesForTests(): array
-{
-    $imagesDirectory = approvedLoanDocumentsTemplateImagesDirectory();
-    $templateDirectory = approvedLoanDocumentsTemplateDirectory();
-
-    return [
-        $imagesDirectory.DIRECTORY_SEPARATOR.'grepalife-page-1.png',
-        $imagesDirectory.DIRECTORY_SEPARATOR.'grepalife-page-2.png',
-        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'grepalife.pdf',
-        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'loan-security-agreement.pdf',
-        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'undertaking-barangay-officials.pdf',
-        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'affidavit-undertaking.pdf',
-        $templateDirectory.DIRECTORY_SEPARATOR.'pdf'.DIRECTORY_SEPARATOR.'authorization.pdf',
-        $templateDirectory.DIRECTORY_SEPARATOR.'excel'.DIRECTORY_SEPARATOR.'plan-of-payment-disclosure-promissory-note.xlsx',
-    ];
-}
-
-function approvedLoanDocumentsBackupFileForTests(
-    string $sourcePath,
-    string $backupPath,
-): void {
-    File::ensureDirectoryExists(dirname($backupPath));
-    File::delete($backupPath);
-    File::delete($backupPath.'.missing');
-
-    if (File::exists($sourcePath)) {
-        File::copy($sourcePath, $backupPath);
-
-        return;
-    }
-
-    File::put($backupPath.'.missing', '');
-}
-
-function approvedLoanDocumentsRestoreFileForTests(
-    string $sourcePath,
-    string $backupPath,
-): void {
-    $missingMarkerPath = $backupPath.'.missing';
-
-    if (File::exists($backupPath)) {
-        File::ensureDirectoryExists(dirname($sourcePath));
-        File::delete($sourcePath);
-        File::copy($backupPath, $sourcePath);
-    } elseif (File::exists($missingMarkerPath)) {
-        File::delete($sourcePath);
-    }
-
-    File::delete($backupPath);
-    File::delete($missingMarkerPath);
 }
 
 /**
