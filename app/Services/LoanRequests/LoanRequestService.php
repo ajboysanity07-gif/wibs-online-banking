@@ -10,6 +10,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
+use App\Models\MemberApplicationProfile;
 use App\Models\Wlntype;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
@@ -17,6 +18,7 @@ use App\Services\Notifications\NotificationRecipientService;
 use App\Support\LocationComposer;
 use App\Support\SchemaCapabilities;
 use DateTimeInterface;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +32,11 @@ class LoanRequestService
         'Married',
         'Separated',
         'Widowed',
+    ];
+
+    private const SEX_OPTIONS = [
+        'Male',
+        'Female',
     ];
 
     private const PAYDAY_OPTIONS = [
@@ -120,9 +127,18 @@ class LoanRequestService
             $stepValue = $flatValues['wizard_current_step'] ?? null;
 
             if (is_numeric($stepValue)) {
-                $initialStep = max(0, min(19, (int) $stepValue));
+                $initialStep = max(0, min(23, (int) $stepValue));
             }
         }
+
+        $dataSections = $draft !== null
+            ? $this->dataService->serializeSections($draft)
+            : $this->dataService->emptySections();
+
+        [$dataSections['banking'], $bankingPrefilledFromProfile] = $this->applyBankingProfileDefaults(
+            $dataSections['banking'],
+            $user->memberApplicationProfile,
+        );
 
         return [
             'loanTypes' => $this->getLoanTypes()->values()->all(),
@@ -134,13 +150,86 @@ class LoanRequestService
                 'name' => $memberName,
                 'acctno' => $user->acctno,
             ],
-            'dataSections' => $draft !== null
-                ? $this->dataService->serializeSections($draft)
-                : $this->dataService->emptySections(),
+            'dataSections' => $dataSections,
             'dataSectionDefinitions' => $this->dataService->sectionDefinitions(),
             'initialStep' => $initialStep,
             'draft' => $draft !== null ? $this->serializeLoanRequest($draft) : null,
+            'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
         ];
+    }
+
+    /**
+     * Fill missing "Bank & payout" wizard values from the member's saved
+     * application profile (same precedence as the "About you" applicant
+     * snapshot). Only null fields are overwritten so a member's own
+     * in-progress draft edits are never clobbered.
+     *
+     * @param  array<string, mixed>  $bankingValues
+     * @return array{0: array<string, mixed>, 1: bool}
+     */
+    private function applyBankingProfileDefaults(
+        array $bankingValues,
+        ?MemberApplicationProfile $profile,
+    ): array {
+        if ($profile === null) {
+            return [$bankingValues, false];
+        }
+
+        $prefilled = false;
+
+        foreach (MemberApplicationProfile::payoutBankFields() as $field) {
+            if (($bankingValues[$field] ?? null) !== null) {
+                continue;
+            }
+
+            $profileValue = $this->normalizeOptionalString(
+                $profile->getAttribute($field),
+            );
+
+            if ($profileValue === null) {
+                continue;
+            }
+
+            $bankingValues[$field] = $profileValue;
+            $prefilled = true;
+        }
+
+        return [$bankingValues, $prefilled];
+    }
+
+    /**
+     * Write validated submission data back onto the member's application
+     * profile, so future loan requests (and the settings profile page) start
+     * pre-filled with it. Submit-only by design: drafts are unvalidated and
+     * autosave on abandoned edits, so only a validated final submission
+     * should overwrite the canonical profile.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function syncMemberApplicationProfileFromSubmission(
+        AppUser $user,
+        array $payload,
+    ): void {
+        $profileData = [
+            ...Arr::only(
+                is_array($payload['applicant'] ?? null) ? $payload['applicant'] : [],
+                MemberApplicationProfile::fields(),
+            ),
+            ...Arr::only(
+                is_array($payload['banking'] ?? null) ? $payload['banking'] : [],
+                MemberApplicationProfile::payoutBankFields(),
+            ),
+        ];
+
+        if ($profileData === []) {
+            return;
+        }
+
+        $profile = $user->memberApplicationProfile()->firstOrNew();
+        $profile->fill($profileData);
+        $profile->save();
+
+        $user->setRelation('memberApplicationProfile', $profile);
     }
 
     /**
@@ -176,7 +265,7 @@ class LoanRequestService
             $this->dataService->syncMemberSections($loanRequest, $payload);
 
             if (array_key_exists('wizard_step', $payload) && $payload['wizard_step'] !== null) {
-                $stepValue = max(0, min(19, (int) $payload['wizard_step']));
+                $stepValue = max(0, min(23, (int) $payload['wizard_step']));
 
                 LoanRequestDataEntry::query()->updateOrCreate(
                     [
@@ -264,6 +353,9 @@ class LoanRequestService
                     ),
                 ]);
             }
+
+            $this->syncMemberApplicationProfileFromSubmission($user, $payload);
+
             $loanRequest = $loanRequest->refresh();
             $loanRequest->loadMissing('people');
 
@@ -918,6 +1010,7 @@ class LoanRequestService
             'housing_status' => $this->normalizeOptionalString($data['housing_status'] ?? null),
             'cell_no' => $this->normalizeOptionalString($data['cell_no'] ?? null),
             'civil_status' => $this->normalizeOptionalString($data['civil_status'] ?? null),
+            'sex' => $this->normalizeOptionalString($data['sex'] ?? null),
             'educational_attainment' => $this->normalizeOptionalString(
                 $data['educational_attainment'] ?? null,
             ),
@@ -1125,6 +1218,14 @@ class LoanRequestService
             $person['civil_status'] ?? null,
         );
 
+        if (! array_key_exists('sex', $person)) {
+            $person['sex'] = null;
+        }
+
+        $person['sex'] = $this->normalizeSexValue(
+            $person['sex'] ?? null,
+        );
+
         if (! array_key_exists('payday', $person)) {
             $person['payday'] = null;
         }
@@ -1286,6 +1387,29 @@ class LoanRequestService
         }
 
         return in_array($resolved, self::CIVIL_STATUS_OPTIONS, true)
+            ? $resolved
+            : null;
+    }
+
+    private function normalizeSexValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $resolved = match (strtoupper($trimmed)) {
+            'MALE', 'M' => 'Male',
+            'FEMALE', 'F' => 'Female',
+            default => null,
+        };
+
+        return $resolved !== null && in_array($resolved, self::SEX_OPTIONS, true)
             ? $resolved
             : null;
     }

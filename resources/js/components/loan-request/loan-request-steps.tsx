@@ -1,14 +1,17 @@
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
+
 import InputError from '@/components/input-error';
-import {
-    CurrencyInput,
-    MonthsInput,
-} from '@/components/loan-request/numeric-adorned-inputs';
+import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
+import {
+    CurrencyInput,
+    MonthsInput,
+} from '@/components/loan-request/numeric-adorned-inputs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -32,6 +35,7 @@ import {
 } from '@/lib/formatters';
 import type {
     LoanRequestDataFieldDefinition,
+    LoanRequestDataFieldValue,
     LoanRequestDataSectionDefinition,
     LoanRequestDataSectionValues,
     LoanRequestFormData,
@@ -409,18 +413,6 @@ type DataSectionStepProps = {
     ) => void;
 };
 
-const booleanSelectValue = (value: unknown): string => {
-    if (value === true) {
-        return 'true';
-    }
-
-    if (value === false) {
-        return 'false';
-    }
-
-    return '';
-};
-
 const displaySectionValue = (
     value: unknown,
     field: LoanRequestDataFieldDefinition,
@@ -484,27 +476,14 @@ export function LoanRequestDataSectionStep({
                                 {field.label}
                             </Label>
                             {field.type === 'boolean' ? (
-                                <Select
-                                    value={booleanSelectValue(value)}
-                                    onValueChange={(nextValue) =>
-                                        onChange(
-                                            fieldKey,
-                                            nextValue === ''
-                                                ? null
-                                                : nextValue === 'true',
-                                        )
+                                <BooleanYesNoField
+                                    id={`${sectionKey}_${fieldKey}`}
+                                    value={value}
+                                    aria-label={field.label}
+                                    onChange={(nextValue) =>
+                                        onChange(fieldKey, nextValue)
                                     }
-                                >
-                                    <SelectTrigger
-                                        id={`${sectionKey}_${fieldKey}`}
-                                    >
-                                        <SelectValue placeholder="Select an option" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="true">Yes</SelectItem>
-                                        <SelectItem value="false">No</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                />
                             ) : isNotesField ? (
                                 <textarea
                                     id={`${sectionKey}_${fieldKey}`}
@@ -554,6 +533,331 @@ export function LoanRequestDataSectionStep({
     );
 }
 
+type HealthQuestionnaireStepProps = {
+    sectionKey: 'health_glapi';
+    title: string;
+    description: string;
+    values: LoanRequestDataSectionValues;
+    definition: LoanRequestDataSectionDefinition;
+    errors: Record<string, string | undefined>;
+    crossSectionValues: Record<string, LoanRequestDataFieldValue>;
+    onChange: (field: string, value: string | number | boolean | null) => void;
+    // Restricts rendering to the given source-form item numbers (as returned
+    // by `parseGlapiItem().number`). The GLAPI questionnaire is split across
+    // several wizard sub-steps (see GLAPI_GROUPS_PER_STEP / chunkGlapiItemGroups
+    // in loan-request.tsx), each passing the item numbers it owns.
+    itemNumbers: string[];
+};
+
+/**
+ * Renders a slice of the GLAPI health questionnaire generically from field
+ * metadata: each field's `detail_of` links it to its parent, so a "Yes"
+ * answer reveals its children (a details textarea, or -- for item 17's
+ * nested "With GLAPI / With other companies" breakdown -- further booleans
+ * with their own amount fields). No item is hardcoded; the nesting comes
+ * entirely from the field definitions.
+ *
+ * Root fields are additionally clustered into the source form's own
+ * item/sub-item groups (e.g. "2a"-"2j") by parsing the `gl_health_qNN[letter]_`
+ * naming convention on each field key -- this is a display grouping only, it
+ * doesn't change which fields exist or how detail_of/visible_when behave.
+ */
+export const GLAPI_ITEM_KEY_PATTERN = /^gl_health_q(\d+)([a-z])?_/;
+
+// Instruction copy for the one item that groups several sub-questions under
+// a shared prompt (source form item 2). Purely display text, keyed by the
+// item number parsed from the field key -- not item-specific branching logic.
+const GLAPI_GROUP_HEADINGS: Record<string, string> = {
+    '2': 'Have you ever suffered from or sought medical treatment for:',
+};
+
+export type GlapiItemGroup = {
+    number: string;
+    fieldKeys: string[];
+};
+
+// The GLAPI questionnaire is split across several wizard sub-steps so a
+// member isn't faced with all its items at once. Sub-step boundaries fall
+// between item groups only, so an expanded parent and its revealed children
+// -- always rendered within the same group -- can never be split across two
+// sub-steps. Chunk size is configurable, not tied to any specific item,
+// consistent with the "no item is hardcoded" design.
+export const GLAPI_GROUPS_PER_STEP = 4;
+
+export function chunkGlapiItemGroups(
+    groups: GlapiItemGroup[],
+    chunkSize: number,
+): GlapiItemGroup[][] {
+    const chunks: GlapiItemGroup[][] = [];
+
+    for (let index = 0; index < groups.length; index += chunkSize) {
+        chunks.push(groups.slice(index, index + chunkSize));
+    }
+
+    return chunks.length > 0 ? chunks : [[]];
+}
+
+// Groups a GLAPI section's fields into the source form's own item numbering
+// (e.g. "1", "2", "4", ... "17"), in field-definition order. Derived purely
+// from field metadata -- no item numbers are hardcoded here.
+export function getGlapiItemGroups(
+    definition: LoanRequestDataSectionDefinition,
+): GlapiItemGroup[] {
+    const rootFieldKeys = Object.keys(definition.fields).filter(
+        (fieldKey) => !definition.fields[fieldKey].detail_of,
+    );
+
+    const groups: GlapiItemGroup[] = [];
+
+    rootFieldKeys.forEach((fieldKey) => {
+        const groupNumber = parseGlapiItem(fieldKey)?.number ?? fieldKey;
+        const lastGroup = groups[groups.length - 1];
+
+        if (lastGroup && lastGroup.number === groupNumber) {
+            lastGroup.fieldKeys.push(fieldKey);
+        } else {
+            groups.push({ number: groupNumber, fieldKeys: [fieldKey] });
+        }
+    });
+
+    return groups;
+}
+
+export function parseGlapiItem(
+    fieldKey: string,
+): { number: string; letter: string | null } | null {
+    const match = GLAPI_ITEM_KEY_PATTERN.exec(fieldKey);
+
+    if (!match) {
+        return null;
+    }
+
+    return { number: String(parseInt(match[1], 10)), letter: match[2] ?? null };
+}
+
+function childWrapperClassName(depth: number): string {
+    if (depth >= 2) {
+        return 'ml-6 space-y-3 rounded-md border-l-4 border-primary/50 bg-muted/20 py-3 pl-4';
+    }
+
+    return 'ml-4 space-y-3 rounded-md border-l-4 border-primary/25 bg-muted/10 py-3 pl-4';
+}
+
+export function LoanRequestHealthQuestionnaireStep({
+    sectionKey,
+    title,
+    description,
+    values,
+    definition,
+    errors,
+    crossSectionValues,
+    onChange,
+    itemNumbers,
+}: HealthQuestionnaireStepProps) {
+    const childrenByParent = useMemo(() => {
+        const map: Record<string, string[]> = {};
+
+        Object.entries(definition.fields).forEach(([fieldKey, field]) => {
+            if (!field.detail_of) {
+                return;
+            }
+
+            if (!map[field.detail_of]) {
+                map[field.detail_of] = [];
+            }
+
+            map[field.detail_of].push(fieldKey);
+        });
+
+        return map;
+    }, [definition]);
+
+    const isVisible = (field: LoanRequestDataFieldDefinition): boolean => {
+        if (!field.visible_when) {
+            return true;
+        }
+
+        return (
+            crossSectionValues[field.visible_when.field] ===
+            field.visible_when.equals
+        );
+    };
+
+    const clearDescendants = (fieldKey: string) => {
+        (childrenByParent[fieldKey] ?? []).forEach((childKey) => {
+            onChange(childKey, null);
+            clearDescendants(childKey);
+        });
+    };
+
+    const renderField = (fieldKey: string, depth = 0): ReactNode => {
+        const field = definition.fields[fieldKey];
+
+        if (!field || !isVisible(field)) {
+            return null;
+        }
+
+        const errorKey = `${sectionKey}.${fieldKey}`;
+        const value = values[fieldKey];
+        const children = childrenByParent[fieldKey] ?? [];
+
+        if (field.type === 'boolean') {
+            return (
+                <div key={fieldKey} className="space-y-3">
+                    <div className="grid gap-2 sm:max-w-sm">
+                        <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                            {field.label}
+                        </Label>
+                        <BooleanYesNoField
+                            id={`${sectionKey}_${fieldKey}`}
+                            value={value}
+                            aria-label={field.label}
+                            onChange={(nextBoolean) => {
+                                onChange(fieldKey, nextBoolean);
+
+                                if (nextBoolean !== true) {
+                                    clearDescendants(fieldKey);
+                                }
+                            }}
+                        />
+                        <InputError message={errors[errorKey]} />
+                    </div>
+                    {value === true && children.length > 0 ? (
+                        <div className={childWrapperClassName(depth + 1)}>
+                            {children.map((childKey) =>
+                                renderField(childKey, depth + 1),
+                            )}
+                        </div>
+                    ) : null}
+                </div>
+            );
+        }
+
+        if (field.type === 'number') {
+            return (
+                <div key={fieldKey} className="grid gap-2 sm:max-w-xs">
+                    <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                        {field.label}
+                    </Label>
+                    <Input
+                        id={`${sectionKey}_${fieldKey}`}
+                        type="number"
+                        step="0.01"
+                        value={value ? `${value}` : ''}
+                        onChange={(event) =>
+                            onChange(fieldKey, event.target.value)
+                        }
+                    />
+                    <InputError message={errors[errorKey]} />
+                </div>
+            );
+        }
+
+        return (
+            <div key={fieldKey} className="grid gap-2">
+                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                    {field.label}
+                </Label>
+                <textarea
+                    id={`${sectionKey}_${fieldKey}`}
+                    aria-label={field.label}
+                    className={textareaClassName}
+                    value={value ? `${value}` : ''}
+                    maxLength={1000}
+                    onChange={(event) => onChange(fieldKey, event.target.value)}
+                />
+                <InputError message={errors[errorKey]} />
+            </div>
+        );
+    };
+
+    const itemGroups = useMemo(() => {
+        const itemNumberSet = new Set(itemNumbers);
+
+        return getGlapiItemGroups(definition).filter((group) =>
+            itemNumberSet.has(group.number),
+        );
+    }, [definition, itemNumbers]);
+
+    const renderItemGroup = (group: GlapiItemGroup): ReactNode => {
+        const isCluster = group.fieldKeys.length > 1;
+        const heading = isCluster
+            ? GLAPI_GROUP_HEADINGS[group.number]
+            : undefined;
+        const badgeLabel = /^\d+$/.test(group.number) ? group.number : null;
+
+        const items = group.fieldKeys
+            .map((fieldKey) => ({
+                fieldKey,
+                letter: isCluster ? parseGlapiItem(fieldKey)?.letter : null,
+                node: renderField(fieldKey),
+            }))
+            .filter((item) => item.node !== null);
+
+        if (items.length === 0) {
+            return null;
+        }
+
+        return (
+            <div
+                key={group.fieldKeys[0]}
+                className="rounded-lg border border-border/50 bg-card/60 p-4"
+            >
+                <div className="flex items-start gap-3">
+                    {badgeLabel ? (
+                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                            {badgeLabel}
+                        </span>
+                    ) : null}
+                    <div className="flex-1 space-y-4">
+                        {heading ? (
+                            <p className="text-sm font-medium text-foreground">
+                                {heading}
+                            </p>
+                        ) : null}
+                        <div className="space-y-4">
+                            {items.map(({ fieldKey, letter, node }) =>
+                                letter ? (
+                                    <div
+                                        key={fieldKey}
+                                        className="flex items-start gap-2"
+                                    >
+                                        <span className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                                            {letter}.
+                                        </span>
+                                        <div className="flex-1">{node}</div>
+                                    </div>
+                                ) : (
+                                    <div key={fieldKey}>{node}</div>
+                                ),
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <LoanRequestSectionCard
+            title={title}
+            description={description}
+            contentClassName="space-y-5"
+        >
+            <div className="space-y-4">
+                {itemGroups.map((group) => renderItemGroup(group))}
+            </div>
+            <Alert className="border-border/50 bg-muted/10">
+                <AlertTitle>Member-provided details</AlertTitle>
+                <AlertDescription>
+                    Answer each item honestly. If you answer "Yes," a details
+                    field will appear below it -- please fill it in.
+                </AlertDescription>
+            </Alert>
+        </LoanRequestSectionCard>
+    );
+}
+
 const PRIMARY_BENEFICIARY_KEYS = [
     'beneficiary_primary_name',
     'beneficiary_primary_relationship',
@@ -587,25 +891,12 @@ export function LoanRequestInsuranceBeneficiariesStep({
                     {field.label}
                 </Label>
                 {field.type === 'boolean' ? (
-                    <Select
-                        value={booleanSelectValue(value)}
-                        onValueChange={(nextValue) =>
-                            onChange(
-                                fieldKey,
-                                nextValue === ''
-                                    ? null
-                                    : nextValue === 'true',
-                            )
-                        }
-                    >
-                        <SelectTrigger id={`${sectionKey}_${fieldKey}`}>
-                            <SelectValue placeholder="Select an option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="true">Yes</SelectItem>
-                            <SelectItem value="false">No</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <BooleanYesNoField
+                        id={`${sectionKey}_${fieldKey}`}
+                        value={value}
+                        aria-label={field.label}
+                        onChange={(nextValue) => onChange(fieldKey, nextValue)}
+                    />
                 ) : (
                     <Input
                         id={`${sectionKey}_${fieldKey}`}
@@ -715,6 +1006,7 @@ export function LoanRequestReviewStep({
             label: 'Civil status',
             value: formatCivilStatus(data.applicant.civil_status),
         },
+        { label: 'Sex', value: displayText(data.applicant.sex) },
         {
             label: 'Educational attainment',
             value: displayText(data.applicant.educational_attainment),
@@ -831,6 +1123,7 @@ export function LoanRequestReviewStep({
         [
             'insurance',
             'health',
+            'health_glapi',
             'banking',
             'barangay',
             'declarations',

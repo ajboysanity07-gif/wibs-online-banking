@@ -30,6 +30,131 @@ class LoanRequestDraftRequest extends FormRequest
         'Monthly',
     ];
 
+    private const SEX_OPTIONS = ['Male', 'Female'];
+
+    /**
+     * GLAPI (Generali) 17-item health questionnaire field keys. Every item is
+     * a boolean paired with a free-text "details if yes" companion (see
+     * LoanRequestDataService::FIELD_DEFINITIONS, section 'health_glapi').
+     * None are required_on_submit yet -- the Generali document isn't wired
+     * into the loan-request document catalog, so submission must not be
+     * blocked on these until that lands.
+     *
+     * @var list<string>
+     */
+    private const HEALTH_GLAPI_KEYS = [
+        'gl_health_q01_weight_change',
+        'gl_health_q01_weight_change_details',
+        'gl_health_q02a_neuro',
+        'gl_health_q02a_neuro_details',
+        'gl_health_q02b_respiratory',
+        'gl_health_q02b_respiratory_details',
+        'gl_health_q02c_cardiac',
+        'gl_health_q02c_cardiac_details',
+        'gl_health_q02d_digestive',
+        'gl_health_q02d_digestive_details',
+        'gl_health_q02e_diabetes_renal',
+        'gl_health_q02e_diabetes_renal_details',
+        'gl_health_q02f_musculoskeletal',
+        'gl_health_q02f_musculoskeletal_details',
+        'gl_health_q02g_oncology_blood',
+        'gl_health_q02g_oncology_blood_details',
+        'gl_health_q02h_dermatologic',
+        'gl_health_q02h_dermatologic_details',
+        'gl_health_q02i_std_viral',
+        'gl_health_q02i_std_viral_details',
+        'gl_health_q02j_other_illness',
+        'gl_health_q02j_other_illness_details',
+        'health_hypertension_details',
+        'gl_health_q04_prescribed_drugs',
+        'gl_health_q04_prescribed_drugs_details',
+        'gl_health_q05_confinement_5yr',
+        'gl_health_q05_confinement_5yr_details',
+        'gl_health_q06_abnormal_labs',
+        'gl_health_q06_abnormal_labs_details',
+        'gl_health_q07_confinement_contemplated',
+        'gl_health_q07_confinement_contemplated_details',
+        'gl_health_q08_blood_transfusion',
+        'gl_health_q08_blood_transfusion_details',
+        'gl_health_q09_other_disease',
+        'gl_health_q09_other_disease_details',
+        'gl_health_q10_narcotics',
+        'gl_health_q10_narcotics_details',
+        'gl_health_q11_smoker',
+        'gl_health_q11_smoker_details',
+        'gl_health_q12_alcohol',
+        'gl_health_q12_alcohol_details',
+        'gl_health_q13_advised_stop',
+        'gl_health_q13_advised_stop_details',
+        'gl_health_q14_current_medication',
+        'gl_health_q14_current_medication_details',
+        'gl_health_q15_pregnancy',
+        'gl_health_q15_pregnancy_details',
+        'gl_health_q16_relative_pep',
+        'gl_health_q16_relative_pep_details',
+        'gl_health_q17_pending_reinstatement',
+        'gl_health_q17_pending_reinstatement_details',
+        'gl_health_q17_with_glapi',
+        'gl_health_q17_with_glapi_amount',
+        'gl_health_q17_with_other_companies',
+        'gl_health_q17_with_other_companies_amount',
+    ];
+
+    private const HEALTH_GLAPI_BOOLEAN_KEYS = [
+        'gl_health_q01_weight_change',
+        'gl_health_q02a_neuro',
+        'gl_health_q02b_respiratory',
+        'gl_health_q02c_cardiac',
+        'gl_health_q02d_digestive',
+        'gl_health_q02e_diabetes_renal',
+        'gl_health_q02f_musculoskeletal',
+        'gl_health_q02g_oncology_blood',
+        'gl_health_q02h_dermatologic',
+        'gl_health_q02i_std_viral',
+        'gl_health_q02j_other_illness',
+        'gl_health_q04_prescribed_drugs',
+        'gl_health_q05_confinement_5yr',
+        'gl_health_q06_abnormal_labs',
+        'gl_health_q07_confinement_contemplated',
+        'gl_health_q08_blood_transfusion',
+        'gl_health_q09_other_disease',
+        'gl_health_q10_narcotics',
+        'gl_health_q11_smoker',
+        'gl_health_q12_alcohol',
+        'gl_health_q13_advised_stop',
+        'gl_health_q14_current_medication',
+        'gl_health_q15_pregnancy',
+        'gl_health_q16_relative_pep',
+        'gl_health_q17_pending_reinstatement',
+        'gl_health_q17_with_glapi',
+        'gl_health_q17_with_other_companies',
+    ];
+
+    private const HEALTH_GLAPI_AMOUNT_KEYS = [
+        'gl_health_q17_with_glapi_amount',
+        'gl_health_q17_with_other_companies_amount',
+    ];
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function healthGlapiRules(): array
+    {
+        $rules = [
+            'health_glapi' => ['sometimes', 'array:'.implode(',', self::HEALTH_GLAPI_KEYS)],
+        ];
+
+        foreach (self::HEALTH_GLAPI_KEYS as $key) {
+            $rules["health_glapi.{$key}"] = match (true) {
+                in_array($key, self::HEALTH_GLAPI_BOOLEAN_KEYS, true) => ['sometimes', 'nullable', 'boolean'],
+                in_array($key, self::HEALTH_GLAPI_AMOUNT_KEYS, true) => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                default => ['sometimes', 'nullable', 'string', 'max:1000'],
+            };
+        }
+
+        return $rules;
+    }
+
     protected function prepareForValidation(): void
     {
         $payload = $this->all();
@@ -84,7 +209,7 @@ class LoanRequestDraftRequest extends FormRequest
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
             'undertaking_accepted' => ['sometimes', 'boolean'],
-            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:19'],
+            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:23'],
             'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -98,6 +223,7 @@ class LoanRequestDraftRequest extends FormRequest
             'health.health_diabetes' => ['sometimes', 'nullable', 'boolean'],
             'health.health_recent_hospitalization' => ['sometimes', 'nullable', 'boolean'],
             'health.health_declaration_notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            ...$this->healthGlapiRules(),
             'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
             'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -178,6 +304,12 @@ class LoanRequestDraftRequest extends FormRequest
                 'nullable',
                 'string',
                 Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ];
+            $rules["{$prefix}.sex"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::SEX_OPTIONS),
             ];
         }
 

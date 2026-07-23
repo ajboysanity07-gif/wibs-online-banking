@@ -3,22 +3,30 @@ import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
+import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { LoanRequestStepIndicator } from '@/components/loan-request/loan-request-step-indicator';
 import {
+    chunkGlapiItemGroups,
+    getGlapiItemGroups,
+    GLAPI_GROUPS_PER_STEP,
     LoanRequestApplicantPersonalStep,
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
     LoanRequestDataSectionStep,
+    LoanRequestHealthQuestionnaireStep,
     LoanRequestInsuranceBeneficiariesStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
+    parseGlapiItem,
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardActions } from '@/components/loan-request/loan-request-wizard-footer';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import client from '@/lib/api/client';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
@@ -52,6 +60,7 @@ type Props = {
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     draft: LoanRequestDraft | null;
     initialStep: number;
+    bankingPrefilledFromProfile: boolean;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -144,6 +153,30 @@ const steps = [
             'Complete the required health declarations for the request.',
     },
     {
+        id: 'health-glapi-1',
+        title: 'Generali health (1 of 4)',
+        description:
+            'Answer the Generali (GLAPI) health declaration questions.',
+    },
+    {
+        id: 'health-glapi-2',
+        title: 'Generali health (2 of 4)',
+        description:
+            'Answer the Generali (GLAPI) health declaration questions.',
+    },
+    {
+        id: 'health-glapi-3',
+        title: 'Generali health (3 of 4)',
+        description:
+            'Answer the Generali (GLAPI) health declaration questions.',
+    },
+    {
+        id: 'health-glapi-4',
+        title: 'Generali health (4 of 4)',
+        description:
+            'Answer the Generali (GLAPI) health declaration questions.',
+    },
+    {
         id: 'banking',
         title: 'Bank & payout',
         description: 'Provide the payout bank and account information.',
@@ -180,6 +213,7 @@ const applicantBasicFields = new Set([
     'birthdate',
     'birthplace_city',
     'birthplace_province',
+    'sex',
 ]);
 
 const applicantContactFields = new Set([
@@ -255,6 +289,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     housing_status: '',
     cell_no: '',
     civil_status: '',
+    sex: '',
     educational_attainment: '',
     number_of_children: '',
     spouse_name: '',
@@ -296,6 +331,7 @@ const toPersonForm = (
         housing_status: person.housing_status ?? '',
         cell_no: person.cell_no ?? '',
         civil_status: person.civil_status ?? '',
+        sex: person.sex ?? '',
         educational_attainment: person.educational_attainment ?? '',
         number_of_children: toStringValue(person.number_of_children, {
             emptyIfZero: false,
@@ -317,8 +353,13 @@ const toPersonForm = (
     };
 };
 
+// The GLAPI questionnaire's 4 sub-steps start right after "Health
+// declarations" (step 15) and occupy steps 16-19.
+const GLAPI_STEP_START = 16;
+
 const resolveStepFromErrors = (
     errors: Record<string, string | undefined>,
+    glapiItemNumberToStepOffset: Record<string, number>,
 ): number | null => {
     const stepMatches: number[] = [];
 
@@ -400,23 +441,35 @@ const resolveStepFromErrors = (
             return;
         }
 
+        if (key.startsWith('health_glapi.')) {
+            const field = key.replace('health_glapi.', '');
+            const itemNumber = parseGlapiItem(field)?.number;
+            const chunkIndex =
+                itemNumber !== undefined
+                    ? glapiItemNumberToStepOffset[itemNumber]
+                    : undefined;
+
+            stepMatches.push(GLAPI_STEP_START + (chunkIndex ?? 0));
+            return;
+        }
+
         if (key.startsWith('banking.')) {
-            stepMatches.push(16);
+            stepMatches.push(20);
             return;
         }
 
         if (key.startsWith('barangay.')) {
-            stepMatches.push(17);
+            stepMatches.push(21);
             return;
         }
 
         if (key.startsWith('declarations.')) {
-            stepMatches.push(18);
+            stepMatches.push(22);
             return;
         }
 
         if (key === 'undertaking_accepted') {
-            stepMatches.push(19);
+            stepMatches.push(23);
         }
     });
 
@@ -434,11 +487,15 @@ export default function LoanRequestPage({
     dataSectionDefinitions,
     draft,
     initialStep,
+    bankingPrefilledFromProfile,
 }: Props) {
     const [currentStep, setCurrentStep] = useState(initialStep);
     const [highestStepReached, setHighestStepReached] = useState(initialStep);
     const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
         'forward',
+    );
+    const [bankAccountConfirmed, setBankAccountConfirmed] = useState(
+        !bankingPrefilledFromProfile,
     );
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
@@ -449,6 +506,27 @@ export default function LoanRequestPage({
     const [draftState, setDraftState] = useState<LoanRequestDraft | null>(
         draft,
     );
+
+    const glapiChunks = useMemo(
+        () =>
+            chunkGlapiItemGroups(
+                getGlapiItemGroups(dataSectionDefinitions.health_glapi),
+                GLAPI_GROUPS_PER_STEP,
+            ),
+        [dataSectionDefinitions.health_glapi],
+    );
+
+    const glapiItemNumberToStepOffset = useMemo(() => {
+        const map: Record<string, number> = {};
+
+        glapiChunks.forEach((chunk, chunkIndex) => {
+            chunk.forEach((group) => {
+                map[group.number] = chunkIndex;
+            });
+        });
+
+        return map;
+    }, [glapiChunks]);
 
     const initialFormData = useMemo<LoanRequestFormData>(
         () => ({
@@ -466,6 +544,9 @@ export default function LoanRequestPage({
             },
             health: {
                 ...dataSections.health,
+            },
+            health_glapi: {
+                ...dataSections.health_glapi,
             },
             banking: {
                 ...dataSections.banking,
@@ -536,14 +617,22 @@ export default function LoanRequestPage({
         (
             sectionKey: keyof Pick<
                 LoanRequestFormData,
-                'insurance' | 'health' | 'banking' | 'barangay' | 'declarations'
+                | 'insurance'
+                | 'health'
+                | 'health_glapi'
+                | 'banking'
+                | 'barangay'
+                | 'declarations'
             >,
         ) =>
         (field: string, value: string | number | boolean | null) => {
-            form.setData(sectionKey, {
-                ...(form.data[sectionKey] as LoanRequestDataSectionValues),
-                [field]: value,
-            });
+            form.setData((current) => ({
+                ...current,
+                [sectionKey]: {
+                    ...(current[sectionKey] as LoanRequestDataSectionValues),
+                    [field]: value,
+                },
+            }));
         };
 
     const handleSaveDraft = async () => {
@@ -582,7 +671,10 @@ export default function LoanRequestPage({
                 });
             },
             onError: (errors) => {
-                const step = resolveStepFromErrors(errors);
+                const step = resolveStepFromErrors(
+                    errors,
+                    glapiItemNumberToStepOffset,
+                );
 
                 if (step !== null) {
                     handleStepChange(step);
@@ -948,27 +1040,90 @@ export default function LoanRequestPage({
                                         />
                                     </LoanRequestAnimatedStep>
 
+                                    {glapiChunks.map((chunk, chunkIndex) => (
+                                        <LoanRequestAnimatedStep
+                                            key={`health-glapi-${chunkIndex}`}
+                                            show={
+                                                currentStep ===
+                                                GLAPI_STEP_START + chunkIndex
+                                            }
+                                            direction={stepDirection}
+                                        >
+                                            <LoanRequestHealthQuestionnaireStep
+                                                sectionKey="health_glapi"
+                                                title={`Generali (GLAPI) health questionnaire (${chunkIndex + 1} of ${glapiChunks.length})`}
+                                                description="Answer each item honestly -- this is required for Generali insurance coverage on this loan."
+                                                values={form.data.health_glapi}
+                                                definition={
+                                                    dataSectionDefinitions.health_glapi
+                                                }
+                                                errors={form.errors}
+                                                crossSectionValues={{
+                                                    'applicant.sex':
+                                                        form.data.applicant.sex,
+                                                }}
+                                                onChange={updateDataSection(
+                                                    'health_glapi',
+                                                )}
+                                                itemNumbers={chunk.map(
+                                                    (group) => group.number,
+                                                )}
+                                            />
+                                        </LoanRequestAnimatedStep>
+                                    ))}
+
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 16}
+                                        show={currentStep === 20}
                                         direction={stepDirection}
                                     >
-                                        <LoanRequestDataSectionStep
-                                            sectionKey="banking"
-                                            title="Bank and payout information"
-                                            description="Provide the payout bank account details that staff will use for processing."
-                                            values={form.data.banking}
-                                            definition={
-                                                dataSectionDefinitions.banking
-                                            }
-                                            errors={form.errors}
-                                            onChange={updateDataSection(
-                                                'banking',
-                                            )}
-                                        />
+                                        <div className="space-y-5">
+                                            <LoanRequestDataSectionStep
+                                                sectionKey="banking"
+                                                title="Bank and payout information"
+                                                description="Provide the payout bank account details that staff will use for processing."
+                                                values={form.data.banking}
+                                                definition={
+                                                    dataSectionDefinitions.banking
+                                                }
+                                                errors={form.errors}
+                                                onChange={updateDataSection(
+                                                    'banking',
+                                                )}
+                                            />
+
+                                            {bankingPrefilledFromProfile ? (
+                                                <LoanRequestSectionCard
+                                                    title="Confirm bank details"
+                                                    description="These details were pre-filled from your member profile."
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <Checkbox
+                                                            id="bank_account_confirmed"
+                                                            checked={
+                                                                bankAccountConfirmed
+                                                            }
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                setBankAccountConfirmed(
+                                                                    checked ===
+                                                                        true,
+                                                                )
+                                                            }
+                                                        />
+                                                        <Label htmlFor="bank_account_confirmed">
+                                                            Confirm this bank
+                                                            account is still
+                                                            correct
+                                                        </Label>
+                                                    </div>
+                                                </LoanRequestSectionCard>
+                                            ) : null}
+                                        </div>
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 17}
+                                        show={currentStep === 21}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestDataSectionStep
@@ -987,7 +1142,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 18}
+                                        show={currentStep === 22}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestDataSectionStep
@@ -1006,7 +1161,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 19}
+                                        show={currentStep === 23}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestReviewStep
@@ -1035,7 +1190,12 @@ export default function LoanRequestPage({
                                         onSubmit={handleSubmit}
                                         isSavingDraft={isSavingDraft}
                                         isSubmitting={isSubmitting}
-                                        disablePrimary={!hasLoanTypes}
+                                        disablePrimary={
+                                            !hasLoanTypes ||
+                                            (currentStep === 20 &&
+                                                bankingPrefilledFromProfile &&
+                                                !bankAccountConfirmed)
+                                        }
                                     />
                                 </div>
 

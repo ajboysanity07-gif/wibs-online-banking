@@ -54,24 +54,31 @@ const STEP_GROUPS: StepGroup[] = [
     {
         label: 'Insurance & health',
         icon: HeartPulse,
-        steps: [14, 15],
-        stepNames: ['Insurance & beneficiaries', 'Health declarations'],
+        steps: [14, 15, 16, 17, 18, 19],
+        stepNames: [
+            'Insurance & beneficiaries',
+            'Health declarations',
+            'Generali health (1 of 4)',
+            'Generali health (2 of 4)',
+            'Generali health (3 of 4)',
+            'Generali health (4 of 4)',
+        ],
     },
     {
         label: 'Bank & payout',
         icon: Building2,
-        steps: [16, 17],
+        steps: [20, 21],
         stepNames: ['Bank & payout', 'Barangay information'],
     },
     {
         label: 'Declarations & review',
         icon: ClipboardCheck,
-        steps: [18, 19],
+        steps: [22, 23],
         stepNames: ['Declarations', 'Review & submit'],
     },
 ];
 
-const TOTAL_STEPS = 20;
+const TOTAL_STEPS = 24;
 
 type Props = {
     currentStep: number;
