@@ -73,12 +73,12 @@ const STEP_GROUPS: StepGroup[] = [
     {
         label: 'Declarations & review',
         icon: ClipboardCheck,
-        steps: [22, 23],
-        stepNames: ['Declarations', 'Review & submit'],
+        steps: [22, 23, 24],
+        stepNames: ['Declarations', 'Dependents', 'Review & submit'],
     },
 ];
 
-const TOTAL_STEPS = 24;
+const TOTAL_STEPS = 25;
 
 type Props = {
     currentStep: number;

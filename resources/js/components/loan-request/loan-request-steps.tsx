@@ -1047,6 +1047,8 @@ function DependentCategorySection({
             definition.fields[slotFieldKey(category.key, slot, 'birthdate')];
         const occupationField =
             definition.fields[slotFieldKey(category.key, slot, 'occupation')];
+        const cycleStatusField =
+            definition.fields[slotFieldKey(category.key, slot, 'cycle_status')];
 
         return (
             <div
@@ -1084,6 +1086,11 @@ function DependentCategorySection({
                         {
                             field: occupationField,
                             key: 'occupation',
+                            type: 'text' as const,
+                        },
+                        {
+                            field: cycleStatusField,
+                            key: 'cycle_status',
                             type: 'text' as const,
                         },
                     ].map(({ field, key, type }) => {
