@@ -389,7 +389,7 @@ class LoanRequestWorkflowController extends Controller
         $updated = $processingService->rejectDuringProcessing(
             $loanRequest,
             $actor,
-            $request->validated('rejection_category'),
+            $request->resolvedRejectionCategory(),
             $request->validated('member_visible_reason'),
         );
 

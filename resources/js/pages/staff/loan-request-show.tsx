@@ -1695,6 +1695,7 @@ export default function StaffLoanRequestShow({
                   isProcessing: isWorkflowProcessing,
                   onSubmit: (payload: {
                       rejection_category: string;
+                      rejection_category_other?: string | null;
                       member_visible_reason: string;
                   }) =>
                       rejectLoanRequestDuringProcessing(

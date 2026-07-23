@@ -71,6 +71,7 @@ export type LoanRequestWorkflowDeclinePayload = {
 
 export type LoanRequestWorkflowRejectDuringProcessingPayload = {
     rejection_category: string;
+    rejection_category_other?: string | null;
     member_visible_reason: string;
 };
 
@@ -140,6 +141,16 @@ const textareaClassName =
 
 const inputClassName =
     'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50';
+
+const REJECT_DURING_PROCESSING_CATEGORIES = [
+    'Incomplete documentation',
+    'Insufficient income / GNTHP shortfall',
+    'Failed credit/background check',
+    'Applicant withdrew',
+    'Ineligible loan security',
+    'Duplicate application',
+    'Other',
+] as const;
 
 const buildOfficerLabel = (
     officer: LoanRequestAssignmentOfficerOption,
@@ -232,6 +243,10 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
     );
     const [rejectDuringProcessingCategory, setRejectDuringProcessingCategory] =
         useState('');
+    const [
+        rejectDuringProcessingCategoryOther,
+        setRejectDuringProcessingCategoryOther,
+    ] = useState('');
     const [rejectDuringProcessingReason, setRejectDuringProcessingReason] =
         useState('');
     const [
@@ -558,11 +573,19 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         event.preventDefault();
 
         const category = rejectDuringProcessingCategory.trim();
+        const categoryOther = rejectDuringProcessingCategoryOther.trim();
         const reason = rejectDuringProcessingReason.trim();
 
         if (category === '') {
             setRejectDuringProcessingReasonError(
                 'Rejection category is required.',
+            );
+            return;
+        }
+
+        if (category === 'Other' && categoryOther === '') {
+            setRejectDuringProcessingReasonError(
+                'Please specify the rejection category.',
             );
             return;
         }
@@ -578,11 +601,14 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
 
         const result = await workflow?.rejectDuringProcessing?.onSubmit?.({
             rejection_category: category,
+            rejection_category_other:
+                category === 'Other' ? categoryOther : null,
             member_visible_reason: reason,
         });
 
         if (result) {
             setRejectDuringProcessingCategory('');
+            setRejectDuringProcessingCategoryOther('');
             setRejectDuringProcessingReason('');
             setIsRejectDuringProcessingOpen(false);
         }
@@ -1585,22 +1611,62 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                             <Label htmlFor="workflow_reject_during_processing_category">
                                 Rejection category
                             </Label>
-                            <Input
-                                id="workflow_reject_during_processing_category"
+                            <Select
                                 value={rejectDuringProcessingCategory}
-                                className={inputClassName}
-                                disabled={
-                                    workflow?.rejectDuringProcessing
-                                        ?.isProcessing
-                                }
-                                onChange={(event) => {
-                                    setRejectDuringProcessingCategory(
-                                        event.target.value,
-                                    );
+                                onValueChange={(value) => {
+                                    setRejectDuringProcessingCategory(value);
                                     setRejectDuringProcessingReasonError(null);
                                 }}
-                            />
+                            >
+                                <SelectTrigger
+                                    id="workflow_reject_during_processing_category"
+                                    aria-label="Rejection category"
+                                    disabled={
+                                        workflow?.rejectDuringProcessing
+                                            ?.isProcessing
+                                    }
+                                >
+                                    <SelectValue placeholder="Select a rejection category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {REJECT_DURING_PROCESSING_CATEGORIES.map(
+                                        (category) => (
+                                            <SelectItem
+                                                key={category}
+                                                value={category}
+                                            >
+                                                {category}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
                         </div>
+                        {rejectDuringProcessingCategory === 'Other' ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="workflow_reject_during_processing_category_other">
+                                    Specify category
+                                </Label>
+                                <Input
+                                    id="workflow_reject_during_processing_category_other"
+                                    required
+                                    value={rejectDuringProcessingCategoryOther}
+                                    className={inputClassName}
+                                    disabled={
+                                        workflow?.rejectDuringProcessing
+                                            ?.isProcessing
+                                    }
+                                    onChange={(event) => {
+                                        setRejectDuringProcessingCategoryOther(
+                                            event.target.value,
+                                        );
+                                        setRejectDuringProcessingReasonError(
+                                            null,
+                                        );
+                                    }}
+                                />
+                            </div>
+                        ) : null}
                         <div className="space-y-2">
                             <Label htmlFor="workflow_reject_during_processing_reason">
                                 Member-visible reason

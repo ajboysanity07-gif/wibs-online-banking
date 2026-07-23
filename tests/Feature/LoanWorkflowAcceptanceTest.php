@@ -578,6 +578,56 @@ test('manager approval rolls back completely when document regeneration fails', 
         ->toBe($preApprovalVersions['promissory_note']);
 });
 
+test('reject during processing enforces the fixed rejection category list and resolves the Other free-text value', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940102', 'Category', 'Member');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+
+    $freeTextRequest = createAcceptanceWorkflowRequest($member, $processor, [
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.reject-during-processing', $freeTextRequest), [
+            'rejection_category' => 'Some unlisted reason',
+            'member_visible_reason' => 'Supporting records were incomplete.',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('rejection_category');
+
+    $otherWithoutTextRequest = createAcceptanceWorkflowRequest($member, $processor, [
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.reject-during-processing', $otherWithoutTextRequest), [
+            'rejection_category' => 'Other',
+            'member_visible_reason' => 'Supporting records were incomplete.',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('rejection_category_other');
+
+    $otherWithTextRequest = createAcceptanceWorkflowRequest($member, $processor, [
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.reject-during-processing', $otherWithTextRequest), [
+            'rejection_category' => 'Other',
+            'rejection_category_other' => 'Cooperative membership lapsed',
+            'member_visible_reason' => 'Supporting records were incomplete.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Rejected->value);
+
+    expect($otherWithTextRequest->fresh()->review_rejection_category)
+        ->toBe('Cooperative membership lapsed');
+});
+
 test('member can decline revised terms and processor rejection can be reopened by an authorized staff user', function (): void {
     config()->set('mail.default', 'array');
 
@@ -607,7 +657,7 @@ test('member can decline revised terms and processor rejection can be reopened b
     $this
         ->actingAs($processor)
         ->patchJson(route('spa.workflow.loan-requests.reject-during-processing', $rejectedRequest), [
-            'rejection_category' => 'Insufficient documents',
+            'rejection_category' => 'Incomplete documentation',
             'member_visible_reason' => 'Supporting records were incomplete.',
         ])
         ->assertOk()

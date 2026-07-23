@@ -254,6 +254,7 @@ type LoanRequestWorkflowMemberActionPayload = {
 
 type LoanRequestWorkflowRejectDuringProcessingPayload = {
     rejection_category: string;
+    rejection_category_other?: string | null;
     member_visible_reason: string;
 };
 

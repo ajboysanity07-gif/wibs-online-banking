@@ -86,6 +86,7 @@ export type LoanRequestMemberActionPayload = {
 
 export type LoanRequestRejectDuringProcessingPayload = {
     rejection_category: string;
+    rejection_category_other?: string | null;
     member_visible_reason: string;
 };
 
