@@ -288,7 +288,7 @@ class LoanRequestController extends Controller
         return $documentService->affidavitUndertaking($loanRequestRecord);
     }
 
-    public function authorizationDocument(
+    public function generaliDocument(
         int $loanRequest,
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
@@ -298,7 +298,7 @@ class LoanRequestController extends Controller
             abort(404);
         }
 
-        return $documentService->authorization($loanRequestRecord);
+        return $documentService->generali($loanRequestRecord);
     }
 
     private function findLoanRequest(int $loanRequestId): ?LoanRequest

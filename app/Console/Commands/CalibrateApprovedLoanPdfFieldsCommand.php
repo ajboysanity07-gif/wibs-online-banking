@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
-use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
@@ -16,7 +16,7 @@ use TCPDF;
 class CalibrateApprovedLoanPdfFieldsCommand extends Command
 {
     protected $signature = 'loan-documents:calibrate-fields
-                            {document : Document key: au, az, ub, li, or gl}
+                            {document : Document key: au, ub, li, ge, or gl}
                             {--output= : Override output path (default: storage/app/tmp/calibrate-{doc}.pdf)}';
 
     protected $description = 'Generate a calibration PDF overlaying field boxes and an mm grid on the template.';
@@ -27,11 +27,6 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
             'label' => 'Affidavit of Undertaking',
             'field_map' => AffidavitUndertakingPdfFieldMap::class,
         ],
-        'az' => [
-            'file' => 'authorization.pdf',
-            'label' => 'Authorization',
-            'field_map' => AuthorizationPdfFieldMap::class,
-        ],
         'ub' => [
             'file' => 'undertaking-barangay-officials.pdf',
             'label' => 'Undertaking – Barangay Officials',
@@ -41,6 +36,12 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
             'file' => 'loan information sheet.pdf',
             'label' => 'Loan Information Sheet',
             'field_map' => LoanInformationPdfFieldMap::class,
+        ],
+        // 'gl' is already taken by GREPALIFE's image-template calibration branch below.
+        'ge' => [
+            'file' => 'generali.pdf',
+            'label' => 'Generali (GLAPI) Health Statement',
+            'field_map' => GeneraliPdfFieldMap::class,
         ],
     ];
 

@@ -136,6 +136,102 @@ class LoanRequestDraftRequest extends FormRequest
     ];
 
     /**
+     * Dependents (Form B) fixed slots: child x3, sibling x3, parent x2,
+     * extended x3. Never required on submit -- see LoanRequestDataService.
+     *
+     * @var list<string>
+     */
+    private const DEPENDENT_KEYS = [
+        'dependent_child_1_name',
+        'dependent_child_1_relationship',
+        'dependent_child_1_birthdate',
+        'dependent_child_1_occupation',
+        'dependent_child_1_cycle_status',
+        'dependent_child_2_name',
+        'dependent_child_2_relationship',
+        'dependent_child_2_birthdate',
+        'dependent_child_2_occupation',
+        'dependent_child_2_cycle_status',
+        'dependent_child_3_name',
+        'dependent_child_3_relationship',
+        'dependent_child_3_birthdate',
+        'dependent_child_3_occupation',
+        'dependent_child_3_cycle_status',
+        'dependent_sibling_1_name',
+        'dependent_sibling_1_relationship',
+        'dependent_sibling_1_birthdate',
+        'dependent_sibling_1_occupation',
+        'dependent_sibling_1_cycle_status',
+        'dependent_sibling_2_name',
+        'dependent_sibling_2_relationship',
+        'dependent_sibling_2_birthdate',
+        'dependent_sibling_2_occupation',
+        'dependent_sibling_2_cycle_status',
+        'dependent_sibling_3_name',
+        'dependent_sibling_3_relationship',
+        'dependent_sibling_3_birthdate',
+        'dependent_sibling_3_occupation',
+        'dependent_sibling_3_cycle_status',
+        'dependent_parent_1_name',
+        'dependent_parent_1_relationship',
+        'dependent_parent_1_birthdate',
+        'dependent_parent_1_occupation',
+        'dependent_parent_1_cycle_status',
+        'dependent_parent_2_name',
+        'dependent_parent_2_relationship',
+        'dependent_parent_2_birthdate',
+        'dependent_parent_2_occupation',
+        'dependent_parent_2_cycle_status',
+        'dependent_extended_1_name',
+        'dependent_extended_1_relationship',
+        'dependent_extended_1_birthdate',
+        'dependent_extended_1_occupation',
+        'dependent_extended_1_cycle_status',
+        'dependent_extended_2_name',
+        'dependent_extended_2_relationship',
+        'dependent_extended_2_birthdate',
+        'dependent_extended_2_occupation',
+        'dependent_extended_2_cycle_status',
+        'dependent_extended_3_name',
+        'dependent_extended_3_relationship',
+        'dependent_extended_3_birthdate',
+        'dependent_extended_3_occupation',
+        'dependent_extended_3_cycle_status',
+    ];
+
+    private const DEPENDENT_DATE_KEYS = [
+        'dependent_child_1_birthdate',
+        'dependent_child_2_birthdate',
+        'dependent_child_3_birthdate',
+        'dependent_sibling_1_birthdate',
+        'dependent_sibling_2_birthdate',
+        'dependent_sibling_3_birthdate',
+        'dependent_parent_1_birthdate',
+        'dependent_parent_2_birthdate',
+        'dependent_extended_1_birthdate',
+        'dependent_extended_2_birthdate',
+        'dependent_extended_3_birthdate',
+    ];
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function dependentsRules(): array
+    {
+        $rules = [
+            'dependents' => ['sometimes', 'array:'.implode(',', self::DEPENDENT_KEYS)],
+        ];
+
+        foreach (self::DEPENDENT_KEYS as $key) {
+            $rules["dependents.{$key}"] = in_array($key, self::DEPENDENT_DATE_KEYS, true)
+                ? ['sometimes', 'nullable', 'date']
+                : ['sometimes', 'nullable', 'string', 'max:255'];
+        }
+
+        return $rules;
+    }
+
+    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     private function healthGlapiRules(): array
@@ -209,7 +305,7 @@ class LoanRequestDraftRequest extends FormRequest
                 Rule::in(['New', 'Re-Loan', 'Restructured']),
             ],
             'undertaking_accepted' => ['sometimes', 'boolean'],
-            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:23'],
+            'wizard_step' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:24'],
             'insurance' => ['sometimes', 'array:beneficiary_primary_name,beneficiary_primary_relationship,beneficiary_primary_birthdate,beneficiary_secondary_name,beneficiary_secondary_relationship,beneficiary_secondary_birthdate'],
             'insurance.beneficiary_primary_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance.beneficiary_primary_relationship' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -233,10 +329,7 @@ class LoanRequestDraftRequest extends FormRequest
             'banking.payout_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_bank_branch' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_atm_holder_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'barangay' => ['sometimes', 'array:barangay_name,barangay_clearance_reference,barangay_locality,barangay_official_designation,barangay_agency_name,barangay_agency_address'],
-            'barangay.barangay_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'barangay.barangay_clearance_reference' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'barangay.barangay_locality' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'barangay' => ['sometimes', 'array:barangay_official_designation,barangay_agency_name,barangay_agency_address'],
             'barangay.barangay_official_designation' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_agency_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_agency_address' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -245,6 +338,7 @@ class LoanRequestDraftRequest extends FormRequest
             'declarations.declaration_pending_cases' => ['sometimes', 'nullable', 'boolean'],
             'declarations.declaration_truth_confirmation' => ['sometimes', 'nullable', 'boolean'],
             'declarations.declaration_data_privacy_consent' => ['sometimes', 'nullable', 'boolean'],
+            ...$this->dependentsRules(),
             ...$this->personRules('applicant', true, true, true),
             ...$this->personRules('co_maker_1', false, false, false),
             ...$this->personRules('co_maker_2', false, false, false),

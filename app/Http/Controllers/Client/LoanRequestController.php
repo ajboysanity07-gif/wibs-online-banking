@@ -585,7 +585,7 @@ class LoanRequestController extends Controller
         return $documentService->affidavitUndertaking($loanRequestRecord);
     }
 
-    public function authorizationDocument(
+    public function generaliDocument(
         Request $request,
         int $loanRequest,
         ApprovedLoanDocumentService $documentService,
@@ -593,10 +593,10 @@ class LoanRequestController extends Controller
         $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
             $request,
             $loanRequest,
-            'authorization-document',
+            'generali-document',
         );
 
-        return $documentService->authorization($loanRequestRecord);
+        return $documentService->generali($loanRequestRecord);
     }
 
     /**

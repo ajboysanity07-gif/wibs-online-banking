@@ -245,6 +245,46 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
+            'payout_bank_name' => [
+                $memberRequirement('payout_bank_name'),
+                'string',
+                'max:255',
+            ],
+            'payout_account_name' => [
+                $memberRequirement('payout_account_name'),
+                'string',
+                'max:255',
+            ],
+            'payout_account_number' => [
+                $memberRequirement('payout_account_number'),
+                'string',
+                'max:255',
+            ],
+            'payout_account_type' => [
+                $memberRequirement('payout_account_type'),
+                'string',
+                'max:255',
+            ],
+            'release_method' => [
+                $memberRequirement('release_method'),
+                'string',
+                'max:255',
+            ],
+            'payout_atm_number' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payout_bank_branch' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'payout_atm_holder_name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
         ];
     }
 

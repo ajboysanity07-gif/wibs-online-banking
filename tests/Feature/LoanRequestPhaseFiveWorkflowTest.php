@@ -224,9 +224,9 @@ function phaseFiveLoanRequestPayload(): array
             'release_method' => 'Bank transfer',
         ],
         'barangay' => [
-            'barangay_name' => 'Barangay San Isidro',
-            'barangay_clearance_reference' => 'BCL-2026-030',
-            'barangay_locality' => 'Tagum City, Davao del Norte',
+            'barangay_official_designation' => null,
+            'barangay_agency_name' => null,
+            'barangay_agency_address' => null,
         ],
         'declarations' => [
             'declaration_existing_loans' => false,

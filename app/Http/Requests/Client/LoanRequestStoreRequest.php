@@ -30,6 +30,224 @@ class LoanRequestStoreRequest extends FormRequest
         'Monthly',
     ];
 
+    private const SEX_OPTIONS = ['Male', 'Female'];
+
+    /**
+     * GLAPI (Generali) 17-item health questionnaire field keys. Not required
+     * on submit yet -- see LoanRequestDraftRequest for the rationale (mirrors
+     * that request).
+     *
+     * @var list<string>
+     */
+    private const HEALTH_GLAPI_KEYS = [
+        'gl_health_q01_weight_change',
+        'gl_health_q01_weight_change_details',
+        'gl_health_q02a_neuro',
+        'gl_health_q02a_neuro_details',
+        'gl_health_q02b_respiratory',
+        'gl_health_q02b_respiratory_details',
+        'gl_health_q02c_cardiac',
+        'gl_health_q02c_cardiac_details',
+        'gl_health_q02d_digestive',
+        'gl_health_q02d_digestive_details',
+        'gl_health_q02e_diabetes_renal',
+        'gl_health_q02e_diabetes_renal_details',
+        'gl_health_q02f_musculoskeletal',
+        'gl_health_q02f_musculoskeletal_details',
+        'gl_health_q02g_oncology_blood',
+        'gl_health_q02g_oncology_blood_details',
+        'gl_health_q02h_dermatologic',
+        'gl_health_q02h_dermatologic_details',
+        'gl_health_q02i_std_viral',
+        'gl_health_q02i_std_viral_details',
+        'gl_health_q02j_other_illness',
+        'gl_health_q02j_other_illness_details',
+        'health_hypertension_details',
+        'gl_health_q04_prescribed_drugs',
+        'gl_health_q04_prescribed_drugs_details',
+        'gl_health_q05_confinement_5yr',
+        'gl_health_q05_confinement_5yr_details',
+        'gl_health_q06_abnormal_labs',
+        'gl_health_q06_abnormal_labs_details',
+        'gl_health_q07_confinement_contemplated',
+        'gl_health_q07_confinement_contemplated_details',
+        'gl_health_q08_blood_transfusion',
+        'gl_health_q08_blood_transfusion_details',
+        'gl_health_q09_other_disease',
+        'gl_health_q09_other_disease_details',
+        'gl_health_q10_narcotics',
+        'gl_health_q10_narcotics_details',
+        'gl_health_q11_smoker',
+        'gl_health_q11_smoker_details',
+        'gl_health_q12_alcohol',
+        'gl_health_q12_alcohol_details',
+        'gl_health_q13_advised_stop',
+        'gl_health_q13_advised_stop_details',
+        'gl_health_q14_current_medication',
+        'gl_health_q14_current_medication_details',
+        'gl_health_q15_pregnancy',
+        'gl_health_q15_pregnancy_details',
+        'gl_health_q16_relative_pep',
+        'gl_health_q16_relative_pep_details',
+        'gl_health_q17_pending_reinstatement',
+        'gl_health_q17_pending_reinstatement_details',
+        'gl_health_q17_with_glapi',
+        'gl_health_q17_with_glapi_amount',
+        'gl_health_q17_with_other_companies',
+        'gl_health_q17_with_other_companies_amount',
+    ];
+
+    private const HEALTH_GLAPI_BOOLEAN_KEYS = [
+        'gl_health_q01_weight_change',
+        'gl_health_q02a_neuro',
+        'gl_health_q02b_respiratory',
+        'gl_health_q02c_cardiac',
+        'gl_health_q02d_digestive',
+        'gl_health_q02e_diabetes_renal',
+        'gl_health_q02f_musculoskeletal',
+        'gl_health_q02g_oncology_blood',
+        'gl_health_q02h_dermatologic',
+        'gl_health_q02i_std_viral',
+        'gl_health_q02j_other_illness',
+        'gl_health_q04_prescribed_drugs',
+        'gl_health_q05_confinement_5yr',
+        'gl_health_q06_abnormal_labs',
+        'gl_health_q07_confinement_contemplated',
+        'gl_health_q08_blood_transfusion',
+        'gl_health_q09_other_disease',
+        'gl_health_q10_narcotics',
+        'gl_health_q11_smoker',
+        'gl_health_q12_alcohol',
+        'gl_health_q13_advised_stop',
+        'gl_health_q14_current_medication',
+        'gl_health_q15_pregnancy',
+        'gl_health_q16_relative_pep',
+        'gl_health_q17_pending_reinstatement',
+        'gl_health_q17_with_glapi',
+        'gl_health_q17_with_other_companies',
+    ];
+
+    private const HEALTH_GLAPI_AMOUNT_KEYS = [
+        'gl_health_q17_with_glapi_amount',
+        'gl_health_q17_with_other_companies_amount',
+    ];
+
+    /**
+     * Dependents (Form B) fixed slots: child x3, sibling x3, parent x2,
+     * extended x3. Never required on submit -- see LoanRequestDataService.
+     *
+     * @var list<string>
+     */
+    private const DEPENDENT_KEYS = [
+        'dependent_child_1_name',
+        'dependent_child_1_relationship',
+        'dependent_child_1_birthdate',
+        'dependent_child_1_occupation',
+        'dependent_child_1_cycle_status',
+        'dependent_child_2_name',
+        'dependent_child_2_relationship',
+        'dependent_child_2_birthdate',
+        'dependent_child_2_occupation',
+        'dependent_child_2_cycle_status',
+        'dependent_child_3_name',
+        'dependent_child_3_relationship',
+        'dependent_child_3_birthdate',
+        'dependent_child_3_occupation',
+        'dependent_child_3_cycle_status',
+        'dependent_sibling_1_name',
+        'dependent_sibling_1_relationship',
+        'dependent_sibling_1_birthdate',
+        'dependent_sibling_1_occupation',
+        'dependent_sibling_1_cycle_status',
+        'dependent_sibling_2_name',
+        'dependent_sibling_2_relationship',
+        'dependent_sibling_2_birthdate',
+        'dependent_sibling_2_occupation',
+        'dependent_sibling_2_cycle_status',
+        'dependent_sibling_3_name',
+        'dependent_sibling_3_relationship',
+        'dependent_sibling_3_birthdate',
+        'dependent_sibling_3_occupation',
+        'dependent_sibling_3_cycle_status',
+        'dependent_parent_1_name',
+        'dependent_parent_1_relationship',
+        'dependent_parent_1_birthdate',
+        'dependent_parent_1_occupation',
+        'dependent_parent_1_cycle_status',
+        'dependent_parent_2_name',
+        'dependent_parent_2_relationship',
+        'dependent_parent_2_birthdate',
+        'dependent_parent_2_occupation',
+        'dependent_parent_2_cycle_status',
+        'dependent_extended_1_name',
+        'dependent_extended_1_relationship',
+        'dependent_extended_1_birthdate',
+        'dependent_extended_1_occupation',
+        'dependent_extended_1_cycle_status',
+        'dependent_extended_2_name',
+        'dependent_extended_2_relationship',
+        'dependent_extended_2_birthdate',
+        'dependent_extended_2_occupation',
+        'dependent_extended_2_cycle_status',
+        'dependent_extended_3_name',
+        'dependent_extended_3_relationship',
+        'dependent_extended_3_birthdate',
+        'dependent_extended_3_occupation',
+        'dependent_extended_3_cycle_status',
+    ];
+
+    private const DEPENDENT_DATE_KEYS = [
+        'dependent_child_1_birthdate',
+        'dependent_child_2_birthdate',
+        'dependent_child_3_birthdate',
+        'dependent_sibling_1_birthdate',
+        'dependent_sibling_2_birthdate',
+        'dependent_sibling_3_birthdate',
+        'dependent_parent_1_birthdate',
+        'dependent_parent_2_birthdate',
+        'dependent_extended_1_birthdate',
+        'dependent_extended_2_birthdate',
+        'dependent_extended_3_birthdate',
+    ];
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function dependentsRules(): array
+    {
+        $rules = [
+            'dependents' => ['sometimes', 'array:'.implode(',', self::DEPENDENT_KEYS)],
+        ];
+
+        foreach (self::DEPENDENT_KEYS as $key) {
+            $rules["dependents.{$key}"] = in_array($key, self::DEPENDENT_DATE_KEYS, true)
+                ? ['sometimes', 'nullable', 'date']
+                : ['sometimes', 'nullable', 'string', 'max:255'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function healthGlapiRules(): array
+    {
+        $rules = [
+            'health_glapi' => ['sometimes', 'array:'.implode(',', self::HEALTH_GLAPI_KEYS)],
+        ];
+
+        foreach (self::HEALTH_GLAPI_KEYS as $key) {
+            $rules["health_glapi.{$key}"] = match (true) {
+                in_array($key, self::HEALTH_GLAPI_BOOLEAN_KEYS, true) => ['sometimes', 'nullable', 'boolean'],
+                in_array($key, self::HEALTH_GLAPI_AMOUNT_KEYS, true) => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                default => ['sometimes', 'nullable', 'string', 'max:1000'],
+            };
+        }
+
+        return $rules;
+    }
+
     protected function prepareForValidation(): void
     {
         $payload = $this->all();
@@ -96,6 +314,7 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_diabetes' => ['required', 'boolean'],
             'health.health_recent_hospitalization' => ['required', 'boolean'],
             'health.health_declaration_notes' => ['nullable', 'string', 'max:1000'],
+            ...$this->healthGlapiRules(),
             'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
             'banking.payout_bank_name' => ['required', 'string', 'max:255'],
             'banking.payout_account_name' => ['required', 'string', 'max:255'],
@@ -105,10 +324,7 @@ class LoanRequestStoreRequest extends FormRequest
             'banking.payout_atm_number' => ['nullable', 'string', 'max:255'],
             'banking.payout_bank_branch' => ['nullable', 'string', 'max:255'],
             'banking.payout_atm_holder_name' => ['nullable', 'string', 'max:255'],
-            'barangay' => ['required', 'array:barangay_name,barangay_clearance_reference,barangay_locality,barangay_official_designation,barangay_agency_name,barangay_agency_address'],
-            'barangay.barangay_name' => ['required', 'string', 'max:255'],
-            'barangay.barangay_clearance_reference' => ['required', 'string', 'max:255'],
-            'barangay.barangay_locality' => ['required', 'string', 'max:255'],
+            'barangay' => ['required', 'array:barangay_official_designation,barangay_agency_name,barangay_agency_address'],
             'barangay.barangay_official_designation' => ['nullable', 'string', 'max:255'],
             'barangay.barangay_agency_name' => ['nullable', 'string', 'max:255'],
             'barangay.barangay_agency_address' => ['nullable', 'string', 'max:255'],
@@ -117,6 +333,7 @@ class LoanRequestStoreRequest extends FormRequest
             'declarations.declaration_pending_cases' => ['required', 'boolean'],
             'declarations.declaration_truth_confirmation' => ['accepted'],
             'declarations.declaration_data_privacy_consent' => ['accepted'],
+            ...$this->dependentsRules(),
             ...$this->personRules('applicant', true, true, true),
             ...$this->personRules('co_maker_1', false, false, false),
             ...$this->personRules('co_maker_2', false, false, false),
@@ -186,6 +403,12 @@ class LoanRequestStoreRequest extends FormRequest
                 'required',
                 'string',
                 Rule::in(self::CIVIL_STATUS_OPTIONS),
+            ];
+            $rules["{$prefix}.sex"] = [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(self::SEX_OPTIONS),
             ];
         }
 

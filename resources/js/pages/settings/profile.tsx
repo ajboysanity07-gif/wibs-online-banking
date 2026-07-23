@@ -98,6 +98,14 @@ type MemberApplicationProfileData = {
     years_in_work_business: string | null;
     gross_monthly_income: string | null;
     payday: string | null;
+    payout_bank_name: string | null;
+    payout_account_name: string | null;
+    payout_account_number: string | null;
+    payout_account_type: string | null;
+    release_method: string | null;
+    payout_atm_number: string | null;
+    payout_bank_branch: string | null;
+    payout_atm_holder_name: string | null;
     profile_completed_at: string | null;
 };
 
@@ -167,7 +175,7 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
-const PROFILE_TAB_ORDER = ['account', 'personal', 'work'] as const;
+const PROFILE_TAB_ORDER = ['account', 'personal', 'work', 'bank'] as const;
 type ProfileTab = (typeof PROFILE_TAB_ORDER)[number];
 const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
     account: ['profile_photo', 'fullname', 'username', 'email', 'phoneno'],
@@ -195,6 +203,16 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'years_in_work_business',
         'gross_monthly_income',
         'payday',
+    ],
+    bank: [
+        'payout_bank_name',
+        'payout_account_name',
+        'payout_account_number',
+        'payout_account_type',
+        'release_method',
+        'payout_atm_number',
+        'payout_bank_branch',
+        'payout_atm_holder_name',
     ],
 };
 
@@ -841,6 +859,11 @@ export default function Profile({
                                                                             Work
                                                                             &amp;
                                                                             Finances
+                                                                        </TabsTrigger>
+                                                                        <TabsTrigger value="bank">
+                                                                            Bank
+                                                                            &amp;
+                                                                            Payout
                                                                         </TabsTrigger>
                                                                     </>
                                                                 )}
@@ -2380,6 +2403,251 @@ export default function Profile({
                                                                     </div>
                                                                 </div>
                                                             </div>
+                                                    </SurfaceCard>
+                                                </TabsContent>
+                                            )}
+
+                                            {hasMemberAccess && (
+                                                <TabsContent
+                                                    value="bank"
+                                                    forceMount
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-6">
+                                                            <div className="space-y-1">
+                                                                <h3 className="text-base font-semibold">
+                                                                    Bank &amp;
+                                                                    Payout
+                                                                </h3>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Keep your
+                                                                    payout bank
+                                                                    account
+                                                                    details up
+                                                                    to date.
+                                                                    These are
+                                                                    used to
+                                                                    pre-fill
+                                                                    future loan
+                                                                    requests.
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="grid gap-4 md:grid-cols-2">
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payout_bank_name">
+                                                                        Bank
+                                                                        name
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="payout_bank_name"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.payout_bank_name ??
+                                                                            ''
+                                                                        }
+                                                                        name="payout_bank_name"
+                                                                        placeholder="Bank name"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payout_bank_name
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payout_bank_branch">
+                                                                        Bank
+                                                                        branch
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="payout_bank_branch"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.payout_bank_branch ??
+                                                                            ''
+                                                                        }
+                                                                        name="payout_bank_branch"
+                                                                        placeholder="Bank branch"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payout_bank_branch
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payout_account_name">
+                                                                        Account
+                                                                        name
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="payout_account_name"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.payout_account_name ??
+                                                                            ''
+                                                                        }
+                                                                        name="payout_account_name"
+                                                                        placeholder="Account name"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payout_account_name
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payout_account_number">
+                                                                        Account
+                                                                        number
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="payout_account_number"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.payout_account_number ??
+                                                                            ''
+                                                                        }
+                                                                        name="payout_account_number"
+                                                                        placeholder="Account number"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payout_account_number
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payout_account_type">
+                                                                        Account
+                                                                        type
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="payout_account_type"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.payout_account_type ??
+                                                                            ''
+                                                                        }
+                                                                        name="payout_account_type"
+                                                                        placeholder="e.g. Savings"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payout_account_type
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="release_method">
+                                                                        Release
+                                                                        method
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="release_method"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.release_method ??
+                                                                            ''
+                                                                        }
+                                                                        name="release_method"
+                                                                        placeholder="e.g. Bank deposit"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.release_method
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payout_atm_number">
+                                                                        ATM
+                                                                        card
+                                                                        number
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="payout_atm_number"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.payout_atm_number ??
+                                                                            ''
+                                                                        }
+                                                                        name="payout_atm_number"
+                                                                        placeholder="ATM card number"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payout_atm_number
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payout_atm_holder_name">
+                                                                        ATM
+                                                                        card
+                                                                        holder
+                                                                        name{' '}
+                                                                        <span className="text-muted-foreground">
+                                                                            (if
+                                                                            not
+                                                                            you)
+                                                                        </span>
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="payout_atm_holder_name"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.payout_atm_holder_name ??
+                                                                            ''
+                                                                        }
+                                                                        name="payout_atm_holder_name"
+                                                                        placeholder="ATM card holder name"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payout_atm_holder_name
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </SurfaceCard>
                                                 </TabsContent>
                                             )}

@@ -35,6 +35,7 @@ class LoanRequestPerson extends Model
         'housing_status',
         'cell_no',
         'civil_status',
+        'sex',
         'educational_attainment',
         'number_of_children',
         'spouse_name',

@@ -13,7 +13,6 @@ use App\Models\UserProfile;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\ApprovedLoanImageTemplatePdfService;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
-use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
@@ -1063,82 +1062,6 @@ test('affidavit undertaking field map pins all field coordinates to calibrated v
     expect((int) $seriesYear['size'])->toBe(10);
 });
 
-test('authorization field map pins all field coordinates to calibrated values', function () {
-    $fields = collect((new AuthorizationPdfFieldMap)->fields());
-
-    $find = fn (string $value): array => $fields->first(
-        fn (array $f): bool => ($f['value'] ?? null) === $value,
-    );
-    $findOrNull = fn (string $value): ?array => $fields->first(
-        fn (array $f): bool => ($f['value'] ?? null) === $value,
-    );
-
-    // Visual-fidelity rebuild against the real reference document: the reference is a
-    // single Letter-size (8.5x11in) paragraph letter with no identification table at all
-    // (no separate full_name/address/loan.reference/approved_date/company_name lines) --
-    // those five fields are gone, not repositioned.
-    foreach ([
-        'applicant.address', 'loan.reference', 'loan.approved_amount',
-        'loan.loan_security_amount', 'loan.approved_date', 'organization.company_name',
-        'authorization.release_method', 'authorization.payout_bank_name',
-    ] as $droppedValue) {
-        expect($findOrNull($droppedValue))->toBeNull();
-    }
-
-    $header = $fields->first(fn (array $f): bool => ($f['type'] ?? null) === 'image');
-    expect($header)->not->toBeNull();
-    expect($header['value'])->toBe('organization.report_header.designPath');
-    // Header box is as generous as AU/LI's, so it takes their scale convention rather
-    // than UB's 1.5 (tuned for UB's much tighter 14mm box).
-    expect((float) $header['scale'])->toBe(1.0);
-
-    // Inline blanks in paragraph 1 -- "Php." is baked as static artwork text, so the
-    // stamped value must be the bare formatted number, not the ₱-prefixed string AU/UB
-    // use for their own inline blanks.
-    $amount = $find('loan.loan_security_amount_plain');
-    expect((float) $amount['x'])->toBe(83.18);
-    expect((float) $amount['y'])->toBe(80.5);
-    // No explicit font -- falls through to ApprovedLoanPdfTemplateService::DEFAULT_FONT
-    // (calibri), matching AU/UB/LI's convention.
-    expect($amount['font'] ?? null)->toBeNull();
-    expect($amount['shrink_to_fit'] ?? false)->toBeTrue();
-
-    $accountHolder = $find('authorization.payout_atm_holder_name');
-    // payout_atm_holder_name is wired twice: once as the inline "to the account of ___"
-    // blank, once on the ATM Card Holder signature line below -- confirm both exist and
-    // are distinct positions, not the same entry appearing once.
-    $accountHolderEntries = $fields->filter(
-        fn (array $f): bool => ($f['value'] ?? null) === 'authorization.payout_atm_holder_name',
-    );
-    expect($accountHolderEntries)->toHaveCount(2);
-    expect($accountHolderEntries->pluck('y')->unique())->toHaveCount(2);
-    expect((float) $accountHolder['x'])->toBe(25.4);
-    expect((float) $accountHolder['y'])->toBe(87.0);
-
-    $accountNumber = $find('authorization.payout_account_number');
-    expect((float) $accountNumber['x'])->toBe(121.32);
-    expect((float) $accountNumber['y'])->toBe(87.0);
-
-    $bankBranch = $find('authorization.payout_bank_branch');
-    expect((float) $bankBranch['x'])->toBe(58.75);
-    expect((float) $bankBranch['y'])->toBe(93.5);
-
-    // Signature block -- Borrower (applicant.full_name) and ATM Card Holder
-    // (authorization.payout_atm_holder_name), distinct centered positions.
-    $signatures = $fields->filter(
-        fn (array $f): bool => ($f['align'] ?? null) === 'C'
-            && in_array($f['value'] ?? null, ['applicant.full_name', 'authorization.payout_atm_holder_name'], true),
-    );
-    expect($signatures)->toHaveCount(2);
-    expect($signatures->pluck('y')->unique())->toHaveCount(2);
-
-    $borrowerSignature = $fields->first(
-        fn (array $f): bool => ($f['value'] ?? null) === 'applicant.full_name',
-    );
-    expect((float) $borrowerSignature['x'])->toBe(45.4);
-    expect((float) $borrowerSignature['y'])->toBe(127.0);
-});
-
 test('undertaking barangay field map pins all field coordinates to calibrated values', function () {
     $fields = collect((new UndertakingBarangayPdfFieldMap)->fields());
 
@@ -1910,6 +1833,99 @@ test('affidavit undertaking pdf stamps GNTHP and account number inline for parag
     expect(abs((float) $gnthp['y'] - (float) $accountNumber['y']))->toBeLessThan(10.0);
 });
 
+test('generali pdf route succeeds and is not a corrupted or fallback file', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_name', 'string', 'Juan Dela Cruz');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_relationship', 'string', 'Spouse');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_birthdate', 'date', '1989-03-15');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension', 'boolean', true);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension_details', 'string', 'Controlled with medication');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'gl_health_q11_smoker', 'boolean', false);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.generali', $loanRequest));
+
+    $response->assertOk();
+    $content = approvedLoanDocumentsReadDownloadedFileContent($response);
+
+    // The scanned reference template's own content streams defeat this suite's naive
+    // regex-based PDF text extractor (confirmed correct instead by rendering the actual
+    // generated file with a real PDF viewer during development), so this only asserts the
+    // file is a well-formed, non-corrupted, non-fallback PDF -- not specific text content.
+    expect($content)->toStartWith('%PDF')
+        ->not->toContain('LibreOffice')
+        ->not->toContain('soffice')
+        ->not->toContain('file://');
+});
+
+test('generali field map resolves applicant, beneficiary, and health data into the rendered document data', function () {
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_name', 'string', 'Juan Dela Cruz');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_relationship', 'string', 'Spouse');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension', 'boolean', true);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension_details', 'string', 'Controlled with medication');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'gl_health_q11_smoker', 'boolean', false);
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest);
+
+    expect(data_get($documentData, 'applicant.first_name'))->toBe('Sample');
+    expect(data_get($documentData, 'applicant.last_name'))->toBe('Member');
+    expect(data_get($documentData, 'beneficiaries.0.name'))->toBe('Juan Dela Cruz');
+    expect(data_get($documentData, 'beneficiaries.0.relationship'))->toBe('Spouse');
+    expect(data_get($documentData, 'health.health_hypertension'))->toBeTrue();
+    expect(data_get($documentData, 'health_glapi.health_hypertension_details'))->toBe('Controlled with medication');
+    expect(data_get($documentData, 'health_glapi.gl_health_q11_smoker'))->toBeFalse();
+
+    $fieldMap = new \App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
+    $fields = $fieldMap->fields();
+
+    expect($fields)->not->toBeEmpty();
+    expect(collect($fields)->pluck('page')->unique()->sort()->values()->all())->toBe([1, 2]);
+
+    $resolved = collect($fields)->map(function (array $field) use ($documentData) {
+        $value = $field['value'] ?? null;
+
+        if (is_callable($value)) {
+            return $value($documentData);
+        }
+
+        return is_string($value) ? data_get($documentData, $value) : $value;
+    });
+
+    expect($resolved->contains('Sample'))->toBeTrue();
+    expect($resolved->contains('Juan Dela Cruz'))->toBeTrue();
+    expect($resolved->contains('Controlled with medication'))->toBeTrue();
+    expect($resolved->contains(true))->toBeTrue();
+});
+
+test('generali pdf is 2 pages, A4 size', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.generali', $loanRequest));
+
+    $response->assertOk();
+
+    $pdf = new Fpdi('P', 'mm');
+    $pageCount = $pdf->setSourceFile(approvedLoanDocumentsDownloadedFilePath($response));
+    $templateId = $pdf->importPage(1);
+    $size = $pdf->getTemplateSize($templateId);
+
+    expect($pageCount)->toBe(2);
+    expect(abs((float) $size['width'] - 210.0))->toBeLessThan(0.5);
+    expect(abs((float) $size['height'] - 297.0))->toBeLessThan(0.5);
+});
+
 test('affidavit undertaking pdf is Legal size, not A4', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
@@ -2023,83 +2039,6 @@ test('loan information pdf omits the header image gracefully when unconfigured',
     $response->assertOk();
 
     expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(0);
-});
-
-test('authorization pdf prints static bank name and payout details, not release_method or a dynamic bank name', function () {
-    $admin = User::factory()->create();
-    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-
-    // release_method (CONFIRMED DEAD) and payout_bank_name (bank name is now static artwork
-    // text, "Enterprise Bank, Inc." -- MRDINC's fixed partner bank) are persisted here to
-    // prove they no longer surface on AZ, not because AZ still reads them.
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_method', 'string', 'ATM');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'LANDBANK');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_branch', 'string', 'TAGUM BRANCH');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_atm_holder_name', 'string', 'MARIA B. SANTOS');
-
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.authorization', $loanRequest));
-
-    $response->assertOk();
-    $text = approvedLoanDocumentsExtractPdfText($response);
-
-    // "Enterprise Bank, Inc." is baked into the real production artwork as static text
-    // (not stamped by the field map), so it can't be asserted here -- this Feature test
-    // suite stamps values onto a synthetic placeholder template
-    // (approvedLoanDocumentsSeedTemplateFilesForTests()), not a copy of the real artwork
-    // file. What IS testable here is that the dynamic fields this bug fix removed no
-    // longer print, regardless of what's persisted for them.
-    expect($text)
-        ->toContain('1122334455')
-        ->toContain('TAGUM BRANCH')
-        ->toContain('MARIA B. SANTOS')
-        ->not->toContain('LANDBANK')
-        ->not->toContain('ATM ');
-});
-
-test('authorization pdf prints the loan security amount, not the raw approved amount', function () {
-    $admin = User::factory()->create();
-    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'loan_security_rate', 'number', 0.02);
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
-
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.authorization', $loanRequest));
-
-    $response->assertOk();
-    $text = approvedLoanDocumentsExtractPdfText($response);
-
-    // approved_amount is 25,000 (fixture default); loan_security_rate 0.02 -> 500.00,
-    // distinct from the full approved amount -- proves the repointed field, not a stale one.
-    expect($text)
-        ->toContain('500.00')
-        ->not->toContain('25,000.00');
-});
-
-test('authorization pdf omits atm card holder name when payout_atm_holder_name is null', function () {
-    $admin = User::factory()->create();
-    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
-
-    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
-
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_method', 'string', 'ATM');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'LANDBANK');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '1122334455');
-    // payout_atm_holder_name intentionally omitted — borrower uses their own card
-
-    $response = $this
-        ->actingAs($admin)
-        ->get(route('admin.requests.documents.authorization', $loanRequest));
-
-    $response->assertOk();
-    expect(approvedLoanDocumentsReadDownloadedFileContent($response))->toStartWith('%PDF');
 });
 
 test('undertaking barangay pdf prints applicant employment details, not staff barangay overrides', function () {
@@ -2445,13 +2384,13 @@ test('approved document zip contains all required files and valid generated docu
         '01-Application-Form.pdf',
         '02-GREPALIFE.pdf',
         '03-Affidavit-of-Undertaking.pdf',
-        '04-Authorization.pdf',
-        '05-Loan-Information.pdf',
-        '06-Plan-of-Payment.pdf',
-        '07-Disclosure-Statement.pdf',
-        '08-Promissory-Note.pdf',
-        '09-Undertaking-Barangay-Officials.pdf',
-        '10-Loan-Security-Agreement.pdf',
+        '04-Loan-Information.pdf',
+        '05-Plan-of-Payment.pdf',
+        '06-Disclosure-Statement.pdf',
+        '07-Promissory-Note.pdf',
+        '08-Undertaking-Barangay-Officials.pdf',
+        '09-Loan-Security-Agreement.pdf',
+        '10-Generali-Health-Statement.pdf',
     ]);
 
     foreach ($entries as $content) {
@@ -2746,12 +2685,6 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
             'page_count' => 1,
         ],
         [
-            'route' => 'admin.requests.documents.authorization',
-            'filename' => 'authorization-'.$loanRequest->reference.'.pdf',
-            'disposition' => 'attachment',
-            'page_count' => 1,
-        ],
-        [
             'route' => 'admin.requests.documents.promissory-note',
             'filename' => 'promissory-note-'.$loanRequest->reference.'.pdf',
             'disposition' => 'attachment',
@@ -2792,6 +2725,12 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
             // artifact, not a real layout regression.
             'page_count' => 2,
         ],
+        [
+            'route' => 'admin.requests.documents.generali',
+            'filename' => 'generali-'.$loanRequest->reference.'.pdf',
+            'disposition' => 'attachment',
+            'page_count' => 2,
+        ],
     ];
 }
 
@@ -2803,13 +2742,13 @@ function approvedLoanDocumentsTemplateBackedPdfZipEntryNames(): array
     return [
         '02-GREPALIFE.pdf',
         '03-Affidavit-of-Undertaking.pdf',
-        '04-Authorization.pdf',
-        '05-Loan-Information.pdf',
-        '06-Plan-of-Payment.pdf',
-        '07-Disclosure-Statement.pdf',
-        '08-Promissory-Note.pdf',
-        '09-Undertaking-Barangay-Officials.pdf',
-        '10-Loan-Security-Agreement.pdf',
+        '04-Loan-Information.pdf',
+        '05-Plan-of-Payment.pdf',
+        '06-Disclosure-Statement.pdf',
+        '07-Promissory-Note.pdf',
+        '08-Undertaking-Barangay-Officials.pdf',
+        '09-Loan-Security-Agreement.pdf',
+        '10-Generali-Health-Statement.pdf',
     ];
 }
 
@@ -2828,7 +2767,7 @@ function approvedLoanDocumentsApprovedOnlyRouteNames(): array
         'admin.requests.documents.promissory-note',
         'admin.requests.documents.undertaking-barangay',
         'admin.requests.documents.affidavit-undertaking',
-        'admin.requests.documents.authorization',
+        'admin.requests.documents.generali',
     ];
 }
 
@@ -3918,12 +3857,6 @@ function approvedLoanDocumentsSeedTemplateFilesForTests(): void
                 'height' => 330.0,
                 'title' => 'Affidavit Undertaking',
             ],
-        ],
-    );
-    approvedLoanDocumentsCreateTemplatePdf(
-        $pdfDirectory.DIRECTORY_SEPARATOR.'authorization.pdf',
-        [
-            ['width' => 215.9, 'height' => 279.4, 'title' => 'Authorization'],
         ],
     );
     approvedLoanDocumentsCreateTemplatePdf(

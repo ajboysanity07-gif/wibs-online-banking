@@ -25,6 +25,11 @@ class LoanRequestPayloadSerializer
         'Widowed',
     ];
 
+    private const SEX_OPTIONS = [
+        'Male',
+        'Female',
+    ];
+
     private const PAYDAY_OPTIONS = [
         'Weekly',
         '15th',
@@ -1029,6 +1034,7 @@ class LoanRequestPayloadSerializer
         $civilStatus = $this->normalizeCivilStatusValue(
             $person['civil_status'] ?? null,
         );
+        $sex = $this->normalizeSexValue($person['sex'] ?? null);
         $payday = $this->normalizePaydayValue($person['payday'] ?? null);
 
         $birthplaceCity = $this->normalizeOptionalString(
@@ -1119,6 +1125,7 @@ class LoanRequestPayloadSerializer
             'employer_business_address3' => $employerAddress3,
             'housing_status' => $housingStatus,
             'civil_status' => $civilStatus,
+            'sex' => $sex,
             'payday' => $payday,
         ]);
     }
@@ -1225,6 +1232,29 @@ class LoanRequestPayloadSerializer
         }
 
         return in_array($resolved, self::CIVIL_STATUS_OPTIONS, true)
+            ? $resolved
+            : null;
+    }
+
+    private function normalizeSexValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $resolved = match (strtoupper($trimmed)) {
+            'MALE', 'M' => 'Male',
+            'FEMALE', 'F' => 'Female',
+            default => null,
+        };
+
+        return $resolved !== null && in_array($resolved, self::SEX_OPTIONS, true)
             ? $resolved
             : null;
     }

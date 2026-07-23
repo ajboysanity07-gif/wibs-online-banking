@@ -40,8 +40,8 @@ import {
 import {
     affidavitUndertaking as requestsAffidavitUndertakingDocument,
     applicationForm as requestsApplicationFormDocument,
-    authorization as requestsAuthorizationDocument,
     disclosureStatement as requestsDisclosureStatementDocument,
+    generali as requestsGeneraliDocument,
     grepalife as requestsGrepalifeDocument,
     loanInformation as requestsLoanInformationDocument,
     loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
@@ -259,9 +259,6 @@ export default function LoanRequestShow({
                   affidavitUndertaking: requestsAffidavitUndertakingDocument(
                       currentRequest.id,
                   ).url,
-                  authorization: requestsAuthorizationDocument(
-                      currentRequest.id,
-                  ).url,
                   loanInformation: requestsLoanInformationDocument(
                       currentRequest.id,
                   ).url,
@@ -280,6 +277,7 @@ export default function LoanRequestShow({
                   loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
                       currentRequest.id,
                   ).url,
+                  generali: requestsGeneraliDocument(currentRequest.id).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;

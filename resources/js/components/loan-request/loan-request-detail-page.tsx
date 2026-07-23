@@ -107,13 +107,13 @@ type ApprovedDocumentHrefs = {
     applicationForm: string;
     grepalife: string;
     affidavitUndertaking: string;
-    authorization: string;
     loanInformation: string;
     planOfPayment: string;
     disclosureStatement: string;
     promissoryNote: string;
     undertakingBarangay: string;
     loanSecurityAgreement: string;
+    generali: string;
     packageZip?: string | null;
 };
 
@@ -1076,11 +1076,6 @@ export function LoanRequestDetailPage({
                   format: 'PDF',
               },
               {
-                  label: 'Authorization PDF',
-                  href: approvedDocumentHrefs.authorization,
-                  format: 'PDF',
-              },
-              {
                   label: 'Loan Information Excel',
                   href: approvedDocumentHrefs.loanInformation,
                   format: 'XLSX',
@@ -1108,6 +1103,11 @@ export function LoanRequestDetailPage({
               {
                   label: 'Loan Security Agreement PDF',
                   href: approvedDocumentHrefs.loanSecurityAgreement,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Generali (GLAPI) Health Statement PDF',
+                  href: approvedDocumentHrefs.generali,
                   format: 'PDF',
               },
           ]

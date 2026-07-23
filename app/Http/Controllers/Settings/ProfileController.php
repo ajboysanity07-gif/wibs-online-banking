@@ -81,10 +81,10 @@ class ProfileController extends Controller
         }
 
         if ($hasMemberAccess) {
-            $memberProfileData = Arr::only(
-                $validated,
-                MemberApplicationProfile::fields(),
-            );
+            $memberProfileData = [
+                ...Arr::only($validated, MemberApplicationProfile::fields()),
+                ...Arr::only($validated, MemberApplicationProfile::payoutBankFields()),
+            ];
 
             $memberProfile = $user->memberApplicationProfile()->firstOrNew();
             $memberProfile->fill($memberProfileData);

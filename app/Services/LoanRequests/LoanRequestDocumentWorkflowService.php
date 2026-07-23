@@ -51,7 +51,7 @@ class LoanRequestDocumentWorkflowService
     private const DOCUMENT_GENERATION_LOCK_TTL_SECONDS = 30;
 
     /**
-     * Covers generateAll() looping over up to all ten documents. Kept at the
+     * Covers generateAll() looping over up to all nine documents. Kept at the
      * pre-existing value: with the per-document key split landing alongside
      * this, an unrelated single-document regenerate no longer blocks (or is
      * blocked by) a "Generate All" run, so there is little benefit to
@@ -643,9 +643,6 @@ class LoanRequestDocumentWorkflowService
                 ],
                 'processing' => [
                     'notarial_venue' => $flatValues['notarial_venue'] ?? null,
-                    'barangay_name' => $flatValues['barangay_name'] ?? null,
-                    'barangay_clearance_reference' => $flatValues['barangay_clearance_reference'] ?? null,
-                    'barangay_locality' => $flatValues['barangay_locality'] ?? null,
                     'barangay_official_name' => $flatValues['barangay_official_name'] ?? null,
                     'barangay_official_title' => $flatValues['barangay_official_title'] ?? null,
                     'release_method' => $flatValues['release_method'] ?? null,

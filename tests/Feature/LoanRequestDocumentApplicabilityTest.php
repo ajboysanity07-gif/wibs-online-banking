@@ -40,41 +40,21 @@ function applicabilityChecklistEntry(LoanRequest $loanRequest, LoanRequestDocume
     return collect($checklist)->firstWhere('key', $documentKey->value);
 }
 
-test('authorization, barangay, loan security agreement, and grepalife are always applicable regardless of legacy flags or blank source fields', function (): void {
+test('barangay, loan security agreement, and grepalife are always applicable regardless of legacy flags or blank source fields', function (): void {
     $loanRequest = LoanRequest::factory()->make();
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     $flatValues = [
-        'authorization_required' => false,
         'barangay_required' => false,
         'security_required' => false,
         'insurance_required' => false,
-        'payout_bank_name' => null,
-        'payout_account_number' => null,
-        'barangay_name' => null,
-        'barangay_clearance_reference' => null,
-        'barangay_locality' => null,
         'notarial_venue' => null,
         'loan_security_rate' => null,
     ];
 
-    expect($catalog->isApplicable(LoanRequestDocumentKey::Authorization, $loanRequest, $flatValues))->toBeTrue()
-        ->and($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, $flatValues))->toBeTrue()
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, $flatValues))->toBeTrue()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, $flatValues))->toBeTrue()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, $flatValues))->toBeTrue();
-});
-
-test('authorization surfaces a non-ready status when its required fields are blank', function (): void {
-    $loanRequest = LoanRequest::factory()->create([
-        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
-    ]);
-
-    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::Authorization);
-
-    expect($entry['is_applicable'])->toBeTrue()
-        ->and($entry['status'])->not->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
-        ->and($entry['status'])->not->toBe(LoanRequestDocumentReadinessStatus::NotApplicable->value)
-        ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation->value);
 });
 
 test('undertaking barangay surfaces incomplete when its required fields are blank', function (): void {
@@ -90,22 +70,18 @@ test('undertaking barangay surfaces incomplete when its required fields are blan
         ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::Incomplete->value);
 });
 
-test('authorization and undertaking barangay become ready to generate once their required fields are filled', function (): void {
+test('undertaking barangay becomes ready to generate once its required fields are filled', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
     applicabilityPersistDataEntries($loanRequest, [
-        'payout_bank_name' => ['string', 'WIBS Cooperative Bank'],
-        'payout_account_number' => ['string', '1234567890'],
         'guaranteed_net_take_home_pay' => ['number', 15000],
     ]);
 
-    $authorization = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::Authorization);
     $barangay = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::UndertakingBarangay);
 
-    expect($authorization['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value)
-        ->and($barangay['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
+    expect($barangay['status'])->toBe(LoanRequestDocumentReadinessStatus::ReadyToGenerate->value);
 });
 
 test('loan_security_rate stays required and generates blockers unconditionally, with no flag in the fixture at all', function (): void {

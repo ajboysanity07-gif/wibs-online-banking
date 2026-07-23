@@ -25,6 +25,7 @@ export type LoanRequestPersonData = {
     housing_status: string | null;
     cell_no: string | null;
     civil_status: string | null;
+    sex: string | null;
     educational_attainment: string | null;
     number_of_children: number | string | null;
     spouse_name: string | null;
@@ -59,6 +60,7 @@ export type LoanRequestPersonFormData = {
     housing_status: string;
     cell_no: string;
     civil_status: string;
+    sex: string;
     educational_attainment: string;
     number_of_children: string;
     spouse_name: string;
@@ -215,11 +217,18 @@ export type LoanRequestDataFieldType =
     | 'integer'
     | 'date';
 
+export type LoanRequestDataFieldVisibility = {
+    field: string;
+    equals: string;
+};
+
 export type LoanRequestDataFieldDefinition = {
     label: string;
     sensitive: boolean;
     owner: 'member' | 'staff';
     type: LoanRequestDataFieldType;
+    detail_of: string | null;
+    visible_when: LoanRequestDataFieldVisibility | null;
 };
 
 export type LoanRequestDataSectionDefinition = {
@@ -248,13 +257,13 @@ export type LoanRequestDocumentKey =
     | 'application_form'
     | 'grepalife'
     | 'affidavit_undertaking'
-    | 'authorization'
     | 'loan_information'
     | 'plan_of_payment'
     | 'disclosure_statement'
     | 'promissory_note'
     | 'undertaking_barangay'
-    | 'loan_security_agreement';
+    | 'loan_security_agreement'
+    | 'generali';
 
 export type LoanRequestDocumentReadinessStatus =
     | 'not_started'
@@ -448,9 +457,11 @@ export type LoanRequestFormData = {
     co_maker_2: LoanRequestPersonFormData;
     insurance: LoanRequestDataSectionValues;
     health: LoanRequestDataSectionValues;
+    health_glapi: LoanRequestDataSectionValues;
     banking: LoanRequestDataSectionValues;
     barangay: LoanRequestDataSectionValues;
     declarations: LoanRequestDataSectionValues;
+    dependents: LoanRequestDataSectionValues;
 };
 
 export type LoanRequestCorrectionPayload = Omit<

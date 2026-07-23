@@ -48,6 +48,7 @@ const HOUSING_STATUS_OPTIONS = [
     { value: 'OWNED', label: 'Owned' },
     { value: 'RENT', label: 'Rent' },
 ] as const;
+const SEX_OPTIONS = ['Male', 'Female'] as const;
 export const PAYDAY_OPTIONS = [
     'Weekly',
     '15th',
@@ -413,6 +414,39 @@ export function LoanRequestPersonalFields({
                         )}
                     />
                 </div>
+
+                {includeCivilHousing ? (
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_sex`}
+                            label="Sex"
+                            isReadOnly={isReadOnly('sex')}
+                        />
+                        <Select
+                            value={values.sex || undefined}
+                            onValueChange={(value) => onChange('sex', value)}
+                            disabled={isReadOnly('sex')}
+                        >
+                            <SelectTrigger
+                                id={`${prefix}_sex`}
+                                className={cn(
+                                    'mt-1 w-full',
+                                    isReadOnly('sex') && readOnlyInputClass,
+                                )}
+                            >
+                                <SelectValue placeholder="Select sex" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {SEX_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={fieldError(errors, prefix, 'sex')} />
+                    </div>
+                ) : null}
             </div>
             ) : null}
 

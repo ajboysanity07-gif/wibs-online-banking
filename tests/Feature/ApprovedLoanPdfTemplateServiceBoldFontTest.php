@@ -29,7 +29,7 @@ test('bold style field renders using the registered bold calibri font instead of
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     $content = $service->renderContent(
-        'authorization.pdf',
+        'affidavit-undertaking.pdf',
         ['sample' => ['text' => 'Sample Bold Text']],
         $fieldMap,
     );
@@ -50,7 +50,7 @@ test('regular style field still renders fine now that bold is also registered', 
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     $content = $service->renderContent(
-        'authorization.pdf',
+        'affidavit-undertaking.pdf',
         ['sample' => ['text' => 'Sample Regular Text']],
         $fieldMap,
     );
@@ -71,7 +71,7 @@ test('a style with no registered font definition throws a catchable exception in
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     expect(fn () => $service->renderContent(
-        'authorization.pdf',
+        'affidavit-undertaking.pdf',
         ['sample' => ['text' => 'Sample Italic Text']],
         $fieldMap,
     ))->toThrow(RuntimeException::class, 'Missing PDF font definition');

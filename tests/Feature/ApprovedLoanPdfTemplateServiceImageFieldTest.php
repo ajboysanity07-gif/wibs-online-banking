@@ -37,7 +37,7 @@ test('image type field renders image data into the generated pdf', function () {
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     $content = $service->renderContent(
-        'authorization.pdf',
+        'affidavit-undertaking.pdf',
         ['header' => ['image_path' => 'test-assets/image-field.png']],
         $fieldMap,
     );
@@ -62,7 +62,7 @@ test('image type field with an unresolvable path renders no image and does not e
     $service = app(ApprovedLoanPdfTemplateService::class);
 
     $content = $service->renderContent(
-        'authorization.pdf',
+        'affidavit-undertaking.pdf',
         ['header' => ['image_path' => null]],
         $fieldMap,
     );

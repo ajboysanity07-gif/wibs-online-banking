@@ -6,6 +6,7 @@ use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class MemberApplicationProfile extends Model
 {
@@ -41,12 +42,31 @@ class MemberApplicationProfile extends Model
         'years_in_work_business',
         'gross_monthly_income',
         'payday',
+        'payout_bank_name',
+        'payout_account_name',
+        'payout_account_number',
+        'payout_account_type',
+        'release_method',
+        'payout_atm_number',
+        'payout_bank_branch',
+        'payout_atm_holder_name',
+        'beneficiary_primary_name',
+        'beneficiary_primary_relationship',
+        'beneficiary_primary_birthdate',
+        'beneficiary_secondary_name',
+        'beneficiary_secondary_relationship',
+        'beneficiary_secondary_birthdate',
         'profile_completed_at',
     ];
 
     public function appUser(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'user_id', 'user_id');
+    }
+
+    public function dependentProfile(): HasOne
+    {
+        return $this->hasOne(MemberDependentProfile::class);
     }
 
     public function isComplete(): bool
@@ -111,6 +131,45 @@ class MemberApplicationProfile extends Model
             'years_in_work_business',
             'gross_monthly_income',
             'payday',
+        ];
+    }
+
+    /**
+     * Payout bank fields reused to pre-fill the loan-request wizard's
+     * "Bank & payout" step and written back on validated loan submission.
+     *
+     * @return list<string>
+     */
+    public static function payoutBankFields(): array
+    {
+        return [
+            'payout_bank_name',
+            'payout_account_name',
+            'payout_account_number',
+            'payout_account_type',
+            'release_method',
+            'payout_atm_number',
+            'payout_bank_branch',
+            'payout_atm_holder_name',
+        ];
+    }
+
+    /**
+     * Beneficiary fields reused to pre-fill the loan-request wizard's
+     * "Insurance and beneficiaries" step and written back on validated loan
+     * submission. Submit-only, mirroring payoutBankFields().
+     *
+     * @return list<string>
+     */
+    public static function beneficiaryFields(): array
+    {
+        return [
+            'beneficiary_primary_name',
+            'beneficiary_primary_relationship',
+            'beneficiary_primary_birthdate',
+            'beneficiary_secondary_name',
+            'beneficiary_secondary_relationship',
+            'beneficiary_secondary_birthdate',
         ];
     }
 
@@ -213,6 +272,8 @@ class MemberApplicationProfile extends Model
     {
         return [
             'gross_monthly_income' => 'decimal:2',
+            'beneficiary_primary_birthdate' => 'date',
+            'beneficiary_secondary_birthdate' => 'date',
             'profile_completed_at' => 'datetime',
         ];
     }

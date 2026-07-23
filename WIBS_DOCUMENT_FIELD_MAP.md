@@ -32,13 +32,16 @@
 | 1 | AF | Application Form | Blade template | PDF (Browsershot) |
 | 2 | GL | Grepalife / Sun Life | PDF field map | PDF |
 | 3 | AU | Affidavit of Undertaking | PDF field map | PDF |
-| 4 | AZ | Authorization | PDF field map | PDF |
-| 5 | LI | Loan Information | PDF field map | PDF |
-| 6 | PP | Plan of Payment | PDF service class | PDF |
-| 7 | DS | Disclosure Statement | Blade template | PDF (Browsershot/DomPDF) |
-| 8 | PN | Promissory Note | Blade template | PDF (Browsershot) ⚠️ not yet visually verified |
-| 9 | UB | Undertaking-Barangay | PDF field map | PDF |
-| 10 | LSA | Loan Security Agreement | Blade template | PDF (Browsershot) |
+| 4 | LI | Loan Information | PDF field map | PDF |
+| 5 | PP | Plan of Payment | PDF service class | PDF |
+| 6 | DS | Disclosure Statement | Blade template | PDF (Browsershot/DomPDF) |
+| 7 | PN | Promissory Note | Blade template | PDF (Browsershot) ⚠️ not yet visually verified |
+| 8 | UB | Undertaking-Barangay | PDF field map | PDF |
+| 9 | LSA | Loan Security Agreement | Blade template | PDF (Browsershot) |
+
+The Authorization (AZ) document was removed entirely (2026-07-22) — MRDINC doesn't use it
+often enough to justify keeping it. Its section, route, field map, and generation code are
+gone; see git history (commit range around this note) if it's ever needed for reference.
 
 ---
 
@@ -307,63 +310,7 @@ place, since it does not belong on this document at all.
 
 ---
 
-## 4 — Authorization (AZ)
-
-**PDF field map · Authorizes release of the loan security to the borrower's own deposit account**
-
-> **Why the Authorized Recipient section was removed:** Third-party loan release is always
-> handled physically via a separate authorization letter prepared on release day — it is never
-> sourced from app data. The wizard's "Authorization & release" step (formerly step 12) has
-> been removed entirely; the wizard is now 11 steps.
->
-> **Applicability is not app-enforced, same as every other document.**
-> `LoanRequestDocumentCatalog::isApplicable()` is hardcoded to always return `true` (confirmed
-> deliberate and locked in by `LoanRequestDocumentApplicabilityTest.php`). The prior claim here — a
-> gate keyed on `payout_bank_name` OR `payout_account_number` — was never accurate; corrected.
->
-> **Bank name is static artwork text, not app data.** "Enterprise Bank, Inc." is MRDINC's fixed
-> partner bank for loan-security deposits, baked directly into the AZ artwork — not read from a
-> per-loan `payout_bank_name` field. A prior pass had this reversed (dynamic bank name, with the
-> hardcoded text described as "removed"); corrected per
-> `AUTHORIZATION_AND_UNDERTAKING_BARANGAY_BUILD_PLAN.md`.
-
-### Borrower
-
-| Field | Who | Status | App source |
-|-------|-----|--------|------------|
-| Full name | M | ✅ | `applicant.full_name` |
-| Residence address | M | ✅ | `applicant.address` |
-| Loan reference | S | ✅ | `loan.reference` |
-| Loan security amount | S | ✅ | `loan.loan_security_amount` — repointed from `loan.approved_amount`; the real reference text authorizes crediting the loan security deduction, not the full approved principal |
-| Approved date | S | ✅ | `loan.approved_date` |
-| Financing institution | SYS | ✅ | `organization.company_name` |
-
-### Bank / Payout Details
-
-| Field | Who | Status | App source |
-|-------|-----|--------|------------|
-| Bank name | — | ✅ | Static artwork text, "Enterprise Bank, Inc." — not a per-loan field |
-| Account number | M | ✅ | `authorization.payout_account_number` |
-| Bank branch | M | ✅ | `authorization.payout_bank_branch` |
-| ATM card holder name | M | ✅ | `authorization.payout_atm_holder_name` — printed twice: once in the Bank/Payout Details block, once on the ATM Card Holder signature line; nullable in the block — skipped when empty (borrower uses their own card) |
-| Release method | 🗑️ | 🗑️ | **Removed** — confirmed dead, no reference content ever needed it |
-| Authorized recipient name | 🗑️ | 🗑️ | **Removed** — third-party release handled via separate physical letter |
-| Authorized recipient relationship | 🗑️ | 🗑️ | **Removed** — same reason |
-| Authorized recipient contact | 🗑️ | 🗑️ | **Removed** — not on the Authorization document |
-| Authorization reason | 🗑️ | 🗑️ | **Removed** — not on any document, gated nothing |
-
-Witnesses and notarization are **not part of this document** — the real reference content is a
-brief single-page authorization with no notarial acknowledgment block, only Borrower and ATM Card
-Holder signature lines. A prior "Witnesses & Notarization" section here claiming these were wired
-was copy-paste leftover from another document's section, not real AZ content — removed rather than
-corrected in place (confirmed by direct inspection of `AuthorizationPdfFieldMap.php`: no
-`witness_one_name`/`witness_two_name`/notarization entries exist).
-
----
-
----
-
-## 5 — Loan Information (LI)
+## 4 — Loan Information (LI)
 
 **PDF field map · Converted from Blade/Browsershot/DomPDF (`LoanInformationPdfService`, deleted
 2026-07-20) to the FPDI-overlay pattern shared with AU/AZ/UB/GL — static base artwork stamped via
@@ -440,7 +387,7 @@ investigation/conversion history (coordinate map, font/embedding notes, phase br
 
 ---
 
-## 6 — Plan of Payment (PP)
+## 5 — Plan of Payment (PP)
 
 **PDF service class · Converted to PDF**
 
@@ -470,7 +417,7 @@ investigation/conversion history (coordinate map, font/embedding notes, phase br
 
 ---
 
-## 7 — Disclosure Statement (DS)
+## 6 — Disclosure Statement (DS)
 
 **Blade template · Converted to PDF · Governed by R.A. 3765 (Truth in Lending Act) — exact layout required**
 
@@ -515,7 +462,7 @@ investigation/conversion history (coordinate map, font/embedding notes, phase br
 
 ---
 
-## 8 — Promissory Note (PN)
+## 7 — Promissory Note (PN)
 
 **Blade template · Converted to PDF · ⚠️ NOT yet visually verified against original Excel sheet**
 
@@ -563,7 +510,7 @@ investigation/conversion history (coordinate map, font/embedding notes, phase br
 
 ---
 
-## 9 — Undertaking-Barangay (UB)
+## 8 — Undertaking-Barangay (UB)
 
 **PDF field map · Manual staff choice — for barangay, hospital, and government-payroll borrowers**
 
@@ -623,7 +570,7 @@ corrected rather than preserved.
 
 ---
 
-## 10 — Loan Security Agreement (LSA)
+## 9 — Loan Security Agreement (LSA)
 
 **Blade template · Reference pattern for all new PDF services**
 
@@ -724,7 +671,6 @@ corrected rather than preserved.
 | AF | PDF (Blade) | PDF | ✅ Done |
 | GL | PDF (field map) | PDF | ✅ Done |
 | AU | PDF (field map) | PDF | ✅ Done — rebuilt from the real reference doc, no known wiring gaps |
-| AZ | PDF (field map) | PDF | ✅ Done (wiring gaps remain) |
 | LI | PDF (field map) | PDF | ✅ Done — converted from Blade/service to FPDI-overlay field map 2026-07-20; legacy `LoanInformationPdfService`/blade view deleted |
 | PP | PDF (service class) | PDF | ✅ Done |
 | DS | PDF (Blade) | PDF | ✅ Done (EIR rows blank — open item) |

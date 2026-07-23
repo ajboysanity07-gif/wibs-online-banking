@@ -52,8 +52,6 @@ class LoanRequestRequestMemberActionRequest extends FormRequest
                     'payout_account_number',
                     'payout_account_type',
                     'payout_atm_number',
-                    'barangay_name',
-                    'barangay_clearance_reference',
                     'declaration_existing_loans',
                     'declaration_pending_cases',
                     'declaration_truth_confirmation',

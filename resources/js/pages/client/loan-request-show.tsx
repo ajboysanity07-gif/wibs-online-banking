@@ -46,8 +46,8 @@ import {
 import {
     affidavitUndertaking as loanRequestAffidavitUndertakingDocument,
     applicationForm as loanRequestApplicationFormDocument,
-    authorization as loanRequestAuthorizationDocument,
     disclosureStatement as loanRequestDisclosureStatementDocument,
+    generali as loanRequestGeneraliDocument,
     grepalife as loanRequestGrepalifeDocument,
     loanInformation as loanRequestLoanInformationDocument,
     loanSecurityAgreement as loanRequestLoanSecurityAgreementDocument,
@@ -180,9 +180,6 @@ export default function LoanRequestShow({
                   affidavitUndertaking: loanRequestAffidavitUndertakingDocument(
                       currentLoanRequest.id,
                   ).url,
-                  authorization: loanRequestAuthorizationDocument(
-                      currentLoanRequest.id,
-                  ).url,
                   loanInformation: loanRequestLoanInformationDocument(
                       currentLoanRequest.id,
                   ).url,
@@ -202,6 +199,8 @@ export default function LoanRequestShow({
                       loanRequestLoanSecurityAgreementDocument(
                           currentLoanRequest.id,
                       ).url,
+                  generali: loanRequestGeneraliDocument(currentLoanRequest.id)
+                      .url,
                   packageZip: loanRequestApprovedDocuments(
                       currentLoanRequest.id,
                   ).url,

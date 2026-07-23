@@ -11,6 +11,8 @@ use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
+use App\Models\MemberDependent;
+use App\Models\MemberDependentProfile;
 use App\Models\Wlntype;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
@@ -65,6 +67,7 @@ class LoanRequestService
      *     member: array{name: string, acctno: string|null},
      *     dataSections: array<string, array<string, mixed>>,
      *     dataSectionDefinitions: array<string, mixed>,
+     *     insurancePrefilledFromProfile: bool,
      *     initialStep: int,
      *     draft: array{
      *         id: int,
@@ -127,7 +130,7 @@ class LoanRequestService
             $stepValue = $flatValues['wizard_current_step'] ?? null;
 
             if (is_numeric($stepValue)) {
-                $initialStep = max(0, min(23, (int) $stepValue));
+                $initialStep = max(0, min(24, (int) $stepValue));
             }
         }
 
@@ -135,8 +138,18 @@ class LoanRequestService
             ? $this->dataService->serializeSections($draft)
             : $this->dataService->emptySections();
 
+        [$dataSections['insurance'], $insurancePrefilledFromProfile] = $this->applyInsuranceProfileDefaults(
+            $dataSections['insurance'],
+            $user->memberApplicationProfile,
+        );
+
         [$dataSections['banking'], $bankingPrefilledFromProfile] = $this->applyBankingProfileDefaults(
             $dataSections['banking'],
+            $user->memberApplicationProfile,
+        );
+
+        [$dataSections['dependents'], $dependentsPrefilledFromProfile] = $this->applyDependentsProfileDefaults(
+            $dataSections['dependents'],
             $user->memberApplicationProfile,
         );
 
@@ -155,7 +168,54 @@ class LoanRequestService
             'initialStep' => $initialStep,
             'draft' => $draft !== null ? $this->serializeLoanRequest($draft) : null,
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
+            'insurancePrefilledFromProfile' => $insurancePrefilledFromProfile,
+            'dependentsPrefilledFromProfile' => $dependentsPrefilledFromProfile,
         ];
+    }
+
+    /**
+     * Fill missing "Insurance and beneficiaries" wizard values from the
+     * member's saved application profile, same precedence rules as
+     * applyBankingProfileDefaults(): only null fields are overwritten so a
+     * member's own in-progress draft edits are never clobbered.
+     *
+     * @param  array<string, mixed>  $insuranceValues
+     * @return array{0: array<string, mixed>, 1: bool}
+     */
+    private function applyInsuranceProfileDefaults(
+        array $insuranceValues,
+        ?MemberApplicationProfile $profile,
+    ): array {
+        if ($profile === null) {
+            return [$insuranceValues, false];
+        }
+
+        $dateFields = [
+            'beneficiary_primary_birthdate',
+            'beneficiary_secondary_birthdate',
+        ];
+        $prefilled = false;
+
+        foreach (MemberApplicationProfile::beneficiaryFields() as $field) {
+            if (($insuranceValues[$field] ?? null) !== null) {
+                continue;
+            }
+
+            $rawValue = $profile->getAttribute($field);
+
+            $profileValue = in_array($field, $dateFields, true)
+                ? $rawValue?->toDateString()
+                : $this->normalizeOptionalString($rawValue);
+
+            if ($profileValue === null) {
+                continue;
+            }
+
+            $insuranceValues[$field] = $profileValue;
+            $prefilled = true;
+        }
+
+        return [$insuranceValues, $prefilled];
     }
 
     /**
@@ -198,6 +258,64 @@ class LoanRequestService
     }
 
     /**
+     * Fill missing "Dependents" wizard values from the member's saved
+     * dependent profile (member_dependent_profiles/member_dependents),
+     * flattening each row back into the wizard's fixed-slot field keys.
+     * Same precedence as applyBankingProfileDefaults(): only null fields
+     * are overwritten so a member's own in-progress draft edits are never
+     * clobbered.
+     *
+     * @param  array<string, mixed>  $dependentsValues
+     * @return array{0: array<string, mixed>, 1: bool}
+     */
+    private function applyDependentsProfileDefaults(
+        array $dependentsValues,
+        ?MemberApplicationProfile $profile,
+    ): array {
+        if ($profile === null) {
+            return [$dependentsValues, false];
+        }
+
+        $profile->loadMissing('dependentProfile.dependents');
+        $dependents = $profile->dependentProfile?->dependents;
+
+        if ($dependents === null || $dependents->isEmpty()) {
+            return [$dependentsValues, false];
+        }
+
+        $prefilled = false;
+
+        foreach ($dependents as $dependent) {
+            $prefix = "dependent_{$dependent->category}_{$dependent->slot}_";
+
+            foreach ([
+                'name' => $dependent->name,
+                'relationship' => $dependent->relationship,
+                'birthdate' => $dependent->birthdate?->toDateString(),
+                'occupation' => $dependent->occupation,
+                'cycle_status' => $dependent->cycle_status,
+            ] as $attribute => $rawValue) {
+                $field = $prefix.$attribute;
+
+                if (! array_key_exists($field, $dependentsValues) || $dependentsValues[$field] !== null) {
+                    continue;
+                }
+
+                $value = $this->normalizeOptionalString($rawValue);
+
+                if ($value === null) {
+                    continue;
+                }
+
+                $dependentsValues[$field] = $value;
+                $prefilled = true;
+            }
+        }
+
+        return [$dependentsValues, $prefilled];
+    }
+
+    /**
      * Write validated submission data back onto the member's application
      * profile, so future loan requests (and the settings profile page) start
      * pre-filled with it. Submit-only by design: drafts are unvalidated and
@@ -219,6 +337,10 @@ class LoanRequestService
                 is_array($payload['banking'] ?? null) ? $payload['banking'] : [],
                 MemberApplicationProfile::payoutBankFields(),
             ),
+            ...Arr::only(
+                is_array($payload['insurance'] ?? null) ? $payload['insurance'] : [],
+                MemberApplicationProfile::beneficiaryFields(),
+            ),
         ];
 
         if ($profileData === []) {
@@ -230,6 +352,59 @@ class LoanRequestService
         $profile->save();
 
         $user->setRelation('memberApplicationProfile', $profile);
+
+        $this->syncDependentsProfile(
+            $profile,
+            is_array($payload['dependents'] ?? null) ? $payload['dependents'] : [],
+        );
+    }
+
+    /**
+     * Write validated dependents submission data back onto the member's
+     * normalized dependent tables (member_dependent_profiles/
+     * member_dependents), one row per non-empty category/slot. Submit-only,
+     * mirroring syncMemberApplicationProfileFromSubmission().
+     *
+     * @param  array<string, mixed>  $dependentsPayload
+     */
+    private function syncDependentsProfile(
+        MemberApplicationProfile $profile,
+        array $dependentsPayload,
+    ): void {
+        if ($dependentsPayload === []) {
+            return;
+        }
+
+        $dependentProfile = MemberDependentProfile::query()->firstOrCreate([
+            'member_application_profile_id' => $profile->id,
+        ]);
+
+        foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
+            for ($slot = 1; $slot <= $cap; $slot++) {
+                $prefix = "dependent_{$category}_{$slot}_";
+
+                $rowData = [
+                    'name' => $this->normalizeOptionalString($dependentsPayload[$prefix.'name'] ?? null),
+                    'relationship' => $this->normalizeOptionalString($dependentsPayload[$prefix.'relationship'] ?? null),
+                    'birthdate' => $this->normalizeOptionalString($dependentsPayload[$prefix.'birthdate'] ?? null),
+                    'occupation' => $this->normalizeOptionalString($dependentsPayload[$prefix.'occupation'] ?? null),
+                    'cycle_status' => $this->normalizeOptionalString($dependentsPayload[$prefix.'cycle_status'] ?? null),
+                ];
+
+                if (array_filter($rowData, static fn (?string $value): bool => $value !== null) === []) {
+                    continue;
+                }
+
+                MemberDependent::query()->updateOrCreate(
+                    [
+                        'member_dependent_profile_id' => $dependentProfile->id,
+                        'category' => $category,
+                        'slot' => $slot,
+                    ],
+                    $rowData,
+                );
+            }
+        }
     }
 
     /**
@@ -265,7 +440,7 @@ class LoanRequestService
             $this->dataService->syncMemberSections($loanRequest, $payload);
 
             if (array_key_exists('wizard_step', $payload) && $payload['wizard_step'] !== null) {
-                $stepValue = max(0, min(23, (int) $payload['wizard_step']));
+                $stepValue = max(0, min(24, (int) $payload['wizard_step']));
 
                 LoanRequestDataEntry::query()->updateOrCreate(
                     [

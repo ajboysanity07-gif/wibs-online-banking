@@ -196,14 +196,14 @@ test('loan workflow repair command supports dry run and deterministic apply mode
 
     LoanRequestDocument::factory()->create([
         'loan_request_id' => $legacyRequest->id,
-        'document_key' => 'authorization',
+        'document_key' => 'promissory_note',
         'readiness_status' => LoanRequestDocumentReadinessStatus::GeneratedCurrent,
         'source_hash' => 'hash-b',
         'source_version' => 1,
         'generated_version' => 1,
         'generated_disk' => 'local',
         'generated_path' => sprintf(
-            'loan-request-documents/%d/authorization/missing.pdf',
+            'loan-request-documents/%d/promissory_note/missing.pdf',
             $legacyRequest->id,
         ),
         'generated_filename' => 'missing.pdf',
@@ -250,7 +250,7 @@ test('loan workflow repair command supports dry run and deterministic apply mode
     $existingDocument->refresh();
     $missingDocument = LoanRequestDocument::query()
         ->where('loan_request_id', $legacyRequest->id)
-        ->where('document_key', 'authorization')
+        ->where('document_key', 'promissory_note')
         ->firstOrFail();
 
     expect($applyExitCode)->toBe(0)

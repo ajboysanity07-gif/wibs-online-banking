@@ -279,18 +279,18 @@ class LoanRequestController extends Controller
         return $documentService->affidavitUndertaking($loanRequest);
     }
 
-    public function authorizationDocument(
+    public function generaliDocument(
         LoanRequest $loanRequest,
         ApprovedLoanDocumentService $documentService,
     ): HttpResponse {
-        $this->authorize('view', $loanRequest);
+        Gate::authorize('view', $loanRequest);
         $this->authorizeStaffDocumentAccess($loanRequest);
 
         if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
             abort(404);
         }
 
-        return $documentService->authorization($loanRequest);
+        return $documentService->generali($loanRequest);
     }
 
     public function generatedDocument(

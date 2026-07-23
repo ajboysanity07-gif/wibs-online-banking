@@ -94,8 +94,8 @@ import {
 import {
     affidavitUndertaking as requestsAffidavitUndertakingDocument,
     applicationForm as requestsApplicationFormDocument,
-    authorization as requestsAuthorizationDocument,
     disclosureStatement as requestsDisclosureStatementDocument,
+    generali as requestsGeneraliDocument,
     grepalife as requestsGrepalifeDocument,
     loanInformation as requestsLoanInformationDocument,
     loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
@@ -169,6 +169,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     housing_status: '',
     cell_no: '',
     civil_status: '',
+    sex: '',
     educational_attainment: '',
     number_of_children: '',
     spouse_name: '',
@@ -604,9 +605,6 @@ export default function StaffLoanRequestShow({
                   affidavitUndertaking: requestsAffidavitUndertakingDocument(
                       currentRequest.id,
                   ).url,
-                  authorization: requestsAuthorizationDocument(
-                      currentRequest.id,
-                  ).url,
                   loanInformation: requestsLoanInformationDocument(
                       currentRequest.id,
                   ).url,
@@ -625,6 +623,7 @@ export default function StaffLoanRequestShow({
                   loanSecurityAgreement: requestsLoanSecurityAgreementDocument(
                       currentRequest.id,
                   ).url,
+                  generali: requestsGeneraliDocument(currentRequest.id).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;

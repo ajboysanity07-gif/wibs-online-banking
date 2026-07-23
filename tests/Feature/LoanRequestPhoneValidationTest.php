@@ -98,8 +98,9 @@ function loanRequestPayload(): array
             'payout_atm_number' => '9876543210',
         ],
         'barangay' => [
-            'barangay_name' => 'Barangay San Isidro',
-            'barangay_clearance_reference' => 'BCL-2026-010',
+            'barangay_official_designation' => null,
+            'barangay_agency_name' => null,
+            'barangay_agency_address' => null,
         ],
         'declarations' => [
             'declaration_existing_loans' => false,

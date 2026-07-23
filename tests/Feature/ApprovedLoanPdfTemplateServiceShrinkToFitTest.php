@@ -28,10 +28,10 @@ function approvedLoanPdfTemplateServiceShrinkFieldMap(array $field): ApprovedLoa
  * varying sizes (its own "Tf" operators sit in the same raw file bytes, in an XObject
  * whose physical byte position isn't guaranteed to precede the overlay's) -- this is why
  * these tests deliberately use loan-security-agreement.pdf (still a near-blank
- * placeholder) rather than authorization.pdf, which now has real multi-size artwork text
- * after its Phase 2 rebuild. Confirmed by direct investigation: swapping in
- * authorization.pdf here made two of these tests fail, picking up 8.0 (a size baked into
- * the new AZ artwork) instead of the field map's own declared/shrunk size.
+ * placeholder) rather than a template with real multi-size artwork text baked in. Confirmed
+ * by direct investigation: the now-removed Authorization document's template had exactly
+ * this problem, picking up 8.0 (a size baked into its own artwork) instead of the field
+ * map's own declared/shrunk size when swapped in here.
  */
 function approvedLoanPdfTemplateServiceLastFontSize(string $pdfContent): ?float
 {

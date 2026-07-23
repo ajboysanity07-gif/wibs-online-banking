@@ -158,6 +158,14 @@ class SettingsPageData
                     ? (string) $memberApplicationProfile->gross_monthly_income
                     : null,
                 'payday' => $memberApplicationProfile->payday,
+                'payout_bank_name' => $memberApplicationProfile->payout_bank_name,
+                'payout_account_name' => $memberApplicationProfile->payout_account_name,
+                'payout_account_number' => $memberApplicationProfile->payout_account_number,
+                'payout_account_type' => $memberApplicationProfile->payout_account_type,
+                'release_method' => $memberApplicationProfile->release_method,
+                'payout_atm_number' => $memberApplicationProfile->payout_atm_number,
+                'payout_bank_branch' => $memberApplicationProfile->payout_bank_branch,
+                'payout_atm_holder_name' => $memberApplicationProfile->payout_atm_holder_name,
                 'profile_completed_at' => $memberApplicationProfile->profile_completed_at?->toDateTimeString(),
             ]
             : null;

@@ -14,6 +14,7 @@ import {
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
     LoanRequestDataSectionStep,
+    LoanRequestDependentsStep,
     LoanRequestHealthQuestionnaireStep,
     LoanRequestInsuranceBeneficiariesStep,
     LoanRequestLoanDetailsStep,
@@ -61,6 +62,8 @@ type Props = {
     draft: LoanRequestDraft | null;
     initialStep: number;
     bankingPrefilledFromProfile: boolean;
+    insurancePrefilledFromProfile: boolean;
+    dependentsPrefilledFromProfile: boolean;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -190,6 +193,11 @@ const steps = [
         id: 'declarations',
         title: 'Declarations',
         description: 'Review the required declarations and consent statements.',
+    },
+    {
+        id: 'dependents',
+        title: 'Dependents',
+        description: 'Add any dependents applicable to you (optional).',
     },
     {
         id: 'review',
@@ -468,8 +476,13 @@ const resolveStepFromErrors = (
             return;
         }
 
-        if (key === 'undertaking_accepted') {
+        if (key.startsWith('dependents.')) {
             stepMatches.push(23);
+            return;
+        }
+
+        if (key === 'undertaking_accepted') {
+            stepMatches.push(24);
         }
     });
 
@@ -488,6 +501,8 @@ export default function LoanRequestPage({
     draft,
     initialStep,
     bankingPrefilledFromProfile,
+    insurancePrefilledFromProfile,
+    dependentsPrefilledFromProfile,
 }: Props) {
     const [currentStep, setCurrentStep] = useState(initialStep);
     const [highestStepReached, setHighestStepReached] = useState(initialStep);
@@ -496,6 +511,12 @@ export default function LoanRequestPage({
     );
     const [bankAccountConfirmed, setBankAccountConfirmed] = useState(
         !bankingPrefilledFromProfile,
+    );
+    const [beneficiariesConfirmed, setBeneficiariesConfirmed] = useState(
+        !insurancePrefilledFromProfile,
+    );
+    const [dependentsConfirmed, setDependentsConfirmed] = useState(
+        !dependentsPrefilledFromProfile,
     );
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
@@ -556,6 +577,9 @@ export default function LoanRequestPage({
             },
             declarations: {
                 ...dataSections.declarations,
+            },
+            dependents: {
+                ...dataSections.dependents,
             },
         }),
         [applicant, coMakerOne, coMakerTwo, dataSections, draft, loanTypes],
@@ -623,6 +647,7 @@ export default function LoanRequestPage({
                 | 'banking'
                 | 'barangay'
                 | 'declarations'
+                | 'dependents'
             >,
         ) =>
         (field: string, value: string | number | boolean | null) => {
@@ -1006,19 +1031,50 @@ export default function LoanRequestPage({
                                         show={currentStep === 14}
                                         direction={stepDirection}
                                     >
-                                        <LoanRequestInsuranceBeneficiariesStep
-                                            sectionKey="insurance"
-                                            title="Insurance and beneficiaries"
-                                            description="Provide beneficiary details that will be reused across the required documents."
-                                            values={form.data.insurance}
-                                            definition={
-                                                dataSectionDefinitions.insurance
-                                            }
-                                            errors={form.errors}
-                                            onChange={updateDataSection(
-                                                'insurance',
-                                            )}
-                                        />
+                                        <div className="space-y-5">
+                                            <LoanRequestInsuranceBeneficiariesStep
+                                                sectionKey="insurance"
+                                                title="Insurance and beneficiaries"
+                                                description="Provide beneficiary details that will be reused across the required documents."
+                                                values={form.data.insurance}
+                                                definition={
+                                                    dataSectionDefinitions.insurance
+                                                }
+                                                errors={form.errors}
+                                                onChange={updateDataSection(
+                                                    'insurance',
+                                                )}
+                                            />
+
+                                            {insurancePrefilledFromProfile ? (
+                                                <LoanRequestSectionCard
+                                                    title="Confirm beneficiaries"
+                                                    description="These details were pre-filled from your member profile. A wrong beneficiary can delay or invalidate a claim, so please confirm they are still accurate."
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <Checkbox
+                                                            id="beneficiaries_confirmed"
+                                                            checked={
+                                                                beneficiariesConfirmed
+                                                            }
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                setBeneficiariesConfirmed(
+                                                                    checked ===
+                                                                        true,
+                                                                )
+                                                            }
+                                                        />
+                                                        <Label htmlFor="beneficiaries_confirmed">
+                                                            Confirm these
+                                                            beneficiaries are
+                                                            still correct
+                                                        </Label>
+                                                    </div>
+                                                </LoanRequestSectionCard>
+                                            ) : null}
+                                        </div>
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
@@ -1164,6 +1220,61 @@ export default function LoanRequestPage({
                                         show={currentStep === 23}
                                         direction={stepDirection}
                                     >
+                                        <div className="space-y-5">
+                                            <LoanRequestDependentsStep
+                                                sectionKey="dependents"
+                                                title="Dependents"
+                                                description="Add any dependents applicable to you. This section is optional."
+                                                values={form.data.dependents}
+                                                definition={
+                                                    dataSectionDefinitions.dependents
+                                                }
+                                                errors={form.errors}
+                                                crossSectionValues={{
+                                                    'applicant.civil_status':
+                                                        form.data.applicant
+                                                            .civil_status,
+                                                }}
+                                                onChange={updateDataSection(
+                                                    'dependents',
+                                                )}
+                                            />
+
+                                            {dependentsPrefilledFromProfile ? (
+                                                <LoanRequestSectionCard
+                                                    title="Confirm dependents"
+                                                    description="These details were pre-filled from your member profile. Please confirm they are still accurate."
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <Checkbox
+                                                            id="dependents_confirmed"
+                                                            checked={
+                                                                dependentsConfirmed
+                                                            }
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                setDependentsConfirmed(
+                                                                    checked ===
+                                                                        true,
+                                                                )
+                                                            }
+                                                        />
+                                                        <Label htmlFor="dependents_confirmed">
+                                                            Confirm these
+                                                            dependents are
+                                                            still correct
+                                                        </Label>
+                                                    </div>
+                                                </LoanRequestSectionCard>
+                                            ) : null}
+                                        </div>
+                                    </LoanRequestAnimatedStep>
+
+                                    <LoanRequestAnimatedStep
+                                        show={currentStep === 24}
+                                        direction={stepDirection}
+                                    >
                                         <LoanRequestReviewStep
                                             data={form.data}
                                             loanTypes={loanTypes}
@@ -1192,9 +1303,15 @@ export default function LoanRequestPage({
                                         isSubmitting={isSubmitting}
                                         disablePrimary={
                                             !hasLoanTypes ||
+                                            (currentStep === 14 &&
+                                                insurancePrefilledFromProfile &&
+                                                !beneficiariesConfirmed) ||
                                             (currentStep === 20 &&
                                                 bankingPrefilledFromProfile &&
-                                                !bankAccountConfirmed)
+                                                !bankAccountConfirmed) ||
+                                            (currentStep === 23 &&
+                                                dependentsPrefilledFromProfile &&
+                                                !dependentsConfirmed)
                                         }
                                     />
                                 </div>

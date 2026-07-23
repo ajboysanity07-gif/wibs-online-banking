@@ -418,6 +418,91 @@ test('profile page hides structured member name fields when only full name is av
         );
 });
 
+test('profile page exposes payout bank fields', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'payout_bank_name' => 'BDO',
+        'payout_account_name' => 'Renee Santos',
+        'payout_account_number' => '1234567890',
+        'payout_account_type' => 'Savings',
+        'release_method' => 'Bank deposit',
+        'payout_atm_number' => '5555444433332222',
+        'payout_bank_branch' => 'Tagum City',
+        'payout_atm_holder_name' => null,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberApplicationProfile.payout_bank_name', 'BDO')
+            ->where('memberApplicationProfile.payout_account_name', 'Renee Santos')
+            ->where('memberApplicationProfile.payout_account_number', '1234567890')
+            ->where('memberApplicationProfile.payout_account_type', 'Savings')
+            ->where('memberApplicationProfile.release_method', 'Bank deposit')
+            ->where('memberApplicationProfile.payout_atm_number', '5555444433332222')
+            ->where('memberApplicationProfile.payout_bank_branch', 'Tagum City')
+            ->where('memberApplicationProfile.payout_atm_holder_name', null)
+        );
+});
+
+test('profile information can be updated with payout bank details', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Bank deposit',
+            'payout_atm_number' => '5555444433332222',
+            'payout_bank_branch' => 'Tagum City',
+            'payout_atm_holder_name' => 'Test User',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->payout_bank_name)->toBe('BDO');
+    expect($memberProfile->payout_account_name)->toBe('Test User');
+    expect($memberProfile->payout_account_number)->toBe('1234567890');
+    expect($memberProfile->payout_account_type)->toBe('Savings');
+    expect($memberProfile->release_method)->toBe('Bank deposit');
+    expect($memberProfile->payout_atm_number)->toBe('5555444433332222');
+    expect($memberProfile->payout_bank_branch)->toBe('Tagum City');
+    expect($memberProfile->payout_atm_holder_name)->toBe('Test User');
+});
+
 test('profile page exposes admin profile photo url for preview', function () {
     Storage::fake('public');
 

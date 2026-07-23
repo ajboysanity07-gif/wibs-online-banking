@@ -9,7 +9,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\Wmaster;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
-use App\Services\LoanRequests\PdfFieldMaps\AuthorizationPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
@@ -45,8 +45,8 @@ class ApprovedLoanDocumentService
         'grepalife' => 'grepalife.pdf',
         'undertaking_barangay' => 'undertaking-barangay-officials.pdf',
         'affidavit_undertaking' => 'affidavit-undertaking.pdf',
-        'authorization' => 'authorization.pdf',
         'loan_information' => 'loan information sheet.pdf',
+        'generali' => 'generali.pdf',
     ];
 
     /**
@@ -56,13 +56,13 @@ class ApprovedLoanDocumentService
         'application_form' => '01-Application-Form.pdf',
         'grepalife' => '02-GREPALIFE.pdf',
         'affidavit_undertaking' => '03-Affidavit-of-Undertaking.pdf',
-        'authorization' => '04-Authorization.pdf',
-        'loan_information' => '05-Loan-Information.pdf',
-        'plan_of_payment' => '06-Plan-of-Payment.pdf',
-        'disclosure_statement' => '07-Disclosure-Statement.pdf',
-        'promissory_note' => '08-Promissory-Note.pdf',
-        'undertaking_barangay' => '09-Undertaking-Barangay-Officials.pdf',
-        'loan_security_agreement' => '10-Loan-Security-Agreement.pdf',
+        'loan_information' => '04-Loan-Information.pdf',
+        'plan_of_payment' => '05-Plan-of-Payment.pdf',
+        'disclosure_statement' => '06-Disclosure-Statement.pdf',
+        'promissory_note' => '07-Promissory-Note.pdf',
+        'undertaking_barangay' => '08-Undertaking-Barangay-Officials.pdf',
+        'loan_security_agreement' => '09-Loan-Security-Agreement.pdf',
+        'generali' => '10-Generali-Health-Statement.pdf',
     ];
 
     /**
@@ -72,13 +72,13 @@ class ApprovedLoanDocumentService
         'application_form' => 'application-form-%s.pdf',
         'grepalife' => 'grepalife-%s.pdf',
         'affidavit_undertaking' => 'affidavit-undertaking-%s.pdf',
-        'authorization' => 'authorization-%s.pdf',
         'loan_information' => 'loan-information-%s.pdf',
         'plan_of_payment' => 'plan-of-payment-%s.pdf',
         'disclosure_statement' => 'disclosure-statement-%s.pdf',
         'promissory_note' => 'promissory-note-%s.pdf',
         'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
         'loan_security_agreement' => '%s Loan Request Agreement.pdf',
+        'generali' => 'generali-%s.pdf',
     ];
 
     public function __construct(
@@ -94,8 +94,8 @@ class ApprovedLoanDocumentService
         private GrepalifePdfFieldMap $grepalifePdfFieldMap,
         private UndertakingBarangayPdfFieldMap $undertakingBarangayPdfFieldMap,
         private AffidavitUndertakingPdfFieldMap $affidavitUndertakingPdfFieldMap,
-        private AuthorizationPdfFieldMap $authorizationPdfFieldMap,
         private LoanInformationPdfFieldMap $loanInformationPdfFieldMap,
+        private GeneraliPdfFieldMap $generaliPdfFieldMap,
         private PromissoryNotePdfService $promissoryNotePdfService,
         private PlanOfPaymentPdfService $planOfPaymentPdfService,
         private DisclosureStatementPdfService $disclosureStatementPdfService,
@@ -199,18 +199,18 @@ class ApprovedLoanDocumentService
         );
     }
 
-    public function authorization(LoanRequest $loanRequest): Response
+    public function generali(LoanRequest $loanRequest): Response
     {
         return $this->downloadApprovedDocument(
             $loanRequest,
-            'authorization',
+            'generali',
             'application/pdf',
             function (string $outputPath, array $documentData): void {
                 $this->approvedLoanPdfTemplateService->generate(
-                    self::PDF_TEMPLATE_FILENAMES['authorization'],
+                    self::PDF_TEMPLATE_FILENAMES['generali'],
                     $outputPath,
                     $documentData,
-                    $this->authorizationPdfFieldMap,
+                    $this->generaliPdfFieldMap,
                 );
             },
         );
@@ -288,13 +288,13 @@ class ApprovedLoanDocumentService
             $applicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['application_form'];
             $grepalifePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['grepalife'];
             $affidavitUndertakingPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['affidavit_undertaking'];
-            $authorizationPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['authorization'];
             $loanInformationPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['loan_information'];
             $planOfPaymentPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['plan_of_payment'];
             $disclosureStatementPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['disclosure_statement'];
             $promissoryNotePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['promissory_note'];
             $undertakingBarangayPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['undertaking_barangay'];
             $loanSecurityAgreementPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['loan_security_agreement'];
+            $generaliPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['generali'];
 
             $this->loanRequestPdfService->saveToPath($loanRequest, $applicationFormPath);
             $this->approvedLoanImageTemplatePdfService->generate(
@@ -308,12 +308,6 @@ class ApprovedLoanDocumentService
                 $affidavitUndertakingPath,
                 $documentData,
                 $this->affidavitUndertakingPdfFieldMap,
-            );
-            $this->approvedLoanPdfTemplateService->generate(
-                self::PDF_TEMPLATE_FILENAMES['authorization'],
-                $authorizationPath,
-                $documentData,
-                $this->authorizationPdfFieldMap,
             );
             $this->approvedLoanPdfTemplateService->generate(
                 self::PDF_TEMPLATE_FILENAMES['loan_information'],
@@ -343,6 +337,12 @@ class ApprovedLoanDocumentService
                 $loanSecurityAgreementPath,
                 $documentData,
             );
+            $this->approvedLoanPdfTemplateService->generate(
+                self::PDF_TEMPLATE_FILENAMES['generali'],
+                $generaliPath,
+                $documentData,
+                $this->generaliPdfFieldMap,
+            );
 
             $zipFilename = sprintf(
                 'approved-loan-documents-%s.zip',
@@ -354,13 +354,13 @@ class ApprovedLoanDocumentService
                 $applicationFormPath,
                 $grepalifePath,
                 $affidavitUndertakingPath,
-                $authorizationPath,
                 $loanInformationPath,
                 $planOfPaymentPath,
                 $disclosureStatementPath,
                 $promissoryNotePath,
                 $undertakingBarangayPath,
                 $loanSecurityAgreementPath,
+                $generaliPath,
             ]);
         } catch (Throwable $exception) {
             File::deleteDirectory($workingDirectory);
@@ -439,18 +439,6 @@ class ApprovedLoanDocumentService
                     );
                 },
             ),
-            LoanRequestDocumentKey::Authorization => $this->generatePdfDocumentToPath(
-                $outputPath,
-                $documentKey,
-                function (string $path) use ($documentData): void {
-                    $this->approvedLoanPdfTemplateService->generate(
-                        self::PDF_TEMPLATE_FILENAMES['authorization'],
-                        $path,
-                        $documentData,
-                        $this->authorizationPdfFieldMap,
-                    );
-                },
-            ),
             LoanRequestDocumentKey::PromissoryNote => $this->generatePdfDocumentToPath(
                 $outputPath,
                 $documentKey,
@@ -482,6 +470,18 @@ class ApprovedLoanDocumentService
                 $documentKey,
                 function (string $path) use ($documentData): void {
                     $this->disclosureStatementPdfService->generate($path, $documentData);
+                },
+            ),
+            LoanRequestDocumentKey::Generali => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->approvedLoanPdfTemplateService->generate(
+                        self::PDF_TEMPLATE_FILENAMES['generali'],
+                        $path,
+                        $documentData,
+                        $this->generaliPdfFieldMap,
+                    );
                 },
             ),
         };
@@ -805,12 +805,6 @@ class ApprovedLoanDocumentService
         );
         $gnthpFormatted = $this->formatCurrencyValue($gnthpRaw);
         $gnthp = $gnthpFormatted !== null ? '₱'.$gnthpFormatted : null;
-        $loanSecurityAmountFormatted = $this->formatCurrencyValue($loanSecurityAmountRaw);
-        $loanSecurityAmount = $loanSecurityAmountFormatted !== null ? '₱'.$loanSecurityAmountFormatted : null;
-        // AZ's own artwork bakes "(Php. ___)" as static text (matching the real reference
-        // document), so its inline blank needs the bare number -- not the same ₱-prefixed
-        // string AU/UB stamp inline, since those documents don't print a "Php." label first.
-        $loanSecurityAmountPlain = $loanSecurityAmountFormatted;
         $witnessOneName = $this->normalizeText(
             $overrideReviewer['witness_one_name'] ?? null,
         ) ?? $this->normalizeText($flatValues['witness_one_name'] ?? null);
@@ -897,8 +891,6 @@ class ApprovedLoanDocumentService
                 'service_charge_amount_raw' => $serviceChargeAmountRaw,
                 'insurance_premium_raw' => $insurancePremiumRaw,
                 'loan_security_amount_raw' => $loanSecurityAmountRaw,
-                'loan_security_amount' => $loanSecurityAmount,
-                'loan_security_amount_plain' => $loanSecurityAmountPlain,
                 'documentary_stamp_amount_raw' => $documentaryStampAmountRaw,
                 'notarial_fee_raw' => $notarialFeeRaw,
                 'finance_charge_total_raw' => $financeChargeTotalRaw,
@@ -934,9 +926,6 @@ class ApprovedLoanDocumentService
                 ),
                 'payout_bank_branch' => $this->normalizeText(
                     $overrideProcessing['payout_bank_branch'] ?? $flatValues['payout_bank_branch'] ?? null,
-                ),
-                'payout_atm_holder_name' => $this->normalizeText(
-                    $overrideProcessing['payout_atm_holder_name'] ?? $flatValues['payout_atm_holder_name'] ?? null,
                 ),
             ],
             'barangay' => [
@@ -988,6 +977,7 @@ class ApprovedLoanDocumentService
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
             'co_maker_two' => $this->personDocumentData($coMakerTwo, $loanRequest),
             'beneficiaries' => $this->beneficiaryDocumentData($flatValues, $memberRecord),
+            'health_glapi' => $this->healthGlapiDocumentData($flatValues),
         ];
 
         return $overrides !== []
@@ -1019,6 +1009,7 @@ class ApprovedLoanDocumentService
             'birthdate' => $this->formatBirthdate($person),
             'age' => $this->formatAge($person),
             'civil_status' => $this->normalizeText($person?->civil_status),
+            'sex' => $this->normalizeText($person?->sex),
             'nationality' => 'FILIPINO',
             'place_of_birth' => $composedBirthplace,
             'place_of_birth_city' => $this->normalizeText($person?->birthplace_city),
@@ -1173,6 +1164,91 @@ class ApprovedLoanDocumentService
         }
 
         return array_slice($beneficiaries, 0, 3);
+    }
+
+    /**
+     * The GLAPI (Generali) 17-item health questionnaire, collected on the wizard's
+     * "health_glapi" data section. Booleans pass through as-is (null when
+     * unanswered); "_details"/"_amount" companions are normalized text.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array<string, mixed>
+     */
+    private function healthGlapiDocumentData(array $flatValues): array
+    {
+        $booleanFields = [
+            'gl_health_q01_weight_change',
+            'gl_health_q02a_neuro',
+            'gl_health_q02b_respiratory',
+            'gl_health_q02c_cardiac',
+            'gl_health_q02d_digestive',
+            'gl_health_q02e_diabetes_renal',
+            'gl_health_q02f_musculoskeletal',
+            'gl_health_q02g_oncology_blood',
+            'gl_health_q02h_dermatologic',
+            'gl_health_q02i_std_viral',
+            'gl_health_q02j_other_illness',
+            'gl_health_q04_prescribed_drugs',
+            'gl_health_q05_confinement_5yr',
+            'gl_health_q06_abnormal_labs',
+            'gl_health_q07_confinement_contemplated',
+            'gl_health_q08_blood_transfusion',
+            'gl_health_q09_other_disease',
+            'gl_health_q10_narcotics',
+            'gl_health_q11_smoker',
+            'gl_health_q12_alcohol',
+            'gl_health_q13_advised_stop',
+            'gl_health_q14_current_medication',
+            'gl_health_q15_pregnancy',
+            'gl_health_q16_relative_pep',
+            'gl_health_q17_pending_reinstatement',
+            'gl_health_q17_with_glapi',
+            'gl_health_q17_with_other_companies',
+        ];
+
+        $textFields = [
+            'health_hypertension_details',
+            'gl_health_q01_weight_change_details',
+            'gl_health_q02a_neuro_details',
+            'gl_health_q02b_respiratory_details',
+            'gl_health_q02c_cardiac_details',
+            'gl_health_q02d_digestive_details',
+            'gl_health_q02e_diabetes_renal_details',
+            'gl_health_q02f_musculoskeletal_details',
+            'gl_health_q02g_oncology_blood_details',
+            'gl_health_q02h_dermatologic_details',
+            'gl_health_q02i_std_viral_details',
+            'gl_health_q02j_other_illness_details',
+            'gl_health_q04_prescribed_drugs_details',
+            'gl_health_q05_confinement_5yr_details',
+            'gl_health_q06_abnormal_labs_details',
+            'gl_health_q07_confinement_contemplated_details',
+            'gl_health_q08_blood_transfusion_details',
+            'gl_health_q09_other_disease_details',
+            'gl_health_q10_narcotics_details',
+            'gl_health_q11_smoker_details',
+            'gl_health_q12_alcohol_details',
+            'gl_health_q13_advised_stop_details',
+            'gl_health_q14_current_medication_details',
+            'gl_health_q15_pregnancy_details',
+            'gl_health_q16_relative_pep_details',
+            'gl_health_q17_pending_reinstatement_details',
+            'gl_health_q17_with_glapi_amount',
+            'gl_health_q17_with_other_companies_amount',
+        ];
+
+        $data = [];
+
+        foreach ($booleanFields as $field) {
+            $value = $flatValues[$field] ?? null;
+            $data[$field] = is_bool($value) ? $value : null;
+        }
+
+        foreach ($textFields as $field) {
+            $data[$field] = $this->normalizeText($flatValues[$field] ?? null);
+        }
+
+        return $data;
     }
 
     /**

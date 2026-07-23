@@ -328,8 +328,8 @@ Route::prefix('client/loans/requests/{loanRequest}/documents')
             ->name('client.loan-requests.documents.undertaking-barangay');
         Route::get('affidavit-undertaking', [LoanRequestController::class, 'affidavitUndertakingDocument'])
             ->name('client.loan-requests.documents.affidavit-undertaking');
-        Route::get('authorization', [LoanRequestController::class, 'authorizationDocument'])
-            ->name('client.loan-requests.documents.authorization');
+        Route::get('generali', [LoanRequestController::class, 'generaliDocument'])
+            ->name('client.loan-requests.documents.generali');
     });
 
 Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
@@ -423,8 +423,8 @@ Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])-
             ->name('staff.loan-requests.documents.undertaking-barangay');
         Route::get('affidavit-undertaking', [StaffLoanRequestController::class, 'affidavitUndertakingDocument'])
             ->name('staff.loan-requests.documents.affidavit-undertaking');
-        Route::get('authorization', [StaffLoanRequestController::class, 'authorizationDocument'])
-            ->name('staff.loan-requests.documents.authorization');
+        Route::get('generali', [StaffLoanRequestController::class, 'generaliDocument'])
+            ->name('staff.loan-requests.documents.generali');
     });
 
     Route::prefix('loan-requests/{loanRequest}/wibs')->group(function () {
@@ -516,8 +516,8 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
             ->name('admin.requests.documents.undertaking-barangay');
         Route::get('affidavit-undertaking', [AdminLoanRequestController::class, 'affidavitUndertakingDocument'])
             ->name('admin.requests.documents.affidavit-undertaking');
-        Route::get('authorization', [AdminLoanRequestController::class, 'authorizationDocument'])
-            ->name('admin.requests.documents.authorization');
+        Route::get('generali', [AdminLoanRequestController::class, 'generaliDocument'])
+            ->name('admin.requests.documents.generali');
     });
 
     Route::get('watchlist', [WatchlistController::class, 'index'])
