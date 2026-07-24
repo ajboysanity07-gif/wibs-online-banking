@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Models\MemberApplicationProfile;
+use App\Models\MemberDependentProfile;
+use App\Services\LoanRequests\DependentsProfileSyncService;
 use App\Support\SettingsPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +33,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, DependentsProfileSyncService $dependentsSync): RedirectResponse
     {
         $user = $request->user();
         $validated = $request->validated();
@@ -84,6 +86,7 @@ class ProfileController extends Controller
             $memberProfileData = [
                 ...Arr::only($validated, MemberApplicationProfile::fields()),
                 ...Arr::only($validated, MemberApplicationProfile::payoutBankFields()),
+                ...Arr::only($validated, MemberApplicationProfile::sourceOfFundAndIdFields()),
             ];
 
             $memberProfile = $user->memberApplicationProfile()->firstOrNew();
@@ -103,6 +106,11 @@ class ProfileController extends Controller
             }
 
             $user->syncMemberApplicationProfileCompletion($memberProfile);
+
+            $dependentsSync->sync(
+                $memberProfile,
+                Arr::only($validated, MemberDependentProfile::fieldKeys()),
+            );
 
             $user->setRelation('memberApplicationProfile', $memberProfile);
 

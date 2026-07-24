@@ -1904,6 +1904,36 @@ test('generali field map resolves applicant, beneficiary, and health data into t
     expect($resolved->contains(true))->toBeTrue();
 });
 
+test('generali field map hardcodes principal membership, omits fax, and sources beneficiary citizenship from applicant nationality', function () {
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_name', 'string', 'Juan Dela Cruz');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_relationship', 'string', 'Spouse');
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest);
+    expect(data_get($documentData, 'applicant.nationality'))->toBe('FILIPINO');
+
+    $fields = (new \App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap)->fields();
+
+    $membershipCheckbox = collect($fields)->first(
+        fn (array $field) => ($field['type'] ?? null) === 'check' && (float) $field['x'] === 165.0 && (float) $field['y'] === 54.5
+    );
+    expect($membershipCheckbox)->not->toBeNull();
+    expect(($membershipCheckbox['value'])($documentData))->toBeTrue();
+
+    $beneficiaryCitizenship = collect($fields)->first(
+        fn (array $field) => ($field['x'] ?? null) === 124.1 && ($field['y'] ?? null) === 187.5
+    );
+    expect($beneficiaryCitizenship)->not->toBeNull();
+    expect(($beneficiaryCitizenship['value'])($documentData))->toBe('FILIPINO');
+
+    $hasFaxComment = str_contains(
+        file_get_contents(app_path('Services/LoanRequests/PdfFieldMaps/GeneraliPdfFieldMap.php')),
+        'Fax: intentionally omitted'
+    );
+    expect($hasFaxComment)->toBeTrue();
+});
+
 test('generali pdf is 2 pages, A4 size', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);

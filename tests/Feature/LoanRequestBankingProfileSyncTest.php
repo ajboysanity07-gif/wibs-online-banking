@@ -199,7 +199,16 @@ test('getFormData does not overwrite banking values already saved on the draft',
 });
 
 test('submit writes back validated banking and applicant fields to the member profile', function (): void {
-    $member = createBankingTestMember('003103');
+    $member = createBankingTestMember('003103', [
+        'payout_bank_name' => 'Placeholder Bank',
+        'payout_account_name' => 'Placeholder Holder',
+        'payout_account_number' => '000000000',
+        'payout_account_type' => 'Savings',
+        'release_method' => 'ATM',
+        'source_of_fund_wealth' => 'Salary',
+        'id_type' => 'TIN',
+        'id_number' => '123-456-789',
+    ]);
 
     app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload());
 

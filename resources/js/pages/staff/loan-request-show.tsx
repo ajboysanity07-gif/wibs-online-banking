@@ -15,7 +15,13 @@ import {
     RefreshCw,
     XCircle,
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type FormEvent,
+} from 'react';
 import {
     CurrencyInput,
     MonthsInput,
@@ -153,6 +159,8 @@ const textareaClassName =
 const actionCardClassName =
     'border-primary/25 bg-card/80 shadow-sm ring-1 ring-primary/10';
 const readOnlyCardClassName = 'border-border/20 bg-card/40 shadow-sm';
+const readOnlyProcessingFieldClassName =
+    'bg-muted/30 text-muted-foreground/80 border-border/40';
 
 const emptyPerson: LoanRequestPersonFormData = {
     first_name: '',
@@ -521,10 +529,9 @@ export default function StaffLoanRequestShow({
         useState(false);
     const [recommendationPreviewError, setRecommendationPreviewError] =
         useState<string | null>(null);
-    // Tracks whether staff has typed in the GNTHP field since the last
-    // auto-applied suggestion, so Recalculate never silently overwrites a
-    // manually entered value.
-    const [gnthpManuallyEdited, setGnthpManuallyEdited] = useState(false);
+    const gnthpRecalculationTimeoutRef = useRef<ReturnType<
+        typeof setTimeout
+    > | null>(null);
     const [correctionForm, setCorrectionForm] = useState<CorrectionFormState>({
         loan_request: {
             requested_amount: toStringValue(loanRequest.requested_amount),
@@ -930,10 +937,6 @@ export default function StaffLoanRequestShow({
         field: string,
         value: string | number | boolean | null,
     ) => {
-        if (field === 'guaranteed_net_take_home_pay') {
-            setGnthpManuallyEdited(true);
-        }
-
         setProcessingForm((current) => ({
             ...current,
             processing: {
@@ -943,7 +946,9 @@ export default function StaffLoanRequestShow({
         }));
     };
 
-    const handleRecalculateSuggestedFigures = async () => {
+    // GNTHP is system-computed (never manually editable), so this always
+    // applies the server's suggestion once it resolves.
+    const recalculateGnthp = async () => {
         setIsRecommendationPreviewLoading(true);
         setRecommendationPreviewError(null);
 
@@ -986,23 +991,13 @@ export default function StaffLoanRequestShow({
             );
 
             setRecommendationPreview(result);
-
-            // Auto-apply only if the field hasn't been touched since the
-            // last suggestion was applied (or was never applied, i.e. still
-            // blank). Any keystroke on the field — even retyping the same
-            // number — flips gnthpManuallyEdited via updateProcessingSectionField
-            // and blocks this from here on until the next fresh auto-apply.
-            if (result.suggested_gnthp_raw !== null && !gnthpManuallyEdited) {
-                setProcessingForm((current) => ({
-                    ...current,
-                    processing: {
-                        ...current.processing,
-                        guaranteed_net_take_home_pay:
-                            result.suggested_gnthp_raw,
-                    },
-                }));
-                setGnthpManuallyEdited(false);
-            }
+            setProcessingForm((current) => ({
+                ...current,
+                processing: {
+                    ...current.processing,
+                    guaranteed_net_take_home_pay: result.suggested_gnthp_raw,
+                },
+            }));
         } catch {
             setRecommendationPreviewError(
                 'Unable to compute a preview. Please try again.',
@@ -1011,6 +1006,27 @@ export default function StaffLoanRequestShow({
             setIsRecommendationPreviewLoading(false);
         }
     };
+
+    // Debounced so tabbing through several contributing fields in quick
+    // succession triggers one recalculation instead of one per field.
+    const scheduleGnthpRecalculation = () => {
+        if (gnthpRecalculationTimeoutRef.current !== null) {
+            clearTimeout(gnthpRecalculationTimeoutRef.current);
+        }
+
+        gnthpRecalculationTimeoutRef.current = setTimeout(() => {
+            gnthpRecalculationTimeoutRef.current = null;
+            void recalculateGnthp();
+        }, 400);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (gnthpRecalculationTimeoutRef.current !== null) {
+                clearTimeout(gnthpRecalculationTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Build the processing payload: booleans are always sent as true/false
     // (never null, which the endpoint rejects); empty text/number fields become
@@ -1178,6 +1194,8 @@ export default function StaffLoanRequestShow({
             disabled?: boolean;
             placeholder?: string;
             tooltip?: string;
+            className?: string;
+            onBlur?: () => void;
         },
     ) => {
         const field = dataSectionDefinitions.processing.fields[fieldKey];
@@ -1250,8 +1268,10 @@ export default function StaffLoanRequestShow({
                         onValueChange={(value) =>
                             updateProcessingSectionField(fieldKey, value)
                         }
+                        onBlur={options?.onBlur}
                         disabled={options?.disabled}
                         placeholder={options?.placeholder}
+                        className={options?.className}
                     />
                 ) : fieldKind === 'percent' ? (
                     <PercentInput
@@ -1260,8 +1280,10 @@ export default function StaffLoanRequestShow({
                         onValueChange={(value) =>
                             updateProcessingSectionField(fieldKey, value)
                         }
+                        onBlur={options?.onBlur}
                         disabled={options?.disabled}
                         placeholder={options?.placeholder}
+                        className={options?.className}
                     />
                 ) : fieldKind === 'months' ? (
                     <MonthsInput
@@ -1270,8 +1292,10 @@ export default function StaffLoanRequestShow({
                         onChange={(value) =>
                             updateProcessingSectionField(fieldKey, value)
                         }
+                        onBlur={options?.onBlur}
                         disabled={options?.disabled}
                         placeholder={options?.placeholder}
+                        className={options?.className}
                     />
                 ) : (
                     <Input
@@ -1290,6 +1314,8 @@ export default function StaffLoanRequestShow({
                                 event.target.value,
                             )
                         }
+                        onBlur={options?.onBlur}
+                        className={options?.className}
                         disabled={options?.disabled}
                         placeholder={options?.placeholder}
                     />
@@ -1346,6 +1372,7 @@ export default function StaffLoanRequestShow({
                                             recommended_amount: value,
                                         }))
                                     }
+                                    onBlur={scheduleGnthpRecalculation}
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -1361,6 +1388,7 @@ export default function StaffLoanRequestShow({
                                             recommended_term: value,
                                         }))
                                     }
+                                    onBlur={scheduleGnthpRecalculation}
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -1378,6 +1406,7 @@ export default function StaffLoanRequestShow({
                                             recommended_interest_rate: value,
                                         }))
                                     }
+                                    onBlur={scheduleGnthpRecalculation}
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -1406,13 +1435,14 @@ export default function StaffLoanRequestShow({
                                         processingForm.recommended_payment_frequency ||
                                         undefined
                                     }
-                                    onValueChange={(value) =>
+                                    onValueChange={(value) => {
                                         setProcessingForm((current) => ({
                                             ...current,
                                             recommended_payment_frequency:
                                                 value,
-                                        }))
-                                    }
+                                        }));
+                                        scheduleGnthpRecalculation();
+                                    }}
                                 >
                                     <SelectTrigger
                                         id="inline_recommended_payment_frequency"
@@ -1457,7 +1487,9 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('insurance_rate')}
                             {renderProcessingField('insurance_term')}
                             {renderProcessingField('loan_security_rate')}
-                            {renderProcessingField('savings_rate')}
+                            {renderProcessingField('savings_rate', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
                             {renderProcessingField('documentary_stamp_rate')}
                             {renderProcessingField('notarial_fee')}
                             {renderProcessingField('notarial_venue')}
@@ -1465,24 +1497,11 @@ export default function StaffLoanRequestShow({
                         </div>
                         {renderProcessingSectionLabel('Net take-home pay')}
                         <div className="space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <p className="text-sm text-muted-foreground">
-                                    Recalculate the net proceeds and suggested
-                                    GNTHP using the recommendation and charges
-                                    above.
-                                </p>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={isRecommendationPreviewLoading}
-                                    onClick={handleRecalculateSuggestedFigures}
-                                >
-                                    {isRecommendationPreviewLoading
-                                        ? 'Recalculating…'
-                                        : 'Recalculate suggested figures'}
-                                </Button>
-                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                Net proceeds and GNTHP are computed
+                                automatically from the recommendation and
+                                charges above.
+                            </p>
 
                             {recommendationPreviewError && (
                                 <p className="text-sm text-destructive">
@@ -1510,20 +1529,20 @@ export default function StaffLoanRequestShow({
 
                             {renderProcessingField(
                                 'guaranteed_net_take_home_pay',
+                                {
+                                    disabled: true,
+                                    className: readOnlyProcessingFieldClassName,
+                                    placeholder: isRecommendationPreviewLoading
+                                        ? 'Recalculating…'
+                                        : 'Computed automatically',
+                                    tooltip:
+                                        'Guaranteed Net Take-Home Pay is always the gross monthly income minus the monthly amortization at the recommended terms — it cannot be edited manually.',
+                                },
                             )}
 
                             {recommendationPreview &&
-                                (recommendationPreview.suggested_gnthp_raw !==
-                                null ? (
-                                    gnthpManuallyEdited && (
-                                        <p className="text-xs text-muted-foreground">
-                                            Suggested:{' '}
-                                            {formatCurrency(
-                                                recommendationPreview.suggested_gnthp_raw,
-                                            )}
-                                        </p>
-                                    )
-                                ) : (
+                                recommendationPreview.suggested_gnthp_raw ===
+                                    null && (
                                     <p className="text-xs text-muted-foreground">
                                         {
                                             recommendationPreview
@@ -1535,7 +1554,7 @@ export default function StaffLoanRequestShow({
                                             ? ` ${recommendationPreview.failure_information.blockers.join(' ')}`
                                             : null}
                                     </p>
-                                ))}
+                                )}
                         </div>
 
                         {renderProcessingSectionLabel('Personnel')}

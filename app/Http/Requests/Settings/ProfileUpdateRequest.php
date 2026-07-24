@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Concerns\ProfileValidationRules;
 use App\Models\MemberApplicationProfile;
+use App\Models\MemberDependentProfile;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -285,7 +286,58 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'source_of_fund_wealth' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'id_type' => [
+                'nullable',
+                'string',
+                Rule::in(MemberApplicationProfile::ID_TYPE_OPTIONS),
+            ],
+            'id_type_other' => [
+                Rule::requiredIf($this->input('id_type') === 'Others'),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'id_number' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            ...$this->dependentFieldRules(),
         ];
+    }
+
+    /**
+     * Validation rules for the Settings > Dependents tab's fixed-slot
+     * fields (dependent_{category}_{slot}_{attribute}). All optional --
+     * dependents are never required to complete a member profile.
+     *
+     * Cycle status/number are intentionally excluded: they only make sense
+     * at loan-application time (which insurance cycle applies to this
+     * request), not as a standing profile fact captured at signup. The
+     * loan-request wizard collects and persists them through its own
+     * FormRequest/submission path, untouched by this one.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function dependentFieldRules(): array
+    {
+        $rules = [];
+
+        foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
+            for ($slot = 1; $slot <= $cap; $slot++) {
+                $prefix = "dependent_{$category}_{$slot}_";
+
+                $rules[$prefix.'name'] = ['nullable', 'string', 'max:255'];
+                $rules[$prefix.'birthdate'] = ['nullable', 'date'];
+            }
+        }
+
+        return $rules;
     }
 
     /**

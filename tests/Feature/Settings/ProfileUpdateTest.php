@@ -503,6 +503,346 @@ test('profile information can be updated with payout bank details', function () 
     expect($memberProfile->payout_atm_holder_name)->toBe('Test User');
 });
 
+test('profile page exposes source of fund and government id fields', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+        'source_of_fund_wealth' => 'Salary',
+        'id_type' => 'TIN',
+        'id_type_other' => null,
+        'id_number' => '123-456-789',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberApplicationProfile.source_of_fund_wealth', 'Salary')
+            ->where('memberApplicationProfile.id_type', 'TIN')
+            ->where('memberApplicationProfile.id_type_other', null)
+            ->where('memberApplicationProfile.id_number', '123-456-789')
+        );
+});
+
+test('profile information can be updated with source of fund and government id details', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'source_of_fund_wealth' => 'Business income',
+            'id_type' => 'Others',
+            'id_type_other' => 'Voter\'s ID',
+            'id_number' => '987-654-321',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->source_of_fund_wealth)->toBe('Business income');
+    expect($memberProfile->id_type)->toBe('Others');
+    expect($memberProfile->id_type_other)->toBe('Voter\'s ID');
+    expect($memberProfile->id_number)->toBe('987-654-321');
+});
+
+test('id type other is required when id type is Others', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'id_type' => 'Others',
+            'id_type_other' => '',
+        ]);
+
+    $response->assertSessionHasErrors(['id_type_other']);
+});
+
+test('onboarding is not blocked by empty source of fund or bank and payout fields', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('client.dashboard'));
+
+    $user->refresh();
+    expect($user->memberApplicationProfileIsComplete())->toBeTrue();
+});
+
+test('profile page exposes saved dependents but not cycle status/number', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $memberProfile = MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $dependentProfile = \App\Models\MemberDependentProfile::query()->create([
+        'member_application_profile_id' => $memberProfile->id,
+    ]);
+
+    \App\Models\MemberDependent::query()->create([
+        'member_dependent_profile_id' => $dependentProfile->id,
+        'category' => 'sibling',
+        'slot' => 1,
+        'name' => 'Settings Sibling',
+        'birthdate' => '1996-02-14',
+        'cycle_status' => 'Old',
+        'cycle_number' => 3,
+    ]);
+
+    $dependentProfile->update([
+        'spouse_cycle_status' => 'New',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('dependents.dependent_sibling_1_name', 'Settings Sibling')
+            ->where('dependents.dependent_sibling_1_birthdate', '1996-02-14')
+            ->missing('dependents.dependent_sibling_1_cycle_status')
+            ->missing('dependents.dependent_sibling_1_cycle_number')
+            ->missing('dependents.dependent_spouse_cycle_status')
+            ->missing('dependents.dependent_spouse_cycle_number')
+            ->where('dependents.dependent_child_1_name', null)
+        );
+});
+
+test('profile information can be updated with dependent name and birthdate only', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'dependent_sibling_1_name' => 'Updated Sibling',
+            'dependent_sibling_1_birthdate' => '1998-05-20',
+            'dependent_parent_1_name' => 'Updated Parent',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+    $dependentProfile = \App\Models\MemberDependentProfile::query()
+        ->where('member_application_profile_id', $memberProfile->id)
+        ->first();
+
+    expect($dependentProfile)->not->toBeNull();
+
+    $sibling = \App\Models\MemberDependent::query()
+        ->where('member_dependent_profile_id', $dependentProfile->id)
+        ->where('category', 'sibling')
+        ->where('slot', 1)
+        ->first();
+
+    expect($sibling)->not->toBeNull();
+    expect($sibling->name)->toBe('Updated Sibling');
+    expect($sibling->birthdate->toDateString())->toBe('1998-05-20');
+
+    $parent = \App\Models\MemberDependent::query()
+        ->where('member_dependent_profile_id', $dependentProfile->id)
+        ->where('category', 'parent')
+        ->where('slot', 1)
+        ->first();
+
+    expect($parent)->not->toBeNull();
+    expect($parent->name)->toBe('Updated Parent');
+
+    $child = \App\Models\MemberDependent::query()
+        ->where('member_dependent_profile_id', $dependentProfile->id)
+        ->where('category', 'child')
+        ->first();
+
+    expect($child)->toBeNull();
+});
+
+test('updating dependent name via settings preserves cycle status/number set by the wizard', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $memberProfile = MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $dependentProfile = \App\Models\MemberDependentProfile::query()->create([
+        'member_application_profile_id' => $memberProfile->id,
+        'spouse_cycle_status' => 'Old',
+        'spouse_cycle_number' => 4,
+    ]);
+
+    \App\Models\MemberDependent::query()->create([
+        'member_dependent_profile_id' => $dependentProfile->id,
+        'category' => 'sibling',
+        'slot' => 1,
+        'name' => 'Wizard Sibling',
+        'birthdate' => '1996-02-14',
+        'cycle_status' => 'Old',
+        'cycle_number' => 3,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'dependent_sibling_1_name' => 'Settings-Renamed Sibling',
+            'dependent_sibling_1_birthdate' => '1996-02-14',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $sibling = \App\Models\MemberDependent::query()
+        ->where('member_dependent_profile_id', $dependentProfile->id)
+        ->where('category', 'sibling')
+        ->where('slot', 1)
+        ->first();
+
+    expect($sibling)->not->toBeNull();
+    expect($sibling->name)->toBe('Settings-Renamed Sibling');
+    expect($sibling->cycle_status)->toBe('Old');
+    expect($sibling->cycle_number)->toBe(3);
+
+    expect($dependentProfile->refresh()->spouse_cycle_status)->toBe('Old');
+    expect($dependentProfile->spouse_cycle_number)->toBe(4);
+});
+
+test('removing a dependent in settings deletes the saved row and its cycle data', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $memberProfile = MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $dependentProfile = \App\Models\MemberDependentProfile::query()->create([
+        'member_application_profile_id' => $memberProfile->id,
+    ]);
+
+    \App\Models\MemberDependent::query()->create([
+        'member_dependent_profile_id' => $dependentProfile->id,
+        'category' => 'sibling',
+        'slot' => 1,
+        'name' => 'To Be Removed',
+        'cycle_status' => 'New',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Cebu City',
+            'birthplace_province' => 'Cebu',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'dependent_sibling_1_name' => null,
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $sibling = \App\Models\MemberDependent::query()
+        ->where('member_dependent_profile_id', $dependentProfile->id)
+        ->where('category', 'sibling')
+        ->where('slot', 1)
+        ->first();
+
+    expect($sibling)->toBeNull();
+});
+
 test('profile page exposes admin profile photo url for preview', function () {
     Storage::fake('public');
 

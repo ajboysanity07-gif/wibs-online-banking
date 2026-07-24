@@ -15,10 +15,9 @@ class MemberDependent extends Model
         'category',
         'slot',
         'name',
-        'relationship',
         'birthdate',
-        'occupation',
         'cycle_status',
+        'cycle_number',
     ];
 
     public function memberDependentProfile(): BelongsTo
@@ -33,6 +32,7 @@ class MemberDependent extends Model
     {
         return [
             'birthdate' => 'date',
+            'cycle_number' => 'integer',
         ];
     }
 }

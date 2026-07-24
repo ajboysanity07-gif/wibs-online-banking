@@ -11,8 +11,6 @@ use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
-use App\Models\MemberDependent;
-use App\Models\MemberDependentProfile;
 use App\Models\Wlntype;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestSubmittedNotification;
@@ -55,6 +53,7 @@ class LoanRequestService
         private NotificationRecipientService $notificationRecipients,
         private LoanRequestPayloadSerializer $serializer,
         private LoanRequestDataService $dataService,
+        private DependentsProfileSyncService $dependentsSync,
     ) {}
 
     /**
@@ -154,6 +153,8 @@ class LoanRequestService
         );
 
         return [
+            'loanPrerequisitesMet' => $user->memberApplicationProfile?->hasLoanPrerequisiteFields() ?? false,
+            'loanPrerequisiteProfile' => $this->loanPrerequisiteProfileValues($user->memberApplicationProfile),
             'loanTypes' => $this->getLoanTypes()->values()->all(),
             'applicant' => $applicant,
             'coMakerOne' => $coMakerOne,
@@ -170,6 +171,56 @@ class LoanRequestService
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
             'insurancePrefilledFromProfile' => $insurancePrefilledFromProfile,
             'dependentsPrefilledFromProfile' => $dependentsPrefilledFromProfile,
+        ];
+    }
+
+    /**
+     * Current Bank & Payout + Source of Fund / Government ID values from the
+     * member's profile, used to prefill the loan-request prerequisite modal.
+     *
+     * @return array<string, mixed>
+     */
+    private function loanPrerequisiteProfileValues(?MemberApplicationProfile $profile): array
+    {
+        $fields = [
+            ...MemberApplicationProfile::payoutBankFields(),
+            ...MemberApplicationProfile::sourceOfFundAndIdFields(),
+        ];
+
+        $values = [];
+
+        foreach ($fields as $field) {
+            $values[$field] = $profile?->getAttribute($field);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Save the Bank & Payout + Source of Fund / Government ID prerequisite
+     * checkpoint data (entry-point modal or submit-time safety net) directly
+     * to the member's application profile.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{met: bool, profile: array<string, mixed>}
+     */
+    public function saveLoanPrerequisites(AppUser $user, array $data): array
+    {
+        $profileData = Arr::only($data, [
+            ...MemberApplicationProfile::payoutBankFields(),
+            ...MemberApplicationProfile::sourceOfFundAndIdFields(),
+        ]);
+
+        $profile = $user->memberApplicationProfile()->firstOrNew();
+        $profile->fill($profileData);
+        $profile->save();
+
+        $user->setRelation('memberApplicationProfile', $profile);
+        $user->syncMemberApplicationProfileCompletion($profile);
+
+        return [
+            'met' => $profile->hasLoanPrerequisiteFields(),
+            'profile' => $this->loanPrerequisiteProfileValues($profile),
         ];
     }
 
@@ -277,40 +328,47 @@ class LoanRequestService
         }
 
         $profile->loadMissing('dependentProfile.dependents');
-        $dependents = $profile->dependentProfile?->dependents;
+        $dependentProfile = $profile->dependentProfile;
+        $dependents = $dependentProfile?->dependents;
+        $hasDependentRows = $dependents !== null && $dependents->isNotEmpty();
+        $hasSpouseCycleData = $dependentProfile?->spouse_cycle_status !== null;
 
-        if ($dependents === null || $dependents->isEmpty()) {
+        if ($dependentProfile === null || (! $hasDependentRows && ! $hasSpouseCycleData)) {
             return [$dependentsValues, false];
         }
 
         $prefilled = false;
 
-        foreach ($dependents as $dependent) {
+        $applyValue = function (string $field, mixed $rawValue) use (&$dependentsValues, &$prefilled): void {
+            if (! array_key_exists($field, $dependentsValues) || $dependentsValues[$field] !== null) {
+                return;
+            }
+
+            $value = $this->normalizeOptionalString($rawValue);
+
+            if ($value === null) {
+                return;
+            }
+
+            $dependentsValues[$field] = $value;
+            $prefilled = true;
+        };
+
+        foreach ($dependents ?? [] as $dependent) {
             $prefix = "dependent_{$dependent->category}_{$dependent->slot}_";
 
             foreach ([
                 'name' => $dependent->name,
-                'relationship' => $dependent->relationship,
                 'birthdate' => $dependent->birthdate?->toDateString(),
-                'occupation' => $dependent->occupation,
                 'cycle_status' => $dependent->cycle_status,
+                'cycle_number' => $dependent->cycle_number,
             ] as $attribute => $rawValue) {
-                $field = $prefix.$attribute;
-
-                if (! array_key_exists($field, $dependentsValues) || $dependentsValues[$field] !== null) {
-                    continue;
-                }
-
-                $value = $this->normalizeOptionalString($rawValue);
-
-                if ($value === null) {
-                    continue;
-                }
-
-                $dependentsValues[$field] = $value;
-                $prefilled = true;
+                $applyValue($prefix.$attribute, $rawValue);
             }
         }
+
+        $applyValue('dependent_spouse_cycle_status', $dependentProfile->spouse_cycle_status);
+        $applyValue('dependent_spouse_cycle_number', $dependentProfile->spouse_cycle_number);
 
         return [$dependentsValues, $prefilled];
     }
@@ -353,58 +411,10 @@ class LoanRequestService
 
         $user->setRelation('memberApplicationProfile', $profile);
 
-        $this->syncDependentsProfile(
+        $this->dependentsSync->sync(
             $profile,
             is_array($payload['dependents'] ?? null) ? $payload['dependents'] : [],
         );
-    }
-
-    /**
-     * Write validated dependents submission data back onto the member's
-     * normalized dependent tables (member_dependent_profiles/
-     * member_dependents), one row per non-empty category/slot. Submit-only,
-     * mirroring syncMemberApplicationProfileFromSubmission().
-     *
-     * @param  array<string, mixed>  $dependentsPayload
-     */
-    private function syncDependentsProfile(
-        MemberApplicationProfile $profile,
-        array $dependentsPayload,
-    ): void {
-        if ($dependentsPayload === []) {
-            return;
-        }
-
-        $dependentProfile = MemberDependentProfile::query()->firstOrCreate([
-            'member_application_profile_id' => $profile->id,
-        ]);
-
-        foreach (MemberDependentProfile::CATEGORY_CAPS as $category => $cap) {
-            for ($slot = 1; $slot <= $cap; $slot++) {
-                $prefix = "dependent_{$category}_{$slot}_";
-
-                $rowData = [
-                    'name' => $this->normalizeOptionalString($dependentsPayload[$prefix.'name'] ?? null),
-                    'relationship' => $this->normalizeOptionalString($dependentsPayload[$prefix.'relationship'] ?? null),
-                    'birthdate' => $this->normalizeOptionalString($dependentsPayload[$prefix.'birthdate'] ?? null),
-                    'occupation' => $this->normalizeOptionalString($dependentsPayload[$prefix.'occupation'] ?? null),
-                    'cycle_status' => $this->normalizeOptionalString($dependentsPayload[$prefix.'cycle_status'] ?? null),
-                ];
-
-                if (array_filter($rowData, static fn (?string $value): bool => $value !== null) === []) {
-                    continue;
-                }
-
-                MemberDependent::query()->updateOrCreate(
-                    [
-                        'member_dependent_profile_id' => $dependentProfile->id,
-                        'category' => $category,
-                        'slot' => $slot,
-                    ],
-                    $rowData,
-                );
-            }
-        }
     }
 
     /**
@@ -477,6 +487,14 @@ class LoanRequestService
      */
     public function submit(AppUser $user, array $payload): LoanRequest
     {
+        $user->loadMissing('memberApplicationProfile');
+
+        if (! ($user->memberApplicationProfile?->hasLoanPrerequisiteFields() ?? false)) {
+            throw ValidationException::withMessages([
+                'loan_prerequisites' => 'Please complete your Bank & Payout and Source of Fund / Government ID details before submitting.',
+            ]);
+        }
+
         $shouldNotifyAdmins = false;
 
         $loanRequest = DB::transaction(function () use ($user, $payload, &$shouldNotifyAdmins): LoanRequest {

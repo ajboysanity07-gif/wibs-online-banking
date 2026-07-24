@@ -55,7 +55,7 @@ function createDependentsTestMember(string $acctno): AppUser
     );
 
     UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
-    MemberApplicationProfile::factory()->completed()->create([
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
         'user_id' => $member->user_id,
     ]);
 
@@ -79,18 +79,21 @@ test('getFormData prefills dependents from the member profile and flags it', fun
         'category' => 'sibling',
         'slot' => 1,
         'name' => 'Profile Sibling',
-        'relationship' => 'Brother',
         'birthdate' => '1995-03-04',
-        'occupation' => 'Engineer',
+        'cycle_status' => 'Old',
+        'cycle_number' => 2,
     ]);
+
+    $dependentProfile->update(['spouse_cycle_status' => 'New']);
 
     $formData = app(LoanRequestService::class)->getFormData($member);
 
     expect($formData['dependentsPrefilledFromProfile'])->toBeTrue();
     expect($formData['dataSections']['dependents']['dependent_sibling_1_name'])->toBe('Profile Sibling');
-    expect($formData['dataSections']['dependents']['dependent_sibling_1_relationship'])->toBe('Brother');
     expect($formData['dataSections']['dependents']['dependent_sibling_1_birthdate'])->toBe('1995-03-04');
-    expect($formData['dataSections']['dependents']['dependent_sibling_1_occupation'])->toBe('Engineer');
+    expect($formData['dataSections']['dependents']['dependent_sibling_1_cycle_status'])->toBe('Old');
+    expect($formData['dataSections']['dependents']['dependent_sibling_1_cycle_number'])->toBe('2');
+    expect($formData['dataSections']['dependents']['dependent_spouse_cycle_status'])->toBe('New');
 });
 
 test('getFormData does not flag dependents prefill when the profile has no dependent rows', function (): void {
@@ -210,10 +213,11 @@ test('submit writes back validated dependent fields to normalized profile tables
         ],
         'dependents' => [
             'dependent_child_1_name' => 'Submitted Child',
-            'dependent_child_1_relationship' => 'Daughter',
             'dependent_child_1_birthdate' => '2015-06-07',
-            'dependent_child_1_occupation' => 'Student',
+            'dependent_child_1_cycle_status' => 'Old',
+            'dependent_child_1_cycle_number' => 1,
             'dependent_parent_1_name' => 'Submitted Parent',
+            'dependent_spouse_cycle_status' => 'New',
         ],
         'applicant' => $person(['sex' => 'Male']),
         'co_maker_1' => $person(),
@@ -238,9 +242,11 @@ test('submit writes back validated dependent fields to normalized profile tables
 
     expect($child)->not->toBeNull();
     expect($child->name)->toBe('Submitted Child');
-    expect($child->relationship)->toBe('Daughter');
     expect($child->birthdate->toDateString())->toBe('2015-06-07');
-    expect($child->occupation)->toBe('Student');
+    expect($child->cycle_status)->toBe('Old');
+    expect($child->cycle_number)->toBe(1);
+
+    expect($dependentProfile->spouse_cycle_status)->toBe('New');
 
     $parent = MemberDependent::query()
         ->where('member_dependent_profile_id', $dependentProfile->id)

@@ -1,6 +1,16 @@
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 
+import {
+    DEPENDENT_CATEGORIES,
+    DependentCategorySection,
+    type DependentCategoryConfig,
+    DependentSpouseCycleSection,
+    SPOUSE_CYCLE_NUMBER_KEY,
+    SPOUSE_CYCLE_STATUS_KEY,
+    slotFieldKey,
+    summarizeDependents,
+} from '@/components/dependents/dependent-category-section';
 import InputError from '@/components/input-error';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
 import {
@@ -414,6 +424,17 @@ type DataSectionStepProps = {
     ) => void;
 };
 
+// declaration_truth_confirmation and declaration_data_privacy_consent are
+// agreements the applicant must actively accept, not factual Yes/No
+// disclosures -- render them as a standard blocking "I agree" checkbox
+// instead of the BooleanYesNoField used for the rest of this section.
+const CONSENT_CHECKBOX_COPY: Record<string, string> = {
+    declaration_truth_confirmation:
+        'I confirm that all information I have provided in this loan request is true, complete, and accurate to the best of my knowledge.',
+    declaration_data_privacy_consent:
+        'I consent to the collection, use, and processing of my personal data for purposes of evaluating and processing this loan request, in accordance with the Data Privacy Act.',
+};
+
 const displaySectionValue = (
     value: unknown,
     field: LoanRequestDataFieldDefinition,
@@ -465,6 +486,40 @@ export function LoanRequestDataSectionStep({
                     const errorKey = `${sectionKey}.${fieldKey}`;
                     const value = values[fieldKey];
                     const isNotesField = fieldKey.includes('notes');
+                    const consentCopy = CONSENT_CHECKBOX_COPY[fieldKey];
+
+                    if (consentCopy) {
+                        return (
+                            <div
+                                key={fieldKey}
+                                className="grid gap-2 md:col-span-2"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <Checkbox
+                                        id={`${sectionKey}_${fieldKey}`}
+                                        checked={value === true}
+                                        aria-label={field.label}
+                                        onCheckedChange={(checked) =>
+                                            onChange(
+                                                fieldKey,
+                                                checked === true,
+                                            )
+                                        }
+                                    />
+                                    <Label
+                                        htmlFor={`${sectionKey}_${fieldKey}`}
+                                        className="text-sm leading-snug font-normal"
+                                    >
+                                        {consentCopy}{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                </div>
+                                <InputError message={errors[errorKey]} />
+                            </div>
+                        );
+                    }
 
                     return (
                         <div
@@ -961,206 +1016,54 @@ type DependentsStepProps = {
     errors: Record<string, string | undefined>;
     crossSectionValues: Record<string, LoanRequestDataFieldValue>;
     onChange: (field: string, value: string | number | boolean | null) => void;
+    hasExistingProfileData: boolean;
+    editInSettingsHref: string;
 };
 
-type DependentCategoryConfig = {
-    key: string;
-    label: string;
-    cap: number;
-};
-
-// Row caps are provisional -- see LoanRequestDataService::FIELD_DEFINITIONS.
-const DEPENDENT_CATEGORIES: DependentCategoryConfig[] = [
-    { key: 'child', label: 'Child', cap: 3 },
-    { key: 'sibling', label: 'Sibling', cap: 3 },
-    { key: 'parent', label: 'Parent', cap: 2 },
-    { key: 'extended', label: 'Extended family member', cap: 3 },
-];
-
-const DEPENDENT_SLOT_ATTRIBUTES = [
-    'name',
-    'relationship',
-    'birthdate',
-    'occupation',
-    'cycle_status',
-] as const;
-
-function slotFieldKey(category: string, slot: number, attribute: string): string {
-    return `dependent_${category}_${slot}_${attribute}`;
-}
-
-function slotHasValue(
-    values: LoanRequestDataSectionValues,
-    category: string,
-    slot: number,
+function isDependentCategoryVisible(
+    category: DependentCategoryConfig,
+    definition: LoanRequestDataSectionDefinition,
+    crossSectionValues: Record<string, LoanRequestDataFieldValue>,
 ): boolean {
-    return DEPENDENT_SLOT_ATTRIBUTES.some((attribute) => {
-        const value = values[slotFieldKey(category, slot, attribute)];
-        return value !== null && value !== undefined && value !== '';
-    });
-}
+    const firstField = definition.fields[slotFieldKey(category.key, 1, 'name')];
 
-function DependentCategorySection({
-    category,
-    sectionKey,
-    values,
-    definition,
-    errors,
-    onChange,
-}: {
-    category: DependentCategoryConfig;
-    sectionKey: 'dependents';
-    values: LoanRequestDataSectionValues;
-    definition: LoanRequestDataSectionDefinition;
-    errors: Record<string, string | undefined>;
-    onChange: (field: string, value: string | number | boolean | null) => void;
-}) {
-    const initialVisibleSlots = useMemo(() => {
-        let count = 1;
-
-        for (let slot = category.cap; slot >= 1; slot -= 1) {
-            if (slotHasValue(values, category.key, slot)) {
-                count = Math.max(count, slot);
-                break;
-            }
-        }
-
-        return count;
-        // Only computed once on mount -- subsequent add/remove clicks own the count.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const [visibleSlots, setVisibleSlots] = useState(initialVisibleSlots);
-
-    const handleRemoveSlot = (slot: number) => {
-        DEPENDENT_SLOT_ATTRIBUTES.forEach((attribute) => {
-            onChange(slotFieldKey(category.key, slot, attribute), null);
-        });
-        setVisibleSlots((current) => Math.max(1, current - 1));
-    };
-
-    const renderSlot = (slot: number) => {
-        const nameField = definition.fields[slotFieldKey(category.key, slot, 'name')];
-        const relationshipField =
-            definition.fields[slotFieldKey(category.key, slot, 'relationship')];
-        const birthdateField =
-            definition.fields[slotFieldKey(category.key, slot, 'birthdate')];
-        const occupationField =
-            definition.fields[slotFieldKey(category.key, slot, 'occupation')];
-        const cycleStatusField =
-            definition.fields[slotFieldKey(category.key, slot, 'cycle_status')];
-
-        return (
-            <div
-                key={slot}
-                className="space-y-3 rounded-md border border-border/50 bg-muted/5 p-4"
-            >
-                <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">
-                        {category.label} {slot}
-                    </p>
-                    {slot > 1 || visibleSlots > 1 ? (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveSlot(slot)}
-                        >
-                            Remove
-                        </Button>
-                    ) : null}
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                    {[
-                        { field: nameField, key: 'name', type: 'text' as const },
-                        {
-                            field: relationshipField,
-                            key: 'relationship',
-                            type: 'text' as const,
-                        },
-                        {
-                            field: birthdateField,
-                            key: 'birthdate',
-                            type: 'date' as const,
-                        },
-                        {
-                            field: occupationField,
-                            key: 'occupation',
-                            type: 'text' as const,
-                        },
-                        {
-                            field: cycleStatusField,
-                            key: 'cycle_status',
-                            type: 'text' as const,
-                        },
-                    ].map(({ field, key, type }) => {
-                        if (!field) {
-                            return null;
-                        }
-
-                        const fieldKey = slotFieldKey(category.key, slot, key);
-                        const errorKey = `${sectionKey}.${fieldKey}`;
-                        const value = values[fieldKey];
-
-                        return (
-                            <div key={fieldKey} className="grid gap-2">
-                                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
-                                    {field.label}
-                                </Label>
-                                <Input
-                                    id={`${sectionKey}_${fieldKey}`}
-                                    type={type}
-                                    value={value ? `${value}` : ''}
-                                    onChange={(event) =>
-                                        onChange(fieldKey, event.target.value)
-                                    }
-                                />
-                                <InputError message={errors[errorKey]} />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
+    if (!firstField?.visible_when) {
+        return true;
+    }
 
     return (
-        <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">
-                {category.label}s
-            </p>
-            <div className="space-y-3">
-                {Array.from({ length: visibleSlots }, (_, index) => index + 1).map(
-                    renderSlot,
-                )}
-            </div>
-            {visibleSlots < category.cap ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                        setVisibleSlots((current) =>
-                            Math.min(category.cap, current + 1),
-                        )
-                    }
-                >
-                    + Add another {category.label.toLowerCase()}
-                </Button>
-            ) : null}
-        </div>
+        crossSectionValues[firstField.visible_when.field] ===
+        firstField.visible_when.equals
     );
+}
+
+function isDependentSpouseVisible(
+    definition: LoanRequestDataSectionDefinition,
+    crossSectionValues: Record<string, LoanRequestDataFieldValue>,
+): boolean {
+    const field = definition.fields[SPOUSE_CYCLE_STATUS_KEY];
+
+    if (!field?.visible_when) {
+        return true;
+    }
+
+    return crossSectionValues[field.visible_when.field] === field.visible_when.equals;
 }
 
 /**
  * Dependents (Form B). Fixed slots per category (see
  * LoanRequestDataService::FIELD_DEFINITIONS), rendered with add/remove-row
- * UX so members aren't shown every slot at once. The "child" category is
- * gated by civil_status via visible_when, same mechanism as the GLAPI
- * pregnancy question -- see LoanRequestHealthQuestionnaireStep.
+ * UX so members aren't shown every slot at once. Each category (and the
+ * Spouse singleton) is gated by civil_status via visible_when, same
+ * mechanism as the GLAPI pregnancy question -- see
+ * LoanRequestHealthQuestionnaireStep: Spouse/Children show for Married
+ * members, Siblings/Parents show for Single members, Extended is ungated.
+ *
+ * Members with existing profile data (dependentsPrefilledFromProfile) get a
+ * compact read-only summary instead of the full form -- editing happens in
+ * Settings > Dependents only, this step is read-and-confirm for them.
  */
 export function LoanRequestDependentsStep({
-    sectionKey,
     title,
     description,
     values,
@@ -1168,19 +1071,81 @@ export function LoanRequestDependentsStep({
     errors,
     crossSectionValues,
     onChange,
+    hasExistingProfileData,
+    editInSettingsHref,
 }: DependentsStepProps) {
-    const isCategoryVisible = (category: DependentCategoryConfig): boolean => {
-        const firstField = definition.fields[slotFieldKey(category.key, 1, 'name')];
+    const visibleCategories = DEPENDENT_CATEGORIES.filter((category) =>
+        isDependentCategoryVisible(category, definition, crossSectionValues),
+    );
+    const spouseVisible = isDependentSpouseVisible(definition, crossSectionValues);
+    const spouseCycleStatus = values[SPOUSE_CYCLE_STATUS_KEY];
+    const spouseCycleNumber = values[SPOUSE_CYCLE_NUMBER_KEY];
+    const hasSpouseCycleData = spouseVisible && Boolean(spouseCycleStatus);
 
-        if (!firstField?.visible_when) {
-            return true;
+    if (hasExistingProfileData) {
+        const summaries = summarizeDependents(visibleCategories, values);
+        const summaryCounts = summaries.map(
+            ({ category, count }) =>
+                `${count} ${category.label.toLowerCase()}${count === 1 ? '' : 's'}`,
+        );
+
+        if (hasSpouseCycleData) {
+            summaryCounts.unshift('Spouse');
         }
 
+        const totalLabel =
+            summaryCounts.length > 0
+                ? summaryCounts.join(', ') + ' on file'
+                : 'No dependents on file';
+
         return (
-            crossSectionValues[firstField.visible_when.field] ===
-            firstField.visible_when.equals
+            <LoanRequestSectionCard
+                title={title}
+                description={description}
+                contentClassName="space-y-6"
+            >
+                <div className="space-y-4 rounded-md border border-border/50 bg-muted/5 p-4">
+                    <p className="text-sm font-semibold text-foreground">
+                        {totalLabel}
+                    </p>
+                    {hasSpouseCycleData ? (
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                                Spouse
+                            </p>
+                            <ul className="list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">
+                                <li>
+                                    {spouseCycleStatus === 'Old' && spouseCycleNumber
+                                        ? `Old (cycle ${spouseCycleNumber})`
+                                        : `${spouseCycleStatus}`}
+                                </li>
+                            </ul>
+                        </div>
+                    ) : null}
+                    {summaries.map(({ category, rows }) => (
+                        <div key={category.key} className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                                {category.label}s
+                            </p>
+                            <ul className="list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">
+                                {rows.map((row, index) => (
+                                    <li key={`${category.key}-${index}`}>
+                                        {row.name}
+                                        {row.cycleStatus
+                                            ? ` -- ${row.cycleStatus}`
+                                            : ''}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" asChild>
+                        <a href={editInSettingsHref}>Edit in Settings</a>
+                    </Button>
+                </div>
+            </LoanRequestSectionCard>
         );
-    };
+    }
 
     return (
         <LoanRequestSectionCard
@@ -1188,14 +1153,23 @@ export function LoanRequestDependentsStep({
             description={description}
             contentClassName="space-y-6"
         >
-            {DEPENDENT_CATEGORIES.filter(isCategoryVisible).map((category) => (
-                <DependentCategorySection
-                    key={category.key}
-                    category={category}
-                    sectionKey={sectionKey}
+            {spouseVisible ? (
+                <DependentSpouseCycleSection
                     values={values}
                     definition={definition}
                     errors={errors}
+                    errorKeyPrefix="dependents"
+                    onChange={onChange}
+                />
+            ) : null}
+            {visibleCategories.map((category) => (
+                <DependentCategorySection
+                    key={category.key}
+                    category={category}
+                    values={values}
+                    definition={definition}
+                    errors={errors}
+                    errorKeyPrefix="dependents"
                     onChange={onChange}
                 />
             ))}

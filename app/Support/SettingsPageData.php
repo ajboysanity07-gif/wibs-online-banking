@@ -2,8 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\MemberDependentProfile;
+use App\Services\LoanRequests\DependentsProfileSyncService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Features;
 
@@ -166,6 +169,10 @@ class SettingsPageData
                 'payout_atm_number' => $memberApplicationProfile->payout_atm_number,
                 'payout_bank_branch' => $memberApplicationProfile->payout_bank_branch,
                 'payout_atm_holder_name' => $memberApplicationProfile->payout_atm_holder_name,
+                'source_of_fund_wealth' => $memberApplicationProfile->source_of_fund_wealth,
+                'id_type' => $memberApplicationProfile->id_type,
+                'id_type_other' => $memberApplicationProfile->id_type_other,
+                'id_number' => $memberApplicationProfile->id_number,
                 'profile_completed_at' => $memberApplicationProfile->profile_completed_at?->toDateTimeString(),
             ]
             : null;
@@ -199,6 +206,12 @@ class SettingsPageData
             'loanManagerSignature' => null,
             'memberRecord' => $memberRecord,
             'memberApplicationProfile' => $memberProfilePayload,
+            'dependents' => $memberApplicationProfile
+                ? Arr::only(
+                    app(DependentsProfileSyncService::class)->read($memberApplicationProfile),
+                    MemberDependentProfile::fieldKeys(),
+                )
+                : null,
             'initialTab' => $initialTab,
             'profileCompletion' => $profileCompletion,
             'onboarding' => $request->boolean('onboarding'),

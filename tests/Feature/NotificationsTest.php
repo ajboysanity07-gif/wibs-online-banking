@@ -247,6 +247,9 @@ test('loan request submission notifies admins and superadmins', function () {
     $admin = createAdminUser();
     $superadmin = createAdminUser(superadmin: true);
     $member = createRegisteredMember('000712', 'Loan', 'Member');
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
+        'user_id' => $member->user_id,
+    ]);
 
     $service = app(LoanRequestService::class);
     $loanRequest = $service->submit($member, notificationLoanRequestPayload());

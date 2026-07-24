@@ -38,6 +38,7 @@
 | 7 | PN | Promissory Note | Blade template | PDF (Browsershot) ⚠️ not yet visually verified |
 | 8 | UB | Undertaking-Barangay | PDF field map | PDF |
 | 9 | LSA | Loan Security Agreement | Blade template | PDF (Browsershot) |
+| 10 | GHS | Generali Health Statement | PDF field map | PDF |
 
 The Authorization (AZ) document was removed entirely (2026-07-22) — MRDINC doesn't use it
 often enough to justify keeping it. Its section, route, field map, and generation code are
@@ -608,6 +609,25 @@ corrected rather than preserved.
 | Witness 1 name | S | ✅ | `loan_request_data_entries.witness_one_name` |
 | Witness 2 name | S | ✅ | `loan_request_data_entries.witness_two_name` |
 | Notarization fields (doc/page/book/series/place) | S | ✅ | `loan_request_data_entries` |
+
+---
+
+---
+
+## 10 — Generali Health Statement (GHS)
+
+**PDF field map (`GeneraliPdfFieldMap`) · Member fills health declarations, GLAPI questionnaire**
+
+Health-declaration and GLAPI questionnaire fields (`gl_health_*`) are omitted from this
+breakdown — see `LoanRequestDataService` for that source mapping. Only the three fields
+that were previously gaps are tracked here.
+
+| Field | Who | Status | App source |
+|-------|-----|--------|------------|
+| Membership status (Principal/Dependent) | SYS | ✅ | Hardcoded "Principal" — every WIBS applicant is the insured principal on this form, never a dependent on someone else's coverage |
+| Fax number | — | 🗑️ | Not applicable to a loan application — intentionally omitted, no field prints |
+| Citizenship (applicant, x2) | M | ✅ | `applicant.nationality` |
+| Citizenship (beneficiary rows) | SYS | ✅ | `applicant.nationality` (reused — form doesn't collect per-beneficiary citizenship) |
 
 ---
 

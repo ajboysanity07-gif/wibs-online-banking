@@ -5,6 +5,12 @@ import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import LinkMembershipController from '@/actions/App/Http/Controllers/Settings/LinkMembershipController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import {
+    DEPENDENT_CATEGORIES,
+    DependentCategorySection,
+    type DependentValues,
+    slotFieldKey,
+} from '@/components/dependents/dependent-category-section';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
@@ -106,6 +112,10 @@ type MemberApplicationProfileData = {
     payout_atm_number: string | null;
     payout_bank_branch: string | null;
     payout_atm_holder_name: string | null;
+    source_of_fund_wealth: string | null;
+    id_type: string | null;
+    id_type_other: string | null;
+    id_number: string | null;
     profile_completed_at: string | null;
 };
 
@@ -121,6 +131,7 @@ type Props = {
     adminProfile?: AdminProfileSummary | null;
     memberRecord?: MemberRecord | null;
     memberApplicationProfile?: MemberApplicationProfileData | null;
+    dependents?: Record<string, string | null> | null;
     profileCompletion?: ProfileCompletion | null;
     onboarding?: boolean;
 };
@@ -158,6 +169,8 @@ const PAYDAY_OPTIONS = [
     'Bi-Weekly',
     'Monthly',
 ] as const;
+const ID_TYPE_OTHER_VALUE = 'Others';
+const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', ID_TYPE_OTHER_VALUE] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -175,8 +188,25 @@ const NATURE_OF_BUSINESS_OPTIONS = [
     'Services',
     NATURE_OF_BUSINESS_OTHER_VALUE,
 ];
-const PROFILE_TAB_ORDER = ['account', 'personal', 'work', 'bank'] as const;
+const PROFILE_TAB_ORDER = [
+    'account',
+    'personal',
+    'work',
+    'bank',
+    'dependents',
+] as const;
 type ProfileTab = (typeof PROFILE_TAB_ORDER)[number];
+// Name/birthdate only -- cycle status/number are collected by the
+// loan-request wizard, not Settings (see DependentCategorySection's
+// showCycleFields prop).
+const DEPENDENT_FIELD_KEYS = DEPENDENT_CATEGORIES.flatMap((category) =>
+    Array.from({ length: category.cap }, (_, index) => index + 1).flatMap(
+        (slot) =>
+            (['name', 'birthdate'] as const).map((attribute) =>
+                slotFieldKey(category.key, slot, attribute),
+            ),
+    ),
+);
 const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
     account: ['profile_photo', 'fullname', 'username', 'email', 'phoneno'],
     personal: [
@@ -213,7 +243,12 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'payout_atm_number',
         'payout_bank_branch',
         'payout_atm_holder_name',
+        'source_of_fund_wealth',
+        'id_type',
+        'id_type_other',
+        'id_number',
     ],
+    dependents: DEPENDENT_FIELD_KEYS,
 };
 
 const findFirstTabWithErrors = (
@@ -402,6 +437,7 @@ export default function Profile({
     adminProfile = null,
     memberRecord = null,
     memberApplicationProfile = null,
+    dependents = null,
     profileCompletion = null,
     onboarding = false,
 }: Props) {
@@ -551,11 +587,40 @@ export default function Profile({
     const [paydaySelection, setPaydaySelection] = useState<string>(
         normalizePaydayValue(memberApplicationProfile?.payday ?? ''),
     );
+    const [idTypeSelection, setIdTypeSelection] = useState<string>(
+        memberApplicationProfile?.id_type ?? '',
+    );
+    const [idTypeOther, setIdTypeOther] = useState<string>(
+        memberApplicationProfile?.id_type_other ?? '',
+    );
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
             ? natureOfBusinessOther.trim()
             : natureOfBusinessSelection;
-    const [activeTab, setActiveTab] = useState<ProfileTab>('account');
+    const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
+        if (typeof window === 'undefined') {
+            return 'account';
+        }
+
+        const requestedTab = new URLSearchParams(window.location.search).get(
+            'tab',
+        );
+
+        return (PROFILE_TAB_ORDER as readonly string[]).includes(
+            requestedTab ?? '',
+        )
+            ? (requestedTab as ProfileTab)
+            : 'account';
+    });
+    const [dependentsValues, setDependentsValues] = useState<DependentValues>(
+        () => dependents ?? {},
+    );
+    const handleDependentsChange = (
+        field: string,
+        value: string | number | boolean | null,
+    ) => {
+        setDependentsValues((current) => ({ ...current, [field]: value }));
+    };
     const availableTabs = (hasMemberAccess
         ? PROFILE_TAB_ORDER
         : ['account']) as ProfileTab[];
@@ -864,6 +929,9 @@ export default function Profile({
                                                                             Bank
                                                                             &amp;
                                                                             Payout
+                                                                        </TabsTrigger>
+                                                                        <TabsTrigger value="dependents">
+                                                                            Dependents
                                                                         </TabsTrigger>
                                                                     </>
                                                                 )}
@@ -2647,6 +2715,278 @@ export default function Profile({
                                                                     />
                                                                 </div>
                                                             </div>
+                                                        </div>
+
+                                                        <div className="space-y-6">
+                                                            <div className="space-y-1">
+                                                                <h3 className="text-base font-semibold">
+                                                                    Source of
+                                                                    Funds &amp;
+                                                                    Government
+                                                                    ID
+                                                                </h3>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Required
+                                                                    before you
+                                                                    can start a
+                                                                    loan
+                                                                    request.
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="grid gap-4 md:grid-cols-2">
+                                                                <div className="grid gap-2 md:col-span-2">
+                                                                    <Label htmlFor="source_of_fund_wealth">
+                                                                        Source
+                                                                        of fund
+                                                                        /
+                                                                        wealth
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="source_of_fund_wealth"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.source_of_fund_wealth ??
+                                                                            ''
+                                                                        }
+                                                                        name="source_of_fund_wealth"
+                                                                        placeholder="e.g. Salary, business income"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.source_of_fund_wealth
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="id_type">
+                                                                        Government
+                                                                        ID
+                                                                        type
+                                                                    </Label>
+
+                                                                    <Select
+                                                                        value={
+                                                                            idTypeSelection ||
+                                                                            undefined
+                                                                        }
+                                                                        onValueChange={(
+                                                                            value,
+                                                                        ) => {
+                                                                            setIdTypeSelection(
+                                                                                value,
+                                                                            );
+
+                                                                            if (
+                                                                                value !==
+                                                                                ID_TYPE_OTHER_VALUE
+                                                                            ) {
+                                                                                setIdTypeOther(
+                                                                                    '',
+                                                                                );
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <SelectTrigger
+                                                                            id="id_type"
+                                                                            className="mt-1 w-full"
+                                                                        >
+                                                                            <SelectValue placeholder="Select ID type" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {ID_TYPE_OPTIONS.map(
+                                                                                (
+                                                                                    option,
+                                                                                ) => (
+                                                                                    <SelectItem
+                                                                                        key={
+                                                                                            option
+                                                                                        }
+                                                                                        value={
+                                                                                            option
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            option
+                                                                                        }
+                                                                                    </SelectItem>
+                                                                                ),
+                                                                            )}
+                                                                        </SelectContent>
+                                                                    </Select>
+
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="id_type"
+                                                                        value={
+                                                                            idTypeSelection
+                                                                        }
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.id_type
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                {idTypeSelection ===
+                                                                    ID_TYPE_OTHER_VALUE && (
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="id_type_other">
+                                                                            Specify
+                                                                            ID
+                                                                            type
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="id_type_other"
+                                                                            className="mt-1 block w-full"
+                                                                            value={
+                                                                                idTypeOther
+                                                                            }
+                                                                            name="id_type_other"
+                                                                            placeholder="Describe your ID type"
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) => {
+                                                                                setIdTypeOther(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                );
+                                                                            }}
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.id_type_other
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="id_number">
+                                                                        ID
+                                                                        number
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="id_number"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.id_number ??
+                                                                            ''
+                                                                        }
+                                                                        name="id_number"
+                                                                        placeholder="ID number"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.id_number
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </SurfaceCard>
+                                                </TabsContent>
+                                            )}
+
+                                            {hasMemberAccess && (
+                                                <TabsContent
+                                                    value="dependents"
+                                                    forceMount
+                                                    className="mt-0"
+                                                >
+                                                    <SurfaceCard
+                                                        variant="muted"
+                                                        padding="md"
+                                                        className="space-y-6"
+                                                    >
+                                                        <div className="space-y-6">
+                                                            <div className="space-y-1">
+                                                                <h3 className="text-base font-semibold">
+                                                                    Dependents
+                                                                </h3>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Keep your
+                                                                    dependents'
+                                                                    names and
+                                                                    birthdates
+                                                                    up to
+                                                                    date.
+                                                                    These are
+                                                                    used to
+                                                                    pre-fill
+                                                                    future loan
+                                                                    requests.
+                                                                    Changes
+                                                                    here save
+                                                                    immediately.
+                                                                </p>
+                                                            </div>
+
+                                                            {DEPENDENT_CATEGORIES.filter(
+                                                                (category) => {
+                                                                    if (
+                                                                        category.key ===
+                                                                        'child'
+                                                                    ) {
+                                                                        return (
+                                                                            memberCivilStatus ===
+                                                                            'Married'
+                                                                        );
+                                                                    }
+
+                                                                    if (
+                                                                        category.key ===
+                                                                            'sibling' ||
+                                                                        category.key ===
+                                                                            'parent'
+                                                                    ) {
+                                                                        return (
+                                                                            memberCivilStatus ===
+                                                                            'Single'
+                                                                        );
+                                                                    }
+
+                                                                    return true;
+                                                                },
+                                                            ).map(
+                                                                (category) => (
+                                                                    <DependentCategorySection
+                                                                        key={
+                                                                            category.key
+                                                                        }
+                                                                        category={
+                                                                            category
+                                                                        }
+                                                                        values={
+                                                                            dependentsValues
+                                                                        }
+                                                                        errors={
+                                                                            formErrors
+                                                                        }
+                                                                        withNameAttribute
+                                                                        showCycleFields={
+                                                                            false
+                                                                        }
+                                                                        onChange={
+                                                                            handleDependentsChange
+                                                                        }
+                                                                    />
+                                                                ),
+                                                            )}
                                                         </div>
                                                     </SurfaceCard>
                                                 </TabsContent>

@@ -711,7 +711,7 @@ function createAcceptanceMember(
         'user_id' => $member->user_id,
     ]);
 
-    MemberApplicationProfile::factory()->completed()->create([
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
         'user_id' => $member->user_id,
     ]);
 

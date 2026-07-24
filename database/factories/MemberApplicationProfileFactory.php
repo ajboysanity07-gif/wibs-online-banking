@@ -46,6 +46,21 @@ class MemberApplicationProfileFactory extends Factory
         ];
     }
 
+    public function withLoanPrerequisites(): static
+    {
+        return $this->state(fn () => [
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => fake()->name(),
+            'payout_account_number' => fake()->numerify('##########'),
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Bank deposit',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'TIN',
+            'id_type_other' => null,
+            'id_number' => fake()->numerify('###-###-###'),
+        ]);
+    }
+
     public function completed(): static
     {
         return $this->state(function () {

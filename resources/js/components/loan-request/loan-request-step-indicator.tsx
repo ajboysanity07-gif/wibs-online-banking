@@ -8,6 +8,10 @@ import {
     Users,
     type LucideIcon,
 } from 'lucide-react';
+import {
+    loanRequestWizardSteps,
+    type LoanRequestWizardGroupId,
+} from '@/components/loan-request/loan-request-wizard-steps';
 import { cn } from '@/lib/utils';
 
 type StepGroup = {
@@ -17,68 +21,55 @@ type StepGroup = {
     stepNames: string[];
 };
 
-const STEP_GROUPS: StepGroup[] = [
-    {
-        label: 'Loan details',
-        icon: FileText,
-        steps: [0],
-        stepNames: ['Loan details'],
-    },
-    {
-        label: 'About you',
-        icon: User,
-        steps: [1, 2, 3, 4, 5],
-        stepNames: [
-            'Personal: basic info',
-            'Personal: address & contact',
-            'Personal: family & spouse',
-            'Work: employment',
-            'Work: income & details',
-        ],
-    },
-    {
-        label: 'Co-makers',
-        icon: Users,
-        steps: [6, 7, 8, 9, 10, 11, 12, 13],
-        stepNames: [
-            'Co-maker 1: basic info',
-            'Co-maker 1: address & contact',
-            'Co-maker 1: employment',
-            'Co-maker 1: income & details',
-            'Co-maker 2: basic info',
-            'Co-maker 2: address & contact',
-            'Co-maker 2: employment',
-            'Co-maker 2: income & details',
-        ],
-    },
-    {
-        label: 'Insurance & health',
-        icon: HeartPulse,
-        steps: [14, 15, 16, 17, 18, 19],
-        stepNames: [
-            'Insurance & beneficiaries',
-            'Health declarations',
-            'Generali health (1 of 4)',
-            'Generali health (2 of 4)',
-            'Generali health (3 of 4)',
-            'Generali health (4 of 4)',
-        ],
-    },
-    {
-        label: 'Bank & payout',
-        icon: Building2,
-        steps: [20, 21],
-        stepNames: ['Bank & payout', 'Barangay information'],
-    },
-    {
+const GROUP_META: Record<
+    LoanRequestWizardGroupId,
+    { label: string; icon: LucideIcon }
+> = {
+    'loan-details': { label: 'Loan details', icon: FileText },
+    'about-you': { label: 'About you', icon: User },
+    'co-makers': { label: 'Co-makers', icon: Users },
+    'insurance-health': { label: 'Insurance & health', icon: HeartPulse },
+    'bank-payout': { label: 'Bank & payout', icon: Building2 },
+    'declarations-review': {
         label: 'Declarations & review',
         icon: ClipboardCheck,
-        steps: [22, 23, 24],
-        stepNames: ['Declarations', 'Dependents', 'Review & submit'],
     },
-];
+};
 
-const TOTAL_STEPS = 25;
+/**
+ * Derives the sidebar's group/sub-step structure from the wizard's single
+ * source of truth (loanRequestWizardSteps) instead of a hand-maintained list,
+ * so adding a step there is picked up here automatically.
+ */
+function buildStepGroups(): StepGroup[] {
+    const groups: StepGroup[] = [];
+
+    loanRequestWizardSteps.forEach((step, index) => {
+        const lastGroup = groups[groups.length - 1];
+        const meta = GROUP_META[step.group];
+
+        const stepName = step.sidebarLabel ?? step.title;
+
+        if (lastGroup && lastGroup.label === meta.label) {
+            lastGroup.steps.push(index);
+            lastGroup.stepNames.push(stepName);
+            return;
+        }
+
+        groups.push({
+            label: meta.label,
+            icon: meta.icon,
+            steps: [index],
+            stepNames: [stepName],
+        });
+    });
+
+    return groups;
+}
+
+const STEP_GROUPS: StepGroup[] = buildStepGroups();
+
+const TOTAL_STEPS = loanRequestWizardSteps.length;
 
 type Props = {
     currentStep: number;

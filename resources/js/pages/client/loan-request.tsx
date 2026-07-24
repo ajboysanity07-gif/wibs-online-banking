@@ -1,8 +1,12 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import LoanRequestController from '@/actions/App/Http/Controllers/Client/LoanRequestController';
 import { LoanRequestAnimatedStep } from '@/components/loan-request/loan-request-animated-step';
+import {
+    LoanRequestPrerequisiteModal,
+    type LoanPrerequisiteProfile,
+} from '@/components/loan-request/loan-request-prerequisite-modal';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
 import { LoanRequestStepIndicator } from '@/components/loan-request/loan-request-step-indicator';
@@ -23,17 +27,25 @@ import {
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardActions } from '@/components/loan-request/loan-request-wizard-footer';
+import { loanRequestWizardSteps as steps } from '@/components/loan-request/loan-request-wizard-steps';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import client from '@/lib/api/client';
 import { formatDateTime, toDateInputValue } from '@/lib/formatters';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import { dashboard as clientDashboard } from '@/routes/client';
 import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
+import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
 import type {
     LoanRequestDataSectionDefinitions,
@@ -50,6 +62,10 @@ import type {
 
 const loanRequestsIndexHref = loanRequestsIndex().url;
 
+const STEP_INDEX: Record<string, number> = Object.fromEntries(
+    steps.map((step, index) => [step.id, index]),
+);
+
 type Props = {
     loanTypes: LoanTypeOption[];
     applicant: LoanRequestPersonData | null;
@@ -64,146 +80,14 @@ type Props = {
     bankingPrefilledFromProfile: boolean;
     insurancePrefilledFromProfile: boolean;
     dependentsPrefilledFromProfile: boolean;
+    loanPrerequisitesMet: boolean;
+    loanPrerequisiteProfile: LoanPrerequisiteProfile;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Overview', href: clientDashboard().url },
     { title: 'Loan Requests', href: loanRequestsIndexHref },
     { title: 'Loan request', href: LoanRequestController.create().url },
-];
-
-const steps = [
-    {
-        id: 'loan-details',
-        title: 'Loan details',
-        description: 'Set the loan type, amount, term, and purpose.',
-    },
-    {
-        id: 'personal-basic',
-        title: 'Personal: basic info',
-        description: 'Confirm your basic personal information.',
-    },
-    {
-        id: 'personal-contact',
-        title: 'Personal: address & contact',
-        description: 'Confirm your address and contact details.',
-    },
-    {
-        id: 'personal-family',
-        title: 'Personal: family & spouse',
-        description: 'Confirm civil status, education, and family details.',
-    },
-    {
-        id: 'work-employment',
-        title: 'Work: employment',
-        description: 'Share your employment and employer details.',
-    },
-    {
-        id: 'work-income',
-        title: 'Work: income & details',
-        description: 'Share your income, position, and business details.',
-    },
-    {
-        id: 'co-maker-1-basic',
-        title: 'Co-maker 1: basic info',
-        description: 'Basic personal details for your first co-maker.',
-    },
-    {
-        id: 'co-maker-1-contact',
-        title: 'Co-maker 1: address & contact',
-        description: 'Address and contact details for your first co-maker.',
-    },
-    {
-        id: 'co-maker-1-employment',
-        title: 'Co-maker 1: employment',
-        description: 'Employment and employer details for your first co-maker.',
-    },
-    {
-        id: 'co-maker-1-income',
-        title: 'Co-maker 1: income & details',
-        description: 'Income and business details for your first co-maker.',
-    },
-    {
-        id: 'co-maker-2-basic',
-        title: 'Co-maker 2: basic info',
-        description: 'Basic personal details for your second co-maker.',
-    },
-    {
-        id: 'co-maker-2-contact',
-        title: 'Co-maker 2: address & contact',
-        description: 'Address and contact details for your second co-maker.',
-    },
-    {
-        id: 'co-maker-2-employment',
-        title: 'Co-maker 2: employment',
-        description: 'Employment and employer details for your second co-maker.',
-    },
-    {
-        id: 'co-maker-2-income',
-        title: 'Co-maker 2: income & details',
-        description: 'Income and business details for your second co-maker.',
-    },
-    {
-        id: 'insurance',
-        title: 'Insurance & beneficiaries',
-        description:
-            'Provide beneficiary details required for document generation.',
-    },
-    {
-        id: 'health',
-        title: 'Health declarations',
-        description:
-            'Complete the required health declarations for the request.',
-    },
-    {
-        id: 'health-glapi-1',
-        title: 'Generali health (1 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
-    },
-    {
-        id: 'health-glapi-2',
-        title: 'Generali health (2 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
-    },
-    {
-        id: 'health-glapi-3',
-        title: 'Generali health (3 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
-    },
-    {
-        id: 'health-glapi-4',
-        title: 'Generali health (4 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
-    },
-    {
-        id: 'banking',
-        title: 'Bank & payout',
-        description: 'Provide the payout bank and account information.',
-    },
-    {
-        id: 'barangay',
-        title: 'Barangay information',
-        description: 'Provide the barangay details required for the forms.',
-    },
-    {
-        id: 'declarations',
-        title: 'Declarations',
-        description: 'Review the required declarations and consent statements.',
-    },
-    {
-        id: 'dependents',
-        title: 'Dependents',
-        description: 'Add any dependents applicable to you (optional).',
-    },
-    {
-        id: 'review',
-        title: 'Review',
-        description: 'Review and confirm the undertaking.',
-    },
 ];
 
 type LoanDetailField =
@@ -362,8 +246,8 @@ const toPersonForm = (
 };
 
 // The GLAPI questionnaire's 4 sub-steps start right after "Health
-// declarations" (step 15) and occupy steps 16-19.
-const GLAPI_STEP_START = 16;
+// declarations" and occupy the next 4 step indices.
+const GLAPI_STEP_START = STEP_INDEX['health-glapi-1'];
 
 const resolveStepFromErrors = (
     errors: Record<string, string | undefined>,
@@ -383,7 +267,7 @@ const resolveStepFromErrors = (
             key === 'loan_purpose' ||
             key === 'availment_status'
         ) {
-            stepMatches.push(0);
+            stepMatches.push(STEP_INDEX['loan-details']);
             return;
         }
 
@@ -391,16 +275,16 @@ const resolveStepFromErrors = (
             const field = key.replace('applicant.', '');
             stepMatches.push(
                 applicantBasicFields.has(field)
-                    ? 1
+                    ? STEP_INDEX['personal-basic']
                     : applicantContactFields.has(field)
-                      ? 2
+                      ? STEP_INDEX['personal-contact']
                       : applicantFamilyFields.has(field)
-                        ? 3
+                        ? STEP_INDEX['personal-family']
                         : applicantEmploymentFields.has(field)
-                          ? 4
+                          ? STEP_INDEX['work-employment']
                           : personWorkFields.has(field)
-                            ? 5
-                            : 1,
+                            ? STEP_INDEX['work-income']
+                            : STEP_INDEX['personal-basic'],
             );
             return;
         }
@@ -409,15 +293,15 @@ const resolveStepFromErrors = (
             const field = key.replace('co_maker_1.', '');
             stepMatches.push(
                 applicantBasicFields.has(field)
-                    ? 6
+                    ? STEP_INDEX['co-maker-1-basic']
                     : applicantContactFields.has(field) ||
                         field === 'educational_attainment'
-                      ? 7
+                      ? STEP_INDEX['co-maker-1-contact']
                       : applicantEmploymentFields.has(field)
-                        ? 8
+                        ? STEP_INDEX['co-maker-1-employment']
                         : personWorkFields.has(field)
-                          ? 9
-                          : 6,
+                          ? STEP_INDEX['co-maker-1-income']
+                          : STEP_INDEX['co-maker-1-basic'],
             );
             return;
         }
@@ -426,26 +310,26 @@ const resolveStepFromErrors = (
             const field = key.replace('co_maker_2.', '');
             stepMatches.push(
                 applicantBasicFields.has(field)
-                    ? 10
+                    ? STEP_INDEX['co-maker-2-basic']
                     : applicantContactFields.has(field) ||
                         field === 'educational_attainment'
-                      ? 11
+                      ? STEP_INDEX['co-maker-2-contact']
                       : applicantEmploymentFields.has(field)
-                        ? 12
+                        ? STEP_INDEX['co-maker-2-employment']
                         : personWorkFields.has(field)
-                          ? 13
-                          : 10,
+                          ? STEP_INDEX['co-maker-2-income']
+                          : STEP_INDEX['co-maker-2-basic'],
             );
             return;
         }
 
         if (key.startsWith('insurance.') || key === 'document_data') {
-            stepMatches.push(14);
+            stepMatches.push(STEP_INDEX['insurance']);
             return;
         }
 
         if (key.startsWith('health.')) {
-            stepMatches.push(15);
+            stepMatches.push(STEP_INDEX['health']);
             return;
         }
 
@@ -461,28 +345,23 @@ const resolveStepFromErrors = (
             return;
         }
 
-        if (key.startsWith('banking.')) {
-            stepMatches.push(20);
-            return;
-        }
-
-        if (key.startsWith('barangay.')) {
-            stepMatches.push(21);
+        if (key.startsWith('banking.') || key.startsWith('barangay.')) {
+            stepMatches.push(STEP_INDEX['banking']);
             return;
         }
 
         if (key.startsWith('declarations.')) {
-            stepMatches.push(22);
+            stepMatches.push(STEP_INDEX['declarations']);
             return;
         }
 
         if (key.startsWith('dependents.')) {
-            stepMatches.push(23);
+            stepMatches.push(STEP_INDEX['dependents']);
             return;
         }
 
         if (key === 'undertaking_accepted') {
-            stepMatches.push(24);
+            stepMatches.push(STEP_INDEX['review']);
         }
     });
 
@@ -503,7 +382,15 @@ export default function LoanRequestPage({
     bankingPrefilledFromProfile,
     insurancePrefilledFromProfile,
     dependentsPrefilledFromProfile,
+    loanPrerequisitesMet,
+    loanPrerequisiteProfile,
 }: Props) {
+    const [prerequisitesMet, setPrerequisitesMet] = useState(
+        loanPrerequisitesMet,
+    );
+    const [prerequisiteProfile, setPrerequisiteProfile] = useState(
+        loanPrerequisiteProfile,
+    );
     const [currentStep, setCurrentStep] = useState(initialStep);
     const [highestStepReached, setHighestStepReached] = useState(initialStep);
     const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>(
@@ -518,6 +405,7 @@ export default function LoanRequestPage({
     const [dependentsConfirmed, setDependentsConfirmed] = useState(
         !dependentsPrefilledFromProfile,
     );
+    const [barangaySectionOpen, setBarangaySectionOpen] = useState(false);
     const [activeAction, setActiveAction] = useState<'draft' | 'submit' | null>(
         null,
     );
@@ -660,6 +548,23 @@ export default function LoanRequestPage({
             }));
         };
 
+    const handlePrerequisitesSaved = (profile: LoanPrerequisiteProfile) => {
+        setPrerequisiteProfile(profile);
+        setPrerequisitesMet(true);
+        setBankAccountConfirmed(true);
+        form.setData('banking', {
+            ...form.data.banking,
+            payout_bank_name: profile.payout_bank_name ?? '',
+            payout_account_name: profile.payout_account_name ?? '',
+            payout_account_number: profile.payout_account_number ?? '',
+            payout_account_type: profile.payout_account_type ?? '',
+            release_method: profile.release_method ?? '',
+            payout_atm_number: profile.payout_atm_number ?? '',
+            payout_bank_branch: profile.payout_bank_branch ?? '',
+            payout_atm_holder_name: profile.payout_atm_holder_name ?? '',
+        });
+    };
+
     const handleSaveDraft = async () => {
         setActiveAction('draft');
 
@@ -696,6 +601,15 @@ export default function LoanRequestPage({
                 });
             },
             onError: (errors) => {
+                if (errors.loan_prerequisites) {
+                    setPrerequisitesMet(false);
+                    showErrorToast(errors.loan_prerequisites, errors.loan_prerequisites, {
+                        id: 'loan-request-submit',
+                    });
+
+                    return;
+                }
+
                 const step = resolveStepFromErrors(
                     errors,
                     glapiItemNumberToStepOffset,
@@ -722,6 +636,11 @@ export default function LoanRequestPage({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Loan request" />
+            <LoanRequestPrerequisiteModal
+                open={!prerequisitesMet}
+                profile={prerequisiteProfile}
+                onSaved={handlePrerequisitesSaved}
+            />
             <PageShell size="wide" className="gap-9 pt-8">
                 <div className="rounded-2xl border border-border/40 bg-card/60 p-6 shadow-sm sm:p-7 lg:p-8">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -733,8 +652,9 @@ export default function LoanRequestPage({
                                 Apply for a loan
                             </h1>
                             <p className="max-w-2xl text-sm text-muted-foreground">
-                                Complete the application form and save a draft at any time.
-                                Signatures will be collected physically upon loan release.
+                                Complete the application form and save a draft
+                                at any time. Signatures will be collected
+                                physically upon loan release.
                             </p>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 <span className="rounded-full bg-muted/30 px-2 py-1">
@@ -864,7 +784,72 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 4}
+                                        show={currentStep === STEP_INDEX['dependents']}
+                                        direction={stepDirection}
+                                    >
+                                        <div className="space-y-5">
+                                            <LoanRequestDependentsStep
+                                                sectionKey="dependents"
+                                                title="Dependents"
+                                                description="Add any dependents applicable to you. This section is optional."
+                                                values={form.data.dependents}
+                                                definition={
+                                                    dataSectionDefinitions.dependents
+                                                }
+                                                errors={form.errors}
+                                                crossSectionValues={{
+                                                    'applicant.civil_status':
+                                                        form.data.applicant
+                                                            .civil_status,
+                                                }}
+                                                onChange={updateDataSection(
+                                                    'dependents',
+                                                )}
+                                                hasExistingProfileData={
+                                                    dependentsPrefilledFromProfile
+                                                }
+                                                editInSettingsHref={editProfile.url(
+                                                    {
+                                                        query: {
+                                                            tab: 'dependents',
+                                                        },
+                                                    },
+                                                )}
+                                            />
+
+                                            {dependentsPrefilledFromProfile ? (
+                                                <LoanRequestSectionCard
+                                                    title="Confirm dependents"
+                                                    description="These details were pre-filled from your member profile. Please confirm they are still accurate."
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <Checkbox
+                                                            id="dependents_confirmed"
+                                                            checked={
+                                                                dependentsConfirmed
+                                                            }
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                setDependentsConfirmed(
+                                                                    checked ===
+                                                                        true,
+                                                                )
+                                                            }
+                                                        />
+                                                        <Label htmlFor="dependents_confirmed">
+                                                            Confirm these
+                                                            dependents are still
+                                                            correct
+                                                        </Label>
+                                                    </div>
+                                                </LoanRequestSectionCard>
+                                            ) : null}
+                                        </div>
+                                    </LoanRequestAnimatedStep>
+
+                                    <LoanRequestAnimatedStep
+                                        show={currentStep === STEP_INDEX['work-employment']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestApplicantWorkStep
@@ -878,7 +863,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 5}
+                                        show={currentStep === STEP_INDEX['work-income']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestApplicantWorkStep
@@ -892,7 +877,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 6}
+                                        show={currentStep === STEP_INDEX['co-maker-1-basic']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -909,7 +894,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 7}
+                                        show={currentStep === STEP_INDEX['co-maker-1-contact']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -926,7 +911,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 8}
+                                        show={currentStep === STEP_INDEX['co-maker-1-employment']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -943,7 +928,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 9}
+                                        show={currentStep === STEP_INDEX['co-maker-1-income']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -960,7 +945,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 10}
+                                        show={currentStep === STEP_INDEX['co-maker-2-basic']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -977,7 +962,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 11}
+                                        show={currentStep === STEP_INDEX['co-maker-2-contact']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -994,7 +979,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 12}
+                                        show={currentStep === STEP_INDEX['co-maker-2-employment']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -1011,7 +996,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 13}
+                                        show={currentStep === STEP_INDEX['co-maker-2-income']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestCoMakerStep
@@ -1028,7 +1013,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 14}
+                                        show={currentStep === STEP_INDEX['insurance']}
                                         direction={stepDirection}
                                     >
                                         <div className="space-y-5">
@@ -1078,7 +1063,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 15}
+                                        show={currentStep === STEP_INDEX['health']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestDataSectionStep
@@ -1129,7 +1114,7 @@ export default function LoanRequestPage({
                                     ))}
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 20}
+                                        show={currentStep === STEP_INDEX['banking']}
                                         direction={stepDirection}
                                     >
                                         <div className="space-y-5">
@@ -1175,30 +1160,65 @@ export default function LoanRequestPage({
                                                     </div>
                                                 </LoanRequestSectionCard>
                                             ) : null}
+
+                                            <Collapsible
+                                                open={barangaySectionOpen}
+                                                onOpenChange={
+                                                    setBarangaySectionOpen
+                                                }
+                                            >
+                                                <CollapsibleTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-muted/10 px-4 py-3 text-left"
+                                                    >
+                                                        <span className="space-y-0.5">
+                                                            <span className="block text-sm font-medium">
+                                                                Barangay
+                                                                information
+                                                                (optional)
+                                                            </span>
+                                                            <span className="block text-xs text-muted-foreground">
+                                                                Only needed if
+                                                                a barangay
+                                                                official is
+                                                                involved in
+                                                                this request.
+                                                            </span>
+                                                        </span>
+                                                        <ChevronDown
+                                                            className={cn(
+                                                                'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                                                                barangaySectionOpen
+                                                                    ? 'rotate-180'
+                                                                    : '',
+                                                            )}
+                                                        />
+                                                    </button>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent className="pt-4">
+                                                    <LoanRequestDataSectionStep
+                                                        sectionKey="barangay"
+                                                        title="Barangay information"
+                                                        description="Provide the barangay details required for the supporting documents. This section is optional."
+                                                        values={
+                                                            form.data.barangay
+                                                        }
+                                                        definition={
+                                                            dataSectionDefinitions.barangay
+                                                        }
+                                                        errors={form.errors}
+                                                        onChange={updateDataSection(
+                                                            'barangay',
+                                                        )}
+                                                    />
+                                                </CollapsibleContent>
+                                            </Collapsible>
                                         </div>
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 21}
-                                        direction={stepDirection}
-                                    >
-                                        <LoanRequestDataSectionStep
-                                            sectionKey="barangay"
-                                            title="Barangay information"
-                                            description="Provide the barangay details required for the supporting documents."
-                                            values={form.data.barangay}
-                                            definition={
-                                                dataSectionDefinitions.barangay
-                                            }
-                                            errors={form.errors}
-                                            onChange={updateDataSection(
-                                                'barangay',
-                                            )}
-                                        />
-                                    </LoanRequestAnimatedStep>
-
-                                    <LoanRequestAnimatedStep
-                                        show={currentStep === 22}
+                                        show={currentStep === STEP_INDEX['declarations']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestDataSectionStep
@@ -1217,62 +1237,7 @@ export default function LoanRequestPage({
                                     </LoanRequestAnimatedStep>
 
                                     <LoanRequestAnimatedStep
-                                        show={currentStep === 23}
-                                        direction={stepDirection}
-                                    >
-                                        <div className="space-y-5">
-                                            <LoanRequestDependentsStep
-                                                sectionKey="dependents"
-                                                title="Dependents"
-                                                description="Add any dependents applicable to you. This section is optional."
-                                                values={form.data.dependents}
-                                                definition={
-                                                    dataSectionDefinitions.dependents
-                                                }
-                                                errors={form.errors}
-                                                crossSectionValues={{
-                                                    'applicant.civil_status':
-                                                        form.data.applicant
-                                                            .civil_status,
-                                                }}
-                                                onChange={updateDataSection(
-                                                    'dependents',
-                                                )}
-                                            />
-
-                                            {dependentsPrefilledFromProfile ? (
-                                                <LoanRequestSectionCard
-                                                    title="Confirm dependents"
-                                                    description="These details were pre-filled from your member profile. Please confirm they are still accurate."
-                                                >
-                                                    <div className="flex items-start gap-3">
-                                                        <Checkbox
-                                                            id="dependents_confirmed"
-                                                            checked={
-                                                                dependentsConfirmed
-                                                            }
-                                                            onCheckedChange={(
-                                                                checked,
-                                                            ) =>
-                                                                setDependentsConfirmed(
-                                                                    checked ===
-                                                                        true,
-                                                                )
-                                                            }
-                                                        />
-                                                        <Label htmlFor="dependents_confirmed">
-                                                            Confirm these
-                                                            dependents are
-                                                            still correct
-                                                        </Label>
-                                                    </div>
-                                                </LoanRequestSectionCard>
-                                            ) : null}
-                                        </div>
-                                    </LoanRequestAnimatedStep>
-
-                                    <LoanRequestAnimatedStep
-                                        show={currentStep === 24}
+                                        show={currentStep === STEP_INDEX['review']}
                                         direction={stepDirection}
                                     >
                                         <LoanRequestReviewStep
@@ -1303,15 +1268,26 @@ export default function LoanRequestPage({
                                         isSubmitting={isSubmitting}
                                         disablePrimary={
                                             !hasLoanTypes ||
-                                            (currentStep === 14 &&
+                                            (currentStep ===
+                                                STEP_INDEX['insurance'] &&
                                                 insurancePrefilledFromProfile &&
                                                 !beneficiariesConfirmed) ||
-                                            (currentStep === 20 &&
+                                            (currentStep ===
+                                                STEP_INDEX['banking'] &&
                                                 bankingPrefilledFromProfile &&
                                                 !bankAccountConfirmed) ||
-                                            (currentStep === 23 &&
+                                            (currentStep ===
+                                                STEP_INDEX['dependents'] &&
                                                 dependentsPrefilledFromProfile &&
-                                                !dependentsConfirmed)
+                                                !dependentsConfirmed) ||
+                                            (currentStep ===
+                                                STEP_INDEX['declarations'] &&
+                                                (form.data.declarations
+                                                    .declaration_truth_confirmation !==
+                                                    true ||
+                                                    form.data.declarations
+                                                        .declaration_data_privacy_consent !==
+                                                        true))
                                         }
                                     />
                                 </div>

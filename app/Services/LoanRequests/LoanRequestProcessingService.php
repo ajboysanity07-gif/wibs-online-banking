@@ -83,6 +83,26 @@ class LoanRequestProcessingService
                 $processingPayload['witness_one_name'] = $processorDisplayName;
             }
 
+            // GNTHP is system-controlled: whatever the client submitted is
+            // discarded in favor of the formula's own result, so there is no
+            // way to persist a manually overridden value.
+            $effectiveSavingsRate = array_key_exists('savings_rate', $processingPayload)
+                ? $processingPayload['savings_rate']
+                : ($before['processing']['savings_rate'] ?? null);
+
+            $gnthpFigures = $this->documentWorkflowService->previewRecommendationFigures(
+                $lockedLoanRequest,
+                [
+                    'recommended_amount' => $lockedLoanRequest->recommended_amount,
+                    'recommended_term' => $lockedLoanRequest->recommended_term,
+                    'recommended_interest_rate' => $lockedLoanRequest->recommended_interest_rate,
+                    'recommended_payment_frequency' => $lockedLoanRequest->recommended_payment_frequency,
+                    'savings_rate' => $effectiveSavingsRate,
+                ],
+            );
+
+            $processingPayload['guaranteed_net_take_home_pay'] = $gnthpFigures['suggested_gnthp_raw'];
+
             $changedProcessingFields = $this->dataService->applyStaffUpdates(
                 $lockedLoanRequest,
                 $actor,

@@ -1,16 +1,15 @@
 <?php
 
 use App\LoanRequestStatus;
-use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
-use App\Models\LoanRequestDataEntry;
 use App\Models\MemberApplicationProfile;
 use App\Models\Role;
 use App\Models\UserProfile;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
@@ -37,122 +36,41 @@ beforeEach(function (): void {
     }
 
     DB::table('wlntype')->updateOrInsert(
-        ['typecode' => 'LN-P5'],
-        ['lntype' => 'Phase Five Personal Loan'],
+        ['typecode' => 'LN-P7'],
+        ['lntype' => 'Prerequisite Test Loan'],
     );
 });
 
-test('member submission stores workflow version v2 and member-owned data entries', function (): void {
-    $member = createPhaseFiveMember('000951', 'Phase', 'Member');
-
-    $response = $this
-        ->actingAs($member)
-        ->post(route('client.loan-requests.store'), phaseFiveLoanRequestPayload());
-
-    $loanRequest = LoanRequest::query()->sole();
-
-    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
-
-    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview)
-        ->and($loanRequest->workflow_version)->toBe(
-            LoanRequestWorkflowVersion::DocumentWorkflowV2,
-        );
-
-    $beneficiaryEntry = LoanRequestDataEntry::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('field_key', 'beneficiary_primary_name')
-        ->sole();
-
-    $consentEntry = LoanRequestDataEntry::query()
-        ->where('loan_request_id', $loanRequest->id)
-        ->where('field_key', 'declaration_data_privacy_consent')
-        ->sole();
-
-    expect($beneficiaryEntry->section_key)->toBe('insurance')
-        ->and($beneficiaryEntry->confirmed_by_member)->toBeTrue()
-        ->and($beneficiaryEntry->value_json)->toBe([
-            'value' => 'Primary Beneficiary',
-        ])
-        ->and($consentEntry->section_key)->toBe('declarations')
-        ->and($consentEntry->confirmed_by_member)->toBeTrue()
-        ->and($consentEntry->value_json)->toBe([
-            'value' => true,
-        ]);
-});
-
-test('v2 recommendation remains blocked until processing recommendations are complete', function (): void {
-    $processor = createPhaseFiveActor([Role::LOAN_PROCESSOR]);
-    $member = createPhaseFiveActor([Role::MEMBER], acctno: '000952');
-
-    $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::UnderReview,
-        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
-        'assigned_officer_id' => $processor->user_id,
-        'submitted_at' => now(),
+function prerequisiteTestMember(string $acctno, bool $withLoanPrerequisites): AppUser
+{
+    $member = AppUser::factory()->create([
+        'acctno' => $acctno,
+        'phoneno' => null,
+        'email_verified_at' => now(),
     ]);
 
-    $this
-        ->actingAs($processor)
-        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
-            'review_remarks' => 'Attempting recommendation without completed document workflow data.',
-        ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['recommended_amount']);
-});
+    $member->roles()->sync(
+        Role::query()->where('name', Role::MEMBER)->pluck('id')->all(),
+    );
 
-test('legacy manager approval bypasses v2 document readiness gates', function (): void {
-    $manager = createPhaseFiveActor([Role::LOAN_MANAGER]);
-    $member = createPhaseFiveActor([Role::MEMBER], acctno: '000953');
+    UserProfile::factory()->approved()->create(['user_id' => $member->user_id]);
 
-    $loanRequest = LoanRequest::factory()->forUser($member)->create([
-        'status' => LoanRequestStatus::RecommendedForApproval,
-        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
-        'submitted_at' => now(),
-    ]);
+    $factory = MemberApplicationProfile::factory()->completed();
 
-    $this
-        ->actingAs($manager)
-        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
-            'approved_amount' => 26000,
-            'approved_term' => 18,
-            'approved_interest_rate' => 1.25,
-            'approval_remarks' => 'Legacy approval path remains available.',
-        ])
-        ->assertOk()
-        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value)
-        ->assertJsonPath('data.loanRequest.approval_remarks', 'Legacy approval path remains available.');
+    if ($withLoanPrerequisites) {
+        $factory = $factory->withLoanPrerequisites();
+    }
 
-    $loanRequest->refresh();
-
-    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved)
-        ->and($loanRequest->approved_amount)->toBe('26000.00')
-        ->and($loanRequest->approved_term)->toBe(18)
-        ->and($loanRequest->approved_interest_rate)->toBe('1.2500');
-});
-
-function createPhaseFiveMember(
-    string $acctno,
-    string $firstName,
-    string $lastName,
-): AppUser {
-    $member = createPhaseFiveActor([Role::MEMBER], acctno: $acctno);
-
-    UserProfile::factory()->approved()->create([
-        'user_id' => $member->user_id,
-    ]);
-
-    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
-        'user_id' => $member->user_id,
-    ]);
+    $factory->create(['user_id' => $member->user_id]);
 
     DB::table('wmaster')->updateOrInsert(
         ['acctno' => $acctno],
         [
-            'fname' => $firstName,
-            'lname' => $lastName,
-            'bname' => sprintf('%s %s', $firstName, $lastName),
+            'fname' => 'Test',
+            'lname' => 'Member',
+            'bname' => 'Test Member',
             'birthday' => '1990-04-10',
-            'address' => 'Loan Street',
+            'address' => 'Prerequisite Street',
             'civilstat' => 'Single',
             'occupation' => 'Analyst',
         ],
@@ -162,39 +80,12 @@ function createPhaseFiveMember(
 }
 
 /**
- * @param  list<string>  $roles
- */
-function createPhaseFiveActor(
-    array $roles,
-    ?string $acctno = null,
-): AppUser {
-    $actor = AppUser::factory()->create([
-        'acctno' => $acctno,
-        'email_verified_at' => now(),
-    ]);
-
-    $actor->roles()->sync(
-        Role::query()
-            ->whereIn('name', $roles)
-            ->pluck('id')
-            ->all(),
-    );
-
-    $twoFactorRoles = [Role::SUPERADMIN, Role::LOAN_MANAGER];
-    if (! empty(array_intersect($roles, $twoFactorRoles))) {
-        $actor->forceFill(['two_factor_secret' => 'fakesecret', 'two_factor_confirmed_at' => now()])->save();
-    }
-
-    return $actor->fresh(['roles.permissions', 'staffAccessControl']);
-}
-
-/**
  * @return array<string, mixed>
  */
-function phaseFiveLoanRequestPayload(): array
+function prerequisiteTestStorePayload(): array
 {
     return [
-        'typecode' => 'LN-P5',
+        'typecode' => 'LN-P7',
         'requested_amount' => 25000,
         'requested_term' => 12,
         'loan_purpose' => 'Home improvement',
@@ -217,7 +108,7 @@ function phaseFiveLoanRequestPayload(): array
         ],
         'banking' => [
             'payout_bank_name' => 'WIBS Cooperative Bank',
-            'payout_account_name' => 'Phase Member',
+            'payout_account_name' => 'Test Member',
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'payout_atm_number' => '9876543210',
@@ -235,7 +126,7 @@ function phaseFiveLoanRequestPayload(): array
             'declaration_data_privacy_consent' => true,
         ],
         'applicant' => [
-            'first_name' => 'Phase',
+            'first_name' => 'Test',
             'last_name' => 'Member',
             'middle_name' => 'Q',
             'nickname' => null,
@@ -324,3 +215,112 @@ function phaseFiveLoanRequestPayload(): array
         ],
     ];
 }
+
+test('entry point flags missing loan prerequisites without blocking onboarding', function (): void {
+    $member = prerequisiteTestMember('700001', withLoanPrerequisites: false);
+
+    $this
+        ->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('loanPrerequisitesMet', false)
+        );
+});
+
+test('entry point reports prerequisites met when profile already has the data', function (): void {
+    $member = prerequisiteTestMember('700002', withLoanPrerequisites: true);
+
+    $this
+        ->actingAs($member)
+        ->get(route('client.loan-requests.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('loanPrerequisitesMet', true)
+        );
+});
+
+test('saving prerequisites via the entry-point modal endpoint marks them met', function (): void {
+    $member = prerequisiteTestMember('700003', withLoanPrerequisites: false);
+
+    $response = $this
+        ->actingAs($member)
+        ->postJson(route('client.loan-requests.prerequisites'), [
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test Member',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Bank deposit',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'TIN',
+            'id_type_other' => null,
+            'id_number' => '123-456-789',
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('data.loanPrerequisitesMet', true)
+        ->assertJsonPath('data.loanPrerequisiteProfile.payout_bank_name', 'BDO')
+        ->assertJsonPath('data.loanPrerequisiteProfile.id_type', 'TIN');
+
+    $member->refresh()->loadMissing('memberApplicationProfile');
+    expect($member->memberApplicationProfile->hasLoanPrerequisiteFields())->toBeTrue();
+});
+
+test('prerequisite modal endpoint requires id type other when id type is Others', function (): void {
+    $member = prerequisiteTestMember('700004', withLoanPrerequisites: false);
+
+    $this
+        ->actingAs($member)
+        ->postJson(route('client.loan-requests.prerequisites'), [
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test Member',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Bank deposit',
+            'source_of_fund_wealth' => 'Salary',
+            'id_type' => 'Others',
+            'id_type_other' => '',
+            'id_number' => '123-456-789',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['id_type_other']);
+});
+
+test('submitting a loan request is blocked by the safety net when prerequisites are missing', function (): void {
+    $member = prerequisiteTestMember('700005', withLoanPrerequisites: false);
+
+    $response = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+
+    $response->assertSessionHasErrors(['loan_prerequisites']);
+    expect(LoanRequest::query()->count())->toBe(0);
+});
+
+test('submitting a loan request succeeds once prerequisites are on file', function (): void {
+    $member = prerequisiteTestMember('700006', withLoanPrerequisites: true);
+
+    $response = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+
+    $loanRequest = LoanRequest::query()->first();
+
+    $response->assertRedirect(route('client.loan-requests.show', $loanRequest));
+    expect($loanRequest)->not->toBeNull();
+    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
+});
+
+test('submission blocked mid-session when prerequisites were cleared after the profile was saved', function (): void {
+    $member = prerequisiteTestMember('700007', withLoanPrerequisites: true);
+
+    $member->memberApplicationProfile->update(['payout_bank_name' => null]);
+
+    $response = $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), prerequisiteTestStorePayload());
+
+    $response->assertSessionHasErrors(['loan_prerequisites']);
+    expect(LoanRequest::query()->count())->toBe(0);
+});

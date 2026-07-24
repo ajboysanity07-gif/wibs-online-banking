@@ -943,7 +943,7 @@ test('loan request submissions persist snapshots and enter pending review', func
         'civilstat' => 'Single',
         'occupation' => 'Analyst',
     ]);
-    MemberApplicationProfile::factory()->completed()->create([
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create([
         'user_id' => $user->user_id,
     ]);
     DB::table('wlntype')->insert([
@@ -1124,7 +1124,7 @@ test('pensioner applicant may submit without employer fields', function () {
         'civilstat' => 'Widowed',
         'occupation' => 'Pensioner',
     ]);
-    MemberApplicationProfile::factory()->completed()->create(['user_id' => $user->user_id]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create(['user_id' => $user->user_id]);
     DB::table('wlntype')->insert(['typecode' => 'LN-PEN', 'lntype' => 'Pensioner Loan']);
 
     $coMakerPayload = [

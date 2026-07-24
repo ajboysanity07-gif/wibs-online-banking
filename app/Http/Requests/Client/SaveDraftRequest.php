@@ -139,60 +139,51 @@ class SaveDraftRequest extends FormRequest
      */
     private const DEPENDENT_KEYS = [
         'dependent_child_1_name',
-        'dependent_child_1_relationship',
         'dependent_child_1_birthdate',
-        'dependent_child_1_occupation',
         'dependent_child_1_cycle_status',
+        'dependent_child_1_cycle_number',
         'dependent_child_2_name',
-        'dependent_child_2_relationship',
         'dependent_child_2_birthdate',
-        'dependent_child_2_occupation',
         'dependent_child_2_cycle_status',
+        'dependent_child_2_cycle_number',
         'dependent_child_3_name',
-        'dependent_child_3_relationship',
         'dependent_child_3_birthdate',
-        'dependent_child_3_occupation',
         'dependent_child_3_cycle_status',
+        'dependent_child_3_cycle_number',
         'dependent_sibling_1_name',
-        'dependent_sibling_1_relationship',
         'dependent_sibling_1_birthdate',
-        'dependent_sibling_1_occupation',
         'dependent_sibling_1_cycle_status',
+        'dependent_sibling_1_cycle_number',
         'dependent_sibling_2_name',
-        'dependent_sibling_2_relationship',
         'dependent_sibling_2_birthdate',
-        'dependent_sibling_2_occupation',
         'dependent_sibling_2_cycle_status',
+        'dependent_sibling_2_cycle_number',
         'dependent_sibling_3_name',
-        'dependent_sibling_3_relationship',
         'dependent_sibling_3_birthdate',
-        'dependent_sibling_3_occupation',
         'dependent_sibling_3_cycle_status',
+        'dependent_sibling_3_cycle_number',
         'dependent_parent_1_name',
-        'dependent_parent_1_relationship',
         'dependent_parent_1_birthdate',
-        'dependent_parent_1_occupation',
         'dependent_parent_1_cycle_status',
+        'dependent_parent_1_cycle_number',
         'dependent_parent_2_name',
-        'dependent_parent_2_relationship',
         'dependent_parent_2_birthdate',
-        'dependent_parent_2_occupation',
         'dependent_parent_2_cycle_status',
+        'dependent_parent_2_cycle_number',
         'dependent_extended_1_name',
-        'dependent_extended_1_relationship',
         'dependent_extended_1_birthdate',
-        'dependent_extended_1_occupation',
         'dependent_extended_1_cycle_status',
+        'dependent_extended_1_cycle_number',
         'dependent_extended_2_name',
-        'dependent_extended_2_relationship',
         'dependent_extended_2_birthdate',
-        'dependent_extended_2_occupation',
         'dependent_extended_2_cycle_status',
+        'dependent_extended_2_cycle_number',
         'dependent_extended_3_name',
-        'dependent_extended_3_relationship',
         'dependent_extended_3_birthdate',
-        'dependent_extended_3_occupation',
         'dependent_extended_3_cycle_status',
+        'dependent_extended_3_cycle_number',
+        'dependent_spouse_cycle_status',
+        'dependent_spouse_cycle_number',
     ];
 
     private const DEPENDENT_DATE_KEYS = [
@@ -209,6 +200,36 @@ class SaveDraftRequest extends FormRequest
         'dependent_extended_3_birthdate',
     ];
 
+    private const DEPENDENT_CYCLE_STATUS_KEYS = [
+        'dependent_child_1_cycle_status',
+        'dependent_child_2_cycle_status',
+        'dependent_child_3_cycle_status',
+        'dependent_sibling_1_cycle_status',
+        'dependent_sibling_2_cycle_status',
+        'dependent_sibling_3_cycle_status',
+        'dependent_parent_1_cycle_status',
+        'dependent_parent_2_cycle_status',
+        'dependent_extended_1_cycle_status',
+        'dependent_extended_2_cycle_status',
+        'dependent_extended_3_cycle_status',
+        'dependent_spouse_cycle_status',
+    ];
+
+    private const DEPENDENT_CYCLE_NUMBER_KEYS = [
+        'dependent_child_1_cycle_number',
+        'dependent_child_2_cycle_number',
+        'dependent_child_3_cycle_number',
+        'dependent_sibling_1_cycle_number',
+        'dependent_sibling_2_cycle_number',
+        'dependent_sibling_3_cycle_number',
+        'dependent_parent_1_cycle_number',
+        'dependent_parent_2_cycle_number',
+        'dependent_extended_1_cycle_number',
+        'dependent_extended_2_cycle_number',
+        'dependent_extended_3_cycle_number',
+        'dependent_spouse_cycle_number',
+    ];
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -219,9 +240,36 @@ class SaveDraftRequest extends FormRequest
         ];
 
         foreach (self::DEPENDENT_KEYS as $key) {
-            $rules["dependents.{$key}"] = in_array($key, self::DEPENDENT_DATE_KEYS, true)
-                ? ['sometimes', 'nullable', 'date']
-                : ['sometimes', 'nullable', 'string', 'max:255'];
+            if (in_array($key, self::DEPENDENT_DATE_KEYS, true)) {
+                $rules["dependents.{$key}"] = ['sometimes', 'nullable', 'date'];
+
+                continue;
+            }
+
+            if (in_array($key, self::DEPENDENT_CYCLE_STATUS_KEYS, true)) {
+                $rules["dependents.{$key}"] = ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])];
+
+                continue;
+            }
+
+            if (in_array($key, self::DEPENDENT_CYCLE_NUMBER_KEYS, true)) {
+                $statusKey = str_replace('_cycle_number', '_cycle_status', $key);
+
+                // No 'sometimes' here: combined with a same-field required_if,
+                // 'sometimes' would skip validation entirely whenever the
+                // key is absent from the payload, silently bypassing the
+                // Old-requires-a-cycle-number rule.
+                $rules["dependents.{$key}"] = [
+                    'nullable',
+                    'integer',
+                    'min:1',
+                    Rule::requiredIf($this->input("dependents.{$statusKey}") === 'Old'),
+                ];
+
+                continue;
+            }
+
+            $rules["dependents.{$key}"] = ['sometimes', 'nullable', 'string', 'max:255'];
         }
 
         return $rules;

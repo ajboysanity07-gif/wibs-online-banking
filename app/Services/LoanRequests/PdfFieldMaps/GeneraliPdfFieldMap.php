@@ -36,10 +36,13 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             ['page' => 1, 'x' => 23.3, 'y' => 63.0, 'size' => 9, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.last_name'],
             ['page' => 1, 'x' => 54.7, 'y' => 63.0, 'size' => 9, 'width' => 42, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.first_name'],
             ['page' => 1, 'x' => 99.3, 'y' => 63.0, 'size' => 9, 'width' => 60, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.middle_name'],
-            // The applicant is always the insured principal on this form, never a
-            // dependent riding on someone else's membership -- hardcoded true rather
-            // than sourced from a field nothing in the wizard collects.
+            // Every WIBS loan applicant is the insured principal on this form -- no
+            // member is ever a dependent on someone else's coverage in this context.
+            // Hardcoded by design; no wizard field needed.
             ['page' => 1, 'type' => 'check', 'x' => 165.0, 'y' => 54.5, 'size' => 7, 'value' => static fn (): bool => true],
+
+            // Fax: intentionally omitted -- not applicable to a loan application.
+            // See WIBS_DOCUMENT_FIELD_MAP.md, Generali Health Statement section.
 
             ['page' => 1, 'x' => 23.3, 'y' => 81.0, 'size' => 9, 'width' => 57, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_line'],
             ['page' => 1, 'x' => 41.6, 'y' => 91.0, 'size' => 9, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_city'],
@@ -77,8 +80,8 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
     /**
      * Only primary/secondary beneficiary rows are collected by the wizard (see
      * MemberApplicationProfile::beneficiaryFields()) -- citizenship isn't collected
-     * anywhere, so it's hardcoded to "Filipino" the same way applicant.nationality
-     * already is elsewhere on this form and on AU/UB.
+     * per-beneficiary, so it's sourced from applicant.nationality, the same value
+     * already printed elsewhere on this form and on AU/UB.
      *
      * @return list<array<string, mixed>>
      */
@@ -87,7 +90,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
         $row = static fn (int $index, float $y): array => [
             ['page' => 1, 'x' => 41.6, 'y' => $y, 'size' => 8, 'width' => 42, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name")],
             ['page' => 1, 'x' => 85.0, 'y' => $y, 'size' => 8, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.birthdate")],
-            ['page' => 1, 'x' => 124.1, 'y' => $y, 'size' => 8, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name") !== null ? 'Filipino' : null],
+            ['page' => 1, 'x' => 124.1, 'y' => $y, 'size' => 8, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name") !== null ? data_get($d, 'applicant.nationality') : null],
             ['page' => 1, 'x' => 168.9, 'y' => $y, 'size' => 8, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.relationship")],
         ];
 

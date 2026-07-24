@@ -163,6 +163,127 @@ test('processing update rejects the removed doc/page/book/series/valid-id notari
 });
 
 /**
+ * GNTHP is a system-controlled figure (the salary floor MRDINC commits to on
+ * the Undertaking-Barangay document) — no manual override is legitimate, so
+ * the server must always recompute it from the formula and discard whatever
+ * value the client submitted, matching the same formula the preview endpoint
+ * uses (see LoanRequestRecommendationPreviewTest's MONTHLY happy-path case).
+ */
+test('processing update recomputes guaranteed_net_take_home_pay and ignores a manually submitted value', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950010');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'recommended_payment_frequency' => 'Monthly',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $payload = [
+        'reason' => 'Recorded verified processing terms.',
+        'information_source' => 'Verified staff review',
+        'loan_request' => [],
+        'processing' => [
+            'savings_rate' => 0.02,
+            // Deliberately wrong — should be discarded server-side in favor
+            // of the computed 12125.0 (see hand-computed formula below).
+            'guaranteed_net_take_home_pay' => 999999,
+        ],
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0.36,
+        'recommended_payment_frequency' => 'Monthly',
+    ];
+
+    // Hand-computed, mirrors the MONTHLY happy-path case in
+    // LoanRequestRecommendationPreviewTest: principal 25000/12=2083.33,
+    // interest (25000*0.36/12*12)/12=750, savings 2083.33*0.02=41.67 ->
+    // monthly amortization 2875.00. GNTHP = 15000 - 2875.00 = 12125.00.
+    $response = $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $payload)
+        ->assertOk();
+
+    $response->assertJsonPath(
+        'data.dataSections.processing.guaranteed_net_take_home_pay',
+        fn (mixed $value): bool => abs(((float) $value) - 12125.0) < 0.01,
+    );
+
+    $rawEntry = LoanRequestDataEntry::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'guaranteed_net_take_home_pay')
+        ->first();
+
+    expect($rawEntry)->not->toBeNull()
+        ->and($rawEntry->value_json['value'] ?? null)->toEqualWithDelta(12125.0, 0.01);
+});
+
+test('processing update recomputes guaranteed_net_take_home_pay when a contributing field changes on a later update', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950011');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'recommended_payment_frequency' => 'Monthly',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Initial recommendation terms.',
+            'information_source' => 'Verified staff review',
+            'loan_request' => [],
+            'processing' => ['savings_rate' => 0.02],
+            'recommended_amount' => 25000,
+            'recommended_term' => 12,
+            'recommended_interest_rate' => 0.36,
+            'recommended_payment_frequency' => 'Monthly',
+        ])
+        ->assertOk()
+        ->assertJsonPath(
+            'data.dataSections.processing.guaranteed_net_take_home_pay',
+            fn (mixed $value): bool => abs(((float) $value) - 12125.0) < 0.01,
+        );
+
+    // Only the savings_rate changes on this second update — recommended_amount
+    // etc are not resent, so the persisted recommendation terms must be used.
+    $response = $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Adjusted savings rate.',
+            'information_source' => 'Verified staff review',
+            'loan_request' => [],
+            'processing' => ['savings_rate' => 0.10],
+        ])
+        ->assertOk();
+
+    // Each component is rounded to cents before summing (see
+    // ApprovedLoanDocumentService::buildDocumentData): principal
+    // 25000/12=2083.33, interest 9000/12=750.00, savings 2083.33*0.10=208.33
+    // -> amortization total 3041.66 (not 3041.6666... — the per-component
+    // rounding already shaved 0.0066 off). GNTHP = 15000 - 3041.66 = 11958.34.
+    $response->assertJsonPath(
+        'data.dataSections.processing.guaranteed_net_take_home_pay',
+        fn (mixed $value): bool => abs(((float) $value) - 11958.34) < 0.01,
+    );
+});
+
+/**
  * Regression guard for the Charges & Fees "did not appear populated after
  * reload" investigation: confirmed via a real Playwright browser session
  * (typed input -> outgoing PATCH payload -> save response -> hard reload)

@@ -9,6 +9,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class MemberDependentProfile extends Model
 {
     /**
+     * Spouse cycle fields (New/Old + cycle number), same shape as the
+     * repeatable categories but a singleton -- Spouse has no slot.
+     *
+     * @var list<string>
+     */
+    public const SPOUSE_FIELD_KEYS = [
+        'dependent_spouse_cycle_status',
+        'dependent_spouse_cycle_number',
+    ];
+
+    /**
      * Category keys and their row caps (provisional). Fixed slots 1..cap
      * per category, mirrored by LoanRequestDataService's flat field keys
      * (dependent_{category}_{slot}_{attribute}).
@@ -27,6 +38,8 @@ class MemberDependentProfile extends Model
      */
     protected $fillable = [
         'member_application_profile_id',
+        'spouse_cycle_status',
+        'spouse_cycle_number',
     ];
 
     public function memberApplicationProfile(): BelongsTo
@@ -37,5 +50,39 @@ class MemberDependentProfile extends Model
     public function dependents(): HasMany
     {
         return $this->hasMany(MemberDependent::class);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'spouse_cycle_number' => 'integer',
+        ];
+    }
+
+    /**
+     * Name/birthdate field keys (dependent_{category}_{slot}_{attribute})
+     * across every category, used to validate and filter the Settings >
+     * Dependents tab submission. Cycle status/number are deliberately
+     * excluded -- Settings no longer collects them, only the loan-request
+     * wizard does (via its own field-key list and submission path).
+     *
+     * @return list<string>
+     */
+    public static function fieldKeys(): array
+    {
+        $keys = [];
+
+        foreach (self::CATEGORY_CAPS as $category => $cap) {
+            for ($slot = 1; $slot <= $cap; $slot++) {
+                foreach (['name', 'birthdate'] as $attribute) {
+                    $keys[] = "dependent_{$category}_{$slot}_{$attribute}";
+                }
+            }
+        }
+
+        return $keys;
     }
 }

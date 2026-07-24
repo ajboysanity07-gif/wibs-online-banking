@@ -6,6 +6,7 @@ type AdornedNumberInputProps = {
     id?: string;
     value: string;
     onValueChange: (value: string) => void;
+    onBlur?: () => void;
     className?: string;
     placeholder?: string;
     disabled?: boolean;
@@ -16,6 +17,7 @@ export function CurrencyInput({
     id,
     value,
     onValueChange,
+    onBlur,
     className,
     placeholder = '0.00',
     disabled,
@@ -31,6 +33,7 @@ export function CurrencyInput({
                 className={cn('mt-1 block w-full pl-8', className)}
                 value={value}
                 onValueChange={(values) => onValueChange(values.value)}
+                onBlur={onBlur}
                 thousandSeparator
                 decimalScale={2}
                 fixedDecimalScale
@@ -81,6 +84,7 @@ export function PercentInput({
     id,
     value,
     onValueChange,
+    onBlur,
     className,
     placeholder,
     disabled,
@@ -95,6 +99,7 @@ export function PercentInput({
                 onValueChange={(values) =>
                     onValueChange(percentToFraction(values.value))
                 }
+                onBlur={onBlur}
                 decimalScale={PERCENT_DECIMAL_SCALE}
                 allowNegative={false}
                 placeholder={placeholder}
@@ -115,6 +120,7 @@ type MonthsInputProps = {
     id?: string;
     value: string;
     onChange: (value: string) => void;
+    onBlur?: () => void;
     className?: string;
     placeholder?: string;
     disabled?: boolean;
@@ -125,6 +131,7 @@ export function MonthsInput({
     id,
     value,
     onChange,
+    onBlur,
     className,
     placeholder,
     disabled,
@@ -137,6 +144,7 @@ export function MonthsInput({
                 className={cn('pr-16', className)}
                 value={value}
                 onValueChange={(values) => onChange(values.value)}
+                onBlur={onBlur}
                 decimalScale={0}
                 allowNegative={false}
                 placeholder={placeholder}

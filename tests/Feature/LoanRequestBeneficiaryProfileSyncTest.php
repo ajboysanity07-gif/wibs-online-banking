@@ -114,7 +114,16 @@ test('getFormData does not overwrite beneficiary values already saved on the dra
 });
 
 test('submit writes back validated beneficiary fields to the member profile', function (): void {
-    $member = createBeneficiaryTestMember('003203');
+    $member = createBeneficiaryTestMember('003203', [
+        'payout_bank_name' => 'Placeholder Bank',
+        'payout_account_name' => 'Placeholder Holder',
+        'payout_account_number' => '000000000',
+        'payout_account_type' => 'Savings',
+        'release_method' => 'ATM',
+        'source_of_fund_wealth' => 'Salary',
+        'id_type' => 'TIN',
+        'id_number' => '123-456-789',
+    ]);
 
     $person = fn (array $overrides = []) => array_merge([
         'first_name' => 'First',

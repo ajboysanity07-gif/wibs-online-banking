@@ -15,6 +15,8 @@ class MemberApplicationProfile extends Model
 
     public const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner / Retired';
 
+    public const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', 'Others'];
+
     /**
      * @var list<string>
      */
@@ -56,6 +58,10 @@ class MemberApplicationProfile extends Model
         'beneficiary_secondary_name',
         'beneficiary_secondary_relationship',
         'beneficiary_secondary_birthdate',
+        'source_of_fund_wealth',
+        'id_type',
+        'id_type_other',
+        'id_number',
         'profile_completed_at',
     ];
 
@@ -171,6 +177,85 @@ class MemberApplicationProfile extends Model
             'beneficiary_secondary_relationship',
             'beneficiary_secondary_birthdate',
         ];
+    }
+
+    /**
+     * Source of Fund / Government ID fields reused to pre-fill the loan
+     * request's prerequisite checkpoints (entry-point modal and submit-time
+     * safety net) and written back on validated loan submission. Optional at
+     * onboarding, same as payoutBankFields() -- required only to actually
+     * take out a loan, see missingLoanPrerequisiteFields().
+     *
+     * @return list<string>
+     */
+    public static function sourceOfFundAndIdFields(): array
+    {
+        return [
+            'source_of_fund_wealth',
+            'id_type',
+            'id_type_other',
+            'id_number',
+        ];
+    }
+
+    /**
+     * Bank & Payout fields that gate starting/submitting a loan request.
+     * Deliberately a subset of payoutBankFields() -- the ATM number, bank
+     * branch, and ATM holder name stay optional secondary details even at
+     * this checkpoint.
+     *
+     * @return list<string>
+     */
+    public static function loanPrerequisiteBankFields(): array
+    {
+        return [
+            'payout_bank_name',
+            'payout_account_name',
+            'payout_account_number',
+            'payout_account_type',
+            'release_method',
+        ];
+    }
+
+    /**
+     * Whether this profile has everything required to start or submit a
+     * loan request: Bank & Payout essentials plus Source of Fund / Government
+     * ID. Deliberately separate from completionRequiredFields() -- those
+     * gate onboarding account-wide, these only gate loan requests.
+     */
+    public function hasLoanPrerequisiteFields(): bool
+    {
+        return $this->missingLoanPrerequisiteFields() === [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingLoanPrerequisiteFields(): array
+    {
+        $missing = [];
+
+        foreach ([
+            ...self::loanPrerequisiteBankFields(),
+            'source_of_fund_wealth',
+            'id_type',
+            'id_number',
+        ] as $field) {
+            $value = $this->getAttribute($field);
+
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                $missing[] = $field;
+            }
+        }
+
+        if (
+            trim((string) ($this->id_type ?? '')) === 'Others'
+            && trim((string) ($this->id_type_other ?? '')) === ''
+        ) {
+            $missing[] = 'id_type_other';
+        }
+
+        return $missing;
     }
 
     /**
