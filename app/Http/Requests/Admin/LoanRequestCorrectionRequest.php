@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Client\LoanRequestStoreRequest;
+use App\LoanReleaseMethod;
+use Illuminate\Validation\Rule;
 
 class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
 {
@@ -56,7 +58,7 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['health.health_recent_hospitalization'] = ['sometimes', 'boolean'];
         $rules['health.health_declaration_notes'] = ['sometimes', 'nullable', 'string', 'max:1000'];
         $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number'];
-        $rules['banking.release_method'] = ['sometimes', 'nullable', 'string', 'max:255'];
+        $rules['banking.release_method'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))];
         $rules['banking.payout_bank_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_account_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_account_number'] = ['sometimes', 'nullable', 'string', 'max:255'];

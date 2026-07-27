@@ -1130,6 +1130,7 @@ export default function LoanRequestPage({
                                                 onChange={updateDataSection(
                                                     'banking',
                                                 )}
+                                                applicantFullName={member.name}
                                             />
 
                                             {bankingPrefilledFromProfile ? (

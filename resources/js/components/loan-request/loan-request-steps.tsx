@@ -58,6 +58,8 @@ import type {
 
 const AVAILMENT_OPTIONS = ['New', 'Re-Loan', 'Restructured'] as const;
 
+const RELEASE_METHOD_OPTIONS = ['ATM', 'Bank Transfer', 'Check', 'Cash'] as const;
+
 type LoanDetailField =
     | 'typecode'
     | 'requested_amount'
@@ -422,7 +424,71 @@ type DataSectionStepProps = {
         field: string,
         value: string | number | boolean | null,
     ) => void;
+    // Source of truth for the "This is my own ATM card" checkbox
+    // (payout_atm_holder_name, banking section only) -- omit for sections
+    // that don't render that field.
+    applicantFullName?: string;
 };
+
+type AtmHolderFieldProps = {
+    id: string;
+    label: string;
+    value: LoanRequestDataFieldValue;
+    applicantFullName: string;
+    error?: string;
+    onChange: (value: string) => void;
+};
+
+// "This is my own ATM card" defaults to checked when the stored value is
+// empty or already matches the applicant's own name (e.g. prefilled from a
+// prior submission) -- unchecked only when it holds a genuinely different
+// name. Checking it disables manual entry and writes the applicant's name;
+// unchecking clears the field for manual entry.
+function AtmHolderCheckboxField({
+    id,
+    label,
+    value,
+    applicantFullName,
+    error,
+    onChange,
+}: AtmHolderFieldProps) {
+    const stringValue = value ? `${value}` : '';
+    const [isOwnCard, setIsOwnCard] = useState(
+        () =>
+            stringValue.trim() === '' ||
+            stringValue.trim() === applicantFullName.trim(),
+    );
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="flex items-center gap-2">
+                <Checkbox
+                    id={`${id}_is_own`}
+                    checked={isOwnCard}
+                    onCheckedChange={(checked) => {
+                        const next = checked === true;
+                        setIsOwnCard(next);
+                        onChange(next ? applicantFullName : '');
+                    }}
+                />
+                <Label
+                    htmlFor={`${id}_is_own`}
+                    className="text-sm font-normal"
+                >
+                    This is my own ATM card
+                </Label>
+            </div>
+            <Input
+                id={id}
+                value={stringValue}
+                disabled={isOwnCard}
+                onChange={(event) => onChange(event.target.value)}
+            />
+            <InputError message={error} />
+        </div>
+    );
+}
 
 // declaration_truth_confirmation and declaration_data_privacy_consent are
 // agreements the applicant must actively accept, not factual Yes/No
@@ -474,6 +540,7 @@ export function LoanRequestDataSectionStep({
     definition,
     errors,
     onChange,
+    applicantFullName,
 }: DataSectionStepProps) {
     return (
         <LoanRequestSectionCard
@@ -518,6 +585,57 @@ export function LoanRequestDataSectionStep({
                                 </div>
                                 <InputError message={errors[errorKey]} />
                             </div>
+                        );
+                    }
+
+                    if (fieldKey === 'release_method') {
+                        return (
+                            <div key={fieldKey} className="grid gap-2">
+                                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                                    {field.label}
+                                </Label>
+                                <Select
+                                    value={value ? `${value}` : undefined}
+                                    onValueChange={(nextValue) =>
+                                        onChange(fieldKey, nextValue)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id={`${sectionKey}_${fieldKey}`}
+                                    >
+                                        <SelectValue placeholder="Select release method" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {RELEASE_METHOD_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors[errorKey]} />
+                            </div>
+                        );
+                    }
+
+                    if (fieldKey === 'payout_atm_holder_name') {
+                        return (
+                            <AtmHolderCheckboxField
+                                key={fieldKey}
+                                id={`${sectionKey}_${fieldKey}`}
+                                label={field.label}
+                                value={value}
+                                applicantFullName={applicantFullName ?? ''}
+                                error={errors[errorKey]}
+                                onChange={(nextValue) =>
+                                    onChange(fieldKey, nextValue)
+                                }
+                            />
                         );
                     }
 

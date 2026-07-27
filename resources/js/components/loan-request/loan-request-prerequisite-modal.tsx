@@ -23,6 +23,7 @@ import client from '@/lib/api/client';
 
 export const ID_TYPE_OTHER_VALUE = 'Others';
 const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', ID_TYPE_OTHER_VALUE];
+const RELEASE_METHOD_OPTIONS = ['ATM', 'Bank Transfer', 'Check', 'Cash'];
 
 export type LoanPrerequisiteProfile = {
     payout_bank_name: string | null;
@@ -217,17 +218,28 @@ export function LoanRequestPrerequisiteModal({
                                 <Label htmlFor="prereq_release_method">
                                     Release method
                                 </Label>
-                                <Input
-                                    id="prereq_release_method"
-                                    placeholder="e.g. Bank deposit"
-                                    value={data.release_method}
-                                    onChange={(event) =>
-                                        setField(
-                                            'release_method',
-                                            event.target.value,
-                                        )
+                                <Select
+                                    value={data.release_method || undefined}
+                                    onValueChange={(value) =>
+                                        setField('release_method', value)
                                     }
-                                />
+                                >
+                                    <SelectTrigger id="prereq_release_method">
+                                        <SelectValue placeholder="Select release method" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {RELEASE_METHOD_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
                                 <InputError message={errors.release_method} />
                             </div>
                         </div>

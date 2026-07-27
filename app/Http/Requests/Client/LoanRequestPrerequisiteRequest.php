@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\MemberApplicationProfile;
@@ -34,7 +35,7 @@ class LoanRequestPrerequisiteRequest extends FormRequest
             'payout_account_name' => ['required', 'string', 'max:255'],
             'payout_account_number' => ['required', 'string', 'max:255'],
             'payout_account_type' => ['required', 'string', 'max:255'],
-            'release_method' => ['required', 'string', 'max:255'],
+            'release_method' => ['required', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
             'payout_atm_number' => ['nullable', 'string', 'max:255'],
             'payout_bank_branch' => ['nullable', 'string', 'max:255'],
             'payout_atm_holder_name' => ['nullable', 'string', 'max:255'],

@@ -480,7 +480,7 @@ test('profile information can be updated with payout bank details', function () 
             'payout_account_name' => 'Test User',
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
-            'release_method' => 'Bank deposit',
+            'release_method' => 'Bank Transfer',
             'payout_atm_number' => '5555444433332222',
             'payout_bank_branch' => 'Tagum City',
             'payout_atm_holder_name' => 'Test User',
@@ -497,7 +497,7 @@ test('profile information can be updated with payout bank details', function () 
     expect($memberProfile->payout_account_name)->toBe('Test User');
     expect($memberProfile->payout_account_number)->toBe('1234567890');
     expect($memberProfile->payout_account_type)->toBe('Savings');
-    expect($memberProfile->release_method)->toBe('Bank deposit');
+    expect($memberProfile->release_method)->toBe('Bank Transfer');
     expect($memberProfile->payout_atm_number)->toBe('5555444433332222');
     expect($memberProfile->payout_bank_branch)->toBe('Tagum City');
     expect($memberProfile->payout_atm_holder_name)->toBe('Test User');

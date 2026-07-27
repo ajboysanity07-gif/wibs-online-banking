@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Concerns\ProfileValidationRules;
+use App\LoanReleaseMethod;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
 use App\Support\LocationComposer;
@@ -270,6 +271,7 @@ class ProfileUpdateRequest extends FormRequest
                 $memberRequirement('release_method'),
                 'string',
                 'max:255',
+                Rule::in(array_column(LoanReleaseMethod::cases(), 'value')),
             ],
             'payout_atm_number' => [
                 'nullable',

@@ -1050,7 +1050,7 @@ function notificationLoanRequestPayload(): array
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'payout_atm_number' => '9876543210',
-            'release_method' => 'Bank transfer',
+            'release_method' => 'Bank Transfer',
         ],
         'barangay' => [
             'barangay_official_designation' => null,

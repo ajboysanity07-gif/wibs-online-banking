@@ -23,6 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -171,6 +172,7 @@ const PAYDAY_OPTIONS = [
 ] as const;
 const ID_TYPE_OTHER_VALUE = 'Others';
 const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', ID_TYPE_OTHER_VALUE] as const;
+const RELEASE_METHOD_OPTIONS = ['ATM', 'Bank Transfer', 'Check', 'Cash'] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -592,6 +594,18 @@ export default function Profile({
     );
     const [idTypeOther, setIdTypeOther] = useState<string>(
         memberApplicationProfile?.id_type_other ?? '',
+    );
+    const [releaseMethod, setReleaseMethod] = useState<string>(
+        memberApplicationProfile?.release_method ?? '',
+    );
+    const initialAtmHolderName =
+        memberApplicationProfile?.payout_atm_holder_name?.trim() ?? '';
+    const [atmHolderName, setAtmHolderName] = useState<string>(
+        initialAtmHolderName,
+    );
+    const [isOwnAtmCard, setIsOwnAtmCard] = useState<boolean>(
+        initialAtmHolderName === '' ||
+            initialAtmHolderName === memberDisplayName.trim(),
     );
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
@@ -2638,15 +2652,52 @@ export default function Profile({
                                                                         method
                                                                     </Label>
 
-                                                                    <Input
-                                                                        id="release_method"
-                                                                        className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            memberApplicationProfile?.release_method ??
-                                                                            ''
+                                                                    <Select
+                                                                        value={
+                                                                            releaseMethod ||
+                                                                            undefined
                                                                         }
+                                                                        onValueChange={(
+                                                                            value,
+                                                                        ) => {
+                                                                            setReleaseMethod(
+                                                                                value,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <SelectTrigger
+                                                                            id="release_method"
+                                                                            className="mt-1 w-full"
+                                                                        >
+                                                                            <SelectValue placeholder="Select release method" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {RELEASE_METHOD_OPTIONS.map(
+                                                                                (
+                                                                                    option,
+                                                                                ) => (
+                                                                                    <SelectItem
+                                                                                        key={
+                                                                                            option
+                                                                                        }
+                                                                                        value={
+                                                                                            option
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            option
+                                                                                        }
+                                                                                    </SelectItem>
+                                                                                ),
+                                                                            )}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <input
+                                                                        type="hidden"
                                                                         name="release_method"
-                                                                        placeholder="e.g. Bank deposit"
+                                                                        value={
+                                                                            releaseMethod
+                                                                        }
                                                                     />
 
                                                                     <InputError
@@ -2696,12 +2747,58 @@ export default function Profile({
                                                                         </span>
                                                                     </Label>
 
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Checkbox
+                                                                            id="payout_atm_holder_name_is_own"
+                                                                            checked={
+                                                                                isOwnAtmCard
+                                                                            }
+                                                                            onCheckedChange={(
+                                                                                checked,
+                                                                            ) => {
+                                                                                const next =
+                                                                                    checked ===
+                                                                                    true;
+                                                                                setIsOwnAtmCard(
+                                                                                    next,
+                                                                                );
+                                                                                setAtmHolderName(
+                                                                                    next
+                                                                                        ? memberDisplayName
+                                                                                        : '',
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                        <Label
+                                                                            htmlFor="payout_atm_holder_name_is_own"
+                                                                            className="text-sm font-normal"
+                                                                        >
+                                                                            This
+                                                                            is
+                                                                            my
+                                                                            own
+                                                                            ATM
+                                                                            card
+                                                                        </Label>
+                                                                    </div>
+
                                                                     <Input
                                                                         id="payout_atm_holder_name"
                                                                         className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            memberApplicationProfile?.payout_atm_holder_name ??
-                                                                            ''
+                                                                        value={
+                                                                            atmHolderName
+                                                                        }
+                                                                        disabled={
+                                                                            isOwnAtmCard
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) =>
+                                                                            setAtmHolderName(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
                                                                         }
                                                                         name="payout_atm_holder_name"
                                                                         placeholder="ATM card holder name"

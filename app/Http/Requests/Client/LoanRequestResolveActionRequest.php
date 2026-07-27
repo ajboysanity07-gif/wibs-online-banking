@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -46,7 +47,7 @@ class LoanRequestResolveActionRequest extends FormRequest
             'banking.payout_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_type' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'banking.release_method' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.release_method' => ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
             'banking.payout_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay' => ['sometimes', 'array:barangay_official_designation,barangay_agency_name,barangay_agency_address'],
             'barangay.barangay_official_designation' => ['sometimes', 'nullable', 'string', 'max:255'],
