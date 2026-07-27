@@ -31,3 +31,5 @@ bootstrap/compiled.php
 app/storage/
 public_html/storage
 public_html/hot
+
+graphify-out/cost.json

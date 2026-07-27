@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "laravel-inertia-react": {
+      "source": "AsyrafHussin/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-inertia-react/SKILL.md",
+      "computedHash": "48153a3ab923ee477416dad35ee8cf814b2cb324829d140098a092f4e33dd2c6"
+    },
+    "laravel-owasp-security": {
+      "source": "AsyrafHussin/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-owasp-security/SKILL.md",
+      "computedHash": "c8e335415263f9f7bb224f15f82dda0a6cdfc136538e3fbf6b0eb1928fa110b5"
+    },
+    "laravel-testing": {
+      "source": "AsyrafHussin/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/laravel-testing/SKILL.md",
+      "computedHash": "1e827d6ea94dff65484bd2e8ed0f67547941ae288b47c2fe8e075179aca520b6"
+    },
+    "react-compiler": {
+      "source": "saschb2b/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/react-compiler/SKILL.md",
+      "computedHash": "2cec0b6fd3c45aca6fcca4ae302495dd7a0620d1f806f46faf7a833ae7c43719"
+    },
+    "spatie-javascript": {
+      "source": "spatie/guidelines-skills",
+      "sourceType": "github",
+      "skillPath": "resources/boost/skills/spatie-javascript/SKILL.md",
+      "computedHash": "b4c9eccb092c67c525ca54036eb54cb6ea60b2e5095a3f0812484003e26efb0a"
+    },
+    "spatie-laravel-php": {
+      "source": "spatie/guidelines-skills",
+      "sourceType": "github",
+      "skillPath": "resources/boost/skills/spatie-laravel-php/SKILL.md",
+      "computedHash": "ae6e0970e318dd9102444c745ca65590aec7d72cbcbaf049ee2eb9e1f800b519"
+    },
+    "spatie-security": {
+      "source": "spatie/guidelines-skills",
+      "sourceType": "github",
+      "skillPath": "resources/boost/skills/spatie-security/SKILL.md",
+      "computedHash": "cf641f59012e70a6f5636f48eee5b3b95f04c44df618685ef0a33f619cd80a7e"
+    },
+    "spatie-version-control": {
+      "source": "spatie/guidelines-skills",
+      "sourceType": "github",
+      "skillPath": "resources/boost/skills/spatie-version-control/SKILL.md",
+      "computedHash": "cd753b58a9d2cecc1f580e6f452cb9896f5ab3ff74c899626c3af22ab4afd8ce"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    }
+  }
+}
