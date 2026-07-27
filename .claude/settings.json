@@ -4,5 +4,48 @@
     "ship@dotclaude": true,
     "code-reviewer@dotclaude": true,
     "security-reviewer@dotclaude": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(php artisan test*)",
+      "Bash(php artisan route:list*)",
+      "Bash(php artisan tinker*)",
+      "Bash(php artisan migrate:status*)",
+      "Bash(php artisan config:*)",
+      "Bash(vendor/bin/pint --dirty)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(npm run build)",
+      "Bash(npx tsc --noEmit)"
+    ],
+    "deny": [
+      "Bash(php artisan db:wipe*)",
+      "Bash(php artisan migrate:fresh*)",
+      "Bash(php artisan migrate:reset*)",
+      "Bash(rm -rf *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/ACER Predator/.local/bin/graphify.EXE\" hook-guard search"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/ACER Predator/.local/bin/graphify.EXE\" hook-guard read"
+          }
+        ]
+      }
+    ]
   }
 }
