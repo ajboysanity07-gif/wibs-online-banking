@@ -129,7 +129,7 @@ class LoanRequestService
             $stepValue = $flatValues['wizard_current_step'] ?? null;
 
             if (is_numeric($stepValue)) {
-                $initialStep = max(0, min(24, (int) $stepValue));
+                $initialStep = max(0, min(22, (int) $stepValue));
             }
         }
 
@@ -450,7 +450,7 @@ class LoanRequestService
             $this->dataService->syncMemberSections($loanRequest, $payload);
 
             if (array_key_exists('wizard_step', $payload) && $payload['wizard_step'] !== null) {
-                $stepValue = max(0, min(24, (int) $payload['wizard_step']));
+                $stepValue = max(0, min(22, (int) $payload['wizard_step']));
 
                 LoanRequestDataEntry::query()->updateOrCreate(
                     [

@@ -16,7 +16,7 @@ class LoanRequestDataService
     private const OWNER_STAFF = 'staff';
 
     /**
-     * @var array<string, array{label:string, owner:string, sensitive:bool, required_on_submit:bool, section:string, type:string, detail_of?:string, visible_when?:array{field:string, equals:string}}>
+     * @var array<string, array{label:string, owner:string, sensitive:bool, required_on_submit:bool, section:string, type:string, detail_of?:string|string[], visible_when?:array{field:string, equals:string}, options?:string[]}>
      */
     private const FIELD_DEFINITIONS = [
         'beneficiary_primary_name' => [
@@ -67,16 +67,26 @@ class LoanRequestDataService
             'section' => 'insurance',
             'type' => 'date',
         ],
-        'health_smoker' => [
-            'label' => 'Tobacco-use declaration',
+        'health_smoking_status' => [
+            'label' => 'Do you currently smoke cigarettes?',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => true,
             'section' => 'health',
-            'type' => 'boolean',
+            'type' => 'string',
+            'options' => ['none', 'light', 'heavy'],
+        ],
+        'health_smoking_status_details' => [
+            'label' => 'Smoking details (GLAPI Q11)',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'health_glapi',
+            'type' => 'string',
+            'detail_of' => 'health_smoking_status',
         ],
         'health_hypertension' => [
-            'label' => 'Hypertension declaration',
+            'label' => 'Have you ever been diagnosed with or treated for hypertension (high blood pressure)?',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => true,
@@ -92,36 +102,13 @@ class LoanRequestDataService
             'type' => 'string',
             'detail_of' => 'health_hypertension',
         ],
-        'health_diabetes' => [
-            'label' => 'Diabetes declaration',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'health',
-            'type' => 'boolean',
-        ],
-        'health_recent_hospitalization' => [
-            'label' => 'Recent hospitalization declaration',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => true,
-            'section' => 'health',
-            'type' => 'boolean',
-        ],
-        'health_declaration_notes' => [
-            'label' => 'Health declaration notes',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'health',
-            'type' => 'string',
-        ],
-
         // GLAPI (Generali) 17-item health questionnaire. Kept in its own
         // 'health_glapi' section rather than folded into 'health' because
         // several items overlap in subject with the plain 'health' booleans
         // above but ask a materially different question (narrower/wider
-        // scope, different thresholds) -- see gl_health_q02e, q05, q11.
+        // scope, different thresholds) -- see gl_health_q02e, q05. Item 11
+        // (smoking) was merged into 'health_smoking_status' above instead of
+        // staying split, since a single 3-way answer covers both forms.
         'gl_health_q01_weight_change' => [
             'label' => 'Weight change of more than 5 lbs in the last 5 months',
             'owner' => self::OWNER_MEMBER,
@@ -207,8 +194,32 @@ class LoanRequestDataService
             'type' => 'string',
             'detail_of' => 'gl_health_q02d_digestive',
         ],
-        'gl_health_q02e_diabetes_renal' => [
-            'label' => 'Diabetes, kidney, liver, or urinary disorder',
+        'gl_health_q02e_diabetes' => [
+            'label' => 'Diabetes',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'health_glapi',
+            'type' => 'boolean',
+        ],
+        'gl_health_q02e_kidney' => [
+            'label' => 'Kidney disorder',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'health_glapi',
+            'type' => 'boolean',
+        ],
+        'gl_health_q02e_liver' => [
+            'label' => 'Liver disorder',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'health_glapi',
+            'type' => 'boolean',
+        ],
+        'gl_health_q02e_urinary' => [
+            'label' => 'Urinary disorder',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => false,
@@ -216,13 +227,18 @@ class LoanRequestDataService
             'type' => 'boolean',
         ],
         'gl_health_q02e_diabetes_renal_details' => [
-            'label' => 'Diabetes/renal condition details',
+            'label' => 'Diabetes/kidney/liver/urinary condition details',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => false,
             'section' => 'health_glapi',
             'type' => 'string',
-            'detail_of' => 'gl_health_q02e_diabetes_renal',
+            'detail_of' => [
+                'gl_health_q02e_diabetes',
+                'gl_health_q02e_kidney',
+                'gl_health_q02e_liver',
+                'gl_health_q02e_urinary',
+            ],
         ],
         'gl_health_q02f_musculoskeletal' => [
             'label' => 'Rheumatic fever, arthritis, gout, or joint/bone disorder',
@@ -343,6 +359,18 @@ class LoanRequestDataService
             'type' => 'string',
             'detail_of' => 'gl_health_q05_confinement_5yr',
         ],
+        // Distinct from gl_health_q05_confinement_5yr above (which asks about
+        // a 5-year window): this is GREPALIFE's own recent-hospitalization
+        // check with no documented time window, kept as its own item
+        // immediately after item 5 rather than merged into it.
+        'health_recent_hospitalization' => [
+            'label' => 'Have you been confined in a hospital or undergone surgery recently?',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'health_glapi',
+            'type' => 'boolean',
+        ],
         'gl_health_q06_abnormal_labs' => [
             'label' => 'Abnormal laboratory or diagnostic test results',
             'owner' => self::OWNER_MEMBER,
@@ -427,23 +455,6 @@ class LoanRequestDataService
             'section' => 'health_glapi',
             'type' => 'string',
             'detail_of' => 'gl_health_q10_narcotics',
-        ],
-        'gl_health_q11_smoker' => [
-            'label' => 'Smokes or has ever smoked more than 10 cigarettes per day',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'health_glapi',
-            'type' => 'boolean',
-        ],
-        'gl_health_q11_smoker_details' => [
-            'label' => 'Smoking details',
-            'owner' => self::OWNER_MEMBER,
-            'sensitive' => true,
-            'required_on_submit' => false,
-            'section' => 'health_glapi',
-            'type' => 'string',
-            'detail_of' => 'gl_health_q11_smoker',
         ],
         'gl_health_q12_alcohol' => [
             'label' => 'Drinks more than 6 units of alcohol per day',
@@ -1237,8 +1248,8 @@ class LoanRequestDataService
      */
     private const SECTION_LABELS = [
         'insurance' => 'Insurance and beneficiaries',
-        'health' => 'Health declarations',
-        'health_glapi' => 'Generali health questionnaire',
+        'health' => 'Health Insurance Questionnaire',
+        'health_glapi' => 'Health Insurance Questionnaire',
         'banking' => 'Bank and payout information',
         'barangay' => 'Barangay information',
         'declarations' => 'Personal declarations and consent',
@@ -1511,6 +1522,17 @@ class LoanRequestDataService
         }
 
         return array_values(array_unique($changedFields));
+    }
+
+    /**
+     * Writes a system-derived value for a current field definition, bypassing
+     * the staff-correction audit trail. For one-time data migrations only
+     * (e.g. backfilling a redesigned field from a retired one) -- not a
+     * substitute for applyStaffUpdates() when a human is correcting a value.
+     */
+    public function backfillField(LoanRequest $loanRequest, string $fieldKey, mixed $value): LoanRequestDataEntry
+    {
+        return $this->persistField($loanRequest, $fieldKey, $value, confirmedByMember: false);
     }
 
     /**

@@ -51,12 +51,13 @@ class PsgcService
         }
 
         $needle = Str::lower($query);
+        $tokens = $this->searchTokens($needle);
         $matches = [];
 
         foreach ($birthplaces as $birthplace) {
             $name = $birthplace['name_lower'];
 
-            if (! str_contains($name, $needle)) {
+            if (! $this->matchesAllTokens($name, $tokens)) {
                 continue;
             }
 
@@ -128,12 +129,13 @@ class PsgcService
         }
 
         $needle = Str::lower($query);
+        $tokens = $this->searchTokens($needle);
         $matches = [];
 
         foreach ($provinces as $entry) {
             $name = $entry['name_lower'];
 
-            if (! str_contains($name, $needle)) {
+            if (! $this->matchesAllTokens($name, $tokens)) {
                 continue;
             }
 
@@ -208,6 +210,7 @@ class PsgcService
         }
 
         $needle = Str::lower($query);
+        $tokens = $this->searchTokens($needle);
         $provinceFilter = trim((string) $province);
         $provinceFilter = $provinceFilter !== '' ? Str::lower($provinceFilter) : '';
         $matches = [];
@@ -226,7 +229,7 @@ class PsgcService
                 }
             }
 
-            if (! str_contains($name, $needle)) {
+            if (! $this->matchesAllTokens($name, $tokens)) {
                 continue;
             }
 
@@ -271,6 +274,34 @@ class PsgcService
             'available' => true,
             'results' => $results,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchTokens(string $needle): array
+    {
+        return array_values(array_filter(
+            preg_split('/\s+/', trim($needle)) ?: [],
+            static fn (string $token): bool => $token !== '',
+        ));
+    }
+
+    /**
+     * Matches when every token appears somewhere in the name, regardless of
+     * order, so queries like "manila city" match "City of Manila".
+     *
+     * @param  list<string>  $tokens
+     */
+    private function matchesAllTokens(string $name, array $tokens): bool
+    {
+        foreach ($tokens as $token) {
+            if (! str_contains($name, $token)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

@@ -108,7 +108,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             ...$this->healthRow(1, 224.7, 'gl_health_q02b_respiratory'),
             ...$this->healthRow(1, 228.7, 'gl_health_q02c_cardiac'),
             ...$this->healthRow(1, 232.6, 'gl_health_q02d_digestive'),
-            ...$this->healthRow(1, 242.8, 'gl_health_q02e_diabetes_renal'),
+            ...$this->healthRow2e(1, 242.8),
             ...$this->healthRow(1, 246.8, 'gl_health_q02f_musculoskeletal'),
             ...$this->healthRow(1, 250.8, 'gl_health_q02g_oncology_blood'),
             ...$this->healthRow(1, 254.8, 'gl_health_q02h_dermatologic'),
@@ -135,7 +135,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             ...$this->healthRow(2, 71.2, 'gl_health_q08_blood_transfusion'),
             ...$this->healthRow(2, 78.9, 'gl_health_q09_other_disease'),
             ...$this->healthRow(2, 82.7, 'gl_health_q10_narcotics'),
-            ...$this->healthRow(2, 90.4, 'gl_health_q11_smoker'),
+            ...$this->healthRowSmoker(2, 90.4),
             ...$this->healthRow(2, 94.2, 'gl_health_q12_alcohol'),
             ...$this->healthRow(2, 101.9, 'gl_health_q13_advised_stop'),
             ...$this->healthRow(2, 109.5, 'gl_health_q14_current_medication'),
@@ -202,6 +202,73 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             [
                 'page' => $page, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => $y, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, $path) === false,
+            ],
+            [
+                'page' => $page, 'x' => self::HEALTH_DETAIL_X, 'y' => $y, 'size' => 8,
+                'width' => self::HEALTH_DETAIL_WIDTH, 'shrink_to_fit' => true, 'min_size' => 6.0,
+                'value' => static fn (array $d) => data_get($d, $detailPath),
+            ],
+        ];
+    }
+
+    /**
+     * Item 2e ("Diabetes/Kidney/Liver/Urinary condition") is one Y/N row on the
+     * printed form, but the wizard now collects it as 4 independent checkboxes --
+     * Y is checked if any of the four is true, N only once all four are answered
+     * false, and it's left blank while any of the four is still unanswered.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function healthRow2e(int $page, float $y): array
+    {
+        return $this->healthRowCustom($page, $y, static function (array $d): ?bool {
+            $answers = [
+                data_get($d, 'health_glapi.gl_health_q02e_diabetes'),
+                data_get($d, 'health_glapi.gl_health_q02e_kidney'),
+                data_get($d, 'health_glapi.gl_health_q02e_liver'),
+                data_get($d, 'health_glapi.gl_health_q02e_urinary'),
+            ];
+
+            if (in_array(true, $answers, true)) {
+                return true;
+            }
+
+            return in_array(null, $answers, true) ? null : false;
+        }, 'health_glapi.gl_health_q02e_diabetes_renal_details');
+    }
+
+    /**
+     * Item 11 ("Do you smoke more than 10 cigarettes a day?") is now derived from
+     * the wizard's 3-value health_smoking_status field -- only 'heavy' answers Yes,
+     * matching the original question's ">10/day" threshold exactly.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function healthRowSmoker(int $page, float $y): array
+    {
+        return $this->healthRowCustom($page, $y, static fn (array $d): ?bool => match (data_get($d, 'health.health_smoking_status')) {
+            'heavy' => true,
+            'none', 'light' => false,
+            default => null,
+        }, 'health_glapi.health_smoking_status_details');
+    }
+
+    /**
+     * Shared Y/N/"details" row builder for questions whose Yes/No answer is derived
+     * from something other than a single boolean field (tri-state: true/false/null).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function healthRowCustom(int $page, float $y, \Closure $resolveAnswer, string $detailPath): array
+    {
+        return [
+            [
+                'page' => $page, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => $y, 'size' => 7,
+                'value' => static fn (array $d) => $resolveAnswer($d) === true,
+            ],
+            [
+                'page' => $page, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => $y, 'size' => 7,
+                'value' => static fn (array $d) => $resolveAnswer($d) === false,
             ],
             [
                 'page' => $page, 'x' => self::HEALTH_DETAIL_X, 'y' => $y, 'size' => 8,

@@ -1844,7 +1844,7 @@ test('generali pdf route succeeds and is not a corrupted or fallback file', func
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_birthdate', 'date', '1989-03-15');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension', 'boolean', true);
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension_details', 'string', 'Controlled with medication');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'gl_health_q11_smoker', 'boolean', false);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_smoking_status', 'string', 'none');
 
     $response = $this
         ->actingAs($admin)
@@ -1870,7 +1870,7 @@ test('generali field map resolves applicant, beneficiary, and health data into t
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'beneficiary_primary_relationship', 'string', 'Spouse');
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension', 'boolean', true);
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_hypertension_details', 'string', 'Controlled with medication');
-    approvedLoanDocumentsPersistDataEntry($loanRequest, 'gl_health_q11_smoker', 'boolean', false);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'health_smoking_status', 'string', 'none');
 
     $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest);
 
@@ -1880,7 +1880,7 @@ test('generali field map resolves applicant, beneficiary, and health data into t
     expect(data_get($documentData, 'beneficiaries.0.relationship'))->toBe('Spouse');
     expect(data_get($documentData, 'health.health_hypertension'))->toBeTrue();
     expect(data_get($documentData, 'health_glapi.health_hypertension_details'))->toBe('Controlled with medication');
-    expect(data_get($documentData, 'health_glapi.gl_health_q11_smoker'))->toBeFalse();
+    expect(data_get($documentData, 'health.health_smoking_status'))->toBe('none');
 
     $fieldMap = new \App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
     $fields = $fieldMap->fields();
@@ -2166,18 +2166,22 @@ test('grepalife field map checks health answers when affirmative', function () {
 
     $documentDataYes = [
         'health' => [
-            'health_smoker' => 'yes',
+            'health_smoking_status' => 'light',
             'health_hypertension' => true,
-            'health_diabetes' => '1',
+        ],
+        'health_glapi' => [
+            'gl_health_q02e_diabetes' => '1',
             'health_recent_hospitalization' => 1,
         ],
     ];
 
     $documentDataNo = [
         'health' => [
-            'health_smoker' => 'no',
+            'health_smoking_status' => 'none',
             'health_hypertension' => false,
-            'health_diabetes' => '0',
+        ],
+        'health_glapi' => [
+            'gl_health_q02e_diabetes' => '0',
             'health_recent_hospitalization' => null,
         ],
     ];

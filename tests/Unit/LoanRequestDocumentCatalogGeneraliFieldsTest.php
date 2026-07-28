@@ -23,6 +23,6 @@ test('generali regenerates when a GLAPI health answer changes', function (string
     'health_hypertension',
     'health_hypertension_details',
     'gl_health_q01_weight_change',
-    'gl_health_q11_smoker',
+    'health_smoking_status',
     'gl_health_q17_with_glapi_amount',
 ]);

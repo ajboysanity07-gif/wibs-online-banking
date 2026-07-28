@@ -53,6 +53,7 @@ loan-workflow:smoke-test           End-to-end smoke test
 loan-workflow:send-reminders       Send pending notifications
 loan-workflow:cleanup-temp-files   Remove temp export files
 loan-requests:repair-owners        Fix orphaned request owners
+loan-requests:backfill-health-fields  Backfill health_smoking_status; report item 2e rows for review
 ```
 
 ## Hard Rules

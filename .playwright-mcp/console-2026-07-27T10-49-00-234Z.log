@@ -1,0 +1,5 @@
+[    1565ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/client/loans/request:53
+[    1757ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/client/loans/request:112
+[    5137ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/profile-photos/client/2/x3m5ZhKWRjUjLrMBBuAEoh4mnbev8R5KhUK0JiWO.jpg:0
+[  118387ms] [WARNING] Select is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component. @ http://localhost:8000/client/loans/request:112
+[  250362ms] [WARNING] Select is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component. @ http://localhost:8000/client/loans/request:112

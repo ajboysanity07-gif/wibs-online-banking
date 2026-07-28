@@ -1,0 +1,194 @@
+- generic:
+  - generic:
+    - region "Notifications alt+T"
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - list:
+                - listitem:
+                  - link:
+                    - /url: /client/dashboard
+                    - generic: Member Portal
+            - generic:
+              - generic:
+                - button [expanded]:
+                  - generic: Member Portal
+                - generic:
+                  - generic:
+                    - generic:
+                      - list:
+                        - listitem:
+                          - link:
+                            - /url: /client/dashboard
+                            - generic: Overview
+                        - listitem:
+                          - link:
+                            - /url: /client/loans
+                            - generic: Loans
+                        - listitem:
+                          - link:
+                            - /url: /client/savings
+                            - generic: Loan Security
+                        - listitem:
+                          - link:
+                            - /url: /client/loans/requests
+                            - generic: Loan requests
+                        - listitem:
+                          - link:
+                            - /url: /settings/profile
+                            - generic: Settings
+            - generic:
+              - generic:
+                - generic:
+                  - list:
+                    - listitem:
+                      - link:
+                        - /url: https://github.com/laravel/react-starter-kit
+                        - generic: Repository
+                    - listitem:
+                      - link:
+                        - /url: https://laravel.com/docs/starter-kits#react
+                        - generic: Documentation
+              - list:
+                - listitem:
+                  - button:
+                    - generic: B
+                    - generic: browsertest1
+      - main:
+        - generic:
+          - generic:
+            - button:
+              - generic: Toggle Sidebar
+            - navigation:
+              - list:
+                - listitem:
+                  - link [disabled]: Profile settings
+          - generic:
+            - button
+        - heading [level=1]: Profile Settings
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - paragraph: Settings
+                - generic:
+                  - heading [level=1]: Settings
+                  - paragraph: Manage your profile, security, and appearance settings.
+          - navigation:
+            - link:
+              - /url: /settings/profile
+              - text: Profile
+            - link:
+              - /url: /settings/security
+              - text: Security
+            - link:
+              - /url: /settings/appearance
+              - text: Appearance
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=2]: Profile information
+                    - paragraph: Update your profile details, photo, and contact information
+                  - generic: Profile incomplete
+                - alert:
+                  - generic: Complete your profile to continue
+                  - generic: Add the personal and work details below to unlock your client dashboard.
+                - alert:
+                  - generic: Missing required details
+                  - generic:
+                    - paragraph: "Complete the following required fields to finish onboarding:"
+                    - list:
+                      - listitem: Birthplace city
+                      - listitem: Educational attainment
+                      - listitem: Length of stay
+                      - listitem: Employment type
+                      - listitem: Employer or business name
+                      - listitem: Current position
+                      - listitem: Gross monthly income
+                      - listitem: Payday
+                - generic:
+                  - generic:
+                    - generic:
+                      - tablist:
+                        - tab: Account
+                        - tab: Personal
+                        - tab: Work & Finances
+                        - tab [selected]: Bank & Payout
+                        - tab: Dependents
+                      - generic: Step 4 of 5
+                    - tabpanel:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - heading [level=3]: Bank & Payout
+                            - paragraph: Keep your payout bank account details up to date. These are used to pre-fill future loan requests.
+                          - generic:
+                            - generic:
+                              - generic: Bank name
+                              - textbox:
+                                - /placeholder: Bank name
+                            - generic:
+                              - generic: Bank branch
+                              - textbox:
+                                - /placeholder: Bank branch
+                            - generic:
+                              - generic: Account name
+                              - textbox:
+                                - /placeholder: Account name
+                            - generic:
+                              - generic: Account number
+                              - textbox:
+                                - /placeholder: Account number
+                            - generic:
+                              - generic: Account type
+                              - textbox:
+                                - /placeholder: e.g. Savings
+                            - generic:
+                              - generic: Release method
+                              - combobox [expanded]:
+                                - generic: ATM
+                              - combobox
+                            - generic:
+                              - generic: ATM card number
+                              - textbox:
+                                - /placeholder: ATM card number
+                            - generic:
+                              - generic: ATM card holder name (if not you)
+                              - generic:
+                                - checkbox
+                                - checkbox
+                                - generic: This is my own ATM card
+                              - textbox:
+                                - /placeholder: ATM card holder name
+                        - generic:
+                          - generic:
+                            - heading [level=3]: Source of Funds & Government ID
+                            - paragraph: Required before you can start a loan request.
+                          - generic:
+                            - generic:
+                              - generic: Source of fund / wealth
+                              - textbox:
+                                - /placeholder: e.g. Salary, business income
+                            - generic:
+                              - generic: Government ID type
+                              - combobox:
+                                - generic: Select ID type
+                              - combobox
+                            - generic:
+                              - generic: ID number
+                              - textbox:
+                                - /placeholder: ID number
+                  - generic:
+                    - generic:
+                      - button: Previous
+                      - button: Next
+                      - button: Save
+  - listbox [ref=f2e230]:
+    - option "ATM" [active] [selected] [ref=f2e231]
+    - option "Bank Transfer" [ref=f2e235]
+    - option "Check" [ref=f2e238]
+    - option "Cash" [ref=f2e241]

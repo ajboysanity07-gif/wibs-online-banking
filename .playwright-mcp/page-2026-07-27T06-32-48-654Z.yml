@@ -1,0 +1,157 @@
+- generic [ref=f2e2]:
+  - region "Notifications alt+T"
+  - generic [ref=f2e3]:
+    - generic [ref=f2e7]:
+      - list [ref=f2e9]:
+        - listitem [ref=f2e10]:
+          - link "Member Portal - Microfinance for Rural Development Inc. Member Portal" [ref=f2e11] [cursor=pointer]:
+            - /url: /client/dashboard
+            - generic [ref=f2e12]:
+              - img "Member Portal - Microfinance for Rural Development Inc." [ref=f2e13]
+              - generic [ref=f2e14]: Member Portal
+      - generic [ref=f2e17]:
+        - button "Member Portal" [expanded] [ref=f2e18]
+        - list [ref=f2e25]:
+          - listitem [ref=f2e26]:
+            - link "Overview" [ref=f2e27] [cursor=pointer]:
+              - /url: /client/dashboard
+          - listitem [ref=f2e34]:
+            - link "Loans" [ref=f2e35] [cursor=pointer]:
+              - /url: /client/loans
+          - listitem [ref=f2e40]:
+            - link "Loan Security" [ref=f2e41] [cursor=pointer]:
+              - /url: /client/savings
+          - listitem [ref=f2e46]:
+            - link "Loan requests" [ref=f2e47] [cursor=pointer]:
+              - /url: /client/loans/requests
+          - listitem [ref=f2e52]:
+            - link "Settings" [ref=f2e53] [cursor=pointer]:
+              - /url: /settings/profile
+      - generic [ref=f2e58]:
+        - list [ref=f2e61]:
+          - listitem [ref=f2e62]:
+            - link "Repository" [ref=f2e63] [cursor=pointer]:
+              - /url: https://github.com/laravel/react-starter-kit
+          - listitem [ref=f2e67]:
+            - link "Documentation" [ref=f2e68] [cursor=pointer]:
+              - /url: https://laravel.com/docs/starter-kits#react
+        - list [ref=f2e72]:
+          - listitem [ref=f2e73]:
+            - button "B browsertest1" [ref=f2e74]:
+              - generic [ref=f2e75]: B
+              - generic [ref=f2e77]: browsertest1
+    - main [ref=f2e82]:
+      - generic [ref=f2e83]:
+        - generic [ref=f2e84]:
+          - button "Toggle Sidebar" [ref=f2e85]
+          - navigation "breadcrumb" [ref=f2e87]:
+            - list [ref=f2e88]:
+              - listitem [ref=f2e89]:
+                - link "Profile settings" [disabled] [ref=f2e90]
+        - button "Notifications" [ref=f2e92]
+      - heading "Profile Settings" [level=1] [ref=f2e93]
+      - generic [ref=f2e94]:
+        - generic [ref=f2e97]:
+          - paragraph [ref=f2e98]: Settings
+          - generic [ref=f2e99]:
+            - heading "Settings" [level=1] [ref=f2e100]
+            - paragraph [ref=f2e101]: Manage your profile, security, and appearance settings.
+        - navigation "Settings" [ref=f2e102]:
+          - link "Profile" [ref=f2e103] [cursor=pointer]:
+            - /url: /settings/profile
+          - link "Security" [ref=f2e104] [cursor=pointer]:
+            - /url: /settings/security
+          - link "Appearance" [ref=f2e105] [cursor=pointer]:
+            - /url: /settings/appearance
+        - generic [ref=f2e108]:
+          - generic [ref=f2e109]:
+            - generic [ref=f2e110]:
+              - heading "Profile information" [level=2] [ref=f2e111]
+              - paragraph [ref=f2e112]: Update your profile details, photo, and contact information
+            - generic [ref=f2e113]: Profile incomplete
+          - alert [ref=f2e114]:
+            - generic [ref=f2e115]: Complete your profile to continue
+            - generic [ref=f2e116]: Add the personal and work details below to unlock your client dashboard.
+          - alert [ref=f2e117]:
+            - generic [ref=f2e118]: Missing required details
+            - generic [ref=f2e119]:
+              - paragraph [ref=f2e120]: "Complete the following required fields to finish onboarding:"
+              - list [ref=f2e121]:
+                - listitem [ref=f2e122]: Birthplace city
+                - listitem [ref=f2e123]: Educational attainment
+                - listitem [ref=f2e124]: Length of stay
+                - listitem [ref=f2e125]: Employment type
+                - listitem [ref=f2e126]: Employer or business name
+                - listitem [ref=f2e127]: Current position
+                - listitem [ref=f2e128]: Gross monthly income
+                - listitem [ref=f2e129]: Payday
+          - generic [ref=f2e130]:
+            - generic [ref=f2e131]:
+              - generic [ref=f2e132]:
+                - tablist [ref=f2e133]:
+                  - tab "Account" [ref=f2e134]
+                  - tab "Personal" [ref=f2e135]
+                  - tab "Work & Finances" [ref=f2e136]
+                  - tab "Bank & Payout" [selected] [ref=f2e137]
+                  - tab "Dependents" [ref=f2e138]
+                - generic [ref=f2e139]: Step 4 of 5
+              - tabpanel [ref=f2e179]:
+                - generic [ref=f2e180]:
+                  - generic [ref=f2e181]:
+                    - generic [ref=f2e182]:
+                      - heading "Bank & Payout" [level=3] [ref=f2e183]
+                      - paragraph [ref=f2e184]: Keep your payout bank account details up to date. These are used to pre-fill future loan requests.
+                    - generic [ref=f2e185]:
+                      - generic [ref=f2e186]:
+                        - generic [ref=f2e187]: Bank name
+                        - textbox "Bank name" [ref=f2e188]
+                      - generic [ref=f2e189]:
+                        - generic [ref=f2e190]: Bank branch
+                        - textbox "Bank branch" [ref=f2e191]
+                      - generic [ref=f2e192]:
+                        - generic [ref=f2e193]: Account name
+                        - textbox "Account name" [ref=f2e194]
+                      - generic [ref=f2e195]:
+                        - generic [ref=f2e196]: Account number
+                        - textbox "Account number" [ref=f2e197]
+                      - generic [ref=f2e198]:
+                        - generic [ref=f2e199]: Account type
+                        - textbox "Account type" [ref=f2e200]:
+                          - /placeholder: e.g. Savings
+                      - generic [ref=f2e201]:
+                        - generic [ref=f2e202]: Release method
+                        - combobox "Release method" [ref=f2e203]:
+                          - generic: ATM
+                        - combobox [ref=f2e204]
+                      - generic [ref=f2e205]:
+                        - generic [ref=f2e206]: ATM card number
+                        - textbox "ATM card number" [ref=f2e207]
+                      - generic [ref=f2e208]:
+                        - generic [ref=f2e209]: ATM card holder name (if not you)
+                        - generic [ref=f2e210]:
+                          - checkbox "This is my own ATM card" [active] [ref=f2e211]
+                          - checkbox
+                          - generic [ref=f2e212]: This is my own ATM card
+                        - textbox "ATM card holder name (if not you)" [ref=f2e213]:
+                          - /placeholder: ATM card holder name
+                  - generic [ref=f2e214]:
+                    - generic [ref=f2e215]:
+                      - heading "Source of Funds & Government ID" [level=3] [ref=f2e216]
+                      - paragraph [ref=f2e217]: Required before you can start a loan request.
+                    - generic [ref=f2e218]:
+                      - generic [ref=f2e219]:
+                        - generic [ref=f2e220]: Source of fund / wealth
+                        - textbox "Source of fund / wealth" [ref=f2e221]:
+                          - /placeholder: e.g. Salary, business income
+                      - generic [ref=f2e222]:
+                        - generic [ref=f2e223]: Government ID type
+                        - combobox "Government ID type" [ref=f2e224]:
+                          - generic: Select ID type
+                        - combobox [ref=f2e225]
+                      - generic [ref=f2e226]:
+                        - generic [ref=f2e227]: ID number
+                        - textbox "ID number" [ref=f2e228]
+            - generic [ref=f2e176]:
+              - button "Previous" [ref=f2e229]
+              - button "Next" [ref=f2e177]
+              - button "Save" [ref=f2e178]

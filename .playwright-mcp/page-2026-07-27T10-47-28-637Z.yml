@@ -1,0 +1,39 @@
+- generic [ref=f77e2]:
+  - region "Notifications alt+T"
+  - generic [ref=f77e6]:
+    - generic [ref=f77e7]:
+      - link "Member Portal - Microfinance for Rural Development Inc. Member Portal Log in to your account" [ref=f77e8] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f77e9]:
+          - img "Member Portal - Microfinance for Rural Development Inc." [ref=f77e10]
+          - generic [ref=f77e11]: Member Portal
+        - generic [ref=f77e13]: Log in to your account
+      - generic [ref=f77e14]:
+        - heading "Log in to your account" [level=1] [ref=f77e15]
+        - paragraph [ref=f77e16]: Enter your email or username and password below to log in
+    - generic [ref=f77e17]:
+      - generic [ref=f77e18]:
+        - generic [ref=f77e19]:
+          - generic [ref=f77e20]: Email address or username
+          - textbox "Email address or username" [ref=f77e21]:
+            - /placeholder: email@example.com or username
+            - text: ebi_mis7699@yahoo.com
+        - generic [ref=f77e22]:
+          - generic [ref=f77e23]: Password
+          - generic [ref=f77e24]:
+            - textbox "Password" [ref=f77e25]: password
+            - button "Show password" [ref=f77e26]
+          - generic [ref=f77e27]:
+            - generic [ref=f77e28]:
+              - checkbox "Remember me" [ref=f77e29]
+              - checkbox
+              - generic [ref=f77e30]: Remember me
+            - link "Forgot password?" [ref=f77e31] [cursor=pointer]:
+              - /url: /forgot-password
+        - button "Loading Log in" [disabled]:
+          - status "Loading"
+          - text: Log in
+      - generic [ref=f77e33]:
+        - text: Don't have an account?
+        - link "Sign up" [ref=f77e34] [cursor=pointer]:
+          - /url: /register

@@ -1106,7 +1106,7 @@ export function LoanRequestDetailPage({
                   format: 'PDF',
               },
               {
-                  label: 'Generali (GLAPI) Health Statement PDF',
+                  label: 'Generali Health Statement PDF',
                   href: approvedDocumentHrefs.generali,
                   format: 'PDF',
               },

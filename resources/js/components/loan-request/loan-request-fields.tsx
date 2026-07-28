@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
+import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { Input } from '@/components/ui/input';
@@ -331,18 +332,16 @@ export function LoanRequestPersonalFields({
                         label="Birthdate"
                         isReadOnly={isReadOnly('birthdate')}
                     />
-                    <Input
+                    <BirthdateInput
                         id={`${prefix}_birthdate`}
-                        type="date"
                         name={fieldName(prefix, 'birthdate')}
                         value={values.birthdate}
                         readOnly={isReadOnly('birthdate')}
                         required
                         className={cn(
-                            'mt-1 block w-full',
                             isReadOnly('birthdate') && readOnlyInputClass,
                         )}
-                        onChange={updateField('birthdate')}
+                        onValueChange={(value) => onChange('birthdate', value)}
                     />
                     <InputError
                         message={fieldError(errors, prefix, 'birthdate')}

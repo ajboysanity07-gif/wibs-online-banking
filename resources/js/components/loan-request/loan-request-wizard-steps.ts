@@ -121,37 +121,27 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
     },
     {
         id: 'health',
-        title: 'Health declarations',
-        description:
-            'Complete the required health declarations for the request.',
+        title: 'Health Insurance Questionnaire (1 of 4)',
+        description: 'Answer the Health Insurance Questionnaire questions.',
         group: 'insurance-health',
-    },
-    {
-        id: 'health-glapi-1',
-        title: 'Generali health (1 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
-        group: 'insurance-health',
+        sidebarLabel: 'Health Insurance Questionnaire',
     },
     {
         id: 'health-glapi-2',
-        title: 'Generali health (2 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
+        title: 'Health Insurance Questionnaire (2 of 4)',
+        description: 'Answer the Health Insurance Questionnaire questions.',
         group: 'insurance-health',
     },
     {
         id: 'health-glapi-3',
-        title: 'Generali health (3 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
+        title: 'Health Insurance Questionnaire (3 of 4)',
+        description: 'Answer the Health Insurance Questionnaire questions.',
         group: 'insurance-health',
     },
     {
         id: 'health-glapi-4',
-        title: 'Generali health (4 of 4)',
-        description:
-            'Answer the Generali (GLAPI) health declaration questions.',
+        title: 'Health Insurance Questionnaire (4 of 4)',
+        description: 'Answer the Health Insurance Questionnaire questions.',
         group: 'insurance-health',
     },
     {

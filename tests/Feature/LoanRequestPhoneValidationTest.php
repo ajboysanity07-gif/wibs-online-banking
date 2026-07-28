@@ -80,11 +80,11 @@ function loanRequestPayload(): array
             'beneficiary_secondary_relationship' => 'Parent',
         ],
         'health' => [
-            'health_smoker' => false,
+            'health_smoking_status' => 'none',
             'health_hypertension' => false,
-            'health_diabetes' => false,
+        ],
+        'health_glapi' => [
             'health_recent_hospitalization' => false,
-            'health_declaration_notes' => null,
         ],
         'authorization' => [
             'authorized_recipient_name' => 'Authorized Recipient',

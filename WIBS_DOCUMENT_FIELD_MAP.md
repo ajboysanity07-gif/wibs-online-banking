@@ -196,8 +196,8 @@ gone; see git history (commit range around this note) if it's ever needed for re
 |-------|-----|--------|------------|
 | Q1: Smoker (Yes/No) | M | ✅ | `health.health_smoker` via `healthChecked()` ⚠️ coordinates need calibration |
 | Q2: Hypertension (Yes/No) | M | ✅ | `health.health_hypertension` via `healthChecked()` ⚠️ coordinates need calibration |
-| Q3: Diabetes (Yes/No) | M | ✅ | `health.health_diabetes` via `healthChecked()` ⚠️ coordinates need calibration |
-| Q4: Recent hospitalization (Yes/No) | M | ✅ | `health.health_recent_hospitalization` via `healthChecked()` ⚠️ coordinates need calibration |
+| Q3: Diabetes (Yes/No) | M | ✅ | `health_glapi.gl_health_q02e_diabetes` via `healthChecked()` ⚠️ coordinates need calibration |
+| Q4: Recent hospitalization (Yes/No) | M | ✅ | `health_glapi.health_recent_hospitalization` via `healthChecked()` ⚠️ coordinates need calibration |
 | Physician name | M | ❌ | **MISSING** — not in GL field map; not in FIELD_DEFINITIONS (app does not collect) |
 | Physician address | M | ❌ | **MISSING** — same as above |
 | Date seen | M | ❌ | **MISSING** — same as above |

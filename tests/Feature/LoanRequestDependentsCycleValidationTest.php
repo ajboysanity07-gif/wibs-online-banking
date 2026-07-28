@@ -175,13 +175,12 @@ test('store endpoint requires cycle number when cycle status is Old', function (
                 'beneficiary_primary_birthdate' => '1992-01-01',
             ],
             'health' => [
-                'health_smoker' => false,
+                'health_smoking_status' => 'none',
                 'health_hypertension' => false,
-                'health_diabetes' => false,
-                'health_recent_hospitalization' => false,
-                'health_declaration_notes' => null,
             ],
-            'health_glapi' => [],
+            'health_glapi' => [
+                'health_recent_hospitalization' => false,
+            ],
             'banking' => [
                 'payout_bank_name' => 'WIBS Cooperative Bank',
                 'payout_account_name' => 'Loan Member',

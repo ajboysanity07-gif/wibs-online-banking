@@ -766,11 +766,12 @@ function acceptanceLoanRequestPayload(): array
             'beneficiary_secondary_birthdate' => '1970-11-04',
         ],
         'health' => [
-            'health_smoker' => false,
+            'health_smoking_status' => 'none',
             'health_hypertension' => false,
-            'health_diabetes' => false,
+        ],
+        'health_glapi' => [
+            'gl_health_q02e_diabetes' => false,
             'health_recent_hospitalization' => false,
-            'health_declaration_notes' => null,
         ],
         'banking' => [
             'payout_bank_name' => 'WIBS Cooperative Bank',

@@ -472,7 +472,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'x' => 45.0,
                 'y' => 165.0,
                 'size' => 6.4,
-                'value' => $this->healthChecked('health_smoker'),
+                'value' => $this->healthCheckedSmoking(),
             ],
             [
                 'type' => 'check',
@@ -488,7 +488,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'x' => 45.0,
                 'y' => 177.0,
                 'size' => 6.4,
-                'value' => $this->healthChecked('health_diabetes'),
+                'value' => $this->healthChecked('gl_health_q02e_diabetes', 'health_glapi'),
             ],
             [
                 'type' => 'check',
@@ -496,15 +496,15 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'x' => 45.0,
                 'y' => 183.0,
                 'size' => 6.4,
-                'value' => $this->healthChecked('health_recent_hospitalization'),
+                'value' => $this->healthChecked('health_recent_hospitalization', 'health_glapi'),
             ],
         ];
     }
 
-    private function healthChecked(string $key): callable
+    private function healthChecked(string $key, string $section = 'health'): callable
     {
-        return static function (array $documentData) use ($key): bool {
-            $value = data_get($documentData, 'health.'.$key);
+        return static function (array $documentData) use ($key, $section): bool {
+            $value = data_get($documentData, $section.'.'.$key);
 
             if ($value === null || $value === false || $value === 0 || $value === '') {
                 return false;
@@ -515,6 +515,19 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
             }
 
             return (bool) $value;
+        };
+    }
+
+    /**
+     * GREPALIFE's smoker checkbox is now derived from the wizard's 3-value
+     * health_smoking_status field -- any answer other than 'none' checks Yes.
+     */
+    private function healthCheckedSmoking(): callable
+    {
+        return static function (array $documentData): bool {
+            $value = data_get($documentData, 'health.health_smoking_status');
+
+            return is_string($value) && $value !== 'none';
         };
     }
 

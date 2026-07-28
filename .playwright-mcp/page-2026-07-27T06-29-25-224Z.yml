@@ -1,0 +1,157 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e35]:
+    - generic [ref=e39]:
+      - list [ref=e41]:
+        - listitem [ref=e42]:
+          - link "Member Portal - Microfinance for Rural Development Inc. Member Portal" [ref=e43] [cursor=pointer]:
+            - /url: /client/dashboard
+            - generic [ref=e44]:
+              - img "Member Portal - Microfinance for Rural Development Inc." [ref=e45]
+              - generic [ref=e46]: Member Portal
+      - generic [ref=e49]:
+        - button "Member Portal" [expanded] [ref=e50]
+        - list [ref=e57]:
+          - listitem [ref=e58]:
+            - link "Overview" [ref=e59] [cursor=pointer]:
+              - /url: /client/dashboard
+          - listitem [ref=e66]:
+            - link "Loans" [ref=e67] [cursor=pointer]:
+              - /url: /client/loans
+          - listitem [ref=e72]:
+            - link "Loan Security" [ref=e73] [cursor=pointer]:
+              - /url: /client/savings
+          - listitem [ref=e78]:
+            - link "Loan requests" [ref=e79] [cursor=pointer]:
+              - /url: /client/loans/requests
+          - listitem [ref=e84]:
+            - link "Settings" [ref=e85] [cursor=pointer]:
+              - /url: /settings/profile
+      - generic [ref=e90]:
+        - list [ref=e93]:
+          - listitem [ref=e94]:
+            - link "Repository" [ref=e95] [cursor=pointer]:
+              - /url: https://github.com/laravel/react-starter-kit
+          - listitem [ref=e99]:
+            - link "Documentation" [ref=e100] [cursor=pointer]:
+              - /url: https://laravel.com/docs/starter-kits#react
+        - list [ref=e104]:
+          - listitem [ref=e105]:
+            - button "B browsertest1" [ref=e106]:
+              - generic [ref=e107]: B
+              - generic [ref=e109]: browsertest1
+    - main [ref=e114]:
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - button "Toggle Sidebar" [ref=e117]
+          - navigation "breadcrumb" [ref=e119]:
+            - list [ref=e120]:
+              - listitem [ref=e121]:
+                - link "Profile settings" [disabled] [ref=e122]
+        - button "Notifications" [ref=e124]
+      - heading "Profile Settings" [level=1] [ref=e125]
+      - generic [ref=e126]:
+        - generic [ref=e129]:
+          - paragraph [ref=e130]: Settings
+          - generic [ref=e131]:
+            - heading "Settings" [level=1] [ref=e132]
+            - paragraph [ref=e133]: Manage your profile, security, and appearance settings.
+        - navigation "Settings" [ref=e134]:
+          - link "Profile" [ref=e135] [cursor=pointer]:
+            - /url: /settings/profile
+          - link "Security" [ref=e136] [cursor=pointer]:
+            - /url: /settings/security
+          - link "Appearance" [ref=e137] [cursor=pointer]:
+            - /url: /settings/appearance
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - generic [ref=e142]:
+              - heading "Profile information" [level=2] [ref=e143]
+              - paragraph [ref=e144]: Update your profile details, photo, and contact information
+            - generic [ref=e145]: Profile incomplete
+          - alert [ref=e146]:
+            - generic [ref=e147]: Complete your profile to continue
+            - generic [ref=e148]: Add the personal and work details below to unlock your client dashboard.
+          - alert [ref=e149]:
+            - generic [ref=e150]: Missing required details
+            - generic [ref=e151]:
+              - paragraph [ref=e152]: "Complete the following required fields to finish onboarding:"
+              - list [ref=e153]:
+                - listitem [ref=e154]: Birthplace city
+                - listitem [ref=e155]: Educational attainment
+                - listitem [ref=e156]: Length of stay
+                - listitem [ref=e157]: Employment type
+                - listitem [ref=e158]: Employer or business name
+                - listitem [ref=e159]: Current position
+                - listitem [ref=e160]: Gross monthly income
+                - listitem [ref=e161]: Payday
+          - generic [ref=e162]:
+            - generic [ref=e163]:
+              - generic [ref=e164]:
+                - tablist [ref=e165]:
+                  - tab "Account" [ref=e166]
+                  - tab "Personal" [ref=e167]
+                  - tab "Work & Finances" [ref=e168]
+                  - tab "Bank & Payout" [active] [selected] [ref=e169]
+                  - tab "Dependents" [ref=e170]
+                - generic [ref=e171]: Step 4 of 5
+              - tabpanel [ref=e211]:
+                - generic [ref=e212]:
+                  - generic [ref=e213]:
+                    - generic [ref=e214]:
+                      - heading "Bank & Payout" [level=3] [ref=e215]
+                      - paragraph [ref=e216]: Keep your payout bank account details up to date. These are used to pre-fill future loan requests.
+                    - generic [ref=e217]:
+                      - generic [ref=e218]:
+                        - generic [ref=e219]: Bank name
+                        - textbox "Bank name" [ref=e220]
+                      - generic [ref=e221]:
+                        - generic [ref=e222]: Bank branch
+                        - textbox "Bank branch" [ref=e223]
+                      - generic [ref=e224]:
+                        - generic [ref=e225]: Account name
+                        - textbox "Account name" [ref=e226]
+                      - generic [ref=e227]:
+                        - generic [ref=e228]: Account number
+                        - textbox "Account number" [ref=e229]
+                      - generic [ref=e230]:
+                        - generic [ref=e231]: Account type
+                        - textbox "Account type" [ref=e232]:
+                          - /placeholder: e.g. Savings
+                      - generic [ref=e233]:
+                        - generic [ref=e234]: Release method
+                        - combobox "Release method" [ref=e235]:
+                          - generic: Select release method
+                        - combobox [ref=e236]
+                      - generic [ref=e237]:
+                        - generic [ref=e238]: ATM card number
+                        - textbox "ATM card number" [ref=e239]
+                      - generic [ref=e240]:
+                        - generic [ref=e241]: ATM card holder name (if not you)
+                        - generic [ref=e242]:
+                          - checkbox "This is my own ATM card" [checked] [ref=e243]
+                          - checkbox [checked]
+                          - generic [ref=e244]: This is my own ATM card
+                        - textbox "ATM card holder name (if not you)" [disabled]:
+                          - /placeholder: ATM card holder name
+                  - generic [ref=e245]:
+                    - generic [ref=e246]:
+                      - heading "Source of Funds & Government ID" [level=3] [ref=e247]
+                      - paragraph [ref=e248]: Required before you can start a loan request.
+                    - generic [ref=e249]:
+                      - generic [ref=e250]:
+                        - generic [ref=e251]: Source of fund / wealth
+                        - textbox "Source of fund / wealth" [ref=e252]:
+                          - /placeholder: e.g. Salary, business income
+                      - generic [ref=e253]:
+                        - generic [ref=e254]: Government ID type
+                        - combobox "Government ID type" [ref=e255]:
+                          - generic: Select ID type
+                        - combobox [ref=e256]
+                      - generic [ref=e257]:
+                        - generic [ref=e258]: ID number
+                        - textbox "ID number" [ref=e259]
+            - generic [ref=e208]:
+              - button "Previous" [ref=e260]
+              - button "Next" [ref=e209]
+              - button "Save" [ref=e210]

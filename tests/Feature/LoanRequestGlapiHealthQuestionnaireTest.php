@@ -64,9 +64,28 @@ test('health_glapi section exposes detail_of pairings and the sex-conditional it
     expect($fields['health_hypertension_details']['detail_of'])
         ->toBe('health_hypertension');
 
-    // Item #5 and #11 stay distinct from the GREPALIFE booleans they overlap with.
+    // Item #11 (smoking) was merged into the 'health' section's
+    // health_smoking_status field; only its details companion still lives here.
+    expect($fields)->not->toHaveKey('gl_health_q11_smoker');
+    expect($fields)->toHaveKey('health_smoking_status_details');
+    expect($fields['health_smoking_status_details']['detail_of'])
+        ->toBe('health_smoking_status');
+
+    // Item #5 stays distinct from the GREPALIFE boolean it overlaps with.
     expect($fields)->toHaveKey('gl_health_q05_confinement_5yr');
-    expect($fields)->toHaveKey('gl_health_q11_smoker');
+
+    // Item #2e's diabetes/kidney/liver/urinary cluster shares one details field.
+    expect($fields)->toHaveKey('gl_health_q02e_diabetes');
+    expect($fields)->toHaveKey('gl_health_q02e_kidney');
+    expect($fields)->toHaveKey('gl_health_q02e_liver');
+    expect($fields)->toHaveKey('gl_health_q02e_urinary');
+    expect($fields['gl_health_q02e_diabetes_renal_details']['detail_of'])
+        ->toBe([
+            'gl_health_q02e_diabetes',
+            'gl_health_q02e_kidney',
+            'gl_health_q02e_liver',
+            'gl_health_q02e_urinary',
+        ]);
 
     // Item #15 (pregnancy) is conditional on applicant.sex === Female.
     expect($fields['gl_health_q15_pregnancy']['visible_when'])->toBe([
@@ -79,6 +98,44 @@ test('health_glapi section exposes detail_of pairings and the sex-conditional it
         ->toBe('gl_health_q17_pending_reinstatement');
     expect($fields['gl_health_q17_with_glapi_amount']['detail_of'])
         ->toBe('gl_health_q17_with_glapi');
+});
+
+test('recent hospitalization is its own item positioned immediately after item #5', function (): void {
+    $definitions = (new LoanRequestDataService)->sectionDefinitions();
+    $fields = $definitions['health_glapi']['fields'];
+
+    expect($fields)->toHaveKey('health_recent_hospitalization');
+    expect($fields['health_recent_hospitalization']['detail_of'])->toBeNull();
+
+    // Field-definition insertion order drives the wizard's displayed
+    // sequence (getGlapiItemGroups/buildGlapiSequence derive it purely
+    // from this order), so the new item must sit directly between item
+    // #5's group (including its _details companion) and item #6.
+    $rootKeys = array_values(array_filter(
+        array_keys($fields),
+        static fn (string $key): bool => ! isset($fields[$key]['detail_of']),
+    ));
+
+    $hospitalizationIndex = array_search('health_recent_hospitalization', $rootKeys, true);
+    $item5Index = array_search('gl_health_q05_confinement_5yr', $rootKeys, true);
+    $item6Index = array_search('gl_health_q06_abnormal_labs', $rootKeys, true);
+
+    expect($hospitalizationIndex)->toBe($item5Index + 1);
+    expect($item6Index)->toBe($hospitalizationIndex + 1);
+});
+
+test('smoking status and hypertension render as proper first-person questions, not raw labels', function (): void {
+    $definitions = (new LoanRequestDataService)->sectionDefinitions();
+    $fields = $definitions['health']['fields'];
+
+    expect($fields['health_smoking_status']['label'])
+        ->toBe('Do you currently smoke cigarettes?');
+
+    expect($fields['health_hypertension']['label'])
+        ->toBe('Have you ever been diagnosed with or treated for hypertension (high blood pressure)?');
+
+    expect($definitions['health_glapi']['fields']['health_recent_hospitalization']['label'])
+        ->toBe('Have you been confined in a hospital or undergone surgery recently?');
 });
 
 test('none of the health_glapi fields block member submission yet', function (): void {
@@ -110,9 +167,16 @@ test('draft endpoint persists health_glapi boolean, detail, and amount fields', 
 
     $this->actingAs($member)
         ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'health' => [
+                'health_smoking_status' => 'light',
+            ],
             'health_glapi' => [
                 'gl_health_q01_weight_change' => true,
                 'gl_health_q01_weight_change_details' => 'Lost 6 lbs after illness.',
+                'health_smoking_status_details' => 'About 5 sticks a day.',
+                'gl_health_q02e_kidney' => true,
+                'gl_health_q02e_liver' => true,
+                'gl_health_q02e_diabetes_renal_details' => 'Kidney stones (2023), mild liver enzymes.',
                 'gl_health_q17_pending_reinstatement' => true,
                 'gl_health_q17_with_glapi' => true,
                 'gl_health_q17_with_glapi_amount' => '15000.50',
@@ -127,6 +191,31 @@ test('draft endpoint persists health_glapi boolean, detail, and amount fields', 
     expect($values->get('gl_health_q01_weight_change_details'))
         ->toBe('Lost 6 lbs after illness.');
     expect($values->get('gl_health_q17_with_glapi_amount'))->toBe('15000.50');
+    expect($values->get('health_smoking_status'))->toBe('light');
+    expect($values->get('health_smoking_status_details'))
+        ->toBe('About 5 sticks a day.');
+    expect($values->get('gl_health_q02e_kidney'))->toBeTrue();
+    expect($values->get('gl_health_q02e_liver'))->toBeTrue();
+    expect($values->get('gl_health_q02e_diabetes'))->not->toBeTrue();
+    expect($values->get('gl_health_q02e_diabetes_renal_details'))
+        ->toBe('Kidney stones (2023), mild liver enzymes.');
+});
+
+test('save-draft rejects an invalid health_smoking_status value', function (): void {
+    $member = createGlapiTestMember('002105');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'health' => [
+                'health_smoking_status' => 'sometimes',
+            ],
+        ])
+        ->assertUnprocessable();
 });
 
 test('draft endpoint rejects an unknown health_glapi key', function (): void {

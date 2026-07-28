@@ -1,0 +1,228 @@
+- generic:
+  - generic:
+    - region "Notifications alt+T"
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - list:
+                - listitem:
+                  - link:
+                    - /url: /client/dashboard
+                    - generic: Member Portal
+            - generic:
+              - generic:
+                - button [expanded]:
+                  - generic: Member Portal
+                - generic:
+                  - generic:
+                    - generic:
+                      - list:
+                        - listitem:
+                          - link:
+                            - /url: /client/dashboard
+                            - generic: Overview
+                        - listitem:
+                          - link:
+                            - /url: /client/loans
+                            - generic: Loans
+                        - listitem:
+                          - link:
+                            - /url: /client/savings
+                            - generic: Loan Security
+                        - listitem:
+                          - link:
+                            - /url: /client/loans/requests
+                            - generic: Loan requests
+                        - listitem:
+                          - link:
+                            - /url: /settings/profile
+                            - generic: Settings
+            - generic:
+              - generic:
+                - generic:
+                  - list:
+                    - listitem:
+                      - link:
+                        - /url: https://github.com/laravel/react-starter-kit
+                        - generic: Repository
+                    - listitem:
+                      - link:
+                        - /url: https://laravel.com/docs/starter-kits#react
+                        - generic: Documentation
+              - list:
+                - listitem:
+                  - button:
+                    - generic: S
+                    - generic: samarah
+      - main:
+        - generic:
+          - generic:
+            - button:
+              - generic: Toggle Sidebar
+            - navigation:
+              - list:
+                - listitem:
+                  - link:
+                    - /url: /client/dashboard
+                    - text: Overview
+                - listitem
+                - listitem:
+                  - link:
+                    - /url: /client/loans/requests
+                    - text: Loan Requests
+                - listitem
+                - listitem:
+                  - link [disabled]: Loan request
+          - generic:
+            - button
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - paragraph: Loan request
+                - heading [level=1]: Apply for a loan
+                - paragraph: Complete the application form and save a draft at any time. Signatures will be collected physically upon loan release.
+                - generic:
+                  - generic: "Account No: 005431"
+                  - generic: No draft saved yet
+              - link:
+                - /url: /client/loans/requests
+                - text: Back to loan requests
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Progress
+                      - generic: Step 1 of 23
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: Loan details
+                          - generic: Select your preferred loan type and request details.
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Loan type
+                              - combobox:
+                                - generic: BUKO UNLAD LOAN
+                            - generic:
+                              - generic: Requested amount
+                              - generic:
+                                - generic: ₱
+                                - textbox:
+                                  - /placeholder: "0.00"
+                            - generic:
+                              - generic: Loan term
+                              - generic:
+                                - textbox:
+                                  - /placeholder: e.g. 12
+                                - generic: months
+                            - generic:
+                              - generic: Availment status
+                              - combobox:
+                                - generic: Select status
+                            - generic:
+                              - generic: Loan purpose
+                              - textbox:
+                                - /placeholder: Describe your loan purpose
+                    - generic:
+                      - generic:
+                        - generic:
+                          - button [disabled]: Back
+                        - generic:
+                          - button: Save draft
+                        - generic:
+                          - button: Next
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: Application summary
+                          - generic: New
+                        - generic: Keep your details in sync before submitting.
+                      - generic:
+                        - generic:
+                          - paragraph: Member
+                          - paragraph: Mohammad M. Samarah
+                        - generic:
+                          - generic:
+                            - generic: Loan type
+                            - generic: Buko Unlad Loan
+                          - generic:
+                            - generic: Requested amount
+                            - generic: "--"
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: Requested term
+                              - generic: "--"
+                            - generic:
+                              - generic: Availment status
+                              - generic: "--"
+                            - generic:
+                              - generic: Loan purpose
+                              - generic: "--"
+                          - generic:
+                            - generic:
+                              - generic: Applicant
+                              - generic: Mohammad M Samarah
+                            - generic:
+                              - generic: Co-maker 1
+                              - generic: "--"
+                            - generic:
+                              - generic: Co-maker 2
+                              - generic: "--"
+                    - generic:
+                      - generic: Tips for faster approval
+                      - generic:
+                        - paragraph: Double-check your employment and income details.
+                        - paragraph: Signatures will be collected physically upon loan release.
+  - dialog [ref=f79e2]:
+    - generic [ref=f79e3]:
+      - heading "Complete your Bank & Payout and ID details" [level=2] [ref=f79e4]
+      - paragraph [ref=f79e5]: These details are required before you can request a loan. Fill them in now to continue -- you can also update them later in Settings.
+    - generic [ref=f79e6]:
+      - generic [ref=f79e7]:
+        - heading "Bank & Payout" [level=3] [ref=f79e8]
+        - generic [ref=f79e9]:
+          - generic [ref=f79e10]:
+            - generic [ref=f79e11]: Bank name
+            - textbox "Bank name" [ref=f79e12]: BDO Unibank
+          - generic [ref=f79e13]:
+            - generic [ref=f79e14]: Account name
+            - textbox "Account name" [ref=f79e15]: Samarah Test
+          - generic [ref=f79e16]:
+            - generic [ref=f79e17]: Account number
+            - textbox "Account number" [ref=f79e18]: "1234567890"
+          - generic [ref=f79e19]:
+            - generic [ref=f79e20]: Account type
+            - textbox "Account type" [ref=f79e21]:
+              - /placeholder: e.g. Savings
+              - text: Savings
+          - generic [ref=f79e22]:
+            - generic [ref=f79e23]: Release method
+            - combobox "Release method" [ref=f79e24]:
+              - generic: Bank Transfer
+      - generic [ref=f79e25]:
+        - heading "Source of Funds & Government ID" [level=3] [ref=f79e26]
+        - generic [ref=f79e27]:
+          - generic [ref=f79e28]:
+            - generic [ref=f79e29]: Source of fund / wealth
+            - textbox "Source of fund / wealth" [ref=f79e30]:
+              - /placeholder: e.g. Salary, business income
+              - text: Salary
+          - generic [ref=f79e31]:
+            - generic [ref=f79e32]: Government ID type
+            - combobox "Government ID type" [active] [ref=f79e33]:
+              - generic: SSS
+          - generic [ref=f79e34]:
+            - generic [ref=f79e35]: ID number
+            - textbox "ID number" [ref=f79e36]
+    - button "Save and continue" [ref=f79e38]

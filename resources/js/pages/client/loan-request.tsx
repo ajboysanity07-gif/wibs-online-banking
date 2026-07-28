@@ -14,12 +14,14 @@ import {
     chunkGlapiItemGroups,
     getGlapiItemGroups,
     GLAPI_GROUPS_PER_STEP,
+    GLAPI_VIRTUAL_ITEMS,
     LoanRequestApplicantPersonalStep,
     LoanRequestApplicantWorkStep,
     LoanRequestCoMakerStep,
     LoanRequestDataSectionStep,
     LoanRequestDependentsStep,
     LoanRequestHealthQuestionnaireStep,
+    LoanRequestHealthStep,
     LoanRequestInsuranceBeneficiariesStep,
     LoanRequestLoanDetailsStep,
     LoanRequestReviewStep,
@@ -245,9 +247,10 @@ const toPersonForm = (
     };
 };
 
-// The GLAPI questionnaire's 4 sub-steps start right after "Health
-// declarations" and occupy the next 4 step indices.
-const GLAPI_STEP_START = STEP_INDEX['health-glapi-1'];
+// The GLAPI questionnaire's first sub-step (chunk 0) renders inside the
+// 'health' wizard step itself; the remaining chunks occupy the step indices
+// immediately after it.
+const GLAPI_STEP_START = STEP_INDEX['health'];
 
 const resolveStepFromErrors = (
     errors: Record<string, string | undefined>,
@@ -329,7 +332,14 @@ const resolveStepFromErrors = (
         }
 
         if (key.startsWith('health.')) {
-            stepMatches.push(STEP_INDEX['health']);
+            const field = key.replace('health.', '');
+            const chunkIndex = glapiItemNumberToStepOffset[field];
+
+            stepMatches.push(
+                chunkIndex !== undefined
+                    ? GLAPI_STEP_START + chunkIndex
+                    : STEP_INDEX['health'],
+            );
             return;
         }
 
@@ -432,6 +442,12 @@ export default function LoanRequestPage({
             chunk.forEach((group) => {
                 map[group.number] = chunkIndex;
             });
+        });
+
+        GLAPI_VIRTUAL_ITEMS.forEach((virtual) => {
+            if (virtual.afterNumber in map) {
+                map[virtual.key] = map[virtual.afterNumber];
+            }
         });
 
         return map;
@@ -1066,52 +1082,78 @@ export default function LoanRequestPage({
                                         show={currentStep === STEP_INDEX['health']}
                                         direction={stepDirection}
                                     >
-                                        <LoanRequestDataSectionStep
-                                            sectionKey="health"
-                                            title="Health declarations"
-                                            description="Confirm the required health declarations before submission."
-                                            values={form.data.health}
-                                            definition={
+                                        <LoanRequestHealthStep
+                                            healthValues={form.data.health}
+                                            healthDefinition={
                                                 dataSectionDefinitions.health
                                             }
+                                            glapiValues={form.data.health_glapi}
+                                            glapiDefinition={
+                                                dataSectionDefinitions.health_glapi
+                                            }
+                                            glapiTitle={`Health Insurance Questionnaire (1 of ${glapiChunks.length})`}
+                                            glapiDescription="Answer each item honestly -- this is required for insurance coverage on this loan."
+                                            glapiItemNumbers={(
+                                                glapiChunks[0] ?? []
+                                            ).map((group) => group.number)}
                                             errors={form.errors}
-                                            onChange={updateDataSection(
+                                            crossSectionValues={{
+                                                'applicant.sex':
+                                                    form.data.applicant.sex,
+                                            }}
+                                            onHealthChange={updateDataSection(
                                                 'health',
+                                            )}
+                                            onGlapiChange={updateDataSection(
+                                                'health_glapi',
                                             )}
                                         />
                                     </LoanRequestAnimatedStep>
 
-                                    {glapiChunks.map((chunk, chunkIndex) => (
-                                        <LoanRequestAnimatedStep
-                                            key={`health-glapi-${chunkIndex}`}
-                                            show={
-                                                currentStep ===
-                                                GLAPI_STEP_START + chunkIndex
-                                            }
-                                            direction={stepDirection}
-                                        >
-                                            <LoanRequestHealthQuestionnaireStep
-                                                sectionKey="health_glapi"
-                                                title={`Generali (GLAPI) health questionnaire (${chunkIndex + 1} of ${glapiChunks.length})`}
-                                                description="Answer each item honestly -- this is required for Generali insurance coverage on this loan."
-                                                values={form.data.health_glapi}
-                                                definition={
-                                                    dataSectionDefinitions.health_glapi
+                                    {glapiChunks.slice(1).map((chunk, offsetIndex) => {
+                                        const chunkIndex = offsetIndex + 1;
+
+                                        return (
+                                            <LoanRequestAnimatedStep
+                                                key={`health-glapi-${chunkIndex}`}
+                                                show={
+                                                    currentStep ===
+                                                    GLAPI_STEP_START + chunkIndex
                                                 }
-                                                errors={form.errors}
-                                                crossSectionValues={{
-                                                    'applicant.sex':
-                                                        form.data.applicant.sex,
-                                                }}
-                                                onChange={updateDataSection(
-                                                    'health_glapi',
-                                                )}
-                                                itemNumbers={chunk.map(
-                                                    (group) => group.number,
-                                                )}
-                                            />
-                                        </LoanRequestAnimatedStep>
-                                    ))}
+                                                direction={stepDirection}
+                                            >
+                                                <LoanRequestHealthQuestionnaireStep
+                                                    sectionKey="health_glapi"
+                                                    title={`Health Insurance Questionnaire (${chunkIndex + 1} of ${glapiChunks.length})`}
+                                                    description="Answer each item honestly -- this is required for insurance coverage on this loan."
+                                                    values={form.data.health_glapi}
+                                                    definition={
+                                                        dataSectionDefinitions.health_glapi
+                                                    }
+                                                    errors={form.errors}
+                                                    crossSectionValues={{
+                                                        'applicant.sex':
+                                                            form.data.applicant.sex,
+                                                    }}
+                                                    onChange={updateDataSection(
+                                                        'health_glapi',
+                                                    )}
+                                                    itemNumbers={chunk.map(
+                                                        (group) => group.number,
+                                                    )}
+                                                    healthValues={
+                                                        form.data.health
+                                                    }
+                                                    healthDefinition={
+                                                        dataSectionDefinitions.health
+                                                    }
+                                                    onHealthChange={updateDataSection(
+                                                        'health',
+                                                    )}
+                                                />
+                                            </LoanRequestAnimatedStep>
+                                        );
+                                    })}
 
                                     <LoanRequestAnimatedStep
                                         show={currentStep === STEP_INDEX['banking']}

@@ -651,11 +651,9 @@ class LoanRequestDocumentWorkflowService
                     'payout_account_number' => $flatValues['payout_account_number'] ?? null,
                     'payout_account_type' => $flatValues['payout_account_type'] ?? null,
                     'payout_atm_number' => $flatValues['payout_atm_number'] ?? null,
-                    'health_smoker' => $flatValues['health_smoker'] ?? null,
+                    'health_smoking_status' => $flatValues['health_smoking_status'] ?? null,
                     'health_hypertension' => $flatValues['health_hypertension'] ?? null,
-                    'health_diabetes' => $flatValues['health_diabetes'] ?? null,
                     'health_recent_hospitalization' => $flatValues['health_recent_hospitalization'] ?? null,
-                    'health_declaration_notes' => $flatValues['health_declaration_notes'] ?? null,
                 ],
                 'beneficiaries' => array_values(array_filter([
                     ($flatValues['beneficiary_primary_name'] ?? null) !== null

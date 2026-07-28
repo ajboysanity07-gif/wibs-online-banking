@@ -965,13 +965,8 @@ class ApprovedLoanDocumentService
                 'series_year' => $documentDate?->format('Y'),
             ],
             'health' => [
-                'health_smoker' => $overrideProcessing['health_smoker'] ?? $flatValues['health_smoker'] ?? null,
+                'health_smoking_status' => $overrideProcessing['health_smoking_status'] ?? $flatValues['health_smoking_status'] ?? null,
                 'health_hypertension' => $overrideProcessing['health_hypertension'] ?? $flatValues['health_hypertension'] ?? null,
-                'health_diabetes' => $overrideProcessing['health_diabetes'] ?? $flatValues['health_diabetes'] ?? null,
-                'health_recent_hospitalization' => $overrideProcessing['health_recent_hospitalization'] ?? $flatValues['health_recent_hospitalization'] ?? null,
-                'health_declaration_notes' => $this->normalizeText(
-                    $overrideProcessing['health_declaration_notes'] ?? $flatValues['health_declaration_notes'] ?? null,
-                ),
             ],
             'applicant' => $this->personDocumentData($applicant, $loanRequest),
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
@@ -1182,7 +1177,10 @@ class ApprovedLoanDocumentService
             'gl_health_q02b_respiratory',
             'gl_health_q02c_cardiac',
             'gl_health_q02d_digestive',
-            'gl_health_q02e_diabetes_renal',
+            'gl_health_q02e_diabetes',
+            'gl_health_q02e_kidney',
+            'gl_health_q02e_liver',
+            'gl_health_q02e_urinary',
             'gl_health_q02f_musculoskeletal',
             'gl_health_q02g_oncology_blood',
             'gl_health_q02h_dermatologic',
@@ -1195,7 +1193,6 @@ class ApprovedLoanDocumentService
             'gl_health_q08_blood_transfusion',
             'gl_health_q09_other_disease',
             'gl_health_q10_narcotics',
-            'gl_health_q11_smoker',
             'gl_health_q12_alcohol',
             'gl_health_q13_advised_stop',
             'gl_health_q14_current_medication',
@@ -1204,6 +1201,7 @@ class ApprovedLoanDocumentService
             'gl_health_q17_pending_reinstatement',
             'gl_health_q17_with_glapi',
             'gl_health_q17_with_other_companies',
+            'health_recent_hospitalization',
         ];
 
         $textFields = [
@@ -1226,7 +1224,7 @@ class ApprovedLoanDocumentService
             'gl_health_q08_blood_transfusion_details',
             'gl_health_q09_other_disease_details',
             'gl_health_q10_narcotics_details',
-            'gl_health_q11_smoker_details',
+            'health_smoking_status_details',
             'gl_health_q12_alcohol_details',
             'gl_health_q13_advised_stop_details',
             'gl_health_q14_current_medication_details',

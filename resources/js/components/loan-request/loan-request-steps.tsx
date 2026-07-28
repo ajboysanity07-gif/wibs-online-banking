@@ -13,6 +13,7 @@ import {
 } from '@/components/dependents/dependent-category-section';
 import InputError from '@/components/input-error';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
+import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
@@ -707,6 +708,64 @@ export function LoanRequestDataSectionStep({
     );
 }
 
+type LoanRequestHealthStepProps = {
+    healthValues: LoanRequestDataSectionValues;
+    healthDefinition: LoanRequestDataSectionDefinition;
+    glapiValues: LoanRequestDataSectionValues;
+    glapiDefinition: LoanRequestDataSectionDefinition;
+    glapiTitle: string;
+    glapiDescription: string;
+    glapiItemNumbers: string[];
+    errors: Record<string, string | undefined>;
+    crossSectionValues: Record<string, LoanRequestDataFieldValue>;
+    onHealthChange: (
+        field: string,
+        value: string | number | boolean | null,
+    ) => void;
+    onGlapiChange: (
+        field: string,
+        value: string | number | boolean | null,
+    ) => void;
+};
+
+/**
+ * Thin wrapper around `LoanRequestHealthQuestionnaireStep` for the GLAPI
+ * sub-step that also carries the smoking status/hypertension questions
+ * (which live in the separate `health` section). Those two items are
+ * spliced into the questionnaire's own numbered sequence at their thematic
+ * position (see `GLAPI_VIRTUAL_ITEMS`), not rendered as a separate cluster.
+ */
+export function LoanRequestHealthStep({
+    healthValues,
+    healthDefinition,
+    glapiValues,
+    glapiDefinition,
+    glapiTitle,
+    glapiDescription,
+    glapiItemNumbers,
+    errors,
+    crossSectionValues,
+    onHealthChange,
+    onGlapiChange,
+}: LoanRequestHealthStepProps) {
+    return (
+        <LoanRequestHealthQuestionnaireStep
+            sectionKey="health_glapi"
+            title={glapiTitle}
+            description={glapiDescription}
+            values={glapiValues}
+            definition={glapiDefinition}
+            errors={errors}
+            crossSectionValues={crossSectionValues}
+            onChange={onGlapiChange}
+            itemNumbers={glapiItemNumbers}
+            healthValues={healthValues}
+            healthDefinition={healthDefinition}
+            onHealthChange={onHealthChange}
+        />
+    );
+}
+
 type HealthQuestionnaireStepProps = {
     sectionKey: 'health_glapi';
     title: string;
@@ -721,6 +780,16 @@ type HealthQuestionnaireStepProps = {
     // several wizard sub-steps (see GLAPI_GROUPS_PER_STEP / chunkGlapiItemGroups
     // in loan-request.tsx), each passing the item numbers it owns.
     itemNumbers: string[];
+    // The smoking status/hypertension questions live in the separate `health`
+    // section but are spliced into this questionnaire's numbered sequence at
+    // their thematic position (see GLAPI_VIRTUAL_ITEMS), so this component
+    // reads/writes across both sections rather than being scoped to one.
+    healthValues: LoanRequestDataSectionValues;
+    healthDefinition: LoanRequestDataSectionDefinition;
+    onHealthChange: (
+        field: string,
+        value: string | number | boolean | null,
+    ) => void;
 };
 
 /**
@@ -809,6 +878,60 @@ export function parseGlapiItem(
     return { number: String(parseInt(match[1], 10)), letter: match[2] ?? null };
 }
 
+// Cross-section fields that thematically belong inside the GLAPI item
+// sequence but are stored in the separate `health` section (so their values
+// survive independently of which GLAPI chunk happens to be on screen).
+// `afterNumber` is the GLAPI item number (as produced by getGlapiItemGroups)
+// each virtual item is spliced immediately after -- their position in the
+// sequence, and therefore their displayed badge number and wizard sub-step,
+// is derived the same way as any real item, not hardcoded.
+type GlapiVirtualItem = {
+    key: 'health_hypertension' | 'health_smoking_status';
+    afterNumber: string;
+};
+
+export const GLAPI_VIRTUAL_ITEMS: GlapiVirtualItem[] = [
+    { key: 'health_hypertension', afterNumber: '2' },
+    { key: 'health_smoking_status', afterNumber: '10' },
+];
+
+export type GlapiSequenceEntry =
+    | { kind: 'group'; number: string; group: GlapiItemGroup }
+    | {
+          kind: 'virtual';
+          number: string;
+          key: GlapiVirtualItem['key'];
+          afterNumber: string;
+      };
+
+// Combines the real GLAPI item groups with the virtual cross-section items
+// into a single ordered sequence, each virtual item placed immediately after
+// its anchor group. Sequence position (1-based) is what drives the displayed
+// badge number and, in loan-request.tsx, which wizard sub-step an item lands
+// in -- so this is the single source of truth for "where does item X live."
+export function buildGlapiSequence(
+    definition: LoanRequestDataSectionDefinition,
+): GlapiSequenceEntry[] {
+    const sequence: GlapiSequenceEntry[] = [];
+
+    getGlapiItemGroups(definition).forEach((group) => {
+        sequence.push({ kind: 'group', number: group.number, group });
+
+        GLAPI_VIRTUAL_ITEMS.filter(
+            (virtual) => virtual.afterNumber === group.number,
+        ).forEach((virtual) => {
+            sequence.push({
+                kind: 'virtual',
+                number: virtual.key,
+                key: virtual.key,
+                afterNumber: virtual.afterNumber,
+            });
+        });
+    });
+
+    return sequence;
+}
+
 function childWrapperClassName(depth: number): string {
     if (depth >= 2) {
         return 'ml-6 space-y-3 rounded-md border-l-4 border-primary/50 bg-muted/20 py-3 pl-4';
@@ -827,6 +950,9 @@ export function LoanRequestHealthQuestionnaireStep({
     crossSectionValues,
     onChange,
     itemNumbers,
+    healthValues,
+    healthDefinition,
+    onHealthChange,
 }: HealthQuestionnaireStepProps) {
     const childrenByParent = useMemo(() => {
         const map: Record<string, string[]> = {};
@@ -836,15 +962,39 @@ export function LoanRequestHealthQuestionnaireStep({
                 return;
             }
 
-            if (!map[field.detail_of]) {
-                map[field.detail_of] = [];
-            }
+            const parents = Array.isArray(field.detail_of)
+                ? field.detail_of
+                : [field.detail_of];
 
-            map[field.detail_of].push(fieldKey);
+            parents.forEach((parentKey) => {
+                if (!map[parentKey]) {
+                    map[parentKey] = [];
+                }
+
+                map[parentKey].push(fieldKey);
+            });
         });
 
         return map;
     }, [definition]);
+
+    const parentsByChild = useMemo(() => {
+        const map: Record<string, string[]> = {};
+
+        Object.entries(definition.fields).forEach(([fieldKey, field]) => {
+            if (!field.detail_of) {
+                return;
+            }
+
+            map[fieldKey] = Array.isArray(field.detail_of)
+                ? field.detail_of
+                : [field.detail_of];
+        });
+
+        return map;
+    }, [definition]);
+
+    const renderedChildren = new Set<string>();
 
     const isVisible = (field: LoanRequestDataFieldDefinition): boolean => {
         if (!field.visible_when) {
@@ -859,6 +1009,17 @@ export function LoanRequestHealthQuestionnaireStep({
 
     const clearDescendants = (fieldKey: string) => {
         (childrenByParent[fieldKey] ?? []).forEach((childKey) => {
+            const otherParents = (parentsByChild[childKey] ?? []).filter(
+                (parentKey) => parentKey !== fieldKey,
+            );
+            const stillHasTrueParent = otherParents.some(
+                (parentKey) => values[parentKey] === true,
+            );
+
+            if (stillHasTrueParent) {
+                return;
+            }
+
             onChange(childKey, null);
             clearDescendants(childKey);
         });
@@ -873,9 +1034,16 @@ export function LoanRequestHealthQuestionnaireStep({
 
         const errorKey = `${sectionKey}.${fieldKey}`;
         const value = values[fieldKey];
-        const children = childrenByParent[fieldKey] ?? [];
 
         if (field.type === 'boolean') {
+            const children =
+                value === true
+                    ? (childrenByParent[fieldKey] ?? []).filter(
+                          (childKey) => !renderedChildren.has(childKey),
+                      )
+                    : [];
+            children.forEach((childKey) => renderedChildren.add(childKey));
+
             return (
                 <div key={fieldKey} className="space-y-3">
                     <div className="grid gap-2 sm:max-w-sm">
@@ -896,7 +1064,7 @@ export function LoanRequestHealthQuestionnaireStep({
                         />
                         <InputError message={errors[errorKey]} />
                     </div>
-                    {value === true && children.length > 0 ? (
+                    {children.length > 0 ? (
                         <div className={childWrapperClassName(depth + 1)}>
                             {children.map((childKey) =>
                                 renderField(childKey, depth + 1),
@@ -945,20 +1113,57 @@ export function LoanRequestHealthQuestionnaireStep({
         );
     };
 
-    const itemGroups = useMemo(() => {
+    // The full sequence (real groups + virtual cross-section items) drives
+    // the displayed badge number, so a virtual item's number reflects its
+    // actual position among everything that comes before it -- not the
+    // literal source-form item number it was thematically anchored to.
+    const sequence = useMemo(() => buildGlapiSequence(definition), [definition]);
+
+    const badgeNumbers = useMemo(() => {
+        const map: Record<string, string> = {};
+
+        sequence.forEach((entry, index) => {
+            map[entry.number] = String(index + 1);
+        });
+
+        return map;
+    }, [sequence]);
+
+    const renderedEntries = useMemo(() => {
         const itemNumberSet = new Set(itemNumbers);
 
-        return getGlapiItemGroups(definition).filter((group) =>
-            itemNumberSet.has(group.number),
+        return sequence.filter((entry) =>
+            entry.kind === 'group'
+                ? itemNumberSet.has(entry.number)
+                : itemNumberSet.has(entry.afterNumber),
         );
-    }, [definition, itemNumbers]);
+    }, [sequence, itemNumbers]);
+
+    const renderCard = (
+        key: string,
+        badgeLabel: string | null,
+        content: ReactNode,
+    ): ReactNode => (
+        <div
+            key={key}
+            className="rounded-lg border border-border/50 bg-card/60 p-4"
+        >
+            <div className="flex items-start gap-3">
+                {badgeLabel ? (
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                        {badgeLabel}
+                    </span>
+                ) : null}
+                <div className="flex-1 space-y-4">{content}</div>
+            </div>
+        </div>
+    );
 
     const renderItemGroup = (group: GlapiItemGroup): ReactNode => {
         const isCluster = group.fieldKeys.length > 1;
         const heading = isCluster
             ? GLAPI_GROUP_HEADINGS[group.number]
             : undefined;
-        const badgeLabel = /^\d+$/.test(group.number) ? group.number : null;
 
         const items = group.fieldKeys
             .map((fieldKey) => ({
@@ -972,44 +1177,185 @@ export function LoanRequestHealthQuestionnaireStep({
             return null;
         }
 
+        return renderCard(
+            group.fieldKeys[0],
+            badgeNumbers[group.number] ?? null,
+            <>
+                {heading ? (
+                    <p className="text-sm font-medium text-foreground">
+                        {heading}
+                    </p>
+                ) : null}
+                <div className="space-y-4">
+                    {items.map(({ fieldKey, letter, node }) =>
+                        letter ? (
+                            <div
+                                key={fieldKey}
+                                className="flex items-start gap-2"
+                            >
+                                <span className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                                    {letter}.
+                                </span>
+                                <div className="flex-1">{node}</div>
+                            </div>
+                        ) : (
+                            <div key={fieldKey}>{node}</div>
+                        ),
+                    )}
+                </div>
+            </>,
+        );
+    };
+
+    const renderSmokingStatusItem = (): ReactNode => {
+        const field = healthDefinition.fields.health_smoking_status;
+
+        if (!field) {
+            return null;
+        }
+
+        const value = healthValues.health_smoking_status;
+        const detailsField = definition.fields.health_smoking_status_details;
+
         return (
-            <div
-                key={group.fieldKeys[0]}
-                className="rounded-lg border border-border/50 bg-card/60 p-4"
-            >
-                <div className="flex items-start gap-3">
-                    {badgeLabel ? (
-                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-                            {badgeLabel}
-                        </span>
-                    ) : null}
-                    <div className="flex-1 space-y-4">
-                        {heading ? (
-                            <p className="text-sm font-medium text-foreground">
-                                {heading}
-                            </p>
-                        ) : null}
-                        <div className="space-y-4">
-                            {items.map(({ fieldKey, letter, node }) =>
-                                letter ? (
-                                    <div
-                                        key={fieldKey}
-                                        className="flex items-start gap-2"
-                                    >
-                                        <span className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                                            {letter}.
-                                        </span>
-                                        <div className="flex-1">{node}</div>
-                                    </div>
-                                ) : (
-                                    <div key={fieldKey}>{node}</div>
-                                ),
-                            )}
+            <div className="space-y-3">
+                <div className="grid gap-2">
+                    <Label htmlFor="health_health_smoking_status">
+                        {field.label}
+                    </Label>
+                    <SmokingStatusField
+                        id="health_health_smoking_status"
+                        value={value}
+                        aria-label={field.label}
+                        onChange={(nextValue) => {
+                            onHealthChange('health_smoking_status', nextValue);
+
+                            if (nextValue === null || nextValue === 'none') {
+                                onChange('health_smoking_status_details', null);
+                            }
+                        }}
+                    />
+                    <InputError
+                        message={errors['health.health_smoking_status']}
+                    />
+                </div>
+                {detailsField && value && value !== 'none' ? (
+                    <div className={childWrapperClassName(1)}>
+                        <div className="grid gap-2">
+                            <Label htmlFor="health_glapi_health_smoking_status_details">
+                                {detailsField.label}
+                            </Label>
+                            <textarea
+                                id="health_glapi_health_smoking_status_details"
+                                aria-label={detailsField.label}
+                                className={textareaClassName}
+                                value={
+                                    values.health_smoking_status_details
+                                        ? `${values.health_smoking_status_details}`
+                                        : ''
+                                }
+                                maxLength={1000}
+                                onChange={(event) =>
+                                    onChange(
+                                        'health_smoking_status_details',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={
+                                    errors[
+                                        'health_glapi.health_smoking_status_details'
+                                    ]
+                                }
+                            />
                         </div>
                     </div>
-                </div>
+                ) : null}
             </div>
         );
+    };
+
+    const renderHypertensionItem = (): ReactNode => {
+        const field = healthDefinition.fields.health_hypertension;
+
+        if (!field) {
+            return null;
+        }
+
+        const value = healthValues.health_hypertension;
+        const detailsField = definition.fields.health_hypertension_details;
+
+        return (
+            <div className="space-y-3">
+                <div className="grid gap-2 sm:max-w-sm">
+                    <Label htmlFor="health_health_hypertension">
+                        {field.label}
+                    </Label>
+                    <BooleanYesNoField
+                        id="health_health_hypertension"
+                        value={value}
+                        aria-label={field.label}
+                        onChange={(nextValue) => {
+                            onHealthChange('health_hypertension', nextValue);
+
+                            if (nextValue !== true) {
+                                onChange('health_hypertension_details', null);
+                            }
+                        }}
+                    />
+                    <InputError message={errors['health.health_hypertension']} />
+                </div>
+                {detailsField && value === true ? (
+                    <div className={childWrapperClassName(1)}>
+                        <div className="grid gap-2">
+                            <Label htmlFor="health_glapi_health_hypertension_details">
+                                {detailsField.label}
+                            </Label>
+                            <textarea
+                                id="health_glapi_health_hypertension_details"
+                                aria-label={detailsField.label}
+                                className={textareaClassName}
+                                value={
+                                    values.health_hypertension_details
+                                        ? `${values.health_hypertension_details}`
+                                        : ''
+                                }
+                                maxLength={1000}
+                                onChange={(event) =>
+                                    onChange(
+                                        'health_hypertension_details',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={
+                                    errors[
+                                        'health_glapi.health_hypertension_details'
+                                    ]
+                                }
+                            />
+                        </div>
+                    </div>
+                ) : null}
+            </div>
+        );
+    };
+
+    const renderVirtualItem = (
+        key: GlapiVirtualItem['key'],
+    ): ReactNode => {
+        const content =
+            key === 'health_hypertension'
+                ? renderHypertensionItem()
+                : renderSmokingStatusItem();
+
+        if (!content) {
+            return null;
+        }
+
+        return renderCard(key, badgeNumbers[key] ?? null, content);
     };
 
     return (
@@ -1019,7 +1365,11 @@ export function LoanRequestHealthQuestionnaireStep({
             contentClassName="space-y-5"
         >
             <div className="space-y-4">
-                {itemGroups.map((group) => renderItemGroup(group))}
+                {renderedEntries.map((entry) =>
+                    entry.kind === 'group'
+                        ? renderItemGroup(entry.group)
+                        : renderVirtualItem(entry.key),
+                )}
             </div>
             <Alert className="border-border/50 bg-muted/10">
                 <AlertTitle>Member-provided details</AlertTitle>
@@ -1470,27 +1820,28 @@ export function LoanRequestReviewStep({
         { label: 'Payday', value: formatPayday(person.payday) },
     ];
 
-    const dataSectionSummaries = (
-        [
-            'insurance',
-            'health',
-            'health_glapi',
-            'banking',
-            'barangay',
-            'declarations',
-        ] as const
-    ).map((sectionKey) => ({
-        key: sectionKey,
-        title: sectionDefinitions[sectionKey]?.label ?? sectionKey,
-        items: Object.entries(sectionDefinitions[sectionKey]?.fields ?? {}).map(
+    const buildSectionItems = (sectionKey: 'insurance' | 'health' | 'health_glapi' | 'banking' | 'barangay' | 'declarations') =>
+        Object.entries(sectionDefinitions[sectionKey]?.fields ?? {}).map(
             ([fieldKey, field]) => ({
                 label: field.label,
-                value: displaySectionValue(
-                    data[sectionKey][fieldKey],
-                    field,
-                ),
+                value: displaySectionValue(data[sectionKey][fieldKey], field),
             }),
-        ),
+        );
+
+    // 'health' and 'health_glapi' render as a single merged "Health Insurance
+    // Questionnaire" card — there is no separate "Health declarations" concept.
+    const dataSectionSummaries = (
+        [
+            ['insurance'],
+            ['health', 'health_glapi'],
+            ['banking'],
+            ['barangay'],
+            ['declarations'],
+        ] as const
+    ).map((sectionKeys) => ({
+        key: sectionKeys[0],
+        title: sectionDefinitions[sectionKeys[0]]?.label ?? sectionKeys[0],
+        items: sectionKeys.flatMap((sectionKey) => buildSectionItems(sectionKey)),
     }));
 
     return (

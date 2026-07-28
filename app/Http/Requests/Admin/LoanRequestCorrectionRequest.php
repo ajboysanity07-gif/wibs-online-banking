@@ -51,12 +51,9 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['insurance.beneficiary_secondary_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['insurance.beneficiary_secondary_relationship'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['insurance.beneficiary_secondary_birthdate'] = ['sometimes', 'nullable', 'date'];
-        $rules['health'] = ['sometimes', 'array:health_smoker,health_hypertension,health_diabetes,health_recent_hospitalization,health_declaration_notes'];
-        $rules['health.health_smoker'] = ['sometimes', 'boolean'];
+        $rules['health'] = ['sometimes', 'array:health_smoking_status,health_hypertension'];
+        $rules['health.health_smoking_status'] = ['sometimes', 'string', Rule::in(['none', 'light', 'heavy'])];
         $rules['health.health_hypertension'] = ['sometimes', 'boolean'];
-        $rules['health.health_diabetes'] = ['sometimes', 'boolean'];
-        $rules['health.health_recent_hospitalization'] = ['sometimes', 'boolean'];
-        $rules['health.health_declaration_notes'] = ['sometimes', 'nullable', 'string', 'max:1000'];
         $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number'];
         $rules['banking.release_method'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))];
         $rules['banking.payout_bank_name'] = ['sometimes', 'nullable', 'string', 'max:255'];

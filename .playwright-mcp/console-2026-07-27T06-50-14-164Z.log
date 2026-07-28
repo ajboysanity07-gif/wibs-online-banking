@@ -1,0 +1,251 @@
+[    1189ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/staff/loan-requests/72:53
+[    1441ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/staff/loan-requests/72:112
+[  221071ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[  221567ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2658739ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2659301ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2664581ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2665069ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2675620ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2676056ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2684595ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2685045ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2690157ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2690545ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2998312ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2998805ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3001928ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138016051:0
+[ 3001929ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3001929ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3001930ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138016053:0
+[ 3001944ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3002613ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3002735ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3002976ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3003107ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3006233ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3006684ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3008083ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138022219:0
+[ 3008084ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3008084ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3008086ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138022221:0
+[ 3008098ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3008805ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3009192ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3009329ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3011190ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3011662ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3012306ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138026450:0
+[ 3012306ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3012306ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3012309ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138026452:0
+[ 3012316ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3013162ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3011190ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3011662ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3012306ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3012306ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3012316ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3013162ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3012306ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138026450:0
+[ 3012309ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138026452:0
+[ 3016580ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3017072ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138030711:0
+[ 3017083ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3017120ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138030713:0
+[ 3017139ms] Failed to fetch dynamically imported module: http://[::1]:5173/resources/js/pages/auth/login.tsx?t=1785138030713
+[ 3020722ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3021255ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3022172ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138036299:0
+[ 3022172ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3022172ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3022175ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138036302:0
+[ 3022189ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3022891ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3023321ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3023445ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3025286ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3025416ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3031605ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3032176ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3033522ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138047655:0
+[ 3033522ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3033523ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3033525ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138047657:0
+[ 3033537ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3034661ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3035473ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3037346ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138051462:0
+[ 3037347ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3037348ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138051450:0
+[ 3037374ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3037377ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3038336ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3041718ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138055765:0
+[ 3041719ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3041719ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3041720ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138055782:0
+[ 3041767ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3042667ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3043737ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3044898ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3045138ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138059004:0
+[ 3045180ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138059019:0
+[ 3045192ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3045263ms] Failed to fetch dynamically imported module: http://[::1]:5173/resources/js/pages/auth/login.tsx?t=1785138059019
+[ 3050157ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3050863ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3053969ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3054710ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3055134ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138069089:0
+[ 3055134ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3055134ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3055138ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138069091:0
+[ 3055163ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3055652ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3053969ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3054710ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3055134ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3055134ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3055163ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3055652ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3055134ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138069089:0
+[ 3055138ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138069091:0
+[ 3058842ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3058984ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3060431ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3060914ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3063074ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138077201:0
+[ 3063074ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3063074ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3063076ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138077204:0
+[ 3063090ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3063742ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3064207ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3064356ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3066125ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3066599ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3067314ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138081453:0
+[ 3067314ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3067314ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3067318ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138081455:0
+[ 3067325ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3068143ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3068337ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3068466ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3070957ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3071490ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3071873ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138085917:0
+[ 3071873ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3071875ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138085901:0
+[ 3071876ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3071889ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3072513ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3072940ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3073524ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3074870ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3074985ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138089001:0
+[ 3074985ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138089004:0
+[ 3075007ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3075055ms] Failed to fetch dynamically imported module: http://[::1]:5173/resources/js/pages/auth/login.tsx?t=1785138089004
+[ 3082764ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3082887ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138093236:0
+[ 3082889ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138093321:0
+[ 3083334ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3083404ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138097028:0
+[ 3083404ms] Failed to fetch dynamically imported module: http://[::1]:5173/resources/js/pages/auth/login.tsx?t=1785138093321
+[ 3083406ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138097029:0
+[ 3086604ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3086720ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3090106ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3090568ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3092336ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138106473:0
+[ 3092336ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3092337ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3092339ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138106476:0
+[ 3092351ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3093059ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3093467ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3093606ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3095445ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3095557ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3097768ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3098324ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3099578ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138113704:0
+[ 3099578ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3099578ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3099580ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138113707:0
+[ 3099590ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3100359ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3100728ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3100873ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3102776ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3102909ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3104275ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3104758ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3105933ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785138120046:0
+[ 3105933ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3105933ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3105934ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785138120049:0
+[ 3105946ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3106675ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 3106878ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3107018ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3109686ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3109833ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3113780ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3114291ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3268410ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3268919ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3278616ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3279087ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3294003ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3294416ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3301967ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3302375ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3306777ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3307288ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3321135ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3321549ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3324637ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3325172ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3332602ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3333079ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3336513ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3336961ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3382423ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3382895ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3387717ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3388206ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3392481ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3392963ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3397204ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3397649ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3402133ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3402513ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3596260ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3596672ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3645511ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3646009ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3688184ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3688576ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13707834ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13708287ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13713325ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13713665ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13722828ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13723166ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13733226ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13733538ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13783900ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13784262ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13808771ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13809125ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13820128ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13820466ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13834237ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13834599ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13920211ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13920339ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[13937978ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[13938399ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112

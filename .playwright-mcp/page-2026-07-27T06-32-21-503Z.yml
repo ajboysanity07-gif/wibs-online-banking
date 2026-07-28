@@ -1,0 +1,130 @@
+- generic [ref=f2e2]:
+  - region "Notifications alt+T"
+  - generic [ref=f2e3]:
+    - generic [ref=f2e7]:
+      - list [ref=f2e9]:
+        - listitem [ref=f2e10]:
+          - link "Member Portal - Microfinance for Rural Development Inc. Member Portal" [ref=f2e11] [cursor=pointer]:
+            - /url: /client/dashboard
+            - generic [ref=f2e12]:
+              - img "Member Portal - Microfinance for Rural Development Inc." [ref=f2e13]
+              - generic [ref=f2e14]: Member Portal
+      - generic [ref=f2e17]:
+        - button "Member Portal" [expanded] [ref=f2e18]
+        - list [ref=f2e25]:
+          - listitem [ref=f2e26]:
+            - link "Overview" [ref=f2e27] [cursor=pointer]:
+              - /url: /client/dashboard
+          - listitem [ref=f2e34]:
+            - link "Loans" [ref=f2e35] [cursor=pointer]:
+              - /url: /client/loans
+          - listitem [ref=f2e40]:
+            - link "Loan Security" [ref=f2e41] [cursor=pointer]:
+              - /url: /client/savings
+          - listitem [ref=f2e46]:
+            - link "Loan requests" [ref=f2e47] [cursor=pointer]:
+              - /url: /client/loans/requests
+          - listitem [ref=f2e52]:
+            - link "Settings" [ref=f2e53] [cursor=pointer]:
+              - /url: /settings/profile
+      - generic [ref=f2e58]:
+        - list [ref=f2e61]:
+          - listitem [ref=f2e62]:
+            - link "Repository" [ref=f2e63] [cursor=pointer]:
+              - /url: https://github.com/laravel/react-starter-kit
+          - listitem [ref=f2e67]:
+            - link "Documentation" [ref=f2e68] [cursor=pointer]:
+              - /url: https://laravel.com/docs/starter-kits#react
+        - list [ref=f2e72]:
+          - listitem [ref=f2e73]:
+            - button "B browsertest1" [ref=f2e74]:
+              - generic [ref=f2e75]: B
+              - generic [ref=f2e77]: browsertest1
+    - main [ref=f2e82]:
+      - generic [ref=f2e83]:
+        - generic [ref=f2e84]:
+          - button "Toggle Sidebar" [ref=f2e85]
+          - navigation "breadcrumb" [ref=f2e87]:
+            - list [ref=f2e88]:
+              - listitem [ref=f2e89]:
+                - link "Profile settings" [disabled] [ref=f2e90]
+        - button "Notifications" [ref=f2e92]
+      - heading "Profile Settings" [level=1] [ref=f2e93]
+      - generic [ref=f2e94]:
+        - generic [ref=f2e97]:
+          - paragraph [ref=f2e98]: Settings
+          - generic [ref=f2e99]:
+            - heading "Settings" [level=1] [ref=f2e100]
+            - paragraph [ref=f2e101]: Manage your profile, security, and appearance settings.
+        - navigation "Settings" [ref=f2e102]:
+          - link "Profile" [ref=f2e103] [cursor=pointer]:
+            - /url: /settings/profile
+          - link "Security" [ref=f2e104] [cursor=pointer]:
+            - /url: /settings/security
+          - link "Appearance" [ref=f2e105] [cursor=pointer]:
+            - /url: /settings/appearance
+        - generic [ref=f2e108]:
+          - generic [ref=f2e109]:
+            - generic [ref=f2e110]:
+              - heading "Profile information" [level=2] [ref=f2e111]
+              - paragraph [ref=f2e112]: Update your profile details, photo, and contact information
+            - generic [ref=f2e113]: Profile incomplete
+          - alert [ref=f2e114]:
+            - generic [ref=f2e115]: Complete your profile to continue
+            - generic [ref=f2e116]: Add the personal and work details below to unlock your client dashboard.
+          - alert [ref=f2e117]:
+            - generic [ref=f2e118]: Missing required details
+            - generic [ref=f2e119]:
+              - paragraph [ref=f2e120]: "Complete the following required fields to finish onboarding:"
+              - list [ref=f2e121]:
+                - listitem [ref=f2e122]: Birthplace city
+                - listitem [ref=f2e123]: Educational attainment
+                - listitem [ref=f2e124]: Length of stay
+                - listitem [ref=f2e125]: Employment type
+                - listitem [ref=f2e126]: Employer or business name
+                - listitem [ref=f2e127]: Current position
+                - listitem [ref=f2e128]: Gross monthly income
+                - listitem [ref=f2e129]: Payday
+          - generic [ref=f2e130]:
+            - generic [ref=f2e131]:
+              - generic [ref=f2e132]:
+                - tablist [ref=f2e133]:
+                  - tab "Account" [selected] [ref=f2e134]
+                  - tab "Personal" [ref=f2e135]
+                  - tab "Work & Finances" [ref=f2e136]
+                  - tab "Bank & Payout" [ref=f2e137]
+                  - tab "Dependents" [ref=f2e138]
+                - generic [ref=f2e139]: Step 1 of 5
+              - tabpanel [ref=f2e140]:
+                - generic [ref=f2e141]:
+                  - generic [ref=f2e142]:
+                    - heading "Account" [level=3] [ref=f2e143]
+                    - paragraph [ref=f2e144]: Manage your profile photo, login details, and contact information.
+                  - generic [ref=f2e146]:
+                    - generic [ref=f2e147]: Profile picture
+                    - generic [ref=f2e148]:
+                      - generic [ref=f2e149] [cursor=pointer]: B
+                      - generic [ref=f2e157]:
+                        - paragraph [ref=f2e158]: Upload a JPG, PNG, or WebP image (max 2MB).
+                        - button "Change photo" [ref=f2e159]
+                    - button "Profile picture B" [ref=f2e160]
+                  - generic [ref=f2e161]:
+                    - generic [ref=f2e162]:
+                      - heading "Basic Account Information" [level=3] [ref=f2e163]
+                      - paragraph [ref=f2e164]: Update your login and contact details.
+                    - generic [ref=f2e165]:
+                      - generic [ref=f2e166]:
+                        - generic [ref=f2e167]: Username
+                        - textbox "Username" [ref=f2e168]: browsertest1
+                      - generic [ref=f2e169]:
+                        - generic [ref=f2e170]: Email address
+                        - textbox "Email address" [ref=f2e171]: bayer.minnie@example.org
+                      - generic [ref=f2e172]:
+                        - generic [ref=f2e173]: Cell number
+                        - textbox "Cell number" [ref=f2e174]:
+                          - /placeholder: 09XXXXXXXXX
+                          - text: "09378218698"
+            - generic [ref=f2e176]:
+              - button "Previous" [disabled]
+              - button "Next" [ref=f2e177]
+              - button "Save" [ref=f2e178]

@@ -886,12 +886,17 @@ export default function StaffLoanRequestShow({
         const grouped = new Map<string, typeof memberFieldDefinitions>();
 
         memberFieldDefinitions.forEach((item) => {
-            const existing = grouped.get(item.sectionKey) ?? [];
+            // 'health' and 'health_glapi' render as a single merged "Health
+            // Insurance Questionnaire" group — there is no separate
+            // "Health declarations" concept.
+            const sectionKey =
+                item.sectionKey === 'health' ? 'health_glapi' : item.sectionKey;
+            const existing = grouped.get(sectionKey) ?? [];
             existing.push(item);
-            grouped.set(item.sectionKey, existing);
+            grouped.set(sectionKey, existing);
         });
 
-        const priorityOrder = ['insurance', 'health', 'banking', 'barangay'];
+        const priorityOrder = ['insurance', 'health_glapi', 'banking', 'barangay'];
         const priorityKeys = priorityOrder.filter((key) => grouped.has(key));
         const remainingKeys = Array.from(grouped.keys())
             .filter((key) => !priorityOrder.includes(key))
@@ -1483,17 +1488,33 @@ export default function StaffLoanRequestShow({
 
                         {renderProcessingSectionLabel('Charges & fees')}
                         <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField('service_charge_rate')}
-                            {renderProcessingField('insurance_rate')}
-                            {renderProcessingField('insurance_term')}
-                            {renderProcessingField('loan_security_rate')}
+                            {renderProcessingField('service_charge_rate', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
+                            {renderProcessingField('insurance_rate', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
+                            {renderProcessingField('insurance_term', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
+                            {renderProcessingField('loan_security_rate', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
                             {renderProcessingField('savings_rate', {
                                 onBlur: scheduleGnthpRecalculation,
                             })}
-                            {renderProcessingField('documentary_stamp_rate')}
-                            {renderProcessingField('notarial_fee')}
-                            {renderProcessingField('notarial_venue')}
-                            {renderProcessingField('penalty_rate_per_month')}
+                            {renderProcessingField('documentary_stamp_rate', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
+                            {renderProcessingField('notarial_fee', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
+                            {renderProcessingField('notarial_venue', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
+                            {renderProcessingField('penalty_rate_per_month', {
+                                onBlur: scheduleGnthpRecalculation,
+                            })}
                         </div>
                         {renderProcessingSectionLabel('Net take-home pay')}
                         <div className="space-y-3">

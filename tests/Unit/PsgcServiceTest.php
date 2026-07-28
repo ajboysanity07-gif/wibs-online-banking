@@ -39,6 +39,15 @@ test('psgc service includes province details for city suggestions', function () 
     expect($result['results'][0]['type'])->toBe('municipality');
 });
 
+test('psgc service matches reordered tokens ignoring word order', function () {
+    $service = app(PsgcService::class);
+    $result = $service->searchBirthplaces('Batac City');
+
+    expect($result['available'])->toBeTrue();
+    expect($result['results'])->toHaveCount(1);
+    expect($result['results'][0]['label'])->toBe('City of Batac, Ilocos Norte');
+});
+
 test('psgc service caches dataset responses', function () {
     $service = app(PsgcService::class);
     $service->searchBirthplaces('Batac');

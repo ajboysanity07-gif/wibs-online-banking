@@ -227,8 +227,9 @@ export type LoanRequestDataFieldDefinition = {
     sensitive: boolean;
     owner: 'member' | 'staff';
     type: LoanRequestDataFieldType;
-    detail_of: string | null;
+    detail_of: string | string[] | null;
     visible_when: LoanRequestDataFieldVisibility | null;
+    options?: string[];
 };
 
 export type LoanRequestDataSectionDefinition = {
