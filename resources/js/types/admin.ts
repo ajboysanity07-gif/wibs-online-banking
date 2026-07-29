@@ -178,6 +178,8 @@ export type RequestsResponse = {
             label: string;
         }>;
         assignmentOfficers?: LoanRequestAssignmentOfficerOption[];
+        sortBy: string | null;
+        sortDirection: 'asc' | 'desc' | null;
     };
 };
 

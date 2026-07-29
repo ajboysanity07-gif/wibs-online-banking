@@ -34,6 +34,8 @@ class RequestsController extends Controller
         $officerId = is_numeric($officerId) ? (int) $officerId : null;
         $minAmount = is_numeric($minAmount) ? (float) $minAmount : null;
         $maxAmount = is_numeric($maxAmount) ? (float) $maxAmount : null;
+        $sortBy = trim((string) $request->query('sortBy', ''));
+        $sortDirection = trim((string) $request->query('sortDirection', ''));
 
         $result = $service->getPaginatedForWorkflowUser(
             $actor,
@@ -47,6 +49,8 @@ class RequestsController extends Controller
             $minAmount,
             $maxAmount,
             $reported,
+            $sortBy !== '' ? $sortBy : null,
+            $sortDirection !== '' ? $sortDirection : null,
         );
         $items = RequestPreviewResource::collection($result['items'])->resolve();
         $paginator = $result['paginator'];
@@ -69,6 +73,8 @@ class RequestsController extends Controller
                     'openCorrectionReports' => $result['openCorrectionReports'] ?? 0,
                     'assignmentFilters' => $result['assignmentFilters'] ?? [],
                     'assignmentOfficers' => $result['assignmentOfficers'] ?? [],
+                    'sortBy' => $sortBy !== '' ? $sortBy : null,
+                    'sortDirection' => $sortDirection !== '' ? $sortDirection : null,
                 ],
             ],
         ]);

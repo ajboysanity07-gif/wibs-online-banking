@@ -17,6 +17,8 @@ export type RequestQueueParams = {
     reported?: boolean;
     minAmount?: number;
     maxAmount?: number;
+    sortBy?: string | null;
+    sortDirection?: 'asc' | 'desc' | null;
 };
 
 const emptyResponse: RequestsResponse = {
@@ -33,6 +35,8 @@ const emptyResponse: RequestsResponse = {
         openCorrectionReports: 0,
         assignmentFilters: [],
         assignmentOfficers: [],
+        sortBy: null,
+        sortDirection: null,
     },
 };
 
@@ -67,6 +71,8 @@ export function useRequestQueue(params: RequestQueueParams) {
                         reported: params.reported ?? undefined,
                         minAmount: params.minAmount ?? undefined,
                         maxAmount: params.maxAmount ?? undefined,
+                        sortBy: params.sortBy ?? undefined,
+                        sortDirection: params.sortDirection ?? undefined,
                         page: params.page,
                         perPage: params.perPage,
                     },
@@ -100,6 +106,8 @@ export function useRequestQueue(params: RequestQueueParams) {
         params.search,
         params.assignment,
         params.status,
+        params.sortBy,
+        params.sortDirection,
         params.workspace,
         reloadToken,
     ]);

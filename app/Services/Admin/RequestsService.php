@@ -18,6 +18,19 @@ class RequestsService
 
     public const REPORTED_REQUESTS_UNAVAILABLE_MESSAGE = 'Reported requests are unavailable until correction report migrations are run.';
 
+    /**
+     * Public sort keys mapped to their underlying database columns.
+     *
+     * @var array<string, string>
+     */
+    private const SORTABLE_COLUMNS = [
+        'reference' => 'reference',
+        'loanType' => 'loan_type_label_snapshot',
+        'amount' => 'requested_amount',
+        'status' => 'status',
+        'submitted' => 'submitted_at',
+    ];
+
     public function __construct(
         private LoanWorkflowWorkspaceService $workspaceService,
         private LoanRequestAssignmentService $assignmentService,
@@ -69,6 +82,8 @@ class RequestsService
         ?float $maxAmount = null,
         ?bool $reported = null,
         ?AppUser $actor = null,
+        ?string $sortBy = null,
+        ?string $sortDirection = null,
     ): array {
         if (! $this->hasRequestsTable()) {
             return [
@@ -130,6 +145,8 @@ class RequestsService
             $query->whereRaw('1 = 0');
         }
 
+        $this->applySort($query, $sortBy, $sortDirection);
+
         $perPage = max(1, min($perPage, 50));
         $page = max(1, $page);
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
@@ -179,6 +196,8 @@ class RequestsService
         ?float $minAmount = null,
         ?float $maxAmount = null,
         ?bool $reported = null,
+        ?string $sortBy = null,
+        ?string $sortDirection = null,
     ): array {
         if (! $this->hasRequestsTable()) {
             return [
@@ -244,6 +263,8 @@ class RequestsService
         if ($reportedUnavailable) {
             $query->whereRaw('1 = 0');
         }
+
+        $this->applySort($query, $sortBy, $sortDirection);
 
         $perPage = max(1, min($perPage, 50));
         $page = max(1, $page);
@@ -350,9 +371,22 @@ class RequestsService
                 'applicant',
                 'assignedOfficer.adminProfile',
                 'user',
-            ])
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('created_at');
+            ]);
+    }
+
+    private function applySort(Builder $query, ?string $sortBy, ?string $sortDirection): void
+    {
+        $column = self::SORTABLE_COLUMNS[$sortBy ?? ''] ?? null;
+
+        if ($column === null) {
+            $query->orderByDesc('submitted_at')->orderByDesc('created_at');
+
+            return;
+        }
+
+        $direction = $sortDirection === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($column, $direction)->orderByDesc('created_at');
     }
 
     /**

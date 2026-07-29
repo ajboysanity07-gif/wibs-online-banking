@@ -1,7 +1,16 @@
-import { Search } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 type LoanRequestPageHeroProps = {
@@ -111,20 +120,63 @@ export function LoanRequestStatusFilters<TValue extends string>({
     activeValue,
     onChange,
 }: LoanRequestStatusFiltersProps<TValue>) {
+    const [open, setOpen] = useState(false);
+    const activeOption = options.find(
+        (option) => option.value === activeValue,
+    );
+
     return (
-        <div className="flex flex-wrap gap-2">
-            {options.map((option) => (
-                <Button
-                    key={option.value}
-                    type="button"
-                    size="sm"
-                    variant={activeValue === option.value ? 'default' : 'outline'}
-                    className="rounded-full px-3.5"
-                    onClick={() => onChange(option.value)}
+        <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+                Status
+            </span>
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-full justify-between font-normal sm:w-72"
+                    >
+                        {activeOption?.label ?? 'All'}
+                        <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                    align="start"
+                    className="w-72 p-0"
                 >
-                    {option.label}
-                </Button>
-            ))}
+                    <Command>
+                        <CommandInput placeholder="Search status..." />
+                        <CommandList>
+                            <CommandEmpty>No status found.</CommandEmpty>
+                            <CommandGroup>
+                                {options.map((option) => (
+                                    <CommandItem
+                                        key={option.value}
+                                        value={option.label}
+                                        onSelect={() => {
+                                            onChange(option.value);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'h-4 w-4',
+                                                activeValue === option.value
+                                                    ? 'opacity-100'
+                                                    : 'opacity-0',
+                                            )}
+                                        />
+                                        {option.label}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
         </div>
     );
 }

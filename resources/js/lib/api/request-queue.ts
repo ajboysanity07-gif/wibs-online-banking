@@ -27,6 +27,8 @@ export type RequestQueueQueryParams = {
     reported?: boolean;
     minAmount?: number;
     maxAmount?: number;
+    sortBy?: string;
+    sortDirection?: 'asc' | 'desc';
     page?: number;
     perPage?: number;
 };

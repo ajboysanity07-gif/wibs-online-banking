@@ -1,6 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
+    ArrowDown,
+    ArrowUp,
+    ArrowUpDown,
     Eye,
     MoreHorizontal,
     SlidersHorizontal,
@@ -8,7 +11,7 @@ import {
     UserCog,
     UserPlus,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { AssignOfficerDialog } from '@/components/loan-request/assign-officer-dialog';
 import {
     LoanRequestPageHero,
@@ -57,6 +60,7 @@ import {
     normalizeLoanRequestQueueStatus,
     type LoanRequestQueueStatusFilter,
 } from '@/lib/loan-request-queue';
+import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { RequestPreview } from '@/types/admin';
 import type { LoanRequestAssignmentOfficerOption } from '@/types/loan-requests';
@@ -192,6 +196,45 @@ function RequestRowActionsMenu({
     );
 }
 
+type SortableColumnHeaderProps = {
+    label: string;
+    column: string;
+    sortBy: string | null;
+    sortDirection: 'asc' | 'desc';
+    onToggle: (column: string) => void;
+};
+
+function SortableColumnHeader({
+    label,
+    column,
+    sortBy,
+    sortDirection,
+    onToggle,
+}: SortableColumnHeaderProps) {
+    const isActive = sortBy === column;
+    const Icon = isActive
+        ? sortDirection === 'asc'
+            ? ArrowUp
+            : ArrowDown
+        : ArrowUpDown;
+
+    return (
+        <button
+            type="button"
+            onClick={() => onToggle(column)}
+            className="flex items-center gap-1 text-left font-medium hover:text-foreground"
+        >
+            {label}
+            <Icon
+                className={cn(
+                    'h-3.5 w-3.5',
+                    isActive ? 'text-foreground' : 'text-muted-foreground',
+                )}
+            />
+        </button>
+    );
+}
+
 const requestsTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
@@ -225,6 +268,10 @@ export function LoanRequestQueuePage({
     const [officerId, setOfficerId] = useState<number | null>(null);
     const [minAmount, setMinAmount] = useState('');
     const [maxAmount, setMaxAmount] = useState('');
+    const [sortBy, setSortBy] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
+        'desc',
+    );
     const [page, setPage] = useState(1);
     const [perPage] = useState(10);
     const [assignmentDialog, setAssignmentDialog] = useState<{
@@ -233,6 +280,22 @@ export function LoanRequestQueuePage({
         currentOfficerName?: string | null;
         officerOptions: LoanRequestAssignmentOfficerOption[];
     } | null>(null);
+
+    const toggleSort = useCallback(
+        (column: string) => {
+            if (sortBy === column) {
+                setSortDirection((current) =>
+                    current === 'asc' ? 'desc' : 'asc',
+                );
+            } else {
+                setSortBy(column);
+                setSortDirection('desc');
+            }
+
+            setPage(1);
+        },
+        [sortBy],
+    );
 
     const searchValue = search.trim();
     const minAmountValue = parseAmount(minAmount);
@@ -254,6 +317,8 @@ export function LoanRequestQueuePage({
         reported,
         minAmount: minAmountValue,
         maxAmount: maxAmountValue,
+        sortBy,
+        sortDirection,
     });
     const {
         assignLoanRequest,
@@ -268,7 +333,15 @@ export function LoanRequestQueuePage({
         () => [
             {
                 accessorKey: 'reference',
-                header: 'Reference',
+                header: () => (
+                    <SortableColumnHeader
+                        label="Reference"
+                        column="reference"
+                        sortBy={sortBy}
+                        sortDirection={sortDirection}
+                        onToggle={toggleSort}
+                    />
+                ),
                 cell: ({ row }) => row.original.reference ?? '--',
             },
             {
@@ -284,12 +357,28 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'loan_type',
-                header: 'Loan type',
+                header: () => (
+                    <SortableColumnHeader
+                        label="Loan type"
+                        column="loanType"
+                        sortBy={sortBy}
+                        sortDirection={sortDirection}
+                        onToggle={toggleSort}
+                    />
+                ),
                 cell: ({ row }) => row.original.loan_type ?? '--',
             },
             {
                 accessorKey: 'requested_amount',
-                header: 'Amount',
+                header: () => (
+                    <SortableColumnHeader
+                        label="Amount"
+                        column="amount"
+                        sortBy={sortBy}
+                        sortDirection={sortDirection}
+                        onToggle={toggleSort}
+                    />
+                ),
                 cell: ({ row }) =>
                     row.original.requested_amount !== null &&
                     row.original.requested_amount !== undefined
@@ -298,7 +387,15 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'status',
-                header: 'Status',
+                header: () => (
+                    <SortableColumnHeader
+                        label="Status"
+                        column="status"
+                        sortBy={sortBy}
+                        sortDirection={sortDirection}
+                        onToggle={toggleSort}
+                    />
+                ),
                 cell: ({ row }) => (
                     <div className="flex flex-wrap items-center gap-2">
                         <LoanRequestStatusBadge status={row.original.status} />
@@ -315,7 +412,15 @@ export function LoanRequestQueuePage({
             },
             {
                 accessorKey: 'submitted_at',
-                header: 'Submitted',
+                header: () => (
+                    <SortableColumnHeader
+                        label="Submitted"
+                        column="submitted"
+                        sortBy={sortBy}
+                        sortDirection={sortDirection}
+                        onToggle={toggleSort}
+                    />
+                ),
                 cell: ({ row }) =>
                     formatDate(
                         row.original.submitted_at ?? row.original.created_at,
@@ -371,6 +476,9 @@ export function LoanRequestQueuePage({
             meta.assignmentOfficers,
             processingIds,
             claimLoanRequest,
+            sortBy,
+            sortDirection,
+            toggleSort,
         ],
     );
 
@@ -824,6 +932,10 @@ export function LoanRequestQueuePage({
                                                         setOfficerId(null);
                                                         setMinAmount('');
                                                         setMaxAmount('');
+                                                        setSortBy(null);
+                                                        setSortDirection(
+                                                            'desc',
+                                                        );
                                                         setPage(1);
                                                     }}
                                                 >

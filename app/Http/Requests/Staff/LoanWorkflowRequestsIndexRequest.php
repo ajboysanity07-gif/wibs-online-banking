@@ -41,6 +41,12 @@ class LoanWorkflowRequestsIndexRequest extends FormRequest
             'minAmount' => ['nullable', 'numeric', 'min:0'],
             'maxAmount' => ['nullable', 'numeric', 'min:0'],
             'reported' => ['nullable', 'boolean'],
+            'sortBy' => [
+                'nullable',
+                'string',
+                Rule::in(['reference', 'loanType', 'amount', 'status', 'submitted']),
+            ],
+            'sortDirection' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
             'perPage' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
         ];
