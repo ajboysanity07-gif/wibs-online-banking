@@ -45,6 +45,12 @@ export type LoanRequestPersonData = {
     payday: string | null;
 };
 
+export type SavedCoMakerOption = {
+    id: number;
+    label: string;
+    last_used_at: string | null;
+};
+
 export type LoanRequestPersonFormData = {
     first_name: string;
     middle_name: string;
@@ -77,6 +83,11 @@ export type LoanRequestPersonFormData = {
     years_in_work_business: string;
     gross_monthly_income: string;
     payday: string;
+    // Saved co-maker reuse (co_maker_1/co_maker_2 only, unused for
+    // applicant) -- see SavedCoMakersService.
+    save_for_reuse: boolean;
+    saved_co_maker_id: string;
+    saved_co_maker_label: string;
 };
 
 export type LoanRequestReviewer = {
@@ -219,7 +230,7 @@ export type LoanRequestDataFieldType =
 
 export type LoanRequestDataFieldVisibility = {
     field: string;
-    equals: string;
+    equals: string | boolean;
 };
 
 export type LoanRequestDataFieldDefinition = {
@@ -264,7 +275,11 @@ export type LoanRequestDocumentKey =
     | 'promissory_note'
     | 'undertaking_barangay'
     | 'loan_security_agreement'
-    | 'generali';
+    | 'generali'
+    | 'authority_to_deduct'
+    | 'deped_salary_deduction_waiver'
+    | 'pension_deduction_waiver'
+    | 'generali_application_form';
 
 export type LoanRequestDocumentReadinessStatus =
     | 'not_started'
@@ -396,6 +411,7 @@ export type LoanRequestDetail = {
     member_action_type: LoanRequestMemberActionType;
     member_action_message: string | null;
     member_action_fields: string[] | null;
+    member_action_requested_by: LoanRequestReviewer | null;
     member_action_requested_at: string | null;
     member_action_resolved_at: string | null;
     cancelled_by: LoanRequestReviewer | null;

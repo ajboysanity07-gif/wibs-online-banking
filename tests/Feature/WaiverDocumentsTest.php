@@ -1,0 +1,361 @@
+<?php
+
+use App\LoanRequestDocumentKey;
+use App\LoanRequestPersonRole;
+use App\LoanRequestStatus;
+use App\Models\AdminProfile;
+use App\Models\AppUser as User;
+use App\Models\LoanRequest;
+use App\Models\LoanRequestDataEntry;
+use App\Models\LoanRequestPerson;
+use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanRequestDocumentCatalog;
+use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * @return array<string, mixed>
+ */
+function waiverDocumentsCreateApprovedLoanRequestWithApplicant(array $applicantAttributes = []): LoanRequest
+{
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => now()->subDay(),
+        'reviewed_at' => now(),
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => '15th & 30th',
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(array_merge([
+            'first_name' => 'Sample',
+            'middle_name' => 'Q',
+            'last_name' => 'Member',
+            'address1' => '123 Loan Street',
+            'address2' => 'Loan City',
+            'address3' => 'Loan Province',
+        ], $applicantAttributes));
+
+    return $loanRequest;
+}
+
+function waiverDocumentsPersistDataEntry(
+    LoanRequest $loanRequest,
+    string $fieldKey,
+    string $valueType,
+    mixed $value,
+): void {
+    LoanRequestDataEntry::query()->updateOrCreate(
+        [
+            'loan_request_id' => $loanRequest->id,
+            'field_key' => $fieldKey,
+        ],
+        [
+            'section_key' => 'processing',
+            'owner_type' => 'staff',
+            'value_type' => $valueType,
+            'value_json' => ['value' => $value],
+            'is_sensitive' => false,
+            'confirmed_by_member' => false,
+            'confirmed_by_member_at' => null,
+        ],
+    );
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function waiverDocumentsBuildDocumentData(LoanRequest $loanRequest): array
+{
+    $service = app(ApprovedLoanDocumentService::class);
+    $buildDocumentData = Closure::bind(
+        fn (LoanRequest $record): array => $this->buildDocumentData($record),
+        $service,
+        ApprovedLoanDocumentService::class,
+    );
+
+    return $buildDocumentData($loanRequest);
+}
+
+function waiverDocumentsReadDownloadedFileContent(\Illuminate\Testing\TestResponse $response): string
+{
+    $baseResponse = $response->baseResponse;
+    $path = $baseResponse->getFile()->getPathname();
+    $content = file_get_contents($path);
+
+    if (! is_string($content)) {
+        throw new RuntimeException('Unable to read downloaded file content.');
+    }
+
+    return $content;
+}
+
+/**
+ * @return array<string, string>
+ */
+function waiverDocumentsOpenZipEntries(\Illuminate\Testing\TestResponse $response): array
+{
+    $baseResponse = $response->baseResponse;
+    $path = $baseResponse->getFile()->getPathname();
+
+    $archive = new ZipArchive;
+    if ($archive->open($path) !== true) {
+        throw new RuntimeException('Unable to open generated ZIP archive.');
+    }
+
+    $entries = [];
+    for ($index = 0; $index < $archive->numFiles; $index++) {
+        $name = $archive->getNameIndex($index);
+        if ($name !== false) {
+            $entries[$name] = $archive->getFromName($name);
+        }
+    }
+    $archive->close();
+
+    return $entries;
+}
+
+function waiverDocumentsCreateTemplatePdf(string $path, string $title): void
+{
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetMargins(0, 0, 0, true);
+    $pdf->SetAutoPageBreak(false, 0);
+    $pdf->SetCompression(false);
+    $pdf->AddPage();
+    $pdf->SetFont('helvetica', 'B', 12);
+    $pdf->Text(8, 11, $title);
+    $pdf->Output($path, 'F');
+}
+
+beforeEach(function () {
+    config()->set('reports.pdf_driver', 'dompdf');
+
+    if (! Schema::hasTable('wmaster')) {
+        Schema::create('wmaster', function (Blueprint $table) {
+            $table->string('acctno')->primary();
+            $table->string('fname')->nullable();
+            $table->string('mname')->nullable();
+            $table->string('lname')->nullable();
+            $table->string('bname')->nullable();
+            $table->date('birthday')->nullable();
+            $table->string('beneficiary1')->nullable();
+            $table->string('beneficiary2')->nullable();
+            $table->string('beneficiary3')->nullable();
+            $table->date('ben1_bday')->nullable();
+            $table->date('ben2_bday')->nullable();
+            $table->date('ben3_bday')->nullable();
+            $table->string('ben1_acctno')->nullable();
+            $table->string('ben2_acctno')->nullable();
+            $table->string('ben3_acctno')->nullable();
+        });
+    }
+
+    $pdfDirectory = storage_path('app/templates/approved-loan-documents/pdf');
+    File::ensureDirectoryExists($pdfDirectory);
+    waiverDocumentsCreateTemplatePdf(
+        $pdfDirectory.DIRECTORY_SEPARATOR.'deped-salary-deduction-waiver.pdf',
+        'DepEd Salary Deduction Waiver',
+    );
+    waiverDocumentsCreateTemplatePdf(
+        $pdfDirectory.DIRECTORY_SEPARATOR.'pension-deduction-waiver.pdf',
+        'Pension Deduction Waiver',
+    );
+});
+
+test('deped salary deduction waiver is not applicable without a deped employer signal', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Some Private Company',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(
+        LoanRequestDocumentKey::DepedSalaryDeductionWaiver,
+        $loanRequest->fresh(),
+        [],
+    ))->toBeFalse();
+});
+
+test('deped salary deduction waiver becomes applicable when the applicant employer name contains "deped"', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'DepEd Division of Surigao del Sur',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(
+        LoanRequestDocumentKey::DepedSalaryDeductionWaiver,
+        $loanRequest->fresh(),
+        [],
+    ))->toBeTrue();
+});
+
+test('pension deduction waiver is not applicable when the applicant is not a pensioner', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Private',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(
+        LoanRequestDocumentKey::PensionDeductionWaiver,
+        $loanRequest->fresh(),
+        [],
+    ))->toBeFalse();
+});
+
+test('pension deduction waiver becomes applicable when the applicant employment type is pensioner', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Pensioner',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(
+        LoanRequestDocumentKey::PensionDeductionWaiver,
+        $loanRequest->fresh(),
+        [],
+    ))->toBeTrue();
+});
+
+test('deduction block formats the deped amount with words', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant();
+    waiverDocumentsPersistDataEntry($loanRequest, 'deped_deduction_amount', 'number', 28000);
+    waiverDocumentsPersistDataEntry($loanRequest, 'deped_school_id_number', 'string', '123456');
+
+    $documentData = waiverDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect($documentData['deduction']['deped_deduction_amount'])->toBe('28,000.00')
+        ->and($documentData['deduction']['deped_deduction_amount_words'])->toBe('TWENTY EIGHT THOUSAND PESOS ONLY.')
+        ->and($documentData['deduction']['deped_school_id_number'])->toBe('123456');
+});
+
+test('deduction block formats the pension amount with words', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant();
+    waiverDocumentsPersistDataEntry($loanRequest, 'pension_deduction_amount', 'number', 6618);
+    waiverDocumentsPersistDataEntry($loanRequest, 'pension_provider', 'string', 'Social Security System');
+    waiverDocumentsPersistDataEntry($loanRequest, 'pension_bank_name', 'string', 'Land Bank');
+    waiverDocumentsPersistDataEntry($loanRequest, 'pension_atm_card_number', 'string', '1234-5678-9012');
+
+    $documentData = waiverDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect($documentData['deduction']['pension_deduction_amount'])->toBe('6,618.00')
+        ->and($documentData['deduction']['pension_deduction_amount_words'])->toBe('SIX THOUSAND SIX HUNDRED EIGHTEEN PESOS ONLY.')
+        ->and($documentData['deduction']['pension_provider'])->toBe('Social Security System')
+        ->and($documentData['deduction']['pension_bank_name'])->toBe('Land Bank')
+        ->and($documentData['deduction']['pension_atm_card_number'])->toBe('1234-5678-9012');
+});
+
+test('deped salary deduction waiver field map declares the header image and deduction fields', function () {
+    $fields = collect((new DepedSalaryDeductionWaiverPdfFieldMap)->fields());
+
+    $header = $fields->first(fn (array $field): bool => ($field['type'] ?? null) === 'image');
+    expect($header)->toBeArray();
+    expect($header['value'])->toBe('organization.report_header.designPath');
+
+    foreach ([
+        'applicant.full_name',
+        'applicant.address',
+        'deduction.deped_school_id_number',
+        'deduction.deped_deduction_amount_words',
+        'deduction.deped_deduction_amount',
+        'loan.approved_date_day',
+        'loan.approved_date_month_year',
+        'notarial.signing_place',
+        'reviewer.name',
+    ] as $expectedValue) {
+        expect($fields->contains(
+            fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
+        ))->toBeTrue("Expected field map to contain a field for {$expectedValue}");
+    }
+});
+
+test('pension deduction waiver field map declares the header image and deduction fields', function () {
+    $fields = collect((new PensionDeductionWaiverPdfFieldMap)->fields());
+
+    $header = $fields->first(fn (array $field): bool => ($field['type'] ?? null) === 'image');
+    expect($header)->toBeArray();
+    expect($header['value'])->toBe('organization.report_header.designPath');
+
+    foreach ([
+        'applicant.full_name',
+        'applicant.address',
+        'deduction.pension_provider',
+        'deduction.pension_bank_name',
+        'deduction.pension_atm_card_number',
+        'deduction.pension_deduction_amount_words',
+        'deduction.pension_deduction_amount',
+        'loan.approved_date_day',
+        'loan.approved_date_month_year',
+        'notarial.signing_place',
+    ] as $expectedValue) {
+        expect($fields->contains(
+            fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
+        ))->toBeTrue("Expected field map to contain a field for {$expectedValue}");
+    }
+});
+
+test('deped salary deduction waiver downloads as a real pdf for an applicable deped borrower', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'DepEd Division of Surigao del Sur',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'deped_deduction_amount', 'number', 28000);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.deped-salary-deduction-waiver', $loanRequest));
+
+    $content = waiverDocumentsReadDownloadedFileContent($response);
+
+    $response->assertOk();
+    $response->assertHeaderContains('content-type', 'application/pdf');
+    expect($content)->toStartWith('%PDF');
+});
+
+test('pension deduction waiver downloads as a real pdf for an applicable pensioner borrower', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Pensioner',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'pension_deduction_amount', 'number', 6618);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.pension-deduction-waiver', $loanRequest));
+
+    $content = waiverDocumentsReadDownloadedFileContent($response);
+
+    $response->assertOk();
+    $response->assertHeaderContains('content-type', 'application/pdf');
+    expect($content)->toStartWith('%PDF');
+});
+
+test('approved documents zip includes the pension waiver but not the deped waiver for a pensioner borrower', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Pensioner',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'pension_deduction_amount', 'number', 6618);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents', $loanRequest));
+
+    $response->assertOk();
+    $entries = waiverDocumentsOpenZipEntries($response);
+
+    expect($entries)->toHaveKey('13-Pension-Deduction-Waiver.pdf')
+        ->not->toHaveKey('12-DepEd-Salary-Deduction-Waiver.pdf');
+});

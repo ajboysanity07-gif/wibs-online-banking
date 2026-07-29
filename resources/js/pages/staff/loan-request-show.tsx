@@ -100,11 +100,15 @@ import {
 import {
     affidavitUndertaking as requestsAffidavitUndertakingDocument,
     applicationForm as requestsApplicationFormDocument,
+    authorityToDeduct as requestsAuthorityToDeductDocument,
+    depedSalaryDeductionWaiver as requestsDepedSalaryDeductionWaiverDocument,
     disclosureStatement as requestsDisclosureStatementDocument,
     generali as requestsGeneraliDocument,
+    generaliApplicationForm as requestsGeneraliApplicationFormDocument,
     grepalife as requestsGrepalifeDocument,
     loanInformation as requestsLoanInformationDocument,
     loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
+    pensionDeductionWaiver as requestsPensionDeductionWaiverDocument,
     planOfPayment as requestsPlanOfPaymentDocument,
     promissoryNote as requestsPromissoryNoteDocument,
     undertakingBarangay as requestsUndertakingBarangayDocument,
@@ -194,6 +198,9 @@ const emptyPerson: LoanRequestPersonFormData = {
     years_in_work_business: '',
     gross_monthly_income: '',
     payday: '',
+    save_for_reuse: false,
+    saved_co_maker_id: '',
+    saved_co_maker_label: '',
 };
 
 const toStringValue = (
@@ -631,6 +638,20 @@ export default function StaffLoanRequestShow({
                       currentRequest.id,
                   ).url,
                   generali: requestsGeneraliDocument(currentRequest.id).url,
+                  authorityToDeduct: requestsAuthorityToDeductDocument(
+                      currentRequest.id,
+                  ).url,
+                  depedSalaryDeductionWaiver:
+                      requestsDepedSalaryDeductionWaiverDocument(
+                          currentRequest.id,
+                      ).url,
+                  pensionDeductionWaiver: requestsPensionDeductionWaiverDocument(
+                      currentRequest.id,
+                  ).url,
+                  generaliApplicationForm:
+                      requestsGeneraliApplicationFormDocument(
+                          currentRequest.id,
+                      ).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;
@@ -1598,6 +1619,26 @@ export default function StaffLoanRequestShow({
                             {renderProcessingField('barangay_official_title')}
                         </div>
 
+                        {renderProcessingSectionLabel('Authority to Deduct')}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {renderProcessingField(
+                                'authority_to_deduct_institution_name',
+                                { fullWidth: true },
+                            )}
+                            {renderProcessingField(
+                                'authority_to_deduct_officer_1_name',
+                            )}
+                            {renderProcessingField(
+                                'authority_to_deduct_officer_1_title',
+                            )}
+                            {renderProcessingField(
+                                'authority_to_deduct_officer_2_name',
+                            )}
+                            {renderProcessingField(
+                                'authority_to_deduct_officer_2_title',
+                            )}
+                        </div>
+
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
@@ -1821,6 +1862,12 @@ export default function StaffLoanRequestShow({
                     <AlertDescription>
                         {currentRequest.member_action_message ??
                             'This request is waiting for a member response.'}
+                        {currentRequest.member_action_requested_by ? (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Requested by{' '}
+                                {currentRequest.member_action_requested_by.name}
+                            </p>
+                        ) : null}
                     </AlertDescription>
                 </Alert>
             ) : null}

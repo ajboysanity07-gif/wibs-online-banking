@@ -46,12 +46,6 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         group: 'about-you',
     },
     {
-        id: 'dependents',
-        title: 'Dependents',
-        description: 'Add any dependents applicable to you (optional).',
-        group: 'about-you',
-    },
-    {
         id: 'work-employment',
         title: 'Work: employment',
         description: 'Share your employment and employer details.',
@@ -117,6 +111,12 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         title: 'Insurance & beneficiaries',
         description:
             'Provide beneficiary details required for document generation.',
+        group: 'insurance-health',
+    },
+    {
+        id: 'dependents',
+        title: 'Dependents',
+        description: 'Add any dependents applicable to you (optional).',
         group: 'insurance-health',
     },
     {

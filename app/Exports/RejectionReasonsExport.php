@@ -21,7 +21,7 @@ class RejectionReasonsExport extends AbstractReportExport implements FromCollect
     public function collection(): Collection
     {
         return LoanRequest::query()
-            ->with(['user', 'rejectedBy'])
+            ->with(['user', 'rejectedBy', 'declinedBy'])
             ->whereIn('status', [
                 LoanRequestStatus::Rejected->value,
                 LoanRequestStatus::Declined->value,
@@ -31,8 +31,9 @@ class RejectionReasonsExport extends AbstractReportExport implements FromCollect
             ->orderBy('rejected_at')
             ->get([
                 'id', 'reference', 'user_id', 'loan_type_label_snapshot',
-                'requested_amount', 'status', 'rejection_reason', 'rejected_at',
-                'rejected_by', 'declined_at', 'decline_reason',
+                'requested_amount', 'status', 'review_rejection_category',
+                'rejection_reason', 'rejected_at', 'rejected_by',
+                'decline_category', 'declined_at', 'decline_reason', 'declined_by',
             ]);
     }
 
@@ -41,7 +42,7 @@ class RejectionReasonsExport extends AbstractReportExport implements FromCollect
     {
         return [
             'Reference', 'Applicant', 'Loan Type', 'Requested Amount',
-            'Outcome', 'Reason', 'Decision Date', 'Decided By',
+            'Outcome', 'Category', 'Reason', 'Decision Date', 'Decided By',
         ];
     }
 
@@ -53,9 +54,10 @@ class RejectionReasonsExport extends AbstractReportExport implements FromCollect
             : (string) $row->status;
 
         $isRejected = $status === LoanRequestStatus::Rejected->value;
+        $category = $isRejected ? $row->review_rejection_category : $row->decline_category;
         $reason = $isRejected ? $row->rejection_reason : $row->decline_reason;
         $decisionDate = $isRejected ? $row->rejected_at : $row->declined_at;
-        $decidedBy = $row->rejectedBy?->name ?? '';
+        $decidedBy = $isRejected ? $row->rejectedBy?->name : $row->declinedBy?->name;
 
         return [
             $row->reference,
@@ -63,9 +65,10 @@ class RejectionReasonsExport extends AbstractReportExport implements FromCollect
             $row->loan_type_label_snapshot ?? '',
             $row->requested_amount,
             $status,
+            $category ?? '',
             $reason ?? '',
             $decisionDate ? Carbon::parse($decisionDate)->toDateString() : '',
-            $decidedBy,
+            $decidedBy ?? '',
         ];
     }
 }

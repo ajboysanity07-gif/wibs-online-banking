@@ -40,11 +40,15 @@ import {
 import {
     affidavitUndertaking as requestsAffidavitUndertakingDocument,
     applicationForm as requestsApplicationFormDocument,
+    authorityToDeduct as requestsAuthorityToDeductDocument,
+    depedSalaryDeductionWaiver as requestsDepedSalaryDeductionWaiverDocument,
     disclosureStatement as requestsDisclosureStatementDocument,
     generali as requestsGeneraliDocument,
+    generaliApplicationForm as requestsGeneraliApplicationFormDocument,
     grepalife as requestsGrepalifeDocument,
     loanInformation as requestsLoanInformationDocument,
     loanSecurityAgreement as requestsLoanSecurityAgreementDocument,
+    pensionDeductionWaiver as requestsPensionDeductionWaiverDocument,
     planOfPayment as requestsPlanOfPaymentDocument,
     promissoryNote as requestsPromissoryNoteDocument,
     undertakingBarangay as requestsUndertakingBarangayDocument,
@@ -278,6 +282,20 @@ export default function LoanRequestShow({
                       currentRequest.id,
                   ).url,
                   generali: requestsGeneraliDocument(currentRequest.id).url,
+                  authorityToDeduct: requestsAuthorityToDeductDocument(
+                      currentRequest.id,
+                  ).url,
+                  depedSalaryDeductionWaiver:
+                      requestsDepedSalaryDeductionWaiverDocument(
+                          currentRequest.id,
+                      ).url,
+                  pensionDeductionWaiver: requestsPensionDeductionWaiverDocument(
+                      currentRequest.id,
+                  ).url,
+                  generaliApplicationForm:
+                      requestsGeneraliApplicationFormDocument(
+                          currentRequest.id,
+                      ).url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;

@@ -8,6 +8,7 @@ import {
     DependentSpouseCycleSection,
     SPOUSE_CYCLE_NUMBER_KEY,
     SPOUSE_CYCLE_STATUS_KEY,
+    dependentCategoryPluralLabel,
     slotFieldKey,
     summarizeDependents,
 } from '@/components/dependents/dependent-category-section';
@@ -41,6 +42,7 @@ import {
     composeBirthplace,
     formatCivilStatus,
     formatCurrency,
+    formatDateTime,
     formatDisplayText,
     formatHousingStatus,
     formatPayday,
@@ -55,6 +57,7 @@ import type {
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
     LoanTypeOption,
+    SavedCoMakerOption,
 } from '@/types/loan-requests';
 
 const AVAILMENT_OPTIONS = ['New', 'Re-Loan', 'Restructured'] as const;
@@ -280,7 +283,83 @@ type CoMakerStepProps = {
     values: LoanRequestPersonFormData;
     errors: Record<string, string | undefined>;
     onChange: (field: keyof LoanRequestPersonFormData, value: string) => void;
+    savedCoMakers?: SavedCoMakerOption[];
+    onLoadSavedCoMaker?: (id: number) => void;
+    onRemoveSavedCoMaker?: (id: number) => void;
+    onToggleSaveForReuse?: (checked: boolean) => void;
 };
+
+// "Load a saved co-maker" only appears on the first (basic) step of each
+// co-maker's flow -- it's a starting point that fills every section at
+// once, so repeating it on every step would be redundant.
+function SavedCoMakerPicker({
+    savedCoMakers,
+    onLoadSavedCoMaker,
+    onRemoveSavedCoMaker,
+}: {
+    savedCoMakers: SavedCoMakerOption[];
+    onLoadSavedCoMaker?: (id: number) => void;
+    onRemoveSavedCoMaker?: (id: number) => void;
+}) {
+    if (savedCoMakers.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="space-y-3 rounded-md border border-border/50 bg-muted/10 p-3">
+            <div>
+                <p className="text-sm font-medium">Load a saved co-maker</p>
+                <p className="text-xs text-muted-foreground">
+                    Pick someone you&apos;ve used as a co-maker before to fill
+                    in their details below. You can still edit anything after
+                    loading.
+                </p>
+            </div>
+            <div className="flex flex-col gap-2">
+                {savedCoMakers.map((option) => (
+                    <div
+                        key={option.id}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border/40 bg-background px-3 py-2"
+                    >
+                        <div>
+                            <p className="text-sm font-medium">
+                                {option.label}
+                            </p>
+                            {option.last_used_at ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Last used{' '}
+                                    {formatDateTime(option.last_used_at)}
+                                </p>
+                            ) : null}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                    onLoadSavedCoMaker?.(option.id)
+                                }
+                            >
+                                Use this
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                    onRemoveSavedCoMaker?.(option.id)
+                                }
+                            >
+                                Remove
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 export function LoanRequestCoMakerStep({
     title,
@@ -290,9 +369,20 @@ export function LoanRequestCoMakerStep({
     values,
     errors,
     onChange,
+    savedCoMakers,
+    onLoadSavedCoMaker,
+    onRemoveSavedCoMaker,
+    onToggleSaveForReuse,
 }: CoMakerStepProps) {
     return (
         <LoanRequestSectionCard title={title} description={description}>
+            {section === 'basic' && savedCoMakers ? (
+                <SavedCoMakerPicker
+                    savedCoMakers={savedCoMakers}
+                    onLoadSavedCoMaker={onLoadSavedCoMaker}
+                    onRemoveSavedCoMaker={onRemoveSavedCoMaker}
+                />
+            ) : null}
             {section === 'basic' || section === 'contact' ? (
                 <LoanRequestPersonalFields
                     prefix={prefix}
@@ -319,6 +409,21 @@ export function LoanRequestCoMakerStep({
                                     Signatures will be collected physically upon loan release.
                                 </AlertDescription>
                             </Alert>
+                            <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id={`${prefix}_save_for_reuse`}
+                                    checked={values.save_for_reuse}
+                                    onCheckedChange={(checked) =>
+                                        onToggleSaveForReuse?.(checked === true)
+                                    }
+                                />
+                                <Label
+                                    htmlFor={`${prefix}_save_for_reuse`}
+                                    className="text-sm font-normal"
+                                >
+                                    Save this co-maker&apos;s details so I can reuse them on a future loan
+                                </Label>
+                            </div>
                         </>
                     ) : null}
                 </>
@@ -533,6 +638,104 @@ const displaySectionValue = (
     return displayText(`${value}`);
 };
 
+const EXISTING_LOAN_ROW_SLOTS = [1, 2, 3] as const;
+
+type ExistingLoansTableProps = {
+    sectionKey: string;
+    values: LoanRequestDataSectionValues;
+    errors: Record<string, string | undefined>;
+    onChange: (field: string, value: string | number | boolean | null) => void;
+};
+
+// Existing/previous loan detail rows (GLAPI section 1.1 table). Fixed 3-slot
+// table matching the PDF's printed row capacity -- same fixed-slot pattern
+// as Dependents/Beneficiaries (see LoanRequestDataService::FIELD_DEFINITIONS
+// comment). Rendered only while declaration_existing_loans === true.
+function ExistingLoansTable({
+    sectionKey,
+    values,
+    errors,
+    onChange,
+}: ExistingLoansTableProps) {
+    return (
+        <div className="mt-2 overflow-x-auto rounded-md border border-border/50">
+            <table className="w-full text-sm">
+                <thead>
+                    <tr className="border-b border-border/50 bg-muted/20">
+                        <th className="p-2 text-left font-medium">
+                            Date of loan
+                        </th>
+                        <th className="p-2 text-left font-medium">
+                            Type of loan
+                        </th>
+                        <th className="p-2 text-left font-medium">
+                            Amount of loan
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {EXISTING_LOAN_ROW_SLOTS.map((slot) => {
+                        const dateKey = `existing_loan_${slot}_date`;
+                        const typeKey = `existing_loan_${slot}_type`;
+                        const amountKey = `existing_loan_${slot}_amount`;
+                        const dateValue = values[dateKey];
+                        const typeValue = values[typeKey];
+                        const amountValue = values[amountKey];
+
+                        return (
+                            <tr key={slot} className="border-b border-border/30 last:border-b-0">
+                                <td className="p-2 align-top">
+                                    <Input
+                                        id={`${sectionKey}_${dateKey}`}
+                                        type="date"
+                                        aria-label={`Existing loan ${slot} date`}
+                                        value={dateValue ? `${dateValue}` : ''}
+                                        onChange={(event) =>
+                                            onChange(dateKey, event.target.value)
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors[`${sectionKey}.${dateKey}`]}
+                                    />
+                                </td>
+                                <td className="p-2 align-top">
+                                    <Input
+                                        id={`${sectionKey}_${typeKey}`}
+                                        type="text"
+                                        aria-label={`Existing loan ${slot} type`}
+                                        value={typeValue ? `${typeValue}` : ''}
+                                        onChange={(event) =>
+                                            onChange(typeKey, event.target.value)
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors[`${sectionKey}.${typeKey}`]}
+                                    />
+                                </td>
+                                <td className="p-2 align-top">
+                                    <Input
+                                        id={`${sectionKey}_${amountKey}`}
+                                        type="number"
+                                        step="0.01"
+                                        aria-label={`Existing loan ${slot} amount`}
+                                        value={amountValue ? `${amountValue}` : ''}
+                                        onChange={(event) =>
+                                            onChange(amountKey, event.target.value)
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors[`${sectionKey}.${amountKey}`]}
+                                    />
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
 export function LoanRequestDataSectionStep({
     sectionKey,
     title,
@@ -555,6 +758,44 @@ export function LoanRequestDataSectionStep({
                     const value = values[fieldKey];
                     const isNotesField = fieldKey.includes('notes');
                     const consentCopy = CONSENT_CHECKBOX_COPY[fieldKey];
+
+                    // Existing-loan detail rows render together as a table
+                    // right after declaration_existing_loans (see below),
+                    // not as individual generic fields in this grid.
+                    if (fieldKey.startsWith('existing_loan_')) {
+                        return null;
+                    }
+
+                    if (fieldKey === 'declaration_existing_loans') {
+                        return (
+                            <div
+                                key={fieldKey}
+                                className="grid gap-2 md:col-span-2"
+                            >
+                                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                                    {field.label}
+                                </Label>
+                                <BooleanYesNoField
+                                    id={`${sectionKey}_${fieldKey}`}
+                                    value={value}
+                                    aria-label={field.label}
+                                    fullWidth={sectionKey === 'declarations'}
+                                    onChange={(nextValue) =>
+                                        onChange(fieldKey, nextValue)
+                                    }
+                                />
+                                <InputError message={errors[errorKey]} />
+                                {value === true && (
+                                    <ExistingLoansTable
+                                        sectionKey={sectionKey}
+                                        values={values}
+                                        errors={errors}
+                                        onChange={onChange}
+                                    />
+                                )}
+                            </div>
+                        );
+                    }
 
                     if (consentCopy) {
                         return (
@@ -640,11 +881,17 @@ export function LoanRequestDataSectionStep({
                         );
                     }
 
+                    const isFullWidthToggle =
+                        field.type === 'boolean' &&
+                        sectionKey === 'declarations';
+
                     return (
                         <div
                             key={fieldKey}
                             className={
-                                isNotesField ? 'grid gap-2 md:col-span-2' : 'grid gap-2'
+                                isNotesField || isFullWidthToggle
+                                    ? 'grid gap-2 md:col-span-2'
+                                    : 'grid gap-2'
                             }
                         >
                             <Label htmlFor={`${sectionKey}_${fieldKey}`}>
@@ -655,6 +902,7 @@ export function LoanRequestDataSectionStep({
                                     id={`${sectionKey}_${fieldKey}`}
                                     value={value}
                                     aria-label={field.label}
+                                    fullWidth={isFullWidthToggle}
                                     onChange={(nextValue) =>
                                         onChange(fieldKey, nextValue)
                                     }
@@ -1054,6 +1302,7 @@ export function LoanRequestHealthQuestionnaireStep({
                             id={`${sectionKey}_${fieldKey}`}
                             value={value}
                             aria-label={field.label}
+                            fullWidth
                             onChange={(nextBoolean) => {
                                 onChange(fieldKey, nextBoolean);
 
@@ -1296,6 +1545,7 @@ export function LoanRequestHealthQuestionnaireStep({
                         id="health_health_hypertension"
                         value={value}
                         aria-label={field.label}
+                        fullWidth
                         onChange={(nextValue) => {
                             onHealthChange('health_hypertension', nextValue);
 
@@ -1552,10 +1802,14 @@ export function LoanRequestDependentsStep({
 
     if (hasExistingProfileData) {
         const summaries = summarizeDependents(visibleCategories, values);
-        const summaryCounts = summaries.map(
-            ({ category, count }) =>
-                `${count} ${category.label.toLowerCase()}${count === 1 ? '' : 's'}`,
-        );
+        const summaryCounts = summaries.map(({ category, count }) => {
+            const label =
+                count === 1
+                    ? category.label
+                    : dependentCategoryPluralLabel(category);
+
+            return `${count} ${label.toLowerCase()}`;
+        });
 
         if (hasSpouseCycleData) {
             summaryCounts.unshift('Spouse');
@@ -1593,7 +1847,7 @@ export function LoanRequestDependentsStep({
                     {summaries.map(({ category, rows }) => (
                         <div key={category.key} className="space-y-1">
                             <p className="text-sm font-medium text-foreground">
-                                {category.label}s
+                                {dependentCategoryPluralLabel(category)}
                             </p>
                             <ul className="list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">
                                 {rows.map((row, index) => (
@@ -1641,13 +1895,6 @@ export function LoanRequestDependentsStep({
                     onChange={onChange}
                 />
             ))}
-            <Alert className="border-border/50 bg-muted/10">
-                <AlertTitle>Optional</AlertTitle>
-                <AlertDescription>
-                    Dependents are optional. Add only the ones applicable to
-                    you -- leave a category empty if it doesn&apos;t apply.
-                </AlertDescription>
-            </Alert>
         </LoanRequestSectionCard>
     );
 }

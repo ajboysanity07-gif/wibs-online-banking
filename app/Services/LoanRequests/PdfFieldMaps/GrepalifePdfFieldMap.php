@@ -296,8 +296,14 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'x' => 68.5,
                 'y' => 125.0,
                 'size' => 6.4,
-                'value' => $this->hasExistingLoanDetails(),
+                'value' => $this->healthChecked('declaration_existing_loans', 'declarations'),
             ],
+            // Existing/previous loan table (section 1.1), 3 repeatable rows bound
+            // to existing_loans.{0,1,2}.{date,type,amount} -- see
+            // ApprovedLoanDocumentService::existingLoansDocumentData(). Row 1's
+            // y is already calibrated; rows 2-3 estimate the Beneficiaries
+            // table's ~3.6mm row spacing (149.2/152.8/156.4) since this table
+            // has no independent calibration pass yet.
             [
                 'page' => 1,
                 'x' => 71.5,
@@ -306,7 +312,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'width' => 40,
                 'line_height' => 2.1,
                 'align' => 'C',
-                'value' => 'loan.approved_date_short',
+                'value' => $this->shortDate('existing_loans.0.date'),
             ],
             [
                 'page' => 1,
@@ -316,7 +322,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'width' => 36,
                 'line_height' => 2.1,
                 'align' => 'C',
-                'value' => 'loan.type',
+                'value' => 'existing_loans.0.type',
             ],
             [
                 'page' => 1,
@@ -326,7 +332,69 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'width' => 24,
                 'line_height' => 2.1,
                 'align' => 'C',
-                'value' => 'loan.approved_amount',
+                'value' => 'existing_loans.0.amount',
+            ],
+            // TODO(calibrate-gl): verify row 2/3 y-offset for existing-loan table against loan-documents:calibrate-fields gl overlay
+            [
+                'page' => 1,
+                'x' => 71.5,
+                'y' => 137.7,
+                'size' => 7,
+                'width' => 40,
+                'line_height' => 2.1,
+                'align' => 'C',
+                'value' => $this->shortDate('existing_loans.1.date'),
+            ],
+            [
+                'page' => 1,
+                'x' => 118.5,
+                'y' => 137.7,
+                'size' => 7,
+                'width' => 36,
+                'line_height' => 2.1,
+                'align' => 'C',
+                'value' => 'existing_loans.1.type',
+            ],
+            [
+                'page' => 1,
+                'x' => 170.2,
+                'y' => 137.7,
+                'size' => 7,
+                'width' => 24,
+                'line_height' => 2.1,
+                'align' => 'C',
+                'value' => 'existing_loans.1.amount',
+            ],
+            // TODO(calibrate-gl): verify row 2/3 y-offset for existing-loan table against loan-documents:calibrate-fields gl overlay
+            [
+                'page' => 1,
+                'x' => 71.5,
+                'y' => 141.3,
+                'size' => 7,
+                'width' => 40,
+                'line_height' => 2.1,
+                'align' => 'C',
+                'value' => $this->shortDate('existing_loans.2.date'),
+            ],
+            [
+                'page' => 1,
+                'x' => 118.5,
+                'y' => 141.3,
+                'size' => 7,
+                'width' => 36,
+                'line_height' => 2.1,
+                'align' => 'C',
+                'value' => 'existing_loans.2.type',
+            ],
+            [
+                'page' => 1,
+                'x' => 170.2,
+                'y' => 141.3,
+                'size' => 7,
+                'width' => 24,
+                'line_height' => 2.1,
+                'align' => 'C',
+                'value' => 'existing_loans.2.amount',
             ],
             [
                 'page' => 1,
@@ -571,15 +639,6 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
             }
 
             return date('m/d/Y', $timestamp);
-        };
-    }
-
-    private function hasExistingLoanDetails(): callable
-    {
-        return static function (array $documentData): bool {
-            return data_get($documentData, 'loan.approved_date_short') !== null
-                || data_get($documentData, 'loan.type') !== null
-                || data_get($documentData, 'loan.approved_amount') !== null;
         };
     }
 

@@ -25,6 +25,7 @@ use App\Http\Controllers\Client\MemberLoanPaymentsExportController as ClientMemb
 use App\Http\Controllers\Client\MemberLoanScheduleController as ClientMemberLoanScheduleController;
 use App\Http\Controllers\Client\MemberLoansController as ClientMemberLoansController;
 use App\Http\Controllers\Client\MemberSavingsController as ClientMemberSavingsController;
+use App\Http\Controllers\Client\SavedCoMakerController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoanRequestActionController;
@@ -292,6 +293,14 @@ Route::post(
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.correction-reports.store');
 
+Route::get('client/co-makers/{coMaker}', [SavedCoMakerController::class, 'show'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.co-makers.show');
+
+Route::delete('client/co-makers/{coMaker}', [SavedCoMakerController::class, 'destroy'])
+    ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
+    ->name('client.co-makers.destroy');
+
 Route::post('client/loans/requests/{loanRequest}/corrected-copy', [LoanRequestController::class, 'createCorrectedCopy'])
     ->middleware(['auth', 'approved', 'verified', 'member-profile-complete'])
     ->name('client.loan-requests.corrected-copy');
@@ -334,6 +343,14 @@ Route::prefix('client/loans/requests/{loanRequest}/documents')
             ->name('client.loan-requests.documents.affidavit-undertaking');
         Route::get('generali', [LoanRequestController::class, 'generaliDocument'])
             ->name('client.loan-requests.documents.generali');
+        Route::get('authority-to-deduct', [LoanRequestController::class, 'authorityToDeductDocument'])
+            ->name('client.loan-requests.documents.authority-to-deduct');
+        Route::get('deped-salary-deduction-waiver', [LoanRequestController::class, 'depedSalaryDeductionWaiverDocument'])
+            ->name('client.loan-requests.documents.deped-salary-deduction-waiver');
+        Route::get('pension-deduction-waiver', [LoanRequestController::class, 'pensionDeductionWaiverDocument'])
+            ->name('client.loan-requests.documents.pension-deduction-waiver');
+        Route::get('generali-application-form', [LoanRequestController::class, 'generaliApplicationFormDocument'])
+            ->name('client.loan-requests.documents.generali-application-form');
     });
 
 Route::get('client/loans/{loanNumber}/schedule', ClientMemberLoanScheduleController::class)
@@ -429,6 +446,14 @@ Route::prefix('staff')->middleware(['auth', 'verified', 'loan-workflow-staff'])-
             ->name('staff.loan-requests.documents.affidavit-undertaking');
         Route::get('generali', [StaffLoanRequestController::class, 'generaliDocument'])
             ->name('staff.loan-requests.documents.generali');
+        Route::get('authority-to-deduct', [StaffLoanRequestController::class, 'authorityToDeductDocument'])
+            ->name('staff.loan-requests.documents.authority-to-deduct');
+        Route::get('deped-salary-deduction-waiver', [StaffLoanRequestController::class, 'depedSalaryDeductionWaiverDocument'])
+            ->name('staff.loan-requests.documents.deped-salary-deduction-waiver');
+        Route::get('pension-deduction-waiver', [StaffLoanRequestController::class, 'pensionDeductionWaiverDocument'])
+            ->name('staff.loan-requests.documents.pension-deduction-waiver');
+        Route::get('generali-application-form', [StaffLoanRequestController::class, 'generaliApplicationFormDocument'])
+            ->name('staff.loan-requests.documents.generali-application-form');
     });
 
     Route::prefix('loan-requests/{loanRequest}/wibs')->group(function () {
@@ -522,6 +547,14 @@ Route::prefix('admin')->middleware(['auth', 'admin', 'verified'])->group(functio
             ->name('admin.requests.documents.affidavit-undertaking');
         Route::get('generali', [AdminLoanRequestController::class, 'generaliDocument'])
             ->name('admin.requests.documents.generali');
+        Route::get('authority-to-deduct', [AdminLoanRequestController::class, 'authorityToDeductDocument'])
+            ->name('admin.requests.documents.authority-to-deduct');
+        Route::get('deped-salary-deduction-waiver', [AdminLoanRequestController::class, 'depedSalaryDeductionWaiverDocument'])
+            ->name('admin.requests.documents.deped-salary-deduction-waiver');
+        Route::get('pension-deduction-waiver', [AdminLoanRequestController::class, 'pensionDeductionWaiverDocument'])
+            ->name('admin.requests.documents.pension-deduction-waiver');
+        Route::get('generali-application-form', [AdminLoanRequestController::class, 'generaliApplicationFormDocument'])
+            ->name('admin.requests.documents.generali-application-form');
     });
 
     Route::get('watchlist', [WatchlistController::class, 'index'])

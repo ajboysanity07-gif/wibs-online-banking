@@ -13,6 +13,7 @@ class WibsTrackingService
 {
     public function __construct(
         private LoanRequestNotificationService $notificationService,
+        private LoanRequestDocumentWorkflowService $documentWorkflowService,
     ) {}
 
     public function markForEncoding(LoanRequest $loanRequest, AppUser $actor): void
@@ -91,6 +92,11 @@ class WibsTrackingService
             'status' => LoanRequestStatus::ReleaseScheduled,
             'wibs_release_date' => $releaseDate->toDateString(),
         ]);
+
+        $this->documentWorkflowService->markAffectedDocumentsStale(
+            $loanRequest,
+            ['wibs_release_date'],
+        );
 
         LoanRequestChange::create([
             'loan_request_id' => $loanRequest->id,

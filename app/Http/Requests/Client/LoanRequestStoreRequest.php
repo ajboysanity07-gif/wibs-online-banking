@@ -380,15 +380,41 @@ class LoanRequestStoreRequest extends FormRequest
             'barangay.barangay_official_designation' => ['nullable', 'string', 'max:255'],
             'barangay.barangay_agency_name' => ['nullable', 'string', 'max:255'],
             'barangay.barangay_agency_address' => ['nullable', 'string', 'max:255'],
-            'declarations' => ['required', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent'],
+            'declarations' => ['required', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent,existing_loan_1_date,existing_loan_1_type,existing_loan_1_amount,existing_loan_2_date,existing_loan_2_type,existing_loan_2_amount,existing_loan_3_date,existing_loan_3_type,existing_loan_3_amount'],
             'declarations.declaration_existing_loans' => ['required', 'boolean'],
             'declarations.declaration_pending_cases' => ['required', 'boolean'],
             'declarations.declaration_truth_confirmation' => ['accepted'],
             'declarations.declaration_data_privacy_consent' => ['accepted'],
+            'declarations.existing_loan_1_date' => ['sometimes', 'nullable', 'date'],
+            'declarations.existing_loan_1_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'declarations.existing_loan_1_amount' => ['sometimes', 'nullable', 'numeric'],
+            'declarations.existing_loan_2_date' => ['sometimes', 'nullable', 'date'],
+            'declarations.existing_loan_2_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'declarations.existing_loan_2_amount' => ['sometimes', 'nullable', 'numeric'],
+            'declarations.existing_loan_3_date' => ['sometimes', 'nullable', 'date'],
+            'declarations.existing_loan_3_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'declarations.existing_loan_3_amount' => ['sometimes', 'nullable', 'numeric'],
             ...$this->dependentsRules(),
             ...$this->personRules('applicant', true, true, true),
             ...$this->personRules('co_maker_1', false, false, false),
             ...$this->personRules('co_maker_2', false, false, false),
+            ...$this->savedCoMakerRules('co_maker_1'),
+            ...$this->savedCoMakerRules('co_maker_2'),
+        ];
+    }
+
+    /**
+     * Optional "save this co-maker for reuse" fields -- see
+     * SavedCoMakersService. Never required; the borrower opts in explicitly.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function savedCoMakerRules(string $prefix): array
+    {
+        return [
+            "{$prefix}.save_for_reuse" => ['sometimes', 'boolean'],
+            "{$prefix}.saved_co_maker_id" => ['sometimes', 'nullable', 'integer'],
+            "{$prefix}.saved_co_maker_label" => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 

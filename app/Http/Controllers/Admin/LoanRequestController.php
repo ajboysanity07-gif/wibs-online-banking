@@ -229,7 +229,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasPreAcceptanceDisclosureStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -242,7 +242,7 @@ class LoanRequestController extends Controller
     ): HttpResponse {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        if ($loanRequestRecord === null || ! $this->hasPreAcceptanceDisclosureStatus($loanRequestRecord)) {
             abort(404);
         }
 
@@ -301,6 +301,58 @@ class LoanRequestController extends Controller
         return $documentService->generali($loanRequestRecord);
     }
 
+    public function authorityToDeductDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->authorityToDeduct($loanRequestRecord);
+    }
+
+    public function depedSalaryDeductionWaiverDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->depedSalaryDeductionWaiver($loanRequestRecord);
+    }
+
+    public function pensionDeductionWaiverDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->pensionDeductionWaiver($loanRequestRecord);
+    }
+
+    public function generaliApplicationFormDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->generaliApplicationForm($loanRequestRecord);
+    }
+
     private function findLoanRequest(int $loanRequestId): ?LoanRequest
     {
         return LoanRequest::query()
@@ -339,6 +391,24 @@ class LoanRequestController extends Controller
             : (string) $loanRequest->status;
 
         return in_array($status, [
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
+        ], true);
+    }
+
+    /**
+     * Truth-in-lending–style disclosures (loan_information, disclosure_statement) must
+     * reach the member before they accept the loan's terms, not only afterward -- so
+     * these two documents unlock one workflow step earlier than the rest of the package.
+     */
+    private function hasPreAcceptanceDisclosureStatus(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return in_array($status, [
+            LoanRequestStatus::AwaitingMemberAcceptance->value,
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::ConvertedToLoan->value,
         ], true);

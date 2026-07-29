@@ -621,6 +621,62 @@ class LoanRequestController extends Controller
         return $documentService->generali($loanRequestRecord);
     }
 
+    public function authorityToDeductDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'authority-to-deduct-document',
+        );
+
+        return $documentService->authorityToDeduct($loanRequestRecord);
+    }
+
+    public function depedSalaryDeductionWaiverDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'deped-salary-deduction-waiver-document',
+        );
+
+        return $documentService->depedSalaryDeductionWaiver($loanRequestRecord);
+    }
+
+    public function pensionDeductionWaiverDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'pension-deduction-waiver-document',
+        );
+
+        return $documentService->pensionDeductionWaiver($loanRequestRecord);
+    }
+
+    public function generaliApplicationFormDocument(
+        Request $request,
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->resolveApprovedDocumentLoanRequest(
+            $request,
+            $loanRequest,
+            'generali-application-form-document',
+        );
+
+        return $documentService->generaliApplicationForm($loanRequestRecord);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -708,6 +764,18 @@ class LoanRequestController extends Controller
         ], true);
     }
 
+    /**
+     * Truth-in-lending–style disclosures must reach the member before they accept the
+     * loan's terms, not only afterward -- so these two contexts unlock one workflow step
+     * earlier than the rest of the approved-document package.
+     *
+     * @var list<string>
+     */
+    private const PRE_ACCEPTANCE_DISCLOSURE_CONTEXTS = [
+        'loan-information-document',
+        'disclosure-statement-document',
+    ];
+
     private function hasApprovedDocumentsStatus(LoanRequest $loanRequest): bool
     {
         $status = $loanRequest->status instanceof LoanRequestStatus
@@ -715,6 +783,19 @@ class LoanRequestController extends Controller
             : (string) $loanRequest->status;
 
         return in_array($status, [
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
+        ], true);
+    }
+
+    private function hasPreAcceptanceDisclosureStatus(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return in_array($status, [
+            LoanRequestStatus::AwaitingMemberAcceptance->value,
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::ConvertedToLoan->value,
         ], true);
@@ -743,7 +824,11 @@ class LoanRequestController extends Controller
             $context,
         );
 
-        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+        $hasRequiredStatus = in_array($context, self::PRE_ACCEPTANCE_DISCLOSURE_CONTEXTS, true)
+            ? $loanRequestRecord !== null && $this->hasPreAcceptanceDisclosureStatus($loanRequestRecord)
+            : $loanRequestRecord !== null && $this->hasApprovedDocumentsStatus($loanRequestRecord);
+
+        if (! $hasRequiredStatus) {
             abort(404);
         }
 

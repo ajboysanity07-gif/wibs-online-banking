@@ -7,11 +7,15 @@ use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
+use App\Models\MemberApplicationProfile;
 use App\Models\Wmaster;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
 use App\Support\PersonName;
@@ -47,6 +51,9 @@ class ApprovedLoanDocumentService
         'affidavit_undertaking' => 'affidavit-undertaking.pdf',
         'loan_information' => 'loan information sheet.pdf',
         'generali' => 'generali.pdf',
+        'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver.pdf',
+        'pension_deduction_waiver' => 'pension-deduction-waiver.pdf',
+        'generali_application_form' => 'generali-application-form.pdf',
     ];
 
     /**
@@ -63,6 +70,10 @@ class ApprovedLoanDocumentService
         'undertaking_barangay' => '08-Undertaking-Barangay-Officials.pdf',
         'loan_security_agreement' => '09-Loan-Security-Agreement.pdf',
         'generali' => '10-Generali-Health-Statement.pdf',
+        'authority_to_deduct' => '11-Authority-to-Deduct.pdf',
+        'deped_salary_deduction_waiver' => '12-DepEd-Salary-Deduction-Waiver.pdf',
+        'pension_deduction_waiver' => '13-Pension-Deduction-Waiver.pdf',
+        'generali_application_form' => '14-Generali-Application-Form.pdf',
     ];
 
     /**
@@ -79,6 +90,10 @@ class ApprovedLoanDocumentService
         'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
         'loan_security_agreement' => '%s Loan Request Agreement.pdf',
         'generali' => 'generali-%s.pdf',
+        'authority_to_deduct' => 'authority-to-deduct-%s.pdf',
+        'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver-%s.pdf',
+        'pension_deduction_waiver' => 'pension-deduction-waiver-%s.pdf',
+        'generali_application_form' => 'generali-application-form-%s.pdf',
     ];
 
     public function __construct(
@@ -99,6 +114,10 @@ class ApprovedLoanDocumentService
         private PromissoryNotePdfService $promissoryNotePdfService,
         private PlanOfPaymentPdfService $planOfPaymentPdfService,
         private DisclosureStatementPdfService $disclosureStatementPdfService,
+        private AuthorityToDeductPdfService $authorityToDeductPdfService,
+        private DepedSalaryDeductionWaiverPdfFieldMap $depedSalaryDeductionWaiverPdfFieldMap,
+        private PensionDeductionWaiverPdfFieldMap $pensionDeductionWaiverPdfFieldMap,
+        private GeneraliApplicationFormPdfFieldMap $generaliApplicationFormPdfFieldMap,
     ) {}
 
     public function applicationForm(LoanRequest $loanRequest): Response
@@ -216,6 +235,69 @@ class ApprovedLoanDocumentService
         );
     }
 
+    public function authorityToDeduct(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'authority_to_deduct',
+            'application/pdf',
+            function (string $outputPath, array $documentData): void {
+                $this->authorityToDeductPdfService->generate($outputPath, $documentData);
+            },
+        );
+    }
+
+    public function depedSalaryDeductionWaiver(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'deped_salary_deduction_waiver',
+            'application/pdf',
+            function (string $outputPath, array $documentData): void {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],
+                    $outputPath,
+                    $documentData,
+                    $this->depedSalaryDeductionWaiverPdfFieldMap,
+                );
+            },
+        );
+    }
+
+    public function pensionDeductionWaiver(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'pension_deduction_waiver',
+            'application/pdf',
+            function (string $outputPath, array $documentData): void {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['pension_deduction_waiver'],
+                    $outputPath,
+                    $documentData,
+                    $this->pensionDeductionWaiverPdfFieldMap,
+                );
+            },
+        );
+    }
+
+    public function generaliApplicationForm(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'generali_application_form',
+            'application/pdf',
+            function (string $outputPath, array $documentData): void {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['generali_application_form'],
+                    $outputPath,
+                    $documentData,
+                    $this->generaliApplicationFormPdfFieldMap,
+                );
+            },
+        );
+    }
+
     public function planOfPayment(LoanRequest $loanRequest): Response
     {
         return $this->downloadApprovedDocument(
@@ -284,6 +366,22 @@ class ApprovedLoanDocumentService
 
         try {
             $documentData = $this->buildDocumentData($loanRequest);
+            $flatValues = $this->loanRequestDataService->loadFlatValues($loanRequest);
+            $includeUndertakingBarangay = $this->documentCatalog->isApplicable(
+                LoanRequestDocumentKey::UndertakingBarangay,
+                $loanRequest,
+                $flatValues,
+            );
+            $includeDepedSalaryDeductionWaiver = $this->documentCatalog->isApplicable(
+                LoanRequestDocumentKey::DepedSalaryDeductionWaiver,
+                $loanRequest,
+                $flatValues,
+            );
+            $includePensionDeductionWaiver = $this->documentCatalog->isApplicable(
+                LoanRequestDocumentKey::PensionDeductionWaiver,
+                $loanRequest,
+                $flatValues,
+            );
 
             $applicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['application_form'];
             $grepalifePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['grepalife'];
@@ -295,6 +393,10 @@ class ApprovedLoanDocumentService
             $undertakingBarangayPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['undertaking_barangay'];
             $loanSecurityAgreementPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['loan_security_agreement'];
             $generaliPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['generali'];
+            $authorityToDeductPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['authority_to_deduct'];
+            $depedSalaryDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['deped_salary_deduction_waiver'];
+            $pensionDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['pension_deduction_waiver'];
+            $generaliApplicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['generali_application_form'];
 
             $this->loanRequestPdfService->saveToPath($loanRequest, $applicationFormPath);
             $this->approvedLoanImageTemplatePdfService->generate(
@@ -327,12 +429,14 @@ class ApprovedLoanDocumentService
                 $promissoryNotePath,
                 $documentData,
             );
-            $this->approvedLoanPdfTemplateService->generate(
-                self::PDF_TEMPLATE_FILENAMES['undertaking_barangay'],
-                $undertakingBarangayPath,
-                $documentData,
-                $this->undertakingBarangayPdfFieldMap,
-            );
+            if ($includeUndertakingBarangay) {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['undertaking_barangay'],
+                    $undertakingBarangayPath,
+                    $documentData,
+                    $this->undertakingBarangayPdfFieldMap,
+                );
+            }
             $this->loanSecurityAgreementPdfService->generate(
                 $loanSecurityAgreementPath,
                 $documentData,
@@ -343,6 +447,32 @@ class ApprovedLoanDocumentService
                 $documentData,
                 $this->generaliPdfFieldMap,
             );
+            $this->authorityToDeductPdfService->generate(
+                $authorityToDeductPath,
+                $documentData,
+            );
+            if ($includeDepedSalaryDeductionWaiver) {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],
+                    $depedSalaryDeductionWaiverPath,
+                    $documentData,
+                    $this->depedSalaryDeductionWaiverPdfFieldMap,
+                );
+            }
+            if ($includePensionDeductionWaiver) {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['pension_deduction_waiver'],
+                    $pensionDeductionWaiverPath,
+                    $documentData,
+                    $this->pensionDeductionWaiverPdfFieldMap,
+                );
+            }
+            $this->approvedLoanPdfTemplateService->generate(
+                self::PDF_TEMPLATE_FILENAMES['generali_application_form'],
+                $generaliApplicationFormPath,
+                $documentData,
+                $this->generaliApplicationFormPdfFieldMap,
+            );
 
             $zipFilename = sprintf(
                 'approved-loan-documents-%s.zip',
@@ -350,7 +480,7 @@ class ApprovedLoanDocumentService
             );
             $zipPath = $workingDirectory.DIRECTORY_SEPARATOR.$zipFilename;
 
-            $this->createZipArchive($zipPath, [
+            $this->createZipArchive($zipPath, array_values(array_filter([
                 $applicationFormPath,
                 $grepalifePath,
                 $affidavitUndertakingPath,
@@ -358,10 +488,14 @@ class ApprovedLoanDocumentService
                 $planOfPaymentPath,
                 $disclosureStatementPath,
                 $promissoryNotePath,
-                $undertakingBarangayPath,
+                $includeUndertakingBarangay ? $undertakingBarangayPath : null,
                 $loanSecurityAgreementPath,
                 $generaliPath,
-            ]);
+                $authorityToDeductPath,
+                $includeDepedSalaryDeductionWaiver ? $depedSalaryDeductionWaiverPath : null,
+                $includePensionDeductionWaiver ? $pensionDeductionWaiverPath : null,
+                $generaliApplicationFormPath,
+            ])));
         } catch (Throwable $exception) {
             File::deleteDirectory($workingDirectory);
             throw $exception;
@@ -484,6 +618,49 @@ class ApprovedLoanDocumentService
                     );
                 },
             ),
+            LoanRequestDocumentKey::AuthorityToDeduct => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->authorityToDeductPdfService->generate($path, $documentData);
+                },
+            ),
+            LoanRequestDocumentKey::DepedSalaryDeductionWaiver => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->approvedLoanPdfTemplateService->generate(
+                        self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],
+                        $path,
+                        $documentData,
+                        $this->depedSalaryDeductionWaiverPdfFieldMap,
+                    );
+                },
+            ),
+            LoanRequestDocumentKey::PensionDeductionWaiver => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->approvedLoanPdfTemplateService->generate(
+                        self::PDF_TEMPLATE_FILENAMES['pension_deduction_waiver'],
+                        $path,
+                        $documentData,
+                        $this->pensionDeductionWaiverPdfFieldMap,
+                    );
+                },
+            ),
+            LoanRequestDocumentKey::GeneraliApplicationForm => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->approvedLoanPdfTemplateService->generate(
+                        self::PDF_TEMPLATE_FILENAMES['generali_application_form'],
+                        $path,
+                        $documentData,
+                        $this->generaliApplicationFormPdfFieldMap,
+                    );
+                },
+            ),
         };
     }
 
@@ -501,7 +678,8 @@ class ApprovedLoanDocumentService
         string $contentType,
         callable $generator,
     ): Response {
-        $this->ensureApproved($loanRequest);
+        $this->ensureApproved($loanRequest, $documentKey);
+        $this->ensureApplicable($loanRequest, $documentKey);
         $loanRequest->loadMissing('people', 'reviewedBy.adminProfile', 'user');
 
         $workingDirectory = $this->makeWorkingDirectory($loanRequest);
@@ -596,16 +774,47 @@ class ApprovedLoanDocumentService
             ->deleteFileAfterSend(true);
     }
 
-    private function ensureApproved(LoanRequest $loanRequest): void
+    /**
+     * Truth-in-lending–style disclosures must reach the member before they accept the
+     * loan's terms, not only afterward -- so these two document keys are allowed one
+     * workflow step earlier than the rest of the approved-document package.
+     *
+     * @var list<string>
+     */
+    private const PRE_ACCEPTANCE_DISCLOSURE_KEYS = [
+        'loan_information',
+        'disclosure_statement',
+    ];
+
+    private function ensureApproved(LoanRequest $loanRequest, ?string $documentKey = null): void
     {
         $status = $loanRequest->status instanceof LoanRequestStatus
             ? $loanRequest->status->value
             : (string) $loanRequest->status;
 
-        if ($status !== LoanRequestStatus::Approved->value) {
+        $allowedStatuses = [LoanRequestStatus::Approved->value];
+
+        if ($documentKey !== null && in_array($documentKey, self::PRE_ACCEPTANCE_DISCLOSURE_KEYS, true)) {
+            $allowedStatuses[] = LoanRequestStatus::AwaitingMemberAcceptance->value;
+        }
+
+        if (! in_array($status, $allowedStatuses, true)) {
             throw new RuntimeException(
                 'Approved loan documents are only available for approved loan requests.',
             );
+        }
+    }
+
+    private function ensureApplicable(LoanRequest $loanRequest, string $documentKey): void
+    {
+        $key = LoanRequestDocumentKey::from($documentKey);
+        $flatValues = $this->loanRequestDataService->loadFlatValues($loanRequest);
+
+        if (! $this->documentCatalog->isApplicable($key, $loanRequest, $flatValues)) {
+            throw new RuntimeException(sprintf(
+                '%s is not applicable to this loan request.',
+                $key->label(),
+            ));
         }
     }
 
@@ -634,13 +843,14 @@ class ApprovedLoanDocumentService
             'assignedProcessor.adminProfile',
             'reviewedBy.adminProfile',
             'approvedBy.adminProfile',
-            'user',
+            'user.memberApplicationProfile',
         );
 
         $applicant = $this->resolvePerson($loanRequest, LoanRequestPersonRole::Applicant);
         $coMakerOne = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerOne);
         $coMakerTwo = $this->resolvePerson($loanRequest, LoanRequestPersonRole::CoMakerTwo);
         $memberRecord = $this->resolveMemberWmaster($loanRequest);
+        $memberApplicationProfile = $loanRequest->user?->memberApplicationProfile;
         $flatValues = $this->loanRequestDataService->loadFlatValues($loanRequest);
         $branding = $this->organizationSettingsService->branding();
         $documentDate = $this->resolveDocumentDate($loanRequest);
@@ -682,6 +892,7 @@ class ApprovedLoanDocumentService
             $paymentMode,
         );
         $maturityDate = $this->resolveMaturityDate($documentDate, $approvedTerm);
+        $deductionStartDate = $this->resolveDeductionStartDate($loanRequest, $paymentMode);
         $interestRateRaw = $this->resolveNumericOverride(
             $overrideLoan['interest_rate_raw'] ?? null,
             $this->normalizeNumericValue($loanRequest->approved_interest_rate),
@@ -811,6 +1022,13 @@ class ApprovedLoanDocumentService
         $witnessTwoName = $this->normalizeText(
             $overrideReviewer['witness_two_name'] ?? null,
         ) ?? $this->normalizeText($flatValues['witness_two_name'] ?? null);
+        $depedDeductionAmountRaw = $this->normalizeNumericValue(
+            $overrideProcessing['deped_deduction_amount'] ?? $flatValues['deped_deduction_amount'] ?? null,
+        );
+        $depedDeductionAmountWords = $this->formatCurrencyWords($depedDeductionAmountRaw);
+        $pensionDeductionAmountRaw = $this->normalizeNumericValue(
+            $overrideProcessing['pension_deduction_amount'] ?? $flatValues['pension_deduction_amount'] ?? null,
+        );
 
         $documentData = [
             'organization' => [
@@ -873,6 +1091,8 @@ class ApprovedLoanDocumentService
                 'purpose' => $this->normalizeText($loanRequest->loan_purpose),
                 'approved_date' => $documentDate?->format('F d, Y'),
                 'approved_date_short' => $documentDate?->format('m/d/Y'),
+                'approved_date_day' => $documentDate?->format('d'),
+                'approved_date_month_year' => $documentDate?->format('F, Y'),
                 'maturity_date_short' => $maturityDate?->format('m/d/Y'),
                 'term_days' => $approvedTerm !== null ? $approvedTerm * 25 : null,
                 'recommended_by' => $processorDisplayName,
@@ -901,6 +1121,9 @@ class ApprovedLoanDocumentService
                 'amortization_interest_raw' => $interestAmortizationRaw,
                 'amortization_loan_security_raw' => $loanSecurityAmortizationRaw,
                 'amortization_total_raw' => $amortizationTotalRaw,
+                'amortization_total' => $this->formatCurrencyValue($amortizationTotalRaw),
+                'amortization_total_words' => $this->formatCurrencyWords($amortizationTotalRaw),
+                'deduction_start_date' => $deductionStartDate?->format('F d, Y'),
                 'penalty_rate_raw' => $penaltyRateRaw,
                 'gnthp_raw' => $gnthpRaw,
                 'gnthp' => $gnthp,
@@ -945,10 +1168,47 @@ class ApprovedLoanDocumentService
                     $overrideProcessing['barangay_agency_address'] ?? $flatValues['barangay_agency_address'] ?? null,
                 ),
             ],
+            'authority_to_deduct' => [
+                'institution_name' => $this->normalizeText(
+                    $overrideProcessing['authority_to_deduct_institution_name'] ?? $flatValues['authority_to_deduct_institution_name'] ?? null,
+                ),
+                'officer_1_name' => $this->normalizeText(
+                    $overrideProcessing['authority_to_deduct_officer_1_name'] ?? $flatValues['authority_to_deduct_officer_1_name'] ?? null,
+                ),
+                'officer_1_title' => $this->normalizeText(
+                    $overrideProcessing['authority_to_deduct_officer_1_title'] ?? $flatValues['authority_to_deduct_officer_1_title'] ?? null,
+                ),
+                'officer_2_name' => $this->normalizeText(
+                    $overrideProcessing['authority_to_deduct_officer_2_name'] ?? $flatValues['authority_to_deduct_officer_2_name'] ?? null,
+                ),
+                'officer_2_title' => $this->normalizeText(
+                    $overrideProcessing['authority_to_deduct_officer_2_title'] ?? $flatValues['authority_to_deduct_officer_2_title'] ?? null,
+                ),
+            ],
             'security' => [
                 'notarial_venue' => $this->normalizeText(
                     $overrideProcessing['notarial_venue'] ?? $flatValues['notarial_venue'] ?? null,
                 ),
+            ],
+            'deduction' => [
+                'deped_school_id_number' => $this->normalizeText(
+                    $overrideProcessing['deped_school_id_number'] ?? $flatValues['deped_school_id_number'] ?? null,
+                ),
+                'deped_deduction_amount_raw' => $depedDeductionAmountRaw,
+                'deped_deduction_amount' => $this->formatCurrencyValue($depedDeductionAmountRaw),
+                'deped_deduction_amount_words' => $depedDeductionAmountWords,
+                'pension_provider' => $this->normalizeText(
+                    $overrideProcessing['pension_provider'] ?? $flatValues['pension_provider'] ?? null,
+                ),
+                'pension_bank_name' => $this->normalizeText(
+                    $overrideProcessing['pension_bank_name'] ?? $flatValues['pension_bank_name'] ?? null,
+                ),
+                'pension_atm_card_number' => $this->normalizeText(
+                    $overrideProcessing['pension_atm_card_number'] ?? $flatValues['pension_atm_card_number'] ?? null,
+                ),
+                'pension_deduction_amount_raw' => $pensionDeductionAmountRaw,
+                'pension_deduction_amount' => $this->formatCurrencyValue($pensionDeductionAmountRaw),
+                'pension_deduction_amount_words' => $this->formatCurrencyWords($pensionDeductionAmountRaw),
             ],
             'notarial' => [
                 // Place of signing is the notary's own fixed office fact, not per-loan
@@ -968,11 +1228,22 @@ class ApprovedLoanDocumentService
                 'health_smoking_status' => $overrideProcessing['health_smoking_status'] ?? $flatValues['health_smoking_status'] ?? null,
                 'health_hypertension' => $overrideProcessing['health_hypertension'] ?? $flatValues['health_hypertension'] ?? null,
             ],
+            'declarations' => [
+                'declaration_existing_loans' => $overrideProcessing['declaration_existing_loans'] ?? $flatValues['declaration_existing_loans'] ?? null,
+                'declaration_pending_cases' => $overrideProcessing['declaration_pending_cases'] ?? $flatValues['declaration_pending_cases'] ?? null,
+            ],
             'applicant' => $this->personDocumentData($applicant, $loanRequest),
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
             'co_maker_two' => $this->personDocumentData($coMakerTwo, $loanRequest),
             'beneficiaries' => $this->beneficiaryDocumentData($flatValues, $memberRecord),
             'health_glapi' => $this->healthGlapiDocumentData($flatValues),
+            'existing_loans' => $this->existingLoansDocumentData($flatValues),
+            'application_form' => $this->generaliApplicationFormDocumentData(
+                $overrideProcessing,
+                $flatValues,
+                $memberApplicationProfile,
+            ),
+            'dependents' => $this->dependentsDocumentData($flatValues, $applicant),
         ];
 
         return $overrides !== []
@@ -1159,6 +1430,140 @@ class ApprovedLoanDocumentService
         }
 
         return array_slice($beneficiaries, 0, 3);
+    }
+
+    /**
+     * Existing/previous loan detail rows (GLAPI section 1.1), collected on
+     * the wizard's "declarations" data section as 3 fixed slots
+     * (existing_loan_{1,2,3}_{date,type,amount}). Only non-blank slots are
+     * returned, keyed by row so consumers (e.g. GrepalifePdfFieldMap) can
+     * index into them positionally.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array<int, array{date: string|null, type: string|null, amount: string|null}>
+     */
+    private function existingLoansDocumentData(array $flatValues): array
+    {
+        $rows = [];
+
+        for ($slot = 1; $slot <= 3; $slot++) {
+            $type = $flatValues['existing_loan_'.$slot.'_type'] ?? null;
+            $date = $flatValues['existing_loan_'.$slot.'_date'] ?? null;
+            $amount = $flatValues['existing_loan_'.$slot.'_amount'] ?? null;
+
+            if (
+                $this->isBlankString($type)
+                && $this->isBlankString($date)
+                && $this->isBlankString($amount)
+            ) {
+                continue;
+            }
+
+            $rows[] = [
+                'date' => $this->formatShortDateValue($date),
+                'type' => $this->normalizeText(is_scalar($type) ? (string) $type : null),
+                'amount' => ! $this->isBlankString($amount) && is_scalar($amount)
+                    ? (string) $amount
+                    : null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Data specific to the Generali Individual Application Form (as opposed to the
+     * Application-and-Health-Statement form's 'deduction'/'health_glapi' blocks):
+     * the applicant's own PEP question, enrollment cycle, ID/source-of-funds row,
+     * and employer hire date. ID/source-of-funds fields aren't part of the
+     * per-loan-request flat EAV system (LoanRequestDataService) -- they live only
+     * on the member's MemberApplicationProfile, collected during the
+     * loan-prerequisite step -- so they're read directly off that profile, the
+     * same way beneficiaryDocumentData() falls back to the Wmaster member record.
+     *
+     * @param  array<string, mixed>  $overrideProcessing
+     * @param  array<string, mixed>  $flatValues
+     * @return array<string, mixed>
+     */
+    private function generaliApplicationFormDocumentData(
+        array $overrideProcessing,
+        array $flatValues,
+        ?MemberApplicationProfile $memberApplicationProfile,
+    ): array {
+        return [
+            'pep_status' => $overrideProcessing['applicant_pep_status'] ?? $flatValues['applicant_pep_status'] ?? null,
+            'pep_status_details' => $this->normalizeText(
+                $overrideProcessing['applicant_pep_status_details'] ?? $flatValues['applicant_pep_status_details'] ?? null,
+            ),
+            'cycle_status' => $this->normalizeText(
+                $overrideProcessing['applicant_cycle_status'] ?? $flatValues['applicant_cycle_status'] ?? null,
+            ),
+            'cycle_number' => $this->normalizeText(
+                $overrideProcessing['applicant_cycle_number'] ?? $flatValues['applicant_cycle_number'] ?? null,
+            ),
+            'employer_date_employed' => $this->formatShortDateValue(
+                $overrideProcessing['employer_date_employed'] ?? $flatValues['employer_date_employed'] ?? null,
+            ),
+            'source_of_fund_wealth' => $this->normalizeText($memberApplicationProfile?->source_of_fund_wealth),
+            'id_type' => $this->normalizeText($memberApplicationProfile?->id_type),
+            'id_type_other' => $this->normalizeText($memberApplicationProfile?->id_type_other),
+            'id_number' => $this->normalizeText($memberApplicationProfile?->id_number),
+        ];
+    }
+
+    /**
+     * Spouse + children/siblings/parents/extended-family rows for the Generali
+     * Individual Application Form's "Dependents Information" section (Form B),
+     * sourced from the dependent_{category}_{slot}_* flat fields -- collected by
+     * the wizard's dependents step but not consumed by any document until now.
+     * Ages are computed on the fly from each raw birthdate (no stored age field).
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array<string, mixed>
+     */
+    private function dependentsDocumentData(array $flatValues, ?LoanRequestPerson $applicant): array
+    {
+        $categorySlots = [
+            'child' => ['slots' => 3, 'key' => 'children'],
+            'sibling' => ['slots' => 3, 'key' => 'siblings'],
+            'parent' => ['slots' => 2, 'key' => 'parents'],
+            'extended' => ['slots' => 3, 'key' => 'extended'],
+        ];
+
+        $dependents = [
+            'spouse' => [
+                'name' => $this->normalizeText($applicant?->spouse_name),
+                'age' => $this->normalizeText($applicant?->spouse_age),
+                'cycle_status' => $this->normalizeText($flatValues['dependent_spouse_cycle_status'] ?? null),
+                'cycle_number' => $this->normalizeText($flatValues['dependent_spouse_cycle_number'] ?? null),
+            ],
+        ];
+
+        foreach ($categorySlots as $category => $categoryConfig) {
+            $rows = [];
+
+            for ($slot = 1; $slot <= $categoryConfig['slots']; $slot++) {
+                $prefix = "dependent_{$category}_{$slot}_";
+                $name = $flatValues[$prefix.'name'] ?? null;
+                $birthdate = $flatValues[$prefix.'birthdate'] ?? null;
+
+                if ($this->isBlankString($name)) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'name' => $this->normalizeText($name),
+                    'birthdate' => $this->formatShortDateValue($birthdate),
+                    'age' => $this->formatAgeFromRawDate($birthdate),
+                    'cycle_status' => $this->normalizeText($flatValues[$prefix.'cycle_status'] ?? null),
+                    'cycle_number' => $this->normalizeText($flatValues[$prefix.'cycle_number'] ?? null),
+                ];
+            }
+
+            $dependents[$categoryConfig['key']] = $rows;
+        }
+
+        return $dependents;
     }
 
     /**
@@ -1396,6 +1801,26 @@ class ApprovedLoanDocumentService
         }
     }
 
+    /**
+     * Same computation as formatAge(), for callers that only have a raw
+     * birthdate value (e.g. a dependent's flat EAV field) rather than a full
+     * LoanRequestPerson.
+     */
+    private function formatAgeFromRawDate(mixed $value): ?string
+    {
+        if ($value === null || $this->isBlankString($value)) {
+            return null;
+        }
+
+        try {
+            $birthdate = $value instanceof Carbon ? $value : Carbon::parse((string) $value);
+
+            return (string) $birthdate->age;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     private function normalizeText(?string $value): ?string
     {
         if ($value === null) {
@@ -1538,6 +1963,40 @@ class ApprovedLoanDocumentService
         }
 
         return $approvedAt->copy()->addMonthsNoOverflow($approvedTerm);
+    }
+
+    /**
+     * The salary/payroll deduction can only start once the loan is actually disbursed, so
+     * this resolves to the next occurrence of the applicant's payday on/after
+     * wibs_release_date -- not the approval date. Returns null until release is scheduled.
+     */
+    private function resolveDeductionStartDate(
+        LoanRequest $loanRequest,
+        ?string $paymentMode,
+    ): ?CarbonInterface {
+        $releaseDate = $loanRequest->wibs_release_date;
+
+        if (! $releaseDate instanceof CarbonInterface) {
+            return null;
+        }
+
+        return match ($paymentMode) {
+            'WEEKLY' => $releaseDate->copy()->addDays(7),
+            'BI-WEEKLY' => $releaseDate->copy()->addDays(14),
+            'SEMI-MONTHLY' => $this->resolveNextSemiMonthlyPayday($releaseDate),
+            default => $releaseDate->copy()->addMonthNoOverflow(),
+        };
+    }
+
+    private function resolveNextSemiMonthlyPayday(CarbonInterface $from): CarbonInterface
+    {
+        $day = (int) $from->format('j');
+
+        if ($day <= 15) {
+            return $from->copy()->day(15);
+        }
+
+        return $from->copy()->endOfMonth()->startOfDay();
     }
 
     private function resolveDocumentDate(LoanRequest $loanRequest): ?CarbonInterface

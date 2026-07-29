@@ -103,6 +103,7 @@ test('approved loan can access each approved loan document separately', function
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
     $this->actingAs($admin);
 
     foreach (approvedLoanDocumentsRouteDefinitions($loanRequest) as $document) {
@@ -145,6 +146,7 @@ test('each approved loan document pdf route returns a pdf response', function ()
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
     $this->actingAs($admin);
 
     foreach (approvedLoanDocumentsPdfRouteDefinitions($loanRequest) as $document) {
@@ -169,6 +171,7 @@ test('approved template-backed pdf routes preserve page counts', function () {
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
     $this->actingAs($admin);
 
     foreach (approvedLoanDocumentsTemplateBackedPdfRouteDefinitions($loanRequest) as $document) {
@@ -609,9 +612,13 @@ test('grepalife pdf includes structured applicant fields when available', functi
         ->toContain('02-123-4567')
         ->toContain('TRANSPORT SERVICES')
         ->toContain('7 YEARS')
-        ->toContain('SALARY LOAN')
         ->toContain('05/22/2026')
         ->toContain('25,000.00');
+    // 'SALARY LOAN' is no longer asserted here: the existing/previous-loan
+    // table's Type-of-Loan column used to fake-reuse loan.type (this loan's
+    // own type) -- it's now bound to a real existing_loans.0.type value,
+    // which this test doesn't populate (see the existing-loans tests in
+    // this file for that column's real behavior).
 });
 
 test('grepalife signature section keeps printed names and blank signature areas on main', function () {
@@ -872,9 +879,13 @@ test('grepalife field map keeps applicant values aligned with label padding', fu
             && ($field['type'] ?? null) === 'check'
             && ($field['y'] ?? null) === 125.0,
     );
+    // The existing-loan table's row-1 date now resolves through the
+    // shortDate() callable helper bound to existing_loans.0.date (not a
+    // plain 'loan.approved_date_short' string value), so it's located by
+    // coordinates rather than by value string.
     $existingLoanDateField = $fields->first(
         fn (array $field): bool => ($field['page'] ?? null) === 1
-            && ($field['value'] ?? null) === 'loan.approved_date_short'
+            && (float) ($field['x'] ?? -1) === 71.5
             && ($field['y'] ?? null) === 134.1,
     );
     $beneficiaryNameField = $fields->first(
@@ -1237,9 +1248,11 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     $companyNameP1 = $findByPageValue(1, 'organization.company_name');
     $termLabel = $findByPageValue(1, 'loan.approved_term_label');
     $amountP1Y119 = $findByPageValue(1, 'loan.approved_amount', 119.8);
-    $amountP1Y134 = $findByPageValue(1, 'loan.approved_amount', 134.1);
-    $existingLoanDate = $findByPageValue(1, 'loan.approved_date_short');
-    $existingLoanType = $findByPageValue(1, 'loan.type');
+    $amountP1Y134 = $findByPageValue(1, 'existing_loans.0.amount', 134.1);
+    // existing_loans.0.date resolves through the shortDate() callable
+    // helper, not a plain string value -- located by coordinates instead.
+    $existingLoanDate = $findCallableByPageY(1, 134.1, 40.0);
+    $existingLoanType = $findByPageValue(1, 'existing_loans.0.type');
     $ben0Name = $findByPageValue(1, 'beneficiaries.0.name');
     $ben0Bday = $findByPageValue(1, 'beneficiaries.0.birthdate');
     $ben0Rel = $findByPageValue(1, 'beneficiaries.0.relationship');
@@ -2116,6 +2129,7 @@ test('undertaking barangay pdf prints age, civil status, and nationality', funct
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'guaranteed_net_take_home_pay', 'number', 15000);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
 
     $response = $this
         ->actingAs($admin)
@@ -2134,6 +2148,7 @@ test('undertaking barangay pdf spells out the approved amount in words', functio
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
     $loanRequest->update(['approved_amount' => 50000]);
 
     $response = $this
@@ -2286,6 +2301,90 @@ test('grepalife pdf falls back to linked wmaster beneficiary account numbers', f
         ->toContain('06/07/2000');
 });
 
+test('existing-loans document data filters blank slots and maps non-blank ones', function () {
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'declaration_existing_loans', 'boolean', true);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_date', 'string', '2024-01-15');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_type', 'string', 'Salary loan');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_amount', 'numeric', '15000.50');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_3_date', 'string', '2023-06-01');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_3_type', 'string', 'Emergency loan');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_3_amount', 'numeric', '5000');
+    // Slot 2 left entirely blank -- must be filtered out, not returned as an
+    // empty row, and slot 3 must still land at index 1 (not 2) once slot 2
+    // is skipped, since the field map indexes existing_loans.{0,1,2}
+    // positionally against whatever rows survive the blank filter.
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest);
+
+    expect(data_get($documentData, 'declarations.declaration_existing_loans'))->toBeTrue();
+    expect(data_get($documentData, 'existing_loans'))->toHaveCount(2);
+    expect(data_get($documentData, 'existing_loans.0.date'))->toBe('01/15/2024');
+    expect(data_get($documentData, 'existing_loans.0.type'))->toBe('Salary loan');
+    expect(data_get($documentData, 'existing_loans.0.amount'))->toBe('15000.50');
+    expect(data_get($documentData, 'existing_loans.1.date'))->toBe('06/01/2023');
+    expect(data_get($documentData, 'existing_loans.1.type'))->toBe('Emergency loan');
+    expect(data_get($documentData, 'existing_loans.1.amount'))->toBe('5000');
+});
+
+test('grepalife field map checks the existing-loans checkbox and stamps the 3 detail rows', function () {
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'declaration_existing_loans', 'boolean', true);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_date', 'string', '2024-01-15');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_type', 'string', 'Salary loan');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_amount', 'numeric', '15000.50');
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest);
+    $fieldMap = new GrepalifePdfFieldMap;
+
+    $checkbox = collect($fieldMap->fields())->first(
+        fn (array $field): bool => ($field['type'] ?? null) === 'check' && (float) $field['x'] === 68.5 && (float) $field['y'] === 125.0,
+    );
+
+    expect($checkbox)->not->toBeNull();
+    expect(($checkbox['value'])($documentData))->toBeTrue();
+
+    // Row 1's date field resolves through the shortDate() callable helper
+    // (not a plain 'existing_loans.0.date' string value), so it's located
+    // by coordinates like the checkbox above rather than by value string.
+    $row1Date = collect($fieldMap->fields())->first(
+        fn (array $field): bool => ($field['page'] ?? null) === 1 && (float) ($field['x'] ?? null) === 71.5 && (float) ($field['y'] ?? null) === 134.1,
+    );
+    $row1Type = approvedLoanDocumentsFindGrepalifeField($fieldMap, 1, 'existing_loans.0.type');
+    $row1Amount = approvedLoanDocumentsFindGrepalifeField($fieldMap, 1, 'existing_loans.0.amount');
+
+    expect($row1Date)->not->toBeNull();
+    expect(($row1Date['value'])($documentData))->toBe('01/15/2024');
+    expect((float) $row1Type['y'])->toBe(134.1);
+    expect(data_get($documentData, $row1Type['value']))->toBe('Salary loan');
+    expect((float) $row1Amount['y'])->toBe(134.1);
+    expect(data_get($documentData, $row1Amount['value']))->toBe('15000.50');
+
+    // Row 2/3 exist at the estimated ~3.6mm-spaced y offsets (uncalibrated --
+    // see TODO(calibrate-gl) comments in GrepalifePdfFieldMap).
+    $row2Type = approvedLoanDocumentsFindGrepalifeField($fieldMap, 1, 'existing_loans.1.type');
+    $row3Type = approvedLoanDocumentsFindGrepalifeField($fieldMap, 1, 'existing_loans.2.type');
+
+    expect((float) $row2Type['y'])->toBe(137.7);
+    expect((float) $row3Type['y'])->toBe(141.3);
+});
+
+test('grepalife field map does not check the existing-loans checkbox when the declaration is unanswered', function () {
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $documentData = approvedLoanDocumentsBuildDocumentData($loanRequest);
+    $fieldMap = new GrepalifePdfFieldMap;
+
+    $checkbox = collect($fieldMap->fields())->first(
+        fn (array $field): bool => ($field['type'] ?? null) === 'check' && (float) $field['x'] === 68.5 && (float) $field['y'] === 125.0,
+    );
+
+    expect($checkbox)->not->toBeNull();
+    expect(($checkbox['value'])($documentData))->toBeFalse();
+});
+
 test('approved member can download approved loan documents for owned request', function () {
     $member = approvedLoanDocumentsCreateApprovedMember();
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople($member);
@@ -2311,6 +2410,57 @@ test('approved member can download approved loan documents for owned request', f
     $packageResponse
         ->assertOk()
         ->assertDownload('approved-loan-documents-'.$loanRequest->reference.'.zip');
+});
+
+test('member can download loan information and disclosure statement while awaiting acceptance, but not promissory note yet', function () {
+    $member = approvedLoanDocumentsCreateApprovedMember();
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::AwaitingMemberAcceptance,
+        'submitted_at' => now()->subDay(),
+        'reviewed_at' => now(),
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => '15th & 30th',
+    ]);
+    approvedLoanDocumentsCreateLoanRequestPeopleSnapshots($loanRequest);
+    approvedLoanDocumentsCreateDataEntries($loanRequest);
+
+    $this->actingAs($member);
+
+    $this->get(route('client.loan-requests.documents.loan-information', $loanRequest))
+        ->assertOk()
+        ->assertHeaderContains('content-type', 'application/pdf');
+
+    $this->get(route('client.loan-requests.documents.disclosure-statement', $loanRequest))
+        ->assertOk()
+        ->assertHeaderContains('content-type', 'application/pdf');
+
+    $this->get(route('client.loan-requests.documents.promissory-note', $loanRequest))
+        ->assertNotFound();
+});
+
+test('admin can download loan information and disclosure statement while awaiting acceptance, but not promissory note yet', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::AwaitingMemberAcceptance,
+        'submitted_at' => now()->subDay(),
+        'reviewed_at' => now(),
+        'approved_amount' => 25000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+        'recommended_payment_frequency' => '15th & 30th',
+    ]);
+    approvedLoanDocumentsCreateLoanRequestPeopleSnapshots($loanRequest);
+    approvedLoanDocumentsCreateDataEntries($loanRequest);
+
+    $this->actingAs($admin);
+
+    $this->get(route('admin.requests.documents.loan-information', $loanRequest))->assertOk();
+    $this->get(route('admin.requests.documents.disclosure-statement', $loanRequest))->assertOk();
+    $this->get(route('admin.requests.documents.promissory-note', $loanRequest))->assertNotFound();
 });
 
 test('missing optional fields do not break approved document generation', function () {
@@ -2364,6 +2514,11 @@ test('missing optional fields do not break approved document generation', functi
             'address3' => null,
         ]);
 
+    // Keeps undertaking_barangay applicable (it requires a barangay-employment signal,
+    // separate from the "missing optional fields" being exercised here) so this test still
+    // covers that document's own robustness to null applicant/employer data.
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+
     $this->actingAs($admin);
 
     foreach (approvedLoanDocumentsPdfRouteDefinitions($loanRequest) as $document) {
@@ -2404,6 +2559,7 @@ test('approved document zip contains all required files and valid generated docu
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
 
     $response = $this
         ->actingAs($admin)
@@ -2425,6 +2581,8 @@ test('approved document zip contains all required files and valid generated docu
         '08-Undertaking-Barangay-Officials.pdf',
         '09-Loan-Security-Agreement.pdf',
         '10-Generali-Health-Statement.pdf',
+        '11-Authority-to-Deduct.pdf',
+        '14-Generali-Application-Form.pdf',
     ]);
 
     foreach ($entries as $content) {
@@ -2439,6 +2597,49 @@ test('approved document zip contains all required files and valid generated docu
         expect($entries[$entryName])->toStartWith('%PDF');
     }
 
+});
+
+test('approved document zip omits undertaking-barangay when the borrower has no barangay-employment signal', function () {
+    if (! class_exists(\ZipArchive::class)) {
+        $this->markTestSkipped('ZIP extension is required for this test.');
+    }
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents', $loanRequest));
+
+    $response->assertOk();
+
+    $entries = approvedLoanDocumentsOpenZipEntriesFromResponse($response);
+
+    expect(array_keys($entries))->toBe([
+        '01-Application-Form.pdf',
+        '02-GREPALIFE.pdf',
+        '03-Affidavit-of-Undertaking.pdf',
+        '04-Loan-Information.pdf',
+        '05-Plan-of-Payment.pdf',
+        '06-Disclosure-Statement.pdf',
+        '07-Promissory-Note.pdf',
+        '09-Loan-Security-Agreement.pdf',
+        '10-Generali-Health-Statement.pdf',
+        '11-Authority-to-Deduct.pdf',
+        '14-Generali-Application-Form.pdf',
+    ]);
+});
+
+test('undertaking barangay single-document download 404s when the borrower has no barangay-employment signal', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.undertaking-barangay', $loanRequest))
+        ->assertStatus(500);
 });
 
 test('missing grepalife image template is logged and fails generation', function () {
@@ -2783,6 +2984,7 @@ function approvedLoanDocumentsTemplateBackedPdfZipEntryNames(): array
         '08-Undertaking-Barangay-Officials.pdf',
         '09-Loan-Security-Agreement.pdf',
         '10-Generali-Health-Statement.pdf',
+        '11-Authority-to-Deduct.pdf',
     ];
 }
 

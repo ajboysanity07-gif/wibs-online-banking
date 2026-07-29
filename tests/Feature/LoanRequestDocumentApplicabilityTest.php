@@ -2,10 +2,13 @@
 
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
+use App\LoanRequestPersonRole;
 use App\LoanRequestWorkflowVersion;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDataEntry;
+use App\Models\LoanRequestPerson;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 
@@ -40,26 +43,140 @@ function applicabilityChecklistEntry(LoanRequest $loanRequest, LoanRequestDocume
     return collect($checklist)->firstWhere('key', $documentKey->value);
 }
 
-test('barangay, loan security agreement, and grepalife are always applicable regardless of legacy flags or blank source fields', function (): void {
+test('loan security agreement and grepalife are always applicable regardless of legacy flags or blank source fields', function (): void {
     $loanRequest = LoanRequest::factory()->make();
     $catalog = app(LoanRequestDocumentCatalog::class);
 
     $flatValues = [
-        'barangay_required' => false,
         'security_required' => false,
         'insurance_required' => false,
         'notarial_venue' => null,
         'loan_security_rate' => null,
     ];
 
-    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, $flatValues))->toBeTrue()
-        ->and($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, $flatValues))->toBeTrue()
+    expect($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, $flatValues))->toBeTrue()
         ->and($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, $flatValues))->toBeTrue();
 });
 
-test('undertaking barangay surfaces incomplete when its required fields are blank', function (): void {
+test('undertaking barangay is not applicable when the borrower has no barangay-employment signal', function (): void {
+    $loanRequest = LoanRequest::factory()->make();
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, []))->toBeFalse();
+});
+
+test('undertaking barangay becomes applicable once the member declares barangay information', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'barangay_agency_name' => ['string', 'Barangay San Isidro'],
+    ]);
+
+    $flatValues = app(LoanRequestDataService::class)->loadFlatValues($loanRequest);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest, $flatValues))->toBeTrue();
+});
+
+test('undertaking barangay becomes applicable when the applicant employer name contains "barangay"', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'Barangay Poblacion']);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest->fresh(), []))->toBeTrue();
+});
+
+test('undertaking barangay becomes applicable for a government worker whose employer name only contains the "brgy" abbreviation', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Government',
+            'nature_of_business' => 'Government',
+            'employer_business_name' => 'Brgy. San Isidro',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest->fresh(), []))->toBeTrue();
+});
+
+test('undertaking barangay stays not applicable for the "brgy" abbreviation when employment/nature of business are not both government', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Private',
+            'nature_of_business' => 'Government',
+            'employer_business_name' => 'Brgy. Supplies Trading',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::UndertakingBarangay, $loanRequest->fresh(), []))->toBeFalse();
+});
+
+test('deped salary deduction waiver becomes applicable for Government employment + Education nature of business alone', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Government',
+            'nature_of_business' => 'Education',
+            'employer_business_name' => 'Lianga North Central Elementary School',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::DepedSalaryDeductionWaiver, $loanRequest->fresh(), []))->toBeTrue();
+});
+
+test('deped salary deduction waiver is not applicable for Government employment with a non-Education nature of business and no "deped" keyword', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Government',
+            'nature_of_business' => 'Government',
+            'employer_business_name' => 'Municipality of Lianga',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::DepedSalaryDeductionWaiver, $loanRequest->fresh(), []))->toBeFalse();
+});
+
+test('undertaking barangay is not applicable when required fields are blank and no barangay signal is present', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::UndertakingBarangay);
+
+    expect($entry['is_applicable'])->toBeFalse()
+        ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::NotApplicable->value);
+});
+
+test('undertaking barangay surfaces incomplete when applicable but its required fields are blank', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'barangay_agency_name' => ['string', 'Barangay San Isidro'],
     ]);
 
     $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::UndertakingBarangay);
@@ -70,12 +187,13 @@ test('undertaking barangay surfaces incomplete when its required fields are blan
         ->and($entry['status'])->toBe(LoanRequestDocumentReadinessStatus::Incomplete->value);
 });
 
-test('undertaking barangay becomes ready to generate once its required fields are filled', function (): void {
+test('undertaking barangay becomes ready to generate once applicable and its required fields are filled', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
     ]);
 
     applicabilityPersistDataEntries($loanRequest, [
+        'barangay_agency_name' => ['string', 'Barangay San Isidro'],
         'guaranteed_net_take_home_pay' => ['number', 15000],
     ]);
 

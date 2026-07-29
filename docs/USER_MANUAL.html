@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>User Manual</title>
+</head>
+<body>
+<h1>WIBS Online Banking App Manual</h1>
+<h2>Overview</h2>
+<p>This manual describes the key workflows and navigation for each role in the WIBS Online Banking application:</p>
+<ul>
+<li>**Superadmin**</li>
+<li>**Loan Processor**</li>
+<li>**Loan Manager**</li>
+<li>**Member**</li>
+</ul>
+<p>Each role section includes the main pages, typical actions, and quick-start checklist.</p>
+<hr/>
+<h2>Superadmin</h2>
+<h3>Workspace and navigation</h3>
+<p>Superadmins work in the **Staff** workspace. Their main entry point is the **Staff management** page.</p>
+<p>The sidebar includes:</p>
+<ul>
+<li>Staff management</li>
+<li>Audit log (if enabled)</li>
+<li>Organization settings (if active)</li>
+</ul>
+<h3>Primary responsibilities</h3>
+<ul>
+<li>Create staff accounts</li>
+<li>Promote registered members to staff roles</li>
+<li>Assign and remove workflow roles</li>
+<li>Suspend or reactivate staff access</li>
+<li>Review staff audit history</li>
+</ul>
+<h3>Main pages and actions</h3>
+<h4>Staff management</h4>
+<p>Use this page to manage all staff and hybrid staff/member accounts.</p>
+<ul>
+<li>**Promote existing member**</li>
+<li>Search by name, email, or account number</li>
+<li>Select a registered member</li>
+<li>Assign a staff role while preserving member portal access</li>
+<li>Add a reason for the promotion (recorded in the audit trail)</li>
+</ul>
+<ul>
+<li>**Create staff account**</li>
+<li>Create a dedicated staff-only login</li>
+<li>Assign workflow roles without granting member portal access</li>
+</ul>
+<ul>
+<li>**Staff directory**</li>
+<li>View current roles and staff access status</li>
+<li>Inspect last recorded staff change notes</li>
+<li>Suspend or reactivate access as needed</li>
+</ul>
+<h4>Audit log</h4>
+<p>If available, use the audit log to review system-wide:</p>
+<ul>
+<li>role changes</li>
+<li>staff access changes</li>
+<li>workflow actions</li>
+<li>document access events</li>
+</ul>
+<h3>Quick start</h3>
+<ul>
+<li>Open **Staff management**</li>
+<li>Use **Promote existing member** when an existing registered user needs a staff role</li>
+<li>Use **Create staff account** for a staff-only access account</li>
+<li>Review the current staff list before assigning new roles</li>
+<li>Check the audit history for recent changes and approvals</li>
+</ul>
+<h3>Notes</h3>
+<ul>
+<li>The system separates **member access** from **staff access**. Promoting a member does not remove their existing member portal access.</li>
+<li>The `member` role must exist in the database, and registered members must have the role attached in `user_roles` for promotion search to work.</li>
+</ul>
+<hr/>
+<h2>Loan Processor</h2>
+<h3>Workspace and navigation</h3>
+<p>Loan Processors use the **Staff** workspace and typically access:</p>
+<ul>
+<li>**My Dashboard**</li>
+<li>**Loan Workflow**</li>
+</ul>
+<h3>Primary responsibilities</h3>
+<ul>
+<li>Review assigned loan requests</li>
+<li>Start and manage loan processing</li>
+<li>Request member revisions or additional information</li>
+<li>Reject unsuitable applications</li>
+<li>Recommend approval to Loan Manager</li>
+<li>Generate required documents for requests in process</li>
+</ul>
+<h3>Main pages and actions</h3>
+<h4>My Dashboard</h4>
+<ul>
+<li>See assigned queue count</li>
+<li>Track this month’s approved and rejected totals</li>
+<li>Monitor aging applications</li>
+<li>Open requests directly from your queue</li>
+</ul>
+<h4>Loan Workflow</h4>
+<ul>
+<li>View loan requests in workflow stages</li>
+<li>Filter by status and search requests</li>
+<li>Open individual requests for detail</li>
+</ul>
+<h4>Request detail actions</h4>
+<p>Loan Processor actions appear on a request when:</p>
+<ul>
+<li>the request has been assigned to the processor</li>
+<li>the request is in a valid workflow status</li>
+<li>the processor has the required permissions</li>
+</ul>
+<p>Typical actions include:</p>
+<ul>
+<li>**Claim** a new request</li>
+<li>**Start review** to begin processing</li>
+<li>**Request revision** when member data is incomplete or incorrect</li>
+<li>**Reject** if the application does not meet requirements</li>
+<li>**Recommend approval** when the loan is ready for manager review</li>
+<li>**Generate documents** during processing</li>
+<li>**Request member action** for additional member confirmation</li>
+<li>**Return to queue** when the request must be re-assigned</li>
+</ul>
+<h3>Quick start</h3>
+<ul>
+<li>Open **Loan Workflow**</li>
+<li>Filter by the relevant status</li>
+<li>Click a request reference to open details</li>
+<li>Process the request or request member revision</li>
+<li>Recommend approval only after full review</li>
+</ul>
+<h3>Notes</h3>
+<ul>
+<li>Legacy requests may use older status labels such as `Legacy Submitted` or `Legacy Pending Co-Maker Signatures`.</li>
+<li>The audit trail on the request page tracks workflow history and member action requests.</li>
+</ul>
+<hr/>
+<h2>Loan Manager</h2>
+<h3>Workspace and navigation</h3>
+<p>Loan Managers use the **Staff** workspace and the **Loan Workflow** page.</p>
+<h3>Primary responsibilities</h3>
+<ul>
+<li>Review processor recommendations</li>
+<li>Approve or decline loan requests</li>
+<li>Return requests for additional processing when needed</li>
+</ul>
+<h3>Main pages and actions</h3>
+<h4>Loan Workflow</h4>
+<ul>
+<li>Locate requests in **For Loan Manager Review**</li>
+<li>Open request details to review loan data and history</li>
+</ul>
+<h4>Approval actions</h4>
+<p>Loan Manager actions appear when the request is in the recommended stage and the manager has permission.</p>
+<ul>
+<li>**Approve** a recommended request</li>
+<li>**Decline** a recommended request</li>
+<li>**Return for processing** if the request needs more work</li>
+</ul>
+<h3>Quick start</h3>
+<ul>
+<li>Open **Loan Workflow**</li>
+<li>Find requests with status `For Loan Manager Review`</li>
+<li>Open the request detail page</li>
+<li>Choose **Approve** or **Decline** based on review</li>
+</ul>
+<h3>Notes</h3>
+<ul>
+<li>Managers only see approval actions on requests ready for decision.</li>
+<li>If the request is not in the expected status, the approval buttons are hidden.</li>
+</ul>
+<hr/>
+<h2>Member</h2>
+<h3>Workspace and navigation</h3>
+<p>Members use the **Member** workspace and can access:</p>
+<ul>
+<li>**Overview**</li>
+<li>**Loans**</li>
+<li>**Loan Security**</li>
+<li>**Loan requests**</li>
+<li>**Settings**</li>
+</ul>
+<h3>Primary responsibilities</h3>
+<ul>
+<li>Submit and track loan requests</li>
+<li>View loan status and summaries</li>
+<li>Manage account profile and contact details</li>
+</ul>
+<h3>Main pages and actions</h3>
+<h4>Overview</h4>
+<ul>
+<li>View profile summary, account number, and status</li>
+<li>See recent account activity</li>
+<li>Review loan and savings summaries</li>
+</ul>
+<h4>Loan Requests</h4>
+<ul>
+<li>Track loan drafts and requests in progress</li>
+<li>Filter requests by status</li>
+<li>Open requests to see details and next steps</li>
+<li>Submit new loan requests using `Request loan`</li>
+</ul>
+<h4>Loans</h4>
+<ul>
+<li>Review active loan records</li>
+<li>Access loan details and payment summaries</li>
+</ul>
+<h4>Loan Security</h4>
+<ul>
+<li>View security or collateral information if available</li>
+</ul>
+<h4>Settings</h4>
+<ul>
+<li>Update profile details</li>
+<li>Review account status</li>
+<li>Link membership if needed</li>
+</ul>
+<h3>Quick start</h3>
+<ul>
+<li>Open **Overview** to confirm account status</li>
+<li>Open **Loan Requests** to see active and past applications</li>
+<li>Use **Request loan** to start a new application</li>
+<li>Open **Loans** to review current loan records</li>
+<li>Use **Settings** to update profile and contact info</li>
+</ul>
+<h3>Notes</h3>
+<ul>
+<li>Member access requires a valid account number and member role.</li>
+<li>If a user has both member and staff access, the member portal remains separate from staff workflows.</li>
+</ul>
+<hr/>
+<h2>Common interface guidance</h2>
+<h3>Loan request statuses</h3>
+<p>The application uses workflow status labels such as:</p>
+<ul>
+<li>Draft</li>
+<li>Pending Processing</li>
+<li>In Processing</li>
+<li>Awaiting Member Correction</li>
+<li>Awaiting Member Information</li>
+<li>For Loan Manager Review</li>
+<li>Approved - For WIBS Processing</li>
+<li>Declined by Loan Manager</li>
+<li>Rejected During Processing</li>
+<li>Converted to Loan</li>
+<li>Cancelled</li>
+</ul>
+<p>Legacy requests may show older labels such as `Legacy Submitted`.</p>
+<h3>Audit trail</h3>
+<ul>
+<li>The audit trail shows workflow events and staff/member actions.</li>
+<li>For staff pages, the audit trail may appear in the main detail area or sidebar depending on the route.</li>
+</ul>
+<h3>Document access</h3>
+<ul>
+<li>Approved documents appear on request details after approval</li>
+<li>Document download buttons are shown when documents are available</li>
+</ul>
+<hr/>
+<h2>Appendix: support notes</h2>
+<h3>Fixing missing member role data</h3>
+<p>If old registered users do not appear in the promotion search, the issue is usually missing `member` role entries in `user_roles`.</p>
+<p>Recommended commands for deployed environments:</p>
+<pre><code>php artisan loan-workflow:seed-permissions
+php artisan members:backfill-roles</code></pre>
+<h3>Role definitions</h3>
+<ul>
+<li>`Superadmin` — full staff management and audit access</li>
+<li>`Loan Processor` — loan review, revision, rejection, recommend approval</li>
+<li>`Loan Manager` — approve or decline processor recommendations</li>
+<li>`Member` — borrower portal access and loan request submission</li>
+</ul>
+</body>
+</html>

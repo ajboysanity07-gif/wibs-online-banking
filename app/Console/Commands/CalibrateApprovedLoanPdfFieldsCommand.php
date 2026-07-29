@@ -4,9 +4,12 @@ namespace App\Console\Commands;
 
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -16,7 +19,7 @@ use TCPDF;
 class CalibrateApprovedLoanPdfFieldsCommand extends Command
 {
     protected $signature = 'loan-documents:calibrate-fields
-                            {document : Document key: au, ub, li, ge, or gl}
+                            {document : Document key: au, ub, li, ge, gl, dw, pw, or ga}
                             {--output= : Override output path (default: storage/app/tmp/calibrate-{doc}.pdf)}';
 
     protected $description = 'Generate a calibration PDF overlaying field boxes and an mm grid on the template.';
@@ -43,6 +46,21 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
             'label' => 'Generali (GLAPI) Health Statement',
             'field_map' => GeneraliPdfFieldMap::class,
         ],
+        'dw' => [
+            'file' => 'deped-salary-deduction-waiver.pdf',
+            'label' => 'DepEd Salary Deduction Waiver',
+            'field_map' => DepedSalaryDeductionWaiverPdfFieldMap::class,
+        ],
+        'pw' => [
+            'file' => 'pension-deduction-waiver.pdf',
+            'label' => 'Pension Deduction Waiver',
+            'field_map' => PensionDeductionWaiverPdfFieldMap::class,
+        ],
+        'ga' => [
+            'file' => 'generali-application-form.pdf',
+            'label' => 'Generali (GLAPI) Individual Application Form',
+            'field_map' => GeneraliApplicationFormPdfFieldMap::class,
+        ],
     ];
 
     private const GL_PAGES = [
@@ -62,7 +80,7 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
             return $this->calibrateImageTemplate();
         }
 
-        $this->error('Unknown document. Valid keys: au, az, ub, li, gl');
+        $this->error('Unknown document. Valid keys: au, ub, li, ge, gl, dw, pw, ga');
 
         return Command::FAILURE;
     }

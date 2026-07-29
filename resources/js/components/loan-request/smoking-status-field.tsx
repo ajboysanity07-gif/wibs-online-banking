@@ -2,8 +2,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const SMOKING_STATUS_OPTIONS = [
     { value: 'none', label: 'None' },
-    { value: 'light', label: 'Light (less than 10/day)' },
-    { value: 'heavy', label: 'Heavy (more than 10/day)' },
+    { value: 'light', label: 'Light (<10/day)' },
+    { value: 'heavy', label: 'Heavy (>10/day)' },
 ];
 
 type SmokingStatusFieldProps = {

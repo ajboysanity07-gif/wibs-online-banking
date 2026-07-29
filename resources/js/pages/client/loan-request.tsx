@@ -60,6 +60,7 @@ import type {
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
     LoanTypeOption,
+    SavedCoMakerOption,
 } from '@/types/loan-requests';
 
 const loanRequestsIndexHref = loanRequestsIndex().url;
@@ -74,6 +75,7 @@ type Props = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
     applicantReadOnly: LoanRequestReadOnlyMap | null;
+    savedCoMakers: SavedCoMakerOption[];
     member: LoanRequestMemberSummary;
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
@@ -200,6 +202,9 @@ const emptyPerson: LoanRequestPersonFormData = {
     years_in_work_business: '',
     gross_monthly_income: '',
     payday: '',
+    save_for_reuse: false,
+    saved_co_maker_id: '',
+    saved_co_maker_label: '',
 };
 
 const toPersonForm = (
@@ -384,6 +389,7 @@ export default function LoanRequestPage({
     coMakerOne,
     coMakerTwo,
     applicantReadOnly,
+    savedCoMakers: initialSavedCoMakers,
     member,
     dataSections,
     dataSectionDefinitions,
@@ -424,6 +430,9 @@ export default function LoanRequestPage({
     );
     const [draftState, setDraftState] = useState<LoanRequestDraft | null>(
         draft,
+    );
+    const [savedCoMakers, setSavedCoMakers] = useState<SavedCoMakerOption[]>(
+        initialSavedCoMakers,
     );
 
     const glapiChunks = useMemo(
@@ -538,6 +547,49 @@ export default function LoanRequestPage({
             form.setData(personKey, {
                 ...form.data[personKey],
                 [field]: value,
+            });
+        };
+
+    // Explicit opt-in only: loading a saved co-maker fills the fields as a
+    // starting point (still fully editable), and saving one back for reuse
+    // requires its own separate checkbox -- nothing here is silent. See
+    // SavedCoMakersService.
+    const loadSavedCoMaker =
+        (personKey: 'co_maker_1' | 'co_maker_2') => async (id: number) => {
+            try {
+                const response = await client.get<{
+                    ok: boolean;
+                    data: LoanRequestPersonData & { label: string | null };
+                }>(`/client/co-makers/${id}`);
+                const record = response.data.data;
+
+                form.setData(personKey, {
+                    ...toPersonForm(record),
+                    save_for_reuse: form.data[personKey].save_for_reuse,
+                    saved_co_maker_id: String(id),
+                    saved_co_maker_label: record.label ?? '',
+                });
+            } catch (error) {
+                showErrorToast(error, 'Unable to load that saved co-maker.');
+            }
+        };
+
+    const removeSavedCoMaker = async (id: number) => {
+        try {
+            await client.delete(`/client/co-makers/${id}`);
+            setSavedCoMakers((current) =>
+                current.filter((option) => option.id !== id),
+            );
+        } catch (error) {
+            showErrorToast(error, 'Unable to remove that saved co-maker.');
+        }
+    };
+
+    const toggleSaveCoMakerForReuse =
+        (personKey: 'co_maker_1' | 'co_maker_2') => (checked: boolean) => {
+            form.setData(personKey, {
+                ...form.data[personKey],
+                save_for_reuse: checked,
             });
         };
 
@@ -906,6 +958,13 @@ export default function LoanRequestPage({
                                             onChange={updatePersonField(
                                                 'co_maker_1',
                                             )}
+                                            savedCoMakers={savedCoMakers}
+                                            onLoadSavedCoMaker={loadSavedCoMaker(
+                                                'co_maker_1',
+                                            )}
+                                            onRemoveSavedCoMaker={
+                                                removeSavedCoMaker
+                                            }
                                         />
                                     </LoanRequestAnimatedStep>
 
@@ -957,6 +1016,9 @@ export default function LoanRequestPage({
                                             onChange={updatePersonField(
                                                 'co_maker_1',
                                             )}
+                                            onToggleSaveForReuse={toggleSaveCoMakerForReuse(
+                                                'co_maker_1',
+                                            )}
                                         />
                                     </LoanRequestAnimatedStep>
 
@@ -974,6 +1036,13 @@ export default function LoanRequestPage({
                                             onChange={updatePersonField(
                                                 'co_maker_2',
                                             )}
+                                            savedCoMakers={savedCoMakers}
+                                            onLoadSavedCoMaker={loadSavedCoMaker(
+                                                'co_maker_2',
+                                            )}
+                                            onRemoveSavedCoMaker={
+                                                removeSavedCoMaker
+                                            }
                                         />
                                     </LoanRequestAnimatedStep>
 
@@ -1023,6 +1092,9 @@ export default function LoanRequestPage({
                                             values={form.data.co_maker_2}
                                             errors={form.errors}
                                             onChange={updatePersonField(
+                                                'co_maker_2',
+                                            )}
+                                            onToggleSaveForReuse={toggleSaveCoMakerForReuse(
                                                 'co_maker_2',
                                             )}
                                         />

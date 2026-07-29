@@ -1,4 +1,5 @@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cn } from '@/lib/utils';
 
 export const booleanToggleValue = (value: unknown): string => {
     if (value === true) {
@@ -18,6 +19,7 @@ type BooleanYesNoFieldProps = {
     onChange: (value: boolean | null) => void;
     disabled?: boolean;
     'aria-label'?: string;
+    fullWidth?: boolean;
 };
 
 export function BooleanYesNoField({
@@ -26,6 +28,7 @@ export function BooleanYesNoField({
     onChange,
     disabled,
     'aria-label': ariaLabel,
+    fullWidth,
 }: BooleanYesNoFieldProps) {
     return (
         <ToggleGroup
@@ -38,12 +41,20 @@ export function BooleanYesNoField({
             }
             disabled={disabled}
             aria-label={ariaLabel}
-            className="w-fit"
+            className={cn(fullWidth ? 'w-full' : 'w-fit')}
         >
-            <ToggleGroupItem value="true" aria-label="Yes">
+            <ToggleGroupItem
+                value="true"
+                aria-label="Yes"
+                className={cn(fullWidth && 'flex-1')}
+            >
                 Yes
             </ToggleGroupItem>
-            <ToggleGroupItem value="false" aria-label="No">
+            <ToggleGroupItem
+                value="false"
+                aria-label="No"
+                className={cn(fullWidth && 'flex-1')}
+            >
                 No
             </ToggleGroupItem>
         </ToggleGroup>

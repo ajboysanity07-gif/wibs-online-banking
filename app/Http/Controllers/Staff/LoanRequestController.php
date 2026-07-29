@@ -216,7 +216,7 @@ class LoanRequestController extends Controller
         Gate::authorize('view', $loanRequest);
         $this->authorizeStaffDocumentAccess($loanRequest);
 
-        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+        if (! $this->hasPreAcceptanceDisclosureStatus($loanRequest)) {
             abort(404);
         }
 
@@ -230,7 +230,7 @@ class LoanRequestController extends Controller
         Gate::authorize('view', $loanRequest);
         $this->authorizeStaffDocumentAccess($loanRequest);
 
-        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+        if (! $this->hasPreAcceptanceDisclosureStatus($loanRequest)) {
             abort(404);
         }
 
@@ -291,6 +291,62 @@ class LoanRequestController extends Controller
         }
 
         return $documentService->generali($loanRequest);
+    }
+
+    public function authorityToDeductDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->authorityToDeduct($loanRequest);
+    }
+
+    public function depedSalaryDeductionWaiverDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->depedSalaryDeductionWaiver($loanRequest);
+    }
+
+    public function pensionDeductionWaiverDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->pensionDeductionWaiver($loanRequest);
+    }
+
+    public function generaliApplicationFormDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->generaliApplicationForm($loanRequest);
     }
 
     public function generatedDocument(
@@ -406,6 +462,24 @@ class LoanRequestController extends Controller
             : (string) $loanRequest->status;
 
         return in_array($status, [
+            LoanRequestStatus::Approved->value,
+            LoanRequestStatus::ConvertedToLoan->value,
+        ], true);
+    }
+
+    /**
+     * Truth-in-lending–style disclosures (loan_information, disclosure_statement) must
+     * reach the member before they accept the loan's terms, not only afterward -- so
+     * these two documents unlock one workflow step earlier than the rest of the package.
+     */
+    private function hasPreAcceptanceDisclosureStatus(LoanRequest $loanRequest): bool
+    {
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        return in_array($status, [
+            LoanRequestStatus::AwaitingMemberAcceptance->value,
             LoanRequestStatus::Approved->value,
             LoanRequestStatus::ConvertedToLoan->value,
         ], true);

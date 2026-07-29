@@ -178,6 +178,11 @@ const personFieldLabels: Record<keyof LoanRequestPersonFormData, string> = {
     years_in_work_business: 'Total years in work/business',
     gross_monthly_income: 'Gross monthly income',
     payday: 'Payday',
+    // Saved co-maker reuse metadata -- never part of an admin correction,
+    // see SavedCoMakersService. Included only to satisfy the shared type.
+    save_for_reuse: 'Save for reuse',
+    saved_co_maker_id: 'Saved co-maker ID',
+    saved_co_maker_label: 'Saved co-maker label',
 };
 
 const applicantRequiredFields: Array<keyof LoanRequestPersonFormData> = [
@@ -364,6 +369,9 @@ const emptyPerson: LoanRequestPersonFormData = {
     years_in_work_business: '',
     gross_monthly_income: '',
     payday: '',
+    save_for_reuse: false,
+    saved_co_maker_id: '',
+    saved_co_maker_label: '',
 };
 
 const toStringValue = (

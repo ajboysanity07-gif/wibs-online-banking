@@ -1,0 +1,137 @@
+<?php
+
+namespace App\Services\LoanRequests\PdfFieldMaps;
+
+class DepedSalaryDeductionWaiverPdfFieldMap implements ApprovedLoanPdfFieldMap
+{
+    public function fields(): array
+    {
+        return [
+            [
+                'page' => 1,
+                'type' => 'image',
+                'x' => 18,
+                'y' => 15,
+                'width' => 174,
+                'height' => 18,
+                'scale' => 1.5,
+                'value' => 'organization.report_header.designPath',
+            ],
+            [
+                'page' => 1,
+                'x' => 24,
+                'y' => 55,
+                'size' => 11,
+                'width' => 68,
+                'shrink_to_fit' => true,
+                'min_size' => 7.0,
+                'value' => 'applicant.full_name',
+            ],
+            [
+                'page' => 1,
+                'x' => 118,
+                'y' => 55,
+                'size' => 11,
+                'width' => 72,
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'applicant.address',
+            ],
+            [
+                'page' => 1,
+                'x' => 30,
+                'y' => 83.5,
+                'size' => 11,
+                'width' => 68,
+                'shrink_to_fit' => true,
+                'min_size' => 7.0,
+                'value' => 'deduction.deped_school_id_number',
+            ],
+            // "deduct- <amount in words> PESOS ONLY (P <amount>)" -- both blanks sit
+            // inline on the same line as clause 4's second line in the typeset template.
+            [
+                'page' => 1,
+                'x' => 42,
+                'y' => 126,
+                'size' => 11,
+                'width' => 88,
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'deduction.deped_deduction_amount_words',
+            ],
+            [
+                'page' => 1,
+                'x' => 141,
+                'y' => 126,
+                'size' => 11,
+                'width' => 33,
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'deduction.deped_deduction_amount',
+            ],
+            [
+                'page' => 1,
+                'x' => 40,
+                'y' => 168,
+                'size' => 11,
+                'width' => 18,
+                'align' => 'C',
+                'value' => 'loan.approved_date_day',
+            ],
+            [
+                'page' => 1,
+                'x' => 76,
+                'y' => 168,
+                'size' => 11,
+                'width' => 53,
+                'align' => 'C',
+                'value' => 'loan.approved_date_month_year',
+            ],
+            [
+                'page' => 1,
+                'x' => 139,
+                'y' => 168,
+                'size' => 11,
+                'width' => 51,
+                'align' => 'C',
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'notarial.signing_place',
+            ],
+            [
+                'page' => 1,
+                'x' => 96,
+                'y' => 206,
+                'size' => 11,
+                'style' => 'B',
+                'width' => 90,
+                'align' => 'C',
+                'shrink_to_fit' => true,
+                'min_size' => 7.0,
+                'value' => 'applicant.full_name',
+            ],
+            [
+                'page' => 1,
+                'x' => 18,
+                'y' => 258,
+                'size' => 10,
+                'width' => 70,
+                'align' => 'C',
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'applicant.full_name',
+            ],
+            [
+                'page' => 1,
+                'x' => 110,
+                'y' => 258,
+                'size' => 10,
+                'width' => 70,
+                'align' => 'C',
+                'shrink_to_fit' => true,
+                'min_size' => 6.0,
+                'value' => 'reviewer.name',
+            ],
+        ];
+    }
+}

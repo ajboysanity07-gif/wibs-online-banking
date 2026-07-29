@@ -664,6 +664,45 @@ test('loan managers can approve recommended requests through the workflow route 
     expect($change->reason)->toBe('Approved by manager.');
 });
 
+test('approving a legacy-workflow request persists a changed approved_payment_frequency instead of silently dropping it', function () {
+    Queue::fake();
+
+    $loanManager = createWorkflowAuthorizationActor([Role::LOAN_MANAGER]);
+    $member = createWorkflowAuthorizationActor(
+        [Role::MEMBER],
+        acctno: '100017',
+    );
+    $reviewingOfficer = createWorkflowAuthorizationActor([Role::LOAN_PROCESSOR]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+        'reviewed_by' => $reviewingOfficer->user_id,
+        'reviewed_at' => now()->subMinute(),
+        'review_decision' => LoanRequestStatus::RecommendedForApproval->value,
+        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
+        'recommended_payment_frequency' => 'Monthly',
+    ]);
+
+    $response = $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 22000,
+            'approved_term' => 18,
+            'approved_interest_rate' => 1.25,
+            'approved_payment_frequency' => '15th & 30th',
+            'approval_remarks' => 'Approved with revised payment frequency.',
+        ]);
+
+    $response->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Approved);
+    expect($loanRequest->recommended_payment_frequency)->toBe('15th & 30th');
+});
+
 test('loan managers can decline recommended requests through the workflow route and create an audit row', function () {
     Queue::fake();
 

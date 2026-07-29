@@ -191,6 +191,7 @@ class LoanRequestPayloadSerializer
             'rejectedBy.adminProfile',
             'approvedBy.adminProfile',
             'declinedBy.adminProfile',
+            'memberActionRequestedBy.adminProfile',
         ];
 
         if ($this->schemaCapabilities->hasTable('wmaster')) {
@@ -200,6 +201,7 @@ class LoanRequestPayloadSerializer
                 'rejectedBy.wmaster',
                 'approvedBy.wmaster',
                 'declinedBy.wmaster',
+                'memberActionRequestedBy.wmaster',
             ]);
         }
 
@@ -262,6 +264,7 @@ class LoanRequestPayloadSerializer
             'member_action_type' => $loanRequest->member_action_type,
             'member_action_message' => $loanRequest->member_action_message,
             'member_action_fields' => $loanRequest->member_action_fields_json,
+            'member_action_requested_by' => $this->serializeActor($loanRequest->memberActionRequestedBy),
             'member_action_requested_at' => $loanRequest->member_action_requested_at?->toDateTimeString(),
             'member_action_resolved_at' => $loanRequest->member_action_resolved_at?->toDateTimeString(),
             'cancelled_by' => $this->serializeActor($loanRequest->cancelledBy),
@@ -366,11 +369,62 @@ class LoanRequestPayloadSerializer
             return ($left['sort_order'] ?? 0) <=> ($right['sort_order'] ?? 0);
         });
 
+        if (! $memberSafe) {
+            $this->attachApprovalTechnicalMetadata($entries, $loanRequest);
+        }
+
         return array_values(array_map(static function (array $entry): array {
             unset($entry['sort_order']);
 
             return $entry;
         }, $entries));
+    }
+
+    /**
+     * approval_ip_address/approval_user_agent are single-latest-value columns, not
+     * per-event history, so they only describe the most recent approval -- attaching them
+     * to every historical "Approved" entry would misrepresent earlier approvals on a
+     * reopened/reapproved request. Staff/admin only (never member-safe).
+     *
+     * @param  list<array<string, mixed>>  $entries
+     */
+    private function attachApprovalTechnicalMetadata(array &$entries, LoanRequest $loanRequest): void
+    {
+        if ($loanRequest->approval_ip_address === null && $loanRequest->approval_user_agent === null) {
+            return;
+        }
+
+        $lastApprovedIndex = null;
+
+        foreach ($entries as $index => $entry) {
+            if ($entry['action'] === LoanRequestChange::ACTION_APPROVE) {
+                $lastApprovedIndex = $index;
+            }
+        }
+
+        if ($lastApprovedIndex === null) {
+            return;
+        }
+
+        $metadata = $entries[$lastApprovedIndex]['metadata'];
+
+        if ($loanRequest->approval_ip_address !== null) {
+            $metadata[] = [
+                'key' => 'approval_ip_address',
+                'label' => 'IP address',
+                'value' => $loanRequest->approval_ip_address,
+            ];
+        }
+
+        if ($loanRequest->approval_user_agent !== null) {
+            $metadata[] = [
+                'key' => 'approval_user_agent',
+                'label' => 'User agent',
+                'value' => $loanRequest->approval_user_agent,
+            ];
+        }
+
+        $entries[$lastApprovedIndex]['metadata'] = $metadata;
     }
 
     /**

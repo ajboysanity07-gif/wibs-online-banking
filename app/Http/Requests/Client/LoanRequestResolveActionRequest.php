@@ -50,11 +50,20 @@ class LoanRequestResolveActionRequest extends FormRequest
             'barangay.barangay_official_designation' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_agency_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_agency_address' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'declarations' => ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent'],
+            'declarations' => ['sometimes', 'array:declaration_existing_loans,declaration_pending_cases,declaration_truth_confirmation,declaration_data_privacy_consent,existing_loan_1_date,existing_loan_1_type,existing_loan_1_amount,existing_loan_2_date,existing_loan_2_type,existing_loan_2_amount,existing_loan_3_date,existing_loan_3_type,existing_loan_3_amount'],
             'declarations.declaration_existing_loans' => ['sometimes', 'boolean'],
             'declarations.declaration_pending_cases' => ['sometimes', 'boolean'],
             'declarations.declaration_truth_confirmation' => ['sometimes', 'boolean'],
             'declarations.declaration_data_privacy_consent' => ['sometimes', 'boolean'],
+            'declarations.existing_loan_1_date' => ['sometimes', 'nullable', 'date'],
+            'declarations.existing_loan_1_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'declarations.existing_loan_1_amount' => ['sometimes', 'nullable', 'numeric'],
+            'declarations.existing_loan_2_date' => ['sometimes', 'nullable', 'date'],
+            'declarations.existing_loan_2_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'declarations.existing_loan_2_amount' => ['sometimes', 'nullable', 'numeric'],
+            'declarations.existing_loan_3_date' => ['sometimes', 'nullable', 'date'],
+            'declarations.existing_loan_3_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'declarations.existing_loan_3_amount' => ['sometimes', 'nullable', 'numeric'],
         ];
     }
 

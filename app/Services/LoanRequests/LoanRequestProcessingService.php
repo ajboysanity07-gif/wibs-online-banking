@@ -673,6 +673,7 @@ class LoanRequestProcessingService
                 'approved_amount' => $approvedAmount,
                 'approved_term' => $approvedTerm,
                 'approved_interest_rate' => $approvedInterestRate,
+                'recommended_payment_frequency' => $approvedPaymentFrequency,
                 'approval_remarks' => $approvalRemarks !== '' ? $approvalRemarks : null,
                 'decision_notes' => $approvalRemarks !== '' ? $approvalRemarks : null,
             ]);
@@ -692,6 +693,7 @@ class LoanRequestProcessingService
                     'approved_amount',
                     'approved_term',
                     'approved_interest_rate',
+                    'recommended_payment_frequency',
                 ],
                 [],
                 $before,

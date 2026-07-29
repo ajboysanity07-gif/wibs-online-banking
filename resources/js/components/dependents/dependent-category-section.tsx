@@ -10,17 +10,26 @@ import type { LoanRequestDataSectionDefinition } from '@/types/loan-requests';
 export type DependentCategoryConfig = {
     key: string;
     label: string;
+    // Only needed for irregular plurals (e.g. Child -> Children).
+    // Falls back to `${label}s` when omitted.
+    pluralLabel?: string;
     cap: number;
 };
 
 // Row caps are provisional -- see LoanRequestDataService::FIELD_DEFINITIONS
 // and MemberDependentProfile::CATEGORY_CAPS.
 export const DEPENDENT_CATEGORIES: DependentCategoryConfig[] = [
-    { key: 'child', label: 'Child', cap: 3 },
+    { key: 'child', label: 'Child', pluralLabel: 'Children', cap: 3 },
     { key: 'sibling', label: 'Sibling', cap: 3 },
     { key: 'parent', label: 'Parent', cap: 2 },
     { key: 'extended', label: 'Extended family member', cap: 3 },
 ];
+
+export function dependentCategoryPluralLabel(
+    category: DependentCategoryConfig,
+): string {
+    return category.pluralLabel ?? `${category.label}s`;
+}
 
 // No 'relationship'/'occupation' -- the physical Form B "Dependents
 // Information" section has no such columns for any category.
@@ -34,11 +43,14 @@ export const DEPENDENT_SLOT_ATTRIBUTES = [
 export type DependentSlotAttribute = (typeof DEPENDENT_SLOT_ATTRIBUTES)[number];
 
 const DEPENDENT_ATTRIBUTE_LABELS: Record<DependentSlotAttribute, string> = {
-    name: 'name',
-    birthdate: 'birthdate',
-    cycle_status: 'cycle status',
-    cycle_number: 'cycle number',
+    name: 'Name',
+    birthdate: 'Birthdate',
+    cycle_status: 'Insurance status',
+    cycle_number: 'Cycle number',
 };
+
+const CYCLE_STATUS_HELP_TEXT =
+    'New if this is their first time covered under the group life plan. Old if they were already enrolled before -- enter which cycle.';
 
 export type DependentValues = Record<
     string,
@@ -64,12 +76,10 @@ export function slotHasValue(
     });
 }
 
-function defaultSlotFieldLabel(
-    category: DependentCategoryConfig,
-    slot: number,
-    attribute: DependentSlotAttribute,
-): string {
-    return `${category.label} ${slot} ${DEPENDENT_ATTRIBUTE_LABELS[attribute]}`;
+// The slot itself already renders "{category.label} {slot}" as its own
+// heading, so field-level labels only need the attribute name.
+function defaultSlotFieldLabel(attribute: DependentSlotAttribute): string {
+    return DEPENDENT_ATTRIBUTE_LABELS[attribute];
 }
 
 /**
@@ -128,7 +138,7 @@ export function DependentCategorySection({
     ) => {
         const fieldKey = slotFieldKey(category.key, slot, attribute);
         const field = definition?.fields[fieldKey];
-        const label = field?.label ?? defaultSlotFieldLabel(category, slot, attribute);
+        const label = field?.label ?? defaultSlotFieldLabel(attribute);
         const type = attribute === 'birthdate' ? 'date' : 'text';
         const errorKey = errorKeyPrefix ? `${errorKeyPrefix}.${fieldKey}` : fieldKey;
         const value = values[fieldKey];
@@ -158,9 +168,9 @@ export function DependentCategorySection({
         const statusField = definition?.fields[statusKey];
         const numberField = definition?.fields[numberKey];
         const statusLabel =
-            statusField?.label ?? defaultSlotFieldLabel(category, slot, 'cycle_status');
+            statusField?.label ?? defaultSlotFieldLabel('cycle_status');
         const numberLabel =
-            numberField?.label ?? defaultSlotFieldLabel(category, slot, 'cycle_number');
+            numberField?.label ?? defaultSlotFieldLabel('cycle_number');
         const statusErrorKey = errorKeyPrefix ? `${errorKeyPrefix}.${statusKey}` : statusKey;
         const numberErrorKey = errorKeyPrefix ? `${errorKeyPrefix}.${numberKey}` : numberKey;
         const statusValue = values[statusKey];
@@ -169,6 +179,9 @@ export function DependentCategorySection({
         return (
             <div key={statusKey} className="grid gap-2">
                 <Label htmlFor={statusKey}>{statusLabel}</Label>
+                <p className="text-xs text-muted-foreground">
+                    {CYCLE_STATUS_HELP_TEXT}
+                </p>
                 <ToggleGroup
                     id={statusKey}
                     type="single"
@@ -255,7 +268,7 @@ export function DependentCategorySection({
     return (
         <div className="space-y-3">
             <p className="text-sm font-semibold text-foreground">
-                {category.label}s
+                {dependentCategoryPluralLabel(category)}
             </p>
             <div className="space-y-3">
                 {Array.from({ length: visibleSlots }, (_, index) => index + 1).map(
@@ -306,8 +319,8 @@ export function DependentSpouseCycleSection({
 }) {
     const statusField = definition?.fields[SPOUSE_CYCLE_STATUS_KEY];
     const numberField = definition?.fields[SPOUSE_CYCLE_NUMBER_KEY];
-    const statusLabel = statusField?.label ?? 'Spouse cycle status';
-    const numberLabel = numberField?.label ?? 'Spouse cycle number';
+    const statusLabel = statusField?.label ?? 'Insurance status';
+    const numberLabel = numberField?.label ?? 'Cycle number';
     const statusErrorKey = errorKeyPrefix
         ? `${errorKeyPrefix}.${SPOUSE_CYCLE_STATUS_KEY}`
         : SPOUSE_CYCLE_STATUS_KEY;
@@ -323,6 +336,9 @@ export function DependentSpouseCycleSection({
             <div className="space-y-3 rounded-md border border-border/50 bg-muted/5 p-4">
                 <div className="grid gap-2 sm:max-w-sm">
                     <Label htmlFor={SPOUSE_CYCLE_STATUS_KEY}>{statusLabel}</Label>
+                    <p className="text-xs text-muted-foreground">
+                        {CYCLE_STATUS_HELP_TEXT}
+                    </p>
                     <ToggleGroup
                         id={SPOUSE_CYCLE_STATUS_KEY}
                         type="single"

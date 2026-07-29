@@ -16,7 +16,7 @@ class LoanRequestDataService
     private const OWNER_STAFF = 'staff';
 
     /**
-     * @var array<string, array{label:string, owner:string, sensitive:bool, required_on_submit:bool, section:string, type:string, detail_of?:string|string[], visible_when?:array{field:string, equals:string}, options?:string[]}>
+     * @var array<string, array{label:string, owner:string, sensitive:bool, required_on_submit:bool, section:string, type:string, detail_of?:string|string[], visible_when?:array{field:string, equals:string|bool}, options?:string[]}>
      */
     private const FIELD_DEFINITIONS = [
         'beneficiary_primary_name' => [
@@ -686,7 +686,7 @@ class LoanRequestDataService
             'type' => 'string',
         ],
         'declaration_existing_loans' => [
-            'label' => 'Existing-loans declaration',
+            'label' => 'Do you have any previous or existing loan(s)?',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => true,
@@ -694,12 +694,101 @@ class LoanRequestDataService
             'type' => 'boolean',
         ],
         'declaration_pending_cases' => [
-            'label' => 'Pending-cases declaration',
+            'label' => 'Do you have any pending case(s) filed against you?',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => true,
             'section' => 'declarations',
             'type' => 'boolean',
+        ],
+
+        // Existing/previous loan detail rows (GLAPI section 1.1). Fixed
+        // slots for the same reason as Dependents (see comment above) --
+        // 3 slots to match both the PDF table's printed row capacity and
+        // the Beneficiaries 2-slot precedent's pattern of a small fixed
+        // cap rather than a truly dynamic array. Gated by
+        // declaration_existing_loans via visible_when, same mechanism as
+        // the civil_status-gated dependent slots.
+        'existing_loan_1_date' => [
+            'label' => 'Existing loan 1 date',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'date',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_1_type' => [
+            'label' => 'Existing loan 1 type',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'string',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_1_amount' => [
+            'label' => 'Existing loan 1 amount',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'number',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_2_date' => [
+            'label' => 'Existing loan 2 date',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'date',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_2_type' => [
+            'label' => 'Existing loan 2 type',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'string',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_2_amount' => [
+            'label' => 'Existing loan 2 amount',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'number',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_3_date' => [
+            'label' => 'Existing loan 3 date',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'date',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_3_type' => [
+            'label' => 'Existing loan 3 type',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'string',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
+        ],
+        'existing_loan_3_amount' => [
+            'label' => 'Existing loan 3 amount',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'declarations',
+            'type' => 'number',
+            'visible_when' => ['field' => 'declaration_existing_loans', 'equals' => true],
         ],
         'declaration_truth_confirmation' => [
             'label' => 'Truthfulness declaration',
@@ -828,6 +917,139 @@ class LoanRequestDataService
             'required_on_submit' => false,
             'section' => 'processing',
             'type' => 'string',
+        ],
+        'authority_to_deduct_institution_name' => [
+            'label' => 'Authority to Deduct: institution name',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'authority_to_deduct_officer_1_name' => [
+            'label' => 'Authority to Deduct: officer 1 name',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'authority_to_deduct_officer_1_title' => [
+            'label' => 'Authority to Deduct: officer 1 title',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'authority_to_deduct_officer_2_name' => [
+            'label' => 'Authority to Deduct: officer 2 name',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'authority_to_deduct_officer_2_title' => [
+            'label' => 'Authority to Deduct: officer 2 title',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'deped_school_id_number' => [
+            'label' => 'DepEd School I.D. number',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'deped_deduction_amount' => [
+            'label' => 'DepEd salary deduction amount',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'number',
+        ],
+        'pension_provider' => [
+            'label' => 'Pension provider',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'pension_bank_name' => [
+            'label' => 'Pension bank name',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'pension_atm_card_number' => [
+            'label' => 'Pension ATM card number',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'pension_deduction_amount' => [
+            'label' => 'Pension deduction amount',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'number',
+        ],
+        'employer_date_employed' => [
+            'label' => 'Date employed',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'date',
+        ],
+        // Generali Individual Application Form's own PEP question ("Are you a
+        // Politically Exposed Person?") -- distinct from gl_health_q16_relative_pep,
+        // which asks about a relative, not the applicant. Staff-entered like the
+        // other one-off document fields above, since no wizard step collects it.
+        'applicant_pep_status' => [
+            'label' => 'Applicant is a Politically Exposed Person (PEP)',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'boolean',
+        ],
+        'applicant_pep_status_details' => [
+            'label' => 'PEP role, function, and date assumed',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+            'detail_of' => 'applicant_pep_status',
+        ],
+        'applicant_cycle_status' => [
+            'label' => 'Applicant enrollment cycle status',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'string',
+        ],
+        'applicant_cycle_number' => [
+            'label' => 'Applicant enrollment cycle number',
+            'owner' => self::OWNER_STAFF,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'processing',
+            'type' => 'number',
         ],
 
         // Dependents (Form B). Fixed slots per category rather than a truly

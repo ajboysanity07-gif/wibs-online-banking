@@ -284,16 +284,21 @@ class LoanRequestDocumentCatalog
         ],
         'undertaking_barangay' => [
             'template_version' => 'undertaking-barangay-v3',
-            'applicability' => 'always',
+            'applicability' => 'barangay',
             'required_fields' => [
                 'guaranteed_net_take_home_pay',
             ],
             'source_fields' => [
-                // barangay_official_designation/agency_name/agency_address dropped: the
-                // field map now sources these from applicant.* (bug fix), already covered
-                // by the 'applicant.' source_paths wildcard below -- same pattern AU uses
-                // for its own applicant.* fields (no explicit source_fields entries).
+                // barangay_official_designation/agency_name/agency_address are no longer
+                // read for PDF *content* (the field map sources that from applicant.*,
+                // covered by the 'applicant.' source_paths wildcard below) but they and
+                // the applicant's employer name still drive *applicability* -- see
+                // barangayApplicable() -- so a change to any of them must still mark this
+                // document stale.
                 'guaranteed_net_take_home_pay',
+                'barangay_official_designation',
+                'barangay_agency_name',
+                'barangay_agency_address',
             ],
             'source_paths' => [
                 'loan_request.recommended_amount',
@@ -414,6 +419,150 @@ class LoanRequestDocumentCatalog
             ],
             'requires_financials' => false,
         ],
+        'authority_to_deduct' => [
+            'template_version' => 'authority-to-deduct-v1',
+            'applicability' => 'always',
+            'required_fields' => [],
+            'source_fields' => [
+                'wibs_release_date',
+                'authority_to_deduct_institution_name',
+                'authority_to_deduct_officer_1_name',
+                'authority_to_deduct_officer_1_title',
+                'authority_to_deduct_officer_2_name',
+                'authority_to_deduct_officer_2_title',
+            ],
+            'source_paths' => [
+                'loan_request.recommended_amount',
+                'applicant.',
+            ],
+            'template_files' => [
+                [
+                    'path' => 'resources/views/reports/authority-to-deduct.blade.php',
+                    'description' => 'Authority to Deduct blade template',
+                ],
+            ],
+            'requires_financials' => false,
+        ],
+        'deped_salary_deduction_waiver' => [
+            'template_version' => 'deped-salary-deduction-waiver-v1',
+            'applicability' => 'deped_employee',
+            'required_fields' => [
+                'deped_deduction_amount',
+            ],
+            'source_fields' => [
+                'deped_school_id_number',
+                'deped_deduction_amount',
+            ],
+            'source_paths' => [
+                'applicant.',
+            ],
+            'template_files' => [
+                [
+                    'path' => 'storage/app/templates/approved-loan-documents/pdf/deped-salary-deduction-waiver.pdf',
+                    'description' => 'DepEd Salary Deduction Waiver PDF template',
+                ],
+            ],
+            'requires_financials' => false,
+        ],
+        'pension_deduction_waiver' => [
+            'template_version' => 'pension-deduction-waiver-v1',
+            'applicability' => 'pensioner',
+            'required_fields' => [
+                'pension_deduction_amount',
+            ],
+            'source_fields' => [
+                'pension_provider',
+                'pension_bank_name',
+                'pension_atm_card_number',
+                'pension_deduction_amount',
+            ],
+            'source_paths' => [
+                'applicant.',
+            ],
+            'template_files' => [
+                [
+                    'path' => 'storage/app/templates/approved-loan-documents/pdf/pension-deduction-waiver.pdf',
+                    'description' => 'Pension Deduction Waiver PDF template',
+                ],
+            ],
+            'requires_financials' => false,
+        ],
+        'generali_application_form' => [
+            'template_version' => 'generali-application-form-v1',
+            'applicability' => 'always',
+            'required_fields' => [],
+            'source_fields' => [
+                'beneficiary_primary_name',
+                'beneficiary_primary_relationship',
+                'beneficiary_primary_birthdate',
+                'beneficiary_secondary_name',
+                'beneficiary_secondary_relationship',
+                'beneficiary_secondary_birthdate',
+                'employer_date_employed',
+                'applicant_pep_status',
+                'applicant_pep_status_details',
+                'applicant_cycle_status',
+                'applicant_cycle_number',
+                'dependent_spouse_cycle_status',
+                'dependent_spouse_cycle_number',
+                'dependent_child_1_name',
+                'dependent_child_1_birthdate',
+                'dependent_child_1_cycle_status',
+                'dependent_child_1_cycle_number',
+                'dependent_child_2_name',
+                'dependent_child_2_birthdate',
+                'dependent_child_2_cycle_status',
+                'dependent_child_2_cycle_number',
+                'dependent_child_3_name',
+                'dependent_child_3_birthdate',
+                'dependent_child_3_cycle_status',
+                'dependent_child_3_cycle_number',
+                'dependent_sibling_1_name',
+                'dependent_sibling_1_birthdate',
+                'dependent_sibling_1_cycle_status',
+                'dependent_sibling_1_cycle_number',
+                'dependent_sibling_2_name',
+                'dependent_sibling_2_birthdate',
+                'dependent_sibling_2_cycle_status',
+                'dependent_sibling_2_cycle_number',
+                'dependent_sibling_3_name',
+                'dependent_sibling_3_birthdate',
+                'dependent_sibling_3_cycle_status',
+                'dependent_sibling_3_cycle_number',
+                'dependent_parent_1_name',
+                'dependent_parent_1_birthdate',
+                'dependent_parent_1_cycle_status',
+                'dependent_parent_1_cycle_number',
+                'dependent_parent_2_name',
+                'dependent_parent_2_birthdate',
+                'dependent_parent_2_cycle_status',
+                'dependent_parent_2_cycle_number',
+                'dependent_extended_1_name',
+                'dependent_extended_1_birthdate',
+                'dependent_extended_1_cycle_status',
+                'dependent_extended_1_cycle_number',
+                'dependent_extended_2_name',
+                'dependent_extended_2_birthdate',
+                'dependent_extended_2_cycle_status',
+                'dependent_extended_2_cycle_number',
+                'dependent_extended_3_name',
+                'dependent_extended_3_birthdate',
+                'dependent_extended_3_cycle_status',
+                'dependent_extended_3_cycle_number',
+            ],
+            'source_paths' => [
+                'loan_request.recommended_amount',
+                'loan_request.recommended_term',
+                'applicant.',
+            ],
+            'template_files' => [
+                [
+                    'path' => 'storage/app/templates/approved-loan-documents/pdf/generali-application-form.pdf',
+                    'description' => 'Generali (GLAPI) Individual Application Form PDF template',
+                ],
+            ],
+            'requires_financials' => false,
+        ],
     ];
 
     /**
@@ -456,7 +605,118 @@ class LoanRequestDocumentCatalog
         LoanRequest $loanRequest,
         array $flatValues,
     ): bool {
-        return true;
+        $rule = self::DEFINITIONS[$documentKey->value]['applicability'] ?? 'always';
+
+        return match ($rule) {
+            'barangay' => $this->barangayApplicable($loanRequest, $flatValues),
+            'deped_employee' => $this->depedEmployeeApplicable($loanRequest),
+            'pensioner' => $this->pensionerApplicable($loanRequest),
+            default => true,
+        };
+    }
+
+    /**
+     * True when the applicant identifies as DepEd (Department of Education)
+     * personnel -- the only case the DepEd Salary Deduction Waiver (waiving DepEd
+     * Order No. 55's NTHP threshold) applies to. There is no dedicated "DepEd
+     * employee" field on the loan request, so this is signalled either by the
+     * Employment=Government + Nature of Business=Education combination (public
+     * school teachers hold Career Civil Service status under DepEd), or by a
+     * substring match for "deped"/"department of education" on the employer name.
+     */
+    private function depedEmployeeApplicable(LoanRequest $loanRequest): bool
+    {
+        $applicant = $loanRequest->applicant;
+
+        if ($applicant?->employment_type === 'Government'
+            && $applicant?->nature_of_business === 'Education') {
+            return true;
+        }
+
+        $employer = $applicant?->employer_business_name;
+
+        if (! is_string($employer)) {
+            return false;
+        }
+
+        $needle = mb_strtolower($employer);
+
+        return str_contains($needle, 'deped')
+            || str_contains($needle, 'department of education');
+    }
+
+    /**
+     * True when the applicant is a pensioner -- the only case the Pension
+     * Deduction Waiver (authorizing MRDINC/LGU-RHU to deduct from the borrower's
+     * pension) applies to. Matches the exact "Pensioner" employment_type option
+     * already offered on the loan request wizard.
+     */
+    private function pensionerApplicable(LoanRequest $loanRequest): bool
+    {
+        return $loanRequest->applicant?->employment_type === 'Pensioner';
+    }
+
+    /**
+     * True when the borrower's income is disbursed through a barangay LGU -- the
+     * only case the Undertaking-Barangay document (MRDINC's guaranteed net
+     * take-home-pay commitment for barangay-payroll borrowers) applies to. Signalled
+     * by the member's own "barangay information" wizard fields, by the applicant's
+     * employer/business name obviously naming a barangay, or -- for the shorter
+     * "brgy"/"bgy" abbreviations, which are too ambiguous to trust on their own --
+     * by the same abbreviations once Employment=Government + Nature of
+     * Business=Government confirms the applicant works in the government sector.
+     */
+    private function barangayApplicable(LoanRequest $loanRequest, array $flatValues): bool
+    {
+        if ($this->hasAnyValue($flatValues, [
+            'barangay_official_designation',
+            'barangay_agency_name',
+            'barangay_agency_address',
+        ])) {
+            return true;
+        }
+
+        $applicant = $loanRequest->applicant;
+        $employer = $applicant?->employer_business_name;
+
+        if (! is_string($employer)) {
+            return false;
+        }
+
+        $needle = mb_strtolower($employer);
+
+        if (str_contains($needle, 'barangay')) {
+            return true;
+        }
+
+        $isGovernmentSector = $applicant?->employment_type === 'Government'
+            && $applicant?->nature_of_business === 'Government';
+
+        if (! $isGovernmentSector) {
+            return false;
+        }
+
+        return str_contains($needle, 'brgy') || str_contains($needle, 'bgy');
+    }
+
+    /**
+     * @param  list<string>  $fieldKeys
+     */
+    private function hasAnyValue(array $flatValues, array $fieldKeys): bool
+    {
+        foreach ($fieldKeys as $fieldKey) {
+            $value = $flatValues[$fieldKey] ?? null;
+
+            if (is_bool($value)) {
+                return true;
+            }
+
+            if ($value !== null && trim((string) $value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

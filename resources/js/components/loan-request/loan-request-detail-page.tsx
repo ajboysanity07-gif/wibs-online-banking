@@ -114,6 +114,10 @@ type ApprovedDocumentHrefs = {
     undertakingBarangay: string;
     loanSecurityAgreement: string;
     generali: string;
+    authorityToDeduct: string;
+    depedSalaryDeductionWaiver: string;
+    pensionDeductionWaiver: string;
+    generaliApplicationForm: string;
     packageZip?: string | null;
 };
 
@@ -1108,6 +1112,26 @@ export function LoanRequestDetailPage({
               {
                   label: 'Generali Health Statement PDF',
                   href: approvedDocumentHrefs.generali,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Authority to Deduct PDF',
+                  href: approvedDocumentHrefs.authorityToDeduct,
+                  format: 'PDF',
+              },
+              {
+                  label: 'DepEd Salary Deduction Waiver PDF',
+                  href: approvedDocumentHrefs.depedSalaryDeductionWaiver,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Pension Deduction Waiver PDF',
+                  href: approvedDocumentHrefs.pensionDeductionWaiver,
+                  format: 'PDF',
+              },
+              {
+                  label: 'Generali Individual Application Form PDF',
+                  href: approvedDocumentHrefs.generaliApplicationForm,
                   format: 'PDF',
               },
           ]

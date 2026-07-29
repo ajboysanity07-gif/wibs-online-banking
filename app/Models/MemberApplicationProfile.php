@@ -6,6 +6,7 @@ use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class MemberApplicationProfile extends Model
@@ -73,6 +74,11 @@ class MemberApplicationProfile extends Model
     public function dependentProfile(): HasOne
     {
         return $this->hasOne(MemberDependentProfile::class);
+    }
+
+    public function coMakers(): HasMany
+    {
+        return $this->hasMany(MemberCoMaker::class);
     }
 
     public function isComplete(): bool

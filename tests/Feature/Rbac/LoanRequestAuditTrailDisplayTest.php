@@ -50,6 +50,8 @@ test('admin loan request detail page includes the full audit trail payload', fun
         'approved_term' => 18,
         'approved_interest_rate' => 1.25,
         'decision_notes' => 'Released to accounting.',
+        'approval_ip_address' => '203.0.113.7',
+        'approval_user_agent' => 'AuditTrailTest/1.0',
     ]);
 
     createAuditTrailChange(
@@ -112,6 +114,16 @@ test('admin loan request detail page includes the full audit trail payload', fun
                 fn ($metadata): bool => collect($metadata)->contains(
                     fn ($item): bool => ($item['key'] ?? null) === 'loan_number'
                         && ($item['value'] ?? null) === '0102-240001',
+                ),
+            )
+            ->where(
+                'auditTrail.3.metadata',
+                fn ($metadata): bool => collect($metadata)->contains(
+                    fn ($item): bool => ($item['key'] ?? null) === 'approval_ip_address'
+                        && ($item['value'] ?? null) === '203.0.113.7',
+                ) && collect($metadata)->contains(
+                    fn ($item): bool => ($item['key'] ?? null) === 'approval_user_agent'
+                        && ($item['value'] ?? null) === 'AuditTrailTest/1.0',
                 ),
             ));
 });
@@ -227,6 +239,89 @@ test('member loan request detail page includes only safe audit trail entries', f
                         && ! array_key_exists('after_json', $entry);
                 });
             }));
+});
+
+test('member loan request detail page never includes approval technical metadata', function (): void {
+    $member = createAuditTrailActor(
+        [Role::MEMBER],
+        acctno: '300005',
+        username: 'Member Privacy Check',
+    );
+    $loanManager = createAuditTrailActor(
+        [Role::LOAN_MANAGER],
+        username: 'Manager Privacy Check',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::Approved,
+        'submitted_at' => Carbon::parse('2026-06-10 08:00:00'),
+        'approved_by' => $loanManager->user_id,
+        'approved_at' => Carbon::parse('2026-06-10 10:00:00'),
+        'approval_ip_address' => '203.0.113.9',
+        'approval_user_agent' => 'AuditTrailTest/1.0',
+    ]);
+
+    createAuditTrailChange(
+        $loanRequest,
+        $loanManager,
+        LoanRequestChange::ACTION_APPROVE,
+        LoanRequestStatus::RecommendedForApproval->value,
+        LoanRequestStatus::Approved->value,
+        'Approved.',
+        Carbon::parse('2026-06-10 10:00:00'),
+    );
+
+    $this
+        ->actingAs($member)
+        ->get(route('client.loan-requests.show', $loanRequest))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request-show')
+            ->where('auditTrail', function ($entries): bool {
+                return collect($entries)->every(function ($entry): bool {
+                    return collect($entry['metadata'] ?? [])->doesntContain(
+                        fn ($item): bool => in_array(
+                            $item['key'] ?? null,
+                            ['approval_ip_address', 'approval_user_agent'],
+                            true,
+                        ),
+                    );
+                });
+            }));
+});
+
+test('member_action_requested_by is exposed on the loan request payload for staff and member alike', function (): void {
+    $loanManager = createAuditTrailActor(
+        [Role::LOAN_MANAGER],
+        username: 'Terms Change Manager',
+    );
+    $member = createAuditTrailActor(
+        [Role::MEMBER],
+        acctno: '300006',
+        username: 'Member Terms Review',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::AwaitingMemberAcceptance,
+        'submitted_at' => Carbon::parse('2026-06-11 08:00:00'),
+        'member_action_type' => 'terms_acceptance',
+        'member_action_message' => 'Please review the revised loan terms.',
+        'member_action_requested_by' => $loanManager->user_id,
+        'member_action_requested_at' => Carbon::parse('2026-06-11 09:00:00'),
+    ]);
+
+    $this
+        ->actingAs($member)
+        ->get(route('client.loan-requests.show', $loanRequest))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client/loan-request-show')
+            ->where(
+                'loanRequest.member_action_requested_by.name',
+                'Terms Change Manager',
+            ));
 });
 
 test('workflow action responses include audit trail from and to statuses', function (): void {

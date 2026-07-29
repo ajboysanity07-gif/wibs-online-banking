@@ -54,6 +54,7 @@ class LoanRequestService
         private LoanRequestPayloadSerializer $serializer,
         private LoanRequestDataService $dataService,
         private DependentsProfileSyncService $dependentsSync,
+        private SavedCoMakersService $savedCoMakers,
     ) {}
 
     /**
@@ -63,6 +64,7 @@ class LoanRequestService
      *     coMakerOne: array<string, mixed>|null,
      *     coMakerTwo: array<string, mixed>|null,
      *     applicantReadOnly: array<string, bool>,
+     *     savedCoMakers: list<array{id: int, label: string, last_used_at: string|null}>,
      *     member: array{name: string, acctno: string|null},
      *     dataSections: array<string, array<string, mixed>>,
      *     dataSectionDefinitions: array<string, mixed>,
@@ -160,6 +162,9 @@ class LoanRequestService
             'coMakerOne' => $coMakerOne,
             'coMakerTwo' => $coMakerTwo,
             'applicantReadOnly' => $applicantReadOnly,
+            'savedCoMakers' => $user->memberApplicationProfile !== null
+                ? $this->savedCoMakers->listFor($user->memberApplicationProfile)->values()->all()
+                : [],
             'member' => [
                 'name' => $memberName,
                 'acctno' => $user->acctno,
@@ -414,6 +419,40 @@ class LoanRequestService
         $this->dependentsSync->sync(
             $profile,
             is_array($payload['dependents'] ?? null) ? $payload['dependents'] : [],
+        );
+
+        $this->saveCoMakerForReuse($profile, $payload, 'co_maker_1');
+        $this->saveCoMakerForReuse($profile, $payload, 'co_maker_2');
+    }
+
+    /**
+     * Persist a co-maker's details onto the member's reusable contact list --
+     * only when the borrower explicitly checked "save for reuse" on that
+     * slot (opt-in, see SavedCoMakersService). Editing a previously loaded
+     * saved contact (saved_co_maker_id present) updates it in place instead
+     * of forking a duplicate entry.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function saveCoMakerForReuse(
+        MemberApplicationProfile $profile,
+        array $payload,
+        string $key,
+    ): void {
+        $data = $this->extractPersonPayload($payload, $key);
+        $shouldSave = filter_var($data['save_for_reuse'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if ($data === [] || ! $shouldSave) {
+            return;
+        }
+
+        $existingId = $data['saved_co_maker_id'] ?? null;
+
+        $this->savedCoMakers->saveOrUpdate(
+            $profile,
+            $data,
+            is_numeric($existingId) ? (int) $existingId : null,
+            $this->normalizeOptionalString($data['saved_co_maker_label'] ?? null),
         );
     }
 

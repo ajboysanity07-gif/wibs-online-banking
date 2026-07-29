@@ -1,14 +1,20 @@
 <?php
 
+use App\LoanRequestDocumentKey;
+use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\LoanRequestDocument;
 use App\Models\Role;
+use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\WibsTrackingService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
     Role::ensureWorkflowDefaults();
@@ -108,6 +114,60 @@ test('scheduleRelease transitions WibsLoanCreated to ReleaseScheduled and stores
                 ->where('action', LoanRequestChange::ACTION_SCHEDULE_WIBS_RELEASE)
                 ->exists(),
         )->toBeTrue();
+});
+
+test('scheduleRelease marks the authority-to-deduct document stale since its start date just became computable', function (): void {
+    Notification::fake();
+
+    $member = createWibsMember();
+    $staff = createWibsStaff();
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::WibsLoanCreated,
+        'wibs_loan_reference' => 'WIBS-2026-001',
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'submitted_at' => now(),
+    ]);
+
+    // Seed a real source_hash/readiness row via the normal checklist evaluation first, so
+    // that scheduling release below is the only thing that changes -- otherwise an
+    // incidental hash mismatch (not the wibs_release_date registration) could produce the
+    // same GeneratedStale outcome and the test wouldn't prove what it claims to.
+    app(LoanRequestDocumentWorkflowService::class)->refreshChecklist($loanRequest);
+
+    $document = LoanRequestDocument::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('document_key', LoanRequestDocumentKey::AuthorityToDeduct->value)
+        ->firstOrFail();
+
+    $relativePath = sprintf('loan-request-documents/%d/authority-to-deduct/test-preview.pdf', $loanRequest->id);
+    $absolutePath = Storage::disk('local')->path($relativePath);
+    File::ensureDirectoryExists(dirname($absolutePath));
+    File::put($absolutePath, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n0\n%%EOF");
+
+    $document->fill([
+        'readiness_status' => LoanRequestDocumentReadinessStatus::GeneratedCurrent,
+        'generated_disk' => 'local',
+        'generated_path' => $relativePath,
+        'generated_version' => 1,
+        'generated_filename' => 'authority-to-deduct.pdf',
+        'generated_mime_type' => 'application/pdf',
+        'generated_by' => $staff->user_id,
+        'generated_at' => now(),
+    ])->save();
+
+    // The earlier refreshChecklist() call cached the (now stale) documents relation on
+    // this LoanRequest instance -- reload it so scheduleRelease() below sees the
+    // GeneratedCurrent row just saved, not the pre-generation snapshot.
+    $loanRequest->refresh();
+
+    app(WibsTrackingService::class)->scheduleRelease(
+        $loanRequest,
+        $staff,
+        Carbon::parse('2026-07-01'),
+    );
+
+    expect($document->refresh()->readiness_status)
+        ->toBe(LoanRequestDocumentReadinessStatus::GeneratedStale);
 });
 
 test('confirmRelease transitions ReleaseScheduled to Released and sets wibs_released_at', function (): void {
