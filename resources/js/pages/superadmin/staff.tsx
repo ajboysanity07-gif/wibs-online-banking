@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import axios from 'axios';
-import { History, MoreHorizontal, Search, ShieldCheck, ShieldOff, UserPlus, Users } from 'lucide-react';
+import { Copy, History, MoreHorizontal, Search, ShieldCheck, ShieldOff, UserPlus, Users } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
@@ -213,6 +213,19 @@ type StaffAccessMutationState = {
     errors: FieldErrors;
 };
 
+type ResetPasswordMutationState = {
+    open: boolean;
+    user: StaffAccount | null;
+    reason: string;
+    processing: boolean;
+    errors: FieldErrors;
+};
+
+type ResetPasswordResult = {
+    user: StaffAccount;
+    temporaryPassword: string;
+};
+
 const initialCreateForm: CreateStaffForm = {
     username: '',
     email: '',
@@ -237,6 +250,14 @@ const initialAccessMutationState: StaffAccessMutationState = {
     open: false,
     user: null,
     action: 'suspend',
+    reason: '',
+    processing: false,
+    errors: {},
+};
+
+const initialResetPasswordMutationState: ResetPasswordMutationState = {
+    open: false,
+    user: null,
     reason: '',
     processing: false,
     errors: {},
@@ -277,6 +298,7 @@ function MobileStaffCard({
     onOpenHistory,
     onOpenRoleMutation,
     onOpenAccessMutation,
+    onOpenResetPassword,
 }: {
     staff: StaffAccount;
     onOpenHistory: (staff: StaffAccount) => void;
@@ -289,6 +311,7 @@ function MobileStaffCard({
         staff: StaffAccount,
         action: 'suspend' | 'reactivate',
     ) => void;
+    onOpenResetPassword: (staff: StaffAccount) => void;
 }) {
     const assignedEditableRoles = staff.roles.filter((role) => role.editable);
     const assignableRoles = editableRoleOptions.filter(
@@ -441,6 +464,16 @@ function MobileStaffCard({
                                 </DropdownMenuItem>
                             </>
                         ) : null}
+                        {staff.staff_access_status !== 'not_staff' ? (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onSelect={() => onOpenResetPassword(staff)}
+                                >
+                                    Reset password
+                                </DropdownMenuItem>
+                            </>
+                        ) : null}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -471,6 +504,13 @@ export default function SuperadminStaffPage() {
     );
     const [accessMutation, setAccessMutation] =
         useState<StaffAccessMutationState>(initialAccessMutationState);
+
+    const [resetPasswordMutation, setResetPasswordMutation] =
+        useState<ResetPasswordMutationState>(
+            initialResetPasswordMutationState,
+        );
+    const [resetPasswordResult, setResetPasswordResult] =
+        useState<ResetPasswordResult | null>(null);
 
     const [historyUser, setHistoryUser] = useState<StaffAccount | null>(null);
     const [historyItems, setHistoryItems] = useState<StaffHistoryEntry[]>([]);
@@ -855,6 +895,69 @@ export default function SuperadminStaffPage() {
         }
     };
 
+    const openResetPasswordMutation = (staff: StaffAccount) => {
+        setResetPasswordMutation({
+            open: true,
+            user: staff,
+            reason: '',
+            processing: false,
+            errors: {},
+        });
+    };
+
+    const handleResetPassword = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        if (!resetPasswordMutation.user) {
+            return;
+        }
+
+        setResetPasswordMutation((current) => ({
+            ...current,
+            processing: true,
+            errors: {},
+        }));
+
+        try {
+            const response = await adminApi.resetStaffPassword(
+                resetPasswordMutation.user.user_id,
+                { reason: resetPasswordMutation.reason },
+            );
+
+            showSuccessToast(
+                response.message ?? 'Password reset successfully.',
+            );
+            setResetPasswordResult({
+                user: response.staff,
+                temporaryPassword: response.temporary_password,
+            });
+            setResetPasswordMutation(initialResetPasswordMutationState);
+            refreshDirectory();
+        } catch (requestError) {
+            if (
+                axios.isAxiosError(requestError) &&
+                requestError.response?.status === 422
+            ) {
+                setResetPasswordMutation((current) => ({
+                    ...current,
+                    processing: false,
+                    errors: mapValidationErrors(
+                        requestError.response.data?.errors,
+                    ),
+                }));
+            } else {
+                setResetPasswordMutation((current) => ({
+                    ...current,
+                    processing: false,
+                }));
+            }
+
+            showErrorToast(requestError, 'Failed to reset the password.');
+        }
+    };
+
     const columns: ColumnDef<StaffAccount>[] = [
         {
             accessorKey: 'display_name',
@@ -1040,6 +1143,15 @@ export default function SuperadminStaffPage() {
                                             'suspended'
                                                 ? 'Reactivate staff access'
                                                 : 'Suspend staff access'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                openResetPasswordMutation(
+                                                    staff,
+                                                )
+                                            }
+                                        >
+                                            Reset password
                                         </DropdownMenuItem>
                                     </>
                                 ) : null}
@@ -1285,6 +1397,9 @@ export default function SuperadminStaffPage() {
                                                 }
                                                 onOpenAccessMutation={
                                                     openAccessMutation
+                                                }
+                                                onOpenResetPassword={
+                                                    openResetPasswordMutation
                                                 }
                                             />
                                         ))
@@ -1703,6 +1818,138 @@ export default function SuperadminStaffPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={resetPasswordMutation.open}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setResetPasswordMutation(
+                            initialResetPasswordMutationState,
+                        );
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Reset password</DialogTitle>
+                        <DialogDescription>
+                            {resetPasswordMutation.user
+                                ? `Generate a new temporary password for ${resetPasswordMutation.user.display_name}. They must set their own password on next login.`
+                                : 'Confirm the requested password reset.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        className="space-y-4"
+                        onSubmit={handleResetPassword}
+                    >
+                        <div className="rounded-xl border border-border/40 bg-muted/30 p-4 text-sm text-muted-foreground">
+                            A random temporary password will be generated and
+                            shown once. You will not be able to view it
+                            again, so relay it to the staff member right
+                            away.
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="reset-password-reason">
+                                Reason
+                            </Label>
+                            <textarea
+                                id="reset-password-reason"
+                                className={textareaClassName}
+                                value={resetPasswordMutation.reason}
+                                onChange={(event) =>
+                                    setResetPasswordMutation((current) => ({
+                                        ...current,
+                                        reason: event.target.value,
+                                    }))
+                                }
+                                placeholder="Document why this password is being reset."
+                            />
+                            <InputError
+                                message={
+                                    resetPasswordMutation.errors.reason ??
+                                    resetPasswordMutation.errors.staff
+                                }
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() =>
+                                    setResetPasswordMutation(
+                                        initialResetPasswordMutationState,
+                                    )
+                                }
+                                disabled={resetPasswordMutation.processing}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={resetPasswordMutation.processing}
+                            >
+                                Reset password
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={resetPasswordResult !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setResetPasswordResult(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Temporary password generated</DialogTitle>
+                        <DialogDescription>
+                            {resetPasswordResult
+                                ? `Share this temporary password with ${resetPasswordResult.user.display_name} now. It will not be shown again, and they must set a new password on next login.`
+                                : 'This password will not be shown again.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-muted/30 p-3">
+                        <code className="flex-1 break-all font-mono text-sm">
+                            {resetPasswordResult?.temporaryPassword}
+                        </code>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                                if (!resetPasswordResult) {
+                                    return;
+                                }
+
+                                void navigator.clipboard
+                                    .writeText(
+                                        resetPasswordResult.temporaryPassword,
+                                    )
+                                    .then(() =>
+                                        showSuccessToast(
+                                            'Temporary password copied.',
+                                        ),
+                                    );
+                            }}
+                        >
+                            <Copy className="h-4 w-4" />
+                            <span className="sr-only">Copy password</span>
+                        </Button>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            onClick={() => setResetPasswordResult(null)}
+                        >
+                            Done
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

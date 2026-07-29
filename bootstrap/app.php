@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureLoanWorkflowStaffAccess;
 use App\Http\Middleware\EnsureMemberProfileComplete;
 use App\Http\Middleware\EnsureMemberVerified;
+use App\Http\Middleware\EnsureMustChangePassword;
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\EnsureTwoFactorSetup;
 use App\Http\Middleware\EnsureUserApproved;
@@ -45,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(append: [
+            EnsureMustChangePassword::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

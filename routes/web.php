@@ -180,6 +180,8 @@ Route::prefix('spa')->middleware('web')->group(function () {
                 ->name('staff.suspend');
             Route::patch('staff/{user}/reactivate', [SpaSuperadminStaffController::class, 'reactivate'])
                 ->name('staff.reactivate');
+            Route::patch('staff/{user}/reset-password', [SpaSuperadminStaffController::class, 'resetPassword'])
+                ->name('staff.reset-password');
             Route::get('staff/{user}/history', [SpaSuperadminStaffController::class, 'history'])
                 ->name('staff.history');
             Route::get('staff/member-lookup', [SpaSuperadminStaffController::class, 'memberLookup'])

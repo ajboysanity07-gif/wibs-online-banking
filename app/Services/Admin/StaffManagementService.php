@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class StaffManagementService
@@ -389,6 +390,58 @@ class StaffManagementService
             );
 
             return $this->reloadUser($user->user_id);
+        });
+    }
+
+    /**
+     * @return array{user: AppUser, temporary_password: string}
+     */
+    public function resetPassword(
+        AppUser $target,
+        AppUser $actor,
+        string $reason,
+    ): array {
+        $normalizedReason = $this->normalizeReason($reason);
+
+        if ($target->user_id === $actor->user_id) {
+            throw ValidationException::withMessages([
+                'staff' => 'You cannot reset your own password from this page. Use your account settings instead.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($target, $actor, $normalizedReason): array {
+            $user = $this->lockUser($target->user_id);
+            $this->lockSupportingRows($user->user_id);
+            $this->guardSuspendableTarget($user);
+
+            $beforeRoles = $this->visibleRoleNames($user);
+            $beforeStatus = $this->auditStaffStatus($user);
+
+            $temporaryPassword = Str::password(16);
+
+            $user->password = $temporaryPassword;
+            $user->must_change_password = true;
+            $user->save();
+
+            $user = $this->reloadUser($user->user_id);
+
+            $this->recordUserRoleChange(
+                $user,
+                $actor,
+                UserRoleChange::ACTION_PASSWORD_RESET,
+                null,
+                $beforeRoles,
+                $this->visibleRoleNames($user),
+                $beforeStatus,
+                $this->auditStaffStatus($user),
+                $normalizedReason,
+                null,
+            );
+
+            return [
+                'user' => $user,
+                'temporary_password' => $temporaryPassword,
+            ];
         });
     }
 

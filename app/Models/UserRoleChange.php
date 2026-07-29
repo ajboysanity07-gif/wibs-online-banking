@@ -23,6 +23,8 @@ class UserRoleChange extends Model
 
     public const ACTION_MEMBERSHIP_LINKED = 'membership_linked';
 
+    public const ACTION_PASSWORD_RESET = 'password_reset';
+
     /**
      * @var list<string>
      */

@@ -4,6 +4,7 @@ import {
     history as superadminStaffHistoryRoute,
     index as superadminStaffIndexRoute,
     reactivate as superadminStaffReactivateRoute,
+    resetPassword as superadminStaffResetPasswordRoute,
     store as superadminStaffStoreRoute,
     suspend as superadminStaffSuspendRoute,
 } from '@/routes/spa/superadmin/staff';
@@ -287,6 +288,12 @@ type LoanRequestWorkflowResponse = {
 
 type StaffMutationResponse = {
     staff: StaffAccount;
+    message?: string;
+};
+
+type StaffPasswordResetResponse = {
+    staff: StaffAccount;
+    temporary_password: string;
     message?: string;
 };
 
@@ -760,6 +767,16 @@ export const adminApi = {
         );
 
         return unwrap(response).staff;
+    },
+    async resetStaffPassword(
+        userId: number,
+        payload: StaffAccessPayload,
+    ): Promise<StaffPasswordResetResponse> {
+        const response = await client.patch<
+            ApiResponse<StaffPasswordResetResponse>
+        >(superadminStaffResetPasswordRoute(userId).url, payload);
+
+        return unwrap(response);
     },
     async reactivateStaff(
         userId: number,

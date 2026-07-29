@@ -51,6 +51,7 @@ class AppUser extends Authenticatable
         'phoneno',
         'password',
         'acctno',
+        'must_change_password',
     ];
 
     /**
@@ -534,6 +535,7 @@ class AppUser extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
 }

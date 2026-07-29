@@ -396,6 +396,99 @@ test('suspending a loan processor unassigns active applications, preserves termi
     expect($recommended->assigned_officer_id)->toBe($loanOfficer->user_id);
 });
 
+test('superadmin can reset a staff password, forcing a change and writing an audit entry without leaking the secret', function (): void {
+    $superadmin = createManagedSuperadmin();
+    $loanOfficer = createManagedStaffUser([Role::LOAN_PROCESSOR], acctno: '600001');
+    $originalHash = $loanOfficer->password;
+
+    $response = $this
+        ->actingAs($superadmin)
+        ->patchJson(route('spa.superadmin.staff.reset-password', $loanOfficer), [
+            'reason' => 'Staff member is locked out and requested help.',
+        ])
+        ->assertOk();
+
+    $temporaryPassword = $response->json('data.temporary_password');
+
+    expect($temporaryPassword)->toBeString()->not->toBeEmpty();
+
+    $loanOfficer->refresh();
+
+    expect($loanOfficer->password)->not->toBe($originalHash);
+    expect(password_verify($temporaryPassword, $loanOfficer->password))->toBeTrue();
+    expect($loanOfficer->must_change_password)->toBeTrue();
+
+    $audit = UserRoleChange::query()
+        ->where('target_user_id', $loanOfficer->user_id)
+        ->where('action', UserRoleChange::ACTION_PASSWORD_RESET)
+        ->sole();
+
+    expect($audit->reason)->toBe('Staff member is locked out and requested help.');
+    expect($audit->metadata_json)->toBeNull();
+    expect(json_encode($response->json()))->not->toContain($originalHash);
+    expect(json_encode($audit->toArray()))->not->toContain($temporaryPassword);
+});
+
+test('staff password reset requires a reason and blocks resetting your own password', function (): void {
+    $superadmin = createManagedSuperadmin();
+    $loanOfficer = createManagedStaffUser([Role::LOAN_PROCESSOR], acctno: '600002');
+
+    $this
+        ->actingAs($superadmin)
+        ->patchJson(route('spa.superadmin.staff.reset-password', $loanOfficer), [
+            'reason' => '',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['reason']);
+
+    $this
+        ->actingAs($superadmin)
+        ->patchJson(route('spa.superadmin.staff.reset-password', $superadmin), [
+            'reason' => 'Trying to reset my own password.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['staff']);
+});
+
+test('a staff member with a pending forced password change is redirected until they set a new password', function (): void {
+    $superadmin = createManagedSuperadmin();
+    $loanOfficer = createManagedStaffUser([Role::LOAN_PROCESSOR], acctno: '600003');
+
+    $response = $this
+        ->actingAs($superadmin)
+        ->patchJson(route('spa.superadmin.staff.reset-password', $loanOfficer), [
+            'reason' => 'Staff member requested a reset.',
+        ])
+        ->assertOk();
+
+    $temporaryPassword = $response->json('data.temporary_password');
+
+    $loanOfficer->refresh();
+
+    $this
+        ->actingAs($loanOfficer)
+        ->get(route('dashboard'))
+        ->assertRedirect(route('user-password.edit'));
+
+    $this
+        ->actingAs($loanOfficer)
+        ->put(route('user-password.update'), [
+            'current_password' => $temporaryPassword,
+            'password' => 'BrandNewPassword123!',
+            'password_confirmation' => 'BrandNewPassword123!',
+        ])
+        ->assertRedirect();
+
+    $loanOfficer->refresh();
+
+    expect($loanOfficer->must_change_password)->toBeFalse();
+
+    $this
+        ->actingAs($loanOfficer)
+        ->get(route('dashboard'))
+        ->assertOk();
+});
+
 function createManagedSuperadmin(?string $acctno = null): AppUser
 {
     $user = AppUser::factory()->create([

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Spa\Superadmin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Superadmin\PromoteMemberToStaffRequest;
 use App\Http\Requests\Superadmin\ReactivateStaffAccessRequest;
+use App\Http\Requests\Superadmin\ResetStaffPasswordRequest;
 use App\Http\Requests\Superadmin\StaffHistoryRequest;
 use App\Http\Requests\Superadmin\StaffIndexRequest;
 use App\Http\Requests\Superadmin\StoreStaffRequest;
@@ -128,6 +129,27 @@ class StaffController extends Controller
             'ok' => true,
             'data' => [
                 'staff' => (new StaffAccountResource($staff))->resolve(),
+            ],
+        ]);
+    }
+
+    public function resetPassword(
+        ResetStaffPasswordRequest $request,
+        AppUser $user,
+        StaffManagementService $service,
+    ): JsonResponse {
+        $result = $service->resetPassword(
+            $user,
+            $request->user(),
+            (string) $request->validated('reason'),
+        );
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'staff' => (new StaffAccountResource($result['user']))->resolve(),
+                'temporary_password' => $result['temporary_password'],
+                'message' => 'Password reset. This temporary password is not shown again.',
             ],
         ]);
     }
