@@ -89,6 +89,7 @@ class Role extends Model
             self::LOAN_PROCESSOR => [
                 Permission::LOAN_VIEW,
                 Permission::LOAN_REVIEW,
+                Permission::LOAN_CORRECT,
                 Permission::LOAN_CLAIM,
                 Permission::LOAN_RETURN_TO_QUEUE,
                 Permission::LOAN_REQUEST_REVISION,
@@ -99,6 +100,7 @@ class Role extends Model
             self::LOAN_MANAGER => [
                 Permission::LOAN_VIEW,
                 Permission::LOAN_MANAGE_ASSIGNMENT,
+                Permission::LOAN_CORRECT,
                 Permission::LOAN_APPROVE,
                 Permission::LOAN_DECLINE,
                 Permission::LOAN_WIBS_ENCODE,

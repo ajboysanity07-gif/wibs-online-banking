@@ -165,6 +165,25 @@ class LoanRequestPolicy
         ], true);
     }
 
+    public function correctProcessingDetails(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        // Ownership and status eligibility (must be UnderReview, not the
+        // applicant's own request) are enforced by
+        // LoanRequestCorrectionService::ensureCorrectable() as validation
+        // errors, not authorization failures.
+        return $user->hasActiveStaffAccess()
+            && $user->hasPermission(Permission::LOAN_CORRECT);
+    }
+
+    public function createAdminCorrectedCopy(AppUser $user, LoanRequest $loanRequest): bool
+    {
+        // Status eligibility (must be Cancelled) is enforced by
+        // LoanRequestService::createAdminCorrectedCopyFromCancelledRequest()
+        // as a validation error, not an authorization failure.
+        return $user->hasActiveStaffAccess()
+            && $user->hasPermission(Permission::LOAN_CORRECT);
+    }
+
     public function recommendApproval(AppUser $user, LoanRequest $loanRequest): bool
     {
         return $this->canActOnAssignedRequest(

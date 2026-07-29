@@ -189,7 +189,7 @@ test('admin cancellation sends a database notification for a pending loan reques
 });
 
 test('admin corrected request creation sends member notification payload', function () {
-    $admin = createAdminUser();
+    $admin = createAdminUser(roles: [Role::LOAN_MANAGER]);
     $member = User::factory()->create([
         'acctno' => '000824',
         'phoneno' => null,

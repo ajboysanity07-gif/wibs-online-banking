@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Client\LoanRequestStoreRequest;
 use App\LoanReleaseMethod;
+use App\Models\AppUser;
 use Illuminate\Validation\Rule;
 
 class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
@@ -31,7 +32,11 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->adminProfile !== null;
+        $user = $this->user();
+
+        return $user instanceof AppUser
+            && $this->loanRequest !== null
+            && $user->can('correctProcessingDetails', $this->loanRequest);
     }
 
     /**

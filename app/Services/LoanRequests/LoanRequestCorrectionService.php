@@ -6,6 +6,7 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\Role;
 use App\Notifications\LoanRequestCorrectedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +17,7 @@ class LoanRequestCorrectionService
         private LoanRequestDecisionService $decisionService,
         private LoanRequestService $loanRequestService,
         private LoanRequestPayloadSerializer $serializer,
+        private LoanRequestAssignmentService $assignmentService,
     ) {}
 
     /**
@@ -43,6 +45,13 @@ class LoanRequestCorrectionService
                 ->firstOrFail();
 
             $this->ensureCorrectable($lockedLoanRequest, $actor);
+
+            if ($actor->hasRole(Role::LOAN_PROCESSOR)) {
+                $lockedLoanRequest = $this->assignmentService->claimIfUnassigned(
+                    $lockedLoanRequest,
+                    $actor,
+                );
+            }
 
             $lockedLoanRequest->load('people', 'reviewedBy');
             $before = $this->serializer->serializeDetail($lockedLoanRequest);

@@ -17,6 +17,8 @@ class Permission extends Model
 
     public const LOAN_REVIEW = 'loan.review';
 
+    public const LOAN_CORRECT = 'loan.correct';
+
     public const LOAN_CLAIM = 'loan.claim';
 
     public const LOAN_RETURN_TO_QUEUE = 'loan.return_to_queue';
@@ -72,6 +74,7 @@ class Permission extends Model
             ['name' => self::LOAN_VIEW, 'display_name' => 'View loans'],
             ['name' => self::LOAN_CREATE, 'display_name' => 'Create loan requests'],
             ['name' => self::LOAN_REVIEW, 'display_name' => 'Review loan requests'],
+            ['name' => self::LOAN_CORRECT, 'display_name' => 'Correct loan request details'],
             ['name' => self::LOAN_CLAIM, 'display_name' => 'Claim loan requests'],
             ['name' => self::LOAN_RETURN_TO_QUEUE, 'display_name' => 'Return loan requests to queue'],
             ['name' => self::LOAN_MANAGE_ASSIGNMENT, 'display_name' => 'Manage loan request assignments'],

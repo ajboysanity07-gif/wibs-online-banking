@@ -161,6 +161,7 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     ]);
     expect($loanOfficerRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
         Permission::LOAN_CLAIM,
+        Permission::LOAN_CORRECT,
         Permission::LOAN_RECOMMEND_APPROVAL,
         Permission::LOAN_REJECT,
         Permission::LOAN_REQUEST_REVISION,
@@ -171,6 +172,7 @@ test('loan workflow rbac seeder is idempotent and backfills admin, superadmin, a
     ]);
     expect($loanManagerRole->permissions()->pluck('name')->sort()->values()->all())->toBe([
         Permission::LOAN_APPROVE,
+        Permission::LOAN_CORRECT,
         Permission::LOAN_DECLINE,
         Permission::LOAN_MANAGE_ASSIGNMENT,
         Permission::LOAN_VIEW,

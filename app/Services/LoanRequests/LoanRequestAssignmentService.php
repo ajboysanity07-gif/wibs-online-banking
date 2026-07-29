@@ -47,6 +47,24 @@ class LoanRequestAssignmentService
         });
     }
 
+    /**
+     * Assigns the given actor as the officer of an already-locked loan request
+     * if it currently has no assigned officer, reusing the same idempotent
+     * logic as an explicit claim. No-ops if the actor is already assigned,
+     * and does not throw when someone else is already assigned. Callers are
+     * expected to hold their own row lock and transaction; this does not open
+     * a new one so it can be composed into other locked workflows (e.g. an
+     * unassigned request being worked on during a correction).
+     */
+    public function claimIfUnassigned(LoanRequest $lockedLoanRequest, AppUser $actor): LoanRequest
+    {
+        if ($lockedLoanRequest->assigned_officer_id !== null) {
+            return $lockedLoanRequest;
+        }
+
+        return $this->claimLockedLoanRequest($lockedLoanRequest, $actor);
+    }
+
     public function assign(
         LoanRequest $loanRequest,
         AppUser $targetOfficer,

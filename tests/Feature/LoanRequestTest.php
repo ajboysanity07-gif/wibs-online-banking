@@ -3483,6 +3483,7 @@ test('admin can correct under review loan request details and people snapshots',
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000521',
@@ -3593,6 +3594,7 @@ test('admins cannot correct their own loan request', function () {
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $loanRequest = LoanRequest::factory()->forUser($admin)->create([
         'status' => LoanRequestStatus::UnderReview,
@@ -3623,6 +3625,7 @@ test('approved and declined loan requests cannot be corrected', function (LoanRe
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $loanRequest = LoanRequest::factory()->create([
         'status' => $status,
@@ -3656,6 +3659,7 @@ test('forbidden correction fields are rejected and decision fields remain unchan
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
     $reviewer = User::factory()->create([
         'acctno' => '000526',
     ]);

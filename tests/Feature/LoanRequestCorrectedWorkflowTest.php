@@ -8,6 +8,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
+use App\Models\Role;
 use App\Models\UserProfile;
 use App\Notifications\LoanRequestAdminCorrectedCreatedNotification;
 use App\Notifications\LoanRequestCancelledNotification;
@@ -100,6 +101,7 @@ test('admin can create corrected request from cancelled request', function () {
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000864',
@@ -234,6 +236,7 @@ test('admin cannot create corrected request from non-cancelled request', functio
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $source = LoanRequest::factory()->create([
         'status' => $status,
@@ -266,6 +269,7 @@ test('admin cannot create duplicate corrected request from same cancelled reques
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $source = LoanRequest::factory()->create([
         'status' => LoanRequestStatus::Cancelled,
@@ -330,6 +334,7 @@ test('admin corrected-copy creation sends member notification', function () {
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000870',
@@ -377,6 +382,7 @@ test('admin correction sends member notification', function () {
     AdminProfile::factory()->create([
         'user_id' => $admin->user_id,
     ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
 
     $member = User::factory()->create([
         'acctno' => '000521',
@@ -385,6 +391,7 @@ test('admin correction sends member notification', function () {
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::UnderReview,
         'submitted_at' => now(),
+        'assigned_officer_id' => null,
     ]);
 
     $payload = [
@@ -496,6 +503,168 @@ test('admin correction sends member notification', function () {
         $member,
         LoanRequestCorrectedNotification::class,
     );
+
+    expect($loanRequest->refresh()->assigned_officer_id)->toBeNull();
+});
+
+test('loan processor correcting an unassigned request becomes its assigned officer', function () {
+    $processor = User::factory()->create(['acctno' => '000522']);
+    AdminProfile::factory()->create(['user_id' => $processor->user_id]);
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $member = User::factory()->create(['acctno' => '000523']);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-COR',
+        'requested_amount' => 15000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Original purpose',
+        'availment_status' => 'New',
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'assigned_officer_id' => null,
+    ]);
+
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::Applicant)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerOne)->create();
+    LoanRequestPerson::factory()->forLoanRequest($loanRequest)->role(LoanRequestPersonRole::CoMakerTwo)->create();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/corrections", [
+            'change_reason' => 'Fixed the requested amount.',
+            'typecode' => 'LN-COR',
+            'requested_amount' => 20000,
+            'requested_term' => 12,
+            'loan_purpose' => 'Original purpose',
+            'availment_status' => 'New',
+            'applicant' => [
+                'first_name' => 'Corrected',
+                'last_name' => 'Applicant',
+                'middle_name' => 'A',
+                'nickname' => 'CA',
+                'birthdate' => '1990-04-10',
+                'birthplace_city' => 'Manila',
+                'birthplace_province' => 'Metro Manila',
+                'address1' => 'Corrected Street',
+                'address2' => 'Manila',
+                'address3' => 'Metro Manila',
+                'length_of_stay' => '6 years',
+                'housing_status' => 'OWNED',
+                'cell_no' => '09123456789',
+                'civil_status' => 'Married',
+                'educational_attainment' => 'College',
+                'number_of_children' => 2,
+                'spouse_name' => 'Corrected Spouse',
+                'spouse_age' => 35,
+                'spouse_cell_no' => '09123456780',
+                'employment_type' => 'Private',
+                'employer_business_name' => 'Corrected Company',
+                'employer_business_address1' => 'Corrected Center',
+                'employer_business_address2' => 'Manila',
+                'employer_business_address3' => 'Metro Manila',
+                'telephone_no' => '021234567',
+                'current_position' => 'Supervisor',
+                'nature_of_business' => 'Finance',
+                'years_in_work_business' => '5 years',
+                'gross_monthly_income' => 32000,
+                'payday' => '15th & 30th',
+            ],
+            'co_maker_1' => [
+                'first_name' => 'Corrected',
+                'last_name' => 'CoMakerOne',
+                'middle_name' => 'One',
+                'nickname' => null,
+                'birthdate' => '1989-03-12',
+                'birthplace_city' => 'Cebu',
+                'birthplace_province' => 'Cebu',
+                'address1' => 'Corrected Co One Street',
+                'address2' => 'Cebu City',
+                'address3' => 'Cebu',
+                'length_of_stay' => '4 years',
+                'housing_status' => 'RENT',
+                'cell_no' => '09998887777',
+                'civil_status' => 'Married',
+                'educational_attainment' => 'College',
+                'employment_type' => 'Government',
+                'employer_business_name' => 'Corrected Office One',
+                'employer_business_address1' => 'Corrected Plaza',
+                'employer_business_address2' => 'Cebu City',
+                'employer_business_address3' => 'Cebu',
+                'telephone_no' => '021234568',
+                'current_position' => 'Clerk',
+                'nature_of_business' => 'Government',
+                'years_in_work_business' => '6 years',
+                'gross_monthly_income' => 18000,
+                'payday' => '30th',
+            ],
+            'co_maker_2' => [
+                'first_name' => 'Corrected',
+                'last_name' => 'CoMakerTwo',
+                'middle_name' => 'Two',
+                'nickname' => null,
+                'birthdate' => '1987-02-12',
+                'birthplace_city' => 'Davao',
+                'birthplace_province' => 'Davao del Sur',
+                'address1' => 'Corrected Co Two Street',
+                'address2' => 'Davao City',
+                'address3' => 'Davao del Sur',
+                'length_of_stay' => '3 years',
+                'housing_status' => 'OWNED',
+                'cell_no' => '09111112222',
+                'civil_status' => 'Single',
+                'educational_attainment' => 'High School',
+                'employment_type' => 'Self Employed',
+                'employer_business_name' => 'Corrected Store Two',
+                'employer_business_address1' => 'Corrected Store',
+                'employer_business_address2' => 'Davao City',
+                'employer_business_address3' => 'Davao del Sur',
+                'telephone_no' => '021234569',
+                'current_position' => 'Owner',
+                'nature_of_business' => 'Retail',
+                'years_in_work_business' => '8 years',
+                'gross_monthly_income' => 22000,
+                'payday' => '15th',
+            ],
+        ])
+        ->assertOk();
+
+    expect($loanRequest->refresh()->assigned_officer_id)->toBe($processor->user_id);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(
+            route('spa.workflow.loan-requests.recommend-approval', $loanRequest),
+            ['review_remarks' => 'Ready for manager approval.'],
+        )
+        ->assertOk();
+
+    expect($loanRequest->refresh()->status)->toBe(LoanRequestStatus::RecommendedForApproval);
+});
+
+test('staff without loan review permission cannot correct an under review request', function () {
+    $staff = User::factory()->create(['acctno' => '000524']);
+    AdminProfile::factory()->create(['user_id' => $staff->user_id]);
+
+    $member = User::factory()->create(['acctno' => '000525']);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+        'assigned_officer_id' => null,
+    ]);
+
+    $this
+        ->actingAs($staff)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/corrections", [
+            'change_reason' => 'Attempted correction.',
+            'typecode' => 'LN-COR',
+            'requested_amount' => 20000,
+            'requested_term' => 12,
+            'loan_purpose' => 'Original purpose',
+            'availment_status' => 'New',
+        ])
+        ->assertForbidden();
 });
 
 test('admin cancellation sends member notification', function () {

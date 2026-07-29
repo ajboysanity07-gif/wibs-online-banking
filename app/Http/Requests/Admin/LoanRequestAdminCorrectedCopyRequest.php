@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\AppUser;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,7 +13,11 @@ class LoanRequestAdminCorrectedCopyRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->adminProfile !== null;
+        $user = $this->user();
+
+        return $user instanceof AppUser
+            && $this->loanRequest !== null
+            && $user->can('createAdminCorrectedCopy', $this->loanRequest);
     }
 
     /**
