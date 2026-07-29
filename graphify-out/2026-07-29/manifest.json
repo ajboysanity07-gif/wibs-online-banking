@@ -1250,7 +1250,7 @@
     "semantic_hash": "4c016bcd189d6ce0073624cb5b0c96e3"
   },
   "app/Policies/LoanRequestPolicy.php": {
-    "mtime": 1785299078.5790834,
+    "mtime": 1785299277.9648895,
     "ast_hash": "21d70d156ebe71340443b878eb34a19d",
     "semantic_hash": ""
   },
@@ -1380,7 +1380,7 @@
     "semantic_hash": "1c08b06e4f3c60f573671fc8e5c508f0"
   },
   "app/Services/LoanRequests/LoanRequestAssignmentService.php": {
-    "mtime": 1785299093.5761142,
+    "mtime": 1785299277.9660416,
     "ast_hash": "984934dedbc4c7c4c0247fe9dbbf3130",
     "semantic_hash": ""
   },
@@ -1445,8 +1445,8 @@
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestService.php": {
-    "mtime": 1785288192.1493194,
-    "ast_hash": "08371ad3cf098aa8ea31a76582da4230",
+    "mtime": 1785305569.3853385,
+    "ast_hash": "12ed6a4fb0c5e39f6cbf23ad506cb823",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestWorkflowService.php": {
@@ -2390,14 +2390,14 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-queue-page.tsx": {
-    "mtime": 1785298341.6911867,
-    "ast_hash": "8f938f10a0c45193ba62a4196f8bacb0",
+    "mtime": 1785305466.4553611,
+    "ast_hash": "030783ca94d5fd889258ef3abd5d0f0f",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-records-card.tsx": {
-    "mtime": 1781004082.5416446,
-    "ast_hash": "0cd313eee28983b38d53101f24e8c39f",
-    "semantic_hash": "0cd313eee28983b38d53101f24e8c39f"
+    "mtime": 1785305610.0402708,
+    "ast_hash": "55e76528232eaa178e1c7122d80c5c72",
+    "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-section-card.tsx": {
     "mtime": 1774261375.4349525,
@@ -3365,8 +3365,8 @@
     "semantic_hash": "33ef16d483e43c58427be314c11c5164"
   },
   "resources/js/types/loan-requests.ts": {
-    "mtime": 1785288192.5022483,
-    "ast_hash": "e6129a255c661738e2de167521ae958e",
+    "mtime": 1785305575.9998834,
+    "ast_hash": "c32e78b20b82ae3b73a19461b780791f",
     "semantic_hash": ""
   },
   "resources/js/types/navigation.ts": {
@@ -3685,7 +3685,7 @@
     "semantic_hash": "acfa51868075bf7bf93685fc135ce48b"
   },
   "tests/Feature/LoanRequestAssignmentWorkflowTest.php": {
-    "mtime": 1785299129.8759868,
+    "mtime": 1785299277.9660416,
     "ast_hash": "fb0540c37e22aca50b2281a952d8fb78",
     "semantic_hash": ""
   },
@@ -3785,8 +3785,8 @@
     "semantic_hash": "4a168cd258820b29a89a69db46d05053"
   },
   "tests/Feature/LoanRequestTest.php": {
-    "mtime": 1785292734.1466446,
-    "ast_hash": "500f67413b0ead0348e17b05262b8412",
+    "mtime": 1785305689.1400094,
+    "ast_hash": "3783d67ec1882371c19ddbe7307adc40",
     "semantic_hash": ""
   },
   "tests/Feature/LoanWorkflowAcceptanceTest.php": {
@@ -6269,14 +6269,14 @@
     "ast_hash": "1c37f3d754cef8df6ae57e241e43fa67",
     "semantic_hash": ""
   },
-  "resources/js/components/loan-request/assign-officer-cell.tsx": {
-    "mtime": 1785298341.6901832,
-    "ast_hash": "4ef721f0ee5217949089b6a002d5f858",
-    "semantic_hash": ""
-  },
   "tests/Feature/Admin/RequestsQueueAssignmentTest.php": {
     "mtime": 1785298341.6942027,
     "ast_hash": "5c98556b9d44d0740ff4efab788861d9",
+    "semantic_hash": ""
+  },
+  "resources/js/components/loan-request/assign-officer-dialog.tsx": {
+    "mtime": 1785305346.280775,
+    "ast_hash": "2721cc7dd2d74b04749d6bfd161eccef",
     "semantic_hash": ""
   }
 }
