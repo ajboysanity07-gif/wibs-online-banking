@@ -1,7 +1,14 @@
 import { Head, Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
+import {
+    Eye,
+    MoreHorizontal,
+    UserCheck,
+    UserCog,
+    UserPlus,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { AssignOfficerCell } from '@/components/loan-request/assign-officer-cell';
+import { AssignOfficerDialog } from '@/components/loan-request/assign-officer-dialog';
 import {
     LoanRequestPageHero,
     LoanRequestSearchBox,
@@ -19,6 +26,13 @@ import {
     DataTablePagination,
     DataTablePaginationSkeleton,
 } from '@/components/ui/data-table-pagination';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -44,6 +58,7 @@ import {
 } from '@/lib/loan-request-queue';
 import type { BreadcrumbItem } from '@/types';
 import type { RequestPreview } from '@/types/admin';
+import type { LoanRequestAssignmentOfficerOption } from '@/types/loan-requests';
 
 type Props = {
     workspace: RequestQueueWorkspace;
@@ -84,6 +99,98 @@ const formatCountLabel = (count: number, label: string): string => {
     return count === 1 ? `${count} ${label}` : `${count} ${label}s`;
 };
 
+type RequestRowActionsMenuProps = {
+    request: RequestPreview;
+    requestId: number;
+    showRequestHref: (requestId: number) => string;
+    officerOptions: LoanRequestAssignmentOfficerOption[];
+    isProcessing: boolean;
+    onClaim: () => void;
+    onOpenAssign: (officerOptions: LoanRequestAssignmentOfficerOption[]) => void;
+    onOpenReassign: (
+        officerOptions: LoanRequestAssignmentOfficerOption[],
+        currentOfficerName: string,
+    ) => void;
+};
+
+function RequestRowActionsMenu({
+    request,
+    requestId,
+    showRequestHref,
+    officerOptions,
+    isProcessing,
+    onClaim,
+    onOpenAssign,
+    onOpenReassign,
+}: RequestRowActionsMenuProps) {
+    const reassignOptions = officerOptions.filter(
+        (officer) => officer.user_id !== request.assigned_officer?.user_id,
+    );
+    const showClaim = request.can_claim;
+    const showAssign =
+        !request.assigned_officer &&
+        request.can_assign &&
+        officerOptions.length > 0;
+    const showReassign =
+        Boolean(request.assigned_officer) &&
+        request.can_reassign &&
+        reassignOptions.length > 0;
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Request actions</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                    <Link href={showRequestHref(requestId)}>
+                        <Eye />
+                        View request
+                    </Link>
+                </DropdownMenuItem>
+                {showClaim || showAssign || showReassign ? (
+                    <DropdownMenuSeparator />
+                ) : null}
+                {showClaim ? (
+                    <DropdownMenuItem
+                        disabled={isProcessing}
+                        onSelect={onClaim}
+                    >
+                        <UserCheck />
+                        Claim request
+                    </DropdownMenuItem>
+                ) : null}
+                {showAssign ? (
+                    <DropdownMenuItem
+                        disabled={isProcessing}
+                        onSelect={() => onOpenAssign(officerOptions)}
+                    >
+                        <UserPlus />
+                        Assign to...
+                    </DropdownMenuItem>
+                ) : null}
+                {showReassign ? (
+                    <DropdownMenuItem
+                        disabled={isProcessing}
+                        onSelect={() =>
+                            onOpenReassign(
+                                reassignOptions,
+                                request.assigned_officer?.name ?? '',
+                            )
+                        }
+                    >
+                        <UserCog />
+                        Reassign to...
+                    </DropdownMenuItem>
+                ) : null}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
 const requestsTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-24', cellClassName: 'w-28' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
@@ -119,6 +226,12 @@ export function LoanRequestQueuePage({
     const [maxAmount, setMaxAmount] = useState('');
     const [page, setPage] = useState(1);
     const [perPage] = useState(10);
+    const [assignmentDialog, setAssignmentDialog] = useState<{
+        requestId: number;
+        mode: 'assign' | 'reassign';
+        currentOfficerName?: string | null;
+        officerOptions: LoanRequestAssignmentOfficerOption[];
+    } | null>(null);
 
     const searchValue = search.trim();
     const minAmountValue = parseAmount(minAmount);
@@ -141,10 +254,14 @@ export function LoanRequestQueuePage({
         minAmount: minAmountValue,
         maxAmount: maxAmountValue,
     });
-    const { assignLoanRequest, reassignLoanRequest, processingIds } =
-        useLoanRequestWorkflow({
-            onUpdated: () => refetch(),
-        });
+    const {
+        assignLoanRequest,
+        reassignLoanRequest,
+        claimLoanRequest,
+        processingIds,
+    } = useLoanRequestWorkflow({
+        onUpdated: () => refetch(),
+    });
 
     const columns = useMemo<ColumnDef<RequestPreview>[]>(
         () => [
@@ -161,68 +278,8 @@ export function LoanRequestQueuePage({
             {
                 accessorKey: 'assigned_officer',
                 header: 'Assigned Loan Processor',
-                cell: ({ row }) => {
-                    const requestId = row.original.id;
-                    const officerOptions = meta.assignmentOfficers ?? [];
-                    const isProcessing =
-                        requestId !== undefined && requestId !== null
-                            ? (processingIds[requestId] ?? false)
-                            : false;
-
-                    if (
-                        !row.original.assigned_officer &&
-                        row.original.can_assign &&
-                        requestId &&
-                        officerOptions.length > 0
-                    ) {
-                        return (
-                            <AssignOfficerCell
-                                mode="assign"
-                                officerOptions={officerOptions}
-                                isProcessing={isProcessing}
-                                onSubmit={(officerUserId, reason) =>
-                                    assignLoanRequest(requestId, {
-                                        officer_user_id: officerUserId,
-                                        reason,
-                                    })
-                                }
-                            />
-                        );
-                    }
-
-                    if (
-                        row.original.assigned_officer &&
-                        row.original.can_reassign &&
-                        requestId
-                    ) {
-                        const reassignOptions = officerOptions.filter(
-                            (officer) =>
-                                officer.user_id !==
-                                row.original.assigned_officer?.user_id,
-                        );
-
-                        if (reassignOptions.length > 0) {
-                            return (
-                                <AssignOfficerCell
-                                    mode="reassign"
-                                    officerOptions={reassignOptions}
-                                    currentOfficerName={
-                                        row.original.assigned_officer.name
-                                    }
-                                    isProcessing={isProcessing}
-                                    onSubmit={(officerUserId, reason) =>
-                                        reassignLoanRequest(requestId, {
-                                            officer_user_id: officerUserId,
-                                            reason,
-                                        })
-                                    }
-                                />
-                            );
-                        }
-                    }
-
-                    return row.original.assigned_officer?.name ?? 'Unassigned';
-                },
+                cell: ({ row }) =>
+                    row.original.assigned_officer?.name ?? 'Unassigned',
             },
             {
                 accessorKey: 'loan_type',
@@ -275,11 +332,34 @@ export function LoanRequestQueuePage({
 
                     return (
                         <div className="flex justify-end">
-                            <Button asChild size="sm" variant="outline">
-                                <Link href={showRequestHref(requestId)}>
-                                    View request
-                                </Link>
-                            </Button>
+                            <RequestRowActionsMenu
+                                request={row.original}
+                                requestId={requestId}
+                                showRequestHref={showRequestHref}
+                                officerOptions={meta.assignmentOfficers ?? []}
+                                isProcessing={
+                                    processingIds[requestId] ?? false
+                                }
+                                onClaim={() => claimLoanRequest(requestId)}
+                                onOpenAssign={(officerOptions) =>
+                                    setAssignmentDialog({
+                                        requestId,
+                                        mode: 'assign',
+                                        officerOptions,
+                                    })
+                                }
+                                onOpenReassign={(
+                                    officerOptions,
+                                    currentOfficerName,
+                                ) =>
+                                    setAssignmentDialog({
+                                        requestId,
+                                        mode: 'reassign',
+                                        currentOfficerName,
+                                        officerOptions,
+                                    })
+                                }
+                            />
                         </div>
                     );
                 },
@@ -289,8 +369,7 @@ export function LoanRequestQueuePage({
             showRequestHref,
             meta.assignmentOfficers,
             processingIds,
-            assignLoanRequest,
-            reassignLoanRequest,
+            claimLoanRequest,
         ],
     );
 
@@ -884,19 +963,53 @@ export function LoanRequestQueuePage({
                                             </div>
                                             <div className="mt-4 flex justify-end">
                                                 {item.id ? (
-                                                    <Button
-                                                        asChild
-                                                        size="sm"
-                                                        variant="outline"
-                                                    >
-                                                        <Link
-                                                            href={showRequestHref(
-                                                                item.id,
-                                                            )}
-                                                        >
-                                                            View request
-                                                        </Link>
-                                                    </Button>
+                                                    <RequestRowActionsMenu
+                                                        request={item}
+                                                        requestId={item.id}
+                                                        showRequestHref={
+                                                            showRequestHref
+                                                        }
+                                                        officerOptions={
+                                                            meta.assignmentOfficers ??
+                                                            []
+                                                        }
+                                                        isProcessing={
+                                                            processingIds[
+                                                                item.id
+                                                            ] ?? false
+                                                        }
+                                                        onClaim={() =>
+                                                            claimLoanRequest(
+                                                                item.id!,
+                                                            )
+                                                        }
+                                                        onOpenAssign={(
+                                                            officerOptions,
+                                                        ) =>
+                                                            setAssignmentDialog(
+                                                                {
+                                                                    requestId:
+                                                                        item.id!,
+                                                                    mode: 'assign',
+                                                                    officerOptions,
+                                                                },
+                                                            )
+                                                        }
+                                                        onOpenReassign={(
+                                                            officerOptions,
+                                                            currentOfficerName,
+                                                        ) =>
+                                                            setAssignmentDialog(
+                                                                {
+                                                                    requestId:
+                                                                        item.id!,
+                                                                    mode: 'reassign',
+                                                                    currentOfficerName,
+                                                                    officerOptions,
+                                                                },
+                                                            )
+                                                        }
+                                                    />
                                                 ) : null}
                                             </div>
                                         </div>
@@ -922,6 +1035,40 @@ export function LoanRequestQueuePage({
                     />
                 )}
             </PageShell>
+
+            <AssignOfficerDialog
+                open={assignmentDialog !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setAssignmentDialog(null);
+                    }
+                }}
+                mode={assignmentDialog?.mode ?? 'assign'}
+                officerOptions={assignmentDialog?.officerOptions ?? []}
+                currentOfficerName={assignmentDialog?.currentOfficerName}
+                isProcessing={
+                    assignmentDialog
+                        ? (processingIds[assignmentDialog.requestId] ?? false)
+                        : false
+                }
+                onSubmit={(officerUserId, reason) => {
+                    if (!assignmentDialog) {
+                        return Promise.resolve(null);
+                    }
+
+                    const { requestId, mode } = assignmentDialog;
+
+                    return mode === 'assign'
+                        ? assignLoanRequest(requestId, {
+                              officer_user_id: officerUserId,
+                              reason,
+                          })
+                        : reassignLoanRequest(requestId, {
+                              officer_user_id: officerUserId,
+                              reason,
+                          });
+                }}
+            />
         </AppLayout>
     );
 }

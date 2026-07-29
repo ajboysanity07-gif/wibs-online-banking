@@ -4066,6 +4066,12 @@ test('client loan requests page lists member loan requests', function () {
         'user_id' => $user->user_id,
     ]);
 
+    $officer = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $officer->user_id,
+        'fullname' => 'Officer Reviewer',
+    ]);
+
     $draft = LoanRequest::factory()
         ->forUser($user)
         ->create([
@@ -4083,6 +4089,7 @@ test('client loan requests page lists member loan requests', function () {
             'requested_term' => 18,
             'submitted_at' => now()->subDay(),
             'updated_at' => now()->subDay(),
+            'assigned_officer_id' => $officer->user_id,
         ]);
 
     LoanRequest::factory()->create([
@@ -4101,9 +4108,12 @@ test('client loan requests page lists member loan requests', function () {
             ->where('loanRequests.items.0.id', $draft->id)
             ->where('loanRequests.items.0.reference', $draft->reference)
             ->where('loanRequests.items.0.status', LoanRequestStatus::Draft->value)
+            ->where('loanRequests.items.0.assigned_officer', null)
             ->where('loanRequests.items.1.id', $submitted->id)
             ->where('loanRequests.items.1.reference', $submitted->reference)
-            ->where('loanRequests.items.1.status', LoanRequestStatus::UnderReview->value));
+            ->where('loanRequests.items.1.status', LoanRequestStatus::UnderReview->value)
+            ->where('loanRequests.items.1.assigned_officer.user_id', $officer->user_id)
+            ->where('loanRequests.items.1.assigned_officer.name', 'Officer Reviewer'));
 });
 
 test('draft loan request details redirect to the request form', function () {

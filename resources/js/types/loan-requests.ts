@@ -442,6 +442,11 @@ export type LoanRequestListItem = {
     requested_term: number | string | null;
     submitted_at: string | null;
     updated_at: string | null;
+    assigned_officer: {
+        user_id: number;
+        name: string;
+        display_code: string | null;
+    } | null;
 };
 
 export type LoanRequestListResponse = {

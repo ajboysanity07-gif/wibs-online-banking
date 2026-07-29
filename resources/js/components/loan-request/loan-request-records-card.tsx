@@ -34,6 +34,7 @@ const requestTableSkeletonColumns: TableSkeletonColumn[] = [
     { headerClassName: 'w-20', cellClassName: 'w-20' },
     { headerClassName: 'w-20', cellClassName: 'w-24' },
     { headerClassName: 'w-28', cellClassName: 'w-32' },
+    { headerClassName: 'w-28', cellClassName: 'w-32' },
     { headerClassName: 'w-16', cellClassName: 'w-28', align: 'right' },
 ];
 
@@ -89,6 +90,9 @@ const resolveAmount = (request: LoanRequestListItem): string => {
     return formatCurrency(amountValue);
 };
 
+const resolveAssignedOfficer = (request: LoanRequestListItem): string =>
+    request.assigned_officer?.name ?? 'Unassigned';
+
 const resolveTimestamp = (request: LoanRequestListItem): string => {
     if (request.status === 'draft') {
         return formatDateTime(request.updated_at);
@@ -142,6 +146,10 @@ const LoanRequestMobileCard = ({
                     ),
                 },
                 {
+                    label: 'Assigned Loan Processor',
+                    value: resolveAssignedOfficer(request),
+                },
+                {
                     label: timestampLabel,
                     value: resolveTimestamp(request),
                 },
@@ -193,6 +201,11 @@ export function LoanRequestRecordsCard({
                 cell: ({ row }) => (
                     <LoanRequestStatusBadge status={row.original.status} />
                 ),
+            },
+            {
+                id: 'assigned_officer',
+                header: 'Assigned Loan Processor',
+                cell: ({ row }) => resolveAssignedOfficer(row.original),
             },
             {
                 id: 'updated',

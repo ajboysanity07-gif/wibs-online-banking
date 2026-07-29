@@ -978,7 +978,8 @@ class LoanRequestService
      *     requested_amount: string|float|int|null,
      *     requested_term: int|string|null,
      *     submitted_at: string|null,
-     *     updated_at: string|null
+     *     updated_at: string|null,
+     *     assigned_officer: array{user_id: int, name: string, display_code: string|null}|null
      * }>
      */
     public function getMemberRequestSummaries(AppUser $user, int $limit = 10): array
@@ -991,6 +992,7 @@ class LoanRequestService
 
         return LoanRequest::query()
             ->where('user_id', $user->user_id)
+            ->with('assignedOfficer.adminProfile')
             ->orderByDesc('updated_at')
             ->orderByDesc('created_at')
             ->limit($limit)
@@ -1003,6 +1005,7 @@ class LoanRequestService
                 'status',
                 'submitted_at',
                 'updated_at',
+                'assigned_officer_id',
             ])
             ->map(fn (LoanRequest $request): array => $this->serializeRequestSummary($request))
             ->all();
@@ -1065,7 +1068,8 @@ class LoanRequestService
      *     requested_amount: string|float|int|null,
      *     requested_term: int|string|null,
      *     submitted_at: string|null,
-     *     updated_at: string|null
+     *     updated_at: string|null,
+     *     assigned_officer: array{user_id: int, name: string, display_code: string|null}|null
      * }
      */
     private function serializeRequestSummary(LoanRequest $loanRequest): array
@@ -1083,6 +1087,14 @@ class LoanRequestService
             'requested_term' => $loanRequest->requested_term,
             'submitted_at' => $loanRequest->submitted_at?->toDateTimeString(),
             'updated_at' => $loanRequest->updated_at?->toDateTimeString(),
+            'assigned_officer' => $loanRequest->assignedOfficer
+                ? [
+                    'user_id' => $loanRequest->assignedOfficer->user_id,
+                    'name' => $loanRequest->assignedOfficer->adminProfile?->fullname
+                        ?? $loanRequest->assignedOfficer->name,
+                    'display_code' => $loanRequest->assignedOfficer->display_code,
+                ]
+                : null,
         ];
     }
 
