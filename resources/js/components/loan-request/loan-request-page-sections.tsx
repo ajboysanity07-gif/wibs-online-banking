@@ -119,6 +119,7 @@ export function LoanRequestStatusFilters<TValue extends string>({
                     type="button"
                     size="sm"
                     variant={activeValue === option.value ? 'default' : 'outline'}
+                    className="rounded-full px-3.5"
                     onClick={() => onChange(option.value)}
                 >
                     {option.label}
@@ -138,8 +139,8 @@ export function LoanRequestSearchBox({
 }: LoanRequestSearchBoxProps) {
     return (
         <div className="space-y-2">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="w-full sm:max-w-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="w-full">
                     <label className="text-xs font-medium text-muted-foreground">
                         {label}
                     </label>
@@ -148,13 +149,17 @@ export function LoanRequestSearchBox({
                         <Input
                             value={value}
                             onChange={(event) => onChange(event.target.value)}
-                            className="pl-9"
+                            className="h-10 pl-9"
                             placeholder={placeholder}
                             aria-label={label}
                         />
                     </div>
                 </div>
-                {actions}
+                {actions ? (
+                    <div className="flex shrink-0 items-center gap-2">
+                        {actions}
+                    </div>
+                ) : null}
             </div>
             {resultsText ? (
                 <p className="text-xs text-muted-foreground">{resultsText}</p>
