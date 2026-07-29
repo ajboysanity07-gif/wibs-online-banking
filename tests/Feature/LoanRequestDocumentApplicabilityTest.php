@@ -3,10 +3,13 @@
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestPersonRole;
+use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
+use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
+use App\Models\Role;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
@@ -572,4 +575,155 @@ test('witness_one_name stays required for loan_information, plan_of_payment, and
 
         expect($entry['blockers'])->toContain('Witness one name is required.');
     }
+});
+
+/**
+ * Owner decision: requests submitted before 2026-07-28 predate the
+ * beneficiary/health data model, have no staff/admin UI to backfill it, and
+ * so can never satisfy GREPALIFE etc. -- only the Application Form remains
+ * generatable for them, and they must not be blocked from recommend-approval
+ * by document-readiness gates they can never clear.
+ */
+test('every document except application_form is not applicable for a loan request submitted before the legacy cutoff', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'submitted_at' => '2026-07-20 00:00:00',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::ApplicationForm, $loanRequest, []))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::LoanInformation, $loanRequest, []))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::PlanOfPayment, $loanRequest, []))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::PromissoryNote, $loanRequest, []))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::DisclosureStatement, $loanRequest, []))->toBeFalse();
+});
+
+test('a request submitted exactly on the legacy cutoff date is not treated as legacy', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'submitted_at' => '2026-07-28 00:00:00',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::LoanSecurityAgreement, $loanRequest, []))->toBeTrue();
+});
+
+test('legacy cutoff falls back to created_at when submitted_at is null', function (): void {
+    $loanRequest = LoanRequest::factory()->make([
+        'submitted_at' => null,
+        'created_at' => '2026-07-01 00:00:00',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::Grepalife, $loanRequest, []))->toBeFalse();
+});
+
+test('legacy pre-cutoff checklist shows grepalife and loan security agreement as not applicable', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'submitted_at' => '2026-06-01 00:00:00',
+    ]);
+
+    $grepalife = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::Grepalife);
+    $loanSecurity = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::LoanSecurityAgreement);
+    $applicationForm = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::ApplicationForm);
+
+    expect($grepalife['is_applicable'])->toBeFalse()
+        ->and($grepalife['status'])->toBe(LoanRequestDocumentReadinessStatus::NotApplicable->value)
+        ->and($loanSecurity['is_applicable'])->toBeFalse()
+        ->and($loanSecurity['status'])->toBe(LoanRequestDocumentReadinessStatus::NotApplicable->value)
+        ->and($applicationForm['is_applicable'])->toBeTrue();
+});
+
+test('a legacy pre-cutoff request can be recommended for approval without any beneficiary or health data', function (): void {
+    Role::ensureWorkflowDefaults();
+
+    $processor = AppUser::factory()->create();
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => '2026-06-01 00:00:00',
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    // No GREPALIFE beneficiary/health data, no charges & fees data -- this
+    // legacy request can never collect it, so it must not block the workflow.
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded verified processing terms for a legacy record.',
+            'information_source' => 'Verified staff review',
+            'loan_request' => [],
+            'recommended_amount' => 24000,
+            'recommended_term' => 10,
+            'recommended_interest_rate' => 1.5,
+            'recommended_payment_frequency' => 'Monthly',
+            'recommendation_remarks' => 'Legacy record, application form only.',
+        ])
+        ->assertOk();
+
+    // Application Form is the only applicable document for a legacy record --
+    // recommend-approval still requires it to actually be generated, not just
+    // data-ready, so the processor generates it via the normal checklist action.
+    $this
+        ->actingAs($processor)
+        ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest), [])
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Forwarding to loan manager.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
+});
+
+test('a non-legacy request submitted on or after the cutoff is still blocked from recommend-approval without GREPALIFE data', function (): void {
+    Role::ensureWorkflowDefaults();
+
+    $processor = AppUser::factory()->create();
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => '2026-07-28 00:00:00',
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded verified processing terms.',
+            'information_source' => 'Verified staff review',
+            'loan_request' => [],
+            'recommended_amount' => 24000,
+            'recommended_term' => 10,
+            'recommended_interest_rate' => 1.5,
+            'recommended_payment_frequency' => 'Monthly',
+            'recommendation_remarks' => 'Recommend approval after full review.',
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Forwarding to loan manager.',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['documents']);
 });

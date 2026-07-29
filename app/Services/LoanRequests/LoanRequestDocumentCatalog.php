@@ -600,11 +600,25 @@ class LoanRequestDocumentCatalog
         return (bool) (self::DEFINITIONS[$documentKey->value]['requires_financials'] ?? false);
     }
 
+    /**
+     * Owner decision: loan requests submitted before this date predate the
+     * beneficiary/health data model (member_application_profiles beneficiary
+     * columns landed 2026-07-23) and have no staff/admin UI to backfill it, so
+     * they can never satisfy GREPALIFE and the other document-readiness gates.
+     * Only the Application Form remains generatable for these legacy records.
+     */
+    private const LEGACY_DOCUMENT_EXEMPTION_CUTOFF = '2026-07-28';
+
     public function isApplicable(
         LoanRequestDocumentKey $documentKey,
         LoanRequest $loanRequest,
         array $flatValues,
     ): bool {
+        if ($documentKey !== LoanRequestDocumentKey::ApplicationForm
+            && $this->isBeforeLegacyDocumentCutoff($loanRequest)) {
+            return false;
+        }
+
         $rule = self::DEFINITIONS[$documentKey->value]['applicability'] ?? 'always';
 
         return match ($rule) {
@@ -613,6 +627,17 @@ class LoanRequestDocumentCatalog
             'pensioner' => $this->pensionerApplicable($loanRequest),
             default => true,
         };
+    }
+
+    private function isBeforeLegacyDocumentCutoff(LoanRequest $loanRequest): bool
+    {
+        $referenceDate = $loanRequest->submitted_at ?? $loanRequest->created_at;
+
+        if ($referenceDate === null) {
+            return false;
+        }
+
+        return $referenceDate->lt(self::LEGACY_DOCUMENT_EXEMPTION_CUTOFF);
     }
 
     /**
