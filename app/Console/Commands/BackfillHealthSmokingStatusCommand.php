@@ -78,16 +78,31 @@ class BackfillHealthSmokingStatusCommand extends Command
                         default => 'none',
                     };
 
+                    $sourceFieldKey = match (true) {
+                        $glapiSmoker === true => 'gl_health_q11_smoker',
+                        $legacySmoker === true => 'health_smoker',
+                        default => null,
+                    };
+
+                    $confirmedByMember = $sourceFieldKey !== null
+                        && $this->wasConfirmedByMember($loanRequest, $sourceFieldKey);
+
                     $this->line(sprintf(
-                        'loan_request=%d gl_health_q11_smoker=%s health_smoker=%s -> health_smoking_status=%s',
+                        'loan_request=%d gl_health_q11_smoker=%s health_smoker=%s -> health_smoking_status=%s (confirmed=%s)',
                         $loanRequest->id,
                         $this->formatBool($glapiSmoker),
                         $this->formatBool($legacySmoker),
                         $status,
+                        $confirmedByMember ? 'true' : 'false',
                     ));
 
                     if ($fix) {
-                        $this->dataService->backfillField($loanRequest, 'health_smoking_status', $status);
+                        $this->dataService->backfillField(
+                            $loanRequest,
+                            'health_smoking_status',
+                            $status,
+                            confirmedByMember: $confirmedByMember,
+                        );
                         $backfilled++;
                     }
                 }
@@ -132,6 +147,14 @@ class BackfillHealthSmokingStatusCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function wasConfirmedByMember(LoanRequest $loanRequest, string $fieldKey): bool
+    {
+        return $loanRequest->dataEntries
+            ->contains(
+                static fn ($entry): bool => $entry->field_key === $fieldKey && $entry->confirmed_by_member,
+            );
     }
 
     private function formatBool(mixed $value): string

@@ -8,6 +8,7 @@ function backfillHealthCreateDataEntry(
     string $sectionKey,
     string $fieldKey,
     mixed $value,
+    bool $confirmedByMember = false,
 ): LoanRequestDataEntry {
     return LoanRequestDataEntry::query()->create([
         'loan_request_id' => $loanRequest->id,
@@ -15,8 +16,8 @@ function backfillHealthCreateDataEntry(
         'field_key' => $fieldKey,
         'owner_type' => 'member',
         'is_sensitive' => false,
-        'confirmed_by_member' => false,
-        'confirmed_by_member_at' => null,
+        'confirmed_by_member' => $confirmedByMember,
+        'confirmed_by_member_at' => $confirmedByMember ? now() : null,
         'value_json' => ['value' => $value],
     ]);
 }
@@ -128,6 +129,49 @@ test('reports item 2e rows needing manual review without guessing an answer', fu
             ])
             ->exists(),
     )->toBeFalse();
+});
+
+test('fix mode carries forward member confirmation from the source field so the document gate actually clears', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+    backfillHealthCreateDataEntry(
+        $loanRequest,
+        'health_glapi',
+        'gl_health_q11_smoker',
+        true,
+        confirmedByMember: true,
+    );
+
+    $this->artisan('loan-requests:backfill-health-fields --fix')
+        ->assertExitCode(0);
+
+    $entry = LoanRequestDataEntry::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'health_smoking_status')
+        ->sole();
+
+    expect($entry->value_json['value'])->toBe('heavy')
+        ->and($entry->confirmed_by_member)->toBeTrue();
+});
+
+test('fix mode leaves the backfilled field unconfirmed when the source field was never confirmed by the member', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+    backfillHealthCreateDataEntry(
+        $loanRequest,
+        'health_glapi',
+        'gl_health_q11_smoker',
+        true,
+        confirmedByMember: false,
+    );
+
+    $this->artisan('loan-requests:backfill-health-fields --fix')
+        ->assertExitCode(0);
+
+    $entry = LoanRequestDataEntry::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'health_smoking_status')
+        ->sole();
+
+    expect($entry->confirmed_by_member)->toBeFalse();
 });
 
 test('limit option caps the number of loan requests scanned', function (): void {

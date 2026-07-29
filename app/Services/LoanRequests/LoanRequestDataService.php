@@ -1752,9 +1752,13 @@ class LoanRequestDataService
      * (e.g. backfilling a redesigned field from a retired one) -- not a
      * substitute for applyStaffUpdates() when a human is correcting a value.
      */
-    public function backfillField(LoanRequest $loanRequest, string $fieldKey, mixed $value): LoanRequestDataEntry
-    {
-        return $this->persistField($loanRequest, $fieldKey, $value, confirmedByMember: false);
+    public function backfillField(
+        LoanRequest $loanRequest,
+        string $fieldKey,
+        mixed $value,
+        bool $confirmedByMember = false,
+    ): LoanRequestDataEntry {
+        return $this->persistField($loanRequest, $fieldKey, $value, confirmedByMember: $confirmedByMember);
     }
 
     /**

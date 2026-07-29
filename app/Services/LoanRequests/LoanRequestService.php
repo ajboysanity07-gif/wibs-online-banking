@@ -656,7 +656,7 @@ class LoanRequestService
             $corrected->status = LoanRequestStatus::UnderReview;
             $corrected->workflow_version = $sourceRequest->workflow_version
                 ?? LoanRequestWorkflowVersion::LegacyV1;
-            $corrected->submitted_at = now();
+            $corrected->submitted_at = $sourceRequest->submitted_at ?? $sourceRequest->created_at;
             $corrected->reviewed_by = null;
             $corrected->reviewed_at = null;
             $corrected->approval_ip_address = null;
@@ -689,7 +689,15 @@ class LoanRequestService
                 $clone->save();
             }
 
-            $corrected->loadMissing('people', 'correctedFrom');
+            $sourceRequest->loadMissing('dataEntries');
+
+            foreach ($sourceRequest->dataEntries as $entry) {
+                $clone = $entry->replicate();
+                $clone->loan_request_id = $corrected->id;
+                $clone->save();
+            }
+
+            $corrected->loadMissing('people', 'dataEntries', 'correctedFrom');
 
             $after = $this->serializer->serializeDetail($corrected);
 

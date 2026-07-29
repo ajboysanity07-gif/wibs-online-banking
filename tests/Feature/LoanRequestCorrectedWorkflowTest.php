@@ -2,10 +2,12 @@
 
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\Role;
@@ -227,6 +229,64 @@ test('admin can create corrected request from cancelled request', function () {
         'copied_people_snapshots',
         'admin_correction_reason',
     );
+});
+
+test('admin corrected copy preserves the original submission date and clones health/beneficiary data entries', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000872',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create([
+        'acctno' => '000873',
+    ]);
+
+    $originalSubmittedAt = now()->subMonths(3)->startOfSecond();
+
+    $source = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Cancelled,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'submitted_at' => $originalSubmittedAt,
+        'cancelled_at' => now(),
+        'cancellation_reason' => 'Wrong details.',
+    ]);
+
+    LoanRequestPerson::factory()->forLoanRequest($source)->role(LoanRequestPersonRole::Applicant)->create();
+    LoanRequestPerson::factory()->forLoanRequest($source)->role(LoanRequestPersonRole::CoMakerOne)->create();
+    LoanRequestPerson::factory()->forLoanRequest($source)->role(LoanRequestPersonRole::CoMakerTwo)->create();
+
+    LoanRequestDataEntry::factory()->create([
+        'loan_request_id' => $source->id,
+        'section_key' => 'health',
+        'field_key' => 'health_smoking_status',
+        'owner_type' => 'member',
+        'is_sensitive' => true,
+        'confirmed_by_member' => true,
+        'confirmed_by_member_at' => now()->subMonths(3),
+        'value_json' => ['value' => 'none'],
+    ]);
+
+    $this
+        ->actingAs($admin)
+        ->postJson("/spa/admin/requests/{$source->id}/admin-corrected-copy", [
+            'correction_reason' => 'Fix incorrect applicant details.',
+        ])
+        ->assertOk();
+
+    $corrected = LoanRequest::query()->where('corrected_from_id', $source->id)->sole();
+
+    expect($corrected->submitted_at->equalTo($originalSubmittedAt))->toBeTrue();
+
+    $clonedEntry = LoanRequestDataEntry::query()
+        ->where('loan_request_id', $corrected->id)
+        ->where('field_key', 'health_smoking_status')
+        ->sole();
+
+    expect($clonedEntry->value_json['value'])->toBe('none')
+        ->and($clonedEntry->confirmed_by_member)->toBeTrue();
 });
 
 test('admin cannot create corrected request from non-cancelled request', function (LoanRequestStatus $status) {
