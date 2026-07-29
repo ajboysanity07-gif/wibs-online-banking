@@ -430,8 +430,8 @@
     "semantic_hash": "83135efe14fefda732b0b29efe5c7e03"
   },
   "app/Http/Controllers/Spa/Admin/RequestsController.php": {
-    "mtime": 1785298341.6886747,
-    "ast_hash": "be72028ff5e4657f5e3e5c10ec8a7e39",
+    "mtime": 1785308971.389085,
+    "ast_hash": "5482d78e94c98048782b74ebdd91b743",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Spa/Admin/WatchlistController.php": {
@@ -485,9 +485,9 @@
     "semantic_hash": "31f5e30cc6e2229180041cbc87416600"
   },
   "app/Http/Controllers/Spa/Staff/RequestsController.php": {
-    "mtime": 1785203616.3843236,
-    "ast_hash": "4f1c0f819c455651d4f756244900a9a8",
-    "semantic_hash": "4f1c0f819c455651d4f756244900a9a8"
+    "mtime": 1785308971.389085,
+    "ast_hash": "ab24397771a99acaf78c7ad97d382f15",
+    "semantic_hash": ""
   },
   "app/Http/Controllers/Spa/Superadmin/AuditController.php": {
     "mtime": 1785203616.3853202,
@@ -655,9 +655,9 @@
     "semantic_hash": "7017972517b8b49fdf1c7b69905b43d8"
   },
   "app/Http/Requests/Admin/RequestsIndexRequest.php": {
-    "mtime": 1780884154.6272323,
-    "ast_hash": "c0d2ec3c62020ea7ba1cf2a87f4d5d1d",
-    "semantic_hash": "c0d2ec3c62020ea7ba1cf2a87f4d5d1d"
+    "mtime": 1785308971.3905494,
+    "ast_hash": "cb019be38716b3394b57a3b8536ee208",
+    "semantic_hash": ""
   },
   "app/Http/Requests/Auth/PasswordRecoveryLookupRequest.php": {
     "mtime": 1776663560.623324,
@@ -765,9 +765,9 @@
     "semantic_hash": "9a9dd8a01ecd92d5f081e5e48b79e2ab"
   },
   "app/Http/Requests/Staff/LoanWorkflowRequestsIndexRequest.php": {
-    "mtime": 1785203616.3924072,
-    "ast_hash": "267497eed69d461c61a984e95fa86846",
-    "semantic_hash": "267497eed69d461c61a984e95fa86846"
+    "mtime": 1785308971.39173,
+    "ast_hash": "75ead222c7863ce17e8ab11275bd9262",
+    "semantic_hash": ""
   },
   "app/Http/Requests/Superadmin/AuditLogIndexRequest.php": {
     "mtime": 1785203616.393409,
@@ -1320,8 +1320,8 @@
     "semantic_hash": "b5bd159cba26a82345995c8b014ceee7"
   },
   "app/Services/Admin/RequestsService.php": {
-    "mtime": 1785298341.6896768,
-    "ast_hash": "109ca90cf2bf1721d2656f69a086584f",
+    "mtime": 1785308971.39173,
+    "ast_hash": "e1c743c3614ef2cadf6f73f2dd36e830",
     "semantic_hash": ""
   },
   "app/Services/Admin/StaffManagementService.php": {
@@ -2250,8 +2250,8 @@
     "semantic_hash": "618efb75e039241cdff992465ccd6fa5"
   },
   "package.json": {
-    "mtime": 1785307327.6335883,
-    "ast_hash": "86d8a00f0275e8711af35e0f71a174bc",
+    "mtime": 1785308971.394081,
+    "ast_hash": "9b5aa33e77a4ada36a4e1c57d79ba0c9",
     "semantic_hash": ""
   },
   "pint.json": {
@@ -2380,8 +2380,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-page-sections.tsx": {
-    "mtime": 1785307367.3669379,
-    "ast_hash": "c39d0e756697991993526ddcff7a332e",
+    "mtime": 1785308971.3953693,
+    "ast_hash": "4ebb5762ca3640c32051fd02fa7b705c",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-prerequisite-modal.tsx": {
@@ -2390,8 +2390,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-queue-page.tsx": {
-    "mtime": 1785307531.0924494,
-    "ast_hash": "a69d3ad8f53b1082ff57dff2501c8052",
+    "mtime": 1785309040.0475361,
+    "ast_hash": "70191805cb65a10e350fbda8afdb1e22",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-records-card.tsx": {
@@ -2895,8 +2895,8 @@
     "semantic_hash": "95e093cb6584499fb9742865cd9ecf87"
   },
   "resources/js/hooks/loan-request/use-request-queue.ts": {
-    "mtime": 1785298341.6921895,
-    "ast_hash": "2216735e7ab436df744d2758d694cb2c",
+    "mtime": 1785308971.39811,
+    "ast_hash": "fbf79258bd55c34105d19cd2ba7c4975",
     "semantic_hash": ""
   },
   "resources/js/hooks/staff/use-requests.ts": {
@@ -3025,9 +3025,9 @@
     "semantic_hash": "b25863ea0edd8b4cb498042da59029f1"
   },
   "resources/js/lib/api/request-queue.ts": {
-    "mtime": 1785203616.8281095,
-    "ast_hash": "e08570f29e29870f73dad314bd8cdcca",
-    "semantic_hash": "e08570f29e29870f73dad314bd8cdcca"
+    "mtime": 1785308971.39811,
+    "ast_hash": "cf534f2866e747531bed372689faced2",
+    "semantic_hash": ""
   },
   "resources/js/lib/formatters.ts": {
     "mtime": 1785203616.8281095,
@@ -3340,9 +3340,9 @@
     "semantic_hash": "5b4ff5b1a4677324a2008d6a7af5556d"
   },
   "resources/js/types/admin.ts": {
-    "mtime": 1785203616.839645,
-    "ast_hash": "8ac9e43adc300ebdfc786caf252d5885",
-    "semantic_hash": "8ac9e43adc300ebdfc786caf252d5885"
+    "mtime": 1785308971.3992894,
+    "ast_hash": "e4802446ef528be1a8a9708e40eab153",
+    "semantic_hash": ""
   },
   "resources/js/types/auth.ts": {
     "mtime": 1785203616.8406415,
@@ -6282,6 +6282,16 @@
   "resources/js/components/ui/popover.tsx": {
     "mtime": 1785307339.9479728,
     "ast_hash": "f1800eed4ad292fdb856dc2fa7d434b6",
+    "semantic_hash": ""
+  },
+  "resources/js/components/ui/command.tsx": {
+    "mtime": 1785308473.6719692,
+    "ast_hash": "5cb9a15c16d8ffce5eaffc68385f62b0",
+    "semantic_hash": ""
+  },
+  "tests/Feature/Admin/RequestsQueueSortTest.php": {
+    "mtime": 1785309146.6155832,
+    "ast_hash": "518087fc7ba0984dc1d0603aec426ce8",
     "semantic_hash": ""
   }
 }
