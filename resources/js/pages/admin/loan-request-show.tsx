@@ -55,6 +55,7 @@ import {
 } from '@/routes/admin/requests/documents';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    LoanRequestAssignmentOfficerOption,
     LoanRequestAuditEntry,
     LoanRequestCorrectionReport,
     LoanRequestCorrectionPayload,
@@ -108,6 +109,7 @@ type Props = {
     correctionReports: LoanRequestCorrectionReport[];
     openCorrectionReportCancellationReason: string | null;
     openCorrectionOnLoad: boolean;
+    eligibleOfficers: LoanRequestAssignmentOfficerOption[];
 };
 
 export default function LoanRequestShow({
@@ -122,9 +124,12 @@ export default function LoanRequestShow({
     correctionReports,
     openCorrectionReportCancellationReason,
     openCorrectionOnLoad,
+    eligibleOfficers,
 }: Props) {
     const [currentRequest, setCurrentRequest] =
         useState<LoanRequestDetail>(loanRequest);
+    const [currentEligibleOfficers, setCurrentEligibleOfficers] =
+        useState<LoanRequestAssignmentOfficerOption[]>(eligibleOfficers);
     const [currentApplicant, setCurrentApplicant] =
         useState<LoanRequestPersonData | null>(applicant);
     const [currentCoMakerOne, setCurrentCoMakerOne] =
@@ -161,7 +166,10 @@ export default function LoanRequestShow({
             setCurrentAuditTrail(result.auditTrail);
         },
     });
-    const { 
+    const {
+        claimLoanRequest,
+        assignLoanRequest,
+        reassignLoanRequest,
         startReview,
         requestRevision,
         rejectLoanRequest,
@@ -177,6 +185,7 @@ export default function LoanRequestShow({
             setCurrentCoMakerTwo(result.coMakerTwo);
             setCurrentCorrectionReports(result.correctionReports);
             setCurrentAuditTrail(result.auditTrail);
+            setCurrentEligibleOfficers(result.eligibleOfficers);
             setCancellationReasonPrefill(
                 resolveCancellationReasonPrefill(result.correctionReports),
             );
@@ -308,6 +317,14 @@ export default function LoanRequestShow({
         !decision.isOwnRequest &&
         currentRequest.status === 'pending_review' &&
         hasWorkflowPermission('loan.review');
+    const canClaim = !decision.isOwnRequest && currentRequest.can_claim;
+    const canAssign =
+        currentRequest.can_assign && currentEligibleOfficers.length > 0;
+    const canReassign =
+        currentRequest.can_reassign &&
+        currentEligibleOfficers.some(
+            (officer) => officer.user_id !== currentRequest.assigned_officer_id,
+        );
     const canRequestRevision =
         !decision.isOwnRequest &&
         (currentRequest.status === 'pending_review' ||
@@ -681,6 +698,38 @@ export default function LoanRequestShow({
                         }),
                 }}
                 workflow={{
+                    claim: canClaim
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: () =>
+                                  claimLoanRequest(currentRequest.id),
+                          }
+                        : undefined,
+                    assign: canAssign
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              officerOptions: currentEligibleOfficers,
+                              onSubmit: (payload) =>
+                                  assignLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
+                    reassign: canReassign
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              officerOptions: currentEligibleOfficers,
+                              onSubmit: (payload) =>
+                                  reassignLoanRequest(
+                                      currentRequest.id,
+                                      payload,
+                                  ),
+                          }
+                        : undefined,
                     startReview: canStartReview
                         ? {
                               show: true,

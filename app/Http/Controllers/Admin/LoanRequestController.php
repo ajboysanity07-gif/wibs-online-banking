@@ -88,6 +88,10 @@ class LoanRequestController extends Controller
                     $actor instanceof AppUser ? $actor : null,
                 ),
             ],
+            'eligibleOfficers' => $actor instanceof AppUser
+                && $assignmentService->canManageAssignments($actor)
+                ? $assignmentService->eligibleOfficerOptions($loanRequestRecord)
+                : [],
             'auditTrail' => $serializer->serializeAuditTrail($loanRequestRecord),
             'decision' => $decision,
             'workflowPermissions' => $this->resolveWorkflowPermissions($actor),

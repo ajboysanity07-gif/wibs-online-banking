@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
+import { AssignOfficerCell } from '@/components/loan-request/assign-officer-cell';
 import {
     LoanRequestPageHero,
     LoanRequestSearchBox,
@@ -31,6 +32,7 @@ import {
     TableSkeleton,
     type TableSkeletonColumn,
 } from '@/components/ui/table-skeleton';
+import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import { useRequestQueue } from '@/hooks/loan-request/use-request-queue';
 import AppLayout from '@/layouts/app-layout';
 import type { RequestQueueWorkspace } from '@/lib/api/request-queue';
@@ -126,7 +128,7 @@ export function LoanRequestQueuePage({
             ? null
             : statusFilter;
     const reported = statusFilter === 'reported' ? true : undefined;
-    const { items, meta, loading, error, warning } = useRequestQueue({
+    const { items, meta, loading, error, warning, refetch } = useRequestQueue({
         workspace,
         search,
         page,
@@ -139,6 +141,10 @@ export function LoanRequestQueuePage({
         minAmount: minAmountValue,
         maxAmount: maxAmountValue,
     });
+    const { assignLoanRequest, reassignLoanRequest, processingIds } =
+        useLoanRequestWorkflow({
+            onUpdated: () => refetch(),
+        });
 
     const columns = useMemo<ColumnDef<RequestPreview>[]>(
         () => [
@@ -155,8 +161,68 @@ export function LoanRequestQueuePage({
             {
                 accessorKey: 'assigned_officer',
                 header: 'Assigned Loan Processor',
-                cell: ({ row }) =>
-                    row.original.assigned_officer?.name ?? 'Unassigned',
+                cell: ({ row }) => {
+                    const requestId = row.original.id;
+                    const officerOptions = meta.assignmentOfficers ?? [];
+                    const isProcessing =
+                        requestId !== undefined && requestId !== null
+                            ? (processingIds[requestId] ?? false)
+                            : false;
+
+                    if (
+                        !row.original.assigned_officer &&
+                        row.original.can_assign &&
+                        requestId &&
+                        officerOptions.length > 0
+                    ) {
+                        return (
+                            <AssignOfficerCell
+                                mode="assign"
+                                officerOptions={officerOptions}
+                                isProcessing={isProcessing}
+                                onSubmit={(officerUserId, reason) =>
+                                    assignLoanRequest(requestId, {
+                                        officer_user_id: officerUserId,
+                                        reason,
+                                    })
+                                }
+                            />
+                        );
+                    }
+
+                    if (
+                        row.original.assigned_officer &&
+                        row.original.can_reassign &&
+                        requestId
+                    ) {
+                        const reassignOptions = officerOptions.filter(
+                            (officer) =>
+                                officer.user_id !==
+                                row.original.assigned_officer?.user_id,
+                        );
+
+                        if (reassignOptions.length > 0) {
+                            return (
+                                <AssignOfficerCell
+                                    mode="reassign"
+                                    officerOptions={reassignOptions}
+                                    currentOfficerName={
+                                        row.original.assigned_officer.name
+                                    }
+                                    isProcessing={isProcessing}
+                                    onSubmit={(officerUserId, reason) =>
+                                        reassignLoanRequest(requestId, {
+                                            officer_user_id: officerUserId,
+                                            reason,
+                                        })
+                                    }
+                                />
+                            );
+                        }
+                    }
+
+                    return row.original.assigned_officer?.name ?? 'Unassigned';
+                },
             },
             {
                 accessorKey: 'loan_type',
@@ -219,7 +285,13 @@ export function LoanRequestQueuePage({
                 },
             },
         ],
-        [showRequestHref],
+        [
+            showRequestHref,
+            meta.assignmentOfficers,
+            processingIds,
+            assignLoanRequest,
+            reassignLoanRequest,
+        ],
     );
 
     const showSkeleton = loading && items.length === 0;

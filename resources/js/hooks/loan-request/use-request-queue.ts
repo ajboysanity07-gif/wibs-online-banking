@@ -42,6 +42,7 @@ export function useRequestQueue(params: RequestQueueParams) {
         loading: false,
         error: null as string | null,
     });
+    const [reloadToken, setReloadToken] = useState(0);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -100,6 +101,7 @@ export function useRequestQueue(params: RequestQueueParams) {
         params.assignment,
         params.status,
         params.workspace,
+        reloadToken,
     ]);
 
     return {
@@ -111,5 +113,6 @@ export function useRequestQueue(params: RequestQueueParams) {
             state.data.meta.available === false
                 ? state.data.meta.message
                 : null,
+        refetch: () => setReloadToken((token) => token + 1),
     };
 }

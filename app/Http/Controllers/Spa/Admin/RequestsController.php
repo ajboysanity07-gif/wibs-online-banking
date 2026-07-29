@@ -34,6 +34,7 @@ class RequestsController extends Controller
             $minAmount,
             $maxAmount,
             $reported,
+            $request->user(),
         );
         $items = RequestPreviewResource::collection($result['items'])->resolve();
         $paginator = $result['paginator'];
@@ -54,6 +55,8 @@ class RequestsController extends Controller
                     'lastPage' => $lastPage,
                     'loanTypes' => $result['loanTypes'] ?? [],
                     'openCorrectionReports' => $result['openCorrectionReports'] ?? 0,
+                    'assignmentFilters' => $result['assignmentFilters'] ?? [],
+                    'assignmentOfficers' => $result['assignmentOfficers'] ?? [],
                 ],
             ],
         ]);

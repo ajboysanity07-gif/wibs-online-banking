@@ -152,7 +152,7 @@ const REJECT_DURING_PROCESSING_CATEGORIES = [
     'Other',
 ] as const;
 
-const buildOfficerLabel = (
+export const buildOfficerLabel = (
     officer: LoanRequestAssignmentOfficerOption,
 ): string => {
     const activeCountLabel = `${officer.active_assignment_count} active application${officer.active_assignment_count === 1 ? '' : 's'}`;

@@ -68,6 +68,7 @@ class RequestsService
         ?float $minAmount = null,
         ?float $maxAmount = null,
         ?bool $reported = null,
+        ?AppUser $actor = null,
     ): array {
         if (! $this->hasRequestsTable()) {
             return [
@@ -77,6 +78,8 @@ class RequestsService
                 'paginator' => null,
                 'loanTypes' => [],
                 'openCorrectionReports' => 0,
+                'assignmentFilters' => [],
+                'assignmentOfficers' => [],
             ];
         }
 
@@ -136,6 +139,7 @@ class RequestsService
                 ->map(fn (LoanRequest $request) => $this->mapRequest(
                     $request,
                     $hasCorrectionReportsTable,
+                    $actor,
                 )),
             'available' => ! $reportedUnavailable,
             'message' => $reportedUnavailable
@@ -144,6 +148,12 @@ class RequestsService
             'paginator' => $paginator,
             'loanTypes' => $this->getLoanTypeOptions(),
             'openCorrectionReports' => $this->countOpenCorrectionReports(),
+            'assignmentFilters' => $actor instanceof AppUser
+                ? $this->assignmentService->assignmentFilterOptionsFor($actor)
+                : [],
+            'assignmentOfficers' => $actor instanceof AppUser && $this->assignmentService->canManageAssignments($actor)
+                ? $this->assignmentService->eligibleOfficerOptions()
+                : [],
         ];
     }
 
