@@ -10,6 +10,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
+use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
@@ -25,6 +26,7 @@ class LoanRequestController extends Controller
     public function show(
         Request $request,
         LoanRequestAssignmentService $assignmentService,
+        LoanRequestDataService $dataService,
         LoanRequestDecisionService $decisionService,
         LoanRequestPayloadSerializer $serializer,
         LoanRequestService $loanRequestService,
@@ -96,6 +98,8 @@ class LoanRequestController extends Controller
             'decision' => $decision,
             'workflowPermissions' => $this->resolveWorkflowPermissions($actor),
             'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
+            'dataSections' => $dataService->serializeSections($loanRequestRecord),
+            'dataSectionDefinitions' => $dataService->sectionDefinitions(),
             'correctionReports' => $serializer->serializeCorrectionReports(
                 $correctionReportSource,
             ),

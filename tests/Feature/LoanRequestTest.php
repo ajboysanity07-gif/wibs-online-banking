@@ -3,6 +3,7 @@
 use App\Jobs\SendLoanDecisionSmsJob;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AdminProfile;
 use App\Models\AppUser as User;
 use App\Models\LoanRequest;
@@ -2286,6 +2287,64 @@ test('admin can view loan request details page', function () {
             ->where('coMakerTwo.housing_status', 'RENT')
             ->where('coMakerTwo.civil_status', 'Widowed')
             ->where('coMakerTwo.payday', 'Bi-Weekly'));
+});
+
+/**
+ * Regression guard: the admin-facing loan request page (routed at
+ * admin/requests/{id}, distinct from the staff page) used to omit
+ * `dataSections`/`dataSectionDefinitions` entirely, leaving no way to fill in
+ * `recommended_amount` etc. before recommending approval on a
+ * document_workflow_v2 request viewed through this route -- staff hit a raw
+ * "Recommended amount is required before recommendation." validation error
+ * with no field to fix it. This pins that the props are present and that
+ * saving recommended_amount through the shared processing-details endpoint
+ * (the only way to satisfy that validation) persists correctly.
+ */
+test('admin loan request page exposes processing data sections needed to set recommended amount before recommending approval', function () {
+    Role::ensureWorkflowDefaults();
+
+    $processor = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $processor->user_id,
+    ]);
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 15000]);
+
+    $this
+        ->actingAs($processor)
+        ->get(route('admin.requests.show', $loanRequest))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/loan-request-show')
+            ->has('dataSections.processing')
+            ->has('dataSectionDefinitions.processing.fields'));
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded verified processing terms.',
+            'information_source' => 'Verified staff review',
+            'loan_request' => [],
+            'recommended_amount' => 24000,
+            'recommended_term' => 10,
+            'recommended_interest_rate' => 1.5,
+            'recommended_payment_frequency' => 'Monthly',
+            'recommendation_remarks' => 'Recommend approval after full review.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.recommended_amount', '24000.00');
+
+    expect($loanRequest->refresh()->recommended_amount)->toBe('24000.00');
 });
 
 test('admin corrected loan request detail uses linked correction report context and open correction flag', function () {

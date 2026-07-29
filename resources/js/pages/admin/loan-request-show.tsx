@@ -1,8 +1,9 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { CircleAlert } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AdminLoanRequestCorrectionDialog } from '@/components/loan-request/admin-loan-request-correction-dialog';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
+import { ProcessingDetailsPanel } from '@/components/loan-request/processing-details-panel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,11 +55,14 @@ import {
     undertakingBarangay as requestsUndertakingBarangayDocument,
 } from '@/routes/admin/requests/documents';
 import type { BreadcrumbItem } from '@/types';
+import type { Auth } from '@/types/auth';
 import type {
     LoanRequestAssignmentOfficerOption,
     LoanRequestAuditEntry,
     LoanRequestCorrectionReport,
     LoanRequestCorrectionPayload,
+    LoanRequestDataSectionDefinitions,
+    LoanRequestDataSections,
     LoanRequestDetail,
     LoanRequestWorkflowPermission,
     LoanRequestPersonData,
@@ -110,6 +114,8 @@ type Props = {
     openCorrectionReportCancellationReason: string | null;
     openCorrectionOnLoad: boolean;
     eligibleOfficers: LoanRequestAssignmentOfficerOption[];
+    dataSections: LoanRequestDataSections;
+    dataSectionDefinitions: LoanRequestDataSectionDefinitions;
 };
 
 export default function LoanRequestShow({
@@ -125,7 +131,10 @@ export default function LoanRequestShow({
     openCorrectionReportCancellationReason,
     openCorrectionOnLoad,
     eligibleOfficers,
+    dataSections,
+    dataSectionDefinitions,
 }: Props) {
+    const { auth } = usePage<{ auth: Auth }>().props;
     const [currentRequest, setCurrentRequest] =
         useState<LoanRequestDetail>(loanRequest);
     const [currentEligibleOfficers, setCurrentEligibleOfficers] =
@@ -140,6 +149,8 @@ export default function LoanRequestShow({
         useState<LoanRequestCorrectionReport[]>(correctionReports);
     const [currentAuditTrail, setCurrentAuditTrail] =
         useState<LoanRequestAuditEntry[]>(auditTrail);
+    const [currentDataSections, setCurrentDataSections] =
+        useState<LoanRequestDataSections>(dataSections);
     const shouldAutoOpenCorrection =
         openCorrectionOnLoad &&
         loanRequest.requires_correction_before_approval &&
@@ -173,6 +184,7 @@ export default function LoanRequestShow({
         startReview,
         requestRevision,
         rejectLoanRequest,
+        updateProcessingDetails,
         recommendApproval,
         approveLoanRequest,
         declineLoanRequest,
@@ -186,6 +198,7 @@ export default function LoanRequestShow({
             setCurrentCorrectionReports(result.correctionReports);
             setCurrentAuditTrail(result.auditTrail);
             setCurrentEligibleOfficers(result.eligibleOfficers);
+            setCurrentDataSections(result.dataSections);
             setCancellationReasonPrefill(
                 resolveCancellationReasonPrefill(result.correctionReports),
             );
@@ -311,6 +324,39 @@ export default function LoanRequestShow({
     const hasWorkflowPermission = (
         permission: LoanRequestWorkflowPermission,
     ): boolean => workflowPermissions.includes(permission);
+    const actorUserId = auth.user.id;
+    const assignedProcessorId =
+        currentRequest.assigned_processor_id ??
+        currentRequest.assigned_officer_id;
+    const normalizeId = (
+        value: number | string | null | undefined,
+    ): number | null => {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        const numeric = Number(value);
+
+        return Number.isNaN(numeric) ? null : numeric;
+    };
+    const normalizedAssignedProcessorId = normalizeId(assignedProcessorId);
+    const normalizedActorUserId = normalizeId(actorUserId);
+    const canUpdateProcessing =
+        !decision.isOwnRequest &&
+        hasWorkflowPermission('loan.review') &&
+        normalizedAssignedProcessorId === normalizedActorUserId &&
+        [
+            'pending_review',
+            'under_review',
+            'needs_revision',
+            'awaiting_member_information',
+        ].includes(currentRequest.status ?? '');
+    const isProcessingStage = [
+        'pending_review',
+        'under_review',
+        'needs_revision',
+        'awaiting_member_information',
+    ].includes(currentRequest.status ?? '');
     const canDecide =
         currentRequest.status === 'under_review' && decision.canDecide;
     const canStartReview =
@@ -631,6 +677,19 @@ export default function LoanRequestShow({
                             </AlertDescription>
                         </Alert>
                     ) : null}
+                </section>
+            ) : null}
+            {isProcessingStage ? (
+                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <ProcessingDetailsPanel
+                        loanRequest={currentRequest}
+                        applicant={currentApplicant}
+                        dataSections={currentDataSections}
+                        dataSectionDefinitions={dataSectionDefinitions}
+                        canUpdateProcessing={canUpdateProcessing}
+                        isProcessing={isWorkflowProcessing}
+                        updateProcessingDetails={updateProcessingDetails}
+                    />
                 </section>
             ) : null}
             <LoanRequestDetailPage
