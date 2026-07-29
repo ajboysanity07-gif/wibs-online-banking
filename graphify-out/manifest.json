@@ -340,9 +340,9 @@
     "semantic_hash": "b03f63078c75e1a0c5688a337da3a361"
   },
   "app/Http/Controllers/Settings/PasswordController.php": {
-    "mtime": 1775629436.139433,
-    "ast_hash": "e0bad41d6d6caa496a597f60490a87f3",
-    "semantic_hash": "e0bad41d6d6caa496a597f60490a87f3"
+    "mtime": 1785331667.346177,
+    "ast_hash": "6977acc6a45c9c462a27dd68c373f8d3",
+    "semantic_hash": ""
   },
   "app/Http/Controllers/Settings/ProfileController.php": {
     "mtime": 1785203616.3823304,
@@ -495,9 +495,9 @@
     "semantic_hash": "da923bfc6b27c0fed10c0370a8551895"
   },
   "app/Http/Controllers/Spa/Superadmin/StaffController.php": {
-    "mtime": 1785203616.3853202,
-    "ast_hash": "b888a7cd8d68649e9afd228cd89fb424",
-    "semantic_hash": "b888a7cd8d68649e9afd228cd89fb424"
+    "mtime": 1785331643.1298935,
+    "ast_hash": "4c57c164baf63aee5c09116d216ea274",
+    "semantic_hash": ""
   },
   "app/Http/Controllers/Spa/UsernameSuggestionController.php": {
     "mtime": 1772110871.8645513,
@@ -1050,9 +1050,9 @@
     "semantic_hash": "964df8d1046e26b60e316340d0b6661b"
   },
   "app/Models/AppUser.php": {
-    "mtime": 1785203616.4067616,
-    "ast_hash": "55722d120879941e0e0f85c44e1b3bc6",
-    "semantic_hash": "55722d120879941e0e0f85c44e1b3bc6"
+    "mtime": 1785331594.966253,
+    "ast_hash": "d1225f47dabde13285a7708d6b11aff2",
+    "semantic_hash": ""
   },
   "app/Models/DocumentAccessLog.php": {
     "mtime": 1785203616.4067616,
@@ -1150,9 +1150,9 @@
     "semantic_hash": "0d0dd2310c2528d15468c942f7051f7f"
   },
   "app/Models/UserRoleChange.php": {
-    "mtime": 1785203616.4125974,
-    "ast_hash": "d24d43d3c66a3c86eee3431741861d58",
-    "semantic_hash": "d24d43d3c66a3c86eee3431741861d58"
+    "mtime": 1785331602.6959667,
+    "ast_hash": "ce388cf9e18a997cc7692fd9388bdb41",
+    "semantic_hash": ""
   },
   "app/Models/Wlnled.php": {
     "mtime": 1773380753.1676228,
@@ -1325,9 +1325,9 @@
     "semantic_hash": ""
   },
   "app/Services/Admin/StaffManagementService.php": {
-    "mtime": 1785203616.4169743,
-    "ast_hash": "c09be3eecdbd9fa1dfb95f8212cb1d4f",
-    "semantic_hash": "c09be3eecdbd9fa1dfb95f8212cb1d4f"
+    "mtime": 1785331622.531108,
+    "ast_hash": "4dd5a969dc3cd6d1500eec1837c22971",
+    "semantic_hash": ""
   },
   "app/Services/Admin/WatchlistService.php": {
     "mtime": 1772120132.3127873,
@@ -1400,8 +1400,8 @@
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestDataService.php": {
-    "mtime": 1785288192.1458323,
-    "ast_hash": "08c62da4b0f928b07bd10314111e08a8",
+    "mtime": 1785329191.8550334,
+    "ast_hash": "25f655fc250d235fbd794d1a17b2be48",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestDecisionService.php": {
@@ -1440,13 +1440,13 @@
     "semantic_hash": "6649a9234b8db434ea4528b95a632cae"
   },
   "app/Services/LoanRequests/LoanRequestProcessingService.php": {
-    "mtime": 1785288192.1493194,
+    "mtime": 1785329340.4417584,
     "ast_hash": "ba442ff72bb14dfae24adf22b9219384",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestService.php": {
-    "mtime": 1785306041.0738225,
-    "ast_hash": "12ed6a4fb0c5e39f6cbf23ad506cb823",
+    "mtime": 1785329186.9965513,
+    "ast_hash": "b2a7c33225560889669b37378bc67668",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestWorkflowService.php": {
@@ -1625,9 +1625,9 @@
     "semantic_hash": "adc555d7125c88e46ccd02238cab45da"
   },
   "bootstrap/app.php": {
-    "mtime": 1785203616.4340475,
-    "ast_hash": "950293af709676e0f4b36fcecb0ee425",
-    "semantic_hash": "950293af709676e0f4b36fcecb0ee425"
+    "mtime": 1785331661.8214004,
+    "ast_hash": "837e7a0f7608e1e98002be96e7c44306",
+    "semantic_hash": ""
   },
   "bootstrap/providers.php": {
     "mtime": 1771835601.242045,
@@ -3010,9 +3010,9 @@
     "semantic_hash": "5743253217cf0df13d6eb9c563a3c66e"
   },
   "resources/js/lib/api/admin.ts": {
-    "mtime": 1785203616.8281095,
-    "ast_hash": "e11fc8fcf8b6a439f5f332d7141ad1f6",
-    "semantic_hash": "e11fc8fcf8b6a439f5f332d7141ad1f6"
+    "mtime": 1785331740.3575761,
+    "ast_hash": "31b54e6383d79ecd9b6193270390c9d6",
+    "semantic_hash": ""
   },
   "resources/js/lib/api/client.ts": {
     "mtime": 1780884489.0624657,
@@ -3305,9 +3305,9 @@
     "semantic_hash": "0883d6ff8c3b4d1e005ae76debb00c7c"
   },
   "resources/js/pages/superadmin/staff.tsx": {
-    "mtime": 1785203616.8386483,
-    "ast_hash": "80275877743fa004f4a8e93d559e376b",
-    "semantic_hash": "80275877743fa004f4a8e93d559e376b"
+    "mtime": 1785331817.6252105,
+    "ast_hash": "31f775030a72e220f6f55c3e09e7147b",
+    "semantic_hash": ""
   },
   "resources/js/pages/welcome.tsx": {
     "mtime": 1785203616.839645,
@@ -3475,8 +3475,8 @@
     "semantic_hash": "e582a161119df4bd7b0eed74af36613b"
   },
   "routes/web.php": {
-    "mtime": 1785288192.5047,
-    "ast_hash": "3930fd405b76ea5cb096b5d3cbec75de",
+    "mtime": 1785331647.492576,
+    "ast_hash": "db7fc42321b187a473d612ce918ffe85",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -3705,8 +3705,8 @@
     "semantic_hash": "58cb72869a39bdf21fe30cb3886c193a"
   },
   "tests/Feature/LoanRequestCorrectedWorkflowTest.php": {
-    "mtime": 1785292734.145165,
-    "ast_hash": "77e11816a740e26e6d4a3eab2375c993",
+    "mtime": 1785329390.1222172,
+    "ast_hash": "d5d2ac065130c80f85793efd9e137187",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestCorrectionReportTest.php": {
@@ -3885,9 +3885,9 @@
     "semantic_hash": "8b58607917bb169e6ddbaaa266c68887"
   },
   "tests/Feature/Rbac/SuperadminStaffManagementTest.php": {
-    "mtime": 1785203616.8775032,
-    "ast_hash": "1ee634065d2f0540fadb4810c63470b1",
-    "semantic_hash": "1ee634065d2f0540fadb4810c63470b1"
+    "mtime": 1785331863.5009453,
+    "ast_hash": "0b8663fa39a7140e44966271e4af2772",
+    "semantic_hash": ""
   },
   "tests/Feature/RemovedLoanRequestFieldsTest.php": {
     "mtime": 1785203616.8785126,
@@ -5985,8 +5985,8 @@
     "semantic_hash": ""
   },
   "app/Console/Commands/BackfillHealthSmokingStatusCommand.php": {
-    "mtime": 1785203616.3751223,
-    "ast_hash": "220d8bd38f48b8a7654436345a32f456",
+    "mtime": 1785329207.6945248,
+    "ast_hash": "2957bd917812bdc3720f9908424d69bc",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/smoking-status-field.tsx": {
@@ -5995,8 +5995,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/BackfillHealthSmokingStatusCommandTest.php": {
-    "mtime": 1785203616.8572557,
-    "ast_hash": "ff8067e953378fa1df32d571d73e9002",
+    "mtime": 1785329412.5070953,
+    "ast_hash": "2b0c614334209a9aa2fb2e92cc63aafd",
     "semantic_hash": ""
   },
   ".playwright-mcp/page-2026-07-27T10-46-52-443Z.yml": {
@@ -6297,6 +6297,21 @@
   "resources/js/components/loan-request/processing-details-panel.tsx": {
     "mtime": 1785310357.9213314,
     "ast_hash": "fb232d381aa200be1bd3a5fb4820004f",
+    "semantic_hash": ""
+  },
+  "app/Http/Middleware/EnsureMustChangePassword.php": {
+    "mtime": 1785331655.4249713,
+    "ast_hash": "05218320b3dbce547135e9bc84bae830",
+    "semantic_hash": ""
+  },
+  "app/Http/Requests/Superadmin/ResetStaffPasswordRequest.php": {
+    "mtime": 1785331631.6081858,
+    "ast_hash": "67e71d18d815dbf6f0b28e1c92fe4023",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_07_29_132618_add_must_change_password_to_app_users_table.php": {
+    "mtime": 1785331922.0081336,
+    "ast_hash": "8ab5c54b738b8cfa5a89a595d1f0314c",
     "semantic_hash": ""
   }
 }
