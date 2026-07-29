@@ -40,7 +40,7 @@ class LoanRequestAssignmentService
             Gate::forUser($actor)->authorize('claim', $lockedLoanRequest);
             $this->ensureOperationalAssignmentStatus(
                 $lockedLoanRequest,
-                'Only pending review, under review, or needs revision requests can be claimed.',
+                'Only pending review, under review, needs revision, or awaiting member information requests can be claimed.',
             );
 
             return $this->claimLockedLoanRequest($lockedLoanRequest, $actor);
@@ -85,7 +85,7 @@ class LoanRequestAssignmentService
             );
             $this->ensureOperationalAssignmentStatus(
                 $lockedLoanRequest,
-                'Only pending review, under review, or needs revision requests can be assigned.',
+                'Only pending review, under review, needs revision, or awaiting member information requests can be assigned.',
             );
 
             if ($lockedLoanRequest->assigned_officer_id !== null) {
@@ -124,7 +124,7 @@ class LoanRequestAssignmentService
             );
             $this->ensureOperationalAssignmentStatus(
                 $lockedLoanRequest,
-                'Only pending review, under review, or needs revision requests can be reassigned.',
+                'Only pending review, under review, needs revision, or awaiting member information requests can be reassigned.',
             );
 
             if ($lockedLoanRequest->assigned_officer_id === null) {
@@ -165,7 +165,7 @@ class LoanRequestAssignmentService
             );
             $this->ensureOperationalAssignmentStatus(
                 $lockedLoanRequest,
-                'Only pending review, under review, or needs revision requests can be returned to the queue.',
+                'Only pending review, under review, needs revision, or awaiting member information requests can be returned to the queue.',
             );
 
             if ($lockedLoanRequest->assigned_officer_id === null) {
@@ -405,6 +405,7 @@ class LoanRequestAssignmentService
             LoanRequestStatus::PendingReview->value,
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::NeedsRevision->value,
+            LoanRequestStatus::AwaitingMemberInformation->value,
         ];
     }
 

@@ -297,6 +297,42 @@ test('loan managers can assign reassign and return operational requests to queue
     ]);
 });
 
+test('loan managers can reassign while awaiting member information but not once recommended for approval', function (): void {
+    $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
+    $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $secondOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);
+    $member = createAssignmentActor([Role::MEMBER], acctno: '465001');
+
+    $awaitingInfoRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::AwaitingMemberInformation,
+        'assigned_officer_id' => $loanOfficer->user_id,
+    ]);
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.assignment.update', $awaitingInfoRequest), [
+            'action' => 'reassign',
+            'officer_user_id' => $secondOfficer->user_id,
+            'reason' => 'Reassigning while the member gathers additional information.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.assigned_officer_id', $secondOfficer->user_id);
+
+    $recommendedRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'assigned_officer_id' => $loanOfficer->user_id,
+    ]);
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.assignment.update', $recommendedRequest), [
+            'action' => 'reassign',
+            'officer_user_id' => $secondOfficer->user_id,
+            'reason' => 'This should fail because the request is already recommended for approval.',
+        ])
+        ->assertForbidden();
+});
+
 test('manual assignment rejects ineligible officers and terminal requests', function (): void {
     $loanManager = createAssignmentActor([Role::LOAN_MANAGER]);
     $loanOfficer = createAssignmentActor([Role::LOAN_PROCESSOR]);

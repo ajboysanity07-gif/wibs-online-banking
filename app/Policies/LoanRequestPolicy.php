@@ -397,6 +397,7 @@ class LoanRequestPolicy
             LoanRequestStatus::PendingReview->value,
             LoanRequestStatus::UnderReview->value,
             LoanRequestStatus::NeedsRevision->value,
+            LoanRequestStatus::AwaitingMemberInformation->value,
         ], true);
     }
 }
