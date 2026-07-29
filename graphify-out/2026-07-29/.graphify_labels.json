@@ -519,7 +519,6 @@
   "517": ".agents/skills/laravel-testing/rules/pest-describe-it.md",
   "518": "LoanRequestCorrectionReportService",
   "519": "ProfileUpdateRequest",
-  "520": "Branding",
   "521": "BackfillHealthSmokingStatusCommand",
   "522": "Form Dirty Tracking",
   "523": "Form File Uploads",
@@ -566,7 +565,5 @@
   "564": ".agents/skills/react-compiler/CARD.md",
   "565": "@radix-ui/react-dialog",
   "566": "authority-to-deduct.blade.php",
-  "567": "@radix-ui/react-dialog",
-  "569": "class-variance-authority",
   "571": "2026_07_29_000000_create_member_co_makers_table.php"
 }
