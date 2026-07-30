@@ -6,6 +6,7 @@ use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
+use App\Models\AuthorityToDeductInstitutionContact;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataChange;
@@ -34,11 +35,10 @@ class LoanRequestProcessingService
             $this->ensureProcessorEditableStatus($lockedLoanRequest);
 
             $reason = trim((string) ($payload['reason'] ?? ''));
-            $informationSource = trim((string) ($payload['information_source'] ?? ''));
 
-            if ($reason === '' || $informationSource === '') {
+            if ($reason === '') {
                 throw ValidationException::withMessages([
-                    'reason' => 'A reason and information source are required for processing updates.',
+                    'reason' => 'A reason is required for processing updates.',
                 ]);
             }
 
@@ -108,8 +108,9 @@ class LoanRequestProcessingService
                 $actor,
                 $processingPayload,
                 $reason,
-                $informationSource,
             );
+
+            $this->rememberAuthorityToDeductContact($processingPayload);
 
             $lockedLoanRequest->save();
             $lockedLoanRequest->refresh()->loadMissing('people', 'dataEntries');
@@ -121,7 +122,6 @@ class LoanRequestProcessingService
                 $before,
                 $after,
                 $reason,
-                $informationSource,
             );
 
             $allChangedFields = array_values(array_unique(array_merge(
@@ -148,15 +148,36 @@ class LoanRequestProcessingService
                 $fromStatus,
                 $this->statusValue($lockedLoanRequest),
                 $allChangedFields,
-                [
-                    'information_source' => $informationSource,
-                ],
+                [],
                 $before,
                 $after,
             );
 
             return $lockedLoanRequest->refresh()->loadMissing('people', 'dataEntries');
         });
+    }
+
+    /**
+     * Saves the officer(s) typed for an institution for reuse on future
+     * requests. Only writes when an institution name and at least one
+     * officer field are present -- never overwrites with blanks.
+     *
+     * @param  array<string, mixed>  $processingPayload
+     */
+    private function rememberAuthorityToDeductContact(array $processingPayload): void
+    {
+        $institutionName = $processingPayload['authority_to_deduct_institution_name'] ?? null;
+
+        if (! is_string($institutionName) || trim($institutionName) === '') {
+            return;
+        }
+
+        AuthorityToDeductInstitutionContact::rememberForInstitution($institutionName, [
+            'officer_1_name' => $processingPayload['authority_to_deduct_officer_1_name'] ?? null,
+            'officer_1_title' => $processingPayload['authority_to_deduct_officer_1_title'] ?? null,
+            'officer_2_name' => $processingPayload['authority_to_deduct_officer_2_name'] ?? null,
+            'officer_2_title' => $processingPayload['authority_to_deduct_officer_2_title'] ?? null,
+        ]);
     }
 
     /**
@@ -708,7 +729,6 @@ class LoanRequestProcessingService
                     $actor,
                     ['witness_two_name' => $approverDisplayName],
                     'Witness 2 recorded upon approval',
-                    'System — automated on loan approval',
                 );
 
                 $lockedLoanRequest->load('dataEntries');
@@ -1057,7 +1077,6 @@ class LoanRequestProcessingService
         array $before,
         array $after,
         string $reason,
-        string $informationSource,
         string $path = '',
     ): array {
         $changedFields = [];
@@ -1081,7 +1100,6 @@ class LoanRequestProcessingService
                         $beforeValue,
                         $afterValue,
                         $reason,
-                        $informationSource,
                         $currentPath,
                     ),
                 );
@@ -1100,7 +1118,7 @@ class LoanRequestProcessingService
                 'before_value_json' => ['value' => $beforeValue],
                 'after_value_json' => ['value' => $afterValue],
                 'reason' => $reason,
-                'information_source' => $informationSource,
+                'information_source' => '',
                 'metadata_json' => [
                     'scope' => 'snapshot',
                 ],

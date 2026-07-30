@@ -42,7 +42,6 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     {
         return [
             'reason' => ['required', 'string', 'max:1000'],
-            'information_source' => ['required', 'string', 'max:255'],
             'loan_request' => ['sometimes', 'array:typecode,requested_amount,requested_term,loan_purpose,availment_status'],
             'loan_request.typecode' => ['sometimes', 'string', 'max:255'],
             'loan_request.requested_amount' => ['sometimes', 'numeric', 'min:1'],

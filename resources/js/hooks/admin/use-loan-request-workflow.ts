@@ -64,7 +64,6 @@ export type LoanRequestWorkflowDeclinePayload = {
 
 export type LoanRequestProcessingDetailsPayload = {
     reason: string;
-    information_source: string;
     loan_request?: Record<string, unknown>;
     applicant?: Record<string, unknown>;
     co_maker_1?: Record<string, unknown>;

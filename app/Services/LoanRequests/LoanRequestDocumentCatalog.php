@@ -3,6 +3,7 @@
 namespace App\Services\LoanRequests;
 
 use App\LoanRequestDocumentKey;
+use App\Models\AuthorityToDeductInstitutionContact;
 use App\Models\LoanRequest;
 
 class LoanRequestDocumentCatalog
@@ -627,6 +628,141 @@ class LoanRequestDocumentCatalog
             'pensioner' => $this->pensionerApplicable($loanRequest),
             default => true,
         };
+    }
+
+    /**
+     * Suggests a default "Authority to Deduct: institution name" using the same
+     * category detection already used to decide waiver-document applicability
+     * (barangay/DepEd/pensioner) -- a display-time default only, staff can still
+     * edit or clear it before saving.
+     *
+     * @param  array<string, mixed>  $flatValues
+     */
+    public function suggestedAuthorityToDeductInstitutionName(
+        LoanRequest $loanRequest,
+        array $flatValues,
+    ): ?string {
+        $employer = $loanRequest->applicant?->employer_business_name;
+        $employer = is_string($employer) && trim($employer) !== '' ? trim($employer) : null;
+
+        if ($this->barangayApplicable($loanRequest, $flatValues)) {
+            $barangayAgencyName = $flatValues['barangay_agency_name'] ?? null;
+
+            if (is_string($barangayAgencyName) && trim($barangayAgencyName) !== '') {
+                return trim($barangayAgencyName);
+            }
+
+            return $employer;
+        }
+
+        if ($this->pensionerApplicable($loanRequest)) {
+            $pensionProvider = $flatValues['pension_provider'] ?? null;
+
+            if (is_string($pensionProvider) && trim($pensionProvider) !== '') {
+                return trim($pensionProvider);
+            }
+
+            return $employer;
+        }
+
+        return $employer;
+    }
+
+    /**
+     * Guidance only -- the officer count is never enforced (officer_2_name is
+     * always optional, see AuthorityToDeductPdfService::buildInstitution()).
+     * Self-employed applicants have no external payroll office to authorize a
+     * deduction, so the document isn't applicable at all in that case.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array{
+     *     applicable: bool,
+     *     recommended_officers: int,
+     *     note: string,
+     *     saved_contact: ?array{officer_1_name: ?string, officer_1_title: ?string, officer_2_name: ?string, officer_2_title: ?string}
+     * }
+     */
+    public function authorityToDeductGuidance(LoanRequest $loanRequest, array $flatValues): array
+    {
+        if ($loanRequest->applicant?->employment_type === 'Self Employed') {
+            return [
+                'applicable' => false,
+                'recommended_officers' => 0,
+                'note' => "Not applicable — the applicant is self-employed, so there's no external payroll office to authorize this deduction.",
+                'saved_contact' => null,
+            ];
+        }
+
+        $savedContact = $this->savedAuthorityToDeductContact($loanRequest, $flatValues);
+
+        if ($this->barangayApplicable($loanRequest, $flatValues)) {
+            return [
+                'applicable' => true,
+                'recommended_officers' => 2,
+                'note' => 'Barangay/LGU institutions typically sign with 2 officers (e.g. treasurer and captain).',
+                'saved_contact' => $savedContact,
+            ];
+        }
+
+        if ($this->pensionerApplicable($loanRequest)) {
+            return [
+                'applicable' => true,
+                'recommended_officers' => 1,
+                'note' => 'Pension providers typically require only 1 authorized representative.',
+                'saved_contact' => $savedContact,
+            ];
+        }
+
+        if ($this->depedEmployeeApplicable($loanRequest)) {
+            return [
+                'applicable' => true,
+                'recommended_officers' => 2,
+                'note' => 'Government/school offices typically use 2 signing officers (e.g. registrar and principal/head).',
+                'saved_contact' => $savedContact,
+            ];
+        }
+
+        return [
+            'applicable' => true,
+            'recommended_officers' => 1,
+            'note' => 'Private employers typically sign with 1 authorized officer; add a second only if the company requires dual signatures.',
+            'saved_contact' => $savedContact,
+        ];
+    }
+
+    /**
+     * Looks up a previously saved officer contact for whatever institution
+     * name currently applies to this request (staff-entered, or the
+     * category-aware suggestion when nothing has been typed yet). Never
+     * itself a source of truth for a specific request -- only surfaced to
+     * staff as an explicit "use saved officer(s)" prefill action.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return ?array{officer_1_name: ?string, officer_1_title: ?string, officer_2_name: ?string, officer_2_title: ?string}
+     */
+    private function savedAuthorityToDeductContact(LoanRequest $loanRequest, array $flatValues): ?array
+    {
+        $institutionName = $flatValues['authority_to_deduct_institution_name'] ?? null;
+        $institutionName = is_string($institutionName) && trim($institutionName) !== ''
+            ? trim($institutionName)
+            : $this->suggestedAuthorityToDeductInstitutionName($loanRequest, $flatValues);
+
+        if ($institutionName === null) {
+            return null;
+        }
+
+        $contact = AuthorityToDeductInstitutionContact::findForInstitution($institutionName);
+
+        if ($contact === null) {
+            return null;
+        }
+
+        return [
+            'officer_1_name' => $contact->officer_1_name,
+            'officer_1_title' => $contact->officer_1_title,
+            'officer_2_name' => $contact->officer_2_name,
+            'officer_2_title' => $contact->officer_2_title,
+        ];
     }
 
     private function isBeforeLegacyDocumentCutoff(LoanRequest $loanRequest): bool

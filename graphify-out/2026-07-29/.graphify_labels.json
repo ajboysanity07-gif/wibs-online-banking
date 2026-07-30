@@ -348,7 +348,7 @@
   "346": "use-clipboard.ts",
   "347": "LoanRequestResolveActionRequest",
   "348": "LinkMembershipRequest",
-  "349": "TwoFactorAuthenticationRequest",
+  "349": "SemaphoreSmsService",
   "351": "Form Dirty Tracking",
   "352": "Form File Uploads",
   "353": "Form Progress Indicator",
@@ -380,7 +380,6 @@
   "379": "factory-sequences.md",
   "380": "factory-states.md",
   "381": "8. Advanced Patterns",
-  "382": "Pest.php",
   "383": "app-sidebar-layout.tsx",
   "384": "LoanRequestCorrectionReportDismissRequest",
   "385": "LoanRequestDeclineRequest",
@@ -412,7 +411,6 @@
   "411": "server-hoist-static-io.md",
   "412": "Spatie Security Guidelines",
   "413": "LoanRequestCorrectionReport",
-  "414": "app.tsx",
   "415": "Laravel OWASP Security",
   "416": "Fluent JSON Assertions with AssertableJson",
   "417": "Framework Detection",
@@ -514,7 +512,6 @@
   "516": ".agents/skills/laravel-testing/rules/pest-datasets.md",
   "517": ".agents/skills/laravel-testing/rules/pest-describe-it.md",
   "519": "GrepalifePdfFieldMap",
-  "521": "DisclosureStatementPdfService",
   "522": "Form Dirty Tracking",
   "523": "Form File Uploads",
   "524": "Form Progress Indicator",
@@ -561,7 +558,6 @@
   "565": "@radix-ui/react-dialog",
   "566": "authority-to-deduct.blade.php",
   "571": "2026_07_29_000000_create_member_co_makers_table.php",
-  "572": "MemberLoanScheduleRequest",
   "574": "@fullcalendar/react",
   "575": "globals",
   "576": "input-otp",
@@ -572,5 +568,5 @@
   "581": "tailwind-merge",
   "582": "@tailwindcss/vite",
   "583": "tw-animate-css",
-  "613": "LoanWorkflowRequestsIndexRequest"
+  "585": "class-variance-authority"
 }

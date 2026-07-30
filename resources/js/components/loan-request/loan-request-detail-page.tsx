@@ -97,6 +97,7 @@ type Props = {
     correctedCopy?: CorrectedCopyProps;
     workflow?: LoanRequestWorkflowProps;
     actionsPanelHeader?: ReactNode;
+    processingDetails?: ReactNode;
     wrapInShell?: boolean;
     hideSummaryHeader?: boolean;
     hideMainColumn?: boolean;
@@ -989,6 +990,7 @@ export function LoanRequestDetailPage({
     correctedCopy,
     workflow,
     actionsPanelHeader,
+    processingDetails,
     wrapInShell = true,
     hideSummaryHeader = false,
     hideMainColumn = false,
@@ -1429,10 +1431,7 @@ export function LoanRequestDetailPage({
                             coMakerOne={coMakerOne}
                             coMakerTwo={coMakerTwo}
                         />
-                        <LoanRequestAuditTrail
-                            entries={auditTrail}
-                            audience={auditTrailAudience}
-                        />
+                        {processingDetails ?? null}
                     </div>
                 ) : null}
 
@@ -1984,6 +1983,14 @@ export function LoanRequestDetailPage({
                                               : 'This request remains available as read-only history.'}
                         </CardContent>
                     </Card>
+
+                    {!hideMainColumn ? (
+                        <LoanRequestAuditTrail
+                            entries={auditTrail}
+                            audience={auditTrailAudience}
+                            compact
+                        />
+                    ) : null}
 
                     {sidebarFooter ?? null}
                 </div>

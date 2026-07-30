@@ -1543,6 +1543,16 @@ class LoanRequestDataService
             }
         }
 
+        $institutionName = $sections['processing']['authority_to_deduct_institution_name'] ?? null;
+
+        if (! is_string($institutionName) || trim($institutionName) === '') {
+            $sections['processing']['authority_to_deduct_institution_name'] =
+                (new LoanRequestDocumentCatalog)->suggestedAuthorityToDeductInstitutionName(
+                    $loanRequest,
+                    $flatValues,
+                );
+        }
+
         return $sections;
     }
 
@@ -1678,20 +1688,12 @@ class LoanRequestDataService
         AppUser $actor,
         array $updates,
         string $reason,
-        string $informationSource,
     ): array {
         $normalizedReason = trim($reason);
-        $normalizedSource = trim($informationSource);
 
         if ($normalizedReason === '') {
             throw ValidationException::withMessages([
                 'reason' => 'A reason is required for processing updates.',
-            ]);
-        }
-
-        if ($normalizedSource === '') {
-            throw ValidationException::withMessages([
-                'information_source' => 'An information source is required for processing updates.',
             ]);
         }
 
@@ -1732,7 +1734,7 @@ class LoanRequestDataService
                 'before_value_json' => ['value' => $before],
                 'after_value_json' => ['value' => $after],
                 'reason' => $normalizedReason,
-                'information_source' => $normalizedSource,
+                'information_source' => '',
                 'metadata_json' => [
                     'section' => $definition['section'],
                     'owner_type' => $entry->owner_type,

@@ -437,7 +437,6 @@ test('manager approval writes witness_two_name as the manager\'s own name and re
     $dataChange = LoanRequestDataChange::query()
         ->where('loan_request_id', $loanRequest->id)
         ->where('field_key', 'witness_two_name')
-        ->where('information_source', 'System — automated on loan approval')
         ->sole();
 
     expect($dataChange->after_value_json['value'])->toBe($expectedManagerDisplayName)
@@ -562,7 +561,6 @@ test('manager approval rolls back completely when document regeneration fails', 
         LoanRequestDataChange::query()
             ->where('loan_request_id', $loanRequest->id)
             ->where('field_key', 'witness_two_name')
-            ->where('information_source', 'System — automated on loan approval')
             ->exists(),
     )->toBeFalse();
 

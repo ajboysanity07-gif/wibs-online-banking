@@ -151,7 +151,18 @@ type InlineProcessingFormState = {
     recommended_payment_frequency: string;
     recommendation_remarks: string;
     reason: string;
-    information_source: string;
+};
+
+const hasSecondOfficerValue = (
+    processing: Record<string, string | number | boolean | null>,
+): boolean => {
+    const name = processing.authority_to_deduct_officer_2_name;
+    const title = processing.authority_to_deduct_officer_2_title;
+
+    return (
+        (name !== null && name !== undefined && `${name}`.trim() !== '') ||
+        (title !== null && title !== undefined && `${title}`.trim() !== '')
+    );
 };
 
 type RecommendationPreviewState = {
@@ -197,7 +208,6 @@ export function ProcessingDetailsPanel({
                 loanRequest.recommended_payment_frequency ?? '',
             recommendation_remarks: loanRequest.recommendation_remarks ?? '',
             reason: '',
-            information_source: '',
         });
     const [recommendationPreview, setRecommendationPreview] =
         useState<RecommendationPreviewState | null>(null);
@@ -205,6 +215,10 @@ export function ProcessingDetailsPanel({
         useState(false);
     const [recommendationPreviewError, setRecommendationPreviewError] =
         useState<string | null>(null);
+    const [showSecondOfficer, setShowSecondOfficer] = useState(
+        loanRequest.authority_to_deduct_guidance?.recommended_officers !== 1 ||
+            hasSecondOfficerValue(dataSections.processing),
+    );
     const gnthpRecalculationTimeoutRef = useRef<ReturnType<
         typeof setTimeout
     > | null>(null);
@@ -224,11 +238,15 @@ export function ProcessingDetailsPanel({
                 loanRequest.recommended_payment_frequency ?? '',
             recommendation_remarks: loanRequest.recommendation_remarks ?? '',
             reason: '',
-            information_source: '',
         });
+        setShowSecondOfficer(
+            loanRequest.authority_to_deduct_guidance?.recommended_officers !==
+                1 || hasSecondOfficerValue(dataSections.processing),
+        );
     }, [
         dataSections.processing,
         loanRequest.assigned_processor,
+        loanRequest.authority_to_deduct_guidance,
         loanRequest.recommendation_remarks,
         loanRequest.recommended_amount,
         loanRequest.recommended_interest_rate,
@@ -393,20 +411,16 @@ export function ProcessingDetailsPanel({
     ) => {
         event.preventDefault();
 
-        if (
-            processingForm.reason.trim() === '' ||
-            processingForm.information_source.trim() === ''
-        ) {
+        if (processingForm.reason.trim() === '') {
             showErrorToast(
                 null,
-                'Reason and information source are required before saving processing details.',
+                'Remarks are required before saving processing details.',
             );
             return;
         }
 
         const result = await updateProcessingDetails(loanRequest.id, {
             reason: processingForm.reason,
-            information_source: processingForm.information_source,
             loan_request: buildLoanRequestPassthrough(),
             processing: buildInlineProcessingPayload(processingForm.processing),
             recommended_amount: processingForm.recommended_amount || null,
@@ -423,7 +437,6 @@ export function ProcessingDetailsPanel({
             setProcessingForm((current) => ({
                 ...current,
                 reason: '',
-                information_source: '',
             }));
         }
     };
@@ -851,30 +864,123 @@ export function ProcessingDetailsPanel({
                             {renderProcessingField('barangay_official_title')}
                         </div>
 
-                        {renderProcessingSectionLabel('Authority to Deduct')}
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {renderProcessingField(
-                                'authority_to_deduct_institution_name',
-                                { fullWidth: true },
-                            )}
-                            {renderProcessingField(
-                                'authority_to_deduct_officer_1_name',
-                            )}
-                            {renderProcessingField(
-                                'authority_to_deduct_officer_1_title',
-                            )}
-                            {renderProcessingField(
-                                'authority_to_deduct_officer_2_name',
-                            )}
-                            {renderProcessingField(
-                                'authority_to_deduct_officer_2_title',
-                            )}
-                        </div>
+                        {loanRequest.authority_to_deduct_guidance?.applicable !==
+                            false && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Authority to Deduct',
+                                )}
+                                {loanRequest.authority_to_deduct_guidance
+                                    ?.note && (
+                                    <p className="mb-3 text-sm text-muted-foreground">
+                                        {
+                                            loanRequest
+                                                .authority_to_deduct_guidance
+                                                .note
+                                        }
+                                    </p>
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {renderProcessingField(
+                                        'authority_to_deduct_institution_name',
+                                        { fullWidth: true },
+                                    )}
+                                    {loanRequest.authority_to_deduct_guidance
+                                        ?.saved_contact &&
+                                        `${processingForm.processing.authority_to_deduct_officer_1_name ?? ''}`.trim() ===
+                                            '' && (
+                                            <button
+                                                type="button"
+                                                className="text-sm text-primary hover:underline sm:col-span-2 text-left"
+                                                onClick={() => {
+                                                    const savedContact =
+                                                        loanRequest
+                                                            .authority_to_deduct_guidance
+                                                            ?.saved_contact;
+
+                                                    if (!savedContact) {
+                                                        return;
+                                                    }
+
+                                                    setProcessingForm(
+                                                        (current) => ({
+                                                            ...current,
+                                                            processing: {
+                                                                ...current.processing,
+                                                                authority_to_deduct_officer_1_name:
+                                                                    savedContact.officer_1_name,
+                                                                authority_to_deduct_officer_1_title:
+                                                                    savedContact.officer_1_title,
+                                                                authority_to_deduct_officer_2_name:
+                                                                    savedContact.officer_2_name,
+                                                                authority_to_deduct_officer_2_title:
+                                                                    savedContact.officer_2_title,
+                                                            },
+                                                        }),
+                                                    );
+
+                                                    if (
+                                                        savedContact.officer_2_name ||
+                                                        savedContact.officer_2_title
+                                                    ) {
+                                                        setShowSecondOfficer(
+                                                            true,
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                Use saved officer(s) for this
+                                                institution
+                                            </button>
+                                        )}
+                                    {renderProcessingField(
+                                        'authority_to_deduct_officer_1_name',
+                                    )}
+                                    {renderProcessingField(
+                                        'authority_to_deduct_officer_1_title',
+                                    )}
+                                    {showSecondOfficer ? (
+                                        <>
+                                            {renderProcessingField(
+                                                'authority_to_deduct_officer_2_name',
+                                            )}
+                                            {renderProcessingField(
+                                                'authority_to_deduct_officer_2_title',
+                                            )}
+                                        </>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className="text-sm text-primary hover:underline sm:col-span-2 text-left"
+                                            onClick={() =>
+                                                setShowSecondOfficer(true)
+                                            }
+                                        >
+                                            + Add second officer
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                        {loanRequest.authority_to_deduct_guidance
+                            ?.applicable === false && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Authority to Deduct',
+                                )}
+                                <p className="text-sm text-muted-foreground">
+                                    {
+                                        loanRequest.authority_to_deduct_guidance
+                                            .note
+                                    }
+                                </p>
+                            </>
+                        )}
 
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
-                                Reason
+                                Remarks
                             </Label>
                             <textarea
                                 id="inline_processing_reason"
@@ -884,21 +990,6 @@ export function ProcessingDetailsPanel({
                                     setProcessingForm((current) => ({
                                         ...current,
                                         reason: event.target.value,
-                                    }))
-                                }
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="inline_processing_information_source">
-                                Information source
-                            </Label>
-                            <Input
-                                id="inline_processing_information_source"
-                                value={processingForm.information_source}
-                                onChange={(event) =>
-                                    setProcessingForm((current) => ({
-                                        ...current,
-                                        information_source: event.target.value,
                                     }))
                                 }
                             />

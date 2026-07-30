@@ -3,9 +3,15 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-test('processing details submit guards against empty reason/information_source before saving', async () => {
+test('processing details submit guards against an empty remarks/reason before saving', async () => {
     const file = await readFile(
-        resolve('resources', 'js', 'pages', 'staff', 'loan-request-show.tsx'),
+        resolve(
+            'resources',
+            'js',
+            'components',
+            'loan-request',
+            'processing-details-panel.tsx',
+        ),
         'utf8',
     );
 
@@ -24,16 +30,6 @@ test('processing details submit guards against empty reason/information_source b
         submitFnBody,
         /processingForm\.reason\.trim\(\) === ''/,
         'guard must check reason for empty value',
-    );
-    assert.match(
-        submitFnBody,
-        /processingForm\.information_source\.trim\(\) === ''/,
-        'guard must check information_source for empty value',
-    );
-    assert.match(
-        submitFnBody,
-        /setActiveProcessingSection\('confirmation'\)/,
-        'guard must switch the nested nav to the Confirmation section',
     );
     assert.match(
         submitFnBody,

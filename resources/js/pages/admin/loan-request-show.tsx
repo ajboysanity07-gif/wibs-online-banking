@@ -679,19 +679,6 @@ export default function LoanRequestShow({
                     ) : null}
                 </section>
             ) : null}
-            {isProcessingStage ? (
-                <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <ProcessingDetailsPanel
-                        loanRequest={currentRequest}
-                        applicant={currentApplicant}
-                        dataSections={currentDataSections}
-                        dataSectionDefinitions={dataSectionDefinitions}
-                        canUpdateProcessing={canUpdateProcessing}
-                        isProcessing={isWorkflowProcessing}
-                        updateProcessingDetails={updateProcessingDetails}
-                    />
-                </section>
-            ) : null}
             <LoanRequestDetailPage
                 loanRequest={currentRequest}
                 applicant={currentApplicant}
@@ -705,6 +692,19 @@ export default function LoanRequestShow({
                 correctedRequestHref={correctedRequestHref}
                 auditTrail={currentAuditTrail}
                 auditTrailAudience="staff"
+                processingDetails={
+                    isProcessingStage ? (
+                        <ProcessingDetailsPanel
+                            loanRequest={currentRequest}
+                            applicant={currentApplicant}
+                            dataSections={currentDataSections}
+                            dataSectionDefinitions={dataSectionDefinitions}
+                            canUpdateProcessing={canUpdateProcessing}
+                            isProcessing={isWorkflowProcessing}
+                            updateProcessingDetails={updateProcessingDetails}
+                        />
+                    ) : undefined
+                }
                 correction={{
                     show: canCorrect,
                     isProcessing: isCorrecting,

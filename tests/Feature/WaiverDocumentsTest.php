@@ -9,6 +9,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestPerson;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
@@ -338,6 +339,172 @@ test('pension deduction waiver downloads as a real pdf for an applicable pension
     $response->assertOk();
     $response->assertHeaderContains('content-type', 'application/pdf');
     expect($content)->toStartWith('%PDF');
+});
+
+test('authority to deduct institution name suggests the barangay agency name for a barangay-payroll applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Barangay Banahao',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay Banahao LGU');
+
+    $sections = app(LoanRequestDataService::class)->serializeSections($loanRequest->fresh());
+
+    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('Barangay Banahao LGU');
+});
+
+test('authority to deduct institution name suggests the employer name for a deped applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'DepEd Division of Surigao del Sur',
+    ]);
+
+    $sections = app(LoanRequestDataService::class)->serializeSections($loanRequest->fresh());
+
+    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('DepEd Division of Surigao del Sur');
+});
+
+test('authority to deduct institution name suggests the pension provider for a pensioner applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Pensioner',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'pension_provider', 'string', 'Social Security System');
+
+    $sections = app(LoanRequestDataService::class)->serializeSections($loanRequest->fresh());
+
+    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('Social Security System');
+});
+
+test('authority to deduct institution name suggests the employer name for an ordinary applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Some Private Company',
+    ]);
+
+    $sections = app(LoanRequestDataService::class)->serializeSections($loanRequest->fresh());
+
+    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('Some Private Company');
+});
+
+test('authority to deduct institution name never overwrites a value staff already saved', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Some Private Company',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'authority_to_deduct_institution_name', 'string', 'Lianga District Hospital');
+
+    $sections = app(LoanRequestDataService::class)->serializeSections($loanRequest->fresh());
+
+    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('Lianga District Hospital');
+});
+
+test('authority to deduct guidance recommends 2 officers for a barangay-payroll applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Barangay Banahao',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['applicable'])->toBeTrue();
+    expect($guidance['recommended_officers'])->toBe(2);
+});
+
+test('authority to deduct guidance recommends 1 officer for a pensioner applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Pensioner',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['applicable'])->toBeTrue();
+    expect($guidance['recommended_officers'])->toBe(1);
+});
+
+test('authority to deduct guidance recommends 2 officers for a deped applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'DepEd Division of Surigao del Sur',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['applicable'])->toBeTrue();
+    expect($guidance['recommended_officers'])->toBe(2);
+});
+
+test('authority to deduct guidance recommends 1 officer for an ordinary private employer', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Some Private Company',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['applicable'])->toBeTrue();
+    expect($guidance['recommended_officers'])->toBe(1);
+});
+
+test('authority to deduct is not applicable for a self-employed applicant', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Self Employed',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['applicable'])->toBeFalse();
+    expect($guidance['recommended_officers'])->toBe(0);
+});
+
+test('authority to deduct guidance has no saved contact when nothing has been saved for the institution yet', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Never Seen Before Company',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['saved_contact'])->toBeNull();
+});
+
+test('authority to deduct guidance surfaces a saved contact for a previously recorded institution', function () {
+    App\Models\AuthorityToDeductInstitutionContact::query()->create([
+        'institution_name' => 'Celni Dave Store',
+        'institution_name_normalized' => 'celni dave store',
+        'officer_1_name' => 'Juan Dela Cruz',
+        'officer_1_title' => 'Store Manager',
+    ]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Celni Dave Store',
+    ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['saved_contact'])->toBe([
+        'officer_1_name' => 'Juan Dela Cruz',
+        'officer_1_title' => 'Store Manager',
+        'officer_2_name' => null,
+        'officer_2_title' => null,
+    ]);
+});
+
+test('loan request payload includes authority to deduct guidance', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Self Employed',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.show', $loanRequest));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page->where(
+        'loanRequest.authority_to_deduct_guidance.applicable',
+        false,
+    ));
 });
 
 test('approved documents zip includes the pension waiver but not the deped waiver for a pensioner borrower', function () {

@@ -198,7 +198,6 @@ type LoanRequestWorkflowDeclinePayload = {
 
 type LoanRequestWorkflowProcessingUpdatePayload = {
     reason: string;
-    information_source: string;
     loan_request?: {
         typecode?: string | null;
         requested_amount?: number | string | null;

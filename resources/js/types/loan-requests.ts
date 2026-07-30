@@ -363,6 +363,20 @@ export type LoanRequestCompleteness = {
     missing_documents: LoanRequestDocumentKey[];
 };
 
+export type AuthorityToDeductSavedContact = {
+    officer_1_name: string | null;
+    officer_1_title: string | null;
+    officer_2_name: string | null;
+    officer_2_title: string | null;
+};
+
+export type AuthorityToDeductGuidance = {
+    applicable: boolean;
+    recommended_officers: number;
+    note: string;
+    saved_contact: AuthorityToDeductSavedContact | null;
+};
+
 export type LoanRequestDetail = {
     id: number;
     reference: string;
@@ -430,6 +444,7 @@ export type LoanRequestDetail = {
     wibs_encoded_at: string | null;
     wibs_released_at: string | null;
     completeness: LoanRequestCompleteness | null;
+    authority_to_deduct_guidance: AuthorityToDeductGuidance | null;
 };
 
 export type LoanRequestListItem = {

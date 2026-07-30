@@ -133,6 +133,8 @@ class LoanRequestPayloadSerializer
         private LoanRequestDecisionService $decisionService,
         private SchemaCapabilities $schemaCapabilities,
         private LoanRequestCompletenessService $completenessService,
+        private LoanRequestDataService $dataService,
+        private LoanRequestDocumentCatalog $documentCatalog,
     ) {}
 
     /**
@@ -284,6 +286,10 @@ class LoanRequestPayloadSerializer
             'wibs_encoded_at' => $loanRequest->wibs_encoded_at?->toDateTimeString(),
             'wibs_released_at' => $loanRequest->wibs_released_at?->toDateTimeString(),
             'completeness' => $this->completenessService->computeFor($loanRequest),
+            'authority_to_deduct_guidance' => $this->documentCatalog->authorityToDeductGuidance(
+                $loanRequest,
+                $this->dataService->loadFlatValues($loanRequest),
+            ),
         ];
     }
 

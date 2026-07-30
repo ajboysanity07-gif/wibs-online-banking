@@ -322,7 +322,6 @@ type CorrectionFormState = {
     co_maker_1: LoanRequestPersonFormData;
     co_maker_2: LoanRequestPersonFormData;
     reason: string;
-    information_source: string;
 };
 
 export default function StaffLoanRequestShow({
@@ -389,7 +388,6 @@ export default function StaffLoanRequestShow({
         co_maker_1: toPersonForm(coMakerOne),
         co_maker_2: toPersonForm(coMakerTwo),
         reason: '',
-        information_source: '',
     });
     const {
         claimLoanRequest,
@@ -509,7 +507,6 @@ export default function StaffLoanRequestShow({
             co_maker_1: toPersonForm(currentCoMakerOne),
             co_maker_2: toPersonForm(currentCoMakerTwo),
             reason: '',
-            information_source: '',
         });
     }, [
         currentApplicant,
@@ -775,7 +772,6 @@ export default function StaffLoanRequestShow({
 
         const result = await updateProcessingDetails(currentRequest.id, {
             reason: correctionForm.reason,
-            information_source: correctionForm.information_source,
             loan_request: correctionForm.loan_request,
             applicant: correctionForm.applicant,
             co_maker_1: correctionForm.co_maker_1,
@@ -1949,10 +1945,10 @@ export default function StaffLoanRequestShow({
                             </LoanRequestSectionCard>
                         </div>
                         <div className="shrink-0 border-t border-border px-6 py-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="correction_reason">
-                                        Reason
+                                        Remarks
                                     </Label>
                                     <textarea
                                         id="correction_reason"
@@ -1963,25 +1959,6 @@ export default function StaffLoanRequestShow({
                                             setCorrectionForm((current) => ({
                                                 ...current,
                                                 reason: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="correction_information_source">
-                                        Information source
-                                    </Label>
-                                    <Input
-                                        id="correction_information_source"
-                                        required
-                                        value={
-                                            correctionForm.information_source
-                                        }
-                                        onChange={(event) =>
-                                            setCorrectionForm((current) => ({
-                                                ...current,
-                                                information_source:
-                                                    event.target.value,
                                             }))
                                         }
                                     />

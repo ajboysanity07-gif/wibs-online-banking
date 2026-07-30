@@ -115,3 +115,54 @@ test('loan request audit trail component supports a compact sidebar mode', async
     assert.match(staffPageFile, /<LoanRequestAuditTrail[\s\S]*?compact[\s\S]*?\/>/);
     assert.match(staffPageFile, /sidebarFooter=\{sidebarFooterContent\}/);
 });
+
+test('loan request detail page keeps the audit trail in the sidebar and offers a processing-details slot after co-makers', async () => {
+    const detailFile = await readSource([
+        'resources',
+        'js',
+        'components',
+        'loan-request',
+        'loan-request-detail-page.tsx',
+    ]);
+    const adminPageFile = await readSource([
+        'resources',
+        'js',
+        'pages',
+        'admin',
+        'loan-request-show.tsx',
+    ]);
+
+    const mainColumnStart = detailFile.indexOf('!hideMainColumn ? (');
+    const mainColumnEnd = detailFile.indexOf(
+        ') : null}',
+        mainColumnStart,
+    );
+    const mainColumnBlock = detailFile.slice(mainColumnStart, mainColumnEnd);
+
+    assert.match(mainColumnBlock, /LoanRequestCoMakersCard/);
+    assert.match(mainColumnBlock, /\{processingDetails \?\? null\}/);
+    assert.doesNotMatch(mainColumnBlock, /LoanRequestAuditTrail/);
+
+    const sidebarAuditTrailIndex = detailFile.indexOf(
+        '<LoanRequestAuditTrail',
+        mainColumnEnd,
+    );
+    const sidebarFooterIndex = detailFile.indexOf(
+        '{sidebarFooter ?? null}',
+        mainColumnEnd,
+    );
+
+    assert.ok(sidebarAuditTrailIndex !== -1);
+    assert.ok(sidebarAuditTrailIndex < sidebarFooterIndex);
+    assert.match(detailFile, /processingDetails\?: ReactNode;/);
+
+    assert.doesNotMatch(
+        adminPageFile,
+        /<section[^>]*>\s*<ProcessingDetailsPanel/,
+    );
+    assert.match(adminPageFile, /processingDetails=\{/);
+    assert.match(
+        adminPageFile,
+        /processingDetails=\{[\s\S]*?<ProcessingDetailsPanel/,
+    );
+});

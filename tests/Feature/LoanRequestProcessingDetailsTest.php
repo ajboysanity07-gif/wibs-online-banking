@@ -383,6 +383,62 @@ test('processing update round-trips all Charges & Fees fields through save respo
     }
 });
 
+test('processing update no longer requires an information source', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950006');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded verified processing terms.',
+            'loan_request' => [],
+            'processing' => [
+                'notarial_venue' => 'Lianga Municipal Hall',
+            ],
+        ])
+        ->assertOk();
+});
+
+test('saving authority to deduct officers records a reusable contact for the institution', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950007');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded authority to deduct officer.',
+            'loan_request' => [],
+            'processing' => [
+                'authority_to_deduct_institution_name' => 'Fresh Mart Grocery',
+                'authority_to_deduct_officer_1_name' => 'Maria Santos',
+                'authority_to_deduct_officer_1_title' => 'HR Officer',
+            ],
+        ])
+        ->assertOk();
+
+    $contact = App\Models\AuthorityToDeductInstitutionContact::findForInstitution('Fresh Mart Grocery');
+
+    expect($contact)->not->toBeNull()
+        ->and($contact->officer_1_name)->toBe('Maria Santos')
+        ->and($contact->officer_1_title)->toBe('HR Officer');
+});
+
 /**
  * @param  list<string>  $roles
  */
