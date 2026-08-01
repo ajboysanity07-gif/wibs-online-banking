@@ -17,6 +17,7 @@ enum LoanRequestDocumentKey: string
     case AuthorityToDeduct = 'authority_to_deduct';
     case DepedSalaryDeductionWaiver = 'deped_salary_deduction_waiver';
     case PensionDeductionWaiver = 'pension_deduction_waiver';
+    case AtmSalaryDeductionWaiver = 'atm_salary_deduction_waiver';
     case GeneraliApplicationForm = 'generali_application_form';
 
     public function label(): string
@@ -35,6 +36,7 @@ enum LoanRequestDocumentKey: string
             self::AuthorityToDeduct => 'Authority to Deduct',
             self::DepedSalaryDeductionWaiver => 'DepEd Salary Deduction Waiver',
             self::PensionDeductionWaiver => 'Pension Deduction Waiver',
+            self::AtmSalaryDeductionWaiver => 'ATM Salary Deduction Waiver',
             self::GeneraliApplicationForm => 'Generali (GLAPI) Individual Application Form',
         };
     }

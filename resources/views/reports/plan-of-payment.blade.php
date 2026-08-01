@@ -231,7 +231,7 @@
                     <tbody>
                         <tr><td>Principal</td><td>{{ $principalAmt !== null ? $fmt($principalAmt) : '' }}</td></tr>
                         <tr><td>Interest</td><td>{{ $interestAmt !== null ? $fmt($interestAmt) : '' }}</td></tr>
-                        <tr><td>Loan Security / Insurance</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
+                        <tr><td>Savings (2%)</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
                         <tr style="font-weight:700;"><td>Total Amortization</td><td>{{ $totalAmt !== null ? $fmt($totalAmt) : '' }}</td></tr>
                     </tbody>
                 </table>
@@ -302,7 +302,7 @@
                     <tbody>
                         <tr><td>Principal</td><td>{{ $principalAmt !== null ? $fmt($principalAmt) : '' }}</td></tr>
                         <tr><td>Interest</td><td>{{ $interestAmt !== null ? $fmt($interestAmt) : '' }}</td></tr>
-                        <tr><td>Loan Security / Insurance</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
+                        <tr><td>Savings (2%)</td><td>{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td></tr>
                         <tr style="font-weight:700;"><td>Total Amortization</td><td>{{ $totalAmt !== null ? $fmt($totalAmt) : '' }}</td></tr>
                     </tbody>
                 </table>

@@ -27,6 +27,59 @@
     $witnessOneName = trim((string) ($reviewer['witness_one_name'] ?? ''));
     $witnessTwoName = trim((string) ($reviewer['witness_two_name'] ?? ''));
 
+    // Per-character width table for Calibri (em at 1pt scale).
+    // Mirrors the shrink_to_fit approach used in the Affidavit of Undertaking
+    // (AffidavitUndertakingPdfFieldMap + ApprovedLoanPdfTemplateService::resolveShrinkToFitSize):
+    // step font size down in 0.5pt increments until the estimated text width
+    // fits within the ~155pt usable column width. Character ratios are tuned
+    // for Calibri at its default 10pt, with heavier weighting on uppercase
+    // characters common in Philippine addresses.
+    $CHAR_WIDTH = [
+        'W' => 0.75, 'M' => 0.75, 'm' => 0.75,
+        'A' => 0.63, 'B' => 0.63, 'C' => 0.63, 'D' => 0.63, 'E' => 0.63,
+        'F' => 0.63, 'G' => 0.63, 'H' => 0.63, 'I' => 0.38, 'J' => 0.38,
+        'K' => 0.63, 'L' => 0.63, 'N' => 0.63, 'O' => 0.63, 'P' => 0.63,
+        'Q' => 0.63, 'R' => 0.63, 'S' => 0.63, 'T' => 0.63, 'U' => 0.63,
+        'V' => 0.63, 'X' => 0.63, 'Y' => 0.63, 'Z' => 0.63,
+        'a' => 0.48, 'b' => 0.48, 'c' => 0.38, 'd' => 0.48, 'e' => 0.48,
+        'f' => 0.38, 'g' => 0.48, 'h' => 0.48, 'i' => 0.38, 'j' => 0.38,
+        'k' => 0.48, 'l' => 0.38, 'n' => 0.48, 'o' => 0.48, 'p' => 0.48,
+        'q' => 0.48, 'r' => 0.38, 's' => 0.38, 't' => 0.38, 'u' => 0.48,
+        'v' => 0.48, 'w' => 0.68, 'x' => 0.48, 'y' => 0.48, 'z' => 0.48,
+        '0' => 0.52, '1' => 0.52, '2' => 0.52, '3' => 0.52, '4' => 0.52,
+        '5' => 0.52, '6' => 0.52, '7' => 0.52, '8' => 0.52, '9' => 0.52,
+        ' ' => 0.27,
+        ',' => 0.28, '.' => 0.28, ':' => 0.28, ';' => 0.28,
+        "'" => 0.28, '"' => 0.28, '!' => 0.28, '?' => 0.28,
+        '-' => 0.40, '/' => 0.40, '(' => 0.40, ')' => 0.40,
+        '@' => 0.40, '#' => 0.40, '$' => 0.40,
+    ];
+
+    $addressAvailableWidth = 155.0;
+    $addressMaxSize = 10.0;
+    $addressMinSize = 4.0;
+
+    $resolveAddressSize = static function (string $value) use ($CHAR_WIDTH, $addressAvailableWidth, $addressMaxSize, $addressMinSize): string {
+        $length = mb_strlen(trim($value));
+
+        if ($length === 0) {
+            return '';
+        }
+
+        $totalWidthAt1pt = 0.0;
+        foreach (mb_str_split($value) as $char) {
+            $totalWidthAt1pt += $CHAR_WIDTH[$char] ?? 0.48;
+        }
+
+        for ($size = $addressMaxSize; $size >= $addressMinSize; $size -= 0.5) {
+            if ($totalWidthAt1pt * $size <= $addressAvailableWidth) {
+                return 'font-size: ' . number_format($size, 1) . 'pt;';
+            }
+        }
+
+        return 'font-size: ' . number_format($addressMinSize, 1) . 'pt;';
+    };
+
     $formatAmount = static function (mixed $value): string {
         if ($value === null || !is_numeric((string) $value)) {
             return '';
@@ -263,6 +316,12 @@
                 word-break: break-word;
             }
 
+            .address-value--fit {
+                white-space: nowrap;
+                word-break: normal;
+                overflow: hidden;
+            }
+
             .witness-section {
                 margin: 3pt 0 0;
             }
@@ -458,15 +517,15 @@
                 <tr>
                     <td class="address-column">
                         <span class="address-label">Address:</span>
-                        <span class="address-value">{{ $borrowerAddress }}</span>
+                        <span class="address-value address-value--fit" style="{{ $resolveAddressSize($borrowerAddress) }}">{{ $borrowerAddress }}</span>
                     </td>
                     <td class="address-column">
                         <span class="address-label">Address:</span>
-                        <span class="address-value">{{ $coMakerOneAddress }}</span>
+                        <span class="address-value address-value--fit" style="{{ $resolveAddressSize($coMakerOneAddress) }}">{{ $coMakerOneAddress }}</span>
                     </td>
                     <td class="address-column">
                         <span class="address-label">Address:</span>
-                        <span class="address-value">{{ $coMakerTwoAddress }}</span>
+                        <span class="address-value address-value--fit" style="{{ $resolveAddressSize($coMakerTwoAddress) }}">{{ $coMakerTwoAddress }}</span>
                     </td>
                 </tr>
             </table>

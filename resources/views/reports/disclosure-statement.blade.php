@@ -17,12 +17,24 @@
     $loanSecurityAmt     = $loan['loan_security_amount_raw'] ?? null;
     $docStampAmt         = $loan['documentary_stamp_amount_raw'] ?? null;
     $notarialFee         = $loan['notarial_fee_raw'] ?? null;
+    $otherCharges        = $loan['other_charges_amount_raw'] ?? null;
+    $otherChargesDescription = trim((string) ($loan['other_charges_description'] ?? ''));
     $nonFinanceTotal     = $loan['non_finance_charge_total_raw'] ?? null;
     $deductionsTotal     = $loan['deductions_total_raw'] ?? null;
     $netProceeds         = $loan['net_proceeds_raw'] ?? null;
     $amortizationTotal   = $loan['amortization_total_raw'] ?? null;
     $paymentMode         = trim((string) ($loan['payment_mode_workbook'] ?? ''));
     $approvedTerm        = $loan['approved_term_raw'] ?? null;
+    $approvedDateShort   = trim((string) ($loan['approved_date_short'] ?? ''));
+    $maturityDateShort   = trim((string) ($loan['maturity_date_short'] ?? ''));
+
+    $reviewerData        = is_array($reviewer ?? null) ? $reviewer : [];
+    $reviewerName        = trim((string) ($reviewerData['name'] ?? '')) !== ''
+        ? trim((string) $reviewerData['name'])
+        : 'VELINA P. GAMUTAN';
+    $reviewerPosition    = trim((string) ($reviewerData['position'] ?? '')) !== ''
+        ? trim((string) $reviewerData['position'])
+        : 'BOOKKEEPER';
 
     $fmt = static function (mixed $value): string {
         if ($value === null || !is_numeric((string) $value)) {
@@ -64,13 +76,13 @@
                 color: #111;
                 font-family: "Calibri", Arial, sans-serif;
                 font-size: 8pt;
-                line-height: 1.25;
+                line-height: 1.15;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
 
             .report-header {
-                margin: 0 0 4pt;
+                margin: 0 0 12pt;
                 text-align: center;
             }
 
@@ -114,95 +126,35 @@
                 text-align: center;
             }
 
-            .fl {
+            /* ===== Workbook grid (Disclosure Statement sheet, columns A-O) ===== */
+            .wb {
                 width: 100%;
+                table-layout: fixed;
                 border-collapse: collapse;
-                margin-bottom: 2pt;
             }
 
-            .fl td { padding: 1pt 2pt; vertical-align: bottom; }
-            .fl .lbl { white-space: nowrap; font-weight: 600; padding-right: 4pt; }
-            .fl .val { border-bottom: 0.6pt solid #333; font-weight: 700; min-width: 50pt; }
-
-            .ds-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 3pt 0;
+            .wb td {
+                padding: 0 1pt;
+                vertical-align: bottom;
             }
 
-            .ds-table td {
-                padding: 1pt 3pt;
-                vertical-align: top;
-            }
-
-            .ds-num { width: 16pt; font-weight: 700; text-align: center; }
-            .ds-let { width: 16pt; text-align: center; }
-            .ds-label { font-weight: 600; }
-            .ds-section { font-weight: 700; text-transform: uppercase; }
-            .ds-amt {
-                width: 78pt;
-                text-align: right;
-                font-weight: 700;
-                border-bottom: 0.6pt solid #333;
-            }
-            .ds-ref { width: 26pt; text-align: center; font-weight: 700; }
-            .ds-peso { width: 10pt; text-align: center; }
-            .ds-total td { font-weight: 700; text-transform: uppercase; }
-            .ds-total .ds-label { border-top: 0.6pt solid #555; }
-
-            .ds-cols-head td {
-                font-size: 7pt;
-                font-weight: 700;
-                text-align: center;
-                padding-bottom: 0;
-            }
+            .b7  { font-size: 7pt; }
+            .b9  { font-size: 9pt; }
+            .b10 { font-size: 10pt; }
+            .bold { font-weight: 700; }
+            .nw { white-space: nowrap; }
+            .l { text-align: left; }
+            .c { text-align: center; }
+            .r { text-align: right; }
+            .u  { border-bottom: 0.6pt solid #333; }
+            .ut { border-top: 0.6pt solid #333; }
+            .ub { border-top: 0.6pt solid #333; border-bottom: 0.6pt solid #333; }
 
             .ds-opt {
                 font-size: 7.5pt;
-                padding-left: 26pt;
+                white-space: nowrap;
             }
             .ds-opt .box { font-family: "Courier New", monospace; }
-
-            .ds-note {
-                font-size: 7pt;
-                font-style: italic;
-            }
-
-            .ack {
-                margin: 6pt 0 2pt;
-                font-size: 7.5pt;
-            }
-
-            .sig-layout {
-                width: 100%;
-                border-collapse: separate;
-                table-layout: fixed;
-                margin-top: 10pt;
-            }
-
-            .sig-col { width: 50%; vertical-align: top; padding: 0 4pt; }
-
-            .sig-name {
-                min-height: 12pt;
-                padding-top: 16pt;
-                font-size: 8.5pt;
-                font-weight: 700;
-                text-align: center;
-                text-transform: uppercase;
-                border-bottom: 0.6pt solid #333;
-            }
-
-            .sig-lbl {
-                margin-top: 2pt;
-                font-size: 7pt;
-                text-align: center;
-            }
-
-            .notice {
-                margin-top: 6pt;
-                font-size: 7.5pt;
-                font-weight: 700;
-            }
         </style>
     </head>
     <body>
@@ -227,280 +179,436 @@
         <div class="document-title">Disclosure Statement on Loan/Credit Transaction</div>
         <div class="document-subtitle">(As Required Under R.A. 3765 Truth In Lending Act)</div>
 
-        {{-- ===================== BORROWER HEADER ===================== --}}
-        <table class="fl" style="table-layout:fixed;width:100%;">
-            <tr>
-                <td class="lbl" style="width:auto;">Name of Borrower:</td>
-                <td class="val" style="width:48%;">{{ $borrowerName !== '' ? $borrowerName : ' ' }}</td>
-                <td style="width:8pt;"></td>
-                <td class="lbl">Loan Number:</td>
-                <td class="val">{{ $reference !== '' ? $reference : ' ' }}</td>
-            </tr>
-        </table>
-        <table class="fl">
-            <tr>
-                <td class="lbl">Address:</td>
-                <td class="val">{{ $address !== '' ? $address : ' ' }}</td>
-            </tr>
-        </table>
+        {{-- ===================== STATUTORY BODY (workbook rows 7-59) ===================== --}}
+        <table class="wb">
+            <colgroup>
+                <col style="width:3.594%" />
+                <col style="width:3.486%" />
+                <col style="width:7.855%" />
+                <col style="width:8.396%" />
+                <col style="width:7.855%" />
+                <col style="width:10.909%" />
+                <col style="width:2.504%" />
+                <col style="width:8.504%" />
+                <col style="width:2.072%" />
+                <col style="width:10.359%" />
+                <col style="width:2.396%" />
+                <col style="width:9.819%" />
+                <col style="width:4.036%" />
+                <col style="width:13.747%" />
+                <col style="width:4.468%" />
+            </colgroup>
 
-        {{-- ===================== STATUTORY ITEMS ===================== --}}
-        <table class="ds-table">
-            {{-- 1. Loan Granted (A) --}}
+            {{-- Row 7: Name of Borrower / Loan Number --}}
             <tr>
-                <td class="ds-num">1</td>
-                <td class="ds-label ds-section" colspan="3">Loan Granted (Amount to be Financed)</td>
-                <td class="ds-peso">(Php)</td>
-                <td class="ds-amt">{{ $approvedAmount !== null ? $fmt($approvedAmount) : '' }}</td>
-                <td class="ds-ref">( A )</td>
-            </tr>
-
-            {{-- 2. Finance Charges --}}
-            <tr>
-                <td class="ds-num">2</td>
-                <td class="ds-section" colspan="6">Finance Charges</td>
-            </tr>
-            <tr class="ds-cols-head">
+                <td class="bold nw" colspan="3">NAME OF BORROWER:</td>
+                <td class="u" colspan="8">&nbsp;{{ $borrowerName !== '' ? $borrowerName : '' }}</td>
+                <td class="bold c nw" colspan="2">LOAN NUMBER:</td>
+                <td class="u">&nbsp;{{ $reference !== '' ? $reference : '' }}</td>
                 <td></td>
-                <td colspan="4"></td>
-                <td>Not Deducted<br>From Proceeds of Loan</td>
-                <td>Deducted<br>From Proceeds of Loan</td>
-            </tr>
-            {{-- a. Interest --}}
-            <tr>
-                <td class="ds-let">a.</td>
-                <td class="ds-label">Interest</td>
-                <td>{{ $interestRate !== null ? $pct($interestRate) : '' }} p.a.</td>
-                <td colspan="2" style="font-size:7pt;">From _______ To _______</td>
-                <td class="ds-amt">{{ $interestNotDeducted !== null ? 'P '.$fmt($interestNotDeducted) : '' }}</td>
-                <td class="ds-amt">&nbsp;</td>
-            </tr>
-            <tr><td></td><td class="ds-opt" colspan="6">
-                <span class="box">(&nbsp;&nbsp;)</span> Single
-                <span class="box">(&nbsp;&nbsp;)</span> Compound
-                <span class="box">(&nbsp;&nbsp;)</span> Semi-Annual
-                <span class="box">(&nbsp;&nbsp;)</span> Annual
-            </td></tr>
-            <tr><td></td><td class="ds-opt" colspan="6">
-                <span class="box">(&nbsp;&nbsp;)</span> Monthly
-                <span class="box">(&nbsp;&nbsp;)</span> Quarterly
-                <span class="box">(&nbsp;&nbsp;)</span> Semi-Monthly
-                <span class="box">(&nbsp;&nbsp;)</span> Lump-sum
-            </td></tr>
-            {{-- b. Premium Charges --}}
-            <tr>
-                <td class="ds-let">b.</td>
-                <td class="ds-label" colspan="2">Premium Charges</td>
-                <td colspan="2">(&nbsp;&nbsp;&nbsp;%&nbsp;&nbsp;&nbsp;)</td>
-                <td class="ds-amt">&nbsp;</td>
-                <td class="ds-amt">&nbsp;</td>
-            </tr>
-            {{-- c. Commitment Fee --}}
-            <tr>
-                <td class="ds-let">c.</td>
-                <td class="ds-label" colspan="4">Commitment Fee</td>
-                <td class="ds-amt">&nbsp;</td>
-                <td class="ds-amt">&nbsp;</td>
-            </tr>
-            {{-- d. Guarantee Fee --}}
-            <tr>
-                <td class="ds-let">d.</td>
-                <td class="ds-label" colspan="4">Guarantee Fee</td>
-                <td class="ds-amt">&nbsp;</td>
-                <td class="ds-amt">&nbsp;</td>
-            </tr>
-            {{-- e. Other Charges --}}
-            <tr>
-                <td class="ds-let">e.</td>
-                <td class="ds-label" colspan="4">Other Charges Incidental To The Extension of Credit</td>
-                <td class="ds-amt">&nbsp;</td>
-                <td class="ds-amt">&nbsp;</td>
-            </tr>
-            <tr>
-                <td></td>
-                <td style="font-size:7pt;">(Specify)</td>
-                <td class="ds-label" colspan="2">Service Charge At {{ $serviceChargeRate !== null ? $pct($serviceChargeRate) : '' }}</td>
-                <td></td>
-                <td class="ds-amt">&nbsp;</td>
-                <td class="ds-amt">{{ $serviceChargeAmt !== null ? 'P '.$fmt($serviceChargeAmt) : '' }}</td>
-            </tr>
-            {{-- Total Finance Charges (B) --}}
-            <tr class="ds-total">
-                <td></td>
-                <td class="ds-label" colspan="4">Total Finance Charges</td>
-                <td class="ds-amt">{{ $financeChargeTotal !== null ? 'P '.$fmt($financeChargeTotal) : '' }}</td>
-                <td class="ds-ref">( B )</td>
             </tr>
 
-            {{-- 3. Non Finance Charges --}}
+            {{-- Row 8: Address --}}
             <tr>
-                <td class="ds-num">3</td>
-                <td class="ds-section" colspan="6">Non Finance Charges</td>
-            </tr>
-            <tr>
+                <td class="bold nw" colspan="2">ADDRESS:</td>
+                <td class="u" colspan="12">&nbsp;{{ $address !== '' ? $address : '' }}</td>
                 <td></td>
-                <td class="ds-label" colspan="4">a. Insurance Premium</td>
-                <td class="ds-amt">{{ $insurancePremium !== null ? 'P '.$fmt($insurancePremium) : '' }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="ds-label" colspan="4">b. Loan Security</td>
-                <td class="ds-amt">{{ $loanSecurityAmt !== null ? 'P '.$fmt($loanSecurityAmt) : '' }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="ds-label" colspan="4">c. Documentary Stamps</td>
-                <td class="ds-amt">{{ $docStampAmt !== null ? 'P '.$fmt($docStampAmt) : '' }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="ds-label" colspan="4">d. Notarial Fees</td>
-                <td class="ds-amt">{{ $notarialFee !== null ? 'P '.$fmt($notarialFee) : '' }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="ds-label" colspan="4">e. Others:</td>
-                <td class="ds-amt">P&nbsp;</td>
-                <td></td>
-            </tr>
-            {{-- Total Non Finance Charges (C) --}}
-            <tr class="ds-total">
-                <td></td>
-                <td class="ds-label" colspan="4">Total Non Finance Charges</td>
-                <td class="ds-amt">{{ $nonFinanceTotal !== null ? 'P '.$fmt($nonFinanceTotal) : '' }}</td>
-                <td class="ds-ref">( C )</td>
             </tr>
 
-            {{-- 4. Total Deductions (D) --}}
-            <tr class="ds-total">
-                <td class="ds-num">4</td>
-                <td class="ds-label" colspan="4">Total Deductions From Proceeds of Loan (B + C)</td>
-                <td class="ds-amt">{{ $deductionsTotal !== null ? 'P '.$fmt($deductionsTotal) : '' }}</td>
-                <td class="ds-ref">( D )</td>
+            {{-- Row 9: 1. Loan Granted (A) --}}
+            <tr>
+                <td class="r">1</td>
+                <td class="bold nw" colspan="6">LOAN GRANTED (Amount to be financed)</td>
+                <td class="ub" colspan="5">&nbsp;</td>
+                <td class="bold nw">(Php)</td>
+                <td class="b10 bold r ub">{{ $approvedAmount !== null ? $fmt($approvedAmount) : '' }}</td>
+                <td class="bold nw">( A )</td>
             </tr>
 
-            {{-- 5. Net Proceeds (E) --}}
-            <tr class="ds-total">
-                <td class="ds-num">5</td>
-                <td class="ds-label" colspan="4">Net Proceeds of Loan (A Less D)</td>
-                <td class="ds-amt">{{ $netProceeds !== null ? 'P '.$fmt($netProceeds) : '' }}</td>
-                <td class="ds-ref">( E )</td>
+            {{-- Row 10: 2. Finance Charges --}}
+            <tr>
+                <td class="r">2</td>
+                <td class="bold" colspan="14">FINANCE CHARGES</td>
             </tr>
 
-            {{-- 6. Percentage of Finance Charges -- blank in statutory template (see TODO) --}}
+            {{-- Rows 11-13: Not Deducted / Deducted header stacks --}}
+            <tr>
+                <td colspan="9"></td>
+                <td class="c">Not Deducted</td>
+                <td></td>
+                <td class="c">Deducted</td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td colspan="9"></td>
+                <td class="c">From</td>
+                <td></td>
+                <td class="c">From</td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td colspan="9"></td>
+                <td class="c" colspan="3">Proceeds of Loan</td>
+                <td colspan="3"></td>
+            </tr>
+
+            {{-- Row 14: a. Interest --}}
+            <tr>
+                <td class="r">a.</td>
+                <td class="nw" colspan="2">Interest</td>
+                <td></td>
+                <td class="b9 bold c u">{{ $interestRate !== null ? $pct($interestRate) : '' }}</td>
+                <td class="c nw">% p.a. From</td>
+                <td class="b7 u">{{ $approvedDateShort !== '' ? $approvedDateShort : '' }}</td>
+                <td class="c">To</td>
+                <td class="b7 u">{{ $maturityDateShort !== '' ? $maturityDateShort : '' }}</td>
+                <td class="r">P</td>
+                <td class="b9 bold r u">{{ $interestNotDeducted !== null ? $fmt($interestNotDeducted) : '' }}</td>
+                <td class="r">P</td>
+                <td class="b9 bold u">&nbsp;</td>
+                <td></td>
+                <td></td>
+            </tr>
+
+            {{-- Rows 15-18: compounding frequency checkboxes --}}
+            <tr>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(     )</span> Single</td>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(               )</span> Monthly</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(     )</span> Compound</td>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(               )</span> Quarterly</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td></td>
+                <td class="u">&nbsp;</td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(     )</span> Semi-Annual</td>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(               )</span> Semi-Monthly</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td></td>
+                <td class="u">&nbsp;</td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(     )</span> Annual</td>
+                <td></td>
+                <td class="ds-opt" colspan="2"><span class="box">(               )</span> Lump-sum</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td></td>
+                <td class="u">&nbsp;</td>
+                <td colspan="3"></td>
+            </tr>
+
+            {{-- Rows 19-22: b-e finance charge lines --}}
+            <tr>
+                <td class="r">b.</td>
+                <td class="nw" colspan="3">Premium Charges</td>
+                <td colspan="2"><span class="box">(      %    )</span></td>
+                <td colspan="9"></td>
+            </tr>
+            <tr>
+                <td class="r">c.</td>
+                <td class="nw" colspan="4">Commitment Fee</td>
+                <td colspan="10"></td>
+            </tr>
+            <tr>
+                <td class="r">d.</td>
+                <td class="nw" colspan="4">Guarantee Fee</td>
+                <td colspan="10"></td>
+            </tr>
+            <tr>
+                <td class="r">e.</td>
+                <td class="nw" colspan="13">Other Charges Incidental To The Extension of Credit</td>
+                <td colspan="1"></td>
+            </tr>
+
+            {{-- Row 23: (Specify) Service Charge At --}}
+            <tr>
+                <td></td>
+                <td class="nw" colspan="2">(Specify)</td>
+                <td class="b9 bold r u" colspan="2">Service Charge At</td>
+                <td class="b9 bold l u">{{ $serviceChargeRate !== null ? $pct($serviceChargeRate) : '' }}</td>
+                <td colspan="2"></td>
+                <td class="r">P</td>
+                <td class="u">&nbsp;</td>
+                <td class="r">P</td>
+                <td class="b9 r u">{{ $serviceChargeAmt !== null ? $fmt($serviceChargeAmt) : '' }}</td>
+                <td class="r">P</td>
+                <td class="b9 bold r u">{{ $serviceChargeAmt !== null ? $fmt($serviceChargeAmt) : '' }}</td>
+                <td></td>
+            </tr>
+
+            {{-- Row 24: blank underline strip --}}
+            <tr>
+                <td colspan="3"></td>
+                <td class="ub" colspan="3">&nbsp;</td>
+                <td colspan="2"></td>
+                <td class="ub">&nbsp;</td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td></td>
+                <td class="ub">&nbsp;</td>
+                <td colspan="2"></td>
+            </tr>
+
+            {{-- Row 25: Total Finance Charges (B) --}}
+            <tr>
+                <td class="bold" colspan="9">TOTAL FINANCE CHARGES</td>
+                <td class="ut">&nbsp;</td>
+                <td></td>
+                <td class="ut">&nbsp;</td>
+                <td class="r">P</td>
+                <td class="b10 bold r ub">{{ $financeChargeTotal !== null ? $fmt($financeChargeTotal) : '' }}</td>
+                <td class="bold nw">( B )</td>
+            </tr>
+
+            {{-- Row 27: 3. Non Finance Charges --}}
+            <tr>
+                <td class="r">3</td>
+                <td class="bold" colspan="14">NON FINANCE CHARGES</td>
+            </tr>
+
+            {{-- Rows 28-32: a-e non finance charge lines --}}
+            <tr>
+                <td></td>
+                <td class="nw" colspan="3">a. Insurance Premium</td>
+                <td class="r">P</td>
+                <td class="b9 r u">{{ $insurancePremium !== null ? $fmt($insurancePremium) : '' }}</td>
+                <td colspan="9"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="nw" colspan="3">b. Loan Security</td>
+                <td class="r">P</td>
+                <td class="b9 r ub">{{ $loanSecurityAmt !== null ? $fmt($loanSecurityAmt) : '' }}</td>
+                <td colspan="9"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="nw" colspan="3">c. Documentary Stamps</td>
+                <td class="r">P</td>
+                <td class="b9 r ub">{{ $docStampAmt !== null ? $fmt($docStampAmt) : '' }}</td>
+                <td colspan="9"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="nw" colspan="3">d. Notarial Fees</td>
+                <td class="r">P</td>
+                <td class="b9 r ub">{{ $notarialFee !== null ? $fmt($notarialFee) : '' }}</td>
+                <td colspan="9"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="nw" colspan="3">e. Others:{{ $otherChargesDescription !== '' ? ' '.$otherChargesDescription : '' }}</td>
+                <td class="r">P</td>
+                <td class="b9 r ub">{{ $otherCharges !== null ? $fmt($otherCharges) : '' }}</td>
+                <td colspan="9"></td>
+            </tr>
+
+            {{-- Row 33: Total Non Finance Charges (C) --}}
+            <tr>
+                <td class="bold" colspan="8">TOTAL NON FINANCE CHARGES</td>
+                <td class="r">P</td>
+                <td class="u">&nbsp;</td>
+                <td></td>
+                <td class="b9 r u">{{ $nonFinanceTotal !== null ? $fmt($nonFinanceTotal) : '' }}</td>
+                <td class="r">P</td>
+                <td class="b9 bold r u">{{ $nonFinanceTotal !== null ? $fmt($nonFinanceTotal) : '' }}</td>
+                <td class="bold nw">( C )</td>
+            </tr>
+
+            {{-- Row 34: 4. Total Deductions (D) --}}
+            <tr>
+                <td class="r">4</td>
+                <td class="nw" colspan="10">TOTAL DEDUCTIONS FROM PROCEEDS OF LOAN (B + C)</td>
+                <td class="ut">&nbsp;</td>
+                <td class="r">P</td>
+                <td class="b9 bold r ub">{{ $deductionsTotal !== null ? $fmt($deductionsTotal) : '' }}</td>
+                <td class="bold nw">( D )</td>
+            </tr>
+
+            {{-- Row 35: 5. Net Proceeds (E) --}}
+            <tr>
+                <td class="r">5</td>
+                <td class="nw" colspan="10">NET PROCEEDS OF LOAN (A LESS D)</td>
+                <td></td>
+                <td class="r">P</td>
+                <td class="b10 bold r ub">{{ $netProceeds !== null ? $fmt($netProceeds) : '' }}</td>
+                <td class="bold nw">( E )</td>
+            </tr>
+
+            {{-- Row 36-37: 6. Percentage of Finance Charges -- blank in statutory template (see TODO) --}}
             {{-- TODO(EIR): R.A. 3765 percentage-of-finance-charges value is not computed by the
                  app and is blank in the source workbook. Confirm with WIBS before wiring. --}}
             <tr>
-                <td class="ds-num">6</td>
-                <td class="ds-label" colspan="4">Percentage of Finance Charges to Total Amount Financed</td>
-                <td class="ds-amt">&nbsp;%</td>
-                <td></td>
+                <td class="r">6</td>
+                <td colspan="14">PERCENTAGE OF FINANCE CHARGES TO TOTAL AMOUNT FINANCED</td>
             </tr>
             <tr>
                 <td></td>
-                <td class="ds-note" colspan="6">(Computed in accordance with Method of Computations in accordance with Sec. 2 (1) of CB Circular 158)</td>
+                <td colspan="11">(Computed in accordance with (Method of Computations in accordance with Sec. 2 (1) of CB Circular 158)</td>
+                <td class="nw">%</td>
+                <td colspan="2"></td>
             </tr>
 
-            {{-- 7. Effective Interest Rate -- blank in statutory template (see TODO) --}}
+            {{-- Row 38: 7. Effective Interest Rate -- blank in statutory template (see TODO) --}}
             {{-- TODO(EIR): Effective interest rate is not computed by the app and is blank in
                  the source workbook. Do not guess the R.A. 3765 formula. Confirm with WIBS. --}}
             <tr>
-                <td class="ds-num">7</td>
-                <td class="ds-label" colspan="4">Effective Interest Rate</td>
-                <td class="ds-amt">&nbsp;% p.a.</td>
+                <td class="r">7</td>
+                <td class="nw" colspan="4">EFFECTIVE INTEREST RATE</td>
+                <td class="u">&nbsp;</td>
+                <td class="l nw" colspan="2">% p.a.</td>
+                <td colspan="7"></td>
+            </tr>
+
+            {{-- Row 39-42: 8. Schedule of Payment --}}
+            <tr>
+                <td class="r">8</td>
+                <td class="nw" colspan="4">SCHEDULE OF PAYMENT</td>
+                <td class="ut">&nbsp;</td>
+                <td colspan="9"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="nw" colspan="3">a. Single Payment Due On</td>
+                <td class="r">P</td>
+                <td class="b9 r u">{{ $maturityDateShort !== '' ? $maturityDateShort : '' }}</td>
+                <td colspan="9"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="nw" colspan="3">b. Total Installment Payment</td>
+                <td class="r">P</td>
+                <td class="b10 bold r ub">{{ $amortizationTotal !== null ? $fmt($amortizationTotal) : '' }}</td>
+                <td class="b10 bold l" colspan="2">{{ $paymentMode !== '' ? $paymentMode : '' }}</td>
+                <td colspan="7"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="nw" colspan="2">Payable in</td>
+                <td class="b9 bold c u">{{ $approvedTerm !== null ? $int($approvedTerm) : '' }}</td>
+                <td class="nw" colspan="2">months/quarter/years</td>
+                <td colspan="9"></td>
+            </tr>
+
+            {{-- Row 43-46: 9. Collateral --}}
+            <tr>
+                <td class="r">9</td>
+                <td colspan="14">COLLATERAL</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="14">This loan is wholly/partly secured by:</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="ds-opt" colspan="3"><span class="box">(               )</span> Check/s</td>
+                <td class="ds-opt" colspan="2"><span class="box">(               )</span> Chattels</td>
+                <td class="ds-opt" colspan="6"><span class="box">(    )</span> Government Securities</td>
+                <td colspan="3"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="ds-opt" colspan="3"><span class="box">(               )</span> Real Estate</td>
+                <td class="ds-opt" colspan="3"><span class="box">(               )</span> Unsecured</td>
+                <td colspan="8"></td>
+            </tr>
+
+            {{-- Row 47-48: 10. Additional Charges --}}
+            <tr>
+                <td class="r">10</td>
+                <td colspan="14">ADDITIONAL CHARGES IN CASE CERTAIN STIPULATIONS ARE NOT MET BY THE BORROWER</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="u" colspan="4">&nbsp;</td>
+                <td></td>
+                <td class="u" colspan="4">&nbsp;</td>
+                <td colspan="5"></td>
+            </tr>
+
+            {{-- Rows 49-53: Certified Correct block --}}
+            <tr>
+                <td colspan="11"></td>
+                <td class="bold" colspan="3">CERTIFIED CORRECT:</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="11"></td>
+                <td class="b9 c u" colspan="3">{{ mb_strtoupper($reviewerName) }}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="11"></td>
+                <td class="c nw" colspan="3">Signature Over Printed Name</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="11"></td>
+                <td class="c u" colspan="3">{{ mb_strtoupper($reviewerPosition) }}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="11"></td>
+                <td class="c nw ut" colspan="3">Position</td>
                 <td></td>
             </tr>
 
-            {{-- 8. Schedule of Payment --}}
+            {{-- Rows 54-55: Acknowledgement --}}
             <tr>
-                <td class="ds-num">8</td>
-                <td class="ds-section" colspan="6">Schedule of Payment</td>
+                <td colspan="2"></td>
+                <td colspan="13">I ACKNOWLEDGE RECEIPT OF A COPY OF THE STATEMENT PRIOR TO THE CONSUMMATION OF THE CREDIT TRANSACTION AND CERTIFY</td>
             </tr>
             <tr>
                 <td></td>
-                <td class="ds-label" colspan="4">a. Single Payment Due On</td>
-                <td class="ds-amt">P&nbsp;</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="ds-label" colspan="2">b. Total Installment Payment</td>
-                <td colspan="2">{{ $paymentMode !== '' ? $paymentMode : '' }}</td>
-                <td class="ds-amt">{{ $amortizationTotal !== null ? 'P '.$fmt($amortizationTotal) : '' }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td class="ds-label" colspan="4">Payable in {{ $approvedTerm !== null ? $int($approvedTerm) : '____' }} months/quarter/years</td>
-                <td></td>
-                <td></td>
+                <td colspan="14">THAT I UNDERSTAND AND FULLY AGREE TO THE TERMS AND CONDITIONS THEREOF.</td>
             </tr>
 
-            {{-- 9. Collateral --}}
-            <tr>
-                <td class="ds-num">9</td>
-                <td class="ds-section" colspan="6">Collateral</td>
-            </tr>
+            {{-- Rows 57-58: Date / borrower signature --}}
             <tr>
                 <td></td>
-                <td colspan="6">This loan is wholly/partly secured by:</td>
+                <td class="l nw" colspan="2">DATE:</td>
+                <td class="b9 c u" colspan="3">&nbsp;</td>
+                <td colspan="5"></td>
+                <td class="b9 c u" colspan="3">{{ $borrowerName !== '' ? $borrowerName : '' }}</td>
+                <td></td>
             </tr>
-            <tr><td></td><td class="ds-opt" colspan="6">
-                <span class="box">(&nbsp;&nbsp;)</span> Check/s
-                <span class="box">(&nbsp;&nbsp;)</span> Chattels
-                <span class="box">(&nbsp;&nbsp;)</span> Government Securities
-            </td></tr>
-            <tr><td></td><td class="ds-opt" colspan="6">
-                <span class="box">(&nbsp;&nbsp;)</span> Real Estate
-                <span class="box">(&nbsp;&nbsp;)</span> Unsecured
-            </td></tr>
-
-            {{-- 10. Additional Charges --}}
             <tr>
-                <td class="ds-num">10</td>
-                <td class="ds-label" colspan="6">Additional Charges In Case Certain Stipulations Are Not Met By The Borrower</td>
+                <td colspan="11"></td>
+                <td class="c nw ut" colspan="3">Signature of Borrower Over Printed Name</td>
+            </tr>
+
+            {{-- Row 59: Notice --}}
+            <tr>
+                <td></td>
+                <td colspan="14">NOTICE TO BORROWER: YOU ARE ENTITLED TO A COPY OF THE PAPER WHICH YOU SHALL SIGN.</td>
             </tr>
         </table>
-
-        {{-- ===================== CERTIFIED CORRECT ===================== --}}
-        <table class="sig-layout">
-            <tr>
-                <td class="sig-col">&nbsp;</td>
-                <td class="sig-col">
-                    <div style="font-size:7.5pt;font-weight:700;">Certified Correct:</div>
-                    <div class="sig-name">VELINA P. GAMUTAN</div>
-                    <div class="sig-lbl">Signature Over Printed Name</div>
-                    <div class="sig-name" style="padding-top:8pt;">BOOKKEEPER</div>
-                    <div class="sig-lbl">Position</div>
-                </td>
-            </tr>
-        </table>
-
-        {{-- ===================== ACKNOWLEDGEMENT ===================== --}}
-        <div class="ack">
-            I ACKNOWLEDGE RECEIPT OF A COPY OF THE STATEMENT PRIOR TO THE CONSUMMATION OF THE
-            CREDIT TRANSACTION AND CERTIFY THAT I UNDERSTAND AND FULLY AGREE TO THE TERMS AND
-            CONDITIONS THEREOF.
-        </div>
-
-        <table class="sig-layout">
-            <tr>
-                <td class="sig-col">
-                    <div style="font-size:7.5pt;">Date: _______________</div>
-                </td>
-                <td class="sig-col">
-                    <div class="sig-name">{{ $borrowerName !== '' ? $borrowerName : ' ' }}</div>
-                    <div class="sig-lbl">Signature of Borrower Over Printed Name</div>
-                </td>
-            </tr>
-        </table>
-
-        <div class="notice">
-            NOTICE TO BORROWER: YOU ARE ENTITLED TO A COPY OF THE PAPER WHICH YOU SHALL SIGN.
-        </div>
     </body>
 </html>

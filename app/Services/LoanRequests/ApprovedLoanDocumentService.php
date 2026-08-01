@@ -10,6 +10,7 @@ use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\Wmaster;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\AtmSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
@@ -53,6 +54,7 @@ class ApprovedLoanDocumentService
         'generali' => 'generali.pdf',
         'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver.pdf',
         'pension_deduction_waiver' => 'pension-deduction-waiver.pdf',
+        'atm_salary_deduction_waiver' => 'atm-salary-deduction-waiver.pdf',
         'generali_application_form' => 'generali-application-form.pdf',
     ];
 
@@ -73,6 +75,7 @@ class ApprovedLoanDocumentService
         'authority_to_deduct' => '11-Authority-to-Deduct.pdf',
         'deped_salary_deduction_waiver' => '12-DepEd-Salary-Deduction-Waiver.pdf',
         'pension_deduction_waiver' => '13-Pension-Deduction-Waiver.pdf',
+        'atm_salary_deduction_waiver' => '15-ATM-Salary-Deduction-Waiver.pdf',
         'generali_application_form' => '14-Generali-Application-Form.pdf',
     ];
 
@@ -93,6 +96,7 @@ class ApprovedLoanDocumentService
         'authority_to_deduct' => 'authority-to-deduct-%s.pdf',
         'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver-%s.pdf',
         'pension_deduction_waiver' => 'pension-deduction-waiver-%s.pdf',
+        'atm_salary_deduction_waiver' => 'atm-salary-deduction-waiver-%s.pdf',
         'generali_application_form' => 'generali-application-form-%s.pdf',
     ];
 
@@ -117,6 +121,7 @@ class ApprovedLoanDocumentService
         private AuthorityToDeductPdfService $authorityToDeductPdfService,
         private DepedSalaryDeductionWaiverPdfFieldMap $depedSalaryDeductionWaiverPdfFieldMap,
         private PensionDeductionWaiverPdfFieldMap $pensionDeductionWaiverPdfFieldMap,
+        private AtmSalaryDeductionWaiverPdfFieldMap $atmSalaryDeductionWaiverPdfFieldMap,
         private GeneraliApplicationFormPdfFieldMap $generaliApplicationFormPdfFieldMap,
     ) {}
 
@@ -281,6 +286,23 @@ class ApprovedLoanDocumentService
         );
     }
 
+    public function atmSalaryDeductionWaiver(LoanRequest $loanRequest): Response
+    {
+        return $this->downloadApprovedDocument(
+            $loanRequest,
+            'atm_salary_deduction_waiver',
+            'application/pdf',
+            function (string $outputPath, array $documentData): void {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['atm_salary_deduction_waiver'],
+                    $outputPath,
+                    $documentData,
+                    $this->atmSalaryDeductionWaiverPdfFieldMap,
+                );
+            },
+        );
+    }
+
     public function generaliApplicationForm(LoanRequest $loanRequest): Response
     {
         return $this->downloadApprovedDocument(
@@ -372,6 +394,11 @@ class ApprovedLoanDocumentService
                 $loanRequest,
                 $flatValues,
             );
+            $includeAuthorityToDeduct = $this->documentCatalog->isApplicable(
+                LoanRequestDocumentKey::AuthorityToDeduct,
+                $loanRequest,
+                $flatValues,
+            );
             $includeDepedSalaryDeductionWaiver = $this->documentCatalog->isApplicable(
                 LoanRequestDocumentKey::DepedSalaryDeductionWaiver,
                 $loanRequest,
@@ -382,6 +409,18 @@ class ApprovedLoanDocumentService
                 $loanRequest,
                 $flatValues,
             );
+            // Also requires the real PDF template to exist -- unlike the other
+            // document types here, no blank template has been supplied for this
+            // one yet (see AtmSalaryDeductionWaiverPdfFieldMap's docblock), and
+            // packageZip() generates unconditionally rather than going through
+            // the readiness/blockers gate that protects the single-document
+            // generation flow. Skip it silently until the template lands instead
+            // of crashing the whole ZIP download for an applicable borrower.
+            $includeAtmSalaryDeductionWaiver = $this->documentCatalog->isApplicable(
+                LoanRequestDocumentKey::AtmSalaryDeductionWaiver,
+                $loanRequest,
+                $flatValues,
+            ) && $this->documentCatalog->templateBlockers(LoanRequestDocumentKey::AtmSalaryDeductionWaiver) === [];
 
             $applicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['application_form'];
             $grepalifePath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['grepalife'];
@@ -396,6 +435,7 @@ class ApprovedLoanDocumentService
             $authorityToDeductPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['authority_to_deduct'];
             $depedSalaryDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['deped_salary_deduction_waiver'];
             $pensionDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['pension_deduction_waiver'];
+            $atmSalaryDeductionWaiverPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['atm_salary_deduction_waiver'];
             $generaliApplicationFormPath = $documentDirectory.DIRECTORY_SEPARATOR.self::ZIP_DOCUMENT_NAMES['generali_application_form'];
 
             $this->loanRequestPdfService->saveToPath($loanRequest, $applicationFormPath);
@@ -447,10 +487,12 @@ class ApprovedLoanDocumentService
                 $documentData,
                 $this->generaliPdfFieldMap,
             );
-            $this->authorityToDeductPdfService->generate(
-                $authorityToDeductPath,
-                $documentData,
-            );
+            if ($includeAuthorityToDeduct) {
+                $this->authorityToDeductPdfService->generate(
+                    $authorityToDeductPath,
+                    $documentData,
+                );
+            }
             if ($includeDepedSalaryDeductionWaiver) {
                 $this->approvedLoanPdfTemplateService->generate(
                     self::PDF_TEMPLATE_FILENAMES['deped_salary_deduction_waiver'],
@@ -465,6 +507,14 @@ class ApprovedLoanDocumentService
                     $pensionDeductionWaiverPath,
                     $documentData,
                     $this->pensionDeductionWaiverPdfFieldMap,
+                );
+            }
+            if ($includeAtmSalaryDeductionWaiver) {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['atm_salary_deduction_waiver'],
+                    $atmSalaryDeductionWaiverPath,
+                    $documentData,
+                    $this->atmSalaryDeductionWaiverPdfFieldMap,
                 );
             }
             $this->approvedLoanPdfTemplateService->generate(
@@ -491,9 +541,10 @@ class ApprovedLoanDocumentService
                 $includeUndertakingBarangay ? $undertakingBarangayPath : null,
                 $loanSecurityAgreementPath,
                 $generaliPath,
-                $authorityToDeductPath,
+                $includeAuthorityToDeduct ? $authorityToDeductPath : null,
                 $includeDepedSalaryDeductionWaiver ? $depedSalaryDeductionWaiverPath : null,
                 $includePensionDeductionWaiver ? $pensionDeductionWaiverPath : null,
+                $includeAtmSalaryDeductionWaiver ? $atmSalaryDeductionWaiverPath : null,
                 $generaliApplicationFormPath,
             ])));
         } catch (Throwable $exception) {
@@ -646,6 +697,18 @@ class ApprovedLoanDocumentService
                         $path,
                         $documentData,
                         $this->pensionDeductionWaiverPdfFieldMap,
+                    );
+                },
+            ),
+            LoanRequestDocumentKey::AtmSalaryDeductionWaiver => $this->generatePdfDocumentToPath(
+                $outputPath,
+                $documentKey,
+                function (string $path) use ($documentData): void {
+                    $this->approvedLoanPdfTemplateService->generate(
+                        self::PDF_TEMPLATE_FILENAMES['atm_salary_deduction_waiver'],
+                        $path,
+                        $documentData,
+                        $this->atmSalaryDeductionWaiverPdfFieldMap,
                     );
                 },
             ),
@@ -934,7 +997,7 @@ class ApprovedLoanDocumentService
             $overrideLoan['loan_security_rate_raw']
                 ?? $flatValues['loan_security_rate']
                 ?? null,
-            0.0,
+            0.02,
         );
         $loanSecurityAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $loanSecurityRateRaw !== null
@@ -945,13 +1008,13 @@ class ApprovedLoanDocumentService
             $overrideLoan['savings_rate_raw']
                 ?? $flatValues['savings_rate']
                 ?? null,
-            0.0,
+            0.02,
         );
         $documentaryStampRateRaw = $this->resolveNumericOverride(
             $overrideLoan['documentary_stamp_rate_raw']
                 ?? $flatValues['documentary_stamp_rate']
                 ?? null,
-            null,
+            0.0075,
         );
         $documentaryStampAmountRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $documentaryStampRateRaw !== null
@@ -962,7 +1025,18 @@ class ApprovedLoanDocumentService
             $overrideLoan['notarial_fee_raw']
                 ?? $flatValues['notarial_fee']
                 ?? null,
+            100.0,
+        );
+        $otherChargesAmountRaw = $this->resolveNumericOverride(
+            $overrideLoan['other_charges_amount_raw']
+                ?? $flatValues['other_charges_amount']
+                ?? null,
             null,
+        );
+        $otherChargesDescription = $this->normalizeText(
+            $overrideLoan['other_charges_description']
+                ?? $flatValues['other_charges_description']
+                ?? null,
         );
         $principalAmortizationRaw = $this->roundCurrency(
             $approvedAmountRaw !== null && $amortizationCount !== null && $amortizationCount > 0
@@ -986,8 +1060,13 @@ class ApprovedLoanDocumentService
                 $loanSecurityAmortizationRaw,
             ),
         );
+        // Interest is never deducted from the proceeds: it is amortized into
+        // the payment schedule and disclosed in the "Not Deducted From
+        // Proceeds of Loan" column, matching the Disclosure Statement
+        // workbook (R.A. 3765). Only deducted finance charges (service
+        // charge) contribute to the deductions total.
         $financeChargeTotalRaw = $this->roundCurrency(
-            $this->sumAmounts($interestNotDeductedRaw, $serviceChargeAmountRaw),
+            $this->sumAmounts($serviceChargeAmountRaw),
         );
         $nonFinanceChargeTotalRaw = $this->roundCurrency(
             $this->sumAmounts(
@@ -995,6 +1074,7 @@ class ApprovedLoanDocumentService
                 $loanSecurityAmountRaw,
                 $documentaryStampAmountRaw,
                 $notarialFeeRaw,
+                $otherChargesAmountRaw,
             ),
         );
         $deductionsTotalRaw = $this->roundCurrency(
@@ -1028,6 +1108,12 @@ class ApprovedLoanDocumentService
         $depedDeductionAmountWords = $this->formatCurrencyWords($depedDeductionAmountRaw);
         $pensionDeductionAmountRaw = $this->normalizeNumericValue(
             $overrideProcessing['pension_deduction_amount'] ?? $flatValues['pension_deduction_amount'] ?? null,
+        );
+        $atmSalaryDeductionAmountRaw = $this->normalizeNumericValue(
+            $overrideProcessing['atm_salary_deduction_amount'] ?? $flatValues['atm_salary_deduction_amount'] ?? null,
+        );
+        $authorityToDeductOfficersUnknown = (bool) (
+            $overrideProcessing['authority_to_deduct_officers_unknown'] ?? $flatValues['authority_to_deduct_officers_unknown'] ?? false
         );
 
         $documentData = [
@@ -1113,6 +1199,8 @@ class ApprovedLoanDocumentService
                 'loan_security_amount_raw' => $loanSecurityAmountRaw,
                 'documentary_stamp_amount_raw' => $documentaryStampAmountRaw,
                 'notarial_fee_raw' => $notarialFeeRaw,
+                'other_charges_amount_raw' => $otherChargesAmountRaw,
+                'other_charges_description' => $otherChargesDescription,
                 'finance_charge_total_raw' => $financeChargeTotalRaw,
                 'non_finance_charge_total_raw' => $nonFinanceChargeTotalRaw,
                 'deductions_total_raw' => $deductionsTotalRaw,
@@ -1131,6 +1219,9 @@ class ApprovedLoanDocumentService
             'authorization' => [
                 'release_method' => $this->normalizeText(
                     $overrideProcessing['release_method'] ?? $flatValues['release_method'] ?? null,
+                ),
+                'payment_option' => $this->normalizeText(
+                    $overrideProcessing['payment_option'] ?? $flatValues['payment_option'] ?? null,
                 ),
                 'payout_bank_name' => $this->normalizeText(
                     $overrideProcessing['payout_bank_name'] ?? $flatValues['payout_bank_name'] ?? null,
@@ -1172,22 +1263,20 @@ class ApprovedLoanDocumentService
                 'institution_name' => $this->normalizeText(
                     $overrideProcessing['authority_to_deduct_institution_name'] ?? $flatValues['authority_to_deduct_institution_name'] ?? null,
                 ),
-                'officer_1_name' => $this->normalizeText(
+                // When staff has checked "officers not yet known," the generated
+                // document should show blank officer fields rather than whatever
+                // was previously typed and left uncleared.
+                'officer_1_name' => $authorityToDeductOfficersUnknown ? null : $this->normalizeText(
                     $overrideProcessing['authority_to_deduct_officer_1_name'] ?? $flatValues['authority_to_deduct_officer_1_name'] ?? null,
                 ),
-                'officer_1_title' => $this->normalizeText(
+                'officer_1_title' => $authorityToDeductOfficersUnknown ? null : $this->normalizeText(
                     $overrideProcessing['authority_to_deduct_officer_1_title'] ?? $flatValues['authority_to_deduct_officer_1_title'] ?? null,
                 ),
-                'officer_2_name' => $this->normalizeText(
+                'officer_2_name' => $authorityToDeductOfficersUnknown ? null : $this->normalizeText(
                     $overrideProcessing['authority_to_deduct_officer_2_name'] ?? $flatValues['authority_to_deduct_officer_2_name'] ?? null,
                 ),
-                'officer_2_title' => $this->normalizeText(
+                'officer_2_title' => $authorityToDeductOfficersUnknown ? null : $this->normalizeText(
                     $overrideProcessing['authority_to_deduct_officer_2_title'] ?? $flatValues['authority_to_deduct_officer_2_title'] ?? null,
-                ),
-            ],
-            'security' => [
-                'notarial_venue' => $this->normalizeText(
-                    $overrideProcessing['notarial_venue'] ?? $flatValues['notarial_venue'] ?? null,
                 ),
             ],
             'deduction' => [
@@ -1209,6 +1298,15 @@ class ApprovedLoanDocumentService
                 'pension_deduction_amount_raw' => $pensionDeductionAmountRaw,
                 'pension_deduction_amount' => $this->formatCurrencyValue($pensionDeductionAmountRaw),
                 'pension_deduction_amount_words' => $this->formatCurrencyWords($pensionDeductionAmountRaw),
+                'atm_salary_deduction_bank_name' => $this->normalizeText(
+                    $overrideProcessing['atm_salary_deduction_bank_name'] ?? $flatValues['atm_salary_deduction_bank_name'] ?? null,
+                ),
+                'atm_salary_deduction_card_number' => $this->normalizeText(
+                    $overrideProcessing['atm_salary_deduction_card_number'] ?? $flatValues['atm_salary_deduction_card_number'] ?? null,
+                ),
+                'atm_salary_deduction_amount_raw' => $atmSalaryDeductionAmountRaw,
+                'atm_salary_deduction_amount' => $this->formatCurrencyValue($atmSalaryDeductionAmountRaw),
+                'atm_salary_deduction_amount_words' => $this->formatCurrencyWords($atmSalaryDeductionAmountRaw),
             ],
             'notarial' => [
                 // Place of signing is the notary's own fixed office fact, not per-loan

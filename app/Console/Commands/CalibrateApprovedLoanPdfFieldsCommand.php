@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\ApprovedLoanPdfFieldMap;
+use App\Services\LoanRequests\PdfFieldMaps\AtmSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliApplicationFormPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
@@ -19,7 +20,7 @@ use TCPDF;
 class CalibrateApprovedLoanPdfFieldsCommand extends Command
 {
     protected $signature = 'loan-documents:calibrate-fields
-                            {document : Document key: au, ub, li, ge, gl, dw, pw, or ga}
+                            {document : Document key: au, ub, li, ge, gl, dw, pw, aw, or ga}
                             {--output= : Override output path (default: storage/app/tmp/calibrate-{doc}.pdf)}';
 
     protected $description = 'Generate a calibration PDF overlaying field boxes and an mm grid on the template.';
@@ -55,6 +56,11 @@ class CalibrateApprovedLoanPdfFieldsCommand extends Command
             'file' => 'pension-deduction-waiver.pdf',
             'label' => 'Pension Deduction Waiver',
             'field_map' => PensionDeductionWaiverPdfFieldMap::class,
+        ],
+        'aw' => [
+            'file' => 'atm-salary-deduction-waiver.pdf',
+            'label' => 'ATM Salary Deduction Waiver',
+            'field_map' => AtmSalaryDeductionWaiverPdfFieldMap::class,
         ],
         'ga' => [
             'file' => 'generali-application-form.pdf',

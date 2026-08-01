@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\LoanRequestDocumentKey;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\DocumentAccessLog;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestCorrectionReport;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
+use App\Services\LoanRequests\LoanRequestDocumentStorage;
+use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
@@ -19,6 +23,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Html as HtmlWriter;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class LoanRequestController extends Controller
@@ -30,6 +37,8 @@ class LoanRequestController extends Controller
         LoanRequestDecisionService $decisionService,
         LoanRequestPayloadSerializer $serializer,
         LoanRequestService $loanRequestService,
+        LoanRequestDocumentWorkflowService $documentWorkflowService,
+        LoanManagerWitnessResolver $loanManagerWitnessResolver,
         int $loanRequest,
     ): Response {
         $loanRequestRecord = $this->findLoanRequest($loanRequest);
@@ -94,12 +103,16 @@ class LoanRequestController extends Controller
                 && $assignmentService->canManageAssignments($actor)
                 ? $assignmentService->eligibleOfficerOptions($loanRequestRecord)
                 : [],
+            'loanManagers' => $loanManagerWitnessResolver->options(),
             'auditTrail' => $serializer->serializeAuditTrail($loanRequestRecord),
             'decision' => $decision,
             'workflowPermissions' => $this->resolveWorkflowPermissions($actor),
             'loanTypes' => $loanRequestService->getLoanTypes()->values()->all(),
             'dataSections' => $dataService->serializeSections($loanRequestRecord),
             'dataSectionDefinitions' => $dataService->sectionDefinitions(),
+            'documentChecklist' => $documentWorkflowService->serializeChecklist(
+                $loanRequestRecord,
+            ),
             'correctionReports' => $serializer->serializeCorrectionReports(
                 $correctionReportSource,
             ),
@@ -348,6 +361,19 @@ class LoanRequestController extends Controller
         return $documentService->pensionDeductionWaiver($loanRequestRecord);
     }
 
+    public function atmSalaryDeductionWaiverDocument(
+        int $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null || ! $this->hasApprovedDocumentsStatus($loanRequestRecord)) {
+            abort(404);
+        }
+
+        return $documentService->atmSalaryDeductionWaiver($loanRequestRecord);
+    }
+
     public function generaliApplicationFormDocument(
         int $loanRequest,
         ApprovedLoanDocumentService $documentService,
@@ -359,6 +385,206 @@ class LoanRequestController extends Controller
         }
 
         return $documentService->generaliApplicationForm($loanRequestRecord);
+    }
+
+    public function generatedDocument(
+        Request $request,
+        int $loanRequest,
+        LoanRequestDocumentKey $documentKey,
+        LoanRequestDocumentStorage $documentStorage,
+    ): HttpResponse {
+        $loanRequestRecord = $this->findLoanRequest($loanRequest);
+
+        if ($loanRequestRecord === null) {
+            abort(404);
+        }
+
+        $document = $loanRequestRecord->documents()
+            ->where('document_key', $documentKey->value)
+            ->first();
+
+        if (
+            $document === null
+            || ! $document->is_applicable
+            || $document->generated_path === null
+            || $document->generated_path === ''
+        ) {
+            abort(404);
+        }
+
+        $disk = $document->generated_disk ?: $documentStorage->documentDisk();
+
+        try {
+            $absolutePath = $documentStorage->absolutePath(
+                $document->generated_path,
+                $disk,
+            );
+        } catch (RuntimeException) {
+            abort(404);
+        }
+
+        abort_unless(is_file($absolutePath), 404);
+
+        $headers = $document->generated_mime_type !== null
+            ? ['Content-Type' => $document->generated_mime_type]
+            : [];
+        // Regenerating a document keeps the same URL but changes the file
+        // content, so the response must never be cached -- otherwise staff
+        // can be shown a stale, already-regenerated document.
+        $headers['Cache-Control'] = 'no-store, must-revalidate';
+        $downloadName = basename(
+            $document->generated_filename ?: $documentKey->label(),
+        );
+
+        if (
+            $this->isWorkbookDocument($documentKey)
+            && ($request->boolean('preview') || $request->boolean('print'))
+        ) {
+            return $this->renderWorkbookDocument(
+                $absolutePath,
+                $downloadName !== '' ? $downloadName : $documentKey->label().'.xlsx',
+                $request->boolean('print'),
+            );
+        }
+
+        $action = $request->boolean('download')
+            ? DocumentAccessLog::ACTION_DOWNLOAD
+            : DocumentAccessLog::ACTION_VIEW;
+
+        DocumentAccessLog::record(
+            (int) $request->user()?->user_id,
+            (int) $loanRequestRecord->id,
+            $documentKey->value,
+            $action,
+        );
+
+        if ($action === DocumentAccessLog::ACTION_DOWNLOAD) {
+            return response()->download(
+                $absolutePath,
+                $downloadName !== '' ? $downloadName : null,
+                $headers,
+            );
+        }
+
+        return response()->file(
+            $absolutePath,
+            $headers,
+        );
+    }
+
+    private function isWorkbookDocument(LoanRequestDocumentKey $documentKey): bool
+    {
+        return in_array(
+            $documentKey,
+            LoanRequestDocumentKey::workbookDocuments(),
+            true,
+        );
+    }
+
+    private function renderWorkbookDocument(
+        string $absolutePath,
+        string $filename,
+        bool $autoPrint,
+    ): HttpResponse {
+        $spreadsheet = IOFactory::load($absolutePath);
+        $writer = IOFactory::createWriter($spreadsheet, 'Html');
+
+        if ($writer instanceof HtmlWriter) {
+            $writer
+                ->setSheetIndex(0)
+                ->setEmbedImages(true)
+                ->setUseInlineCss(true)
+                ->setPreCalculateFormulas(true);
+        }
+
+        ob_start();
+        $writer->save('php://output');
+        $html = (string) ob_get_clean();
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
+        return response(
+            $this->decorateWorkbookPreviewHtml($html, $filename, $autoPrint),
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        );
+    }
+
+    private function decorateWorkbookPreviewHtml(
+        string $html,
+        string $title,
+        bool $autoPrint,
+    ): string {
+        $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $headMarkup = <<<HTML
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{$safeTitle}</title>
+<style>
+body {
+    margin: 0;
+    padding: 24px;
+    background: #f5f7fb;
+    color: #0f172a;
+}
+table.sheet {
+    width: min(100%, 1100px);
+    margin: 0 auto 24px;
+    background: #ffffff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+.navigation {
+    width: min(100%, 1100px);
+    margin: 0 auto 16px;
+    padding: 0;
+}
+.navigation li {
+    list-style: none;
+}
+@media print {
+    body {
+        padding: 0;
+        background: #ffffff;
+    }
+    table.sheet {
+        width: 100%;
+        margin: 0;
+        box-shadow: none;
+    }
+}
+</style>
+HTML;
+
+        $bodyMarkup = $autoPrint
+            ? <<<'HTML'
+<script>
+(() => {
+    let printed = false;
+
+    const triggerPrint = () => {
+        if (printed) {
+            return;
+        }
+
+        printed = true;
+        window.print();
+    };
+
+    window.addEventListener('load', () => {
+        setTimeout(triggerPrint, 100);
+    });
+})();
+</script>
+HTML
+            : '';
+
+        $html = preg_replace('/<\/head>/i', $headMarkup.'</head>', $html, 1) ?? $html;
+
+        if ($bodyMarkup !== '') {
+            $html = preg_replace('/<\/body>/i', $bodyMarkup.'</body>', $html, 1) ?? $html;
+        }
+
+        return $html;
     }
 
     private function findLoanRequest(int $loanRequestId): ?LoanRequest

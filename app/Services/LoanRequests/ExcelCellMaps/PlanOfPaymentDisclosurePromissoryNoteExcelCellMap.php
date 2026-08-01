@@ -91,6 +91,7 @@ class PlanOfPaymentDisclosurePromissoryNoteExcelCellMap
                 $this->numeric('F29', 'loan.loan_security_amount_raw'),
                 $this->numeric('F30', 'loan.documentary_stamp_amount_raw'),
                 $this->numeric('F31', 'loan.notarial_fee_raw'),
+                $this->numeric('F32', 'loan.other_charges_amount_raw'),
                 $this->numeric('F41', 'loan.amortization_total_raw'),
                 $this->numeric('D42', 'loan.approved_term_raw'),
                 $this->upperText('L50', 'reviewer.name'),

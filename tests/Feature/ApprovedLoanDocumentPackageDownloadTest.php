@@ -549,13 +549,85 @@ test('disclosure statement pdf includes statutory labels and computed totals', f
     expect($searchable)
         ->toContain('DISCLOSURESTATEMENT')
         ->toContain('TRUTHINLENDING')
+        ->toContain('LOANGRANTED')
         ->toContain('TOTALFINANCECHARGES')
+        ->toContain('TOTALDEDUCTIONSFROMPROCEEDSOFLOAN')
         ->toContain('NETPROCEEDSOFLOAN')
         ->toContain('EFFECTIVEINTERESTRATE')
+        ->toContain('SCHEDULEOFPAYMENT')
+        ->toContain('COLLATERAL')
+        ->toContain('ADDITIONALCHARGES')
+        ->toContain('NOTDEDUCTED')
+        ->toContain('DEDUCTED')
+        ->toContain('(A)')
+        ->toContain('(B)')
+        ->toContain('(C)')
+        ->toContain('(D)')
+        ->toContain('(E)')
+        ->toContain('CERTIFIEDCORRECT:')
+        ->toContain('SIGNATUREOVERPRINTEDNAME')
+        ->toContain('POSITION')
+        ->toContain('DATE:')
+        ->toContain('SIGNATUREOFBORROWEROVERPRINTEDNAME')
+        ->toContain('NOTICETOBORROWER')
         ->toContain('HELARIOB.TEJERO')
         ->toContain('25,000.00')
-        ->toContain('VELINAP.GAMUTAN')
-        ->toContain('BOOKKEEPER');
+        ->toContain('MONTHLY')
+        ->toContain('ANNABELLEM.AMORA')
+        ->toContain('LOANMANAGER');
+
+    // The old Blade-escaped {{ ... : '&nbsp;' }} fallbacks rendered the literal
+    // text "&nbsp;" inside empty cells (most visibly in the "e. Others:" row).
+    // The rendered PDF must never contain that literal text again.
+    expect($text)->not->toContain('nbsp');
+});
+
+test('disclosure statement pdf includes the org report header image when configured', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $headerPath = 'branding/report-headers/test-header.png';
+    Storage::disk('public')->put($headerPath, testPngSignatureBinary('one'));
+
+    OrganizationSetting::factory()->create([
+        'report_header_design_path' => $headerPath,
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.disclosure-statement', $loanRequest));
+
+    $response->assertOk();
+
+    expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBeGreaterThan(0);
+});
+
+test('disclosure statement pdf omits the header image gracefully when unconfigured', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    OrganizationSetting::factory()->create([
+        'report_header_design_path' => null,
+    ]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.disclosure-statement', $loanRequest));
+
+    $response->assertOk();
+
+    // With no design, the fallback header logo is the only image. Dompdf
+    // embeds PNGs with an alpha channel as a gray + RGB pair, so the fallback
+    // logo alone always yields exactly 2 image objects.
+    expect(approvedLoanDocumentsPdfImageObjectCount($response))->toBe(2);
 });
 
 test('grepalife pdf includes structured applicant fields when available', function () {
@@ -2587,6 +2659,7 @@ test('approved document zip contains all required files and valid generated docu
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
     $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::SalaryDeduction->value);
 
     $response = $this
         ->actingAs($admin)
@@ -2653,7 +2726,6 @@ test('approved document zip omits undertaking-barangay when the borrower has no 
         '07-Promissory-Note.pdf',
         '09-Loan-Security-Agreement.pdf',
         '10-Generali-Health-Statement.pdf',
-        '11-Authority-to-Deduct.pdf',
         '14-Generali-Application-Form.pdf',
     ]);
 });
@@ -2978,14 +3050,11 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
             'route' => 'admin.requests.documents.disclosure-statement',
             'filename' => 'disclosure-statement-'.$loanRequest->reference.'.pdf',
             'disposition' => 'attachment',
-            // This test forces the 'dompdf' driver (see beforeEach); DomPDF's
-            // PHP-based font metrics measure Calibri slightly wider than the
-            // real Chromium text-shaping engine does at these tight margins,
-            // spilling onto a 2nd page. Verified separately with a real
-            // Chromium render (the actual production driver) that the same
-            // content fits on 1 page -- this is a dompdf-fallback-path
-            // artifact, not a real layout regression.
-            'page_count' => 2,
+            // The fixed-layout workbook grid (table-layout: fixed + colgroup
+            // proportions from the source sheet) fits the whole statutory body
+            // on one page under BOTH drivers -- previously DomPDF's wider
+            // Calibri metrics spilled onto a 2nd page here (see history).
+            'page_count' => 1,
         ],
         [
             'route' => 'admin.requests.documents.generali',
@@ -3587,7 +3656,6 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         'barangay_locality' => ['string', 'Tagum City, Davao del Norte'],
         'barangay_official_name' => ['string', 'Hon. Pedro Santos'],
         'barangay_official_title' => ['string', 'Barangay Captain'],
-        'notarial_venue' => ['string', 'Tagum City, Davao del Norte'],
     ] as $fieldKey => [$valueType, $value]) {
         approvedLoanDocumentsPersistDataEntry(
             $loanRequest,

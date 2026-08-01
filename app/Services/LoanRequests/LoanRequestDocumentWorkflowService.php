@@ -642,7 +642,6 @@ class LoanRequestDocumentWorkflowService
                     'payment_mode_workbook' => $loanRequest->recommended_payment_frequency,
                 ],
                 'processing' => [
-                    'notarial_venue' => $flatValues['notarial_venue'] ?? null,
                     'barangay_official_name' => $flatValues['barangay_official_name'] ?? null,
                     'barangay_official_title' => $flatValues['barangay_official_title'] ?? null,
                     'authority_to_deduct_institution_name' => $flatValues['authority_to_deduct_institution_name'] ?? null,
@@ -651,6 +650,7 @@ class LoanRequestDocumentWorkflowService
                     'authority_to_deduct_officer_2_name' => $flatValues['authority_to_deduct_officer_2_name'] ?? null,
                     'authority_to_deduct_officer_2_title' => $flatValues['authority_to_deduct_officer_2_title'] ?? null,
                     'release_method' => $flatValues['release_method'] ?? null,
+                    'payment_option' => $flatValues['payment_option'] ?? null,
                     'payout_bank_name' => $flatValues['payout_bank_name'] ?? null,
                     'payout_account_name' => $flatValues['payout_account_name'] ?? null,
                     'payout_account_number' => $flatValues['payout_account_number'] ?? null,
@@ -689,7 +689,8 @@ class LoanRequestDocumentWorkflowService
      *                                               recommended_amount, recommended_term, recommended_interest_rate,
      *                                               recommended_payment_frequency, service_charge_rate, insurance_rate,
      *                                               insurance_term, loan_security_rate, savings_rate, documentary_stamp_rate,
-     *                                               notarial_fee, penalty_rate_per_month.
+     *                                               notarial_fee, other_charges_amount, other_charges_description,
+     *                                               penalty_rate_per_month.
      * @return array{
      *     net_proceeds_raw: float|int|null,
      *     suggested_gnthp_raw: float|null,
@@ -728,6 +729,8 @@ class LoanRequestDocumentWorkflowService
                     'savings_rate_raw' => $overrideInput['savings_rate'] ?? null,
                     'documentary_stamp_rate_raw' => $overrideInput['documentary_stamp_rate'] ?? null,
                     'notarial_fee_raw' => $overrideInput['notarial_fee'] ?? null,
+                    'other_charges_amount_raw' => $overrideInput['other_charges_amount'] ?? null,
+                    'other_charges_description' => $overrideInput['other_charges_description'] ?? null,
                     'penalty_rate_raw' => $overrideInput['penalty_rate_per_month'] ?? null,
                 ],
             ],

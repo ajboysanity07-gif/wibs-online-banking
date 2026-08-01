@@ -86,12 +86,7 @@ class LoanSecurityAgreementPdfService
             )
                 ? $organization['logo_data_uri']
                 : null,
-            'placeOfSigning' => $this->resolvePlaceOfSigning(
-                $organization,
-                is_array($documentData['security'] ?? null)
-                    ? $documentData['security']
-                    : [],
-            ),
+            'placeOfSigning' => $this->resolvePlaceOfSigning($organization),
         ];
     }
 
@@ -136,21 +131,9 @@ class LoanSecurityAgreementPdfService
 
     /**
      * @param  array<string, mixed>  $organization
-     * @param  array<string, mixed>  $security
      */
-    private function resolvePlaceOfSigning(
-        array $organization,
-        array $security,
-    ): ?string {
-        $notarialVenue = $this->blank(
-            is_string($security['notarial_venue'] ?? null)
-                ? $security['notarial_venue']
-                : null,
-        );
-        if ($notarialVenue !== null) {
-            return $notarialVenue;
-        }
-
+    private function resolvePlaceOfSigning(array $organization): ?string
+    {
         $businessAddress = $this->blank(
             is_string($organization['business_address'] ?? null)
                 ? $organization['business_address']

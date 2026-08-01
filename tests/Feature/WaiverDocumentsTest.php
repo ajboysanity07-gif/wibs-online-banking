@@ -11,6 +11,7 @@ use App\Models\LoanRequestPerson;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDocumentCatalog;
+use App\Services\LoanRequests\PdfFieldMaps\AtmSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\DepedSalaryDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
 use Illuminate\Database\Schema\Blueprint;
@@ -185,7 +186,7 @@ test('deped salary deduction waiver is not applicable without a deped employer s
     ))->toBeFalse();
 });
 
-test('deped salary deduction waiver becomes applicable when the applicant employer name contains "deped"', function () {
+test('deped salary deduction waiver becomes applicable when the applicant employer name contains "deped" and payment option is ATM Deduction', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
         'employer_business_name' => 'DepEd Division of Surigao del Sur',
     ]);
@@ -194,8 +195,21 @@ test('deped salary deduction waiver becomes applicable when the applicant employ
     expect($catalog->isApplicable(
         LoanRequestDocumentKey::DepedSalaryDeductionWaiver,
         $loanRequest->fresh(),
-        [],
+        ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value],
     ))->toBeTrue();
+});
+
+test('deped salary deduction waiver is not applicable when payment option is not ATM Deduction', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'DepEd Division of Surigao del Sur',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(
+        LoanRequestDocumentKey::DepedSalaryDeductionWaiver,
+        $loanRequest->fresh(),
+        ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value],
+    ))->toBeFalse();
 });
 
 test('pension deduction waiver is not applicable when the applicant is not a pensioner', function () {
@@ -207,11 +221,11 @@ test('pension deduction waiver is not applicable when the applicant is not a pen
     expect($catalog->isApplicable(
         LoanRequestDocumentKey::PensionDeductionWaiver,
         $loanRequest->fresh(),
-        [],
+        ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value],
     ))->toBeFalse();
 });
 
-test('pension deduction waiver becomes applicable when the applicant employment type is pensioner', function () {
+test('pension deduction waiver becomes applicable when the applicant employment type is pensioner and payment option is ATM Deduction', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
         'employment_type' => 'Pensioner',
     ]);
@@ -220,8 +234,21 @@ test('pension deduction waiver becomes applicable when the applicant employment 
     expect($catalog->isApplicable(
         LoanRequestDocumentKey::PensionDeductionWaiver,
         $loanRequest->fresh(),
-        [],
+        ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value],
     ))->toBeTrue();
+});
+
+test('pension deduction waiver is not applicable when payment option is not ATM Deduction', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employment_type' => 'Pensioner',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(
+        LoanRequestDocumentKey::PensionDeductionWaiver,
+        $loanRequest->fresh(),
+        ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value],
+    ))->toBeFalse();
 });
 
 test('deduction block formats the deped amount with words', function () {
@@ -250,6 +277,48 @@ test('deduction block formats the pension amount with words', function () {
         ->and($documentData['deduction']['pension_provider'])->toBe('Social Security System')
         ->and($documentData['deduction']['pension_bank_name'])->toBe('Land Bank')
         ->and($documentData['deduction']['pension_atm_card_number'])->toBe('1234-5678-9012');
+});
+
+test('deduction block formats the atm salary deduction amount with words and includes the applicant employer', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Some Private Company',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'atm_salary_deduction_amount', 'number', 3500);
+    waiverDocumentsPersistDataEntry($loanRequest, 'atm_salary_deduction_bank_name', 'string', 'Land Bank');
+    waiverDocumentsPersistDataEntry($loanRequest, 'atm_salary_deduction_card_number', 'string', '1234-5678-9012');
+
+    $documentData = waiverDocumentsBuildDocumentData($loanRequest->fresh());
+
+    expect($documentData['deduction']['atm_salary_deduction_amount'])->toBe('3,500.00')
+        ->and($documentData['deduction']['atm_salary_deduction_amount_words'])->toBe('THREE THOUSAND FIVE HUNDRED PESOS ONLY.')
+        ->and($documentData['deduction']['atm_salary_deduction_bank_name'])->toBe('Land Bank')
+        ->and($documentData['deduction']['atm_salary_deduction_card_number'])->toBe('1234-5678-9012')
+        ->and($documentData['applicant']['employer_or_business'])->toBe('Some Private Company');
+});
+
+test('atm salary deduction waiver field map declares the header image, employer, and deduction fields', function () {
+    $fields = collect((new AtmSalaryDeductionWaiverPdfFieldMap)->fields());
+
+    $header = $fields->first(fn (array $field): bool => ($field['type'] ?? null) === 'image');
+    expect($header)->toBeArray();
+    expect($header['value'])->toBe('organization.report_header.designPath');
+
+    foreach ([
+        'applicant.full_name',
+        'applicant.address',
+        'applicant.employer_or_business',
+        'deduction.atm_salary_deduction_bank_name',
+        'deduction.atm_salary_deduction_card_number',
+        'deduction.atm_salary_deduction_amount_words',
+        'deduction.atm_salary_deduction_amount',
+        'loan.approved_date_day',
+        'loan.approved_date_month_year',
+        'notarial.signing_place',
+    ] as $expectedValue) {
+        expect($fields->contains(
+            fn (array $field): bool => ($field['value'] ?? null) === $expectedValue,
+        ))->toBeTrue("Expected field map to contain a field for {$expectedValue}");
+    }
 });
 
 test('deped salary deduction waiver field map declares the header image and deduction fields', function () {
@@ -309,6 +378,7 @@ test('deped salary deduction waiver downloads as a real pdf for an applicable de
         'employer_business_name' => 'DepEd Division of Surigao del Sur',
     ]);
     waiverDocumentsPersistDataEntry($loanRequest, 'deped_deduction_amount', 'number', 28000);
+    waiverDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
 
     $response = $this
         ->actingAs($admin)
@@ -329,6 +399,7 @@ test('pension deduction waiver downloads as a real pdf for an applicable pension
         'employment_type' => 'Pensioner',
     ]);
     waiverDocumentsPersistDataEntry($loanRequest, 'pension_deduction_amount', 'number', 6618);
+    waiverDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
 
     $response = $this
         ->actingAs($admin)
@@ -362,7 +433,7 @@ test('authority to deduct institution name suggests the employer name for a depe
     expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('DepEd Division of Surigao del Sur');
 });
 
-test('authority to deduct institution name suggests the pension provider for a pensioner applicant', function () {
+test('authority to deduct institution name does not suggest the pension provider for a pensioner applicant (Authority to Deduct no longer applies to pensioners)', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
         'employment_type' => 'Pensioner',
     ]);
@@ -370,7 +441,7 @@ test('authority to deduct institution name suggests the pension provider for a p
 
     $sections = app(LoanRequestDataService::class)->serializeSections($loanRequest->fresh());
 
-    expect($sections['processing']['authority_to_deduct_institution_name'])->toBe('Social Security System');
+    expect($sections['processing']['authority_to_deduct_institution_name'])->not->toBe('Social Security System');
 });
 
 test('authority to deduct institution name suggests the employer name for an ordinary applicant', function () {
@@ -400,13 +471,28 @@ test('authority to deduct guidance recommends 2 officers for a barangay-payroll 
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
-    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+    $guidance = $catalog->authorityToDeductGuidance(
+        $loanRequest->fresh(),
+        ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value],
+    );
 
     expect($guidance['applicable'])->toBeTrue();
     expect($guidance['recommended_officers'])->toBe(2);
 });
 
-test('authority to deduct guidance recommends 1 officer for a pensioner applicant', function () {
+test('authority to deduct guidance is not applicable for a barangay-payroll applicant whose payment option is not Salary Deduction', function () {
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Barangay Banahao',
+    ]);
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+
+    expect($guidance['applicable'])->toBeFalse();
+    expect($guidance['category'])->toBe('blgu');
+});
+
+test('authority to deduct guidance is not applicable for a pensioner applicant (they use the Pension Waiver instead)', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
         'employment_type' => 'Pensioner',
     ]);
@@ -414,11 +500,10 @@ test('authority to deduct guidance recommends 1 officer for a pensioner applican
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
 
-    expect($guidance['applicable'])->toBeTrue();
-    expect($guidance['recommended_officers'])->toBe(1);
+    expect($guidance['applicable'])->toBeFalse();
 });
 
-test('authority to deduct guidance recommends 2 officers for a deped applicant', function () {
+test('authority to deduct guidance is not applicable for a deped applicant (they use the DepEd Waiver instead)', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
         'employer_business_name' => 'DepEd Division of Surigao del Sur',
     ]);
@@ -426,11 +511,10 @@ test('authority to deduct guidance recommends 2 officers for a deped applicant',
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
 
-    expect($guidance['applicable'])->toBeTrue();
-    expect($guidance['recommended_officers'])->toBe(2);
+    expect($guidance['applicable'])->toBeFalse();
 });
 
-test('authority to deduct guidance recommends 1 officer for an ordinary private employer', function () {
+test('authority to deduct guidance is not applicable for an ordinary private employer with no institutional payroll category', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
         'employer_business_name' => 'Some Private Company',
     ]);
@@ -438,8 +522,7 @@ test('authority to deduct guidance recommends 1 officer for an ordinary private 
 
     $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
 
-    expect($guidance['applicable'])->toBeTrue();
-    expect($guidance['recommended_officers'])->toBe(1);
+    expect($guidance['applicable'])->toBeFalse();
 });
 
 test('authority to deduct is not applicable for a self-employed applicant', function () {
@@ -456,7 +539,7 @@ test('authority to deduct is not applicable for a self-employed applicant', func
 
 test('authority to deduct guidance has no saved contact when nothing has been saved for the institution yet', function () {
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
-        'employer_business_name' => 'Never Seen Before Company',
+        'employer_business_name' => 'MRDINC Never Seen Before Branch',
     ]);
     $catalog = app(LoanRequestDocumentCatalog::class);
 
@@ -467,18 +550,21 @@ test('authority to deduct guidance has no saved contact when nothing has been sa
 
 test('authority to deduct guidance surfaces a saved contact for a previously recorded institution', function () {
     App\Models\AuthorityToDeductInstitutionContact::query()->create([
-        'institution_name' => 'Celni Dave Store',
-        'institution_name_normalized' => 'celni dave store',
+        'institution_name' => 'MRDINC Celni Dave Branch',
+        'institution_name_normalized' => 'mrdinc celni dave branch',
         'officer_1_name' => 'Juan Dela Cruz',
         'officer_1_title' => 'Store Manager',
     ]);
 
     $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
-        'employer_business_name' => 'Celni Dave Store',
+        'employer_business_name' => 'MRDINC Celni Dave Branch',
     ]);
 
     $catalog = app(LoanRequestDocumentCatalog::class);
-    $guidance = $catalog->authorityToDeductGuidance($loanRequest->fresh(), []);
+    $guidance = $catalog->authorityToDeductGuidance(
+        $loanRequest->fresh(),
+        ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value],
+    );
 
     expect($guidance['saved_contact'])->toBe([
         'officer_1_name' => 'Juan Dela Cruz',
@@ -515,6 +601,7 @@ test('approved documents zip includes the pension waiver but not the deped waive
         'employment_type' => 'Pensioner',
     ]);
     waiverDocumentsPersistDataEntry($loanRequest, 'pension_deduction_amount', 'number', 6618);
+    waiverDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
 
     $response = $this
         ->actingAs($admin)
@@ -525,4 +612,41 @@ test('approved documents zip includes the pension waiver but not the deped waive
 
     expect($entries)->toHaveKey('13-Pension-Deduction-Waiver.pdf')
         ->not->toHaveKey('12-DepEd-Salary-Deduction-Waiver.pdf');
+});
+
+test('approved documents zip omits authority to deduct for a private employer with no institutional payroll category', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Some Private Company',
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents', $loanRequest));
+
+    $response->assertOk();
+    $entries = waiverDocumentsOpenZipEntries($response);
+
+    expect($entries)->not->toHaveKey('11-Authority-to-Deduct.pdf');
+});
+
+test('approved documents zip safely omits the ATM salary deduction waiver until its real PDF template is supplied, without crashing the download', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = waiverDocumentsCreateApprovedLoanRequestWithApplicant([
+        'employer_business_name' => 'Some Private Company',
+    ]);
+    waiverDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.approved-documents', $loanRequest));
+
+    $response->assertOk();
+    $entries = waiverDocumentsOpenZipEntries($response);
+
+    expect($entries)->not->toHaveKey('15-ATM-Salary-Deduction-Waiver.pdf');
 });

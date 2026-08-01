@@ -2,6 +2,7 @@
 
 namespace App\Services\LoanRequests;
 
+use App\LoanPaymentOption;
 use App\LoanRequestDocumentKey;
 use App\Models\AuthorityToDeductInstitutionContact;
 use App\Models\LoanRequest;
@@ -316,12 +317,8 @@ class LoanRequestDocumentCatalog
         'loan_security_agreement' => [
             'template_version' => 'loan-security-agreement-v2',
             'applicability' => 'always',
-            'required_fields' => [
-                'notarial_venue',
-            ],
-            'source_fields' => [
-                'notarial_venue',
-            ],
+            'required_fields' => [],
+            'source_fields' => [],
             'source_paths' => [
                 'loan_request.recommended_amount',
                 'loan_request.recommended_term',
@@ -422,10 +419,11 @@ class LoanRequestDocumentCatalog
         ],
         'authority_to_deduct' => [
             'template_version' => 'authority-to-deduct-v1',
-            'applicability' => 'always',
+            'applicability' => 'institutional_payroll',
             'required_fields' => [],
             'source_fields' => [
                 'wibs_release_date',
+                'payment_option',
                 'authority_to_deduct_institution_name',
                 'authority_to_deduct_officer_1_name',
                 'authority_to_deduct_officer_1_title',
@@ -484,6 +482,29 @@ class LoanRequestDocumentCatalog
                 [
                     'path' => 'storage/app/templates/approved-loan-documents/pdf/pension-deduction-waiver.pdf',
                     'description' => 'Pension Deduction Waiver PDF template',
+                ],
+            ],
+            'requires_financials' => false,
+        ],
+        'atm_salary_deduction_waiver' => [
+            'template_version' => 'atm-salary-deduction-waiver-v1',
+            'applicability' => 'atm_payout_employee',
+            'required_fields' => [
+                'atm_salary_deduction_amount',
+            ],
+            'source_fields' => [
+                'payment_option',
+                'atm_salary_deduction_bank_name',
+                'atm_salary_deduction_card_number',
+                'atm_salary_deduction_amount',
+            ],
+            'source_paths' => [
+                'applicant.',
+            ],
+            'template_files' => [
+                [
+                    'path' => 'storage/app/templates/approved-loan-documents/pdf/atm-salary-deduction-waiver.pdf',
+                    'description' => 'ATM Salary Deduction Waiver PDF template',
                 ],
             ],
             'requires_financials' => false,
@@ -624,8 +645,11 @@ class LoanRequestDocumentCatalog
 
         return match ($rule) {
             'barangay' => $this->barangayApplicable($loanRequest, $flatValues),
-            'deped_employee' => $this->depedEmployeeApplicable($loanRequest),
-            'pensioner' => $this->pensionerApplicable($loanRequest),
+            'deped_employee' => $this->depedEmployeeApplicable($loanRequest, $flatValues),
+            'pensioner' => $this->pensionerApplicable($loanRequest, $flatValues),
+            'institutional_payroll' => $this->authorityToDeductCategory($loanRequest, $flatValues) !== null
+                && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
+            'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
             default => true,
         };
     }
@@ -645,24 +669,12 @@ class LoanRequestDocumentCatalog
         $employer = $loanRequest->applicant?->employer_business_name;
         $employer = is_string($employer) && trim($employer) !== '' ? trim($employer) : null;
 
-        if ($this->barangayApplicable($loanRequest, $flatValues)) {
+        if ($this->authorityToDeductCategory($loanRequest, $flatValues) === 'blgu') {
             $barangayAgencyName = $flatValues['barangay_agency_name'] ?? null;
 
             if (is_string($barangayAgencyName) && trim($barangayAgencyName) !== '') {
                 return trim($barangayAgencyName);
             }
-
-            return $employer;
-        }
-
-        if ($this->pensionerApplicable($loanRequest)) {
-            $pensionProvider = $flatValues['pension_provider'] ?? null;
-
-            if (is_string($pensionProvider) && trim($pensionProvider) !== '') {
-                return trim($pensionProvider);
-            }
-
-            return $employer;
         }
 
         return $employer;
@@ -677,6 +689,7 @@ class LoanRequestDocumentCatalog
      * @param  array<string, mixed>  $flatValues
      * @return array{
      *     applicable: bool,
+     *     category: ?string,
      *     recommended_officers: int,
      *     note: string,
      *     saved_contact: ?array{officer_1_name: ?string, officer_1_title: ?string, officer_2_name: ?string, officer_2_title: ?string}
@@ -684,49 +697,82 @@ class LoanRequestDocumentCatalog
      */
     public function authorityToDeductGuidance(LoanRequest $loanRequest, array $flatValues): array
     {
-        if ($loanRequest->applicant?->employment_type === 'Self Employed') {
+        $category = $this->authorityToDeductCategory($loanRequest, $flatValues);
+
+        if ($category === null) {
             return [
                 'applicable' => false,
+                'category' => null,
                 'recommended_officers' => 0,
-                'note' => "Not applicable — the applicant is self-employed, so there's no external payroll office to authorize this deduction.",
+                'note' => 'Not applicable — Authority to Deduct only applies to BLGU, LGU, MRDINC, or LDH institutional payroll employees. Other applicants use a Waiver document instead.',
+                'saved_contact' => null,
+            ];
+        }
+
+        if (($flatValues['payment_option'] ?? null) !== LoanPaymentOption::SalaryDeduction->value) {
+            return [
+                'applicable' => false,
+                'category' => $category,
+                'recommended_officers' => 0,
+                'note' => 'Not applicable — this applicant belongs to an institutional payroll category, but their payment option isn\'t Salary Deduction, so no payroll office needs to be authorized.',
                 'saved_contact' => null,
             ];
         }
 
         $savedContact = $this->savedAuthorityToDeductContact($loanRequest, $flatValues);
 
-        if ($this->barangayApplicable($loanRequest, $flatValues)) {
-            return [
+        return match ($category) {
+            'blgu' => [
                 'applicable' => true,
+                'category' => 'blgu',
                 'recommended_officers' => 2,
-                'note' => 'Barangay/LGU institutions typically sign with 2 officers (e.g. treasurer and captain).',
+                'note' => 'BLGU (Barangay Local Government Unit) institutions typically sign with 2 officers (e.g. treasurer and captain).',
                 'saved_contact' => $savedContact,
-            ];
-        }
-
-        if ($this->pensionerApplicable($loanRequest)) {
-            return [
+            ],
+            'lgu' => [
                 'applicable' => true,
+                'category' => 'lgu',
+                'recommended_officers' => 2,
+                'note' => 'LGU (Local Government Unit) offices typically use 2 signing officers.',
+                'saved_contact' => $savedContact,
+            ],
+            'mrdinc' => [
+                'applicable' => true,
+                'category' => 'mrdinc',
                 'recommended_officers' => 1,
-                'note' => 'Pension providers typically require only 1 authorized representative.',
+                'note' => 'MRDINC in-house payroll typically requires only 1 authorized officer.',
                 'saved_contact' => $savedContact,
-            ];
-        }
-
-        if ($this->depedEmployeeApplicable($loanRequest)) {
-            return [
+            ],
+            'ldh' => [
                 'applicable' => true,
-                'recommended_officers' => 2,
-                'note' => 'Government/school offices typically use 2 signing officers (e.g. registrar and principal/head).',
+                'category' => 'ldh',
+                'recommended_officers' => 1,
+                'note' => 'LDH typically requires only 1 authorized officer.',
                 'saved_contact' => $savedContact,
-            ];
-        }
+            ],
+        };
+    }
 
+    /**
+     * Surfaces which Waiver document (if any) the applicant's category calls
+     * for, so staff-facing UI can show only the relevant field group instead
+     * of all three at once. Mutually exclusive with each other and with
+     * Authority to Deduct -- see depedEmployeeApplicable(), pensionerApplicable(),
+     * and atmPayoutWaiverApplicable() for the underlying category rules.
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array{
+     *     deped: array{applicable: bool},
+     *     pension: array{applicable: bool},
+     *     atm: array{applicable: bool}
+     * }
+     */
+    public function waiverApplicability(LoanRequest $loanRequest, array $flatValues): array
+    {
         return [
-            'applicable' => true,
-            'recommended_officers' => 1,
-            'note' => 'Private employers typically sign with 1 authorized officer; add a second only if the company requires dual signatures.',
-            'saved_contact' => $savedContact,
+            'deped' => ['applicable' => $this->depedEmployeeApplicable($loanRequest, $flatValues)],
+            'pension' => ['applicable' => $this->pensionerApplicable($loanRequest, $flatValues)],
+            'atm' => ['applicable' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues)],
         ];
     }
 
@@ -784,9 +830,18 @@ class LoanRequestDocumentCatalog
      * Employment=Government + Nature of Business=Education combination (public
      * school teachers hold Career Civil Service status under DepEd), or by a
      * substring match for "deped"/"department of education" on the employer name.
+     * Like the other waiver documents, only applies when the loan is repaid via
+     * ATM Deduction -- DepEd employees on Salary Deduction use Authority to
+     * Deduct instead.
+     *
+     * @param  array<string, mixed>  $flatValues
      */
-    private function depedEmployeeApplicable(LoanRequest $loanRequest): bool
+    private function depedEmployeeApplicable(LoanRequest $loanRequest, array $flatValues): bool
     {
+        if (($flatValues['payment_option'] ?? null) !== LoanPaymentOption::AtmDeduction->value) {
+            return false;
+        }
+
         $applicant = $loanRequest->applicant;
 
         if ($applicant?->employment_type === 'Government'
@@ -810,11 +865,15 @@ class LoanRequestDocumentCatalog
      * True when the applicant is a pensioner -- the only case the Pension
      * Deduction Waiver (authorizing MRDINC/LGU-RHU to deduct from the borrower's
      * pension) applies to. Matches the exact "Pensioner" employment_type option
-     * already offered on the loan request wizard.
+     * already offered on the loan request wizard. Like the other waiver
+     * documents, only applies when the loan is repaid via ATM Deduction.
+     *
+     * @param  array<string, mixed>  $flatValues
      */
-    private function pensionerApplicable(LoanRequest $loanRequest): bool
+    private function pensionerApplicable(LoanRequest $loanRequest, array $flatValues): bool
     {
-        return $loanRequest->applicant?->employment_type === 'Pensioner';
+        return $loanRequest->applicant?->employment_type === 'Pensioner'
+            && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::AtmDeduction->value;
     }
 
     /**
@@ -858,6 +917,88 @@ class LoanRequestDocumentCatalog
         }
 
         return str_contains($needle, 'brgy') || str_contains($needle, 'bgy');
+    }
+
+    /**
+     * Identifies which institutional payroll category (if any) the applicant
+     * belongs to -- the only categories the Authority to Deduct document applies
+     * to. Teachers, pensioners, ATM-payout private employees, and self-employed
+     * applicants are excluded here even if they'd otherwise match, since those
+     * borrowers use a Waiver document instead (see atmPayoutWaiverApplicable(),
+     * depedEmployeeApplicable(), pensionerApplicable()).
+     *
+     * @param  array<string, mixed>  $flatValues
+     */
+    private function authorityToDeductCategory(LoanRequest $loanRequest, array $flatValues): ?string
+    {
+        if ($this->barangayApplicable($loanRequest, $flatValues)) {
+            return 'blgu';
+        }
+
+        $applicant = $loanRequest->applicant;
+        $employer = $applicant?->employer_business_name;
+        $needle = is_string($employer) ? mb_strtolower($employer) : '';
+
+        if ($needle !== '' && str_contains($needle, 'mrdinc')) {
+            return 'mrdinc';
+        }
+
+        if (
+            $applicant?->nature_of_business === 'Healthcare'
+            || ($needle !== '' && (
+                str_contains($needle, 'ldh')
+                || str_contains($needle, 'hospital')
+                || str_contains($needle, 'medical')
+                || str_contains($needle, 'clinic')
+            ))
+        ) {
+            return 'ldh';
+        }
+
+        $isGovernmentSector = $applicant?->employment_type === 'Government'
+            && $applicant?->nature_of_business === 'Government';
+
+        if (
+            $isGovernmentSector
+            || ($needle !== '' && (
+                str_contains($needle, 'lgu')
+                || str_contains($needle, 'municipal government')
+                || str_contains($needle, 'city government')
+                || str_contains($needle, 'provincial government')
+            ))
+        ) {
+            return 'lgu';
+        }
+
+        return null;
+    }
+
+    /**
+     * True for the "otherwise uncategorized" employee bucket that needs a Waiver
+     * (rather than Authority to Deduct) because their loan is repaid via ATM
+     * deduction with no institutional payroll office in the loop: a
+     * non-pensioner, non-DepEd, non-institutional-payroll applicant whose
+     * payment option is ATM Deduction. Self-employed applicants are excluded --
+     * like Authority to Deduct, there's no employer to authorize a deduction
+     * against.
+     *
+     * @param  array<string, mixed>  $flatValues
+     */
+    private function atmPayoutWaiverApplicable(LoanRequest $loanRequest, array $flatValues): bool
+    {
+        $paymentOption = $flatValues['payment_option'] ?? null;
+
+        if ($paymentOption !== LoanPaymentOption::AtmDeduction->value) {
+            return false;
+        }
+
+        if ($loanRequest->applicant?->employment_type === 'Self Employed') {
+            return false;
+        }
+
+        return ! $this->pensionerApplicable($loanRequest, $flatValues)
+            && ! $this->depedEmployeeApplicable($loanRequest, $flatValues)
+            && $this->authorityToDeductCategory($loanRequest, $flatValues) === null;
     }
 
     /**

@@ -579,6 +579,12 @@ class OrganizationSettingsService
             $storedPath === null
             || ! Storage::disk('public')->exists($storedPath)
         ) {
+            if ($storedPath !== null) {
+                Log::warning('Report header design path is configured but the file is missing. Falling back to the default report header.', [
+                    'path' => $storedPath,
+                ]);
+            }
+
             return [
                 'designPath' => null,
                 'designUrl' => null,
