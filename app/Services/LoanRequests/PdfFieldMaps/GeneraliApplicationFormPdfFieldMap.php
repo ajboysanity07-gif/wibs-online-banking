@@ -42,8 +42,8 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
 
             // The form's own "New/Old enrollment cycle" checkbox for the applicant
             // (distinct from each dependent's own cycle checkbox below).
-            ['page' => 1, 'type' => 'check', 'x' => 144.5, 'y' => 79.5, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.cycle_status') === 'New'],
-            ['page' => 1, 'type' => 'check', 'x' => 144.5, 'y' => 84.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.cycle_status') === 'Old'],
+            ['page' => 1, 'type' => 'check', 'x' => 143.6, 'y' => 79.2, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.cycle_status') === 'New'],
+            ['page' => 1, 'type' => 'check', 'x' => 143.6, 'y' => 83.7, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.cycle_status') === 'Old'],
             ['page' => 1, 'x' => 178.0, 'y' => 84.0, 'size' => 7, 'width' => 6, 'value' => 'application_form.cycle_number'],
 
             ['page' => 1, 'x' => 27.3, 'y' => 95.5, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_line'],
@@ -64,10 +64,10 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
 
             ['page' => 1, 'x' => 27.3, 'y' => 137.0, 'size' => 9, 'value' => 'applicant.nationality'],
             ['page' => 1, 'x' => 76.5, 'y' => 137.0, 'size' => 9, 'value' => 'applicant.nationality'],
-            ['page' => 1, 'type' => 'check', 'x' => 116.2, 'y' => 136.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Single'],
-            ['page' => 1, 'type' => 'check', 'x' => 150.0, 'y' => 136.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Married'],
-            ['page' => 1, 'type' => 'check', 'x' => 116.2, 'y' => 140.7, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Separated'],
-            ['page' => 1, 'type' => 'check', 'x' => 150.0, 'y' => 140.7, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Widowed'],
+            ['page' => 1, 'type' => 'check', 'x' => 125.4, 'y' => 135.7, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Single'],
+            ['page' => 1, 'type' => 'check', 'x' => 153.2, 'y' => 135.7, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Married'],
+            ['page' => 1, 'type' => 'check', 'x' => 125.4, 'y' => 140.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Separated'],
+            ['page' => 1, 'type' => 'check', 'x' => 152.8, 'y' => 140.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'applicant.civil_status') === 'Widowed'],
         ];
     }
 
@@ -105,8 +105,8 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
     private function pepFields(): array
     {
         return [
-            ['page' => 1, 'type' => 'check', 'x' => 82.0, 'y' => 145.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.pep_status') === true],
-            ['page' => 1, 'type' => 'check', 'x' => 102.0, 'y' => 145.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.pep_status') === false],
+            ['page' => 1, 'type' => 'check', 'x' => 85.7, 'y' => 144.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.pep_status') === true],
+            ['page' => 1, 'type' => 'check', 'x' => 99.5, 'y' => 144.0, 'size' => 7, 'value' => static fn (array $d): bool => data_get($d, 'application_form.pep_status') === false],
             ['page' => 1, 'x' => 145.0, 'y' => 163.5, 'size' => 7, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 5.5, 'value' => 'application_form.pep_status_details'],
         ];
     }
@@ -202,7 +202,7 @@ class GeneraliApplicationFormPdfFieldMap implements ApprovedLoanPdfFieldMap
             ['page' => $page, 'x' => 156.9, 'y' => $y, 'size' => 7, 'width' => 15, 'shrink_to_fit' => true, 'min_size' => 5.5, 'value' => static fn (array $d) => data_get($d, "{$path}.birthdate")],
             ['page' => $page, 'x' => 181.6, 'y' => $y, 'size' => 7, 'width' => 5, 'value' => static fn (array $d) => data_get($d, "{$path}.age")],
             ['page' => $page, 'type' => 'check', 'x' => 99.9, 'y' => $y - 1.5, 'size' => 6, 'value' => static fn (array $d) => data_get($d, "{$path}.cycle_status") === 'New'],
-            ['page' => $page, 'type' => 'check', 'x' => 128.0, 'y' => $y - 1.5, 'size' => 6, 'value' => static fn (array $d) => data_get($d, "{$path}.cycle_status") === 'Old'],
+            ['page' => $page, 'type' => 'check', 'x' => 123.8, 'y' => $y - 1.5, 'size' => 6, 'value' => static fn (array $d) => data_get($d, "{$path}.cycle_status") === 'Old'],
         ];
     }
 

@@ -1936,7 +1936,7 @@ test('generali field map hardcodes principal membership, omits fax, and sources 
     $fields = (new \App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap)->fields();
 
     $membershipCheckbox = collect($fields)->first(
-        fn (array $field) => ($field['type'] ?? null) === 'check' && (float) $field['x'] === 165.0 && (float) $field['y'] === 54.5
+        fn (array $field) => ($field['type'] ?? null) === 'check' && (float) $field['x'] === 170.1 && (float) $field['y'] === 54.9
     );
     expect($membershipCheckbox)->not->toBeNull();
     expect(($membershipCheckbox['value'])($documentData))->toBeTrue();

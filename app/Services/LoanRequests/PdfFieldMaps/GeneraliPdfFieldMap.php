@@ -8,9 +8,9 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
      * Shared Y/N checkbox + "details of yes answer" text column, identical
      * on both pages of the template (same table design repeats on page 2).
      */
-    private const HEALTH_Y_X = 126.5;
+    private const HEALTH_Y_X = 128.2;
 
-    private const HEALTH_N_X = 133.5;
+    private const HEALTH_N_X = 135.2;
 
     private const HEALTH_DETAIL_X = 141.0;
 
@@ -39,7 +39,7 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // Every WIBS loan applicant is the insured principal on this form -- no
             // member is ever a dependent on someone else's coverage in this context.
             // Hardcoded by design; no wizard field needed.
-            ['page' => 1, 'type' => 'check', 'x' => 165.0, 'y' => 54.5, 'size' => 7, 'value' => static fn (): bool => true],
+            ['page' => 1, 'type' => 'check', 'x' => 170.1, 'y' => 54.9, 'size' => 7, 'value' => static fn (): bool => true],
 
             // Fax: intentionally omitted -- not applicable to a loan application.
             // See WIBS_DOCUMENT_FIELD_MAP.md, Generali Health Statement section.
@@ -55,8 +55,8 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             ['page' => 1, 'x' => 23.3, 'y' => 115.0, 'size' => 9, 'value' => 'applicant.birthdate'],
             ['page' => 1, 'x' => 64.2, 'y' => 115.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.place_of_birth'],
             ['page' => 1, 'x' => 124.1, 'y' => 115.0, 'size' => 9, 'value' => 'applicant.age'],
-            ['page' => 1, 'type' => 'check', 'x' => 138.5, 'y' => 111.0, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'MALE'],
-            ['page' => 1, 'type' => 'check', 'x' => 138.5, 'y' => 115.2, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'FEMALE'],
+            ['page' => 1, 'type' => 'check', 'x' => 146.9, 'y' => 111.7, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'MALE'],
+            ['page' => 1, 'type' => 'check', 'x' => 146.9, 'y' => 116.1, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'FEMALE'],
 
             ['page' => 1, 'x' => 23.3, 'y' => 126.0, 'size' => 9, 'value' => 'applicant.nationality'],
             ['page' => 1, 'x' => 64.2, 'y' => 126.0, 'size' => 9, 'value' => 'applicant.nationality'],
@@ -146,23 +146,23 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             ...$this->healthRow(2, 128.4, 'gl_health_q16_relative_pep'),
             ...$this->healthRow(2, 135.9, 'gl_health_q17_pending_reinstatement'),
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 143.3, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 139.5, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_glapi') === true,
             ],
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 143.3, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 139.5, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_glapi') === false,
             ],
-            ['page' => 2, 'x' => 57.7, 'y' => 143.3, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_glapi_amount'],
+            ['page' => 2, 'x' => 64.0, 'y' => 138.2, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_glapi_amount'],
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 146.7, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 143.8, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_other_companies') === true,
             ],
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 146.7, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 143.8, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_other_companies') === false,
             ],
-            ['page' => 2, 'x' => 57.7, 'y' => 146.7, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_other_companies_amount'],
+            ['page' => 2, 'x' => 64.0, 'y' => 142.5, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_other_companies_amount'],
         ];
     }
 
