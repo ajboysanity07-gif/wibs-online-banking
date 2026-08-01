@@ -159,10 +159,12 @@ gone; see git history (commit range around this note) if it's ever needed for re
 
 **PDF field map · "Debtor's Creditor Group Life" variant · Insurance form for borrower coverage**
 
-> Health answer checkboxes (Q1–Q4) are wired via `healthChecked()` factory. The x/y coordinates
-> carry a `TODO(calibrate-gl)` tag and must be verified against the physical form overlay before
-> printing. Note: field key is `health_recent_hospitalization` (not `health_hospitalization`) in
-> the GL map.
+> Health answer checkboxes (Q1–Q4) are Yes/No checkbox pairs wired via `healthYesNoRow()` with
+> tri-state `healthAnswer()` / `healthSmokingAnswer()` resolvers: an affirmative answer checks Yes,
+> an explicit negative checks No, and an unanswered question leaves both boxes blank. Yes is at
+> x=163.78, No at x=176.48, rows at y=192.26/200.88/212.80/218.89 (detected from grepalife-page-1.png
+> and pinned by the "grepalife field map pins all field coordinates to calibrated values" test).
+> Note: field key is `health_recent_hospitalization` (not `health_hospitalization`) in the GL map.
 
 ### Personal Data
 
@@ -194,10 +196,10 @@ gone; see git history (commit range around this note) if it's ever needed for re
 
 | Field | Who | Status | App source |
 |-------|-----|--------|------------|
-| Q1: Smoker (Yes/No) | M | ✅ | `health.health_smoker` via `healthChecked()` ⚠️ coordinates need calibration |
-| Q2: Hypertension (Yes/No) | M | ✅ | `health.health_hypertension` via `healthChecked()` ⚠️ coordinates need calibration |
-| Q3: Diabetes (Yes/No) | M | ✅ | `health_glapi.gl_health_q02e_diabetes` via `healthChecked()` ⚠️ coordinates need calibration |
-| Q4: Recent hospitalization (Yes/No) | M | ✅ | `health_glapi.health_recent_hospitalization` via `healthChecked()` ⚠️ coordinates need calibration |
+| Q1: Smoker (Yes/No) | M | ✅ | `health.health_smoking_status` (`'none'` → No, else Yes) via `healthSmokingAnswer()` |
+| Q2: Hypertension (Yes/No) | M | ✅ | `health.health_hypertension` via `healthAnswer()` |
+| Q3: Diabetes (Yes/No) | M | ✅ | `health_glapi.gl_health_q02e_diabetes` via `healthAnswer()` |
+| Q4: Recent hospitalization (Yes/No) | M | ✅ | `health_glapi.health_recent_hospitalization` via `healthAnswer()` |
 | Physician name | M | ❌ | **MISSING** — not in GL field map; not in FIELD_DEFINITIONS (app does not collect) |
 | Physician address | M | ❌ | **MISSING** — same as above |
 | Date seen | M | ❌ | **MISSING** — same as above |

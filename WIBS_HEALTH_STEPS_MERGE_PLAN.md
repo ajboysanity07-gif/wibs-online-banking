@@ -47,7 +47,7 @@ Radio option → stored value mapping:
 
 | Consumer | File | Old read | New derivation |
 |---|---|---|---|
-| GREPALIFE PDF checkbox | `app/Services/LoanRequests/PdfFieldMaps/GrepalifePdfFieldMap.php:469-476` | `healthChecked('health_smoker')` | `status !== 'none'` |
+| GREPALIFE PDF checkbox | `app/Services/LoanRequests/PdfFieldMaps/GrepalifePdfFieldMap.php:632-643` | `healthChecked('health_smoker')` | `healthSmokingAnswer()` → `status !== 'none'` (checks the Q1 Yes box) |
 | Document workflow field flatten | `app/Services/LoanRequests/LoanRequestDocumentWorkflowService.php:654` | `$flatValues['health_smoker']` | `$flatValues['health_smoking_status'] !== 'none'` |
 | Approved-doc override/flatten | `app/Services/LoanRequests/ApprovedLoanDocumentService.php:968` | same pattern | same derivation |
 | Generali/GLAPI item 11 PDF row | `app/Services/LoanRequests/PdfFieldMaps/GeneraliPdfFieldMap.php:138` | `healthRow(2, 90.4, 'gl_health_q11_smoker')` | `status === 'heavy'` (preserves item 11's original ">10 cigarettes/day" semantics exactly) |

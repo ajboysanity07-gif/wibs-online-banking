@@ -1484,35 +1484,42 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     expect($dateP2['align'] ?? 'L')->toBe('L');
 
     // --- Assertions: page 1 health check fields (Q1-Q4) ---
-    // TODO(calibrate-gl): update x/y after confirming with loan-documents:calibrate-fields gl overlay
-    $findHealthCheck = fn (float $y): array => $fields->first(
-        fn (array $f): bool => ($f['page'] ?? null) === 1
-            && ($f['type'] ?? 'text') === 'check'
-            && (float) ($f['y'] ?? -1) === $y
-            && (float) ($f['x'] ?? -1) === 45.0,
-    );
+    // Each question is a Yes/No checkbox pair: Yes at x=163.78, No at x=176.48,
+    // rows at y=192.26/200.88/212.80/218.89 (detected template checkbox squares).
+    $healthSmokerYes = $findCheckByPageXY(1, 163.78, 192.26);
+    $healthSmokerNo = $findCheckByPageXY(1, 176.48, 192.26);
+    $healthHypertensionYes = $findCheckByPageXY(1, 163.78, 200.88);
+    $healthHypertensionNo = $findCheckByPageXY(1, 176.48, 200.88);
+    $healthDiabetesYes = $findCheckByPageXY(1, 163.78, 212.80);
+    $healthDiabetesNo = $findCheckByPageXY(1, 176.48, 212.80);
+    $healthHospitalizationYes = $findCheckByPageXY(1, 163.78, 218.89);
+    $healthHospitalizationNo = $findCheckByPageXY(1, 176.48, 218.89);
 
-    $healthSmoker = $findHealthCheck(165.0);
-    $healthHypertension = $findHealthCheck(171.0);
-    $healthDiabetes = $findHealthCheck(177.0);
-    $healthHospitalization = $findHealthCheck(183.0);
+    foreach ([$healthSmokerYes, $healthSmokerNo, $healthHypertensionYes, $healthHypertensionNo,
+        $healthDiabetesYes, $healthDiabetesNo, $healthHospitalizationYes, $healthHospitalizationNo] as $field) {
+        expect($field)->toBeArray();
+        expect((float) $field['size'])->toBe(6.4);
+    }
 
-    expect($healthSmoker)->toBeArray();
-    expect((float) $healthSmoker['x'])->toBe(45.0);
-    expect((float) $healthSmoker['y'])->toBe(165.0);
-    expect((float) $healthSmoker['size'])->toBe(6.4);
+    expect((float) $healthSmokerYes['x'])->toBe(163.78);
+    expect((float) $healthSmokerYes['y'])->toBe(192.26);
+    expect((float) $healthSmokerNo['x'])->toBe(176.48);
+    expect((float) $healthSmokerNo['y'])->toBe(192.26);
 
-    expect($healthHypertension)->toBeArray();
-    expect((float) $healthHypertension['x'])->toBe(45.0);
-    expect((float) $healthHypertension['y'])->toBe(171.0);
+    expect((float) $healthHypertensionYes['x'])->toBe(163.78);
+    expect((float) $healthHypertensionYes['y'])->toBe(200.88);
+    expect((float) $healthHypertensionNo['x'])->toBe(176.48);
+    expect((float) $healthHypertensionNo['y'])->toBe(200.88);
 
-    expect($healthDiabetes)->toBeArray();
-    expect((float) $healthDiabetes['x'])->toBe(45.0);
-    expect((float) $healthDiabetes['y'])->toBe(177.0);
+    expect((float) $healthDiabetesYes['x'])->toBe(163.78);
+    expect((float) $healthDiabetesYes['y'])->toBe(212.80);
+    expect((float) $healthDiabetesNo['x'])->toBe(176.48);
+    expect((float) $healthDiabetesNo['y'])->toBe(212.80);
 
-    expect($healthHospitalization)->toBeArray();
-    expect((float) $healthHospitalization['x'])->toBe(45.0);
-    expect((float) $healthHospitalization['y'])->toBe(183.0);
+    expect((float) $healthHospitalizationYes['x'])->toBe(163.78);
+    expect((float) $healthHospitalizationYes['y'])->toBe(218.89);
+    expect((float) $healthHospitalizationNo['x'])->toBe(176.48);
+    expect((float) $healthHospitalizationNo['y'])->toBe(218.89);
 });
 
 test('loan information field map pins all field coordinates and resolves the deliberate data-source decisions', function () {
@@ -2167,17 +2174,19 @@ test('grepalife field map checks health answers when affirmative', function () {
     $fieldMap = new GrepalifePdfFieldMap;
     $fields = collect($fieldMap->fields());
 
-    $findHealthCheck = fn (float $y): array => $fields->first(
+    $findHealthCheck = fn (float $x, float $y): array => $fields->first(
         fn (array $f): bool => ($f['page'] ?? null) === 1
             && ($f['type'] ?? 'text') === 'check'
             && (float) ($f['y'] ?? -1) === $y
-            && (float) ($f['x'] ?? -1) === 45.0,
+            && (float) ($f['x'] ?? -1) === $x,
     );
 
-    $smokerField = $findHealthCheck(165.0);
-    $hypertensionField = $findHealthCheck(171.0);
-    $diabetesField = $findHealthCheck(177.0);
-    $hospitalizationField = $findHealthCheck(183.0);
+    $rows = [
+        'smoking' => [$findHealthCheck(163.78, 192.26), $findHealthCheck(176.48, 192.26)],
+        'hypertension' => [$findHealthCheck(163.78, 200.88), $findHealthCheck(176.48, 200.88)],
+        'diabetes' => [$findHealthCheck(163.78, 212.80), $findHealthCheck(176.48, 212.80)],
+        'hospitalization' => [$findHealthCheck(163.78, 218.89), $findHealthCheck(176.48, 218.89)],
+    ];
 
     $documentDataYes = [
         'health' => [
@@ -2201,15 +2210,33 @@ test('grepalife field map checks health answers when affirmative', function () {
         ],
     ];
 
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($smokerField, $documentDataYes))->toBeTrue();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hypertensionField, $documentDataYes))->toBeTrue();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($diabetesField, $documentDataYes))->toBeTrue();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hospitalizationField, $documentDataYes))->toBeTrue();
+    // Affirmative answers check the Yes box and leave the No box blank.
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['smoking'][0], $documentDataYes))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['smoking'][1], $documentDataYes))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hypertension'][0], $documentDataYes))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hypertension'][1], $documentDataYes))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['diabetes'][0], $documentDataYes))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['diabetes'][1], $documentDataYes))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hospitalization'][0], $documentDataYes))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hospitalization'][1], $documentDataYes))->toBeFalse();
 
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($smokerField, $documentDataNo))->toBeFalse();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hypertensionField, $documentDataNo))->toBeFalse();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($diabetesField, $documentDataNo))->toBeFalse();
-    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($hospitalizationField, $documentDataNo))->toBeFalse();
+    // Explicit negatives check the No box and leave the Yes box blank.
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['smoking'][0], $documentDataNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['smoking'][1], $documentDataNo))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hypertension'][0], $documentDataNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hypertension'][1], $documentDataNo))->toBeTrue();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['diabetes'][0], $documentDataNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['diabetes'][1], $documentDataNo))->toBeTrue();
+
+    // An unanswered hospitalization (null) leaves both boxes blank.
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hospitalization'][0], $documentDataNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hospitalization'][1], $documentDataNo))->toBeFalse();
+
+    // A recorded "No" hospitalization checks the No box.
+    $documentDataHospitalizedNo = $documentDataNo;
+    $documentDataHospitalizedNo['health_glapi']['health_recent_hospitalization'] = false;
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hospitalization'][0], $documentDataHospitalizedNo))->toBeFalse();
+    expect(approvedLoanDocumentsResolveImageTemplateFieldValue($rows['hospitalization'][1], $documentDataHospitalizedNo))->toBeTrue();
 });
 
 test('grepalife pdf includes beneficiaries from direct wmaster beneficiary columns', function () {
@@ -2362,8 +2389,8 @@ test('grepalife field map checks the existing-loans checkbox and stamps the 3 de
     expect((float) $row1Amount['y'])->toBe(134.1);
     expect(data_get($documentData, $row1Amount['value']))->toBe('15000.50');
 
-    // Row 2/3 exist at the estimated ~3.6mm-spaced y offsets (uncalibrated --
-    // see TODO(calibrate-gl) comments in GrepalifePdfFieldMap).
+    // Row 2/3 sit at 3.6mm-spaced y offsets inside the single empty existing-loan
+    // table box (verified with the loan-documents:calibrate-fields gl overlay).
     $row2Type = approvedLoanDocumentsFindGrepalifeField($fieldMap, 1, 'existing_loans.1.type');
     $row3Type = approvedLoanDocumentsFindGrepalifeField($fieldMap, 1, 'existing_loans.2.type');
 

@@ -4,6 +4,16 @@ namespace App\Services\LoanRequests\PdfFieldMaps;
 
 class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
 {
+    /**
+     * Section 2 health questionnaire Yes/No checkbox columns (page 1). These are
+     * the top-left corners of the template's checkbox squares on
+     * grepalife-page-1.png, matching how the civil-status/declaration checks are
+     * anchored (box top-left, check drawn downward inside the square).
+     */
+    private const HEALTH_Y_X = 163.78;
+
+    private const HEALTH_N_X = 176.48;
+
     public function fields(): array
     {
         return [
@@ -300,10 +310,10 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
             ],
             // Existing/previous loan table (section 1.1), 3 repeatable rows bound
             // to existing_loans.{0,1,2}.{date,type,amount} -- see
-            // ApprovedLoanDocumentService::existingLoansDocumentData(). Row 1's
-            // y is already calibrated; rows 2-3 estimate the Beneficiaries
-            // table's ~3.6mm row spacing (149.2/152.8/156.4) since this table
-            // has no independent calibration pass yet.
+            // ApprovedLoanDocumentService::existingLoansDocumentData(). The table
+            // body is a single empty box (y ~133.3-143.6, no internal grid lines),
+            // so the 3 rows are evenly spaced at 3.6mm from row 1's calibrated
+            // baseline (134.1), keeping all three inside the box.
             [
                 'page' => 1,
                 'x' => 71.5,
@@ -334,7 +344,6 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'align' => 'C',
                 'value' => 'existing_loans.0.amount',
             ],
-            // TODO(calibrate-gl): verify row 2/3 y-offset for existing-loan table against loan-documents:calibrate-fields gl overlay
             [
                 'page' => 1,
                 'x' => 71.5,
@@ -365,7 +374,6 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'align' => 'C',
                 'value' => 'existing_loans.1.amount',
             ],
-            // TODO(calibrate-gl): verify row 2/3 y-offset for existing-loan table against loan-documents:calibrate-fields gl overlay
             [
                 'page' => 1,
                 'x' => 71.5,
@@ -533,39 +541,16 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'align' => 'L',
                 'value' => 'loan.approved_date_short',
             ],
-            // TODO(calibrate-gl): verify x/y for Q1-Q4 health checks against loan-documents:calibrate-fields gl overlay
-            [
-                'type' => 'check',
-                'page' => 1,
-                'x' => 45.0,
-                'y' => 165.0,
-                'size' => 6.4,
-                'value' => $this->healthCheckedSmoking(),
-            ],
-            [
-                'type' => 'check',
-                'page' => 1,
-                'x' => 45.0,
-                'y' => 171.0,
-                'size' => 6.4,
-                'value' => $this->healthChecked('health_hypertension'),
-            ],
-            [
-                'type' => 'check',
-                'page' => 1,
-                'x' => 45.0,
-                'y' => 177.0,
-                'size' => 6.4,
-                'value' => $this->healthChecked('gl_health_q02e_diabetes', 'health_glapi'),
-            ],
-            [
-                'type' => 'check',
-                'page' => 1,
-                'x' => 45.0,
-                'y' => 183.0,
-                'size' => 6.4,
-                'value' => $this->healthChecked('health_recent_hospitalization', 'health_glapi'),
-            ],
+            // Section 2 -- Health questionnaire (page 1). Each of Q1-Q4 is a Yes/No
+            // checkbox pair in the template's right-hand columns (grepalife-page-1.png).
+            // Coordinates are the detected top-left corners of the four checkbox
+            // squares: Yes at x=163.78, No at x=176.48, rows at y = 192.26 / 200.88 /
+            // 212.80 / 218.89. An affirmative answer checks Yes, an explicit negative
+            // checks No, and an unanswered question leaves both boxes blank.
+            ...$this->healthYesNoRow($this->healthSmokingAnswer(), 192.26),
+            ...$this->healthYesNoRow($this->healthAnswer('health_hypertension'), 200.88),
+            ...$this->healthYesNoRow($this->healthAnswer('gl_health_q02e_diabetes', 'health_glapi'), 212.80),
+            ...$this->healthYesNoRow($this->healthAnswer('health_recent_hospitalization', 'health_glapi'), 218.89),
         ];
     }
 
@@ -587,15 +572,73 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
     }
 
     /**
-     * GREPALIFE's smoker checkbox is now derived from the wizard's 3-value
-     * health_smoking_status field -- any answer other than 'none' checks Yes.
+     * A single Yes/No checkbox pair for one health question, mirroring the
+     * Generali map's === true / === false convention so an unanswered question
+     * leaves both boxes blank.
+     *
+     * @return list<array<string, mixed>>
      */
-    private function healthCheckedSmoking(): callable
+    private function healthYesNoRow(callable $answer, float $y): array
     {
-        return static function (array $documentData): bool {
-            $value = data_get($documentData, 'health.health_smoking_status');
+        return [
+            [
+                'type' => 'check',
+                'page' => 1,
+                'x' => self::HEALTH_Y_X,
+                'y' => $y,
+                'size' => 6.4,
+                'value' => static fn (array $d): bool => $answer($d) === true,
+            ],
+            [
+                'type' => 'check',
+                'page' => 1,
+                'x' => self::HEALTH_N_X,
+                'y' => $y,
+                'size' => 6.4,
+                'value' => static fn (array $d): bool => $answer($d) === false,
+            ],
+        ];
+    }
 
-            return is_string($value) && $value !== 'none';
+    /**
+     * Tri-state health answer: true (Yes), false (No), null (unanswered).
+     *
+     * @return callable(array<string, mixed>): ?bool
+     */
+    private function healthAnswer(string $key, string $section = 'health'): callable
+    {
+        return static function (array $documentData) use ($key, $section): ?bool {
+            $value = data_get($documentData, $section.'.'.$key);
+
+            if ($value === null || $value === '' || $value === 0) {
+                return null;
+            }
+
+            if (is_string($value)) {
+                return in_array(strtolower(trim($value)), ['yes', '1', 'true'], true);
+            }
+
+            return (bool) $value;
+        };
+    }
+
+    /**
+     * GREPALIFE's smoker answer is derived from the wizard's 3-value
+     * health_smoking_status field -- 'none' answers No, any other value
+     * (light/heavy) checks Yes.
+     *
+     * @return callable(array<string, mixed>): ?bool
+     */
+    private function healthSmokingAnswer(): callable
+    {
+        return static function (array $documentData): ?bool {
+            $status = data_get($documentData, 'health.health_smoking_status');
+
+            if (! is_string($status) || trim($status) === '') {
+                return null;
+            }
+
+            return $status !== 'none';
         };
     }
 
