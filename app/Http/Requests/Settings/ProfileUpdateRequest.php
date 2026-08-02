@@ -314,6 +314,16 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:100',
             ],
+            'height_cm' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'weight_kg' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
             ...$this->dependentFieldRules(),
         ];
     }

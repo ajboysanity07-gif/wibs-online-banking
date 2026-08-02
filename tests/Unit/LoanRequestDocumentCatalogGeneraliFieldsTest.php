@@ -25,4 +25,10 @@ test('generali regenerates when a GLAPI health answer changes', function (string
     'gl_health_q01_weight_change',
     'health_smoking_status',
     'gl_health_q17_with_glapi_amount',
+    'source_of_fund_wealth',
+    'id_type',
+    'id_type_other',
+    'id_number',
+    'height_cm',
+    'weight_kg',
 ]);

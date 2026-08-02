@@ -48,6 +48,8 @@ class LoanRequestPrerequisiteRequest extends FormRequest
                 'max:255',
             ],
             'id_number' => ['required', 'string', 'max:100'],
+            'height_cm' => ['required', 'string', 'max:255'],
+            'weight_kg' => ['required', 'string', 'max:255'],
         ];
     }
 }

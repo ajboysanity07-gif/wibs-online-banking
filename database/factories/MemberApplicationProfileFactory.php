@@ -58,6 +58,8 @@ class MemberApplicationProfileFactory extends Factory
             'id_type' => 'TIN',
             'id_type_other' => null,
             'id_number' => fake()->numerify('###-###-###'),
+            'height_cm' => (string) fake()->numberBetween(150, 190),
+            'weight_kg' => (string) fake()->numberBetween(45, 95),
         ]);
     }
 

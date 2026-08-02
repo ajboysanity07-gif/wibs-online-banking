@@ -39,11 +39,12 @@ import { useInitials } from '@/hooks/use-initials';
 import { useLocationSearch } from '@/hooks/use-location-search';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import api from '@/lib/api';
 import { createCroppedImageFile } from '@/lib/image-crop';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import { cities, provinces } from '@/routes/api/locations';
+import { cities, provinces, zip } from '@/routes/api/locations';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import type { BreadcrumbItem } from '@/types';
@@ -119,6 +120,8 @@ type MemberApplicationProfileData = {
     id_type: string | null;
     id_type_other: string | null;
     id_number: string | null;
+    height_cm: string | null;
+    weight_kg: string | null;
     profile_completed_at: string | null;
 };
 
@@ -252,6 +255,8 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'id_type',
         'id_type_other',
         'id_number',
+        'height_cm',
+        'weight_kg',
     ],
     dependents: DEPENDENT_FIELD_KEYS,
 };
@@ -542,6 +547,8 @@ export default function Profile({
         memberApplicationProfile?.employer_business_address3?.trim() ?? '';
     const employerBusinessAddressZip =
         memberApplicationProfile?.employer_business_address_zip?.trim() ?? '';
+    const [employerBusinessAddressZipValue, setEmployerBusinessAddressZipValue] =
+        useState<string>(employerBusinessAddressZip);
     const employerBusinessProvinceSearch = useLocationSearch({
         initialQuery: employerBusinessAddress3,
         searchUrl: provinces.url(),
@@ -640,6 +647,26 @@ export default function Profile({
         value: string | number | boolean | null,
     ) => {
         setDependentsValues((current) => ({ ...current, [field]: value }));
+    };
+    const handleEmployerCitySelect = async (code: string) => {
+        if (!code) {
+            return;
+        }
+
+        try {
+            const response = await api.get(zip.url(), {
+                params: { locality_code: code },
+            });
+            const resolvedZip = (
+                response.data as { zip?: string | null }
+            ).zip?.trim();
+
+            if (resolvedZip) {
+                setEmployerBusinessAddressZipValue(resolvedZip);
+            }
+        } catch {
+            // Intentionally left empty: ZIP lookup is best-effort.
+        }
     };
     const availableTabs = (hasMemberAccess
         ? PROFILE_TAB_ORDER
@@ -2191,6 +2218,10 @@ export default function Profile({
                                                                                         suggestion.province,
                                                                                     );
                                                                                 }
+
+                                                                                void handleEmployerCitySelect(
+                                                                                    suggestion.code,
+                                                                                );
                                                                             }}
                                                                         />
 
@@ -2238,8 +2269,16 @@ export default function Profile({
                                                                         <Input
                                                                             id="employer_business_address_zip"
                                                                             className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                employerBusinessAddressZip
+                                                                            value={
+                                                                                employerBusinessAddressZipValue
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) =>
+                                                                                setEmployerBusinessAddressZipValue(
+                                                                                    event.target
+                                                                                        .value,
+                                                                                )
                                                                             }
                                                                             name="employer_business_address_zip"
                                                                             inputMode="numeric"
@@ -3023,7 +3062,7 @@ export default function Profile({
                                                                     </div>
                                                                 )}
 
-                                                                <div className="grid gap-2">
+                                                                 <div className="grid gap-2">
                                                                     <Label htmlFor="id_number">
                                                                         ID
                                                                         number
@@ -3044,6 +3083,86 @@ export default function Profile({
                                                                         className="mt-2"
                                                                         message={
                                                                             formErrors.id_number
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-6">
+                                                            <div className="space-y-1">
+                                                                <h3 className="text-base font-semibold">
+                                                                    Physical
+                                                                    details
+                                                                </h3>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Required
+                                                                    for the
+                                                                    Generali
+                                                                    Health
+                                                                    Statement.
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="grid gap-4 md:grid-cols-2">
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="height_cm">
+                                                                        Height
+                                                                    </Label>
+
+                                                                    <div className="relative">
+                                                                        <Input
+                                                                            id="height_cm"
+                                                                            className="mt-1 block w-full pr-10"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.height_cm ??
+                                                                                ''
+                                                                            }
+                                                                            name="height_cm"
+                                                                            inputMode="numeric"
+                                                                            placeholder="e.g. 165"
+                                                                        />
+
+                                                                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                                                            cm
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.height_cm
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="weight_kg">
+                                                                        Weight
+                                                                    </Label>
+
+                                                                    <div className="relative">
+                                                                        <Input
+                                                                            id="weight_kg"
+                                                                            className="mt-1 block w-full pr-10"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.weight_kg ??
+                                                                                ''
+                                                                            }
+                                                                            name="weight_kg"
+                                                                            inputMode="numeric"
+                                                                            placeholder="e.g. 65"
+                                                                        />
+
+                                                                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                                                            kg
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.weight_kg
                                                                         }
                                                                     />
                                                                 </div>

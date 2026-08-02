@@ -57,10 +57,26 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             ['page' => 1, 'x' => 124.1, 'y' => 115.0, 'size' => 9, 'value' => 'applicant.age'],
             ['page' => 1, 'type' => 'check', 'x' => 146.9, 'y' => 111.7, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'MALE'],
             ['page' => 1, 'type' => 'check', 'x' => 146.9, 'y' => 116.1, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'FEMALE'],
+            ['page' => 1, 'x' => 165.9, 'y' => 115.0, 'size' => 8, 'width' => 12, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d): ?string => self::withUnit(data_get($d, 'application_form.height_cm'), ' cm')],
+            ['page' => 1, 'x' => 178.9, 'y' => 115.0, 'size' => 8, 'width' => 12, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d): ?string => self::withUnit(data_get($d, 'application_form.weight_kg'), ' kg')],
 
             ['page' => 1, 'x' => 23.3, 'y' => 126.0, 'size' => 9, 'value' => 'applicant.nationality'],
             ['page' => 1, 'x' => 64.2, 'y' => 126.0, 'size' => 9, 'value' => 'applicant.nationality'],
             ['page' => 1, 'x' => 104.3, 'y' => 126.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
+
+            ['page' => 1, 'x' => 56.0, 'y' => 129.2, 'size' => 8, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'application_form.source_of_fund_wealth'],
+            [
+                'page' => 1, 'x' => 153.0, 'y' => 129.2, 'size' => 8, 'width' => 37,
+                'shrink_to_fit' => true, 'min_size' => 6.0,
+                'value' => static fn (array $d): ?string => self::composeGovernmentId($d),
+            ],
+            [
+                'page' => 1, 'x' => 153.0, 'y' => 133.1, 'size' => 8, 'width' => 37,
+                'shrink_to_fit' => true, 'min_size' => 6.0,
+                'value' => static fn (array $d): ?string => data_get($d, 'application_form.id_type') === 'Others'
+                    ? data_get($d, 'application_form.id_type_other')
+                    : null,
+            ],
 
             ['page' => 1, 'x' => 23.3, 'y' => 143.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.employer_or_business'],
             ['page' => 1, 'x' => 124.1, 'y' => 143.0, 'size' => 9, 'width' => 75, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.nature_of_business'],
@@ -103,17 +119,18 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
     private function page1HealthFields(): array
     {
         return [
-            ...$this->healthRow(1, 207.5, 'gl_health_q01_weight_change'),
-            ...$this->healthRow(1, 220.7, 'gl_health_q02a_neuro'),
-            ...$this->healthRow(1, 224.7, 'gl_health_q02b_respiratory'),
-            ...$this->healthRow(1, 228.7, 'gl_health_q02c_cardiac'),
-            ...$this->healthRow(1, 232.6, 'gl_health_q02d_digestive'),
-            ...$this->healthRow2e(1, 242.8),
-            ...$this->healthRow(1, 246.8, 'gl_health_q02f_musculoskeletal'),
-            ...$this->healthRow(1, 250.8, 'gl_health_q02g_oncology_blood'),
-            ...$this->healthRow(1, 254.8, 'gl_health_q02h_dermatologic'),
-            ...$this->healthRow(1, 258.8, 'gl_health_q02i_std_viral'),
-            ...$this->healthRow(1, 267.2, 'gl_health_q02j_other_illness'),
+            ...$this->healthRow(1, 207.45, 'gl_health_q01_weight_change'),
+            ...$this->healthRowQ2Header(1, 216.64),
+            ...$this->healthRow(1, 220.73, 'gl_health_q02a_neuro'),
+            ...$this->healthRow(1, 225.46, 'gl_health_q02b_respiratory'),
+            ...$this->healthRow(1, 229.48, 'gl_health_q02c_cardiac'),
+            ...$this->healthRow(1, 234.56, 'gl_health_q02d_digestive'),
+            ...$this->healthRow2e(1, 243.17),
+            ...$this->healthRow(1, 247.55, 'gl_health_q02f_musculoskeletal'),
+            ...$this->healthRow(1, 251.85, 'gl_health_q02g_oncology_blood'),
+            ...$this->healthRow(1, 256.30, 'gl_health_q02h_dermatologic'),
+            ...$this->healthRow(1, 264.55, 'gl_health_q02i_std_viral'),
+            ...$this->healthRow(1, 269.22, 'gl_health_q02j_other_illness'),
         ];
     }
 
@@ -127,24 +144,25 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // collected on the earlier, simpler Health declarations step) rather than a
             // GLAPI-only duplicate -- see LoanRequestDataService's comment on
             // health_hypertension_details ("GLAPI Q3").
-            ...$this->healthRow(2, 34.2, 'health_hypertension', section: 'health'),
-            ...$this->healthRow(2, 38.5, 'gl_health_q04_prescribed_drugs'),
-            ...$this->healthRow(2, 53.4, 'gl_health_q05_confinement_5yr'),
-            ...$this->healthRow(2, 58.6, 'gl_health_q06_abnormal_labs'),
-            ...$this->healthRow(2, 67.0, 'gl_health_q07_confinement_contemplated'),
-            ...$this->healthRow(2, 71.2, 'gl_health_q08_blood_transfusion'),
-            ...$this->healthRow(2, 78.9, 'gl_health_q09_other_disease'),
-            ...$this->healthRow(2, 82.7, 'gl_health_q10_narcotics'),
-            ...$this->healthRowSmoker(2, 90.4),
-            ...$this->healthRow(2, 94.2, 'gl_health_q12_alcohol'),
-            ...$this->healthRow(2, 101.9, 'gl_health_q13_advised_stop'),
-            ...$this->healthRow(2, 109.5, 'gl_health_q14_current_medication'),
-            // Item 15's second sub-question ("Any complications with pregnancy?") has
-            // no corresponding wizard field -- only "Are you pregnant?" is collected --
-            // so that row is intentionally left blank rather than fabricated.
-            ...$this->healthRow(2, 117.6, 'gl_health_q15_pregnancy'),
-            ...$this->healthRow(2, 128.4, 'gl_health_q16_relative_pep'),
-            ...$this->healthRow(2, 135.9, 'gl_health_q17_pending_reinstatement'),
+            ...$this->healthRow(2, 33.58, 'health_hypertension', section: 'health'),
+            ...$this->healthRow(2, 38.03, 'gl_health_q04_prescribed_drugs'),
+            ...$this->healthRow(2, 52.41, 'gl_health_q05_confinement_5yr'),
+            ...$this->healthRow(2, 62.44, 'gl_health_q06_abnormal_labs'),
+            ...$this->healthRow(2, 66.82, 'gl_health_q07_confinement_contemplated'),
+            ...$this->healthRow(2, 74.30, 'gl_health_q08_blood_transfusion'),
+            ...$this->healthRow(2, 78.31, 'gl_health_q09_other_disease'),
+            ...$this->healthRow(2, 85.72, 'gl_health_q10_narcotics'),
+            ...$this->healthRowSmoker(2, 90.02),
+            ...$this->healthRow(2, 97.50, 'gl_health_q12_alcohol'),
+            ...$this->healthRow(2, 104.99, 'gl_health_q13_advised_stop'),
+            ...$this->healthRow(2, 109.73, 'gl_health_q14_current_medication'),
+            // Item 15 prints two sub-questions ("Are you pregnant?" / "Any
+            // complications with pregnancy?") but only one Y/N checkbox pair, on the
+            // "Any complications" line -- the wizard's single gl_health_q15_pregnancy
+            // answer is printed there; its detail blank stays empty (not collected).
+            ...$this->healthRow(2, 120.51, 'gl_health_q15_pregnancy'),
+            ...$this->healthRow(2, 127.92, 'gl_health_q16_relative_pep'),
+            ...$this->healthRow(2, 135.40, 'gl_health_q17_pending_reinstatement'),
             [
                 'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 139.5, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_glapi') === true,
@@ -235,6 +253,78 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
 
             return in_array(null, $answers, true) ? null : false;
         }, 'health_glapi.gl_health_q02e_diabetes_renal_details');
+    }
+
+    /**
+     * Item 2's section header ("Have you ever suffered from...") carries its own
+     * Y/N boxes with no detail line. The answer is derived across all ten
+     * sub-questions (2a-2j, with 2e expanded into its four wizard checkboxes):
+     * Y when any is Yes, N once every sub-question is answered No, blank while any
+     * is still unanswered.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function healthRowQ2Header(int $page, float $y): array
+    {
+        return [
+            [
+                'page' => $page, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => $y, 'size' => 7,
+                'value' => static fn (array $d): bool => self::resolveQ2Answer($d) === true,
+            ],
+            [
+                'page' => $page, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => $y, 'size' => 7,
+                'value' => static fn (array $d): bool => self::resolveQ2Answer($d) === false,
+            ],
+        ];
+    }
+
+    private static function resolveQ2Answer(array $d): ?bool
+    {
+        $answers = [
+            data_get($d, 'health_glapi.gl_health_q02a_neuro'),
+            data_get($d, 'health_glapi.gl_health_q02b_respiratory'),
+            data_get($d, 'health_glapi.gl_health_q02c_cardiac'),
+            data_get($d, 'health_glapi.gl_health_q02d_digestive'),
+            data_get($d, 'health_glapi.gl_health_q02e_diabetes'),
+            data_get($d, 'health_glapi.gl_health_q02e_kidney'),
+            data_get($d, 'health_glapi.gl_health_q02e_liver'),
+            data_get($d, 'health_glapi.gl_health_q02e_urinary'),
+            data_get($d, 'health_glapi.gl_health_q02f_musculoskeletal'),
+            data_get($d, 'health_glapi.gl_health_q02g_oncology_blood'),
+            data_get($d, 'health_glapi.gl_health_q02h_dermatologic'),
+            data_get($d, 'health_glapi.gl_health_q02i_std_viral'),
+            data_get($d, 'health_glapi.gl_health_q02j_other_illness'),
+        ];
+
+        if (in_array(true, $answers, true)) {
+            return true;
+        }
+
+        return in_array(null, $answers, true) ? null : false;
+    }
+
+    private static function withUnit(mixed $value, string $unit): ?string
+    {
+        $value = $value === null ? null : trim((string) $value);
+
+        return $value === null || $value === '' ? null : $value.$unit;
+    }
+
+    private static function composeGovernmentId(array $d): ?string
+    {
+        $idNumber = trim((string) (data_get($d, 'application_form.id_number') ?? ''));
+
+        if ($idNumber === '') {
+            return null;
+        }
+
+        $idType = trim((string) (data_get($d, 'application_form.id_type') ?? ''));
+
+        if ($idType === 'Others') {
+            $idType = trim((string) (data_get($d, 'application_form.id_type_other') ?? ''));
+        }
+
+        return trim($idType.' '.$idNumber);
     }
 
     /**

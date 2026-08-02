@@ -123,6 +123,8 @@ test('submit writes back validated beneficiary fields to the member profile', fu
         'source_of_fund_wealth' => 'Salary',
         'id_type' => 'TIN',
         'id_number' => '123-456-789',
+        'height_cm' => '165',
+        'weight_kg' => '68',
     ]);
 
     $person = fn (array $overrides = []) => array_merge([

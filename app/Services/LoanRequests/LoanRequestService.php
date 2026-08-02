@@ -197,6 +197,7 @@ class LoanRequestService
         $fields = [
             ...MemberApplicationProfile::payoutBankFields(),
             ...MemberApplicationProfile::sourceOfFundAndIdFields(),
+            ...MemberApplicationProfile::physicalDetailsFields(),
         ];
 
         $values = [];
@@ -221,6 +222,7 @@ class LoanRequestService
         $profileData = Arr::only($data, [
             ...MemberApplicationProfile::payoutBankFields(),
             ...MemberApplicationProfile::sourceOfFundAndIdFields(),
+            ...MemberApplicationProfile::physicalDetailsFields(),
         ]);
 
         $profile = $user->memberApplicationProfile()->firstOrNew();

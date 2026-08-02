@@ -212,6 +212,8 @@ test('submit writes back validated banking and applicant fields to the member pr
         'source_of_fund_wealth' => 'Salary',
         'id_type' => 'TIN',
         'id_number' => '123-456-789',
+        'height_cm' => '165',
+        'weight_kg' => '68',
     ]);
 
     app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload());
@@ -252,6 +254,8 @@ test('submit persists home and office zip codes on the applicant snapshot', func
         'source_of_fund_wealth' => 'Salary',
         'id_type' => 'TIN',
         'id_number' => '123-456-789',
+        'height_cm' => '165',
+        'weight_kg' => '68',
     ]);
 
     $loanRequest = app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload());

@@ -176,6 +176,8 @@ class SettingsPageData
                 'id_type' => $memberApplicationProfile->id_type,
                 'id_type_other' => $memberApplicationProfile->id_type_other,
                 'id_number' => $memberApplicationProfile->id_number,
+                'height_cm' => $memberApplicationProfile->height_cm,
+                'weight_kg' => $memberApplicationProfile->weight_kg,
                 'profile_completed_at' => $memberApplicationProfile->profile_completed_at?->toDateTimeString(),
             ]
             : null;

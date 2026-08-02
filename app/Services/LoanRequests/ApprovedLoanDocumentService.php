@@ -1701,6 +1701,8 @@ class ApprovedLoanDocumentService
             'id_type' => $this->normalizeText($memberApplicationProfile?->id_type),
             'id_type_other' => $this->normalizeText($memberApplicationProfile?->id_type_other),
             'id_number' => $this->normalizeText($memberApplicationProfile?->id_number),
+            'height_cm' => $this->normalizeText($memberApplicationProfile?->height_cm),
+            'weight_kg' => $this->normalizeText($memberApplicationProfile?->weight_kg),
         ];
     }
 

@@ -256,6 +256,8 @@ test('saving prerequisites via the entry-point modal endpoint marks them met', f
             'id_type' => 'TIN',
             'id_type_other' => null,
             'id_number' => '123-456-789',
+            'height_cm' => '165',
+            'weight_kg' => '68',
         ]);
 
     $response
@@ -283,6 +285,8 @@ test('prerequisite modal endpoint requires id type other when id type is Others'
             'id_type' => 'Others',
             'id_type_other' => '',
             'id_number' => '123-456-789',
+            'height_cm' => '165',
+            'weight_kg' => '68',
         ])
         ->assertStatus(422)
         ->assertJsonValidationErrors(['id_type_other']);

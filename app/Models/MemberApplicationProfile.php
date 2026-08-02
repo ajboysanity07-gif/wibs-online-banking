@@ -64,6 +64,8 @@ class MemberApplicationProfile extends Model
         'id_type',
         'id_type_other',
         'id_number',
+        'height_cm',
+        'weight_kg',
         'profile_completed_at',
     ];
 
@@ -207,6 +209,20 @@ class MemberApplicationProfile extends Model
     }
 
     /**
+     * Physical details (height/weight) required for the Generali Health
+     * Statement, gated the same way as the Bank & Payout / ID checkpoints.
+     *
+     * @return list<string>
+     */
+    public static function physicalDetailsFields(): array
+    {
+        return [
+            'height_cm',
+            'weight_kg',
+        ];
+    }
+
+    /**
      * Bank & Payout fields that gate starting/submitting a loan request.
      * Deliberately a subset of payoutBankFields() -- the ATM number, bank
      * branch, and ATM holder name stay optional secondary details even at
@@ -248,6 +264,8 @@ class MemberApplicationProfile extends Model
             'source_of_fund_wealth',
             'id_type',
             'id_number',
+            'height_cm',
+            'weight_kg',
         ] as $field) {
             $value = $this->getAttribute($field);
 

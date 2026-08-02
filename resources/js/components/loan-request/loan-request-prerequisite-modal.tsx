@@ -20,6 +20,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import client from '@/lib/api/client';
+import { cn } from '@/lib/utils';
 
 export const ID_TYPE_OTHER_VALUE = 'Others';
 const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', ID_TYPE_OTHER_VALUE];
@@ -38,6 +39,8 @@ export type LoanPrerequisiteProfile = {
     id_type: string | null;
     id_type_other: string | null;
     id_number: string | null;
+    height_cm: string | null;
+    weight_kg: string | null;
 };
 
 type FormState = Record<keyof LoanPrerequisiteProfile, string>;
@@ -55,6 +58,8 @@ const toFormState = (profile: LoanPrerequisiteProfile): FormState => ({
     id_type: profile.id_type ?? '',
     id_type_other: profile.id_type_other ?? '',
     id_number: profile.id_number ?? '',
+    height_cm: profile.height_cm ?? '',
+    weight_kg: profile.weight_kg ?? '',
 });
 
 type Props = {
@@ -338,6 +343,70 @@ export function LoanRequestPrerequisiteModal({
                                     }
                                 />
                                 <InputError message={errors.id_number} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-semibold">
+                            Physical details
+                        </h3>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="prereq_height_cm">
+                                    Height (cm)
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="prereq_height_cm"
+                                        inputMode="numeric"
+                                        value={data.height_cm}
+                                        onChange={(event) =>
+                                            setField(
+                                                'height_cm',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="pr-10"
+                                    />
+                                    <span
+                                        className={cn(
+                                            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground',
+                                        )}
+                                    >
+                                        cm
+                                    </span>
+                                </div>
+                                <InputError message={errors.height_cm} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="prereq_weight_kg">
+                                    Weight (kg)
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="prereq_weight_kg"
+                                        inputMode="numeric"
+                                        value={data.weight_kg}
+                                        onChange={(event) =>
+                                            setField(
+                                                'weight_kg',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="pr-10"
+                                    />
+                                    <span
+                                        className={cn(
+                                            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground',
+                                        )}
+                                    >
+                                        kg
+                                    </span>
+                                </div>
+                                <InputError message={errors.weight_kg} />
                             </div>
                         </div>
                     </div>

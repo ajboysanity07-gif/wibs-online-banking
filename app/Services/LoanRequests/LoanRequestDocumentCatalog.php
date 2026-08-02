@@ -403,6 +403,12 @@ class LoanRequestDocumentCatalog
                 'gl_health_q17_with_other_companies',
                 'gl_health_q17_with_other_companies_amount',
                 'health_recent_hospitalization',
+                'source_of_fund_wealth',
+                'id_type',
+                'id_type_other',
+                'id_number',
+                'height_cm',
+                'weight_kg',
             ],
             'source_paths' => [
                 'loan_request.recommended_amount',
