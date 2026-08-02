@@ -129,6 +129,8 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 7,
                 'width' => 25,
                 'line_height' => 1.9,
+                'shrink_to_fit' => true,
+                'min_size' => 5.0,
                 'value' => 'applicant.address_province',
             ],
             [
@@ -212,6 +214,8 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'size' => 7,
                 'width' => 23,
                 'line_height' => 1.8,
+                'shrink_to_fit' => true,
+                'min_size' => 5.0,
                 'value' => 'applicant.office_province',
             ],
             [
@@ -299,6 +303,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'line_height' => 2.2,
                 'align' => 'C',
                 'value' => 'loan.approved_amount',
+                'transform' => $this->pesoTransform(),
             ],
             [
                 'type' => 'check',
@@ -343,6 +348,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'line_height' => 2.1,
                 'align' => 'C',
                 'value' => 'existing_loans.0.amount',
+                'transform' => $this->pesoTransform(),
             ],
             [
                 'page' => 1,
@@ -373,6 +379,7 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'line_height' => 2.1,
                 'align' => 'C',
                 'value' => 'existing_loans.1.amount',
+                'transform' => $this->pesoTransform(),
             ],
             [
                 'page' => 1,
@@ -403,89 +410,90 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
                 'line_height' => 2.1,
                 'align' => 'C',
                 'value' => 'existing_loans.2.amount',
+                'transform' => $this->pesoTransform(),
             ],
             [
                 'page' => 1,
                 'x' => 15.0,
-                'y' => 149.2,
+                'y' => 157.0,
                 'size' => 7,
                 'width' => 90,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'value' => 'beneficiaries.0.name',
             ],
             [
                 'page' => 1,
                 'x' => 111.0,
-                'y' => 149.2,
-                'size' => 5.0,
+                'y' => 157.0,
+                'size' => 7,
                 'width' => 27,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'align' => 'C',
                 'value' => 'beneficiaries.0.birthdate',
             ],
             [
                 'page' => 1,
                 'x' => 150.0,
-                'y' => 149.2,
-                'size' => 5.0,
+                'y' => 157.0,
+                'size' => 7,
                 'width' => 45,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'value' => 'beneficiaries.0.relationship',
             ],
             [
                 'page' => 1,
                 'x' => 15.0,
-                'y' => 152.8,
-                'size' => 5.1,
+                'y' => 160.6,
+                'size' => 7,
                 'width' => 90,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'value' => 'beneficiaries.1.name',
             ],
             [
                 'page' => 1,
                 'x' => 111.0,
-                'y' => 152.8,
-                'size' => 5.0,
+                'y' => 160.6,
+                'size' => 7,
                 'width' => 27,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'align' => 'C',
                 'value' => 'beneficiaries.1.birthdate',
             ],
             [
                 'page' => 1,
                 'x' => 150.0,
-                'y' => 152.8,
-                'size' => 5.0,
+                'y' => 160.6,
+                'size' => 7,
                 'width' => 45,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'value' => 'beneficiaries.1.relationship',
             ],
             [
                 'page' => 1,
                 'x' => 15.0,
-                'y' => 156.4,
-                'size' => 5.1,
+                'y' => 164.2,
+                'size' => 7,
                 'width' => 90,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'value' => 'beneficiaries.2.name',
             ],
             [
                 'page' => 1,
                 'x' => 111.0,
-                'y' => 156.4,
-                'size' => 5.0,
+                'y' => 164.2,
+                'size' => 7,
                 'width' => 27,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'align' => 'C',
                 'value' => 'beneficiaries.2.birthdate',
             ],
             [
                 'page' => 1,
                 'x' => 150.0,
-                'y' => 156.4,
-                'size' => 5.0,
+                'y' => 164.2,
+                'size' => 7,
                 'width' => 45,
-                'line_height' => 1.8,
+                'line_height' => 2.1,
                 'value' => 'beneficiaries.2.relationship',
             ],
             [
@@ -683,6 +691,32 @@ class GrepalifePdfFieldMap implements ApprovedLoanPdfFieldMap
 
             return date('m/d/Y', $timestamp);
         };
+    }
+
+    private function pesoTransform(): callable
+    {
+        return fn (mixed $value): ?string => self::formatPesoAmount($value);
+    }
+
+    /**
+     * Peso-prefixed currency formatting for the loan amount fields, e.g.
+     * "P100,000.00" or "P15,000.50". Strips any existing thousands separators
+     * before re-formatting so already-formatted values ("100,000.00") and raw
+     * values ("15000.5") both land on the same output.
+     */
+    private static function formatPesoAmount(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $clean = preg_replace('/[^\d.]/', '', (string) $value);
+
+        if ($clean === null || ! is_numeric($clean)) {
+            return null;
+        }
+
+        return 'P'.number_format((float) $clean, 2, '.', ',');
     }
 
     private function upper(?string $value): string

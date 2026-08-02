@@ -231,6 +231,31 @@ class ApprovedLoanImageTemplatePdfService
         $lineHeight = (float) ($field['line_height'] ?? 4);
         $align = (string) ($field['align'] ?? 'L');
 
+        if ((bool) ($field['shrink_to_fit'] ?? false)) {
+            if (! is_numeric($width)) {
+                throw new RuntimeException(sprintf(
+                    'Field "%s" sets shrink_to_fit but no width; shrink-to-fit measures the text against a width to decide how far to shrink.',
+                    (string) ($field['value'] ?? '?'),
+                ));
+            }
+
+            $this->writeShrinkToFitText(
+                $pdf,
+                $x,
+                $y,
+                $text,
+                (int) ($field['size'] ?? 7),
+                (string) ($field['font'] ?? 'helvetica'),
+                (string) ($field['style'] ?? ''),
+                (float) $width,
+                $lineHeight,
+                $align === '' ? 'L' : $align,
+                (float) ($field['min_size'] ?? 6.0),
+            );
+
+            return;
+        }
+
         if (is_numeric($width)) {
             $this->writeText(
                 $pdf,
@@ -327,6 +352,87 @@ class ApprovedLoanImageTemplatePdfService
         }
 
         $pdf->Text($x, $y, $text);
+    }
+
+    /**
+     * Renders a single-line field at a font size stepped down (0.5pt) until
+     * GetStringWidth() fits within the declared width, minus a small safety
+     * margin for MultiCell's internal cell padding. Mirrors the FPDI overlay
+     * service's shrink-to-fit so image-template documents stay consistent.
+     */
+    private function writeShrinkToFitText(
+        TCPDF $pdf,
+        float $x,
+        float $y,
+        string $text,
+        int $size,
+        string $font,
+        string $style,
+        float $width,
+        float $lineHeight,
+        string $align,
+        float $minSize,
+    ): void {
+        $normalizedFont = $this->normalizeFontName($font);
+        $fitSize = $this->resolveShrinkToFitSize(
+            $pdf,
+            $text,
+            $normalizedFont,
+            $style,
+            $size,
+            $width,
+            $minSize,
+        );
+
+        $pdf->SetFont($normalizedFont, $style, $fitSize);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->MultiCell(
+            $width,
+            $lineHeight,
+            $text,
+            0,
+            $align,
+            false,
+            1,
+            $x,
+            $y,
+            true,
+            0,
+            false,
+            true,
+            0,
+            'T',
+            false,
+        );
+    }
+
+    /**
+     * Steps font size down from $maxSize to $minSize (0.5pt increments) until
+     * GetStringWidth() fits within $width, minus a small safety margin for
+     * MultiCell's own internal cell padding (not reflected in GetStringWidth()
+     * itself). Never returns below $minSize -- a value that still doesn't fit
+     * at the floor size renders at that floor and is left to overflow slightly.
+     */
+    private function resolveShrinkToFitSize(
+        TCPDF $pdf,
+        string $text,
+        string $font,
+        string $style,
+        float $maxSize,
+        float $width,
+        float $minSize,
+    ): float {
+        $availableWidth = max($width - 2.0, 1.0);
+
+        for ($size = $maxSize; $size > $minSize; $size -= 0.5) {
+            $pdf->SetFont($font, $style, $size);
+
+            if ($pdf->GetStringWidth($text) <= $availableWidth) {
+                return $size;
+            }
+        }
+
+        return $minSize;
     }
 
     public function writeCheck(TCPDF $pdf, float $x, float $y, int $size = 8): void

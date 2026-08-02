@@ -685,7 +685,7 @@ test('grepalife pdf includes structured applicant fields when available', functi
         ->toContain('TRANSPORT SERVICES')
         ->toContain('7 YEARS')
         ->toContain('05/22/2026')
-        ->toContain('25,000.00');
+        ->toContain('P25,000.00');
     // 'SALARY LOAN' is no longer asserted here: the existing/previous-loan
     // table's Type-of-Loan column used to fake-reuse loan.type (this loan's
     // own type) -- it's now bound to a real existing_loans.0.type value,
@@ -1389,6 +1389,8 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     expect((float) $addressProvince['x'])->toBe(143.3);
     expect((float) $addressProvince['y'])->toBe(86.5);
     expect((float) $addressProvince['width'])->toBe(25.0);
+    expect($addressProvince['shrink_to_fit'] ?? false)->toBeTrue();
+    expect((float) $addressProvince['min_size'])->toBe(5.0);
 
     expect((float) $addressZip['x'])->toBe(191.7);
     expect((float) $addressZip['y'])->toBe(86.5);
@@ -1421,6 +1423,8 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     expect((float) $officeProvince['x'])->toBe(146.3);
     expect((float) $officeProvince['y'])->toBe(102.5);
     expect((float) $officeProvince['width'])->toBe(23.0);
+    expect($officeProvince['shrink_to_fit'] ?? false)->toBeTrue();
+    expect((float) $officeProvince['min_size'])->toBe(5.0);
 
     expect((float) $officeZip['x'])->toBe(191.7);
     expect((float) $officeZip['y'])->toBe(102.5);
@@ -1455,6 +1459,7 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     expect((float) $amountP1Y119['y'])->toBe(119.8);
     expect((float) $amountP1Y119['width'])->toBe(42.0);
     expect($amountP1Y119['align'] ?? 'L')->toBe('C');
+    expect(is_callable($amountP1Y119['transform'] ?? null))->toBeTrue();
 
     expect((float) $existingLoanDate['x'])->toBe(71.5);
     expect((float) $existingLoanDate['y'])->toBe(134.1);
@@ -1470,28 +1475,34 @@ test('grepalife field map pins all field coordinates to calibrated values', func
     expect((float) $amountP1Y134['y'])->toBe(134.1);
     expect((float) $amountP1Y134['width'])->toBe(24.0);
     expect($amountP1Y134['align'] ?? 'L')->toBe('C');
+    expect(is_callable($amountP1Y134['transform'] ?? null))->toBeTrue();
 
     expect((float) $ben0Name['x'])->toBe(15.0);
-    expect((float) $ben0Name['y'])->toBe(149.2);
+    expect((float) $ben0Name['y'])->toBe(157.0);
     expect((float) $ben0Bday['x'])->toBe(111.0);
-    expect((float) $ben0Bday['y'])->toBe(149.2);
+    expect((float) $ben0Bday['y'])->toBe(157.0);
     expect($ben0Bday['align'] ?? 'L')->toBe('C');
     expect((float) $ben0Rel['x'])->toBe(150.0);
-    expect((float) $ben0Rel['y'])->toBe(149.2);
+    expect((float) $ben0Rel['y'])->toBe(157.0);
 
     expect((float) $ben1Name['x'])->toBe(15.0);
-    expect((float) $ben1Name['y'])->toBe(152.8);
+    expect((float) $ben1Name['y'])->toBe(160.6);
     expect((float) $ben1Bday['x'])->toBe(111.0);
-    expect((float) $ben1Bday['y'])->toBe(152.8);
+    expect((float) $ben1Bday['y'])->toBe(160.6);
     expect((float) $ben1Rel['x'])->toBe(150.0);
-    expect((float) $ben1Rel['y'])->toBe(152.8);
+    expect((float) $ben1Rel['y'])->toBe(160.6);
 
     expect((float) $ben2Name['x'])->toBe(15.0);
-    expect((float) $ben2Name['y'])->toBe(156.4);
+    expect((float) $ben2Name['y'])->toBe(164.2);
     expect((float) $ben2Bday['x'])->toBe(111.0);
-    expect((float) $ben2Bday['y'])->toBe(156.4);
+    expect((float) $ben2Bday['y'])->toBe(164.2);
     expect((float) $ben2Rel['x'])->toBe(150.0);
-    expect((float) $ben2Rel['y'])->toBe(156.4);
+    expect((float) $ben2Rel['y'])->toBe(164.2);
+
+    foreach ([$ben0Name, $ben0Bday, $ben0Rel, $ben1Name, $ben1Bday, $ben1Rel, $ben2Name, $ben2Bday, $ben2Rel] as $beneficiaryField) {
+        expect((int) $beneficiaryField['size'])->toBe(7);
+        expect((float) $beneficiaryField['line_height'])->toBe(2.1);
+    }
 
     // --- Assertions: page 1 callable fields ---
     expect((float) $birthdate['x'])->toBe(100.0);
@@ -2482,6 +2493,31 @@ test('grepalife field map does not check the existing-loans checkbox when the de
 
     expect($checkbox)->not->toBeNull();
     expect(($checkbox['value'])($documentData))->toBeFalse();
+});
+
+test('grepalife pdf formats current and existing loan amounts with a peso sign', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    $loanRequest->update(['approved_amount' => 25000]);
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'declaration_existing_loans', 'boolean', true);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_date', 'string', '2024-01-15');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_type', 'string', 'Salary loan');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'existing_loan_1_amount', 'numeric', '15000.50');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $content = approvedLoanDocumentsReadDownloadedFileContent($response);
+
+    $response->assertOk();
+    expect($content)
+        ->toContain('P25,000.00')
+        ->toContain('P15,000.50')
+        ->not->toContain('15000.50');
 });
 
 test('approved member can download approved loan documents for owned request', function () {
