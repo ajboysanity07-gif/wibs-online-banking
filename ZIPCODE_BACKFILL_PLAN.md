@@ -4,6 +4,14 @@
 > changes below, run the verification steps at the end.
 > Date: 2026-08-02.
 
+## Status (updated 2026-08-02)
+
+- **Part 1 — DONE.** `profile.tsx` else-branch read-only ZIP input added; `tsc --noEmit` passes.
+- **Part 2 — DONE.** `personDocumentData(?Wmaster $memberRecord = null)` + `address_zip`/`office_zip` fallbacks; applicant-only call site.
+- **Part 3 — DONE.** `app/Console/Commands/BackfillZipCodesCommand.php` created and live-applied: **81 applicant rows backfilled** (req 72–98 confirmed, e.g. req 90→8501, 91→8309, 92/93/96/97/98→8307; 4 rows no `zone_number`).
+- **Part 4 — DONE.** `zone_number` added to test wmaster helper; render-fallback test + `tests/Feature/BackfillZipCodesCommandTest.php` (9 tests). All pass.
+- **Verification — mostly DONE.** Live backfill applied & verified via DB. Remaining manual: real Grepalife PDF visual check (zip at x≈191.7mm, y=86.5mm) and profile Personal-tab visual check.
+
 ## Problem
 
 1. **Grepalife PDF zip fields are blank** — `applicant.address_zip` /

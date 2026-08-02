@@ -1336,7 +1336,7 @@ class ApprovedLoanDocumentService
                     ?? ($existingLoans !== [] ? true : ($flatValues['declaration_existing_loans'] ?? null)),
                 'declaration_pending_cases' => $overrideProcessing['declaration_pending_cases'] ?? $flatValues['declaration_pending_cases'] ?? null,
             ],
-            'applicant' => $this->personDocumentData($applicant, $loanRequest),
+            'applicant' => $this->personDocumentData($applicant, $loanRequest, $memberRecord),
             'co_maker_one' => $this->personDocumentData($coMakerOne, $loanRequest),
             'co_maker_two' => $this->personDocumentData($coMakerTwo, $loanRequest),
             'beneficiaries' => $this->beneficiaryDocumentData($flatValues, $memberRecord),
@@ -1361,6 +1361,7 @@ class ApprovedLoanDocumentService
     private function personDocumentData(
         ?LoanRequestPerson $person,
         LoanRequest $loanRequest,
+        ?Wmaster $memberRecord = null,
     ): array {
         $composedBirthplace = $this->normalizeText($person?->composedBirthplace());
         $composedAddress = $this->normalizeText($person?->composedAddress());
@@ -1391,7 +1392,9 @@ class ApprovedLoanDocumentService
             'address_city' => $this->normalizeText($person?->address2),
             'address_province' => $this->normalizeText($person?->address3),
             'address_country' => null,
-            'address_zip' => $this->normalizeText($person?->address_zip),
+            'address_zip' => $this->normalizeText(
+                $person?->address_zip ?? $memberRecord?->zone_number,
+            ),
             'contact_number' => $this->normalizeText($person?->cell_no),
             'mobile' => $this->normalizeText($person?->cell_no),
             'home_phone' => null,
@@ -1406,7 +1409,8 @@ class ApprovedLoanDocumentService
             ),
             'office_country' => null,
             'office_zip' => $this->normalizeText(
-                $person?->employer_business_address_zip,
+                $person?->employer_business_address_zip
+                    ?? $loanRequest->user?->memberApplicationProfile?->employer_business_address_zip,
             ),
             'position_or_designation' => $this->normalizeText($person?->current_position),
             'nature_of_business' => $this->normalizeText($person?->nature_of_business),

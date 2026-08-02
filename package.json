@@ -7,6 +7,7 @@
         "build:ssr": "vite build && vite build --ssr",
         "dev": "vite",
         "generate:ph-address": "node resources/scripts/generate-ph-address-data.mjs",
+        "generate:ph-zipcodes": "node resources/scripts/generate-ph-zipcodes.mjs",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
@@ -26,7 +27,8 @@
         "eslint-plugin-react-hooks": "^7.0.0",
         "prettier": "^3.4.2",
         "prettier-plugin-tailwindcss": "^0.6.11",
-        "typescript-eslint": "^8.23.0"
+        "typescript-eslint": "^8.23.0",
+        "zipcodes-ph": "^1.1.2"
     },
     "dependencies": {
         "@fullcalendar/core": "^6.1.20",

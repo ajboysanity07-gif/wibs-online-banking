@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\WatchlistController;
 use App\Http\Controllers\Api\BirthplaceSearchController;
 use App\Http\Controllers\Api\CitySearchController;
 use App\Http\Controllers\Api\ProvinceSearchController;
+use App\Http\Controllers\Api\ZipLookupController;
 use App\Http\Controllers\Auth\MemberVerificationController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\UsernameSuggestionController;
@@ -242,6 +243,8 @@ Route::prefix('api/locations')->middleware(['auth', 'approved'])->group(function
         ->name('api.locations.provinces');
     Route::get('cities', CitySearchController::class)
         ->name('api.locations.cities');
+    Route::get('zip', ZipLookupController::class)
+        ->name('api.locations.zip');
 });
 
 Route::get('client/dashboard', ClientDashboardController::class)

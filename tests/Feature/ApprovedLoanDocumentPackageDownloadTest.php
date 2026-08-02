@@ -46,6 +46,7 @@ function approvedLoanDocumentsEnsureWmasterTable(): void
             $table->string('lname')->nullable();
             $table->string('bname')->nullable();
             $table->date('birthday')->nullable();
+            $table->string('zone_number')->nullable();
             $table->string('beneficiary1')->nullable();
             $table->string('beneficiary2')->nullable();
             $table->string('beneficiary3')->nullable();
@@ -65,6 +66,7 @@ function approvedLoanDocumentsEnsureWmasterTable(): void
         'mname',
         'lname',
         'bname',
+        'zone_number',
         'beneficiary1',
         'beneficiary2',
         'beneficiary3',
@@ -695,6 +697,39 @@ test('grepalife pdf includes structured applicant fields when available', functi
     // own type) -- it's now bound to a real existing_loans.0.type value,
     // which this test doesn't populate (see the existing-loans tests in
     // this file for that column's real behavior).
+});
+
+test('grepalife pdf falls back to the member wmaster zone_number for the applicant home zip', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+    $member = User::factory()->create(['acctno' => '120003']);
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople($member);
+
+    LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->firstOrFail()
+        ->update(['address_zip' => null]);
+
+    DB::table('wmaster')->updateOrInsert(
+        ['acctno' => '120003'],
+        [
+            'fname' => 'SAMPLE',
+            'lname' => 'MEMBER',
+            'bname' => 'SAMPLE MEMBER',
+            'zone_number' => '8311',
+        ],
+    );
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.grepalife', $loanRequest));
+
+    $pdfText = approvedLoanDocumentsExtractPdfText($response);
+
+    $response->assertOk();
+    expect($pdfText)
+        ->toContain('8311');
 });
 
 test('grepalife signature section keeps printed names and blank signature areas on main', function () {
