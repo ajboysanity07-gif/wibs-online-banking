@@ -8,6 +8,7 @@ use App\LoanRequestStatus;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
+use App\Models\Wlnmaster;
 use App\Models\Wmaster;
 use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\AtmSalaryDeductionWaiverPdfFieldMap;
@@ -1115,6 +1116,10 @@ class ApprovedLoanDocumentService
         $authorityToDeductOfficersUnknown = (bool) (
             $overrideProcessing['authority_to_deduct_officers_unknown'] ?? $flatValues['authority_to_deduct_officers_unknown'] ?? false
         );
+        $existingLoans = $this->existingLoansDocumentData(
+            $flatValues,
+            $this->resolveMemberAcctno($loanRequest),
+        );
 
         $documentData = [
             'organization' => [
@@ -1327,7 +1332,8 @@ class ApprovedLoanDocumentService
                 'health_hypertension' => $overrideProcessing['health_hypertension'] ?? $flatValues['health_hypertension'] ?? null,
             ],
             'declarations' => [
-                'declaration_existing_loans' => $overrideProcessing['declaration_existing_loans'] ?? $flatValues['declaration_existing_loans'] ?? null,
+                'declaration_existing_loans' => $overrideProcessing['declaration_existing_loans']
+                    ?? ($existingLoans !== [] ? true : ($flatValues['declaration_existing_loans'] ?? null)),
                 'declaration_pending_cases' => $overrideProcessing['declaration_pending_cases'] ?? $flatValues['declaration_pending_cases'] ?? null,
             ],
             'applicant' => $this->personDocumentData($applicant, $loanRequest),
@@ -1335,7 +1341,7 @@ class ApprovedLoanDocumentService
             'co_maker_two' => $this->personDocumentData($coMakerTwo, $loanRequest),
             'beneficiaries' => $this->beneficiaryDocumentData($flatValues, $memberRecord),
             'health_glapi' => $this->healthGlapiDocumentData($flatValues),
-            'existing_loans' => $this->existingLoansDocumentData($flatValues),
+            'existing_loans' => $existingLoans,
             'application_form' => $this->generaliApplicationFormDocumentData(
                 $overrideProcessing,
                 $flatValues,
@@ -1385,7 +1391,7 @@ class ApprovedLoanDocumentService
             'address_city' => $this->normalizeText($person?->address2),
             'address_province' => $this->normalizeText($person?->address3),
             'address_country' => null,
-            'address_zip' => null,
+            'address_zip' => $this->normalizeText($person?->address_zip),
             'contact_number' => $this->normalizeText($person?->cell_no),
             'mobile' => $this->normalizeText($person?->cell_no),
             'home_phone' => null,
@@ -1399,7 +1405,9 @@ class ApprovedLoanDocumentService
                 $person?->employer_business_address3,
             ),
             'office_country' => null,
-            'office_zip' => null,
+            'office_zip' => $this->normalizeText(
+                $person?->employer_business_address_zip,
+            ),
             'position_or_designation' => $this->normalizeText($person?->current_position),
             'nature_of_business' => $this->normalizeText($person?->nature_of_business),
             'years_in_work_business' => $this->normalizeText(
@@ -1540,7 +1548,7 @@ class ApprovedLoanDocumentService
      * @param  array<string, mixed>  $flatValues
      * @return array<int, array{date: string|null, type: string|null, amount: string|null}>
      */
-    private function existingLoansDocumentData(array $flatValues): array
+    private function existingLoansDocumentData(array $flatValues, ?string $acctno = null): array
     {
         $rows = [];
 
@@ -1566,7 +1574,94 @@ class ApprovedLoanDocumentService
             ];
         }
 
+        if ($rows === [] && $acctno !== null) {
+            $fallback = $this->mostRecentWlnmasterExistingLoan($acctno);
+
+            if ($fallback !== null) {
+                $rows[] = $fallback;
+            }
+        }
+
         return $rows;
+    }
+
+    /**
+     * The member's most recent loan from the wlnmaster ledger. Used as a
+     * document-generation fallback when a loan request has no existing-loan
+     * rows stored on it (e.g. requests submitted before the declarations
+     * auto-fill feature existed) -- wlnmaster is the authoritative record of
+     * a member's prior loans regardless of when the request was created.
+     *
+     * @return array{date: string|null, type: string|null, amount: string|null}|null
+     */
+    private function mostRecentWlnmasterExistingLoan(string $acctno): ?array
+    {
+        if (! Schema::hasTable('wlnmaster')) {
+            return null;
+        }
+
+        $query = Wlnmaster::query()->where('acctno', trim($acctno));
+
+        $query = $this->applyWlnmasterDateOrder($query);
+
+        $loan = $query->first();
+
+        if ($loan === null) {
+            return null;
+        }
+
+        $date = $this->resolveWlnmasterDateValue($loan);
+
+        return [
+            'date' => $this->formatShortDateValue($date),
+            'type' => $this->normalizeText(
+                $this->normalizeOptionalScalar($loan->lntype),
+            ),
+            'amount' => $this->normalizeOptionalScalar($loan->principal),
+        ];
+    }
+
+    private function applyWlnmasterDateOrder(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        if (Schema::hasColumn('wlnmaster', 'date_rel')) {
+            return $query->orderByDesc('date_rel');
+        }
+
+        if (Schema::hasColumn('wlnmaster', 'lastmove')) {
+            return $query->orderByDesc('lastmove');
+        }
+
+        return $query->orderByDesc('lnnumber');
+    }
+
+    private function resolveWlnmasterDateValue(Wlnmaster $loan): mixed
+    {
+        if (Schema::hasColumn('wlnmaster', 'date_rel')) {
+            return $loan->date_rel;
+        }
+
+        return $loan->lastmove ?? $loan->lnnumber;
+    }
+
+    private function normalizeOptionalScalar(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveMemberAcctno(LoanRequest $loanRequest): ?string
+    {
+        $loanRequest->loadMissing('user');
+
+        $acctno = trim((string) ($loanRequest->acctno ?? $loanRequest->user?->acctno ?? ''));
+
+        return $acctno !== '' ? $acctno : null;
     }
 
     /**

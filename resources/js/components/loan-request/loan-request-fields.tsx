@@ -533,6 +533,30 @@ export function LoanRequestPersonalFields({
 
                 <div className="grid gap-2">
                     <FieldLabel
+                        htmlFor={`${prefix}_address_zip`}
+                        label="ZIP code"
+                        isReadOnly={isReadOnly('address_zip')}
+                    />
+                    <Input
+                        id={`${prefix}_address_zip`}
+                        name={fieldName(prefix, 'address_zip')}
+                        value={values.address_zip}
+                        inputMode="numeric"
+                        autoComplete="postal-code"
+                        readOnly={isReadOnly('address_zip')}
+                        className={cn(
+                            'mt-1 block w-full',
+                            isReadOnly('address_zip') && readOnlyInputClass,
+                        )}
+                        onChange={updateField('address_zip')}
+                    />
+                    <InputError
+                        message={fieldError(errors, prefix, 'address_zip')}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <FieldLabel
                         htmlFor={`${prefix}_length_of_stay`}
                         label="Length of stay"
                     />
@@ -1070,6 +1094,40 @@ export function LoanRequestWorkFields({
                                 errors,
                                 prefix,
                                 'employer_business_address3',
+                            )}
+                        />
+                    </div>
+                ) : null}
+
+                {!isPensioner ? (
+                    <div className="grid gap-2">
+                        <Label
+                            htmlFor={`${prefix}_employer_business_address_zip`}
+                        >
+                            ZIP code
+                        </Label>
+                        <Input
+                            id={`${prefix}_employer_business_address_zip`}
+                            name={fieldName(
+                                prefix,
+                                'employer_business_address_zip',
+                            )}
+                            value={values.employer_business_address_zip}
+                            inputMode="numeric"
+                            autoComplete="postal-code"
+                            className="mt-1 block w-full"
+                            onChange={(event) =>
+                                onChange(
+                                    'employer_business_address_zip',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'employer_business_address_zip',
                             )}
                         />
                     </div>

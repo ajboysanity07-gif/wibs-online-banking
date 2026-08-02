@@ -135,6 +135,7 @@ class LoanRequestPayloadSerializer
         private LoanRequestCompletenessService $completenessService,
         private LoanRequestDataService $dataService,
         private LoanRequestDocumentCatalog $documentCatalog,
+        private LoanDeclarationAutoFillService $loanDeclarationAutoFillService,
     ) {}
 
     /**
@@ -286,7 +287,14 @@ class LoanRequestPayloadSerializer
             'wibs_encoded_at' => $loanRequest->wibs_encoded_at?->toDateTimeString(),
             'wibs_released_at' => $loanRequest->wibs_released_at?->toDateTimeString(),
             'completeness' => $this->completenessService->computeFor($loanRequest),
+            'applicant_loan_status' => $this->buildApplicantLoanStatus(
+                $loanRequest->acctno,
+            ),
             'authority_to_deduct_guidance' => $this->documentCatalog->authorityToDeductGuidance(
+                $loanRequest,
+                $this->dataService->loadFlatValues($loanRequest),
+            ),
+            'waiver_applicability' => $this->documentCatalog->waiverApplicability(
                 $loanRequest,
                 $this->dataService->loadFlatValues($loanRequest),
             ),
@@ -307,6 +315,27 @@ class LoanRequestPayloadSerializer
             'name' => $actor->resolvedDisplayName(),
             'display_code' => $actor->display_code,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function buildApplicantLoanStatus(?string $acctno): ?array
+    {
+        $normalizedAcctno = $this->normalizeOptionalString($acctno);
+
+        if ($normalizedAcctno === null) {
+            return null;
+        }
+
+        $loanStatus = $this->loanDeclarationAutoFillService
+            ->getLoanStatusSummaryForStaff($normalizedAcctno);
+
+        $loanStatus['problem_loans'] = $loanStatus['requires_attention']
+            ? $this->loanDeclarationAutoFillService->getProblemLoans($normalizedAcctno)
+            : [];
+
+        return $loanStatus;
     }
 
     /**
@@ -1179,10 +1208,14 @@ class LoanRequestPayloadSerializer
             'address1' => $address1,
             'address2' => $address2,
             'address3' => $address3,
+            'address_zip' => $this->normalizeOptionalString($person['address_zip'] ?? null),
             'employer_business_address' => $employerBusinessAddress,
             'employer_business_address1' => $employerAddress1,
             'employer_business_address2' => $employerAddress2,
             'employer_business_address3' => $employerAddress3,
+            'employer_business_address_zip' => $this->normalizeOptionalString(
+                $person['employer_business_address_zip'] ?? null,
+            ),
             'housing_status' => $housingStatus,
             'civil_status' => $civilStatus,
             'sex' => $sex,

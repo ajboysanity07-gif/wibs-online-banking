@@ -73,6 +73,7 @@ type MemberRecord = {
     address1: string | null;
     address2: string | null;
     address3: string | null;
+    zip_code: string | null;
     display_address: string | null;
     civilstat: string | null;
     occupation: string | null;
@@ -99,6 +100,7 @@ type MemberApplicationProfileData = {
     employer_business_address1: string | null;
     employer_business_address2: string | null;
     employer_business_address3: string | null;
+    employer_business_address_zip: string | null;
     telephone_no: string | null;
     current_position: string | null;
     nature_of_business: string | null;
@@ -229,6 +231,7 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'employer_business_address1',
         'employer_business_address2',
         'employer_business_address3',
+        'employer_business_address_zip',
         'telephone_no',
         'current_position',
         'nature_of_business',
@@ -485,6 +488,7 @@ export default function Profile({
     const memberAddressStreet = memberRecord?.address1?.trim() ?? '';
     const memberAddressCity = memberRecord?.address2?.trim() ?? '';
     const memberAddressProvince = memberRecord?.address3?.trim() ?? '';
+    const memberAddressZip = memberRecord?.zip_code?.trim() ?? '';
     const memberDisplayAddress =
         memberRecord?.display_address?.trim() ||
         memberRecord?.address?.trim() ||
@@ -536,6 +540,8 @@ export default function Profile({
         memberApplicationProfile?.employer_business_address2?.trim() ?? '';
     const employerBusinessAddress3 =
         memberApplicationProfile?.employer_business_address3?.trim() ?? '';
+    const employerBusinessAddressZip =
+        memberApplicationProfile?.employer_business_address_zip?.trim() ?? '';
     const employerBusinessProvinceSearch = useLocationSearch({
         initialQuery: employerBusinessAddress3,
         searchUrl: provinces.url(),
@@ -1659,6 +1665,28 @@ export default function Profile({
                                                                                     disabled
                                                                                 />
                                                                             </div>
+
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_record_address_zip">
+                                                                                    ZIP code
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_record_address_zip"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberAddressZip,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberAddressZip
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
                                                                         </div>
                                                                     ) : (
                                                                         <div className="grid gap-2 md:col-span-3">
@@ -2197,6 +2225,32 @@ export default function Profile({
                                                                             className="mt-2"
                                                                             message={
                                                                                 formErrors.employer_business_address3
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="employer_business_address_zip">
+                                                                            ZIP
+                                                                            code
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="employer_business_address_zip"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                employerBusinessAddressZip
+                                                                            }
+                                                                            name="employer_business_address_zip"
+                                                                            inputMode="numeric"
+                                                                            autoComplete="postal-code"
+                                                                            placeholder="ZIP code"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.employer_business_address_zip
                                                                             }
                                                                         />
                                                                     </div>

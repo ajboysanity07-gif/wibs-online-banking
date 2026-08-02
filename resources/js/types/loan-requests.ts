@@ -21,6 +21,7 @@ export type LoanRequestPersonData = {
     address1: string | null;
     address2: string | null;
     address3: string | null;
+    address_zip: string | null;
     length_of_stay: string | null;
     housing_status: string | null;
     cell_no: string | null;
@@ -37,6 +38,7 @@ export type LoanRequestPersonData = {
     employer_business_address1: string | null;
     employer_business_address2: string | null;
     employer_business_address3: string | null;
+    employer_business_address_zip: string | null;
     telephone_no: string | null;
     current_position: string | null;
     nature_of_business: string | null;
@@ -62,6 +64,7 @@ export type LoanRequestPersonFormData = {
     address1: string;
     address2: string;
     address3: string;
+    address_zip: string;
     length_of_stay: string;
     housing_status: string;
     cell_no: string;
@@ -77,6 +80,7 @@ export type LoanRequestPersonFormData = {
     employer_business_address1: string;
     employer_business_address2: string;
     employer_business_address3: string;
+    employer_business_address_zip: string;
     telephone_no: string;
     current_position: string;
     nature_of_business: string;
@@ -94,6 +98,12 @@ export type LoanRequestReviewer = {
     user_id: number;
     name: string;
     display_code?: string;
+};
+
+export type LoanManagerOption = {
+    id: number;
+    name: string;
+    active_loans: number;
 };
 
 export type LoanRequestAssignmentState =
@@ -279,6 +289,7 @@ export type LoanRequestDocumentKey =
     | 'authority_to_deduct'
     | 'deped_salary_deduction_waiver'
     | 'pension_deduction_waiver'
+    | 'atm_salary_deduction_waiver'
     | 'generali_application_form';
 
 export type LoanRequestDocumentReadinessStatus =
@@ -372,9 +383,16 @@ export type AuthorityToDeductSavedContact = {
 
 export type AuthorityToDeductGuidance = {
     applicable: boolean;
+    category: 'blgu' | 'lgu' | 'mrdinc' | 'ldh' | null;
     recommended_officers: number;
     note: string;
     saved_contact: AuthorityToDeductSavedContact | null;
+};
+
+export type WaiverApplicability = {
+    deped: { applicable: boolean };
+    pension: { applicable: boolean };
+    atm: { applicable: boolean };
 };
 
 export type LoanRequestDetail = {
@@ -444,7 +462,9 @@ export type LoanRequestDetail = {
     wibs_encoded_at: string | null;
     wibs_released_at: string | null;
     completeness: LoanRequestCompleteness | null;
+    applicant_loan_status: LoanStatusSummaryForStaff | null;
     authority_to_deduct_guidance: AuthorityToDeductGuidance | null;
+    waiver_applicability: WaiverApplicability | null;
 };
 
 export type LoanRequestListItem = {
@@ -482,6 +502,52 @@ export type LoanRequestDraft = {
     updated_at: string | null;
 };
 
+export type AutoFilledDeclarations = {
+    declaration_existing_loans?: boolean;
+    declaration_pending_cases?: boolean;
+    existing_loan_1_date?: string | null;
+    existing_loan_1_type?: string | null;
+    existing_loan_1_amount?: number | null;
+};
+
+export type ProblemLoan = {
+    lnnumber: string;
+    lntype: string;
+    lnstatus: string;
+    lnstatus_label: string;
+    principal: number;
+    balance: number;
+    date_rel: string | null;
+    date_mat: string | null;
+};
+
+export type LoanStatusSummaryForStaff = {
+    has_active: boolean;
+    has_past_due: boolean;
+    has_litigation: boolean;
+    total_active: number;
+    total_past_due: number;
+    total_litigation: number;
+    active_balance_total: number;
+    past_due_balance_total: number;
+    litigation_balance_total: number;
+    requires_attention: boolean;
+    warning_message: string | null;
+    problem_loans: ProblemLoan[];
+};
+
+export type LoanStatusSummaryForMember = {
+    total_loans: number;
+    active_count: number;
+    past_due_count: number;
+    litigation_count: number;
+    total_balance: number;
+    active_balance: number;
+    past_due_balance: number;
+    litigation_balance: number;
+    loans: ProblemLoan[];
+};
+
 export type LoanRequestFormData = {
     typecode: string;
     requested_amount: string;
@@ -501,10 +567,29 @@ export type LoanRequestFormData = {
     dependents: LoanRequestDataSectionValues;
 };
 
-export type LoanRequestCorrectionPayload = Omit<
+export type LoanRequestCorrectionPayload = Pick<
     LoanRequestFormData,
-    'undertaking_accepted'
-> & {
+    | 'typecode'
+    | 'requested_amount'
+    | 'requested_term'
+    | 'loan_purpose'
+    | 'availment_status'
+    | 'applicant'
+    | 'co_maker_1'
+    | 'co_maker_2'
+> &
+    Partial<
+        Pick<
+            LoanRequestFormData,
+            | 'insurance'
+            | 'health'
+            | 'health_glapi'
+            | 'banking'
+            | 'barangay'
+            | 'declarations'
+            | 'dependents'
+        >
+    > & {
     change_reason: string;
 };
 

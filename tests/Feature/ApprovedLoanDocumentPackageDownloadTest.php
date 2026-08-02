@@ -651,6 +651,7 @@ test('grepalife pdf includes structured applicant fields when available', functi
         'address1' => '18 SAMPLE STREET',
         'address2' => 'SAMPLE CITY',
         'address3' => 'SAMPLE PROVINCE',
+        'address_zip' => '8307',
         'employer_business_name' => 'SAMPLE ENTERPRISE',
         'nature_of_business' => 'TRANSPORT SERVICES',
         'current_position' => 'OPERATIONS SUPERVISOR',
@@ -658,6 +659,7 @@ test('grepalife pdf includes structured applicant fields when available', functi
         'employer_business_address1' => '88 WORK AVENUE',
         'employer_business_address2' => 'WORK CITY',
         'employer_business_address3' => 'WORK PROVINCE',
+        'employer_business_address_zip' => '8100',
         'telephone_no' => '02-123-4567',
         'cell_no' => '09179990000',
     ]);
@@ -678,9 +680,11 @@ test('grepalife pdf includes structured applicant fields when available', functi
         ->toContain('18 SAMPLE STREET')
         ->toContain('SAMPLE CITY')
         ->toContain('SAMPLE PROVINCE')
+        ->toContain('8307')
         ->toContain('88 WORK AVENUE')
         ->toContain('WORK CITY')
         ->toContain('WORK PROVINCE')
+        ->toContain('8100')
         ->toContain('02-123-4567')
         ->toContain('TRANSPORT SERVICES')
         ->toContain('7 YEARS')

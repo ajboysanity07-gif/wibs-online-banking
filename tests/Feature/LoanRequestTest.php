@@ -1,6 +1,8 @@
 <?php
 
 use App\Jobs\SendLoanDecisionSmsJob;
+use App\LoanRequestDocumentKey;
+use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
@@ -9,6 +11,7 @@ use App\Models\AppUser as User;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestCorrectionReport;
+use App\Models\LoanRequestDocument;
 use App\Models\LoanRequestPerson;
 use App\Models\MemberApplicationProfile;
 use App\Models\OrganizationSetting;
@@ -22,6 +25,7 @@ use App\Services\OrganizationSettingsService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
@@ -42,6 +46,7 @@ beforeEach(function () {
             $table->string('address2')->nullable();
             $table->string('address3')->nullable();
             $table->string('address4')->nullable();
+            $table->string('zone_number')->nullable();
             $table->string('civilstat')->nullable();
             $table->string('occupation')->nullable();
             $table->string('spouse')->nullable();
@@ -208,6 +213,7 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
             'payout_account_type' => 'Savings',
             'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'payment_option' => 'Salary Deduction',
         ],
         'barangay' => [
             'barangay_official_designation' => null,
@@ -341,6 +347,7 @@ test('loan request form uses structured wmaster names and address parts', functi
         'address2' => '123 Main Street',
         'address3' => 'Makati',
         'address4' => 'Metro Manila',
+        'zone_number' => '1234',
         'civilstat' => 'Single',
         'occupation' => 'Analyst',
     ]);
@@ -371,9 +378,11 @@ test('loan request form uses structured wmaster names and address parts', functi
             ->where('applicant.address1', '123 Main Street')
             ->where('applicant.address2', 'Makati')
             ->where('applicant.address3', 'Metro Manila')
+            ->where('applicant.address_zip', '1234')
             ->where('applicantReadOnly.address1', true)
             ->where('applicantReadOnly.address2', true)
             ->where('applicantReadOnly.address3', true)
+            ->where('applicantReadOnly.address_zip', true)
             ->where('applicantReadOnly.birthplace_city', true)
             ->where('applicantReadOnly.birthplace_province', false));
 });
@@ -400,6 +409,7 @@ test('loan request form uses member profile work fields for the applicant', func
         'employment_type' => 'Regular',
         'employer_business_name' => 'Acme Corp',
         'employer_business_address' => 'Acme Building',
+        'employer_business_address_zip' => '8100',
         'current_position' => 'Supervisor',
         'nature_of_business' => 'Finance',
     ]);
@@ -422,6 +432,7 @@ test('loan request form uses member profile work fields for the applicant', func
             ->where('applicant.employer_business_address1', 'Acme Building')
             ->where('applicant.employer_business_address2', null)
             ->where('applicant.employer_business_address3', null)
+            ->where('applicant.employer_business_address_zip', '8100')
             ->where('applicant.current_position', 'Supervisor')
             ->where('applicant.nature_of_business', 'Finance'));
 });
@@ -2345,6 +2356,77 @@ test('admin loan request page exposes processing data sections needed to set rec
         ->assertJsonPath('data.loanRequest.recommended_amount', '24000.00');
 
     expect($loanRequest->refresh()->recommended_amount)->toBe('24000.00');
+});
+
+test('admin loan request page exposes document checklist and generated documents can be viewed through it', function () {
+    Role::ensureWorkflowDefaults();
+
+    $processor = User::factory()->create();
+    AdminProfile::factory()->create([
+        'user_id' => $processor->user_id,
+    ]);
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $loanRequest = LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->get(route('admin.requests.show', $loanRequest))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/loan-request-show')
+            ->has('documentChecklist'));
+
+    $relativePath = sprintf(
+        'loan-request-documents/%d/%s/test-preview.pdf',
+        $loanRequest->id,
+        LoanRequestDocumentKey::LoanInformation->value,
+    );
+    $absolutePath = Storage::disk('local')->path($relativePath);
+    File::ensureDirectoryExists(dirname($absolutePath));
+    File::put(
+        $absolutePath,
+        "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n0\n%%EOF",
+    );
+
+    LoanRequestDocument::query()->updateOrCreate(
+        [
+            'loan_request_id' => $loanRequest->id,
+            'document_key' => LoanRequestDocumentKey::LoanInformation->value,
+        ],
+        [
+            'is_applicable' => true,
+            'readiness_status' => LoanRequestDocumentReadinessStatus::GeneratedCurrent,
+            'template_version' => 'test-preview-v1',
+            'source_hash' => sha1('loan_information-'.$loanRequest->id),
+            'source_version' => 1,
+            'generated_version' => 1,
+            'generated_disk' => 'local',
+            'generated_path' => $relativePath,
+            'generated_filename' => 'loan_information.pdf',
+            'generated_mime_type' => 'application/pdf',
+            'generated_size_bytes' => File::size($absolutePath),
+            'generated_by' => $processor->user_id,
+            'generated_at' => now(),
+        ],
+    );
+
+    $this
+        ->actingAs($processor)
+        ->get(
+            route('admin.requests.documents.generated', [
+                'loanRequest' => $loanRequest,
+                'documentKey' => LoanRequestDocumentKey::LoanInformation->value,
+                'download' => 1,
+            ]),
+        )
+        ->assertOk()
+        ->assertDownload();
 });
 
 test('admin corrected loan request detail uses linked correction report context and open correction flag', function () {

@@ -1,18 +1,5 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
-import {
-    AlertCircle,
-    Bell,
-    CheckCircle2,
-    Circle,
-    ClipboardCheck,
-    Clock,
-    HeartPulse,
-    MinusCircle,
-    MoreHorizontal,
-    PlayCircle,
-    RefreshCw,
-    XCircle,
-} from 'lucide-react';
+import { Bell, HeartPulse } from 'lucide-react';
 import {
     useEffect,
     useMemo,
@@ -29,11 +16,13 @@ import {
     displayText,
     displayValue,
 } from '@/components/loan-request/loan-request-detail-page';
+import { LoanRequestDocumentChecklistCard } from '@/components/loan-request/loan-request-document-checklist-card';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
+import { LoanStatusWarning } from '@/components/loan-request/loan-status-warning';
 import { MonthsInput } from '@/components/loan-request/numeric-adorned-inputs';
 import {
     ProcessingDetailsPanel,
@@ -59,17 +48,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow';
 import AppLayout from '@/layouts/app-layout';
+import { adminApi } from '@/lib/api/admin';
 import { formatDate, formatDateTime } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import {
@@ -104,6 +88,7 @@ import {
 import type { BreadcrumbItem } from '@/types';
 import type { Auth } from '@/types/auth';
 import type {
+    LoanManagerOption,
     LoanRequestAuditEntry,
     LoanRequestAssignmentOfficerOption,
     LoanRequestDataSectionDefinitions,
@@ -111,7 +96,6 @@ import type {
     LoanRequestDetail,
     LoanRequestDocumentChecklistItem,
     LoanRequestDocumentKey,
-    LoanRequestDocumentReadinessStatus,
     LoanRequestMemberAction,
     LoanRequestNotificationHistoryItem,
     LoanRequestPersonData,
@@ -128,6 +112,7 @@ type Props = {
     coMakerTwo: LoanRequestPersonData | null;
     auditTrail: LoanRequestAuditEntry[];
     eligibleOfficers: LoanRequestAssignmentOfficerOption[];
+    loanManagers: LoanManagerOption[];
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     documentChecklist: LoanRequestDocumentChecklistItem[];
@@ -151,6 +136,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     address1: '',
     address2: '',
     address3: '',
+    address_zip: '',
     length_of_stay: '',
     housing_status: '',
     cell_no: '',
@@ -166,6 +152,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     employer_business_address1: '',
     employer_business_address2: '',
     employer_business_address3: '',
+    employer_business_address_zip: '',
     telephone_no: '',
     current_position: '',
     nature_of_business: '',
@@ -196,6 +183,7 @@ const toPersonForm = (
         address1: person.address1 ?? '',
         address2: person.address2 ?? '',
         address3: person.address3 ?? '',
+        address_zip: person.address_zip ?? '',
         length_of_stay: person.length_of_stay ?? '',
         housing_status: person.housing_status ?? '',
         cell_no: person.cell_no ?? '',
@@ -212,6 +200,8 @@ const toPersonForm = (
         employer_business_address1: person.employer_business_address1 ?? '',
         employer_business_address2: person.employer_business_address2 ?? '',
         employer_business_address3: person.employer_business_address3 ?? '',
+        employer_business_address_zip:
+            person.employer_business_address_zip ?? '',
         telephone_no: person.telephone_no ?? '',
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
@@ -239,52 +229,6 @@ const displayChecklistStatusTone = (status: string): string => {
 };
 
 const PROCESSING_AGE_ISSUE_THRESHOLD_DAYS = 3;
-
-const checklistStatusIcon = (status: LoanRequestDocumentReadinessStatus) => {
-    switch (status) {
-        case 'not_started':
-            return { Icon: Circle, className: 'text-muted-foreground' };
-        case 'incomplete':
-            return {
-                Icon: AlertCircle,
-                className: 'text-amber-600 dark:text-amber-300',
-            };
-        case 'awaiting_member_confirmation':
-            return {
-                Icon: Clock,
-                className: 'text-violet-600 dark:text-violet-300',
-            };
-        case 'ready_to_generate':
-            return {
-                Icon: PlayCircle,
-                className: 'text-sky-600 dark:text-sky-300',
-            };
-        case 'generated_current':
-            return {
-                Icon: CheckCircle2,
-                className: 'text-emerald-600 dark:text-emerald-300',
-            };
-        case 'generated_stale':
-            return {
-                Icon: RefreshCw,
-                className: 'text-amber-600 dark:text-amber-300',
-            };
-        case 'generation_failed':
-            return {
-                Icon: XCircle,
-                className: 'text-rose-600 dark:text-rose-300',
-            };
-        case 'not_applicable':
-            return { Icon: MinusCircle, className: 'text-muted-foreground' };
-        case 'legacy_data_incomplete':
-            return {
-                Icon: AlertCircle,
-                className: 'text-amber-600 dark:text-amber-300',
-            };
-        default:
-            return { Icon: Circle, className: 'text-muted-foreground' };
-    }
-};
 
 const displayNotificationStatusTone = (status: string | null): string => {
     return (
@@ -331,6 +275,7 @@ export default function StaffLoanRequestShow({
     coMakerTwo,
     auditTrail,
     eligibleOfficers,
+    loanManagers,
     dataSections,
     dataSectionDefinitions,
     documentChecklist,
@@ -517,10 +462,23 @@ export default function StaffLoanRequestShow({
         currentRequest.requested_amount,
         currentRequest.requested_term,
     ]);
-
     const hasWorkflowPermission = (
         permission: LoanRequestWorkflowPermission,
     ): boolean => workflowPermissions.includes(permission);
+
+    useEffect(() => {
+        if (
+            loanRequest.applicant_loan_status === null ||
+            !loanRequest.applicant_loan_status.requires_attention
+        ) {
+            return;
+        }
+
+        const requestId = loanRequest.id;
+
+        void adminApi.logLoanRequestWarningViewed(requestId);
+    }, [loanRequest.id, loanRequest.applicant_loan_status]);
+
     const isOwnRequest = workflowContext.isOwnRequest;
     const actorUserId = auth.user.id;
     const assignedProcessorId =
@@ -882,8 +840,55 @@ export default function StaffLoanRequestShow({
             : undefined,
     };
 
+    const isManagerViewer =
+        hasWorkflowPermission('loan.approve') ||
+        hasWorkflowPermission('loan.decline');
+    const managerStageAlert = isManagerViewer
+        ? (() => {
+              const status = currentRequest.status ?? '';
+              const processorName =
+                  currentRequest.assigned_processor?.name ??
+                  currentRequest.assigned_officer?.name ??
+                  null;
+
+              if (
+                  [
+                      'pending_review',
+                      'under_review',
+                      'needs_revision',
+                      'awaiting_member_information',
+                  ].includes(status)
+              ) {
+                  return {
+                      title: 'Not ready for your review yet',
+                      description: processorName
+                          ? `${processorName} is currently reviewing this request.`
+                          : 'Waiting for a Loan Processor to pick this up.',
+                  };
+              }
+
+              if (status === 'recommended_for_approval') {
+                  return {
+                      title: 'Ready for your decision',
+                      description:
+                          'Review the package below and Approve or Decline.',
+                  };
+              }
+
+              return null;
+          })()
+        : null;
+
     const actionsHeaderContent = (
         <>
+            {managerStageAlert ? (
+                <Alert className="border-primary/30 bg-primary/5">
+                    <AlertTitle>{managerStageAlert.title}</AlertTitle>
+                    <AlertDescription>
+                        {managerStageAlert.description}
+                    </AlertDescription>
+                </Alert>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
                     Workflow:{' '}
@@ -1160,6 +1165,10 @@ export default function StaffLoanRequestShow({
                     availmentStatus={summaryAvailmentStatus}
                     loanPurpose={displayText(currentRequest.loan_purpose)}
                 />
+                <LoanStatusWarning
+                    loanStatus={currentRequest.applicant_loan_status}
+                    className="mt-4"
+                />
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -1182,227 +1191,20 @@ export default function StaffLoanRequestShow({
                                 updateProcessingDetails={
                                     updateProcessingDetails
                                 }
+                                loanManagers={loanManagers}
                             />
                         ) : null}
-                        <Card className="border-border/30 bg-card/70 shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <ClipboardCheck className="size-4 text-muted-foreground" />
-                                    Document checklist
-                                </CardTitle>
-                                <CardDescription>
-                                    Every applicable document must be current
-                                    before recommendation.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex flex-col divide-y divide-border/40">
-                                {[...currentDocumentChecklist]
-                                    .sort((a, b) => {
-                                        const aIncomplete =
-                                            a.blockers.length > 0 ? 1 : 0;
-                                        const bIncomplete =
-                                            b.blockers.length > 0 ? 1 : 0;
-
-                                        return bIncomplete - aIncomplete;
-                                    })
-                                    .map((document) => {
-                                        const viewHref = `/staff/loan-requests/${currentRequest.id}/documents/generated/${document.key}`;
-                                        const isWorkbookDocument = [
-                                            'loan_information',
-                                            'plan_of_payment',
-                                            'disclosure_statement',
-                                            'promissory_note',
-                                        ].includes(document.key);
-                                        const previewHref = isWorkbookDocument
-                                            ? `${viewHref}?preview=1`
-                                            : viewHref;
-                                        const printDocumentHref =
-                                            isWorkbookDocument
-                                                ? `${viewHref}?print=1`
-                                                : viewHref;
-                                        const downloadHref = `${viewHref}?download=1`;
-
-                                        const hasBeenGenerated =
-                                            (document.generated_version ?? 0) >
-                                            0;
-                                        const missingFieldCount =
-                                            document.blockers.length;
-                                        const {
-                                            Icon: StatusIcon,
-                                            className: statusIconClassName,
-                                        } = checklistStatusIcon(
-                                            document.status,
-                                        );
-                                        const subtitle =
-                                            document.template_version ??
-                                            document.key;
-                                        const showWitnessTwoCaveat =
-                                            document.key ===
-                                                'loan_information' ||
-                                            document.key ===
-                                                'promissory_note';
-
-                                        return (
-                                            <div
-                                                key={document.key}
-                                                className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
-                                            >
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="flex min-w-0 items-center gap-2">
-                                                        <StatusIcon
-                                                            className={cn(
-                                                                'size-4 shrink-0',
-                                                                statusIconClassName,
-                                                            )}
-                                                        />
-                                                        <div className="min-w-0">
-                                                            <p className="truncate text-sm font-semibold">
-                                                                {document.label}
-                                                            </p>
-                                                            <p className="truncate text-xs text-muted-foreground">
-                                                                {subtitle}
-                                                            </p>
-                                                            {showWitnessTwoCaveat && (
-                                                                <p className="truncate text-xs text-muted-foreground/70">
-                                                                    Witness 2 recorded automatically at approval if left blank
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex shrink-0 items-center gap-2">
-                                                        {missingFieldCount >
-                                                        0 ? (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {
-                                                                    missingFieldCount
-                                                                }{' '}
-                                                                field
-                                                                {missingFieldCount ===
-                                                                1
-                                                                    ? ''
-                                                                    : 's'}{' '}
-                                                                missing
-                                                            </span>
-                                                        ) : null}
-                                                        {document.generated_filename ? (
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger
-                                                                    asChild
-                                                                >
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                    >
-                                                                        <MoreHorizontal className="size-4" />
-                                                                        <span className="sr-only">
-                                                                            Document
-                                                                            actions
-                                                                        </span>
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end">
-                                                                    <DropdownMenuItem
-                                                                        asChild
-                                                                    >
-                                                                        <a
-                                                                            href={
-                                                                                previewHref
-                                                                            }
-                                                                            target="_blank"
-                                                                            rel="noreferrer"
-                                                                        >
-                                                                            Preview
-                                                                        </a>
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem
-                                                                        asChild
-                                                                    >
-                                                                        <a
-                                                                            href={
-                                                                                printDocumentHref
-                                                                            }
-                                                                            target="_blank"
-                                                                            rel="noreferrer"
-                                                                        >
-                                                                            Print
-                                                                        </a>
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem
-                                                                        asChild
-                                                                    >
-                                                                        <a
-                                                                            href={
-                                                                                downloadHref
-                                                                            }
-                                                                        >
-                                                                            Download
-                                                                        </a>
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        ) : null}
-                                                        {canGenerateDocuments &&
-                                                        document.is_applicable ? (
-                                                            <Button
-                                                                type="button"
-                                                                size="sm"
-                                                                disabled={
-                                                                    isWorkflowProcessing
-                                                                }
-                                                                onClick={() =>
-                                                                    void submitGenerateDocuments(
-                                                                        document.key,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Regenerate
-                                                            </Button>
-                                                        ) : null}
-                                                    </div>
-                                                </div>
-                                                {document.generated_at ||
-                                                hasBeenGenerated ? (
-                                                    <div className="flex flex-wrap items-center gap-3 pl-6 text-[11px] text-muted-foreground">
-                                                        {document.generated_at ? (
-                                                            <span>
-                                                                Last generated:{' '}
-                                                                {formatDateTime(
-                                                                    document.generated_at,
-                                                                )}
-                                                            </span>
-                                                        ) : null}
-                                                        {hasBeenGenerated ? (
-                                                            <span>
-                                                                Generated by:{' '}
-                                                                {document.generated_by ??
-                                                                    '-'}{' '}
-                                                                (v
-                                                                {
-                                                                    document.generated_version
-                                                                }
-                                                                {document.source_version
-                                                                    ? `, source v${document.source_version}`
-                                                                    : ''}
-                                                                )
-                                                            </span>
-                                                        ) : null}
-                                                    </div>
-                                                ) : null}
-                                                {document.failure_message &&
-                                                document.status !==
-                                                    'incomplete' ? (
-                                                    <p className="pl-6 text-[11px] font-medium text-rose-700 dark:text-rose-200">
-                                                        {
-                                                            document.failure_message
-                                                        }
-                                                    </p>
-                                                ) : null}
-                                            </div>
-                                        );
-                                    })}
-                            </CardContent>
-                        </Card>
+                        <LoanRequestDocumentChecklistCard
+                            documentChecklist={currentDocumentChecklist}
+                            generatedDocumentBaseHref={`/staff/loan-requests/${currentRequest.id}/documents/generated`}
+                            canGenerateDocuments={canGenerateDocuments}
+                            isProcessing={isWorkflowProcessing}
+                            onGenerate={(documentKey) =>
+                                void submitGenerateDocuments(
+                                    documentKey as LoanRequestDocumentKey,
+                                )
+                            }
+                        />
                         {showWibsTrackingSection ? (
                             <Card className="border-border/30 bg-card/70 shadow-sm">
                                 <CardHeader>

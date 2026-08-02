@@ -212,6 +212,11 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'employer_business_address_zip' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
             'employer_business_address' => [
                 'nullable',
                 'string',

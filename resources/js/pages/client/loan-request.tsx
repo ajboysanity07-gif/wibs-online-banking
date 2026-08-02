@@ -9,7 +9,6 @@ import {
 } from '@/components/loan-request/loan-request-prerequisite-modal';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
-import { LoanRequestStepIndicator } from '@/components/loan-request/loan-request-step-indicator';
 import {
     chunkGlapiItemGroups,
     getGlapiItemGroups,
@@ -29,6 +28,7 @@ import {
 } from '@/components/loan-request/loan-request-steps';
 import { LoanRequestSummaryPanel } from '@/components/loan-request/loan-request-summary-panel';
 import { LoanRequestWizardActions } from '@/components/loan-request/loan-request-wizard-footer';
+import { LoanRequestWizardShell } from '@/components/loan-request/loan-request-wizard-shell';
 import { loanRequestWizardSteps as steps } from '@/components/loan-request/loan-request-wizard-steps';
 import { PageShell } from '@/components/page-shell';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -50,6 +50,7 @@ import { index as loanRequestsIndex } from '@/routes/client/loan-requests';
 import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    AutoFilledDeclarations,
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
     LoanRequestDataSectionValues,
@@ -81,6 +82,7 @@ type Props = {
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     draft: LoanRequestDraft | null;
     initialStep: number;
+    autoFilledDeclarations: AutoFilledDeclarations;
     bankingPrefilledFromProfile: boolean;
     insurancePrefilledFromProfile: boolean;
     dependentsPrefilledFromProfile: boolean;
@@ -181,6 +183,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     address1: '',
     address2: '',
     address3: '',
+    address_zip: '',
     length_of_stay: '',
     housing_status: '',
     cell_no: '',
@@ -196,6 +199,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     employer_business_address1: '',
     employer_business_address2: '',
     employer_business_address3: '',
+    employer_business_address_zip: '',
     telephone_no: '',
     current_position: '',
     nature_of_business: '',
@@ -226,6 +230,7 @@ const toPersonForm = (
         address1: person.address1 ?? '',
         address2: person.address2 ?? '',
         address3: person.address3 ?? '',
+        address_zip: person.address_zip ?? '',
         length_of_stay: person.length_of_stay ?? '',
         housing_status: person.housing_status ?? '',
         cell_no: person.cell_no ?? '',
@@ -243,6 +248,8 @@ const toPersonForm = (
         employer_business_address1: person.employer_business_address1 ?? '',
         employer_business_address2: person.employer_business_address2 ?? '',
         employer_business_address3: person.employer_business_address3 ?? '',
+        employer_business_address_zip:
+            person.employer_business_address_zip ?? '',
         telephone_no: person.telephone_no ?? '',
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
@@ -395,6 +402,7 @@ export default function LoanRequestPage({
     dataSectionDefinitions,
     draft,
     initialStep,
+    autoFilledDeclarations,
     bankingPrefilledFromProfile,
     insurancePrefilledFromProfile,
     dependentsPrefilledFromProfile,
@@ -490,12 +498,13 @@ export default function LoanRequestPage({
             },
             declarations: {
                 ...dataSections.declarations,
+                ...autoFilledDeclarations,
             },
             dependents: {
                 ...dataSections.dependents,
             },
         }),
-        [applicant, coMakerOne, coMakerTwo, dataSections, draft, loanTypes],
+        [applicant, autoFilledDeclarations, coMakerOne, coMakerTwo, dataSections, draft, loanTypes],
     );
 
     const form = useForm<LoanRequestFormData>(initialFormData);
@@ -765,21 +774,55 @@ export default function LoanRequestPage({
                 </div>
 
                 <div className="overflow-hidden rounded-2xl border border-border/40 bg-card/60 shadow-sm">
-                    <div className="flex flex-col lg:flex-row">
-                        <div className="w-full border-b border-border/50 bg-muted/15 lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0">
-                            <LoanRequestStepIndicator
-                                currentStep={currentStep}
-                                onStepClick={handleStepChange}
-                            />
-                        </div>
-                        <div className="min-w-0 flex-1 p-6 sm:p-7 lg:p-8">
-                            <div
-                                className={
-                                    isReviewStep
-                                        ? 'grid gap-8'
-                                        : 'grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]'
-                                }
-                            >
+                    <LoanRequestWizardShell
+                        currentStep={currentStep}
+                        onStepClick={handleStepChange}
+                        contentClassName="p-6 sm:p-7 lg:p-8"
+                        footer={
+                            <div className="mt-8">
+                                <LoanRequestWizardActions
+                                    isFirstStep={isFirstStep}
+                                    isLastStep={isLastStep}
+                                    onBack={handlePreviousStep}
+                                    onNext={handleNextStep}
+                                    onSaveDraft={handleSaveDraft}
+                                    onSubmit={handleSubmit}
+                                    isSavingDraft={isSavingDraft}
+                                    isSubmitting={isSubmitting}
+                                    disablePrimary={
+                                        !hasLoanTypes ||
+                                        (currentStep ===
+                                            STEP_INDEX['insurance'] &&
+                                            insurancePrefilledFromProfile &&
+                                            !beneficiariesConfirmed) ||
+                                        (currentStep ===
+                                            STEP_INDEX['banking'] &&
+                                            bankingPrefilledFromProfile &&
+                                            !bankAccountConfirmed) ||
+                                        (currentStep ===
+                                            STEP_INDEX['dependents'] &&
+                                            dependentsPrefilledFromProfile &&
+                                            !dependentsConfirmed) ||
+                                        (currentStep ===
+                                            STEP_INDEX['declarations'] &&
+                                            (form.data.declarations
+                                                .declaration_truth_confirmation !==
+                                                true ||
+                                                form.data.declarations
+                                                    .declaration_data_privacy_consent !==
+                                                    true))
+                                    }
+                                />
+                            </div>
+                        }
+                    >
+                        <div
+                            className={
+                                isReviewStep
+                                    ? 'grid gap-8'
+                                    : 'grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_24rem]'
+                            }
+                        >
                                 <div className="space-y-8">
                                     {loanTypes.length === 0 ? (
                                         <Alert variant="destructive">
@@ -1371,40 +1414,6 @@ export default function LoanRequestPage({
                                             }
                                         />
                                     </LoanRequestAnimatedStep>
-
-                                    <LoanRequestWizardActions
-                                        isFirstStep={isFirstStep}
-                                        isLastStep={isLastStep}
-                                        onBack={handlePreviousStep}
-                                        onNext={handleNextStep}
-                                        onSaveDraft={handleSaveDraft}
-                                        onSubmit={handleSubmit}
-                                        isSavingDraft={isSavingDraft}
-                                        isSubmitting={isSubmitting}
-                                        disablePrimary={
-                                            !hasLoanTypes ||
-                                            (currentStep ===
-                                                STEP_INDEX['insurance'] &&
-                                                insurancePrefilledFromProfile &&
-                                                !beneficiariesConfirmed) ||
-                                            (currentStep ===
-                                                STEP_INDEX['banking'] &&
-                                                bankingPrefilledFromProfile &&
-                                                !bankAccountConfirmed) ||
-                                            (currentStep ===
-                                                STEP_INDEX['dependents'] &&
-                                                dependentsPrefilledFromProfile &&
-                                                !dependentsConfirmed) ||
-                                            (currentStep ===
-                                                STEP_INDEX['declarations'] &&
-                                                (form.data.declarations
-                                                    .declaration_truth_confirmation !==
-                                                    true ||
-                                                    form.data.declarations
-                                                        .declaration_data_privacy_consent !==
-                                                        true))
-                                        }
-                                    />
                                 </div>
 
                                 {!isReviewStep && (
@@ -1417,8 +1426,7 @@ export default function LoanRequestPage({
                                     />
                                 )}
                             </div>
-                        </div>
-                    </div>
+                    </LoanRequestWizardShell>
                 </div>
             </PageShell>
         </AppLayout>

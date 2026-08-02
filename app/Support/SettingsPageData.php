@@ -44,6 +44,7 @@ class SettingsPageData
                 $address1 = trim((string) $user->wmaster->address2);
                 $address2 = trim((string) $user->wmaster->address3);
                 $address3 = trim((string) $user->wmaster->address4);
+                $zipCode = trim((string) $user->wmaster->zone_number);
                 $displayAddress = LocationComposer::compose(
                     $address1 !== '' ? $address1 : null,
                     $address2 !== '' ? $address2 : null,
@@ -75,6 +76,7 @@ class SettingsPageData
                     'address1' => $address1 !== '' ? $address1 : null,
                     'address2' => $address2 !== '' ? $address2 : null,
                     'address3' => $address3 !== '' ? $address3 : null,
+                    'zip_code' => $zipCode !== '' ? $zipCode : null,
                     'display_address' => $displayAddress,
                     'civilstat' => $user->wmaster->civilstat,
                     'occupation' => $user->wmaster->occupation,
@@ -153,6 +155,7 @@ class SettingsPageData
                 'employer_business_address1' => $profileEmployerAddress1,
                 'employer_business_address2' => $profileEmployerAddress2,
                 'employer_business_address3' => $profileEmployerAddress3,
+                'employer_business_address_zip' => $memberApplicationProfile->employer_business_address_zip,
                 'telephone_no' => $memberApplicationProfile->telephone_no,
                 'current_position' => $memberApplicationProfile->current_position,
                 'nature_of_business' => $memberApplicationProfile->nature_of_business,

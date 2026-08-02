@@ -1,4 +1,16 @@
-import { AlertTriangle, Check, Save } from 'lucide-react';
+import {
+    AlertTriangle,
+    Baby,
+    Building2,
+    ClipboardCheck,
+    FileText,
+    HeartPulse,
+    Info,
+    Save,
+    Shield,
+    User,
+    Users,
+} from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
@@ -8,7 +20,14 @@ import {
     LoanRequestWorkFields,
 } from '@/components/loan-request/loan-request-fields';
 import { LoanRequestSectionCard } from '@/components/loan-request/loan-request-section-card';
-import { LoanRequestLoanDetailsStep } from '@/components/loan-request/loan-request-steps';
+import {
+    LoanRequestDataSectionStep,
+    LoanRequestDependentsStep,
+    LoanRequestInsuranceBeneficiariesStep,
+    LoanRequestLoanDetailsStep,
+} from '@/components/loan-request/loan-request-steps';
+import { LoanRequestWizardShell } from '@/components/loan-request/loan-request-wizard-shell';
+import type { LoanRequestWizardStep } from '@/components/loan-request/loan-request-wizard-steps';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +48,9 @@ import { cn } from '@/lib/utils';
 import type {
     LoanRequestCorrectionReport,
     LoanRequestCorrectionPayload,
+    LoanRequestDataSectionDefinitions,
+    LoanRequestDataSections,
+    LoanRequestDataSectionValues,
     LoanRequestDetail,
     LoanRequestFormData,
     LoanRequestPersonData,
@@ -56,6 +78,10 @@ type WizardStepId =
     | 'applicant'
     | 'co_maker_1'
     | 'co_maker_2'
+    | 'insurance'
+    | 'dependents'
+    | 'health'
+    | 'banking'
     | 'review';
 
 type Props = {
@@ -65,6 +91,8 @@ type Props = {
     coMakerOne: LoanRequestPersonData | null;
     coMakerTwo: LoanRequestPersonData | null;
     loanTypes: LoanTypeOption[];
+    dataSections: LoanRequestDataSections;
+    dataSectionDefinitions: LoanRequestDataSectionDefinitions;
     correctionReportContext?: LoanRequestCorrectionReport | null;
     errors: ValidationErrors;
     isProcessing: boolean;
@@ -88,38 +116,76 @@ type ChangeGroup = {
     changes: ChangeEntry[];
 };
 
-const WIZARD_STEPS: Array<{
-    id: WizardStepId;
-    title: string;
-    description: string;
-}> = [
+const WIZARD_STEPS: Array<LoanRequestWizardStep & { id: WizardStepId }> = [
     {
         id: 'loan',
         title: 'Loan details',
         description: 'Update loan type, amount, term, and purpose.',
+        group: 'loan',
     },
     {
         id: 'applicant',
         title: 'Applicant details',
         description: 'Review applicant personal, work, and income data.',
+        group: 'applicant',
     },
     {
         id: 'co_maker_1',
         title: 'Co-maker 1',
         description: 'Verify first co-maker information.',
+        group: 'co_maker_1',
     },
     {
         id: 'co_maker_2',
         title: 'Co-maker 2',
         description: 'Verify second co-maker information.',
+        group: 'co_maker_2',
+    },
+    {
+        id: 'insurance',
+        title: 'Insurance & beneficiaries',
+        description: 'Review beneficiary details for document generation.',
+        group: 'insurance',
+    },
+    {
+        id: 'dependents',
+        title: 'Dependents',
+        description: 'Review dependents on file for this applicant.',
+        group: 'dependents',
+    },
+    {
+        id: 'health',
+        title: 'Health basic info',
+        description: 'Review smoking status and hypertension declaration.',
+        group: 'health',
+    },
+    {
+        id: 'banking',
+        title: 'Banking & payout',
+        description: 'Review bank account and payout details. Barangay info is optional.',
+        group: 'banking',
     },
     {
         id: 'review',
         title: 'Review changes & reason',
         description:
             'Confirm all corrections and provide a reason for the audit trail.',
+        group: 'review',
+        sidebarLabel: 'Review & reason',
     },
 ];
+
+const WIZARD_STEP_GROUP_META = {
+    loan: { label: 'Loan details', icon: FileText },
+    applicant: { label: 'Applicant details', icon: User },
+    co_maker_1: { label: 'Co-maker 1', icon: Users },
+    co_maker_2: { label: 'Co-maker 2', icon: Users },
+    insurance: { label: 'Insurance & beneficiaries', icon: Shield },
+    dependents: { label: 'Dependents', icon: Baby },
+    health: { label: 'Health basic info', icon: HeartPulse },
+    banking: { label: 'Banking & payout', icon: Building2 },
+    review: { label: 'Review & reason', icon: ClipboardCheck },
+};
 
 const AVAILMENT_OPTIONS = new Set(['New', 'Re-Loan', 'Restructured']);
 const HOUSING_STATUS_OPTIONS = new Set(['OWNED', 'RENT']);
@@ -157,6 +223,7 @@ const personFieldLabels: Record<keyof LoanRequestPersonFormData, string> = {
     address1: 'Address (street)',
     address2: 'City/Municipality',
     address3: 'Province',
+    address_zip: 'ZIP code',
     length_of_stay: 'Length of stay',
     housing_status: 'Housing status',
     cell_no: 'Cell no.',
@@ -172,6 +239,7 @@ const personFieldLabels: Record<keyof LoanRequestPersonFormData, string> = {
     employer_business_address1: 'Employer/Business address (street)',
     employer_business_address2: 'Employer/Business city/municipality',
     employer_business_address3: 'Employer/Business province',
+    employer_business_address_zip: 'Employer/Business ZIP code',
     telephone_no: 'Tel. no.',
     current_position: 'Current position',
     nature_of_business: 'Nature of business',
@@ -183,6 +251,36 @@ const personFieldLabels: Record<keyof LoanRequestPersonFormData, string> = {
     save_for_reuse: 'Save for reuse',
     saved_co_maker_id: 'Saved co-maker ID',
     saved_co_maker_label: 'Saved co-maker label',
+};
+
+const dataSectionFieldLabels: Record<string, Record<string, string>> = {
+    insurance: {
+        beneficiary_primary_name: 'Primary beneficiary name',
+        beneficiary_primary_relationship: 'Primary beneficiary relationship',
+        beneficiary_primary_birthdate: 'Primary beneficiary birthdate',
+        beneficiary_secondary_name: 'Secondary beneficiary name',
+        beneficiary_secondary_relationship:
+            'Secondary beneficiary relationship',
+        beneficiary_secondary_birthdate: 'Secondary beneficiary birthdate',
+    },
+    health: {
+        health_smoking_status: 'Smoking status',
+        health_hypertension: 'Hypertension',
+    },
+    banking: {
+        payout_bank_name: 'Payout bank name',
+        payout_account_name: 'Payout account name',
+        payout_account_number: 'Payout account number',
+        payout_account_type: 'Payout account type',
+        release_method: 'Release method',
+        payment_option: 'Payment option',
+        payout_atm_number: 'ATM number',
+    },
+    barangay: {
+        barangay_official_designation: 'Barangay official designation',
+        barangay_agency_name: 'Barangay agency name',
+        barangay_agency_address: 'Barangay agency address',
+    },
 };
 
 const applicantRequiredFields: Array<keyof LoanRequestPersonFormData> = [
@@ -348,6 +446,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     address1: '',
     address2: '',
     address3: '',
+    address_zip: '',
     length_of_stay: '',
     housing_status: '',
     cell_no: '',
@@ -363,6 +462,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     employer_business_address1: '',
     employer_business_address2: '',
     employer_business_address3: '',
+    employer_business_address_zip: '',
     telephone_no: '',
     current_position: '',
     nature_of_business: '',
@@ -411,6 +511,7 @@ const toPersonForm = (
         address1: person.address1 ?? '',
         address2: person.address2 ?? '',
         address3: person.address3 ?? '',
+        address_zip: person.address_zip ?? '',
         length_of_stay: person.length_of_stay ?? '',
         housing_status: person.housing_status ?? '',
         cell_no: person.cell_no ?? '',
@@ -427,6 +528,8 @@ const toPersonForm = (
         employer_business_address1: person.employer_business_address1 ?? '',
         employer_business_address2: person.employer_business_address2 ?? '',
         employer_business_address3: person.employer_business_address3 ?? '',
+        employer_business_address_zip:
+            person.employer_business_address_zip ?? '',
         telephone_no: person.telephone_no ?? '',
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
@@ -441,6 +544,7 @@ const buildInitialFormData = (
     applicant: LoanRequestPersonData | null,
     coMakerOne: LoanRequestPersonData | null,
     coMakerTwo: LoanRequestPersonData | null,
+    dataSections: LoanRequestDataSections,
     correctionReportContext?: LoanRequestCorrectionReport | null,
 ): CorrectionFormData => ({
     typecode: loanRequest.typecode ?? '',
@@ -452,6 +556,13 @@ const buildInitialFormData = (
     applicant: toPersonForm(applicant),
     co_maker_1: toPersonForm(coMakerOne),
     co_maker_2: toPersonForm(coMakerTwo),
+    insurance: dataSections.insurance ?? {},
+    health: dataSections.health ?? {},
+    health_glapi: dataSections.health_glapi ?? {},
+    banking: dataSections.banking ?? {},
+    barangay: dataSections.barangay ?? {},
+    declarations: dataSections.declarations ?? {},
+    dependents: dataSections.dependents ?? {},
     change_reason: correctionReportContext
         ? `Member reported incorrect details: ${correctionReportContext.issue_description}. Correct information: ${correctionReportContext.correct_information}.`
         : '',
@@ -587,13 +698,25 @@ const CorrectionReportContextCard = ({
     );
 };
 
-const isBlank = (value: string): boolean => value.trim() === '';
+const humanizeFieldKey = (key: string): string =>
+    key
+        .split('_')
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+const isBlank = (
+    value: string | boolean | null | undefined,
+): boolean => `${value ?? ''}`.trim() === '';
 
 const isDigits = (value: string, length: number): boolean =>
     new RegExp(`^\\d{${length}}$`).test(value.trim());
 
-const normalizeComparable = (path: string, value: string): string => {
-    const trimmed = value.trim();
+const normalizeComparable = (
+    path: string,
+    value: string | boolean | null | undefined,
+): string => {
+    const trimmed = `${value ?? ''}`.trim();
 
     if (trimmed === '') {
         return '';
@@ -614,10 +737,10 @@ const normalizeComparable = (path: string, value: string): string => {
 
 const formatChangeValue = (
     path: string,
-    value: string,
+    value: string | boolean | null | undefined,
     loanTypes: LoanTypeOption[],
 ): string => {
-    const trimmed = value.trim();
+    const trimmed = `${value ?? ''}`.trim();
 
     if (trimmed === '') {
         return '--';
@@ -796,6 +919,9 @@ const validateChangeReason = (reason: string): ValidationErrors => {
     return validationErrors;
 };
 
+const stepIndexOf = (id: WizardStepId): number =>
+    WIZARD_STEPS.findIndex((step) => step.id === id);
+
 const resolveStepFromErrors = (
     validationErrors: ValidationErrors,
 ): number | null => {
@@ -813,48 +939,45 @@ const resolveStepFromErrors = (
             field === 'loan_purpose' ||
             field === 'availment_status'
         ) {
-            matchedSteps.push(0);
+            matchedSteps.push(stepIndexOf('loan'));
             return;
         }
 
         if (field.startsWith('applicant.')) {
-            matchedSteps.push(1);
+            matchedSteps.push(stepIndexOf('applicant'));
             return;
         }
 
         if (field.startsWith('co_maker_1.')) {
-            matchedSteps.push(2);
+            matchedSteps.push(stepIndexOf('co_maker_1'));
             return;
         }
 
         if (field.startsWith('co_maker_2.')) {
-            matchedSteps.push(3);
+            matchedSteps.push(stepIndexOf('co_maker_2'));
             return;
         }
 
         if (field === 'change_reason') {
-            matchedSteps.push(4);
+            matchedSteps.push(stepIndexOf('review'));
         }
     });
 
     return matchedSteps.length > 0 ? Math.min(...matchedSteps) : null;
 };
 
+const STEP_FIELD_KEYS: Partial<Record<WizardStepId, string[]>> = {
+    loan: loanStepFieldKeys,
+    applicant: applicantStepFieldKeys,
+    co_maker_1: coMakerOneStepFieldKeys,
+    co_maker_2: coMakerTwoStepFieldKeys,
+    review: reviewStepFieldKeys,
+};
+
 const getStepFieldKeys = (stepIndex: number): string[] => {
-    switch (stepIndex) {
-        case 0:
-            return loanStepFieldKeys;
-        case 1:
-            return applicantStepFieldKeys;
-        case 2:
-            return coMakerOneStepFieldKeys;
-        case 3:
-            return coMakerTwoStepFieldKeys;
-        case 4:
-            return reviewStepFieldKeys;
-        default:
-            return [];
-    }
+    const stepId = WIZARD_STEPS[stepIndex]?.id;
+
+    return stepId ? (STEP_FIELD_KEYS[stepId] ?? []) : [];
 };
 
 const mergeValidationErrors = (
@@ -911,10 +1034,10 @@ const validateStepData = (
     stepIndex: number,
     data: CorrectionFormData,
 ): ValidationErrors => {
-    switch (stepIndex) {
-        case 0:
+    switch (WIZARD_STEPS[stepIndex]?.id) {
+        case 'loan':
             return validateLoanDetails(data);
-        case 1:
+        case 'applicant':
             return validatePerson(
                 'applicant',
                 data.applicant,
@@ -924,11 +1047,11 @@ const validateStepData = (
                     validateSpouse: true,
                 },
             );
-        case 2:
+        case 'co_maker_1':
             return validatePerson('co_maker_1', data.co_maker_1, coMakerRequiredFields);
-        case 3:
+        case 'co_maker_2':
             return validatePerson('co_maker_2', data.co_maker_2, coMakerRequiredFields);
-        case 4:
+        case 'review':
             return validateChangeReason(data.change_reason);
         default:
             return {};
@@ -985,6 +1108,8 @@ function CorrectionDialogForm({
     coMakerOne,
     coMakerTwo,
     loanTypes,
+    dataSections,
+    dataSectionDefinitions,
     correctionReportContext,
     errors,
     isProcessing,
@@ -1002,12 +1127,14 @@ function CorrectionDialogForm({
                 applicant,
                 coMakerOne,
                 coMakerTwo,
+                dataSections,
                 correctionReportContext,
             ),
         [
             applicant,
             coMakerOne,
             coMakerTwo,
+            dataSections,
             correctionReportContext,
             loanRequest,
         ],
@@ -1058,6 +1185,70 @@ function CorrectionDialogForm({
             return changes;
         }, []);
 
+        const buildDataSectionChanges = (
+            sectionKey: string,
+            original: LoanRequestDataSectionValues,
+            updated: LoanRequestDataSectionValues,
+            labelMap: Record<string, string>,
+        ): ChangeEntry[] => {
+            const changes: ChangeEntry[] = [];
+            const allKeys = new Set([
+                ...Object.keys(original),
+                ...Object.keys(updated),
+            ]);
+
+            allKeys.forEach((key) => {
+                const before = original[key];
+                const after = updated[key];
+
+                if (before !== after) {
+                    changes.push({
+                        field: `${sectionKey}.${key}`,
+                        label: labelMap[key] ?? humanizeFieldKey(key),
+                        before: String(before ?? '(empty)'),
+                        after: String(after ?? '(empty)'),
+                    });
+                }
+            });
+
+            return changes;
+        };
+
+        const insuranceChanges = buildDataSectionChanges(
+            'insurance',
+            initialFormData.insurance ?? {},
+            formData.insurance,
+            dataSectionFieldLabels.insurance,
+        );
+
+        const healthChanges = buildDataSectionChanges(
+            'health',
+            initialFormData.health ?? {},
+            formData.health,
+            dataSectionFieldLabels.health,
+        );
+
+        const bankingChanges = buildDataSectionChanges(
+            'banking',
+            initialFormData.banking ?? {},
+            formData.banking,
+            dataSectionFieldLabels.banking,
+        );
+
+        const barangayChanges = buildDataSectionChanges(
+            'barangay',
+            initialFormData.barangay ?? {},
+            formData.barangay,
+            dataSectionFieldLabels.barangay,
+        );
+
+        const dependentsChanges = buildDataSectionChanges(
+            'dependents',
+            initialFormData.dependents ?? {},
+            formData.dependents,
+            dataSectionFieldLabels.dependents ?? {},
+        );
+
         return [
             {
                 id: 'loan',
@@ -1100,6 +1291,30 @@ function CorrectionDialogForm({
                     coMakerChangeFields,
                     availableLoanTypes,
                 ),
+            },
+            {
+                id: 'insurance',
+                title: 'Insurance & beneficiaries',
+                description: 'Beneficiary details for loan documents.',
+                changes: insuranceChanges,
+            },
+            {
+                id: 'dependents',
+                title: 'Dependents',
+                description: 'Changes to dependents on file.',
+                changes: dependentsChanges,
+            },
+            {
+                id: 'health',
+                title: 'Health basic info',
+                description: 'Smoking status and hypertension.',
+                changes: healthChanges,
+            },
+            {
+                id: 'banking',
+                title: 'Banking & payout',
+                description: 'Bank account and barangay details.',
+                changes: [...bankingChanges, ...barangayChanges],
             },
         ];
     }, [availableLoanTypes, formData, initialFormData]);
@@ -1168,6 +1383,35 @@ function CorrectionDialogForm({
             });
         };
 
+    const updateDataSection =
+        (
+            sectionKey:
+                | 'insurance'
+                | 'health'
+                | 'banking'
+                | 'barangay'
+                | 'dependents',
+        ) =>
+        (field: string, value: string | number | boolean | null) => {
+            const key = `${sectionKey}.${field}`;
+            setFormData((current) => ({
+                ...current,
+                [sectionKey]: {
+                    ...current[sectionKey],
+                    [field]: value,
+                },
+            }));
+            setClientErrors((current) => {
+                if (!current[key]) {
+                    return current;
+                }
+
+                const next = { ...current };
+                delete next[key];
+                return next;
+            });
+        };
+
     const moveToStep = (nextStep: number) => {
         setCurrentStep((current) => {
             if (nextStep === current) {
@@ -1209,7 +1453,7 @@ function CorrectionDialogForm({
         setClientErrors(validationErrors);
 
         if (!hasChanges) {
-            moveToStep(4);
+            moveToStep(WIZARD_STEPS.length - 1);
             return;
         }
 
@@ -1237,9 +1481,9 @@ function CorrectionDialogForm({
     };
 
     return (
-        <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-border/60 bg-card/95 p-0 shadow-2xl backdrop-blur-sm sm:max-w-5xl">
+        <DialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-border/60 bg-card/95 p-0 shadow-2xl backdrop-blur-sm sm:max-w-6xl">
             <DialogHeader>
-                <div className="space-y-6 border-b border-border/40 px-6 pb-5 pt-6 sm:px-7">
+                <div className="space-y-6 border-b border-border/40 px-6 pt-6 pb-5 sm:px-7">
                     <div className="space-y-2">
                         <DialogTitle className="text-2xl font-semibold tracking-tight">
                             Edit request details
@@ -1251,6 +1495,20 @@ function CorrectionDialogForm({
                         </DialogDescription>
                     </div>
 
+                    <Alert className="border-border/50 bg-muted/10">
+                        <Info className="size-4" />
+                        <AlertTitle>What you can correct here</AlertTitle>
+                        <AlertDescription>
+                            This covers loan terms, applicant/co-maker
+                            profiles, insurance beneficiaries, basic health
+                            info, banking, and dependents. The full health
+                            questionnaire and the member&apos;s declarations
+                            are the member&apos;s own sworn statements — they
+                            can only be corrected by the member directly, not
+                            here.
+                        </AlertDescription>
+                    </Alert>
+
                     {correctionReportContext ? (
                         <CorrectionReportContextCard
                             report={correctionReportContext}
@@ -1258,91 +1516,6 @@ function CorrectionDialogForm({
                             description="Keep the member's reported issue visible while updating the copied request."
                         />
                     ) : null}
-
-                    <div className="rounded-2xl border border-border/40 bg-muted/15 p-4 sm:p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-foreground">
-                                {stepMeta.title}
-                            </p>
-                            <span className="text-xs font-medium text-muted-foreground">
-                                Step {currentStep + 1} of {WIZARD_STEPS.length}
-                            </span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            {stepMeta.description}
-                        </p>
-
-                        <ol
-                            className="mt-4 grid gap-2 sm:grid-cols-5"
-                            aria-label="Correction steps"
-                        >
-                            {WIZARD_STEPS.map((step, index) => {
-                                const isCurrent = index === currentStep;
-                                const isCompleted = index < currentStep;
-                                const isUpcoming = index > currentStep;
-                                const canNavigate = index <= currentStep;
-
-                                return (
-                                    <li key={step.id}>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                canNavigate
-                                                    ? moveToStep(index)
-                                                    : undefined
-                                            }
-                                            disabled={!canNavigate}
-                                            aria-current={
-                                                isCurrent ? 'step' : undefined
-                                            }
-                                            className={cn(
-                                                'flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none',
-                                                isCompleted
-                                                    ? 'border-primary/35 bg-primary/10'
-                                                    : isCurrent
-                                                      ? 'border-primary/45 bg-card shadow-sm'
-                                                      : 'border-border/35 bg-muted/10',
-                                                canNavigate
-                                                    ? 'cursor-pointer'
-                                                    : 'cursor-default opacity-80',
-                                            )}
-                                        >
-                                            <span
-                                                className={cn(
-                                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
-                                                    isCompleted
-                                                        ? 'border-primary bg-primary text-primary-foreground'
-                                                        : isCurrent
-                                                          ? 'border-primary/60 text-primary'
-                                                          : 'border-border/50 text-muted-foreground',
-                                                )}
-                                            >
-                                                {isCompleted ? (
-                                                    <Check className="h-4 w-4" />
-                                                ) : (
-                                                    index + 1
-                                                )}
-                                            </span>
-                                            <span className="min-w-0">
-                                                <span
-                                                    className={cn(
-                                                        'block truncate text-xs font-medium',
-                                                        isCurrent
-                                                            ? 'text-foreground'
-                                                            : isUpcoming
-                                                              ? 'text-muted-foreground'
-                                                              : 'text-foreground/80',
-                                                    )}
-                                                >
-                                                    {step.title}
-                                                </span>
-                                            </span>
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                    </div>
                 </div>
             </DialogHeader>
 
@@ -1350,236 +1523,433 @@ function CorrectionDialogForm({
                 className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-0"
                 onSubmit={handleSubmit}
             >
-                <div className="min-h-0 overflow-y-auto px-6 pb-28 pt-5 sm:px-7">
-                    <LoanRequestAnimatedStep
-                        show={currentStep === 0}
-                        direction={stepDirection}
+                <div className="flex min-h-0 flex-1">
+                    <LoanRequestWizardShell
+                        currentStep={currentStep}
+                        onStepClick={(index) => {
+                            if (index <= currentStep) {
+                                moveToStep(index);
+                            }
+                        }}
+                        steps={WIZARD_STEPS}
+                        groupMeta={WIZARD_STEP_GROUP_META}
+                        contentClassName="overflow-y-auto px-6 pt-5 pb-28 sm:px-7"
                     >
-                        <div className="space-y-5">
-                            <LoanRequestLoanDetailsStep
-                                data={formData}
-                                errors={mergedErrors}
-                                loanTypes={availableLoanTypes}
-                                onChange={handleLoanDetailChange}
-                            />
+                        <div className="mb-5 space-y-1">
+                            <p className="text-sm font-semibold text-foreground">
+                                {stepMeta.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {stepMeta.description}
+                            </p>
                         </div>
-                    </LoanRequestAnimatedStep>
 
-                    <LoanRequestAnimatedStep
-                        show={currentStep === 1}
-                        direction={stepDirection}
-                    >
-                        <div className="space-y-5">
-                            <LoanRequestSectionCard title="Applicant personal data">
-                                <LoanRequestPersonalFields
-                                    prefix="applicant"
-                                    values={formData.applicant}
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 0}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestLoanDetailsStep
+                                    data={formData}
                                     errors={mergedErrors}
-                                    includeSpouse
-                                    includeChildren
-                                    onChange={updatePersonField('applicant')}
+                                    loanTypes={availableLoanTypes}
+                                    onChange={handleLoanDetailChange}
                                 />
-                            </LoanRequestSectionCard>
-                            <LoanRequestSectionCard title="Applicant work & finances">
-                                <LoanRequestWorkFields
-                                    prefix="applicant"
-                                    values={formData.applicant}
+                            </div>
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 1}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestSectionCard title="Applicant personal data">
+                                    <LoanRequestPersonalFields
+                                        prefix="applicant"
+                                        values={formData.applicant}
+                                        errors={mergedErrors}
+                                        includeSpouse
+                                        includeChildren
+                                        onChange={updatePersonField(
+                                            'applicant',
+                                        )}
+                                    />
+                                </LoanRequestSectionCard>
+                                <LoanRequestSectionCard title="Applicant work & finances">
+                                    <LoanRequestWorkFields
+                                        prefix="applicant"
+                                        values={formData.applicant}
+                                        errors={mergedErrors}
+                                        onChange={updatePersonField(
+                                            'applicant',
+                                        )}
+                                    />
+                                </LoanRequestSectionCard>
+                            </div>
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 2}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestSectionCard title="Co-maker 1">
+                                    <LoanRequestPersonalFields
+                                        prefix="co_maker_1"
+                                        values={formData.co_maker_1}
+                                        errors={mergedErrors}
+                                        onChange={updatePersonField(
+                                            'co_maker_1',
+                                        )}
+                                    />
+                                    <Separator className="bg-border/40" />
+                                    <LoanRequestWorkFields
+                                        prefix="co_maker_1"
+                                        values={formData.co_maker_1}
+                                        errors={mergedErrors}
+                                        onChange={updatePersonField(
+                                            'co_maker_1',
+                                        )}
+                                    />
+                                </LoanRequestSectionCard>
+                            </div>
+                        </LoanRequestAnimatedStep>
+
+                        <LoanRequestAnimatedStep
+                            show={currentStep === 3}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestSectionCard title="Co-maker 2">
+                                    <LoanRequestPersonalFields
+                                        prefix="co_maker_2"
+                                        values={formData.co_maker_2}
+                                        errors={mergedErrors}
+                                        onChange={updatePersonField(
+                                            'co_maker_2',
+                                        )}
+                                    />
+                                    <Separator className="bg-border/40" />
+                                    <LoanRequestWorkFields
+                                        prefix="co_maker_2"
+                                        values={formData.co_maker_2}
+                                        errors={mergedErrors}
+                                        onChange={updatePersonField(
+                                            'co_maker_2',
+                                        )}
+                                    />
+                                </LoanRequestSectionCard>
+                            </div>
+                        </LoanRequestAnimatedStep>
+
+                        {/* Insurance & beneficiaries */}
+                        <LoanRequestAnimatedStep
+                            show={currentStep === stepIndexOf('insurance')}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestInsuranceBeneficiariesStep
+                                    sectionKey="insurance"
+                                    title="Insurance and beneficiaries"
+                                    description="Review beneficiary details that will be used in loan documents."
+                                    values={formData.insurance}
+                                    definition={
+                                        dataSectionDefinitions.insurance
+                                    }
                                     errors={mergedErrors}
-                                    onChange={updatePersonField('applicant')}
+                                    onChange={updateDataSection('insurance')}
                                 />
-                            </LoanRequestSectionCard>
-                        </div>
-                    </LoanRequestAnimatedStep>
+                            </div>
+                        </LoanRequestAnimatedStep>
 
-                    <LoanRequestAnimatedStep
-                        show={currentStep === 2}
-                        direction={stepDirection}
-                    >
-                        <div className="space-y-5">
-                            <LoanRequestSectionCard title="Co-maker 1">
-                                <LoanRequestPersonalFields
-                                    prefix="co_maker_1"
-                                    values={formData.co_maker_1}
+                        {/* Dependents */}
+                        <LoanRequestAnimatedStep
+                            show={currentStep === stepIndexOf('dependents')}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestDependentsStep
+                                    sectionKey="dependents"
+                                    title="Dependents"
+                                    description="Review dependents on file for this applicant."
+                                    values={formData.dependents}
+                                    definition={
+                                        dataSectionDefinitions.dependents
+                                    }
                                     errors={mergedErrors}
-                                    onChange={updatePersonField('co_maker_1')}
+                                    crossSectionValues={{
+                                        'applicant.civil_status':
+                                            formData.applicant.civil_status,
+                                    }}
+                                    onChange={updateDataSection('dependents')}
+                                    hasExistingProfileData={false}
+                                    editInSettingsHref=""
                                 />
-                                <Separator className="bg-border/40" />
-                                <LoanRequestWorkFields
-                                    prefix="co_maker_1"
-                                    values={formData.co_maker_1}
+                            </div>
+                        </LoanRequestAnimatedStep>
+
+                        {/* Health basic info */}
+                        <LoanRequestAnimatedStep
+                            show={currentStep === stepIndexOf('health')}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestDataSectionStep
+                                    sectionKey="health"
+                                    title="Health basic information"
+                                    description="Review smoking status and hypertension declaration. Full health questionnaire is completed by the member during application."
+                                    values={formData.health}
+                                    definition={dataSectionDefinitions.health}
                                     errors={mergedErrors}
-                                    onChange={updatePersonField('co_maker_1')}
+                                    onChange={updateDataSection('health')}
                                 />
-                            </LoanRequestSectionCard>
-                        </div>
-                    </LoanRequestAnimatedStep>
+                            </div>
+                        </LoanRequestAnimatedStep>
 
-                    <LoanRequestAnimatedStep
-                        show={currentStep === 3}
-                        direction={stepDirection}
-                    >
-                        <div className="space-y-5">
-                            <LoanRequestSectionCard title="Co-maker 2">
-                                <LoanRequestPersonalFields
-                                    prefix="co_maker_2"
-                                    values={formData.co_maker_2}
+                        {/* Banking & payout */}
+                        <LoanRequestAnimatedStep
+                            show={currentStep === stepIndexOf('banking')}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                <LoanRequestDataSectionStep
+                                    sectionKey="banking"
+                                    title="Bank and payout information"
+                                    description="Review payout bank account details for loan disbursement."
+                                    values={formData.banking}
+                                    definition={dataSectionDefinitions.banking}
                                     errors={mergedErrors}
-                                    onChange={updatePersonField('co_maker_2')}
+                                    onChange={updateDataSection('banking')}
+                                    applicantFullName={`${applicant?.first_name ?? ''} ${applicant?.last_name ?? ''}`.trim()}
                                 />
-                                <Separator className="bg-border/40" />
-                                <LoanRequestWorkFields
-                                    prefix="co_maker_2"
-                                    values={formData.co_maker_2}
-                                    errors={mergedErrors}
-                                    onChange={updatePersonField('co_maker_2')}
-                                />
-                            </LoanRequestSectionCard>
-                        </div>
-                    </LoanRequestAnimatedStep>
 
-                    <LoanRequestAnimatedStep
-                        show={currentStep === 4}
-                        direction={stepDirection}
-                    >
-                        <div className="space-y-5">
-                            {!hasChanges ? (
-                                <Alert className="border-amber-500/35 bg-amber-500/10 text-foreground">
-                                    <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-200" />
-                                    <AlertTitle>
-                                        No changes detected.
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        No changes detected. Update at least one
-                                        field before saving a correction.
-                                    </AlertDescription>
-                                </Alert>
-                            ) : null}
+                                <LoanRequestSectionCard
+                                    title="Barangay information (optional)"
+                                    description="Required only if barangay certification is part of the loan documentation."
+                                >
+                                    <LoanRequestDataSectionStep
+                                        sectionKey="barangay"
+                                        title="Barangay details"
+                                        description="Provide barangay official and agency information if required."
+                                        values={formData.barangay}
+                                        definition={
+                                            dataSectionDefinitions.barangay
+                                        }
+                                        errors={mergedErrors}
+                                        onChange={updateDataSection('barangay')}
+                                    />
+                                </LoanRequestSectionCard>
+                            </div>
+                        </LoanRequestAnimatedStep>
 
-                            {correctionReportContext ? (
-                                <CorrectionReportContextCard
-                                    report={correctionReportContext}
-                                    title="Reported correction context"
-                                    compact
-                                    showMeta={false}
-                                />
-                            ) : null}
+                        {/* Review changes & reason */}
+                        <LoanRequestAnimatedStep
+                            show={currentStep === stepIndexOf('review')}
+                            direction={stepDirection}
+                        >
+                            <div className="space-y-5">
+                                {!hasChanges ? (
+                                    <Alert className="border-amber-500/35 bg-amber-500/10 text-foreground">
+                                        <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-200" />
+                                        <AlertTitle>
+                                            No changes detected.
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            No changes detected. Update at least
+                                            one field before saving a
+                                            correction.
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
 
-                            <LoanRequestSectionCard
-                                title="Review changes"
-                                description="Only modified fields are listed below."
-                            >
-                                <div className="space-y-4">
-                                    {changeGroups.map((group) => (
-                                        <section
-                                            key={group.id}
-                                            className="rounded-2xl border border-border/45 bg-muted/10 p-4"
-                                        >
-                                            <div className="space-y-1">
-                                                <h3 className="text-sm font-semibold text-foreground">
-                                                    {group.title}
-                                                </h3>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {group.description}
-                                                </p>
-                                            </div>
+                                {correctionReportContext ? (
+                                    <CorrectionReportContextCard
+                                        report={correctionReportContext}
+                                        title="Reported correction context"
+                                        compact
+                                        showMeta={false}
+                                    />
+                                ) : null}
 
-                                            {group.changes.length === 0 ? (
-                                                <p className="mt-3 text-xs text-muted-foreground">
-                                                    No changes in this section.
-                                                </p>
-                                            ) : (
-                                                <div className="mt-4 space-y-3">
-                                                    {group.changes.map(
-                                                        (change) => (
-                                                            <div
-                                                                key={
-                                                                    change.field
-                                                                }
-                                                                className="rounded-xl border border-border/45 bg-card/70 p-3"
-                                                            >
-                                                                <p className="text-xs font-semibold text-foreground">
-                                                                    {
-                                                                        change.label
+                                <LoanRequestSectionCard
+                                    title="Review changes"
+                                    description="Only modified fields are listed below."
+                                >
+                                    <div className="space-y-4">
+                                        {changeGroups.map((group) => (
+                                            <section
+                                                key={group.id}
+                                                className="rounded-2xl border border-border/45 bg-muted/10 p-4"
+                                            >
+                                                <div className="space-y-1">
+                                                    <h3 className="text-sm font-semibold text-foreground">
+                                                        {group.title}
+                                                    </h3>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {group.description}
+                                                    </p>
+                                                </div>
+
+                                                {group.changes.length === 0 ? (
+                                                    <p className="mt-3 text-xs text-muted-foreground">
+                                                        No changes in this
+                                                        section.
+                                                    </p>
+                                                ) : (
+                                                    <div className="mt-4 space-y-3">
+                                                        {group.changes.map(
+                                                            (change) => (
+                                                                <div
+                                                                    key={
+                                                                        change.field
                                                                     }
-                                                                </p>
-                                                                <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
-                                                                    <div className="rounded-lg border border-border/40 bg-muted/20 p-2">
-                                                                        <p className="text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                                                                            Before
-                                                                        </p>
-                                                                        <p className="mt-1 break-words text-foreground/90">
-                                                                            {
-                                                                                change.before
-                                                                            }
-                                                                        </p>
-                                                                    </div>
-                                                                    <div className="rounded-lg border border-primary/30 bg-primary/10 p-2">
-                                                                        <p className="text-[10px] font-medium tracking-[0.14em] text-primary uppercase">
-                                                                            After
-                                                                        </p>
-                                                                        <p className="mt-1 break-words text-foreground">
-                                                                            {
-                                                                                change.after
-                                                                            }
-                                                                        </p>
+                                                                    className="rounded-xl border border-border/45 bg-card/70 p-3"
+                                                                >
+                                                                    <p className="text-xs font-semibold text-foreground">
+                                                                        {
+                                                                            change.label
+                                                                        }
+                                                                    </p>
+                                                                    <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
+                                                                        <div className="rounded-lg border border-border/40 bg-muted/20 p-2">
+                                                                            <p className="text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                                                                                Before
+                                                                            </p>
+                                                                            <p className="mt-1 break-words text-foreground/90">
+                                                                                {
+                                                                                    change.before
+                                                                                }
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="rounded-lg border border-primary/30 bg-primary/10 p-2">
+                                                                            <p className="text-[10px] font-medium tracking-[0.14em] text-primary uppercase">
+                                                                                After
+                                                                            </p>
+                                                                            <p className="mt-1 break-words text-foreground">
+                                                                                {
+                                                                                    change.after
+                                                                                }
+                                                                            </p>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            )}
-                                        </section>
-                                    ))}
-                                </div>
-                            </LoanRequestSectionCard>
-
-                            <LoanRequestSectionCard
-                                title="Audit reason"
-                                description="Explain why this correction is needed."
-                            >
-                                <div className="grid gap-2">
-                                    <Label htmlFor="change_reason">
-                                        Change reason
-                                    </Label>
-                                    <textarea
-                                        id="change_reason"
-                                        className={textareaClassName}
-                                        value={formData.change_reason}
-                                        maxLength={1000}
-                                        required
-                                        disabled={isProcessing}
-                                        placeholder="Explain why this correction is needed."
-                                        onChange={(event) => {
-                                            const value = event.target.value;
-
-                                            setFormData((current) => ({
-                                                ...current,
-                                                change_reason: value,
-                                            }));
-                                            setClientErrors((current) => {
-                                                if (!current.change_reason) {
-                                                    return current;
-                                                }
-
-                                                const next = { ...current };
-                                                delete next.change_reason;
-                                                return next;
-                                            });
-                                        }}
-                                    />
-                                    <div className="flex items-start justify-between gap-3">
-                                        <InputError
-                                            message={mergedErrors.change_reason}
-                                        />
-                                        <span className="ml-auto text-xs text-muted-foreground">
-                                            {formData.change_reason.length}/1000
-                                        </span>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </section>
+                                        ))}
                                     </div>
-                                </div>
-                            </LoanRequestSectionCard>
-                        </div>
-                    </LoanRequestAnimatedStep>
+                                </LoanRequestSectionCard>
+
+                                <LoanRequestSectionCard
+                                    title="Member declarations (read-only)"
+                                    description="These are the member's legal attestations from their original submission. Contact the member if corrections are needed."
+                                >
+                                    <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                                        <div className="flex items-start gap-2">
+                                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+                                            <p className="text-xs text-muted-foreground">
+                                                Member declarations cannot be
+                                                modified by staff. These represent
+                                                the member's sworn statements.
+                                            </p>
+                                        </div>
+
+                                        <div className="mt-4 space-y-2 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span>Existing loans declared:</span>
+                                                <span className="font-medium">
+                                                    {formData.declarations
+                                                        .declaration_existing_loans
+                                                        ? 'Yes'
+                                                        : 'No'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span>Pending cases declared:</span>
+                                                <span className="font-medium">
+                                                    {formData.declarations
+                                                        .declaration_pending_cases
+                                                        ? 'Yes'
+                                                        : 'No'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span>Truth confirmation:</span>
+                                                <span className="font-medium">
+                                                    {formData.declarations
+                                                        .declaration_truth_confirmation
+                                                        ? 'Confirmed'
+                                                        : 'Not confirmed'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span>Data privacy consent:</span>
+                                                <span className="font-medium">
+                                                    {formData.declarations
+                                                        .declaration_data_privacy_consent
+                                                        ? 'Consented'
+                                                        : 'Not consented'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </LoanRequestSectionCard>
+
+                                <LoanRequestSectionCard
+                                    title="Audit reason"
+                                    description="Explain why this correction is needed."
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="change_reason">
+                                            Change reason
+                                        </Label>
+                                        <textarea
+                                            id="change_reason"
+                                            className={textareaClassName}
+                                            value={formData.change_reason}
+                                            maxLength={1000}
+                                            required
+                                            disabled={isProcessing}
+                                            placeholder="Explain why this correction is needed."
+                                            onChange={(event) => {
+                                                const value =
+                                                    event.target.value;
+
+                                                setFormData((current) => ({
+                                                    ...current,
+                                                    change_reason: value,
+                                                }));
+                                                setClientErrors((current) => {
+                                                    if (
+                                                        !current.change_reason
+                                                    ) {
+                                                        return current;
+                                                    }
+
+                                                    const next = { ...current };
+                                                    delete next.change_reason;
+                                                    return next;
+                                                });
+                                            }}
+                                        />
+                                        <div className="flex items-start justify-between gap-3">
+                                            <InputError
+                                                message={
+                                                    mergedErrors.change_reason
+                                                }
+                                            />
+                                            <span className="ml-auto text-xs text-muted-foreground">
+                                                {formData.change_reason.length}
+                                                /1000
+                                            </span>
+                                        </div>
+                                    </div>
+                                </LoanRequestSectionCard>
+                            </div>
+                        </LoanRequestAnimatedStep>
+                    </LoanRequestWizardShell>
                 </div>
 
                 <div className="sticky bottom-0 z-20 border-t border-border/60 bg-background/90 px-6 py-4 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.35)] backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-7 sm:py-5">

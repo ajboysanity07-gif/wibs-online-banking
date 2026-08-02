@@ -25,6 +25,7 @@ beforeEach(function () {
             $table->string('address2')->nullable();
             $table->string('address3')->nullable();
             $table->string('address4')->nullable();
+            $table->string('zone_number')->nullable();
             $table->string('civilstat')->nullable();
             $table->string('occupation')->nullable();
             $table->string('spouse')->nullable();
@@ -185,6 +186,7 @@ test('profile page loads member record information from wmaster', function () {
         'address2' => '123 Mabini Street',
         'address3' => 'Manila',
         'address4' => 'Metro Manila',
+        'zone_number' => '1000',
         'civilstat' => 'Single',
         'occupation' => 'Analyst',
         'spouse' => 'Miguel Santos',
@@ -212,6 +214,7 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.address1', '123 Mabini Street')
             ->where('memberRecord.address2', 'Manila')
             ->where('memberRecord.address3', 'Metro Manila')
+            ->where('memberRecord.zip_code', '1000')
             ->where(
                 'memberRecord.display_address',
                 '123 Mabini Street, Manila, Metro Manila',
@@ -953,6 +956,7 @@ test('profile information can be updated', function () {
             'employer_business_address1' => 'Acme Plaza',
             'employer_business_address2' => 'Tagum City',
             'employer_business_address3' => 'Davao del Norte',
+            'employer_business_address_zip' => '8100',
             'telephone_no' => '02-123-4567',
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
@@ -994,6 +998,7 @@ test('profile information can be updated', function () {
     expect($memberProfile->employer_business_address1)->toBe('Acme Plaza');
     expect($memberProfile->employer_business_address2)->toBe('Tagum City');
     expect($memberProfile->employer_business_address3)->toBe('Davao del Norte');
+    expect($memberProfile->employer_business_address_zip)->toBe('8100');
     expect($memberProfile->telephone_no)->toBe('02-123-4567');
     expect($memberProfile->current_position)->toBe('Analyst');
     expect($memberProfile->nature_of_business)->toBe('Finance');

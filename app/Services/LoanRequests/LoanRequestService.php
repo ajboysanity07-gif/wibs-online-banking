@@ -55,6 +55,7 @@ class LoanRequestService
         private LoanRequestDataService $dataService,
         private DependentsProfileSyncService $dependentsSync,
         private SavedCoMakersService $savedCoMakers,
+        private LoanDeclarationAutoFillService $declarationAutoFillService,
     ) {}
 
     /**
@@ -70,6 +71,7 @@ class LoanRequestService
      *     dataSectionDefinitions: array<string, mixed>,
      *     insurancePrefilledFromProfile: bool,
      *     initialStep: int,
+     *     autoFilledDeclarations: array<string, bool|string|float|null>|\stdClass,
      *     draft: array{
      *         id: int,
      *         status: string,
@@ -95,6 +97,10 @@ class LoanRequestService
         $draft = $this->getActiveEditableRequest($user);
         $applicantReadOnly = $this->buildApplicantReadOnlyMap($user);
         $memberName = $this->resolveMemberName($user);
+
+        $autoFilledDeclarations = $draft === null
+            ? $this->declarationAutoFillService->getDeclarationData($user)
+            : (object) [];
 
         if ($draft !== null) {
             $draft->loadMissing('people');
@@ -172,6 +178,7 @@ class LoanRequestService
             'dataSections' => $dataSections,
             'dataSectionDefinitions' => $this->dataService->sectionDefinitions(),
             'initialStep' => $initialStep,
+            'autoFilledDeclarations' => $autoFilledDeclarations,
             'draft' => $draft !== null ? $this->serializeLoanRequest($draft) : null,
             'bankingPrefilledFromProfile' => $bankingPrefilledFromProfile,
             'insurancePrefilledFromProfile' => $insurancePrefilledFromProfile,
@@ -1258,6 +1265,7 @@ class LoanRequestService
             'address1' => $addressValues['address1'],
             'address2' => $addressValues['address2'],
             'address3' => $addressValues['address3'],
+            'address_zip' => $this->normalizeOptionalString($data['address_zip'] ?? null),
             'length_of_stay' => $this->normalizeOptionalString($data['length_of_stay'] ?? null),
             'housing_status' => $this->normalizeOptionalString($data['housing_status'] ?? null),
             'cell_no' => $this->normalizeOptionalString($data['cell_no'] ?? null),
@@ -1282,6 +1290,9 @@ class LoanRequestService
             'employer_business_address1' => $employerAddressValues['address1'],
             'employer_business_address2' => $employerAddressValues['address2'],
             'employer_business_address3' => $employerAddressValues['address3'],
+            'employer_business_address_zip' => $this->normalizeOptionalString(
+                $data['employer_business_address_zip'] ?? null,
+            ),
             'telephone_no' => $this->normalizeOptionalString($data['telephone_no'] ?? null),
             'current_position' => $this->normalizeOptionalString(
                 $data['current_position'] ?? null,
@@ -1513,10 +1524,14 @@ class LoanRequestService
             'address1' => $addressValues['address1'],
             'address2' => $addressValues['address2'],
             'address3' => $addressValues['address3'],
+            'address_zip' => $this->normalizeOptionalString($person['address_zip'] ?? null),
             'employer_business_address' => $employerAddressValues['legacy'],
             'employer_business_address1' => $employerAddressValues['address1'],
             'employer_business_address2' => $employerAddressValues['address2'],
             'employer_business_address3' => $employerAddressValues['address3'],
+            'employer_business_address_zip' => $this->normalizeOptionalString(
+                $person['employer_business_address_zip'] ?? null,
+            ),
         ]);
     }
 
@@ -1867,6 +1882,7 @@ class LoanRequestService
             'address1' => $address1,
             'address2' => $address2,
             'address3' => $address3,
+            'address_zip' => $this->normalizeOptionalString($wmaster?->zone_number),
             'length_of_stay' => $profile?->length_of_stay,
             'housing_status' => $wmaster?->restype !== null
                 ? (string) $wmaster->restype
@@ -1884,6 +1900,9 @@ class LoanRequestService
             'employer_business_address1' => $employerAddress1,
             'employer_business_address2' => $employerAddress2,
             'employer_business_address3' => $employerAddress3,
+            'employer_business_address_zip' => $this->normalizeOptionalString(
+                $profile?->employer_business_address_zip,
+            ),
             'telephone_no' => $profile?->telephone_no,
             'current_position' => $currentPosition,
             'nature_of_business' => $profile?->nature_of_business,
@@ -1930,6 +1949,7 @@ class LoanRequestService
         $address1 = $this->normalizeOptionalString($wmaster?->address2);
         $address2 = $this->normalizeOptionalString($wmaster?->address3);
         $address3 = $this->normalizeOptionalString($wmaster?->address4);
+        $addressZip = $this->normalizeOptionalString($wmaster?->zone_number);
         $legacyAddress = $this->normalizeOptionalString($wmaster?->address);
 
         if (
@@ -1963,6 +1983,7 @@ class LoanRequestService
             'address1' => $address1 !== null,
             'address2' => $address2 !== null,
             'address3' => $address3 !== null,
+            'address_zip' => $addressZip !== null,
             'housing_status' => $this->hasValue($wmaster?->restype),
             'civil_status' => $this->normalizeCivilStatusValue($wmaster?->civilstat) !== null,
             'number_of_children' => $hasDependentColumn

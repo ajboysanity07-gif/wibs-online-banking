@@ -1,5 +1,6 @@
 <?php
 
+use App\LoanRequestPersonRole;
 use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -23,6 +24,7 @@ beforeEach(function (): void {
             $table->string('bname')->nullable();
             $table->date('birthday')->nullable();
             $table->string('address')->nullable();
+            $table->string('zone_number')->nullable();
             $table->string('civilstat')->nullable();
             $table->string('occupation')->nullable();
         });
@@ -59,7 +61,7 @@ function createBankingTestMember(string $acctno, array $profileOverrides = []): 
 
     DB::table('wmaster')->updateOrInsert(
         ['acctno' => $acctno],
-        ['fname' => 'Banking', 'lname' => 'Member', 'birthday' => '1990-01-01', 'address' => 'Bank St'],
+        ['fname' => 'Banking', 'lname' => 'Member', 'birthday' => '1990-01-01', 'address' => 'Bank St', 'zone_number' => '8307'],
     );
 
     return $member->fresh(['roles.permissions', 'userProfile', 'memberApplicationProfile']);
@@ -81,6 +83,7 @@ function fullLoanRequestSubmitPayload(): array
         'address1' => 'Street',
         'address2' => 'Manila',
         'address3' => 'Metro Manila',
+        'address_zip' => '8307',
         'length_of_stay' => '5 years',
         'housing_status' => 'OWNED',
         'cell_no' => '09123456789',
@@ -95,6 +98,7 @@ function fullLoanRequestSubmitPayload(): array
         'employer_business_address1' => 'City Center',
         'employer_business_address2' => 'Manila',
         'employer_business_address3' => 'Metro Manila',
+        'employer_business_address_zip' => '8100',
         'telephone_no' => '021234567',
         'current_position' => 'Analyst',
         'nature_of_business' => 'Finance',
@@ -131,6 +135,7 @@ function fullLoanRequestSubmitPayload(): array
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'ATM',
+            'payment_option' => 'ATM Deduction',
             'payout_atm_number' => '9876543210',
             'payout_bank_branch' => 'Main Branch',
             'payout_atm_holder_name' => null,
@@ -235,4 +240,27 @@ test('submit does not write back on a draft-only save', function (): void {
         ->first();
 
     expect($profile->payout_bank_name)->toBeNull();
+});
+
+test('submit persists home and office zip codes on the applicant snapshot', function (): void {
+    $member = createBankingTestMember('003105', [
+        'payout_bank_name' => 'WIBS Cooperative Bank',
+        'payout_account_name' => 'Loan Member',
+        'payout_account_number' => '1234567890',
+        'payout_account_type' => 'Savings',
+        'release_method' => 'ATM',
+        'source_of_fund_wealth' => 'Salary',
+        'id_type' => 'TIN',
+        'id_number' => '123-456-789',
+    ]);
+
+    $loanRequest = app(LoanRequestService::class)->submit($member, fullLoanRequestSubmitPayload());
+
+    $applicant = $loanRequest->people()
+        ->where('role', LoanRequestPersonRole::Applicant)
+        ->first();
+
+    expect($applicant)->not->toBeNull();
+    expect($applicant->address_zip)->toBe('8307');
+    expect($applicant->employer_business_address_zip)->toBe('8100');
 });
