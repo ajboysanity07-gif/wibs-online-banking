@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { MemberLoanStatusCard } from '@/components/member/member-loan-status-card';
 import { MemberProfileDetailsCard } from '@/components/member-profile-details-card';
 import { MemberProfileHeader } from '@/components/member-profile-header';
 import { MemberStatusCard } from '@/components/member-status-card';
@@ -27,6 +28,7 @@ import type {
     MemberAccountsSummary,
     PaginationMeta,
 } from '@/types/admin';
+import type { LoanStatusSummaryForMember } from '@/types/loan-requests';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -52,6 +54,7 @@ type Props = {
     summaryError?: string | null;
     recentAccountActions?: MemberAccountActionsResponse | null;
     recentAccountActionsError?: string | null;
+    loanSummary?: LoanStatusSummaryForMember | null;
 };
 
 type PageProps = {
@@ -71,6 +74,7 @@ export default function MemberProfile({
     summaryError = null,
     recentAccountActions,
     recentAccountActionsError = null,
+    loanSummary,
 }: Props) {
     const { auth } = usePage<PageProps>().props;
     const getInitials = useInitials();
@@ -212,6 +216,10 @@ export default function MemberProfile({
                         disabled: !canNavigate,
                     }}
                 />
+
+                {loanSummary ? (
+                    <MemberLoanStatusCard loanSummary={loanSummary} />
+                ) : null}
 
                 <MemberRecentAccountActionsCard
                     acctno={currentMember.acctno}

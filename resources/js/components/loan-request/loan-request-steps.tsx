@@ -63,6 +63,12 @@ import type {
 const AVAILMENT_OPTIONS = ['New', 'Re-Loan', 'Restructured'] as const;
 
 const RELEASE_METHOD_OPTIONS = ['ATM', 'Bank Transfer', 'Check', 'Cash'] as const;
+const PAYMENT_OPTION_OPTIONS = [
+    'Salary Deduction',
+    'ATM Deduction',
+    'Check',
+    'Cash',
+] as const;
 
 type LoanDetailField =
     | 'typecode'
@@ -849,6 +855,41 @@ export function LoanRequestDataSectionStep({
                                     </SelectTrigger>
                                     <SelectContent>
                                         {RELEASE_METHOD_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option}
+                                                    value={option}
+                                                >
+                                                    {option}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors[errorKey]} />
+                            </div>
+                        );
+                    }
+
+                    if (fieldKey === 'payment_option') {
+                        return (
+                            <div key={fieldKey} className="grid gap-2">
+                                <Label htmlFor={`${sectionKey}_${fieldKey}`}>
+                                    {field.label}
+                                </Label>
+                                <Select
+                                    value={value ? `${value}` : undefined}
+                                    onValueChange={(nextValue) =>
+                                        onChange(fieldKey, nextValue)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id={`${sectionKey}_${fieldKey}`}
+                                    >
+                                        <SelectValue placeholder="Select payment option" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {PAYMENT_OPTION_OPTIONS.map(
                                             (option) => (
                                                 <SelectItem
                                                     key={option}

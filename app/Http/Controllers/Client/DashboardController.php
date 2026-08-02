@@ -6,6 +6,7 @@ use App\Domains\MemberAccounts\Resources\MemberAccountsSummaryResource;
 use App\Domains\MemberAccounts\Resources\MemberRecentAccountActionResource;
 use App\Domains\MemberAccounts\Services\MemberAccountsService;
 use App\Http\Controllers\Controller;
+use App\Services\LoanRequests\LoanDeclarationAutoFillService;
 use App\Support\SchemaCapabilities;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class DashboardController extends Controller
         Request $request,
         MemberAccountsService $service,
         SchemaCapabilities $schemaCapabilities,
+        LoanDeclarationAutoFillService $loanDeclarationAutoFillService,
     ): Response|RedirectResponse {
         $user = $request->user();
 
@@ -122,12 +124,25 @@ class DashboardController extends Controller
             ? null
             : $this->sanitizePayload($recentAccountActionsPayload);
 
+        $loanSummary = null;
+
+        try {
+            if ($user->acctno !== null && trim((string) $user->acctno) !== '') {
+                $loanSummary = $loanDeclarationAutoFillService
+                    ->getLoanStatusSummaryForMember((string) $user->acctno);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+            $loanSummary = null;
+        }
+
         return Inertia::render('client/dashboard', [
             'member' => $memberPayload,
             'summary' => $summaryPayload,
             'summaryError' => $summaryError,
             'recentAccountActions' => $recentAccountActionsPayload,
             'recentAccountActionsError' => $recentAccountActionsError,
+            'loanSummary' => $loanSummary,
         ]);
     }
 

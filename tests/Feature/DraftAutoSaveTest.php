@@ -392,6 +392,7 @@ test('draft endpoint accepts full form.data shape with empty strings and returns
             'payout_account_number' => null,
             'payout_account_type' => null,
             'release_method' => null,
+            'payment_option' => null,
             'payout_atm_number' => null,
             'payout_bank_branch' => null,
             'payout_atm_holder_name' => null,

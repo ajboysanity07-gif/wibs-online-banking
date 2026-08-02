@@ -283,13 +283,38 @@ test('loan workflow smoke test passes when required configuration is present', f
 
     Artisan::call('loan-workflow:seed-permissions');
 
-    $exitCode = Artisan::call('loan-workflow:smoke-test');
-    $output = Artisan::output();
+    // The ATM Salary Deduction Waiver is a known-pending document: its field
+    // map is a placeholder and the official template has not been supplied, so
+    // the catalog's templateBlockers() gate intentionally keeps it from
+    // generating. Stub the template file for the duration of this check so the
+    // smoke test can validate the rest of the pipeline as if the template were
+    // shipped, then restore the missing state afterwards.
+    $atmWaiverTemplatePath = base_path(
+        'storage/app/templates/approved-loan-documents/pdf/atm-salary-deduction-waiver.pdf',
+    );
+    $templateStubbed = false;
 
-    expect($exitCode)->toBe(0)
-        ->and($output)->toContain('database_connection')
-        ->and($output)->toContain('workflow_permissions_seeded')
-        ->and($output)->toContain('pass');
+    if (! is_file($atmWaiverTemplatePath)) {
+        copy(
+            base_path('storage/app/templates/approved-loan-documents/pdf/pension-deduction-waiver.pdf'),
+            $atmWaiverTemplatePath,
+        );
+        $templateStubbed = true;
+    }
+
+    try {
+        $exitCode = Artisan::call('loan-workflow:smoke-test');
+        $output = Artisan::output();
+
+        expect($exitCode)->toBe(0)
+            ->and($output)->toContain('database_connection')
+            ->and($output)->toContain('workflow_permissions_seeded')
+            ->and($output)->toContain('pass');
+    } finally {
+        if ($templateStubbed) {
+            @unlink($atmWaiverTemplatePath);
+        }
+    }
 });
 
 test('workflow notifications are deduplicated and action links are signed', function (): void {

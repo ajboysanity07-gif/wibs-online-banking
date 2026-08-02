@@ -79,6 +79,8 @@ class LoanRequestChange extends Model
 
     public const ACTION_CONFIRM_WIBS_RELEASE = 'confirm_wibs_release';
 
+    public const ACTION_LOAN_STATUS_WARNING_VIEWED = 'loan_status_warning_viewed';
+
     /**
      * @var list<string>
      */

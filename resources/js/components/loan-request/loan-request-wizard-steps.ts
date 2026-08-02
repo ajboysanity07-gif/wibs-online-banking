@@ -10,7 +10,13 @@ export type LoanRequestWizardStep = {
     id: string;
     title: string;
     description: string;
-    group: LoanRequestWizardGroupId;
+    /**
+     * Key into a group-meta map (label + icon) for the sidebar step
+     * indicator. Typed as `string` rather than `LoanRequestWizardGroupId` so
+     * other wizards (e.g. the admin correction dialog) can define their own
+     * group ids while reusing the same sidebar component.
+     */
+    group: string;
     /** Label shown in the step-indicator sidebar, if different from `title`. */
     sidebarLabel?: string;
 };

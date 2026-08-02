@@ -375,6 +375,27 @@ test('member lookup returns 404 for unknown account number', function (): void {
         ->assertNotFound();
 });
 
+test('member lookup requires an account_number', function (): void {
+    $actor = createSuperadminActor();
+
+    $this->actingAs($actor)
+        ->getJson(route('spa.superadmin.staff.member-lookup'))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['account_number']);
+});
+
+test('non-superadmin cannot access member lookup or member search', function (): void {
+    $member = AppUser::factory()->create(['email_verified_at' => now()]);
+
+    $this->actingAs($member)
+        ->getJson(route('spa.superadmin.staff.member-lookup', ['account_number' => '003004']))
+        ->assertForbidden();
+
+    $this->actingAs($member)
+        ->getJson(route('spa.superadmin.staff.search-members', ['query' => 'anything']))
+        ->assertForbidden();
+});
+
 test('searchMembers with empty query returns registered members up to 25', function (): void {
     $actor = createSuperadminActor();
 

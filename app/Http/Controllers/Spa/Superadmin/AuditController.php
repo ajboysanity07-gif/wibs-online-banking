@@ -39,6 +39,7 @@ class AuditController extends Controller
 
         $items = [];
         $total = 0;
+        $mergeWindow = $page * $perPage;
 
         if (in_array($type, ['role_changes', 'all'], true)) {
             $roleQuery = UserRoleChange::query()
@@ -60,7 +61,7 @@ class AuditController extends Controller
             }
 
             $total += $roleQuery->count();
-            $items = array_merge($items, $this->formatRoleChanges($roleQuery->latest()->get())->toArray());
+            $items = array_merge($items, $this->formatRoleChanges($roleQuery->latest()->limit($mergeWindow)->get())->toArray());
         }
 
         if (in_array($type, ['loan_changes', 'all'], true)) {
@@ -85,7 +86,7 @@ class AuditController extends Controller
             }
 
             $total += $loanQuery->count();
-            $items = array_merge($items, $this->formatLoanChanges($loanQuery->latest()->get())->toArray());
+            $items = array_merge($items, $this->formatLoanChanges($loanQuery->latest()->limit($mergeWindow)->get())->toArray());
         }
 
         if (in_array($type, ['document_access', 'all'], true)) {
@@ -110,14 +111,14 @@ class AuditController extends Controller
             }
 
             $total += $docQuery->count();
-            $items = array_merge($items, $this->formatDocumentAccess($docQuery->orderBy('accessed_at', 'desc')->get())->toArray());
+            $items = array_merge($items, $this->formatDocumentAccess($docQuery->orderBy('accessed_at', 'desc')->limit($mergeWindow)->get())->toArray());
         }
 
         usort($items, static fn (array $a, array $b): int => strcmp((string) $b['occurred_at'], (string) $a['occurred_at']));
 
         $offset = ($page - 1) * $perPage;
         $pagedItems = array_slice($items, $offset, $perPage);
-        $lastPage = max(1, (int) ceil(count($items) / $perPage));
+        $lastPage = max(1, (int) ceil($total / $perPage));
 
         return response()->json([
             'ok' => true,
@@ -127,7 +128,7 @@ class AuditController extends Controller
                     'type' => $type,
                     'page' => $page,
                     'per_page' => $perPage,
-                    'total' => count($items),
+                    'total' => $total,
                     'last_page' => $lastPage,
                 ],
             ],

@@ -104,7 +104,7 @@ export default function AuditLog() {
             setItems(response.data.data.items);
             setMeta(response.data.data.meta);
         } catch {
-            showErrorToast('Failed to load audit log.');
+            showErrorToast(null, 'Failed to load audit log.');
         } finally {
             setLoading(false);
         }
@@ -163,7 +163,7 @@ export default function AuditLog() {
                 <PageHero
                     title="Audit Log"
                     description="System-wide record of role changes, loan workflow actions, and document access."
-                    actions={
+                    rightSlot={
                         <Button variant="outline" size="sm" onClick={handleExport}>
                             <Download className="mr-2 h-4 w-4" />
                             Export

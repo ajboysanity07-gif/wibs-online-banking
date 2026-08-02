@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -367,12 +368,13 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_smoking_status' => ['required', 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => ['required', 'boolean'],
             ...$this->healthGlapiRules(),
-            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
+            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
             'banking.payout_bank_name' => ['required', 'string', 'max:255'],
             'banking.payout_account_name' => ['required', 'string', 'max:255'],
             'banking.payout_account_number' => ['required', 'string', 'max:255'],
             'banking.payout_account_type' => ['required', 'string', 'max:255'],
             'banking.release_method' => ['required', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
+            'banking.payment_option' => ['required', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))],
             'banking.payout_atm_number' => ['nullable', 'string', 'max:255'],
             'banking.payout_bank_branch' => ['nullable', 'string', 'max:255'],
             'banking.payout_atm_holder_name' => ['nullable', 'string', 'max:255'],

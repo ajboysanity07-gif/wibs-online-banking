@@ -63,6 +63,9 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(adminPageFile, /Cancel Approved Request/);
     assert.match(adminPageFile, /Cancel Application/);
     assert.match(adminPageFile, /workflowPermissions/);
+    assert.match(adminPageFile, /Not ready for your review yet/);
+    assert.match(adminPageFile, /Ready for your decision/);
+    assert.match(adminPageFile, /isManagerViewer/);
     assert.match(staffPageFile, /LoanRequestDetailPage/);
     assert.match(staffPageFile, /useLoanRequestWorkflow/);
     assert.match(staffPageFile, /claimLoanRequest/);
@@ -71,6 +74,9 @@ test('loan request actions group document buttons and separate navigation', asyn
     assert.match(staffPageFile, /currentRequest\.can_claim/);
     assert.match(staffPageFile, /currentEligibleOfficers/);
     assert.match(staffPageFile, /Back to workflow queue/);
+    assert.match(staffPageFile, /Not ready for your review yet/);
+    assert.match(staffPageFile, /Ready for your decision/);
+    assert.match(staffPageFile, /isManagerViewer/);
     assert.doesNotMatch(staffPageFile, /convertToLoan/);
     assert.match(
         clientPageFile,

@@ -36,6 +36,8 @@ class LoanRequestRecommendationPreviewRequest extends FormRequest
             'savings_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'documentary_stamp_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'notarial_fee' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'other_charges_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'other_charges_description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'penalty_rate_per_month' => ['sometimes', 'nullable', 'numeric', 'min:0'],
         ];
     }

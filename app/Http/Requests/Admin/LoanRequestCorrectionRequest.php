@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Client\LoanRequestStoreRequest;
+use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use Illuminate\Validation\Rule;
@@ -59,8 +60,9 @@ class LoanRequestCorrectionRequest extends LoanRequestStoreRequest
         $rules['health'] = ['sometimes', 'array:health_smoking_status,health_hypertension'];
         $rules['health.health_smoking_status'] = ['sometimes', 'string', Rule::in(['none', 'light', 'heavy'])];
         $rules['health.health_hypertension'] = ['sometimes', 'boolean'];
-        $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number'];
+        $rules['banking'] = ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number'];
         $rules['banking.release_method'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))];
+        $rules['banking.payment_option'] = ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))];
         $rules['banking.payout_bank_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_account_name'] = ['sometimes', 'nullable', 'string', 'max:255'];
         $rules['banking.payout_account_number'] = ['sometimes', 'nullable', 'string', 'max:255'];

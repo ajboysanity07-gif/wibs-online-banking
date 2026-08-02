@@ -11,6 +11,7 @@ use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanWorkflowWorkspaceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class RequestsService
 {
@@ -112,6 +113,8 @@ class RequestsService
             $query->where('loan_type_label_snapshot', $loanType);
         }
 
+        $statusCounts = $this->statusCounts(clone $query);
+
         if ($status !== null && $status !== '') {
             if ($status === LoanRequestStatus::PendingReview->value) {
                 $query->whereIn(
@@ -164,6 +167,7 @@ class RequestsService
                 : null,
             'paginator' => $paginator,
             'loanTypes' => $this->getLoanTypeOptions(),
+            'statusCounts' => $statusCounts,
             'openCorrectionReports' => $this->countOpenCorrectionReports(),
             'assignmentFilters' => $actor instanceof AppUser
                 ? $this->assignmentService->assignmentFilterOptionsFor($actor)
@@ -231,6 +235,8 @@ class RequestsService
             $query->where('loan_type_label_snapshot', $loanType);
         }
 
+        $statusCounts = $this->statusCounts(clone $query);
+
         if ($status !== null && $status !== '') {
             if ($status === LoanRequestStatus::PendingReview->value) {
                 $query->whereIn(
@@ -283,6 +289,7 @@ class RequestsService
                 : null,
             'paginator' => $paginator,
             'loanTypes' => $this->getLoanTypeOptionsForWorkflowUser($user),
+            'statusCounts' => $statusCounts,
             'openCorrectionReports' => $this->countOpenCorrectionReports($user),
             'assignmentFilters' => $this->assignmentService->assignmentFilterOptionsFor($user),
             'assignmentOfficers' => $this->assignmentService->canManageAssignments($user)
@@ -390,6 +397,22 @@ class RequestsService
     }
 
     /**
+     * @return array<string, int>
+     */
+    private function statusCounts(Builder $query): array
+    {
+        return $query
+            ->select('status')
+            ->selectRaw('count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->mapWithKeys(fn ($count, $status) => [
+                $status instanceof LoanRequestStatus ? $status->value : (string) $status => (int) $count,
+            ])
+            ->all();
+    }
+
+    /**
      * @return array<int, string>
      */
     private function getLoanTypeOptions(): array
@@ -398,7 +421,7 @@ class RequestsService
             return [];
         }
 
-        return LoanRequest::query()
+        return Cache::remember('requests-service.loan-type-options', 300, fn () => LoanRequest::query()
             ->where('status', '!=', LoanRequestStatus::Draft->value)
             ->whereNotNull('loan_type_label_snapshot')
             ->where('loan_type_label_snapshot', '!=', '')
@@ -407,7 +430,7 @@ class RequestsService
             ->orderBy('loan_type_label_snapshot')
             ->pluck('loan_type_label_snapshot')
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

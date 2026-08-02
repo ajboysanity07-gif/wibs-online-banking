@@ -3,12 +3,34 @@
 namespace App\Http\Requests\Workflow;
 
 use App\Models\AppUser;
+use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class LoanRequestProcessingUpdateRequest extends FormRequest
 {
+    public function __construct(
+        private readonly LoanManagerWitnessResolver $loanManagerWitnessResolver,
+        array $query = [],
+        array $request = [],
+        array $attributes = [],
+        array $cookies = [],
+        array $files = [],
+        array $server = [],
+        $content = null,
+    ) {
+        parent::__construct(
+            $query,
+            $request,
+            $attributes,
+            $cookies,
+            $files,
+            $server,
+            $content,
+        );
+    }
+
     /**
      * Canonical payment-frequency values, mirrors the frontend's
      * PAYDAY_OPTIONS in resources/js/components/loan-request/loan-request-fields.tsx.
@@ -115,7 +137,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_2.years_in_work_business' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.gross_monthly_income' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'co_maker_2.payday' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'processing' => ['sometimes', 'array:service_charge_rate,insurance_rate,insurance_term,loan_security_rate,savings_rate,documentary_stamp_rate,notarial_fee,penalty_rate_per_month,notarial_venue,witness_one_name,witness_two_name,barangay_official_name,barangay_official_title,authority_to_deduct_institution_name,authority_to_deduct_officer_1_name,authority_to_deduct_officer_1_title,authority_to_deduct_officer_2_name,authority_to_deduct_officer_2_title,guaranteed_net_take_home_pay,deped_school_id_number,deped_deduction_amount,pension_provider,pension_bank_name,pension_atm_card_number,pension_deduction_amount,employer_date_employed,applicant_pep_status,applicant_pep_status_details,applicant_cycle_status,applicant_cycle_number'],
+            'processing' => ['sometimes', 'array:service_charge_rate,insurance_rate,insurance_term,loan_security_rate,savings_rate,documentary_stamp_rate,notarial_fee,other_charges_amount,other_charges_description,penalty_rate_per_month,witness_one_name,witness_two_name,witness_two_id,barangay_official_name,barangay_official_title,authority_to_deduct_institution_name,authority_to_deduct_officer_1_name,authority_to_deduct_officer_1_title,authority_to_deduct_officer_2_name,authority_to_deduct_officer_2_title,authority_to_deduct_officers_unknown,guaranteed_net_take_home_pay,deped_school_id_number,deped_deduction_amount,pension_provider,pension_bank_name,pension_atm_card_number,pension_deduction_amount,atm_salary_deduction_bank_name,atm_salary_deduction_card_number,atm_salary_deduction_amount,employer_date_employed,applicant_pep_status,applicant_pep_status_details,applicant_cycle_status,applicant_cycle_number'],
             'processing.service_charge_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.insurance_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.insurance_term' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:360'],
@@ -123,10 +145,12 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.savings_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.documentary_stamp_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.notarial_fee' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'processing.other_charges_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'processing.other_charges_description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.penalty_rate_per_month' => ['sometimes', 'nullable', 'numeric', 'min:0'],
-            'processing.notarial_venue' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.witness_one_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'processing.witness_two_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'processing.witness_two_name' => $this->witnessTwoNameRules(),
+            'processing.witness_two_id' => $this->witnessTwoIdRules(),
             'processing.barangay_official_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.barangay_official_title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_institution_name' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -134,6 +158,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.authority_to_deduct_officer_1_title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_officer_2_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_officer_2_title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'processing.authority_to_deduct_officers_unknown' => ['sometimes', 'nullable', 'boolean'],
             'processing.guaranteed_net_take_home_pay' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.deped_school_id_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.deped_deduction_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
@@ -141,6 +166,9 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.pension_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.pension_atm_card_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.pension_deduction_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'processing.atm_salary_deduction_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'processing.atm_salary_deduction_card_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'processing.atm_salary_deduction_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.employer_date_employed' => ['sometimes', 'nullable', 'date'],
             'processing.applicant_pep_status' => ['sometimes', 'nullable', 'boolean'],
             'processing.applicant_pep_status_details' => ['sometimes', 'nullable', 'string', 'max:1000'],
@@ -152,5 +180,47 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(self::PAYDAY_OPTIONS)],
             'recommendation_remarks' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
+    }
+
+    /**
+     * Witness 2 is the loan manager who will witness the documents. With
+     * several active loan managers the processor must choose one from the
+     * dropdown; with one or none the name is either auto-assigned server-side
+     * or deferred to the approval fallback.
+     *
+     * @return array<mixed>
+     */
+    private function witnessTwoNameRules(): array
+    {
+        $managerNames = array_column(
+            $this->loanManagerWitnessResolver->options(),
+            'name',
+        );
+
+        if (count($managerNames) > 1) {
+            return ['required', 'string', Rule::in($managerNames)];
+        }
+
+        return ['sometimes', 'nullable', 'string', 'max:255'];
+    }
+
+    /**
+     * Witness 2 ID must be a valid active loan manager ID when there are
+     * multiple managers to choose from.
+     *
+     * @return array<mixed>
+     */
+    private function witnessTwoIdRules(): array
+    {
+        $managerIds = array_column(
+            $this->loanManagerWitnessResolver->options(),
+            'id',
+        );
+
+        if (count($managerIds) > 1) {
+            return ['required', 'integer', Rule::in($managerIds)];
+        }
+
+        return ['sometimes', 'nullable', 'integer'];
     }
 }

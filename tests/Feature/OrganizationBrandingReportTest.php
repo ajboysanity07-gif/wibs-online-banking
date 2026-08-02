@@ -431,6 +431,134 @@ test('blade reports use calibri as the font family by default', function () {
     // The disclosure statement's checkbox brackets are deliberately fixed-width
     // monospace (a real design need, not an oversight) -- confirmed unchanged.
     expect($dsHtml)->toContain('.ds-opt .box { font-family: "Courier New", monospace; }');
+
+    // The workbook grid is fixed-layout so the A-O column proportions from the
+    // source Excel sheet are authoritative and nothing wraps or misaligns.
+    expect($dsHtml)->toContain('table-layout: fixed;');
+
+    // The statutory reference tags and small labels must never wrap.
+    expect($dsHtml)
+        ->toContain('nw">( A )</td>')
+        ->toContain('nw">( B )</td>')
+        ->toContain('nw">( C )</td>')
+        ->toContain('nw">( D )</td>')
+        ->toContain('nw">( E )</td>')
+        ->toContain('nw">(Php)</td>');
+
+    // Row-7/8 labels end at the colon and the value cells open with a
+    // non-breaking space, so the printed line always reads
+    // "NAME OF BORROWER: <name>", "ADDRESS: <address>", and
+    // "LOAN NUMBER: <reference>" with a visible gap in both PDF engines --
+    // never a collapsed trailing space. LOAN NUMBER spans L+M so its label
+    // never overflows into the reference value.
+    expect($dsHtml)
+        ->toContain('>NAME OF BORROWER:</td>')
+        ->toContain('>ADDRESS:</td>')
+        ->toContain('nw" colspan="2">LOAN NUMBER:</td>')
+        ->toContain('class="u" colspan="8">&nbsp;</td>')
+        ->toContain('class="u" colspan="12">&nbsp;</td>')
+        ->toContain('LOAN NUMBER:</td>'."\n".'                <td class="u">&nbsp;</td>');
+
+    // Empty value cells render blank. The old Blade-escaped '&nbsp;' fallbacks
+    // emitted "&amp;nbsp;" -- literal text in the PDF -- which must never
+    // appear again.
+    expect($dsHtml)->not->toContain('&amp;nbsp;');
+
+    // Both signature labels share the workbook's L..N (3-column) span so the
+    // lines line up: bookkeeper L51:N51, borrower L58:N58.
+    expect($dsHtml)
+        ->toContain('c nw" colspan="3">Signature Over Printed Name</td>')
+        ->toContain('c nw ut" colspan="3">Signature of Borrower Over Printed Name</td>');
+});
+
+test('promissory note addresses render on one line and shrink to fit the column', function (): void {
+    $branding = app(OrganizationSettingsService::class)->branding();
+
+    $shortAddress = 'Sample Address';
+    $mediumAddress = 'POBLACION, LIANGA, SURIGAO DEL SUR';
+    $longAddress = 'POBLACION BARANGAY SAN ISIDRO LIANGA SURIGAO DEL SUR ZONE 4 BLOCK 12';
+
+    // Mirrors the blade's character-width-aware stepped shrink_to_fit
+    // approach, replicating the Affidavit of Undertaking method.
+    $CHAR_WIDTH = [
+        'W' => 0.75, 'M' => 0.75, 'm' => 0.75,
+        'A' => 0.63, 'B' => 0.63, 'C' => 0.63, 'D' => 0.63, 'E' => 0.63,
+        'F' => 0.63, 'G' => 0.63, 'H' => 0.63, 'I' => 0.38, 'J' => 0.38,
+        'K' => 0.63, 'L' => 0.63, 'N' => 0.63, 'O' => 0.63, 'P' => 0.63,
+        'Q' => 0.63, 'R' => 0.63, 'S' => 0.63, 'T' => 0.63, 'U' => 0.63,
+        'V' => 0.63, 'X' => 0.63, 'Y' => 0.63, 'Z' => 0.63,
+        'a' => 0.48, 'b' => 0.48, 'c' => 0.38, 'd' => 0.48, 'e' => 0.48,
+        'f' => 0.38, 'g' => 0.48, 'h' => 0.48, 'i' => 0.38, 'j' => 0.38,
+        'k' => 0.48, 'l' => 0.38, 'n' => 0.48, 'o' => 0.48, 'p' => 0.48,
+        'q' => 0.48, 'r' => 0.38, 's' => 0.38, 't' => 0.38, 'u' => 0.48,
+        'v' => 0.48, 'w' => 0.68, 'x' => 0.48, 'y' => 0.48, 'z' => 0.48,
+        '0' => 0.52, '1' => 0.52, '2' => 0.52, '3' => 0.52, '4' => 0.52,
+        '5' => 0.52, '6' => 0.52, '7' => 0.52, '8' => 0.52, '9' => 0.52,
+        ' ' => 0.27,
+        ',' => 0.28, '.' => 0.28, ':' => 0.28, ';' => 0.28,
+        "'" => 0.28, '"' => 0.28, '!' => 0.28, '?' => 0.28,
+        '-' => 0.40, '/' => 0.40, '(' => 0.40, ')' => 0.40,
+        '@' => 0.40, '#' => 0.40, '$' => 0.40,
+    ];
+
+    $fitSize = static function (string $value) use ($CHAR_WIDTH): string {
+        $length = mb_strlen(trim($value));
+
+        if ($length === 0) {
+            return '';
+        }
+
+        $totalWidthAt1pt = 0.0;
+        foreach (mb_str_split($value) as $char) {
+            $totalWidthAt1pt += $CHAR_WIDTH[$char] ?? 0.48;
+        }
+
+        $availableWidth = 155.0;
+        $maxSize = 10.0;
+        $minSize = 4.0;
+
+        for ($size = $maxSize; $size >= $minSize; $size -= 0.5) {
+            if ($totalWidthAt1pt * $size <= $availableWidth) {
+                return 'font-size: '.number_format($size, 1).'pt;';
+            }
+        }
+
+        return 'font-size: '.number_format($minSize, 1).'pt;';
+    };
+
+    $html = view('reports.promissory-note', [
+        'organization' => ['company_name' => 'Acme Cooperative'],
+        'loan' => [],
+        'applicant' => ['address' => $mediumAddress],
+        'co_maker_one' => ['address' => $shortAddress],
+        'co_maker_two' => ['address' => $longAddress],
+        'reviewer' => [],
+        'reportHeader' => ['designData' => null],
+        'reportTypography' => $branding['reportTypography'],
+        'organizationLogoDataUri' => null,
+    ])->render();
+
+    expect($html)
+        ->toContain('.address-value--fit')
+        ->toContain('white-space: nowrap;')
+        ->toContain('word-break: normal;')
+        ->toContain('overflow: hidden;')
+        ->toContain(
+            'class="address-value address-value--fit" style="'
+            .$fitSize($mediumAddress).'">'.$mediumAddress,
+        )
+        ->toContain(
+            'class="address-value address-value--fit" style="'
+            .$fitSize($shortAddress).'">'.$shortAddress,
+        )
+        ->toContain(
+            'class="address-value address-value--fit" style="'
+            .$fitSize($longAddress).'">'.$longAddress,
+        );
+
+    expect($fitSize($mediumAddress))->toBe('font-size: 8.0pt;');
+    expect($fitSize($shortAddress))->toBe('font-size: 10.0pt;');
+    expect($fitSize($longAddress))->toBe('font-size: 4.0pt;');
 });
 
 test('loan security agreement page size is 8.5in by 13in, not letter', function () {

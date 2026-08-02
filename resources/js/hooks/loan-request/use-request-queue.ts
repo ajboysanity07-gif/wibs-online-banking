@@ -32,6 +32,7 @@ const emptyResponse: RequestsResponse = {
         available: true,
         message: null,
         loanTypes: [],
+        statusCounts: {},
         openCorrectionReports: 0,
         assignmentFilters: [],
         assignmentOfficers: [],

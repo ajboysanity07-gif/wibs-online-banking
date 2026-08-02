@@ -23,8 +23,11 @@ class Wlnmaster extends Model
         'acctno',
         'lnnumber',
         'lntype',
+        'lnstatus',
         'principal',
         'balance',
+        'date_rel',
+        'date_mat',
         'lastmove',
         'initial',
     ];
@@ -38,6 +41,8 @@ class Wlnmaster extends Model
             'principal' => 'decimal:2',
             'balance' => 'decimal:2',
             'initial' => 'decimal:2',
+            'date_rel' => 'date',
+            'date_mat' => 'date',
             'lastmove' => 'datetime',
         ];
     }

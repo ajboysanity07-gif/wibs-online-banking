@@ -111,6 +111,42 @@ test('audit log can filter by loan reference', function (): void {
     expect($items[0]['loan_reference'])->toBe($loanRequest->reference);
 });
 
+test('audit log type=all merges and paginates across sources beyond the first page', function (): void {
+    $superadmin = makeSuperadminForAudit();
+
+    foreach (range(1, 30) as $i) {
+        UserRoleChange::factory()->create(['created_at' => now()->subMinutes($i)]);
+    }
+    foreach (range(1, 30) as $i) {
+        LoanRequestChange::factory()->create(['created_at' => now()->subMinutes($i + 30)]);
+    }
+
+    $page1 = $this->actingAs($superadmin)
+        ->getJson('/spa/superadmin/audit-log?type=all&page=1')
+        ->assertOk()
+        ->json('data');
+
+    expect($page1['meta']['total'])->toBe(60)
+        ->and($page1['meta']['last_page'])->toBe(2)
+        ->and(count($page1['items']))->toBe(50);
+
+    $page2 = $this->actingAs($superadmin)
+        ->getJson('/spa/superadmin/audit-log?type=all&page=2')
+        ->assertOk()
+        ->json('data');
+
+    expect(count($page2['items']))->toBe(10)
+        ->and($page2['meta']['total'])->toBe(60);
+
+    $allOccurredAt = array_merge(
+        array_column($page1['items'], 'occurred_at'),
+        array_column($page2['items'], 'occurred_at'),
+    );
+    $sorted = $allOccurredAt;
+    rsort($sorted);
+    expect($allOccurredAt)->toBe($sorted);
+});
+
 test('non-superadmin cannot access audit log', function (): void {
     $member = AppUser::factory()->create(['email_verified_at' => now()]);
 

@@ -119,6 +119,84 @@ test('dashboardMetrics computes average_processing_days', function (): void {
     expect($metrics['average_processing_days'])->toBe(3.0);
 });
 
+test('dashboardMetrics status_breakdown counts each status via SQL aggregate', function (): void {
+    $manager = makeLoanManager();
+    $service = app(ReportMetricsService::class);
+
+    LoanRequest::factory()->count(3)->create(['status' => LoanRequestStatus::PendingReview]);
+    LoanRequest::factory()->count(2)->create(['status' => LoanRequestStatus::UnderReview]);
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_at' => now(),
+        'approved_amount' => 1000,
+    ]);
+
+    $metrics = $service->dashboardMetrics($manager, null, null);
+
+    expect($metrics['status_breakdown'])->toMatchArray([
+        LoanRequestStatus::PendingReview->value => 3,
+        LoanRequestStatus::UnderReview->value => 2,
+        LoanRequestStatus::Approved->value => 1,
+    ]);
+});
+
+// ── staffPerformance ────────────────────────────────────────────────────────────
+
+test('staffPerformance aggregates assigned, approved, and rejected counts per officer', function (): void {
+    $processorA = makeProcessor();
+    $processorB = makeProcessor();
+    $service = app(ReportMetricsService::class);
+
+    LoanRequest::factory()->count(2)->create([
+        'status' => LoanRequestStatus::Approved,
+        'assigned_officer_id' => $processorA->user_id,
+        'approved_at' => now(),
+        'approved_amount' => 1000,
+    ]);
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Rejected,
+        'assigned_officer_id' => $processorA->user_id,
+        'rejected_at' => now(),
+    ]);
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'assigned_officer_id' => $processorB->user_id,
+    ]);
+
+    $performance = collect($service->staffPerformance(null, null))
+        ->keyBy('processor_id');
+
+    expect($performance[$processorA->user_id]['assigned'])->toBe(3)
+        ->and($performance[$processorA->user_id]['approved'])->toBe(2)
+        ->and($performance[$processorA->user_id]['rejected'])->toBe(1)
+        ->and($performance[$processorB->user_id]['assigned'])->toBe(1)
+        ->and($performance[$processorB->user_id]['approved'])->toBe(0)
+        ->and($performance[$processorB->user_id]['rejected'])->toBe(0);
+});
+
+test('staffPerformance computes average processing days from decided requests only', function (): void {
+    $processor = makeProcessor();
+    $service = app(ReportMetricsService::class);
+
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'assigned_officer_id' => $processor->user_id,
+        'created_at' => Carbon::now()->subDays(4),
+        'approved_at' => Carbon::now(),
+        'approved_amount' => 1000,
+    ]);
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'assigned_officer_id' => $processor->user_id,
+        'created_at' => Carbon::now()->subDays(10),
+    ]);
+
+    $performance = collect($service->staffPerformance(null, null))
+        ->keyBy('processor_id');
+
+    expect($performance[$processor->user_id]['avg_days'])->toBe(4.0);
+});
+
 // ── Role scoping ──────────────────────────────────────────────────────────────
 
 test('loan processor only sees own assigned requests', function (): void {

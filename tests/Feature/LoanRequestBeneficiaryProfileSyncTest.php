@@ -186,6 +186,7 @@ test('submit writes back validated beneficiary fields to the member profile', fu
             'payout_account_number' => '1234567890',
             'payout_account_type' => 'Savings',
             'release_method' => 'ATM',
+            'payment_option' => 'ATM Deduction',
             'payout_atm_number' => '9876543210',
             'payout_bank_branch' => 'Main Branch',
             'payout_atm_holder_name' => null,

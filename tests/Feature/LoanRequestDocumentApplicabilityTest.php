@@ -53,7 +53,6 @@ test('loan security agreement and grepalife are always applicable regardless of 
     $flatValues = [
         'security_required' => false,
         'insurance_required' => false,
-        'notarial_venue' => null,
         'loan_security_rate' => null,
     ];
 
@@ -141,8 +140,9 @@ test('deped salary deduction waiver becomes applicable for Government employment
         ]);
 
     $catalog = app(LoanRequestDocumentCatalog::class);
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
 
-    expect($catalog->isApplicable(LoanRequestDocumentKey::DepedSalaryDeductionWaiver, $loanRequest->fresh(), []))->toBeTrue();
+    expect($catalog->isApplicable(LoanRequestDocumentKey::DepedSalaryDeductionWaiver, $loanRequest->fresh(), $flatValues))->toBeTrue();
 });
 
 test('deped salary deduction waiver is not applicable for Government employment with a non-Education nature of business and no "deped" keyword', function (): void {
@@ -362,7 +362,7 @@ test('savings_rate drives the amortization savings figure independently from loa
         ->and($documentData['loan']['amortization_loan_security_raw'])->toBe(100.0);
 });
 
-test('savings_rate defaults to 0.0 when not set, mirroring loan_security_rate\'s default-handling pattern', function (): void {
+test('savings_rate defaults to the 2% institutional constant when not set, matching the Excel-derived defaults for loan_security_rate/documentary_stamp_rate/notarial_fee', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'recommended_amount' => 24000,
@@ -388,8 +388,132 @@ test('savings_rate defaults to 0.0 when not set, mirroring loan_security_rate\'s
 
     $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
 
-    expect($documentData['loan']['savings_rate_raw'])->toBe(0.0)
-        ->and($documentData['loan']['amortization_loan_security_raw'])->toBe(0.0);
+    // Principal amortization = 24000/12 = 2000.00 per payment.
+    // Savings amortization line = 2000.00 * 0.02 (institutional default) = 40.00.
+    expect($documentData['loan']['savings_rate_raw'])->toBe(0.02)
+        ->and($documentData['loan']['amortization_loan_security_raw'])->toBe(40.0);
+});
+
+test('other_charges_amount flows into non_finance_charge_total_raw, deductions_total_raw, and net_proceeds_raw', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0],
+        'savings_rate' => ['number', 0],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'other_charges_amount' => ['number', 350],
+        'other_charges_description' => ['string', 'Late renewal fee'],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    // With every other charge zeroed out, non-finance total is just the 350 "other" charge,
+    // which is also the full deductions total, so net proceeds = 24000 - 350 = 23650.
+    expect($documentData['loan']['other_charges_amount_raw'])->toBe(350.0)
+        ->and($documentData['loan']['other_charges_description'])->toBe('Late renewal fee')
+        ->and($documentData['loan']['non_finance_charge_total_raw'])->toBe(350.0)
+        ->and($documentData['loan']['deductions_total_raw'])->toBe(350.0)
+        ->and($documentData['loan']['net_proceeds_raw'])->toBe(23650.0);
+});
+
+test('other_charges_amount left unset does not break document generation and contributes nothing to totals', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 24000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 24000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0],
+        'insurance_rate' => ['number', 0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0],
+        'savings_rate' => ['number', 0],
+        'documentary_stamp_rate' => ['number', 0],
+        'notarial_fee' => ['number', 0],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    expect($documentData['loan']['other_charges_amount_raw'])->toBeNull()
+        ->and($documentData['loan']['other_charges_description'])->toBeNull()
+        ->and($documentData['loan']['non_finance_charge_total_raw'])->toBe(0.0)
+        ->and($documentData['loan']['net_proceeds_raw'])->toBe(24000.0);
+});
+
+test('net proceeds matches the Disclosure Statement workbook: interest is never deducted, only service charge plus non-finance charges are', function (): void {
+    // Exact scenario from the source workbook (PLAN OF PAYMENT,DISC.PROMIS.xlsx,
+    // Disclosure Statement sheet): 200,000 loan, 36% p.a. interest, 5% service
+    // charge, insurance ₱1.00/₱1,000/month x 12, 2% loan security, 0.75% doc
+    // stamps, ₱100 notarial fee.
+    //
+    // Workbook figures:
+    //   (B) Total Finance Charges     = 10,000 (service charge only)
+    //   (C) Total Non-Finance Charges =  8,000 (2,400 + 4,000 + 1,500 + 100)
+    //   (D) Total Deductions (B + C)  = 18,000
+    //   (E) Net Proceeds (A - D)      = 182,000
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 200000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 0.36,
+        'recommended_payment_frequency' => 'Monthly',
+        'approved_amount' => 200000,
+        'approved_term' => 12,
+        'approved_interest_rate' => 0.36,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'service_charge_rate' => ['number', 0.05],
+        'insurance_rate' => ['number', 1.0],
+        'insurance_term' => ['number', 12],
+        'loan_security_rate' => ['number', 0.02],
+        'savings_rate' => ['number', 0.02],
+        'documentary_stamp_rate' => ['number', 0.0075],
+        'notarial_fee' => ['number', 100],
+        'penalty_rate_per_month' => ['number', 0],
+        'witness_one_name' => ['string', 'Witness One'],
+        'witness_two_name' => ['string', 'Witness Two'],
+    ]);
+
+    $documentData = app(ApprovedLoanDocumentService::class)->buildDocumentData($loanRequest);
+
+    // Interest 200000*0.36/12*12 = 72,000 is disclosed in the "Not Deducted
+    // From Proceeds" column but must not be subtracted from proceeds.
+    expect($documentData['loan']['interest_not_deducted_raw'])->toBe(72000.0)
+        ->and($documentData['loan']['service_charge_amount_raw'])->toBe(10000.0)
+        ->and($documentData['loan']['insurance_premium_raw'])->toBe(2400.0)
+        ->and($documentData['loan']['loan_security_amount_raw'])->toBe(4000.0)
+        ->and($documentData['loan']['documentary_stamp_amount_raw'])->toBe(1500.0)
+        ->and($documentData['loan']['notarial_fee_raw'])->toBe(100.0)
+        ->and($documentData['loan']['finance_charge_total_raw'])->toBe(10000.0)
+        ->and($documentData['loan']['non_finance_charge_total_raw'])->toBe(8000.0)
+        ->and($documentData['loan']['deductions_total_raw'])->toBe(18000.0)
+        ->and($documentData['loan']['net_proceeds_raw'])->toBe(182000.0);
 });
 
 test('grepalife is applicable regardless of insurance_required value', function (): void {
@@ -726,4 +850,277 @@ test('a non-legacy request submitted on or after the cutoff is still blocked fro
         ])
         ->assertStatus(422)
         ->assertJsonValidationErrors(['documents']);
+});
+
+test('authority to deduct is applicable with 2 recommended officers for a BLGU employer', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'Barangay San Isidro']);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeTrue();
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
+    expect($guidance['category'])->toBe('blgu')
+        ->and($guidance['recommended_officers'])->toBe(2);
+});
+
+test('authority to deduct is applicable with 2 recommended officers for an LGU employer', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Government',
+            'nature_of_business' => 'Government',
+            'employer_business_name' => 'Municipality of Lianga',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeTrue();
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
+    expect($guidance['category'])->toBe('lgu')
+        ->and($guidance['recommended_officers'])->toBe(2);
+});
+
+test('authority to deduct is applicable with 1 recommended officer for an MRDINC employer', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'MRDINC Head Office']);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeTrue();
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
+    expect($guidance['category'])->toBe('mrdinc')
+        ->and($guidance['recommended_officers'])->toBe(1);
+});
+
+test('authority to deduct is applicable with 1 recommended officer for an LDH (healthcare) employer', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'nature_of_business' => 'Healthcare',
+            'employer_business_name' => 'Lianga District Hospital',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeTrue();
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest, $flatValues);
+    expect($guidance['category'])->toBe('ldh')
+        ->and($guidance['recommended_officers'])->toBe(1);
+});
+
+test('authority to deduct is not applicable for a teacher, a pensioner, a self-employed applicant, or an ordinary private employer', function (): void {
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    $teacher = LoanRequest::factory()->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($teacher)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Government',
+            'nature_of_business' => 'Education',
+        ]);
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $teacher->fresh(), []))->toBeFalse();
+
+    $pensioner = LoanRequest::factory()->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($pensioner)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employment_type' => 'Pensioner']);
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $pensioner->fresh(), []))->toBeFalse();
+
+    $selfEmployed = LoanRequest::factory()->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($selfEmployed)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employment_type' => 'Self Employed']);
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $selfEmployed->fresh(), []))->toBeFalse();
+
+    $ordinaryPrivate = LoanRequest::factory()->create();
+    LoanRequestPerson::factory()
+        ->forLoanRequest($ordinaryPrivate)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'Some Private Company']);
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $ordinaryPrivate->fresh(), []))->toBeFalse();
+});
+
+test('authority to deduct is not applicable for an institutional-category employer whose payment option is not Salary Deduction', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'MRDINC Head Office']);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, ['payment_option' => \App\LoanPaymentOption::Check->value]))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, []))->toBeFalse();
+
+    $guidance = $catalog->authorityToDeductGuidance($loanRequest, ['payment_option' => \App\LoanPaymentOption::Check->value]);
+    expect($guidance['applicable'])->toBeFalse()
+        ->and($guidance['category'])->toBe('mrdinc');
+});
+
+test('deped waiver is applicable and authority to deduct is not for a teacher', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Government',
+            'nature_of_business' => 'Education',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
+
+    $waiverApplicability = $catalog->waiverApplicability($loanRequest, $flatValues);
+
+    expect($waiverApplicability['deped']['applicable'])->toBeTrue()
+        ->and($waiverApplicability['pension']['applicable'])->toBeFalse()
+        ->and($waiverApplicability['atm']['applicable'])->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
+});
+
+test('pension waiver is applicable and authority to deduct is not for a pensioner', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employment_type' => 'Pensioner']);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
+
+    $waiverApplicability = $catalog->waiverApplicability($loanRequest, $flatValues);
+
+    expect($waiverApplicability['pension']['applicable'])->toBeTrue()
+        ->and($waiverApplicability['deped']['applicable'])->toBeFalse()
+        ->and($waiverApplicability['atm']['applicable'])->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
+});
+
+test('atm salary deduction waiver is applicable for a non-pensioner, non-institutional employee who chose ATM payout', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create([
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Some Private Company',
+        ]);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
+
+    $waiverApplicability = $catalog->waiverApplicability($loanRequest, $flatValues);
+
+    expect($waiverApplicability['atm']['applicable'])->toBeTrue()
+        ->and($waiverApplicability['deped']['applicable'])->toBeFalse()
+        ->and($waiverApplicability['pension']['applicable'])->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AtmSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeTrue()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
+});
+
+test('atm salary deduction waiver is not applicable for a BLGU employee whose payment option is ATM Deduction (they belong to an institutional category, not the uncategorized ATM bucket)', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'Barangay San Isidro']);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
+
+    // Neither document applies here: the ATM waiver excludes anyone with a
+    // resolved institutional category, and Authority to Deduct requires
+    // payment_option to be Salary Deduction specifically.
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AtmSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeFalse()
+        ->and($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $flatValues))->toBeFalse();
+
+    // With Salary Deduction instead, the same BLGU employer becomes Authority
+    // to Deduct applicable, confirming the category detection itself is intact.
+    $salaryDeductionFlatValues = ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value];
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AuthorityToDeduct, $loanRequest, $salaryDeductionFlatValues))->toBeTrue();
+});
+
+test('atm salary deduction waiver is not applicable for a self-employed applicant even with ATM payout', function (): void {
+    $loanRequest = LoanRequest::factory()->create();
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employment_type' => 'Self Employed']);
+
+    $catalog = app(LoanRequestDocumentCatalog::class);
+    $loanRequest = $loanRequest->fresh();
+    $flatValues = ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value];
+
+    expect($catalog->isApplicable(LoanRequestDocumentKey::AtmSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeFalse();
+});
+
+test('when officers are marked unknown, the generated authority to deduct document data has blank officer fields', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'recommended_amount' => 25000,
+        'recommended_term' => 12,
+        'recommended_interest_rate' => 1.5,
+        'recommended_payment_frequency' => 'Monthly',
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'MRDINC Head Office']);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'authority_to_deduct_institution_name' => ['string', 'MRDINC Head Office'],
+        'authority_to_deduct_officer_1_name' => ['string', 'Should Be Cleared'],
+        'authority_to_deduct_officer_1_title' => ['string', 'Should Be Cleared'],
+        'authority_to_deduct_officers_unknown' => ['boolean', true],
+    ]);
+
+    $workflowService = app(LoanRequestDocumentWorkflowService::class);
+    $documentData = (new ReflectionMethod($workflowService, 'documentDataForGeneration'))
+        ->invoke($workflowService, $loanRequest->fresh());
+
+    expect($documentData['authority_to_deduct']['institution_name'])->toBe('MRDINC Head Office')
+        ->and($documentData['authority_to_deduct']['officer_1_name'])->toBeNull()
+        ->and($documentData['authority_to_deduct']['officer_1_title'])->toBeNull();
 });

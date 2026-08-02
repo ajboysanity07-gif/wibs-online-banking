@@ -24,4 +24,20 @@ export default defineConfig({
     esbuild: {
         jsx: 'automatic',
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    fullcalendar: [
+                        '@fullcalendar/core',
+                        '@fullcalendar/daygrid',
+                        '@fullcalendar/interaction',
+                        '@fullcalendar/list',
+                        '@fullcalendar/react',
+                    ],
+                    recharts: ['recharts'],
+                },
+            },
+        },
+    },
 });

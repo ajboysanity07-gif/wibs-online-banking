@@ -53,6 +53,30 @@ test('admin requests api returns correction report metadata when table exists', 
         );
 });
 
+test('admin requests api statusCounts reflect the full result set, not just the current page', function () {
+    $admin = createRequestsApiAdmin('009010');
+
+    LoanRequest::factory()->count(3)->create(['status' => LoanRequestStatus::PendingReview]);
+    LoanRequest::factory()->count(2)->create(['status' => LoanRequestStatus::UnderReview]);
+    LoanRequest::factory()->create([
+        'status' => LoanRequestStatus::Approved,
+        'approved_at' => now(),
+        'approved_amount' => 1000,
+    ]);
+
+    $response = $this
+        ->actingAs($admin)
+        ->get('/spa/admin/requests?perPage=2&page=1')
+        ->assertOk();
+
+    expect(count($response->json('data.items')))->toBe(2);
+    expect($response->json('data.meta.statusCounts'))->toMatchArray([
+        LoanRequestStatus::PendingReview->value => 3,
+        LoanRequestStatus::UnderReview->value => 2,
+        LoanRequestStatus::Approved->value => 1,
+    ]);
+});
+
 test('admin requests api does not crash when correction report table is missing', function () {
     Schema::dropIfExists('loan_request_correction_reports');
 

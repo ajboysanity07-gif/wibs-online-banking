@@ -20,6 +20,7 @@ class LoanRequestProcessingService
         private LoanRequestDataService $dataService,
         private LoanRequestDocumentWorkflowService $documentWorkflowService,
         private LoanRequestNotificationService $notificationService,
+        private LoanManagerWitnessResolver $loanManagerWitnessResolver,
     ) {}
 
     /**
@@ -81,6 +82,22 @@ class LoanRequestProcessingService
 
             if ($processorDisplayName !== null) {
                 $processingPayload['witness_one_name'] = $processorDisplayName;
+            }
+
+            // Witness 2 is the loan manager who will witness the documents.
+            // With a single active loan manager the name is forced server-side
+            // (mirroring witness_one_name above); with several, the validated
+            // dropdown choice from the payload is used as-is.
+            $loanManagers = $this->loanManagerWitnessResolver->managers();
+
+            if (count($loanManagers) === 1) {
+                $manager = $loanManagers[0];
+                $managerDisplayName = $manager->resolvedDisplayName();
+
+                if (is_string($managerDisplayName) && trim($managerDisplayName) !== '') {
+                    $processingPayload['witness_two_name'] = $managerDisplayName;
+                    $processingPayload['witness_two_id'] = $manager->user_id;
+                }
             }
 
             // GNTHP is system-controlled: whatever the client submitted is
@@ -687,6 +704,19 @@ class LoanRequestProcessingService
                 return $lockedLoanRequest->refresh();
             }
 
+            // Only the designated loan manager (witness_two_id) may approve.
+            // If no witness was assigned yet, any eligible manager may proceed.
+            $designatedWitnessId = $before['processing']['witness_two_id'] ?? null;
+            $designatedWitnessId = $designatedWitnessId !== null && $designatedWitnessId !== ''
+                ? (int) $designatedWitnessId
+                : null;
+
+            if ($designatedWitnessId !== null && (int) $actor->user_id !== $designatedWitnessId) {
+                throw ValidationException::withMessages([
+                    'witness_two_id' => 'Only the designated loan manager can approve this request.',
+                ]);
+            }
+
             $lockedLoanRequest->fill([
                 'status' => LoanRequestStatus::Approved,
                 'approved_by' => $actor->user_id,
@@ -724,14 +754,25 @@ class LoanRequestProcessingService
             if ($isDocumentWorkflowV2) {
                 $approverDisplayName = $actor->resolvedDisplayName();
 
-                $this->dataService->applyStaffUpdates(
-                    $lockedLoanRequest,
-                    $actor,
-                    ['witness_two_name' => $approverDisplayName],
-                    'Witness 2 recorded upon approval',
-                );
+                // Witness 2 is chosen by the processor at processing time. The
+                // approver's name is only a fallback for requests where no
+                // manager was recorded yet -- it must never overwrite a
+                // manager already assigned via the processing form.
+                $existingWitnessTwo = $before['processing']['witness_two_name'] ?? null;
+                $existingWitnessTwo = is_string($existingWitnessTwo)
+                    ? trim($existingWitnessTwo)
+                    : '';
 
-                $lockedLoanRequest->load('dataEntries');
+                if ($existingWitnessTwo === '') {
+                    $this->dataService->applyStaffUpdates(
+                        $lockedLoanRequest,
+                        $actor,
+                        ['witness_two_name' => $approverDisplayName],
+                        'Witness 2 recorded upon approval',
+                    );
+
+                    $lockedLoanRequest->load('dataEntries');
+                }
 
                 $this->documentWorkflowService->generateDocument(
                     $lockedLoanRequest,

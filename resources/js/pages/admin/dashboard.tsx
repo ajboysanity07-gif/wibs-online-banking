@@ -164,7 +164,10 @@ function ApplicationVolumeChart({ data }: { data: Record<string, number> }) {
                         fontSize: '12px',
                         color: 'var(--card-foreground)',
                     }}
-                    formatter={(value: number) => [value, 'Applications']}
+                    formatter={(value) => [
+                        typeof value === 'number' ? value : Number(value),
+                        'Applications',
+                    ]}
                 />
                 <Bar
                     dataKey="count"

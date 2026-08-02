@@ -56,10 +56,7 @@ import { useRequestQueue } from '@/hooks/loan-request/use-request-queue';
 import AppLayout from '@/layouts/app-layout';
 import type { RequestQueueWorkspace } from '@/lib/api/request-queue';
 import { formatCurrency } from '@/lib/formatters';
-import {
-    normalizeLoanRequestQueueStatus,
-    type LoanRequestQueueStatusFilter,
-} from '@/lib/loan-request-queue';
+import { type LoanRequestQueueStatusFilter } from '@/lib/loan-request-queue';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import type { RequestPreview } from '@/types/admin';
@@ -528,48 +525,27 @@ export function LoanRequestQueuePage({
         maxAmountValue,
     ].filter((value) => value !== null && value !== undefined).length;
     const hasFilters = filterCount > 0;
-    const summaryCounts = useMemo(
-        () => ({
+    const summaryCounts = useMemo(() => {
+        const byStatus = meta.statusCounts ?? {};
+        const countFor = (...statuses: string[]) =>
+            statuses.reduce((sum, status) => sum + (byStatus[status] ?? 0), 0);
+
+        return {
             total: totalResults,
-            pendingReview: items.filter(
-                (item) =>
-                    normalizeLoanRequestQueueStatus(item.status) ===
-                    'pending_review',
-            ).length,
-            underReview: items.filter(
-                (item) =>
-                    normalizeLoanRequestQueueStatus(item.status) ===
-                    'under_review',
-            ).length,
-            needsRevision: items.filter(
-                (item) =>
-                    normalizeLoanRequestQueueStatus(item.status) ===
-                    'needs_revision',
-            ).length,
-            recommended: items.filter(
-                (item) =>
-                    normalizeLoanRequestQueueStatus(item.status) ===
-                    'recommended_for_approval',
-            ).length,
-            approved: items.filter(
-                (item) =>
-                    normalizeLoanRequestQueueStatus(item.status) === 'approved',
-            ).length,
-            converted: items.filter(
-                (item) =>
-                    normalizeLoanRequestQueueStatus(item.status) ===
-                    'converted_to_loan',
-            ).length,
-            declinedOrRejected: items.filter((item) =>
-                ['declined', 'rejected'].includes(
-                    normalizeLoanRequestQueueStatus(item.status) ?? '',
-                ),
-            ).length,
-            reported: items.filter((item) => item.has_open_correction_report)
-                .length,
-        }),
-        [items, totalResults],
-    );
+            pendingReview: countFor(
+                'pending_review',
+                'submitted',
+                'pending_co_maker_signatures',
+            ),
+            underReview: countFor('under_review'),
+            needsRevision: countFor('needs_revision'),
+            recommended: countFor('recommended_for_approval'),
+            approved: countFor('approved'),
+            converted: countFor('converted_to_loan'),
+            declinedOrRejected: countFor('declined', 'rejected'),
+            reported: meta.openCorrectionReports ?? 0,
+        };
+    }, [meta.openCorrectionReports, meta.statusCounts, totalResults]);
     const summaryItems = [
         { label: 'Total', value: summaryCounts.total },
         {

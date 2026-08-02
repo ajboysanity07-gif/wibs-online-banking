@@ -45,6 +45,7 @@ class LoanRequestRequestMemberActionRequest extends FormRequest
                     'health_hypertension',
                     'health_recent_hospitalization',
                     'release_method',
+                    'payment_option',
                     'payout_bank_name',
                     'payout_account_name',
                     'payout_account_number',

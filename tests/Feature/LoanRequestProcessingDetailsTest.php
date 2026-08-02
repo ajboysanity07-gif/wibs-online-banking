@@ -328,7 +328,6 @@ test('processing update round-trips all Charges & Fees fields through save respo
         'loan_request' => [],
         'processing' => [
             ...$chargesAndFees,
-            'notarial_venue' => null,
             'witness_one_name' => null,
             'witness_two_name' => null,
             'barangay_official_name' => null,
@@ -401,7 +400,7 @@ test('processing update no longer requires an information source', function (): 
             'reason' => 'Recorded verified processing terms.',
             'loan_request' => [],
             'processing' => [
-                'notarial_venue' => 'Lianga Municipal Hall',
+                'witness_one_name' => 'Lianga Municipal Hall',
             ],
         ])
         ->assertOk();

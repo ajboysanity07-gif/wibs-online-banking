@@ -11,6 +11,7 @@ import {
 import {
     loanRequestWizardSteps,
     type LoanRequestWizardGroupId,
+    type LoanRequestWizardStep,
 } from '@/components/loan-request/loan-request-wizard-steps';
 import { cn } from '@/lib/utils';
 
@@ -21,10 +22,9 @@ type StepGroup = {
     stepNames: string[];
 };
 
-const GROUP_META: Record<
-    LoanRequestWizardGroupId,
-    { label: string; icon: LucideIcon }
-> = {
+type GroupMeta = { label: string; icon: LucideIcon };
+
+const GROUP_META: Record<LoanRequestWizardGroupId, GroupMeta> = {
     'loan-details': { label: 'Loan details', icon: FileText },
     'about-you': { label: 'About you', icon: User },
     'co-makers': { label: 'Co-makers', icon: Users },
@@ -37,16 +37,22 @@ const GROUP_META: Record<
 };
 
 /**
- * Derives the sidebar's group/sub-step structure from the wizard's single
- * source of truth (loanRequestWizardSteps) instead of a hand-maintained list,
- * so adding a step there is picked up here automatically.
+ * Derives the sidebar's group/sub-step structure from a wizard step list
+ * instead of a hand-maintained list, so adding a step there is picked up
+ * here automatically. Defaults to the client wizard's single source of
+ * truth (loanRequestWizardSteps), but accepts any step list + group meta so
+ * other wizards (e.g. the admin correction dialog) can reuse the same
+ * sidebar shell with their own steps.
  */
-function buildStepGroups(): StepGroup[] {
+function buildStepGroups(
+    steps: LoanRequestWizardStep[],
+    groupMeta: Record<string, GroupMeta>,
+): StepGroup[] {
     const groups: StepGroup[] = [];
 
-    loanRequestWizardSteps.forEach((step, index) => {
+    steps.forEach((step, index) => {
         const lastGroup = groups[groups.length - 1];
-        const meta = GROUP_META[step.group];
+        const meta = groupMeta[step.group];
 
         const stepName = step.sidebarLabel ?? step.title;
 
@@ -67,23 +73,29 @@ function buildStepGroups(): StepGroup[] {
     return groups;
 }
 
-const STEP_GROUPS: StepGroup[] = buildStepGroups();
-
-const TOTAL_STEPS = loanRequestWizardSteps.length;
-
 type Props = {
     currentStep: number;
     onStepClick?: (index: number) => void;
+    steps?: LoanRequestWizardStep[];
+    groupMeta?: Record<string, GroupMeta>;
 };
 
-export function LoanRequestStepIndicator({ currentStep, onStepClick }: Props) {
+export function LoanRequestStepIndicator({
+    currentStep,
+    onStepClick,
+    steps = loanRequestWizardSteps,
+    groupMeta = GROUP_META,
+}: Props) {
+    const stepGroups = buildStepGroups(steps, groupMeta);
+    const totalSteps = steps.length;
+
     return (
         <div className="flex h-full flex-col py-5">
             <nav
                 className="scrollbar-hide hidden flex-1 overflow-y-auto px-3 lg:block"
                 aria-label="Loan request steps"
             >
-                {STEP_GROUPS.map((group) => {
+                {stepGroups.map((group) => {
                     const isDone = group.steps.every((s) => s < currentStep);
                     const isActive = group.steps.includes(currentStep);
                     const GroupIcon = group.icon;
@@ -197,14 +209,14 @@ export function LoanRequestStepIndicator({ currentStep, onStepClick }: Props) {
                 <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>Progress</span>
                     <span>
-                        Step {currentStep + 1} of {TOTAL_STEPS}
+                        Step {currentStep + 1} of {totalSteps}
                     </span>
                 </div>
                 <div className="h-0.5 w-full overflow-hidden rounded-full bg-border/50">
                     <div
                         className="h-full bg-primary/50 transition-all duration-300 motion-reduce:transition-none"
                         style={{
-                            width: `${((currentStep + 1) / TOTAL_STEPS) * 100}%`,
+                            width: `${((currentStep + 1) / totalSteps) * 100}%`,
                         }}
                     />
                 </div>

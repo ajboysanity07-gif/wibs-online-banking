@@ -58,6 +58,7 @@ class RequestsController extends Controller
                     'total' => $total,
                     'lastPage' => $lastPage,
                     'loanTypes' => $result['loanTypes'] ?? [],
+                    'statusCounts' => $result['statusCounts'] ?? [],
                     'openCorrectionReports' => $result['openCorrectionReports'] ?? 0,
                     'assignmentFilters' => $result['assignmentFilters'] ?? [],
                     'assignmentOfficers' => $result['assignmentOfficers'] ?? [],

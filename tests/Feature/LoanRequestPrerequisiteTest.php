@@ -113,6 +113,7 @@ function prerequisiteTestStorePayload(): array
             'payout_account_type' => 'Savings',
             'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'payment_option' => 'Salary Deduction',
         ],
         'barangay' => [
             'barangay_official_designation' => null,

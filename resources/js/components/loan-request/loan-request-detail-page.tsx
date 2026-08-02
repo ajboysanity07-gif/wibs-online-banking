@@ -12,7 +12,6 @@ import {
     Download,
     Eye,
     Factory,
-    FileText,
     GraduationCap,
     Heart,
     Home,
@@ -225,6 +224,10 @@ const statusLabels: Record<LoanRequestStatusValue, string> = {
     declined: 'Declined by Loan Manager',
     member_declined_terms: 'Member Declined Revised Terms',
     converted_to_loan: 'Converted to Loan',
+    for_wibs_encoding: 'For WIBS Encoding',
+    wibs_loan_created: 'WIBS Loan Created',
+    release_scheduled: 'Release Scheduled',
+    released: 'Released',
     cancelled: 'Cancelled',
 };
 
@@ -251,6 +254,13 @@ const statusDescriptions: Record<LoanRequestStatusValue, string> = {
         'The member declined the revised loan terms proposed during manager review.',
     converted_to_loan:
         'This request has already been converted into an actual loan record.',
+    for_wibs_encoding:
+        'The approved loan is queued for encoding into the WIBS system.',
+    wibs_loan_created:
+        'The loan has been created in WIBS and is awaiting release scheduling.',
+    release_scheduled:
+        'The loan release has been scheduled and is ready for disbursement.',
+    released: 'The loan has been released to the member.',
     cancelled:
         'This request was cancelled and remains available as read-only history.',
 };
@@ -371,6 +381,7 @@ const resolveTimelineSteps = (
 type SummaryStatProps = {
     label: string;
     value: string;
+    className?: string;
 };
 
 type DecisionProps = {
@@ -436,8 +447,13 @@ type LoanRequestCorrectedCopyPayload = {
     correction_reason: string;
 };
 
-const SummaryStat = ({ label, value }: SummaryStatProps) => (
-    <div className="rounded-xl border border-border/20 bg-muted/10 p-3">
+const SummaryStat = ({ label, value, className }: SummaryStatProps) => (
+    <div
+        className={cn(
+            'rounded-xl border border-border/20 bg-muted/10 p-3',
+            className,
+        )}
+    >
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="text-sm font-semibold text-foreground">{value}</p>
     </div>
@@ -484,16 +500,6 @@ export const LoanRequestSummaryHeader = ({
                     Review the submitted snapshot of this loan request, including
                     the applicant and co-maker details used for evaluation.
                 </p>
-                {loanPurpose ? (
-                    <div className="max-w-2xl space-y-1">
-                        <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                            Loan purpose
-                        </p>
-                        <p className="text-sm leading-relaxed font-medium">
-                            {loanPurpose}
-                        </p>
-                    </div>
-                ) : null}
             </div>
             <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
                 <SummaryStat label="Requested amount" value={amount} />
@@ -503,6 +509,13 @@ export const LoanRequestSummaryHeader = ({
                     label="Availment status"
                     value={availmentStatus}
                 />
+                {loanPurpose ? (
+                    <SummaryStat
+                        label="Loan purpose"
+                        value={loanPurpose}
+                        className="col-span-2"
+                    />
+                ) : null}
             </div>
         </div>
     </div>
@@ -651,30 +664,6 @@ const PersonAccordionRow = ({
         </div>
     );
 };
-
-export type LoanRequestPurposeCardProps = {
-    loanPurpose: string;
-};
-
-export const LoanRequestPurposeCard = ({
-    loanPurpose,
-}: LoanRequestPurposeCardProps) => (
-    <Card className="border-border/30 bg-card/60 shadow-sm">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <FileText className="size-4 text-muted-foreground" />
-                Loan purpose
-            </CardTitle>
-            <CardDescription>
-                Why the applicant is requesting this loan. See the summary
-                above for amount, type, and term.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <DetailRow label="Loan purpose" value={loanPurpose} />
-        </CardContent>
-    </Card>
-);
 
 export type LoanRequestApplicantCardProps = {
     applicant: LoanRequestPersonData | null;
@@ -1366,6 +1355,7 @@ export function LoanRequestDetailPage({
                     loanTypeLabel={loanTypeLabel}
                     requestedTerm={requestedTerm}
                     availmentStatus={availmentStatus}
+                    loanPurpose={loanPurpose}
                 />
             ) : null}
 
@@ -1425,7 +1415,6 @@ export function LoanRequestDetailPage({
             >
                 {!hideMainColumn ? (
                     <div className="space-y-6">
-                        <LoanRequestPurposeCard loanPurpose={loanPurpose} />
                         <LoanRequestApplicantCard applicant={applicant} />
                         <LoanRequestCoMakersCard
                             coMakerOne={coMakerOne}

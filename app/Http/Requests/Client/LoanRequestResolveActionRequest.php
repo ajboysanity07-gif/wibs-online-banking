@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Client;
 
+use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -39,12 +40,13 @@ class LoanRequestResolveActionRequest extends FormRequest
             'health' => ['sometimes', 'array:health_smoking_status,health_hypertension'],
             'health.health_smoking_status' => ['sometimes', 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => ['sometimes', 'boolean'],
-            'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payout_atm_number'],
+            'banking' => ['sometimes', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number'],
             'banking.payout_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_account_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.release_method' => ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
+            'banking.payment_option' => ['sometimes', 'nullable', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))],
             'banking.payout_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay' => ['sometimes', 'array:barangay_official_designation,barangay_agency_name,barangay_agency_address'],
             'barangay.barangay_official_designation' => ['sometimes', 'nullable', 'string', 'max:255'],

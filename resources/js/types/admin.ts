@@ -172,6 +172,7 @@ export type RequestsResponse = {
         available: boolean;
         message: string | null;
         loanTypes: string[];
+        statusCounts: Record<string, number>;
         openCorrectionReports: number;
         assignmentFilters?: Array<{
             value: 'unassigned' | 'mine' | 'all';

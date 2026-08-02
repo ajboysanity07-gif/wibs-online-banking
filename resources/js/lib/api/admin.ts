@@ -39,15 +39,12 @@ import type {
     StaffHistoryEntry,
 } from '@/types/admin';
 import type {
-    LoanRequestAuditEntry,
     LoanRequestCorrectionReport,
     LoanRequestCorrectionReportDismissPayload,
     LoanRequestCorrectionPayload,
     LoanRequestCorrectionResult,
     LoanRequestDecisionResult,
-    LoanRequestDetail,
     LoanRequestCancellationResult,
-    LoanRequestPersonData,
     LoanRequestWorkflowResult,
 } from '@/types/loan-requests';
 
@@ -228,6 +225,8 @@ type LoanRequestRecommendationPreviewPayload = {
     savings_rate?: number | string | null;
     documentary_stamp_rate?: number | string | null;
     notarial_fee?: number | string | null;
+    other_charges_amount?: number | string | null;
+    other_charges_description?: string | null;
     penalty_rate_per_month?: number | string | null;
 };
 
@@ -275,15 +274,7 @@ type LoanRequestWorkflowUpgradePayload = {
     reason: string;
 };
 
-type LoanRequestWorkflowResponse = {
-    loanRequest: LoanRequestDetail;
-    applicant: LoanRequestPersonData | null;
-    coMakerOne: LoanRequestPersonData | null;
-    coMakerTwo: LoanRequestPersonData | null;
-    auditTrail: LoanRequestAuditEntry[];
-    correctionReports: LoanRequestCorrectionReport[];
-    loan?: Record<string, unknown> | null;
-};
+type LoanRequestWorkflowResponse = LoanRequestWorkflowResult;
 
 type StaffMutationResponse = {
     staff: StaffAccount;
@@ -802,6 +793,16 @@ export const adminApi = {
         );
 
         return unwrap(response).items;
+    },
+    async logLoanRequestWarningViewed(
+        loanRequestId: number,
+    ): Promise<{ logged: boolean }> {
+        const response = await client.post<ApiResponse<{ logged: boolean }>>(
+            `/staff/loan-requests/${loanRequestId}/log-warning-viewed`,
+            {},
+        );
+
+        return unwrap(response);
     },
     async lookupMemberForPromotion(
         accountNumber: string,

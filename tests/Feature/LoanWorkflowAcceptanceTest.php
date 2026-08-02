@@ -370,7 +370,7 @@ test('assigned_processor payload name matches the value the server would auto-fi
         ->where('loanRequest.assigned_processor.name', $expectedProcessorDisplayName));
 });
 
-test('manager approval writes witness_two_name as the manager\'s own name and regenerates only loan_information and promissory_note', function (): void {
+test('single loan manager is auto-assigned as witness two at processing, and approval does not overwrite it', function (): void {
     config()->set('mail.default', 'array');
 
     $member = createAcceptanceMember('940003', 'Approval', 'Witness');
@@ -413,6 +413,18 @@ test('manager approval writes witness_two_name as the manager\'s own name and re
         ->assertOk()
         ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
 
+    $expectedManagerDisplayName = $manager->resolvedDisplayName();
+
+    // The sole active loan manager is recorded as Witness 2 at processing
+    // time -- the name never waited for approval.
+    $processingChange = LoanRequestDataChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'witness_two_name')
+        ->sole();
+
+    expect($processingChange->after_value_json['value'])->toBe($expectedManagerDisplayName)
+        ->and($processingChange->reason)->toBe('Completed underwriting package.');
+
     $preApprovalVersions = LoanRequestDocument::query()
         ->where('loan_request_id', $loanRequest->id)
         ->whereIn('document_key', ['loan_information', 'plan_of_payment', 'promissory_note'])
@@ -430,17 +442,19 @@ test('manager approval writes witness_two_name as the manager\'s own name and re
         ->assertOk()
         ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value);
 
-    $expectedManagerDisplayName = $manager->adminProfile?->fullname
-        ?? $manager->name
-        ?? $manager->username;
-
-    $dataChange = LoanRequestDataChange::query()
+    // Approval leaves the processing-time witness choice untouched -- no
+    // second "Witness 2 recorded upon approval" change is created.
+    expect(LoanRequestDataChange::query()
         ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'witness_two_name')
+        ->where('reason', 'Witness 2 recorded upon approval')
+        ->exists())->toBeFalse();
+
+    $witnessTwoEntry = $loanRequest->fresh()->dataEntries()
         ->where('field_key', 'witness_two_name')
         ->sole();
 
-    expect($dataChange->after_value_json['value'])->toBe($expectedManagerDisplayName)
-        ->and($dataChange->reason)->toBe('Witness 2 recorded upon approval');
+    expect($witnessTwoEntry->value_json['value'])->toBe($expectedManagerDisplayName);
 
     $documentsAfter = LoanRequestDocument::query()
         ->where('loan_request_id', $loanRequest->id)
@@ -466,6 +480,209 @@ test('manager approval writes witness_two_name as the manager\'s own name and re
 
     expect(mb_strtoupper($loanInformationText))->toContain(mb_strtoupper($expectedManagerDisplayName))
         ->and(mb_strtoupper($promissoryNoteText))->toContain(mb_strtoupper($expectedManagerDisplayName));
+});
+
+test('processing with several loan managers requires choosing a witness-two manager', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940008', 'Multi', 'Manager');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+    $managerA = createAcceptanceActor([Role::LOAN_MANAGER]);
+    $managerB = createAcceptanceActor([Role::LOAN_MANAGER]);
+
+    $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+    $loanRequest = LoanRequest::query()->sole();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Starting review with two managers available.',
+        ])
+        ->assertOk();
+
+    $processingPayload = acceptanceProcessingPayload();
+    unset($processingPayload['processing']['witness_one_name']);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('processing.witness_two_name');
+
+    // Names that are not an active loan manager are rejected too.
+    $processingPayload['processing']['witness_two_name'] = 'Not A Manager';
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('processing.witness_two_name');
+
+    $expectedManagerADisplayName = $managerA->resolvedDisplayName();
+    $processingPayload['processing']['witness_two_name'] = $expectedManagerADisplayName;
+    $processingPayload['processing']['witness_two_id'] = $managerA->user_id;
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+        ->assertOk();
+
+    $witnessTwoEntry = $loanRequest->fresh()->dataEntries()
+        ->where('field_key', 'witness_two_name')
+        ->sole();
+
+    expect($witnessTwoEntry->value_json['value'])->toBe($expectedManagerADisplayName);
+});
+
+test('approval does not overwrite the witness-two manager chosen at processing', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940009', 'Chosen', 'Witness');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+    $chosenManager = createAcceptanceActor([Role::LOAN_MANAGER]);
+    $approvingManager = createAcceptanceActor([Role::LOAN_MANAGER]);
+
+    $this
+        ->actingAs($member)
+        ->post(route('client.loan-requests.store'), acceptanceLoanRequestPayload());
+
+    $loanRequest = LoanRequest::query()->sole();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.claim', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.start-review', $loanRequest), [
+            'remarks' => 'Starting review with a chosen witness manager.',
+        ])
+        ->assertOk();
+
+    $processingPayload = acceptanceProcessingPayload();
+    unset($processingPayload['processing']['witness_one_name']);
+    $processingPayload['processing']['witness_two_name'] = $chosenManager->resolvedDisplayName();
+    $processingPayload['processing']['witness_two_id'] = $chosenManager->user_id;
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), $processingPayload)
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest))
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.recommend-approval', $loanRequest), [
+            'review_remarks' => 'Ready for manager review.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::RecommendedForApproval->value);
+
+    // Only the designated manager (chosenManager) may approve.
+    $this
+        ->actingAs($approvingManager)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 25000,
+            'approved_term' => 12,
+            'approved_interest_rate' => 1.5,
+            'approved_payment_frequency' => '15th & 30th',
+            'approval_remarks' => 'Approved as recommended.',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('witness_two_id');
+
+    // The designated manager succeeds.
+    $this
+        ->actingAs($chosenManager)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 25000,
+            'approved_term' => 12,
+            'approved_interest_rate' => 1.5,
+            'approved_payment_frequency' => '15th & 30th',
+            'approval_remarks' => 'Approved as recommended.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Approved->value);
+
+    expect(LoanRequestDataChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('field_key', 'witness_two_name')
+        ->where('reason', 'Witness 2 recorded upon approval')
+        ->exists())->toBeFalse();
+
+    $witnessTwoEntry = $loanRequest->fresh()->dataEntries()
+        ->where('field_key', 'witness_two_name')
+        ->sole();
+
+    expect($witnessTwoEntry->value_json['value'])->toBe($chosenManager->resolvedDisplayName());
+});
+
+test('staff show route exposes loan managers with their in-flight loan counts', function (): void {
+    config()->set('mail.default', 'array');
+
+    $member = createAcceptanceMember('940010', 'Counts', 'Member');
+    $processor = createAcceptanceActor([Role::LOAN_PROCESSOR]);
+    $managerA = createAcceptanceActor([Role::LOAN_MANAGER]);
+    $managerB = createAcceptanceActor([Role::LOAN_MANAGER]);
+
+    $managerAName = $managerA->resolvedDisplayName();
+    $managerBName = $managerB->resolvedDisplayName();
+
+    $inFlight = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+    ]);
+    $inFlight->dataEntries()->create([
+        'section_key' => 'processing',
+        'field_key' => 'witness_two_name',
+        'owner_type' => 'staff',
+        'value_json' => ['value' => $managerAName],
+    ]);
+
+    // Terminal-status loans must never inflate a manager's in-flight count.
+    $rejected = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Rejected,
+    ]);
+    $rejected->dataEntries()->create([
+        'section_key' => 'processing',
+        'field_key' => 'witness_two_name',
+        'owner_type' => 'staff',
+        'value_json' => ['value' => $managerAName],
+    ]);
+
+    $viewRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'assigned_officer_id' => $processor->user_id,
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->get(route('staff.loan-requests.show', $viewRequest))
+        ->assertOk()
+        ->assertInertia(function (Assert $page) use ($managerAName, $managerBName): void {
+            $page->component('staff/loan-request-show')
+                ->has('loanManagers', 2)
+                ->where('loanManagers', function ($loanManagers) use ($managerAName, $managerBName): bool {
+                    $byName = collect($loanManagers)->keyBy('name');
+
+                    return $byName->has($managerAName)
+                        && $byName->has($managerBName)
+                        && $byName[$managerAName]['active_loans'] === 1
+                        && $byName[$managerBName]['active_loans'] === 0;
+                });
+        });
 });
 
 test('manager approval rolls back completely when document regeneration fails', function (): void {
@@ -557,10 +774,14 @@ test('manager approval rolls back completely when document regeneration fails', 
             ->exists(),
     )->toBeFalse();
 
+    // The processing-time auto-assigned witness_two_name change survives (it
+    // predates the failed approval); only the approval-time fallback change
+    // must be absent -- it was rolled back with the rest of the approval.
     expect(
         LoanRequestDataChange::query()
             ->where('loan_request_id', $loanRequest->id)
             ->where('field_key', 'witness_two_name')
+            ->where('reason', 'Witness 2 recorded upon approval')
             ->exists(),
     )->toBeFalse();
 
@@ -778,6 +999,7 @@ function acceptanceLoanRequestPayload(): array
             'payout_account_type' => 'Savings',
             'payout_atm_number' => '9876543210',
             'release_method' => 'Bank Transfer',
+            'payment_option' => 'Salary Deduction',
         ],
         'barangay' => [
             'barangay_official_designation' => null,
@@ -898,7 +1120,6 @@ function acceptanceProcessingPayload(): array
             'documentary_stamp_rate' => 0.2,
             'notarial_fee' => 250,
             'penalty_rate_per_month' => 3,
-            'notarial_venue' => 'Tagum City',
             'witness_one_name' => 'Witness One',
             'barangay_official_name' => 'Barangay Captain',
             'barangay_official_title' => 'Punong Barangay',

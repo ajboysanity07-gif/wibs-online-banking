@@ -674,7 +674,7 @@ export default function SuperadminStaffPage() {
                     ...current,
                     processing: false,
                     errors: mapValidationErrors(
-                        requestError.response.data?.errors,
+                        requestError.response?.data?.errors,
                     ),
                 }));
             } else {
@@ -735,7 +735,7 @@ export default function SuperadminStaffPage() {
                 requestError.response?.status === 422
             ) {
                 setCreateErrors(
-                    mapValidationErrors(requestError.response.data?.errors),
+                    mapValidationErrors(requestError.response?.data?.errors),
                 );
             }
 
@@ -801,7 +801,7 @@ export default function SuperadminStaffPage() {
                     ...current,
                     processing: false,
                     errors: mapValidationErrors(
-                        requestError.response.data?.errors,
+                        requestError.response?.data?.errors,
                     ),
                 }));
             } else {
@@ -876,7 +876,7 @@ export default function SuperadminStaffPage() {
                     ...current,
                     processing: false,
                     errors: mapValidationErrors(
-                        requestError.response.data?.errors,
+                        requestError.response?.data?.errors,
                     ),
                 }));
             } else {
@@ -944,7 +944,7 @@ export default function SuperadminStaffPage() {
                     ...current,
                     processing: false,
                     errors: mapValidationErrors(
-                        requestError.response.data?.errors,
+                        requestError.response?.data?.errors,
                     ),
                 }));
             } else {

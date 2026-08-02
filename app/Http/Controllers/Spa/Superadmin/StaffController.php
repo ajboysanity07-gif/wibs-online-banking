@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Spa\Superadmin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Superadmin\MemberLookupRequest;
+use App\Http\Requests\Superadmin\MemberSearchRequest;
 use App\Http\Requests\Superadmin\PromoteMemberToStaffRequest;
 use App\Http\Requests\Superadmin\ReactivateStaffAccessRequest;
 use App\Http\Requests\Superadmin\ResetStaffPasswordRequest;
@@ -16,7 +18,6 @@ use App\Http\Resources\Admin\UserRoleChangeResource;
 use App\Models\AppUser;
 use App\Services\Admin\StaffManagementService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class StaffController extends Controller
 {
@@ -155,11 +156,9 @@ class StaffController extends Controller
     }
 
     public function memberLookup(
-        Request $request,
+        MemberLookupRequest $request,
         StaffManagementService $service,
     ): JsonResponse {
-        $request->validate(['account_number' => ['required', 'string']]);
-
         $member = $service->findMemberByAccountNumber(
             (string) $request->input('account_number'),
         );
@@ -180,13 +179,9 @@ class StaffController extends Controller
     }
 
     public function searchMembers(
-        Request $request,
+        MemberSearchRequest $request,
         StaffManagementService $service,
     ): JsonResponse {
-        $request->validate([
-            'query' => ['nullable', 'string', 'max:100'],
-        ]);
-
         $members = $service->searchMembers((string) $request->input('query', ''));
 
         return response()->json([

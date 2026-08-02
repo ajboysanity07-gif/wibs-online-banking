@@ -56,11 +56,10 @@ class ReportMetricsService
             ->sum('approved_amount');
 
         $statusBreakdown = (clone $inRange)
-            ->get(['status'])
-            ->groupBy(fn ($r) => $r->status instanceof LoanRequestStatus
-                ? $r->status->value
-                : (string) $r->status)
-            ->map->count()
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->mapWithKeys(fn ($count, $status) => [$this->statusValue($status) => (int) $count])
             ->all();
 
         $dailyTrend = $this->dailyTrend($actor, $from, $to);
@@ -97,31 +96,51 @@ class ReportMetricsService
      */
     public function staffPerformance(?Carbon $from, ?Carbon $to): array
     {
-        $requests = LoanRequest::query()
-            ->with(['assignedOfficer'])
+        $baseQuery = fn () => LoanRequest::query()
             ->whereNotNull('assigned_officer_id')
             ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->where('created_at', '<=', $to))
-            ->get([
-                'assigned_officer_id', 'status',
-                'created_at', 'approved_at', 'rejected_at', 'declined_at',
-            ]);
+            ->when($to, fn ($q) => $q->where('created_at', '<=', $to));
 
-        return $requests
+        $assignedCounts = $baseQuery()
+            ->selectRaw('assigned_officer_id, count(*) as aggregate')
             ->groupBy('assigned_officer_id')
-            ->map(function (Collection $group, int $officerId) {
-                $officer = $group->first()?->assignedOfficer;
-                $approved = $group->filter(fn ($r) => $this->statusValue($r->status) === LoanRequestStatus::Approved->value)->count();
-                $rejected = $group->filter(fn ($r) => $this->statusValue($r->status) === LoanRequestStatus::Rejected->value)->count();
-                $avgDays = $this->averageProcessingDaysFromCollection($group);
+            ->pluck('aggregate', 'assigned_officer_id');
+
+        $statusCounts = $baseQuery()
+            ->selectRaw('assigned_officer_id, status, count(*) as aggregate')
+            ->groupBy('assigned_officer_id', 'status')
+            ->get()
+            ->groupBy('assigned_officer_id');
+
+        $officers = AppUser::query()
+            ->whereIn('user_id', $assignedCounts->keys())
+            ->get(['user_id', 'username', 'email'])
+            ->keyBy('user_id');
+
+        $decidedRows = $baseQuery()
+            ->where(function ($q): void {
+                $q->whereNotNull('approved_at')
+                    ->orWhereNotNull('rejected_at')
+                    ->orWhereNotNull('declined_at');
+            })
+            ->get(['assigned_officer_id', 'created_at', 'approved_at', 'rejected_at', 'declined_at'])
+            ->groupBy('assigned_officer_id');
+
+        return $assignedCounts
+            ->map(function ($assigned, $officerId) use ($statusCounts, $officers, $decidedRows) {
+                $officerId = (int) $officerId;
+                $statuses = $statusCounts->get($officerId, collect())
+                    ->mapWithKeys(fn ($row) => [$this->statusValue($row->status) => (int) $row->aggregate]);
 
                 return [
-                    'processor_id' => (int) $officerId,
-                    'name' => $officer?->name ?? 'Unknown',
-                    'assigned' => $group->count(),
-                    'approved' => $approved,
-                    'rejected' => $rejected,
-                    'avg_days' => $avgDays,
+                    'processor_id' => $officerId,
+                    'name' => $officers->get($officerId)?->name ?? 'Unknown',
+                    'assigned' => (int) $assigned,
+                    'approved' => (int) ($statuses[LoanRequestStatus::Approved->value] ?? 0),
+                    'rejected' => (int) ($statuses[LoanRequestStatus::Rejected->value] ?? 0),
+                    'avg_days' => $this->averageProcessingDaysFromCollection(
+                        $decidedRows->get($officerId, collect()),
+                    ),
                 ];
             })
             ->values()

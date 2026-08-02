@@ -8,8 +8,10 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\DocumentAccessLog;
 use App\Models\LoanRequest;
+use App\Models\LoanRequestChange;
 use App\Models\Permission;
 use App\Services\LoanRequests\ApprovedLoanDocumentService;
+use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use App\Services\LoanRequests\LoanRequestAssignmentService;
 use App\Services\LoanRequests\LoanRequestDataService;
 use App\Services\LoanRequests\LoanRequestDecisionService;
@@ -44,6 +46,7 @@ class LoanRequestController extends Controller
         LoanRequestDocumentWorkflowService $documentWorkflowService,
         LoanRequestPayloadSerializer $serializer,
         LoanWorkflowWorkspaceService $workspaceService,
+        LoanManagerWitnessResolver $loanManagerWitnessResolver,
     ): Response {
         if ($this->isDraft($loanRequest)) {
             abort(404);
@@ -83,6 +86,7 @@ class LoanRequestController extends Controller
             )
                 ? $assignmentService->eligibleOfficerOptions($loanRequest)
                 : [],
+            'loanManagers' => $loanManagerWitnessResolver->options(),
             'dataSections' => $dataService->serializeSections($loanRequest),
             'dataSectionDefinitions' => $dataService->sectionDefinitions(),
             'documentChecklist' => $documentWorkflowService->serializeChecklist(
@@ -98,6 +102,55 @@ class LoanRequestController extends Controller
         ]);
 
         return Inertia::render('staff/loan-request-show', $payload);
+    }
+
+    public function logWarningViewed(
+        Request $request,
+        LoanRequest $loanRequest,
+        LoanRequestPayloadSerializer $serializer,
+    ): HttpResponse {
+        if ($this->isDraft($loanRequest)) {
+            abort(404);
+        }
+
+        Gate::authorize('view', $loanRequest);
+
+        $actor = $request->user();
+
+        abort_unless($actor instanceof AppUser, 403);
+
+        $loanStatus = $serializer->serializeLoanRequest($loanRequest)['applicant_loan_status'] ?? null;
+
+        if (! is_array($loanStatus) || ! ($loanStatus['requires_attention'] ?? false)) {
+            return response()->json([
+                'ok' => true,
+                'logged' => false,
+            ]);
+        }
+
+        LoanRequestChange::query()->create([
+            'loan_request_id' => $loanRequest->id,
+            'changed_by' => $actor->user_id,
+            'action' => LoanRequestChange::ACTION_LOAN_STATUS_WARNING_VIEWED,
+            'reason' => 'Staff viewed loan request with problematic loans (PDL/IIL)',
+            'before_json' => [
+                'status' => $loanRequest->status?->value ?? (string) $loanRequest->status,
+            ],
+            'after_json' => [
+                'status' => $loanRequest->status?->value ?? (string) $loanRequest->status,
+            ],
+            'metadata_json' => [
+                'has_past_due' => $loanStatus['has_past_due'] ?? false,
+                'has_litigation' => $loanStatus['has_litigation'] ?? false,
+                'warning_message' => $loanStatus['warning_message'] ?? null,
+                'viewed_at' => now()->toDateTimeString(),
+            ],
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'logged' => true,
+        ]);
     }
 
     public function pdf(
@@ -333,6 +386,20 @@ class LoanRequestController extends Controller
         }
 
         return $documentService->pensionDeductionWaiver($loanRequest);
+    }
+
+    public function atmSalaryDeductionWaiverDocument(
+        LoanRequest $loanRequest,
+        ApprovedLoanDocumentService $documentService,
+    ): HttpResponse {
+        Gate::authorize('view', $loanRequest);
+        $this->authorizeStaffDocumentAccess($loanRequest);
+
+        if (! $this->hasApprovedDocumentsStatus($loanRequest)) {
+            abort(404);
+        }
+
+        return $documentService->atmSalaryDeductionWaiver($loanRequest);
     }
 
     public function generaliApplicationFormDocument(

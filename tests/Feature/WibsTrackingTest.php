@@ -7,6 +7,7 @@ use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\LoanRequestDataEntry;
 use App\Models\LoanRequestDocument;
 use App\Models\Role;
 use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
@@ -126,6 +127,28 @@ test('scheduleRelease marks the authority-to-deduct document stale since its sta
         'wibs_loan_reference' => 'WIBS-2026-001',
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
         'submitted_at' => now(),
+    ]);
+
+    // Authority to Deduct is only applicable to BLGU/LGU/MRDINC/LDH institutional
+    // payroll employees -- give this applicant an MRDINC employer so the document
+    // stays applicable and this test still exercises staleness, not NotApplicable.
+    \App\Models\LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(\App\LoanRequestPersonRole::Applicant)
+        ->create(['employer_business_name' => 'MRDINC Head Office']);
+
+    // Authority to Deduct also requires payment_option to be Salary Deduction,
+    // separate from the institutional category above.
+    LoanRequestDataEntry::query()->create([
+        'loan_request_id' => $loanRequest->id,
+        'field_key' => 'payment_option',
+        'section_key' => 'banking',
+        'owner_type' => 'member',
+        'value_type' => 'string',
+        'value_json' => ['value' => \App\LoanPaymentOption::SalaryDeduction->value],
+        'is_sensitive' => true,
+        'confirmed_by_member' => false,
+        'confirmed_by_member_at' => null,
     ]);
 
     // Seed a real source_hash/readiness row via the normal checklist evaluation first, so

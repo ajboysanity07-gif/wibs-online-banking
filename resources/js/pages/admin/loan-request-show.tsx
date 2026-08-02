@@ -3,6 +3,7 @@ import { CircleAlert } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AdminLoanRequestCorrectionDialog } from '@/components/loan-request/admin-loan-request-correction-dialog';
 import { LoanRequestDetailPage } from '@/components/loan-request/loan-request-detail-page';
+import { LoanRequestDocumentChecklistCard } from '@/components/loan-request/loan-request-document-checklist-card';
 import { ProcessingDetailsPanel } from '@/components/loan-request/processing-details-panel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +58,7 @@ import {
 import type { BreadcrumbItem } from '@/types';
 import type { Auth } from '@/types/auth';
 import type {
+    LoanManagerOption,
     LoanRequestAssignmentOfficerOption,
     LoanRequestAuditEntry,
     LoanRequestCorrectionReport,
@@ -64,6 +66,8 @@ import type {
     LoanRequestDataSectionDefinitions,
     LoanRequestDataSections,
     LoanRequestDetail,
+    LoanRequestDocumentChecklistItem,
+    LoanRequestDocumentKey,
     LoanRequestWorkflowPermission,
     LoanRequestPersonData,
     LoanTypeOption,
@@ -114,8 +118,10 @@ type Props = {
     openCorrectionReportCancellationReason: string | null;
     openCorrectionOnLoad: boolean;
     eligibleOfficers: LoanRequestAssignmentOfficerOption[];
+    loanManagers: LoanManagerOption[];
     dataSections: LoanRequestDataSections;
     dataSectionDefinitions: LoanRequestDataSectionDefinitions;
+    documentChecklist: LoanRequestDocumentChecklistItem[];
 };
 
 export default function LoanRequestShow({
@@ -131,8 +137,10 @@ export default function LoanRequestShow({
     openCorrectionReportCancellationReason,
     openCorrectionOnLoad,
     eligibleOfficers,
+    loanManagers,
     dataSections,
     dataSectionDefinitions,
+    documentChecklist,
 }: Props) {
     const { auth } = usePage<{ auth: Auth }>().props;
     const [currentRequest, setCurrentRequest] =
@@ -151,6 +159,8 @@ export default function LoanRequestShow({
         useState<LoanRequestAuditEntry[]>(auditTrail);
     const [currentDataSections, setCurrentDataSections] =
         useState<LoanRequestDataSections>(dataSections);
+    const [currentDocumentChecklist, setCurrentDocumentChecklist] =
+        useState<LoanRequestDocumentChecklistItem[]>(documentChecklist);
     const shouldAutoOpenCorrection =
         openCorrectionOnLoad &&
         loanRequest.requires_correction_before_approval &&
@@ -185,6 +195,7 @@ export default function LoanRequestShow({
         requestRevision,
         rejectLoanRequest,
         updateProcessingDetails,
+        generateDocuments,
         recommendApproval,
         approveLoanRequest,
         declineLoanRequest,
@@ -199,6 +210,7 @@ export default function LoanRequestShow({
             setCurrentAuditTrail(result.auditTrail);
             setCurrentEligibleOfficers(result.eligibleOfficers);
             setCurrentDataSections(result.dataSections);
+            setCurrentDocumentChecklist(result.documentChecklist);
             setCancellationReasonPrefill(
                 resolveCancellationReasonPrefill(result.correctionReports),
             );
@@ -357,6 +369,7 @@ export default function LoanRequestShow({
         'needs_revision',
         'awaiting_member_information',
     ].includes(currentRequest.status ?? '');
+    const canGenerateDocuments = canUpdateProcessing;
     const canDecide =
         currentRequest.status === 'under_review' && decision.canDecide;
     const canStartReview =
@@ -393,6 +406,50 @@ export default function LoanRequestShow({
         !decision.isOwnRequest &&
         currentRequest.status === 'recommended_for_approval' &&
         hasWorkflowPermission('loan.decline');
+    const isManagerViewer =
+        hasWorkflowPermission('loan.approve') ||
+        hasWorkflowPermission('loan.decline');
+    const managerStageAlert = isManagerViewer
+        ? (() => {
+              const status = currentRequest.status ?? '';
+              const processorName =
+                  currentRequest.assigned_processor?.name ??
+                  currentRequest.assigned_officer?.name ??
+                  null;
+
+              if (
+                  [
+                      'pending_review',
+                      'under_review',
+                      'needs_revision',
+                      'awaiting_member_information',
+                  ].includes(status)
+              ) {
+                  return {
+                      title: 'Not ready for your review yet',
+                      description: processorName
+                          ? `${processorName} is currently reviewing this request.`
+                          : 'Waiting for a Loan Processor to pick this up.',
+                  };
+              }
+
+              if (status === 'recommended_for_approval') {
+                  return {
+                      title: 'Ready for your decision',
+                      description:
+                          'Review the package below and Approve or Decline.',
+                  };
+              }
+
+              return null;
+          })()
+        : null;
+    const actionsPanelHeader = managerStageAlert ? (
+        <Alert className="border-primary/30 bg-primary/5">
+            <AlertTitle>{managerStageAlert.title}</AlertTitle>
+            <AlertDescription>{managerStageAlert.description}</AlertDescription>
+        </Alert>
+    ) : undefined;
     const canCorrect =
         currentRequest.status === 'under_review' && !decision.isOwnRequest;
     const requiresCorrectionBeforeApproval =
@@ -477,6 +534,15 @@ export default function LoanRequestShow({
 
     const handleCorrectionSubmit = (payload: LoanRequestCorrectionPayload) => {
         void correctLoanRequest(currentRequest.id, payload);
+    };
+
+    const submitGenerateDocuments = async (
+        documentKey?: LoanRequestDocumentKey,
+    ) => {
+        await generateDocuments(
+            currentRequest.id,
+            documentKey ? { document_key: documentKey } : {},
+        );
     };
 
     const openCancellationDialogFromReport = (
@@ -692,17 +758,34 @@ export default function LoanRequestShow({
                 correctedRequestHref={correctedRequestHref}
                 auditTrail={currentAuditTrail}
                 auditTrailAudience="staff"
+                actionsPanelHeader={actionsPanelHeader}
                 processingDetails={
                     isProcessingStage ? (
-                        <ProcessingDetailsPanel
-                            loanRequest={currentRequest}
-                            applicant={currentApplicant}
-                            dataSections={currentDataSections}
-                            dataSectionDefinitions={dataSectionDefinitions}
-                            canUpdateProcessing={canUpdateProcessing}
-                            isProcessing={isWorkflowProcessing}
-                            updateProcessingDetails={updateProcessingDetails}
-                        />
+                        <>
+                            <ProcessingDetailsPanel
+                                loanRequest={currentRequest}
+                                applicant={currentApplicant}
+                                dataSections={currentDataSections}
+                                dataSectionDefinitions={dataSectionDefinitions}
+                                canUpdateProcessing={canUpdateProcessing}
+                                isProcessing={isWorkflowProcessing}
+                                updateProcessingDetails={
+                                    updateProcessingDetails
+                                }
+                                loanManagers={loanManagers}
+                            />
+                            <LoanRequestDocumentChecklistCard
+                                documentChecklist={currentDocumentChecklist}
+                                generatedDocumentBaseHref={`/admin/requests/${currentRequest.id}/documents/generated`}
+                                canGenerateDocuments={canGenerateDocuments}
+                                isProcessing={isWorkflowProcessing}
+                                onGenerate={(documentKey) =>
+                                    void submitGenerateDocuments(
+                                        documentKey as LoanRequestDocumentKey,
+                                    )
+                                }
+                            />
+                        </>
                     ) : undefined
                 }
                 correction={{
@@ -816,6 +899,13 @@ export default function LoanRequestShow({
                                   ),
                           }
                         : undefined,
+                    generateDocuments: canGenerateDocuments
+                        ? {
+                              show: true,
+                              isProcessing: isWorkflowProcessing,
+                              onSubmit: () => submitGenerateDocuments(),
+                          }
+                        : undefined,
                     recommendApproval: canRecommendApproval
                         ? {
                               show: true,
@@ -858,6 +948,8 @@ export default function LoanRequestShow({
                 coMakerOne={currentCoMakerOne}
                 coMakerTwo={currentCoMakerTwo}
                 loanTypes={loanTypes}
+                dataSections={currentDataSections}
+                dataSectionDefinitions={dataSectionDefinitions}
                 correctionReportContext={correctionReportContext}
                 errors={correctionErrors}
                 isProcessing={isCorrecting}
