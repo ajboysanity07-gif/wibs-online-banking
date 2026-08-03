@@ -16,6 +16,7 @@ use App\Services\LoanRequests\PdfFieldMaps\AffidavitUndertakingPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\GrepalifePdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
+use App\Support\DocumentFilename;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -239,7 +240,7 @@ test('loan security agreement pdf includes borrower and agreement details', func
 
     $response->assertOk();
     $response->assertDownload(
-        $loanRequest->reference.' Loan Request Agreement.pdf',
+        DocumentFilename::build($loanRequest->reference, 'loan_security_agreement', 'pdf'),
     );
 
     $text = approvedLoanDocumentsExtractPdfText($response);
@@ -269,7 +270,7 @@ test('promissory note route returns a pdf not xlsx', function () {
 
     $response->assertOk();
     $response->assertHeaderContains('content-type', 'application/pdf');
-    $response->assertDownload('promissory-note-'.$loanRequest->reference.'.pdf');
+    $response->assertDownload(DocumentFilename::build($loanRequest->reference, 'promissory_note', 'pdf'));
     expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
 });
 
@@ -360,7 +361,7 @@ test('plan of payment route returns a pdf not xlsx', function () {
 
     $response->assertOk();
     $response->assertHeaderContains('content-type', 'application/pdf');
-    $response->assertDownload('plan-of-payment-'.$loanRequest->reference.'.pdf');
+    $response->assertDownload(DocumentFilename::build($loanRequest->reference, 'plan_of_payment', 'pdf'));
     expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
 });
 
@@ -424,7 +425,7 @@ test('loan information route returns a pdf not xlsx', function () {
 
     $response->assertOk();
     $response->assertHeaderContains('content-type', 'application/pdf');
-    $response->assertDownload('loan-information-'.$loanRequest->reference.'.pdf');
+    $response->assertDownload(DocumentFilename::build($loanRequest->reference, 'loan_information', 'pdf'));
     expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
 });
 
@@ -505,7 +506,7 @@ test('disclosure statement route returns a pdf not xlsx', function () {
 
     $response->assertOk();
     $response->assertHeaderContains('content-type', 'application/pdf');
-    $response->assertDownload('disclosure-statement-'.$loanRequest->reference.'.pdf');
+    $response->assertDownload(DocumentFilename::build($loanRequest->reference, 'disclosure_statement', 'pdf'));
     expect($content)->toStartWith('%PDF')->not->toStartWith('PK');
 });
 
@@ -2579,13 +2580,13 @@ test('approved member can download approved loan documents for owned request', f
 
     $applicationFormResponse
         ->assertOk()
-        ->assertDownload('application-form-'.$loanRequest->reference.'.pdf');
+        ->assertDownload(DocumentFilename::build($loanRequest->reference, 'application_form', 'pdf'));
     $loanSecurityAgreementResponse
         ->assertOk()
-        ->assertDownload($loanRequest->reference.' Loan Request Agreement.pdf');
+        ->assertDownload(DocumentFilename::build($loanRequest->reference, 'loan_security_agreement', 'pdf'));
     $packageResponse
         ->assertOk()
-        ->assertDownload('approved-loan-documents-'.$loanRequest->reference.'.zip');
+        ->assertDownload(DocumentFilename::build($loanRequest->reference, 'APPROVED-DOCUMENTS', 'zip'));
 });
 
 test('member can download loan information and disclosure statement while awaiting acceptance, but not promissory note yet', function () {
@@ -2694,6 +2695,9 @@ test('missing optional fields do not break approved document generation', functi
     // separate from the "missing optional fields" being exercised here) so this test still
     // covers that document's own robustness to null applicant/employer data.
     approvedLoanDocumentsPersistDataEntry($loanRequest, 'barangay_agency_name', 'string', 'Barangay San Isidro');
+    // Keeps affidavit_undertaking applicable (it requires ATM Deduction as
+    // the payment option) for the same reason.
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payment_option', 'string', \App\LoanPaymentOption::AtmDeduction->value);
 
     $this->actingAs($admin);
 
@@ -2723,7 +2727,7 @@ test('approved loan can still download approved loan documents zip package', fun
 
     $response->assertOk();
     $response->assertDownload(
-        'approved-loan-documents-'.$loanRequest->reference.'.zip',
+        DocumentFilename::build($loanRequest->reference, 'APPROVED-DOCUMENTS', 'zip'),
     );
 });
 
@@ -2747,10 +2751,12 @@ test('approved document zip contains all required files and valid generated docu
     $entries = approvedLoanDocumentsOpenZipEntriesFromResponse($response);
     $entryNames = array_keys($entries);
 
+    // With payment_option = Salary Deduction, Affidavit of Undertaking is not
+    // applicable (it requires ATM Deduction) and is correctly omitted here --
+    // Authority to Deduct is the institutional-payroll document instead.
     expect($entryNames)->toBe([
         '01-Application-Form.pdf',
         '02-GREPALIFE.pdf',
-        '03-Affidavit-of-Undertaking.pdf',
         '04-Loan-Information.pdf',
         '05-Plan-of-Payment.pdf',
         '06-Disclosure-Statement.pdf',
@@ -3047,7 +3053,7 @@ function approvedLoanDocumentsPdfRouteDefinitions(LoanRequest $loanRequest): arr
     return [
         [
             'route' => 'admin.requests.documents.application-form',
-            'filename' => 'application-form-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'application_form', 'pdf'),
             'disposition' => 'attachment',
         ],
         ...approvedLoanDocumentsTemplateBackedPdfRouteDefinitions($loanRequest),
@@ -3071,13 +3077,13 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
     return [
         [
             'route' => 'admin.requests.documents.grepalife',
-            'filename' => 'grepalife-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'grepalife', 'pdf'),
             'disposition' => 'inline',
             'page_count' => 2,
         ],
         [
             'route' => 'admin.requests.documents.loan-security-agreement',
-            'filename' => $loanRequest->reference.' Loan Request Agreement.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'loan_security_agreement', 'pdf'),
             'disposition' => 'attachment',
             // Was 2 pages at the old (incorrect) 8.5x11in size; the extra 2in of
             // page height at 8.5x13in gives the same content room to fit on 1.
@@ -3085,19 +3091,19 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
         ],
         [
             'route' => 'admin.requests.documents.undertaking-barangay',
-            'filename' => 'undertaking-barangay-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'undertaking_barangay', 'pdf'),
             'disposition' => 'attachment',
             'page_count' => 1,
         ],
         [
             'route' => 'admin.requests.documents.affidavit-undertaking',
-            'filename' => 'affidavit-undertaking-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'affidavit_undertaking', 'pdf'),
             'disposition' => 'attachment',
             'page_count' => 1,
         ],
         [
             'route' => 'admin.requests.documents.promissory-note',
-            'filename' => 'promissory-note-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'promissory_note', 'pdf'),
             'disposition' => 'attachment',
             // Was 2 pages: excess whitespace/margins pushed total content past the
             // page-1 boundary, and page-break-inside:avoid on the signature/witness
@@ -3113,19 +3119,19 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
         ],
         [
             'route' => 'admin.requests.documents.loan-information',
-            'filename' => 'loan-information-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'loan_information', 'pdf'),
             'disposition' => 'attachment',
             'page_count' => 1,
         ],
         [
             'route' => 'admin.requests.documents.plan-of-payment',
-            'filename' => 'plan-of-payment-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'plan_of_payment', 'pdf'),
             'disposition' => 'attachment',
             'page_count' => 1,
         ],
         [
             'route' => 'admin.requests.documents.disclosure-statement',
-            'filename' => 'disclosure-statement-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'disclosure_statement', 'pdf'),
             'disposition' => 'attachment',
             // The fixed-layout workbook grid (table-layout: fixed + colgroup
             // proportions from the source sheet) fits the whole statutory body
@@ -3135,7 +3141,7 @@ function approvedLoanDocumentsTemplateBackedPdfRouteDefinitions(
         ],
         [
             'route' => 'admin.requests.documents.generali',
-            'filename' => 'generali-'.$loanRequest->reference.'.pdf',
+            'filename' => DocumentFilename::build($loanRequest->reference, 'generali', 'pdf'),
             'disposition' => 'attachment',
             'page_count' => 2,
         ],
@@ -3149,7 +3155,6 @@ function approvedLoanDocumentsTemplateBackedPdfZipEntryNames(): array
 {
     return [
         '02-GREPALIFE.pdf',
-        '03-Affidavit-of-Undertaking.pdf',
         '04-Loan-Information.pdf',
         '05-Plan-of-Payment.pdf',
         '06-Disclosure-Statement.pdf',
@@ -3723,6 +3728,11 @@ function approvedLoanDocumentsCreateDataEntries(LoanRequest $loanRequest): void
         'witness_one_name' => ['string', 'Annabelle M. Amora'],
         'witness_two_name' => ['string', 'Annabelle M. Amora'],
         'release_method' => ['string', 'Bank transfer'],
+        // ATM Deduction by default so Affidavit of Undertaking (applicable
+        // only for ATM payout members) renders in the general document/zip
+        // tests below; the institutional-payroll zip test overrides this to
+        // Salary Deduction to exercise Authority to Deduct instead.
+        'payment_option' => ['string', \App\LoanPaymentOption::AtmDeduction->value],
         'payout_bank_name' => ['string', 'WIBS Cooperative Bank'],
         'payout_account_name' => ['string', 'Sample Q Member'],
         'payout_account_number' => ['string', '1234567890'],

@@ -20,6 +20,7 @@ use App\Services\LoanRequests\PdfFieldMaps\LoanInformationPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\PensionDeductionWaiverPdfFieldMap;
 use App\Services\LoanRequests\PdfFieldMaps\UndertakingBarangayPdfFieldMap;
 use App\Services\OrganizationSettingsService;
+use App\Support\DocumentFilename;
 use App\Support\PersonName;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -78,27 +79,6 @@ class ApprovedLoanDocumentService
         'pension_deduction_waiver' => '13-Pension-Deduction-Waiver.pdf',
         'atm_salary_deduction_waiver' => '15-ATM-Salary-Deduction-Waiver.pdf',
         'generali_application_form' => '14-Generali-Application-Form.pdf',
-    ];
-
-    /**
-     * @var array<string, string>
-     */
-    private const DOWNLOAD_DOCUMENT_NAMES = [
-        'application_form' => 'application-form-%s.pdf',
-        'grepalife' => 'grepalife-%s.pdf',
-        'affidavit_undertaking' => 'affidavit-undertaking-%s.pdf',
-        'loan_information' => 'loan-information-%s.pdf',
-        'plan_of_payment' => 'plan-of-payment-%s.pdf',
-        'disclosure_statement' => 'disclosure-statement-%s.pdf',
-        'promissory_note' => 'promissory-note-%s.pdf',
-        'undertaking_barangay' => 'undertaking-barangay-%s.pdf',
-        'loan_security_agreement' => '%s Loan Request Agreement.pdf',
-        'generali' => 'generali-%s.pdf',
-        'authority_to_deduct' => 'authority-to-deduct-%s.pdf',
-        'deped_salary_deduction_waiver' => 'deped-salary-deduction-waiver-%s.pdf',
-        'pension_deduction_waiver' => 'pension-deduction-waiver-%s.pdf',
-        'atm_salary_deduction_waiver' => 'atm-salary-deduction-waiver-%s.pdf',
-        'generali_application_form' => 'generali-application-form-%s.pdf',
     ];
 
     public function __construct(
@@ -390,6 +370,11 @@ class ApprovedLoanDocumentService
         try {
             $documentData = $this->buildDocumentData($loanRequest);
             $flatValues = $this->loanRequestDataService->loadFlatValues($loanRequest);
+            $includeAffidavitUndertaking = $this->documentCatalog->isApplicable(
+                LoanRequestDocumentKey::AffidavitUndertaking,
+                $loanRequest,
+                $flatValues,
+            );
             $includeUndertakingBarangay = $this->documentCatalog->isApplicable(
                 LoanRequestDocumentKey::UndertakingBarangay,
                 $loanRequest,
@@ -446,12 +431,14 @@ class ApprovedLoanDocumentService
                 $documentData,
                 $this->grepalifePdfFieldMap,
             );
-            $this->approvedLoanPdfTemplateService->generate(
-                self::PDF_TEMPLATE_FILENAMES['affidavit_undertaking'],
-                $affidavitUndertakingPath,
-                $documentData,
-                $this->affidavitUndertakingPdfFieldMap,
-            );
+            if ($includeAffidavitUndertaking) {
+                $this->approvedLoanPdfTemplateService->generate(
+                    self::PDF_TEMPLATE_FILENAMES['affidavit_undertaking'],
+                    $affidavitUndertakingPath,
+                    $documentData,
+                    $this->affidavitUndertakingPdfFieldMap,
+                );
+            }
             $this->approvedLoanPdfTemplateService->generate(
                 self::PDF_TEMPLATE_FILENAMES['loan_information'],
                 $loanInformationPath,
@@ -525,16 +512,17 @@ class ApprovedLoanDocumentService
                 $this->generaliApplicationFormPdfFieldMap,
             );
 
-            $zipFilename = sprintf(
-                'approved-loan-documents-%s.zip',
-                $this->normalizeReferenceForFilename($loanRequest->reference),
+            $zipFilename = DocumentFilename::build(
+                $loanRequest->reference,
+                'APPROVED-DOCUMENTS',
+                'zip',
             );
             $zipPath = $workingDirectory.DIRECTORY_SEPARATOR.$zipFilename;
 
             $this->createZipArchive($zipPath, array_values(array_filter([
                 $applicationFormPath,
                 $grepalifePath,
-                $affidavitUndertakingPath,
+                $includeAffidavitUndertaking ? $affidavitUndertakingPath : null,
                 $loanInformationPath,
                 $planOfPaymentPath,
                 $disclosureStatementPath,
@@ -811,12 +799,7 @@ class ApprovedLoanDocumentService
         string $documentKey,
         LoanRequest $loanRequest,
     ): string {
-        $format = self::DOWNLOAD_DOCUMENT_NAMES[$documentKey] ?? '%s';
-
-        return sprintf(
-            $format,
-            $this->normalizeReferenceForFilename($loanRequest->reference),
-        );
+        return DocumentFilename::build($loanRequest->reference, $documentKey, 'pdf');
     }
 
     private function downloadFile(
@@ -2364,14 +2347,6 @@ class ApprovedLoanDocumentService
 
                 return $personRole === $role->value;
             });
-    }
-
-    private function normalizeReferenceForFilename(string $reference): string
-    {
-        $normalized = preg_replace('/[^A-Za-z0-9._-]/', '-', $reference);
-        $normalized = trim((string) $normalized, '-');
-
-        return $normalized !== '' ? $normalized : 'loan-request';
     }
 
     /**

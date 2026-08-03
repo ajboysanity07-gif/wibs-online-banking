@@ -189,14 +189,21 @@ test('v2 workflow happy path reaches final approval after revised terms are acce
         ->assertOk()
         ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::UnderReview->value);
 
-    $this
+    $finalGenerationResponse = $this
         ->actingAs($processor)
         ->postJson(route('spa.workflow.loan-requests.documents.generate', $loanRequest))
-        ->assertOk()
-        ->assertJsonPath(
-            'data.documentChecklist.0.status',
-            LoanRequestDocumentReadinessStatus::GeneratedCurrent->value,
-        );
+        ->assertOk();
+
+    expect(
+        collect($finalGenerationResponse->json('data.documentChecklist'))
+            ->where('is_applicable', true)
+            ->pluck('status')
+            ->unique()
+            ->values()
+            ->all(),
+    )->toBe([
+        LoanRequestDocumentReadinessStatus::GeneratedCurrent->value,
+    ]);
 
     $this
         ->actingAs($processor)

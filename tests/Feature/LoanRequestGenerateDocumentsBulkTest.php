@@ -19,11 +19,11 @@ beforeEach(function (): void {
     // this environment, a document with bold text (affidavit_undertaking)
     // hits a pre-existing font-registration gap that makes TCPDF call
     // die() directly (see project memory) instead of throwing — which would
-    // silently kill the whole test process. affidavit_undertaking is
-    // 'always' applicable with zero required fields (LoanRequestDocumentCatalog),
-    // so generateAll() attempts to render it on every run regardless of
-    // setup. Stub the actual render so these tests exercise the real
-    // locking/business-validation logic without touching that gap.
+    // silently kill the whole test process. generateAll() attempts to
+    // render every applicable document on each run regardless of setup, so
+    // that gap would otherwise be hit incidentally. Stub the actual render
+    // so these tests exercise the real locking/business-validation logic
+    // without touching that gap.
     // Mockery::mock() on a class name never runs the constructor, leaving
     // this service's typed constructor-injected properties uninitialized —
     // buildDocumentData() (a real, unstubbed method still called before
@@ -125,11 +125,11 @@ test('a document with a busy lock on a different key is not blocked', function (
 
     $document = $service->generateDocument(
         $loanRequest,
-        LoanRequestDocumentKey::AffidavitUndertaking,
+        LoanRequestDocumentKey::LoanSecurityAgreement,
         $processor,
     );
 
-    expect($document->document_key)->toBe(LoanRequestDocumentKey::AffidavitUndertaking->value);
+    expect($document->document_key)->toBe(LoanRequestDocumentKey::LoanSecurityAgreement->value);
 
     $busyLock->release();
 });
@@ -174,7 +174,7 @@ test('generateAll takes the umbrella lock and is blocked while it is held', func
 test('generateAll skips a document that is busy elsewhere without aborting the rest of the batch', function (): void {
     [$loanRequest, $processor] = generateDocumentsBulkTestLoanRequest();
 
-    $busyDocumentKey = LoanRequestDocumentKey::AffidavitUndertaking;
+    $busyDocumentKey = LoanRequestDocumentKey::LoanSecurityAgreement;
 
     $busyLock = Cache::lock(
         sprintf('loan-workflow:documents:%d:%s', $loanRequest->id, $busyDocumentKey->value),

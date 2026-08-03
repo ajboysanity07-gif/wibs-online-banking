@@ -100,12 +100,6 @@ type LoanRequestWorkflowClaimActionConfig = {
     onSubmit?: () => AsyncResult;
 };
 
-type LoanRequestWorkflowGenerateDocumentsActionConfig = {
-    show?: boolean;
-    isProcessing?: boolean;
-    onSubmit?: () => AsyncResult;
-};
-
 type LoanRequestWorkflowAssignmentActionConfig = {
     show?: boolean;
     isProcessing?: boolean;
@@ -128,7 +122,6 @@ export type LoanRequestWorkflowProps = {
     returnForProcessing?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowReturnForProcessingPayload>;
     reopen?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowReopenPayload>;
     upgradeWorkflow?: LoanRequestWorkflowActionConfig<LoanRequestWorkflowUpgradeWorkflowPayload>;
-    generateDocuments?: LoanRequestWorkflowGenerateDocumentsActionConfig;
 };
 
 type Props = {
@@ -302,8 +295,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         Boolean(workflow?.rejectDuringProcessing?.show) ||
         Boolean(workflow?.returnForProcessing?.show) ||
         Boolean(workflow?.reopen?.show) ||
-        Boolean(workflow?.upgradeWorkflow?.show) ||
-        Boolean(workflow?.generateDocuments?.show);
+        Boolean(workflow?.upgradeWorkflow?.show);
 
     useEffect(() => {
         const nextAmount =
@@ -874,21 +866,6 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 Upgrade to Document Workflow v2
                             </Button>
                         ) : null}
-                        {workflow?.generateDocuments?.show ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-start"
-                                disabled={
-                                    workflow.generateDocuments.isProcessing
-                                }
-                                onClick={() =>
-                                    void workflow.generateDocuments?.onSubmit?.()
-                                }
-                            >
-                                Generate All Required Documents
-                            </Button>
-                        ) : null}
                     </div>
                     <Separator className="bg-border/40" />
                 </div>
@@ -1443,9 +1420,7 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                     value={approvedTerm}
                                     className={inputClassName}
                                     disabled={workflow?.approve?.isProcessing}
-                                    onChange={(value) =>
-                                        setApprovedTerm(value)
-                                    }
+                                    onChange={(value) => setApprovedTerm(value)}
                                 />
                             </div>
                         </div>

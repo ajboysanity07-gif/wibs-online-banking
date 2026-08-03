@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestPersonRole;
 use App\Models\LoanRequest;
 use App\Services\OrganizationSettingsService;
+use App\Support\DocumentFilename;
 use App\Support\LocationComposer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
@@ -24,7 +25,7 @@ class LoanRequestPdfService
     public function render(LoanRequest $loanRequest, bool $download = false): Response
     {
         $data = $this->buildViewData($loanRequest);
-        $filename = $this->buildFilename($loanRequest, $data['applicant']);
+        $filename = $this->buildFilename($loanRequest);
 
         if ($this->shouldUseChromium()) {
             return $this->renderWithChromium($data, $filename, $download);
@@ -288,20 +289,13 @@ class LoanRequestPdfService
         return [0, 0, $width * $pointsPerUnit, $height * $pointsPerUnit];
     }
 
-    /**
-     * @param  array<string, mixed>  $applicant
-     */
-    private function buildFilename(LoanRequest $loanRequest, array $applicant): string
+    private function buildFilename(LoanRequest $loanRequest): string
     {
-        $fullName = trim(sprintf(
-            '%s %s',
-            $applicant['first_name'] ?? '',
-            $applicant['last_name'] ?? '',
-        ));
-
-        $slug = $fullName !== '' ? Str::slug($fullName) : 'member';
-        $date = $loanRequest->submitted_at?->format('Y-m-d') ?? now()->toDateString();
-
-        return sprintf('%s-loan-request-%s.pdf', $slug, $date);
+        return DocumentFilename::build(
+            $loanRequest->reference,
+            'application_form',
+            'pdf',
+            $loanRequest->submitted_at,
+        );
     }
 }

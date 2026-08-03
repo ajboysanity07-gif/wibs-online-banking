@@ -9,6 +9,7 @@ use App\Models\DocumentAccessLog;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\UserRoleChange;
+use App\Support\DocumentFilename;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -141,7 +142,7 @@ class AuditController extends Controller
 
         return Excel::download(
             new AuditLogExport($request->user()),
-            'audit-log-'.now()->format('Y-m-d').'.xlsx',
+            DocumentFilename::build('AUDIT', 'LOG', 'xlsx'),
         );
     }
 

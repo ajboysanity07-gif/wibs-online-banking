@@ -19,6 +19,7 @@ use App\Services\LoanRequests\LoanRequestDocumentWorkflowService;
 use App\Services\LoanRequests\LoanRequestPayloadSerializer;
 use App\Services\LoanRequests\LoanRequestPdfService;
 use App\Services\LoanRequests\LoanRequestService;
+use App\Support\DocumentFilename;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -432,17 +433,22 @@ class LoanRequestController extends Controller
         // content, so the response must never be cached -- otherwise staff
         // can be shown a stale, already-regenerated document.
         $headers['Cache-Control'] = 'no-store, must-revalidate';
+        $isWorkbook = $this->isWorkbookDocument($documentKey);
         $downloadName = basename(
-            $document->generated_filename ?: $documentKey->label(),
+            $document->generated_filename ?: DocumentFilename::build(
+                $loanRequestRecord->reference,
+                $documentKey->value,
+                $isWorkbook ? 'xlsx' : 'pdf',
+            ),
         );
 
         if (
-            $this->isWorkbookDocument($documentKey)
+            $isWorkbook
             && ($request->boolean('preview') || $request->boolean('print'))
         ) {
             return $this->renderWorkbookDocument(
                 $absolutePath,
-                $downloadName !== '' ? $downloadName : $documentKey->label().'.xlsx',
+                $downloadName,
                 $request->boolean('print'),
             );
         }

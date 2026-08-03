@@ -769,6 +769,14 @@ export default function StaffLoanRequestShow({
         );
     };
 
+    const submitGenerateSelectedDocuments = async (documentKeys: string[]) => {
+        for (const documentKey of documentKeys) {
+            await submitGenerateDocuments(
+                documentKey as LoanRequestDocumentKey,
+            );
+        }
+    };
+
     const submittedAt = currentRequest.submitted_at
         ? formatDate(currentRequest.submitted_at)
         : null;
@@ -1192,9 +1200,9 @@ export default function StaffLoanRequestShow({
                             generatedDocumentBaseHref={`/staff/loan-requests/${currentRequest.id}/documents/generated`}
                             canGenerateDocuments={canGenerateDocuments}
                             isProcessing={isWorkflowProcessing}
-                            onGenerate={(documentKey) =>
-                                void submitGenerateDocuments(
-                                    documentKey as LoanRequestDocumentKey,
+                            onGenerate={(documentKeys) =>
+                                void submitGenerateSelectedDocuments(
+                                    documentKeys,
                                 )
                             }
                         />
@@ -1434,6 +1442,7 @@ export default function StaffLoanRequestShow({
                             backLabel="Back to workflow queue"
                             pdfHref={pdfHref}
                             printHref={printHref}
+                            documentChecklistAvailable={isProcessingStage}
                             approvedDocumentHrefs={approvedDocumentHrefs}
                             auditTrail={currentAuditTrail}
                             auditTrailAudience="staff"

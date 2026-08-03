@@ -5,6 +5,7 @@ use App\Models\AppUser as User;
 use App\Repositories\Admin\MemberLoansRepository;
 use App\Services\Admin\MemberLoans\MemberLoanExportService;
 use App\Services\Admin\MemberLoans\MemberLoanService;
+use App\Support\DocumentFilename;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
@@ -673,7 +674,7 @@ test('export request validates format and date range', function () {
         ->assertUnprocessable();
 });
 
-test('export filename uses member lastname and range', function () {
+test('export filename uses loan number and generation date', function () {
     $admin = User::factory()->create(['username' => 'Admin User']);
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);
 
@@ -708,7 +709,9 @@ test('export filename uses member lastname and range', function () {
 
     $disposition = $response->headers->get('content-disposition');
 
-    expect($disposition)->toContain('doe-lnpayment-2024-02-01-2024-02-28.csv');
+    expect($disposition)->toContain(
+        DocumentFilename::build('LN-910', 'LOAN-PAYMENTS', 'csv'),
+    );
 });
 
 test('opening balance derives from earliest included transaction for all range', function () {

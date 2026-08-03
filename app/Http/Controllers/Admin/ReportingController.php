@@ -13,6 +13,7 @@ use App\Models\Permission;
 use App\Services\Admin\AdminDashboardService;
 use App\Services\Admin\WatchlistService;
 use App\Services\Reports\ReportMetricsService;
+use App\Support\DocumentFilename;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -100,7 +101,7 @@ class ReportingController extends Controller
             default => abort(404, 'Unknown report type.'),
         };
 
-        $filename = sprintf('%s-%s.xlsx', $type, now()->format('Y-m-d'));
+        $filename = DocumentFilename::build('REPORT', $type, 'xlsx');
 
         return Excel::download($export, $filename);
     }

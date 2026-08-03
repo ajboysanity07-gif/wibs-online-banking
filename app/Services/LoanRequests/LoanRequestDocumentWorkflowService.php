@@ -10,6 +10,7 @@ use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestDocument;
 use App\Models\LoanRequestPerson;
+use App\Support\DocumentFilename;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
@@ -73,25 +74,34 @@ class LoanRequestDocumentWorkflowService
      */
     public function serializeChecklist(LoanRequest $loanRequest): array
     {
+        $flatValues = $this->dataService->loadFlatValues($loanRequest);
+
         return $this->refreshChecklist($loanRequest)
-            ->map(fn (LoanRequestDocument $document): array => [
-                'key' => $document->document_key,
-                'label' => LoanRequestDocumentKey::from($document->document_key)->label(),
-                'is_applicable' => $document->is_applicable,
-                'status' => $document->readiness_status?->value
-                    ?? LoanRequestDocumentReadinessStatus::NotStarted->value,
-                'status_label' => $document->readiness_status?->label()
-                    ?? LoanRequestDocumentReadinessStatus::NotStarted->label(),
-                'template_version' => $document->template_version,
-                'generated_at' => $document->generated_at?->toDateTimeString(),
-                'generated_by' => $document->generatedBy?->display_code,
-                'generated_filename' => $document->generated_filename,
-                'generated_mime_type' => $document->generated_mime_type,
-                'generated_version' => $document->generated_version,
-                'source_version' => $document->source_version,
-                'blockers' => $document->failure_information_json['blockers'] ?? [],
-                'failure_message' => $document->failure_information_json['message'] ?? null,
-            ])
+            ->map(function (LoanRequestDocument $document) use ($loanRequest, $flatValues): array {
+                $documentKey = LoanRequestDocumentKey::from($document->document_key);
+
+                return [
+                    'key' => $document->document_key,
+                    'label' => $documentKey->label(),
+                    'is_applicable' => $document->is_applicable,
+                    'unavailable_reason' => $document->is_applicable
+                        ? null
+                        : $this->documentCatalog->unavailabilityNote($documentKey, $loanRequest, $flatValues),
+                    'status' => $document->readiness_status?->value
+                        ?? LoanRequestDocumentReadinessStatus::NotStarted->value,
+                    'status_label' => $document->readiness_status?->label()
+                        ?? LoanRequestDocumentReadinessStatus::NotStarted->label(),
+                    'template_version' => $document->template_version,
+                    'generated_at' => $document->generated_at?->toDateTimeString(),
+                    'generated_by' => $document->generatedBy?->display_code,
+                    'generated_filename' => $document->generated_filename,
+                    'generated_mime_type' => $document->generated_mime_type,
+                    'generated_version' => $document->generated_version,
+                    'source_version' => $document->source_version,
+                    'blockers' => $document->failure_information_json['blockers'] ?? [],
+                    'failure_message' => $document->failure_information_json['message'] ?? null,
+                ];
+            })
             ->values()
             ->all();
     }
@@ -436,7 +446,11 @@ class LoanRequestDocumentWorkflowService
             'generated_version' => $nextGeneratedVersion,
             'generated_disk' => $this->documentStorage->documentDisk(),
             'generated_path' => $relativePath,
-            'generated_filename' => $metadata['filename'],
+            'generated_filename' => DocumentFilename::build(
+                $loanRequest->reference,
+                $documentKey->value,
+                $extension,
+            ),
             'generated_mime_type' => $metadata['mime_type'],
             'generated_size_bytes' => File::exists($absolutePath)
                 ? File::size($absolutePath)

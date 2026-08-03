@@ -1095,6 +1095,57 @@ test('atm salary deduction waiver is not applicable for a self-employed applican
     expect($catalog->isApplicable(LoanRequestDocumentKey::AtmSalaryDeductionWaiver, $loanRequest, $flatValues))->toBeFalse();
 });
 
+test('affidavit of undertaking is applicable only when payment option is ATM Deduction', function (): void {
+    $loanRequest = LoanRequest::factory()->make();
+    $catalog = app(LoanRequestDocumentCatalog::class);
+
+    expect($catalog->isApplicable(
+        LoanRequestDocumentKey::AffidavitUndertaking,
+        $loanRequest,
+        ['payment_option' => \App\LoanPaymentOption::AtmDeduction->value],
+    ))->toBeTrue()
+        ->and($catalog->isApplicable(
+            LoanRequestDocumentKey::AffidavitUndertaking,
+            $loanRequest,
+            ['payment_option' => \App\LoanPaymentOption::SalaryDeduction->value],
+        ))->toBeFalse()
+        ->and($catalog->isApplicable(
+            LoanRequestDocumentKey::AffidavitUndertaking,
+            $loanRequest,
+            [],
+        ))->toBeFalse();
+});
+
+test('affidavit of undertaking checklist entry surfaces an unavailable_reason note when payment option is not ATM', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'payment_option' => ['string', \App\LoanPaymentOption::SalaryDeduction->value],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::AffidavitUndertaking);
+
+    expect($entry['is_applicable'])->toBeFalse()
+        ->and($entry['unavailable_reason'])->toBe('Only available for members using ATM as their payment option.');
+});
+
+test('affidavit of undertaking checklist entry has no unavailable_reason once payment option is ATM', function (): void {
+    $loanRequest = LoanRequest::factory()->create([
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+    ]);
+
+    applicabilityPersistDataEntries($loanRequest, [
+        'payment_option' => ['string', \App\LoanPaymentOption::AtmDeduction->value],
+    ]);
+
+    $entry = applicabilityChecklistEntry($loanRequest, LoanRequestDocumentKey::AffidavitUndertaking);
+
+    expect($entry['is_applicable'])->toBeTrue()
+        ->and($entry['unavailable_reason'])->toBeNull();
+});
+
 test('when officers are marked unknown, the generated authority to deduct document data has blank officer fields', function (): void {
     $loanRequest = LoanRequest::factory()->create([
         'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,

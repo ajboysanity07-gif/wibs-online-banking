@@ -6,12 +6,12 @@ use App\Models\AppUser;
 use App\Models\Wmaster;
 use App\Services\Admin\MemberLoans\Exports\LoanPaymentsExport;
 use App\Services\OrganizationSettingsService;
+use App\Support\DocumentFilename;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use Maatwebsite\Excel\Excel;
 use Maatwebsite\Excel\Facades\Excel as ExcelFacade;
 use Symfony\Component\HttpFoundation\Response;
@@ -43,12 +43,7 @@ class MemberLoanExportService
         $memberName = $context['memberName'];
         $reportPeriod = $context['reportPeriod'];
 
-        $filename = $this->buildFilename(
-            $memberName,
-            $reportPeriod['start'],
-            $reportPeriod['end'],
-            $format,
-        );
+        $filename = $this->buildFilename($loanNumber, $format);
 
         if ($format === 'pdf') {
             return $this->exportPdf(
@@ -299,37 +294,8 @@ class MemberLoanExportService
         return Carbon::parse($value);
     }
 
-    private function buildFilename(
-        string $memberName,
-        Carbon $start,
-        Carbon $end,
-        string $format,
-    ): string {
-        $memberLastName = $this->resolveMemberLastName($memberName);
-        $basename = sprintf(
-            '%s-lnpayment-%s-%s',
-            Str::slug($memberLastName),
-            $start->toDateString(),
-            $end->toDateString(),
-        );
-
-        return sprintf('%s.%s', $basename, $format);
-    }
-
-    private function resolveMemberLastName(string $memberName): string
+    private function buildFilename(string $loanNumber, string $format): string
     {
-        $value = trim($memberName);
-
-        if ($value === '') {
-            return 'member';
-        }
-
-        if (str_contains($value, ',')) {
-            return (string) Str::of($value)->before(',')->trim();
-        }
-
-        $parts = preg_split('/\s+/', $value) ?: [];
-
-        return $parts !== [] ? (string) end($parts) : $value;
+        return DocumentFilename::build($loanNumber, 'LOAN-PAYMENTS', $format);
     }
 }

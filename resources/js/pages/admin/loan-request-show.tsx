@@ -323,13 +323,12 @@ export default function LoanRequestShow({
                       requestsDepedSalaryDeductionWaiverDocument(
                           currentRequest.id,
                       ).url,
-                  pensionDeductionWaiver: requestsPensionDeductionWaiverDocument(
-                      currentRequest.id,
-                  ).url,
+                  pensionDeductionWaiver:
+                      requestsPensionDeductionWaiverDocument(currentRequest.id)
+                          .url,
                   generaliApplicationForm:
-                      requestsGeneraliApplicationFormDocument(
-                          currentRequest.id,
-                      ).url,
+                      requestsGeneraliApplicationFormDocument(currentRequest.id)
+                          .url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;
@@ -545,6 +544,14 @@ export default function LoanRequestShow({
         );
     };
 
+    const submitGenerateSelectedDocuments = async (documentKeys: string[]) => {
+        for (const documentKey of documentKeys) {
+            await submitGenerateDocuments(
+                documentKey as LoanRequestDocumentKey,
+            );
+        }
+    };
+
     const openCancellationDialogFromReport = (
         report: LoanRequestCorrectionReport,
     ) => {
@@ -754,6 +761,7 @@ export default function LoanRequestShow({
                 backLabel="Back to requests"
                 pdfHref={pdfHref}
                 printHref={printHref}
+                documentChecklistAvailable={isProcessingStage}
                 approvedDocumentHrefs={approvedDocumentHrefs}
                 correctedRequestHref={correctedRequestHref}
                 auditTrail={currentAuditTrail}
@@ -779,9 +787,9 @@ export default function LoanRequestShow({
                                 generatedDocumentBaseHref={`/admin/requests/${currentRequest.id}/documents/generated`}
                                 canGenerateDocuments={canGenerateDocuments}
                                 isProcessing={isWorkflowProcessing}
-                                onGenerate={(documentKey) =>
-                                    void submitGenerateDocuments(
-                                        documentKey as LoanRequestDocumentKey,
+                                onGenerate={(documentKeys) =>
+                                    void submitGenerateSelectedDocuments(
+                                        documentKeys,
                                     )
                                 }
                             />
@@ -854,10 +862,7 @@ export default function LoanRequestShow({
                               isProcessing: isWorkflowProcessing,
                               officerOptions: currentEligibleOfficers,
                               onSubmit: (payload) =>
-                                  assignLoanRequest(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
+                                  assignLoanRequest(currentRequest.id, payload),
                           }
                         : undefined,
                     reassign: canReassign
@@ -893,17 +898,7 @@ export default function LoanRequestShow({
                               show: true,
                               isProcessing: isWorkflowProcessing,
                               onSubmit: (payload) =>
-                                  rejectLoanRequest(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
-                          }
-                        : undefined,
-                    generateDocuments: canGenerateDocuments
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: () => submitGenerateDocuments(),
+                                  rejectLoanRequest(currentRequest.id, payload),
                           }
                         : undefined,
                     recommendApproval: canRecommendApproval
@@ -911,10 +906,7 @@ export default function LoanRequestShow({
                               show: true,
                               isProcessing: isWorkflowProcessing,
                               onSubmit: (payload) =>
-                                  recommendApproval(
-                                      currentRequest.id,
-                                      payload,
-                                  ),
+                                  recommendApproval(currentRequest.id, payload),
                           }
                         : undefined,
                     approve: canWorkflowApprove

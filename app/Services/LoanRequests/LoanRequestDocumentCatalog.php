@@ -103,7 +103,7 @@ class LoanRequestDocumentCatalog
         ],
         'affidavit_undertaking' => [
             'template_version' => 'affidavit-undertaking-v6',
-            'applicability' => 'always',
+            'applicability' => 'atm_payment_option',
             'required_fields' => [],
             'source_fields' => [
                 'payout_bank_name',
@@ -656,6 +656,7 @@ class LoanRequestDocumentCatalog
             'institutional_payroll' => $this->authorityToDeductCategory($loanRequest, $flatValues) !== null
                 && ($flatValues['payment_option'] ?? null) === LoanPaymentOption::SalaryDeduction->value,
             'atm_payout_employee' => $this->atmPayoutWaiverApplicable($loanRequest, $flatValues),
+            'atm_payment_option' => ($flatValues['payment_option'] ?? null) === LoanPaymentOption::AtmDeduction->value,
             default => true,
         };
     }
@@ -756,6 +757,58 @@ class LoanRequestDocumentCatalog
                 'note' => 'LDH typically requires only 1 authorized officer.',
                 'saved_contact' => $savedContact,
             ],
+        };
+    }
+
+    /**
+     * Mirrors authorityToDeductGuidance()'s applicable/note shape, but for
+     * Affidavit of Undertaking: gated purely on payment_option being ATM
+     * Deduction (see the 'atm_payment_option' rule in isApplicable()).
+     *
+     * @param  array<string, mixed>  $flatValues
+     * @return array{applicable: bool, note: string}
+     */
+    public function affidavitUndertakingGuidance(array $flatValues): array
+    {
+        if (($flatValues['payment_option'] ?? null) !== LoanPaymentOption::AtmDeduction->value) {
+            return [
+                'applicable' => false,
+                'note' => 'Only available for members using ATM as their payment option.',
+            ];
+        }
+
+        return [
+            'applicable' => true,
+            'note' => '',
+        ];
+    }
+
+    /**
+     * Single lookup staff-facing UI can call to explain why a not-applicable
+     * document is unavailable, without duplicating the per-document
+     * applicability rules already encoded in isApplicable()/*Guidance().
+     * Returns null for documents with no configured explanation (e.g. the
+     * legacy-data cutoff, or documents that are simply always applicable).
+     *
+     * @param  array<string, mixed>  $flatValues
+     */
+    public function unavailabilityNote(
+        LoanRequestDocumentKey $documentKey,
+        LoanRequest $loanRequest,
+        array $flatValues,
+    ): ?string {
+        return match ($documentKey) {
+            LoanRequestDocumentKey::AuthorityToDeduct => (function () use ($loanRequest, $flatValues): ?string {
+                $guidance = $this->authorityToDeductGuidance($loanRequest, $flatValues);
+
+                return $guidance['applicable'] ? null : $guidance['note'];
+            })(),
+            LoanRequestDocumentKey::AffidavitUndertaking => (function () use ($flatValues): ?string {
+                $guidance = $this->affidavitUndertakingGuidance($flatValues);
+
+                return $guidance['applicable'] ? null : $guidance['note'];
+            })(),
+            default => null,
         };
     }
 

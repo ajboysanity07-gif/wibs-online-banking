@@ -26,7 +26,14 @@ import {
     Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Fragment, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
+import {
+    Fragment,
+    useEffect,
+    useId,
+    useState,
+    type FormEvent,
+    type ReactNode,
+} from 'react';
 import InputError from '@/components/input-error';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import { LoanRequestStatusBadge } from '@/components/loan-request/loan-request-status-badge';
@@ -97,6 +104,7 @@ type Props = {
     workflow?: LoanRequestWorkflowProps;
     actionsPanelHeader?: ReactNode;
     processingDetails?: ReactNode;
+    documentChecklistAvailable?: boolean;
     wrapInShell?: boolean;
     hideSummaryHeader?: boolean;
     hideMainColumn?: boolean;
@@ -490,25 +498,26 @@ export const LoanRequestSummaryHeader = ({
                     <h1 className="text-3xl font-semibold tracking-tight">
                         Request {reference}
                     </h1>
-                    <LoanRequestStatusBadge status={status} className="text-xs" />
+                    <LoanRequestStatusBadge
+                        status={status}
+                        className="text-xs"
+                    />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>{submittedLabel}</span>
                 </div>
                 <p className="max-w-2xl text-sm text-muted-foreground">
-                    Review the submitted snapshot of this loan request, including
-                    the applicant and co-maker details used for evaluation.
+                    Review the submitted snapshot of this loan request,
+                    including the applicant and co-maker details used for
+                    evaluation.
                 </p>
             </div>
             <div className="grid w-full gap-3 sm:max-w-md sm:grid-cols-2">
                 <SummaryStat label="Requested amount" value={amount} />
                 <SummaryStat label="Loan type" value={loanTypeLabel} />
                 <SummaryStat label="Requested term" value={requestedTerm} />
-                <SummaryStat
-                    label="Availment status"
-                    value={availmentStatus}
-                />
+                <SummaryStat label="Availment status" value={availmentStatus} />
                 {loanPurpose ? (
                     <SummaryStat
                         label="Loan purpose"
@@ -570,7 +579,8 @@ const PersonAccordionRow = ({
     };
 
     const name = personName(person);
-    const initial = person && name !== '--' ? name.charAt(0).toUpperCase() : '--';
+    const initial =
+        person && name !== '--' ? name.charAt(0).toUpperCase() : '--';
 
     return (
         <div className="rounded-xl border border-border/20 bg-muted/10">
@@ -980,6 +990,7 @@ export function LoanRequestDetailPage({
     workflow,
     actionsPanelHeader,
     processingDetails,
+    documentChecklistAvailable = false,
     wrapInShell = true,
     hideSummaryHeader = false,
     hideMainColumn = false,
@@ -988,7 +999,8 @@ export function LoanRequestDetailPage({
     const submittedAt = loanRequest.submitted_at
         ? formatDate(loanRequest.submitted_at)
         : null;
-    const statusValue = (loanRequest.status ?? 'draft') as LoanRequestStatusValue;
+    const statusValue = (loanRequest.status ??
+        'draft') as LoanRequestStatusValue;
     const showApprovedCancellationHistory =
         statusValue === 'cancelled' &&
         (loanRequest.approved_by !== null ||
@@ -998,10 +1010,7 @@ export function LoanRequestDetailPage({
         statusValue,
         showApprovedCancellationHistory,
     );
-    const currentStatusIndex = Math.max(
-        0,
-        timelineSteps.indexOf(statusValue),
-    );
+    const currentStatusIndex = Math.max(0, timelineSteps.indexOf(statusValue));
     const canDownloadPdf =
         statusValue === 'submitted' ||
         statusValue === 'pending_review' ||
@@ -1030,7 +1039,9 @@ export function LoanRequestDetailPage({
         decision?.canDecide &&
         statusValue === 'under_review';
     const blockedMessage =
-        statusValue === 'under_review' ? (decision?.blockedMessage ?? null) : null;
+        statusValue === 'under_review'
+            ? (decision?.blockedMessage ?? null)
+            : null;
     const approvalBlockedMessage = blockedMessage;
     const canApprove = showDecisionForm && approvalBlockedMessage === null;
     const showDecisionSummary =
@@ -1051,8 +1062,9 @@ export function LoanRequestDetailPage({
     const showApprovedDocuments =
         (statusValue === 'approved' || statusValue === 'converted_to_loan') &&
         approvedDocumentHrefs !== null;
-    const showDownloadPdfAction = canDownloadPdf && !showApprovedDocuments;
-    const showPrintAction = canDownloadPdf;
+    const showDownloadPdfAction =
+        canDownloadPdf && !showApprovedDocuments && !documentChecklistAvailable;
+    const showPrintAction = canDownloadPdf && !documentChecklistAvailable;
     const approvedDocumentItems = showApprovedDocuments
         ? [
               {
@@ -1162,9 +1174,10 @@ export function LoanRequestDetailPage({
     );
     const reviewedBy = loanRequest.reviewed_by?.name ?? '--';
     const reviewedAt = displayDateValue(loanRequest.reviewed_at);
-    const assignedOfficer = loanRequest.assigned_processor?.name
-        ?? loanRequest.assigned_officer?.name
-        ?? '--';
+    const assignedOfficer =
+        loanRequest.assigned_processor?.name ??
+        loanRequest.assigned_officer?.name ??
+        '--';
     const reviewDecisionValue = displayText(loanRequest.review_decision);
     const reviewRemarksValue = displayText(loanRequest.review_remarks);
     const rejectedBy = loanRequest.rejected_by?.name ?? '--';
@@ -1452,7 +1465,8 @@ export function LoanRequestDetailPage({
                                 />
                                 <div className="space-y-5">
                                     {timelineSteps.map((status, index) => {
-                                        const isCurrent = status === statusValue;
+                                        const isCurrent =
+                                            status === statusValue;
                                         const isComplete =
                                             index < currentStatusIndex;
 
@@ -1616,10 +1630,15 @@ export function LoanRequestDetailPage({
                                     <div className="space-y-3 text-sm">
                                         <DetailRow
                                             label="Status"
-                                            value={statusLabels[statusValue] ?? '--'}
+                                            value={
+                                                statusLabels[statusValue] ??
+                                                '--'
+                                            }
                                         />
-                                        {loanRequest.assigned_processor !== null ||
-                                        loanRequest.assigned_officer !== null ? (
+                                        {loanRequest.assigned_processor !==
+                                            null ||
+                                        loanRequest.assigned_officer !==
+                                            null ? (
                                             <DetailRow
                                                 label="Assigned loan processor"
                                                 value={assignedOfficer}
@@ -1776,7 +1795,9 @@ export function LoanRequestDetailPage({
                                 </div>
                             ) : null}
                             {actionsPanelHeader ? (
-                                <div className="space-y-3">{actionsPanelHeader}</div>
+                                <div className="space-y-3">
+                                    {actionsPanelHeader}
+                                </div>
                             ) : null}
                             <LoanRequestWorkflowActions
                                 loanRequest={loanRequest}
@@ -1834,7 +1855,8 @@ export function LoanRequestDetailPage({
                                                     key={document.label}
                                                     className="flex items-stretch gap-2"
                                                 >
-                                                    {document.format === 'PDF' ? (
+                                                    {document.format ===
+                                                    'PDF' ? (
                                                         <Button
                                                             type="button"
                                                             variant="outline"
@@ -1863,7 +1885,9 @@ export function LoanRequestDetailPage({
                                                                 {document.label}
                                                             </span>
                                                             <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                                                                {document.format}
+                                                                {
+                                                                    document.format
+                                                                }
                                                             </span>
                                                         </a>
                                                     </Button>
@@ -1963,8 +1987,7 @@ export function LoanRequestDetailPage({
                                         ? 'A loan manager can now approve or decline this request.'
                                         : statusValue === 'approved'
                                           ? 'Approved - awaiting processing in WIBS.'
-                                          : statusValue ===
-                                              'converted_to_loan'
+                                          : statusValue === 'converted_to_loan'
                                             ? 'The request is already linked to a created loan record.'
                                             : statusValue === 'declined' ||
                                                 statusValue === 'rejected'
@@ -2127,7 +2150,10 @@ export function LoanRequestDetailPage({
                             </Label>
                             <textarea
                                 id="cancellation_reason"
-                                aria-label={cancellation?.reasonLabel ?? 'Cancellation reason'}
+                                aria-label={
+                                    cancellation?.reasonLabel ??
+                                    'Cancellation reason'
+                                }
                                 className={textareaClassName}
                                 maxLength={1000}
                                 required={cancellation?.reasonRequired}
@@ -2245,7 +2271,7 @@ export function LoanRequestDetailPage({
                     if (!open) setPreviewUrl(null);
                 }}
             >
-                <DialogContent className="flex max-h-[90vh] w-full max-w-4xl flex-col gap-0 p-0 sm:max-w-4xl max-[768px]:fixed max-[768px]:inset-0 max-[768px]:translate-x-0 max-[768px]:translate-y-0 max-[768px]:rounded-none max-[768px]:max-h-none max-[768px]:max-w-none [&>button]:z-10">
+                <DialogContent className="flex max-h-[90vh] w-full max-w-4xl flex-col gap-0 p-0 max-[768px]:fixed max-[768px]:inset-0 max-[768px]:max-h-none max-[768px]:max-w-none max-[768px]:translate-x-0 max-[768px]:translate-y-0 max-[768px]:rounded-none sm:max-w-4xl [&>button]:z-10">
                     <DialogHeader className="px-4 pt-4 pb-2">
                         <DialogTitle>Document Preview</DialogTitle>
                     </DialogHeader>

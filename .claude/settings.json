@@ -13,6 +13,8 @@
       "Bash(php artisan migrate:status*)",
       "Bash(php artisan config:*)",
       "Bash(vendor/bin/pint --dirty)",
+      "Bash(vendor/bin/pint --parallel)",
+      "Bash(npx eslint . --fix)",
       "Bash(git status)",
       "Bash(git diff*)",
       "Bash(git log*)",
@@ -43,6 +45,29 @@
           {
             "type": "command",
             "command": "\"C:/Users/ACER Predator/.local/bin/graphify.EXE\" hook-guard read"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/format-on-edit.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/stop-check.sh",
+            "timeout": 60
           }
         ]
       }
