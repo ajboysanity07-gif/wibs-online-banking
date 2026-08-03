@@ -402,7 +402,7 @@ class LoanRequestDraftRequest extends FormRequest
             'declarations.existing_loan_3_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'declarations.existing_loan_3_amount' => ['sometimes', 'nullable', 'numeric'],
             ...$this->dependentsRules(),
-            ...$this->personRules('applicant', true, true, true),
+            ...$this->personRules('applicant', true, true, true, true),
             ...$this->personRules('co_maker_1', false, false, false),
             ...$this->personRules('co_maker_2', false, false, false),
         ];
@@ -416,6 +416,7 @@ class LoanRequestDraftRequest extends FormRequest
         bool $includeSpouse,
         bool $includeChildren,
         bool $includeCivilHousing = false,
+        bool $includeDateEmployed = false,
     ): array {
         $rules = [
             "{$prefix}.first_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -448,6 +449,10 @@ class LoanRequestDraftRequest extends FormRequest
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
+
+        if ($includeDateEmployed) {
+            $rules["{$prefix}.employer_date_employed"] = ['sometimes', 'nullable', 'date'];
+        }
 
         if ($includeCivilHousing) {
             $rules["{$prefix}.housing_status"] = [

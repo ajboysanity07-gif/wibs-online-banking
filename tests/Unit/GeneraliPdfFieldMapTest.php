@@ -5,8 +5,8 @@ use App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
 test('generali map prints height and weight with units from the application form', function (): void {
     $fields = (new GeneraliPdfFieldMap)->fields();
 
-    $height = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 165.9 && ($f['y'] ?? null) === 115.0);
-    $weight = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 178.9 && ($f['y'] ?? null) === 115.0);
+    $height = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 165.9 && ($f['y'] ?? null) === 112.0);
+    $weight = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 178.9 && ($f['y'] ?? null) === 112.0);
 
     expect($height)->not->toBeNull();
     expect($weight)->not->toBeNull();
@@ -22,9 +22,9 @@ test('generali map prints height and weight with units from the application form
 test('generali map prints source of fund and the composed government id', function (): void {
     $fields = (new GeneraliPdfFieldMap)->fields();
 
-    $source = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 56.0 && ($f['y'] ?? null) === 129.2);
-    $id = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 153.0 && ($f['y'] ?? null) === 129.2);
-    $idOther = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 153.0 && ($f['y'] ?? null) === 133.1);
+    $source = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 27.3 && ($f['y'] ?? null) === 134.2);
+    $id = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 150.0 && ($f['y'] ?? null) === 129.2);
+    $idOther = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 150.0 && ($f['y'] ?? null) === 133.1);
 
     expect($source)->not->toBeNull();
     expect($id)->not->toBeNull();
@@ -62,11 +62,34 @@ test('generali map prints source of fund and the composed government id', functi
     expect($resolve($id, ['application_form' => ['id_type' => 'SSS', 'id_number' => null]]))->toBeNull();
 });
 
+test('generali map prints the employer date employed beside the occupation row', function (): void {
+    $fields = (new GeneraliPdfFieldMap)->fields();
+
+    $date = collect($fields)->first(
+        fn (array $f) => ($f['x'] ?? null) === 166.0 && ($f['y'] ?? null) === 157.0,
+    );
+
+    expect($date)->not->toBeNull();
+
+    $resolve = function (array $field, array $documentData): mixed {
+        $value = $field['value'] ?? null;
+
+        if (is_callable($value)) {
+            return $value($documentData);
+        }
+
+        return is_string($value) ? data_get($documentData, $value) : $value;
+    };
+
+    expect($resolve($date, ['applicant' => ['employer_date_employed' => '06/01/2019']]))->toBe('06/01/2019');
+    expect($resolve($date, ['applicant' => ['employer_date_employed' => null]]))->toBeNull();
+});
+
 test('generali map derives the item 2 header Yes/No across every sub-question', function (): void {
     $fields = (new GeneraliPdfFieldMap)->fields();
 
-    $q2Y = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 128.2 && ($f['y'] ?? null) === 216.64);
-    $q2N = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 135.2 && ($f['y'] ?? null) === 216.64);
+    $q2Y = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 127.68 && ($f['y'] ?? null) === 216.28);
+    $q2N = collect($fields)->first(fn (array $f) => ($f['x'] ?? null) === 134.64 && ($f['y'] ?? null) === 216.28);
 
     expect($q2Y)->not->toBeNull();
     expect($q2N)->not->toBeNull();
@@ -102,15 +125,15 @@ test('generali health rows were recalibrated onto the template checkbox glyphs',
     $fields = (new GeneraliPdfFieldMap)->fields();
 
     $expectedY = [
-        207.45, // Q1
-        216.64, // Q2 header
-        234.56, // 2d
-        264.55, // 2i
-        33.58,  // Q3 (page 2)
-        62.44,  // Q6
-        85.72,  // Q10
-        104.99, // Q13
-        120.51, // Q15 pregnancy/complications
+        207.25, // Q1
+        216.28, // Q2 header
+        234.21, // 2d
+        264.35, // 2i
+        33.23,  // Q3 (page 2)
+        62.09,  // Q6
+        85.37,  // Q10
+        104.64, // Q13
+        120.16, // Q15 pregnancy/complications
     ];
 
     foreach ($expectedY as $y) {

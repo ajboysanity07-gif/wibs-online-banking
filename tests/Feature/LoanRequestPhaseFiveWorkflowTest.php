@@ -264,6 +264,7 @@ function phaseFiveLoanRequestPayload(): array
             'current_position' => 'Analyst',
             'nature_of_business' => 'Services',
             'years_in_work_business' => '4 years',
+            'employer_date_employed' => '2019-05-10',
             'gross_monthly_income' => 20000,
             'payday' => '15th',
         ],

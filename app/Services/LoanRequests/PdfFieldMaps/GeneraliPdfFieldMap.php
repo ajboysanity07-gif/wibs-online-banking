@@ -8,9 +8,9 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
      * Shared Y/N checkbox + "details of yes answer" text column, identical
      * on both pages of the template (same table design repeats on page 2).
      */
-    private const HEALTH_Y_X = 128.2;
+    private const HEALTH_Y_X = 127.68;
 
-    private const HEALTH_N_X = 135.2;
+    private const HEALTH_N_X = 134.64;
 
     private const HEALTH_DETAIL_X = 141.0;
 
@@ -33,63 +33,65 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
     private function identityFields(): array
     {
         return [
-            ['page' => 1, 'x' => 23.3, 'y' => 63.0, 'size' => 9, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.last_name'],
-            ['page' => 1, 'x' => 54.7, 'y' => 63.0, 'size' => 9, 'width' => 42, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.first_name'],
-            ['page' => 1, 'x' => 99.3, 'y' => 63.0, 'size' => 9, 'width' => 60, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.middle_name'],
+            ['page' => 1, 'x' => 27.3, 'y' => 60.0, 'size' => 9, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.last_name'],
+            ['page' => 1, 'x' => 65.9, 'y' => 60.0, 'size' => 9, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.first_name'],
+            ['page' => 1, 'x' => 105.4, 'y' => 60.0, 'size' => 9, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.middle_name'],
             // Every WIBS loan applicant is the insured principal on this form -- no
             // member is ever a dependent on someone else's coverage in this context.
             // Hardcoded by design; no wizard field needed.
-            ['page' => 1, 'type' => 'check', 'x' => 170.1, 'y' => 54.9, 'size' => 7, 'value' => static fn (): bool => true],
+            ['page' => 1, 'type' => 'check', 'x' => 169.81, 'y' => 54.66, 'size' => 7, 'value' => static fn (): bool => true],
 
             // Fax: intentionally omitted -- not applicable to a loan application.
             // See WIBS_DOCUMENT_FIELD_MAP.md, Generali Health Statement section.
 
-            ['page' => 1, 'x' => 23.3, 'y' => 81.0, 'size' => 9, 'width' => 57, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_line'],
-            ['page' => 1, 'x' => 41.6, 'y' => 91.0, 'size' => 9, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_city'],
-            ['page' => 1, 'x' => 85.0, 'y' => 91.0, 'size' => 9, 'width' => 45, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_province'],
-            ['page' => 1, 'x' => 134.0, 'y' => 91.0, 'size' => 9, 'value' => static fn (): string => 'Philippines'],
+            ['page' => 1, 'x' => 27.3, 'y' => 83.0, 'size' => 9, 'width' => 57, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_line'],
+            ['page' => 1, 'x' => 43.1, 'y' => 90.0, 'size' => 9, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_city'],
+            ['page' => 1, 'x' => 94.0, 'y' => 90.0, 'size' => 9, 'width' => 45, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_province'],
+            ['page' => 1, 'x' => 130.5, 'y' => 90.0, 'size' => 9, 'value' => static fn (): string => 'Philippines'],
+            ['page' => 1, 'x' => 165.6, 'y' => 90.0, 'size' => 9, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.address_zip'],
 
-            ['page' => 1, 'x' => 42.6, 'y' => 102.0, 'size' => 9, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.mobile'],
-            ['page' => 1, 'x' => 113.4, 'y' => 102.0, 'size' => 9, 'width' => 33, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.mobile'],
+            // ['page' => 1, 'x' => 42.6, 'y' => 102.0, 'size' => 9, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.mobile'],
+            ['page' => 1, 'x' => 117.4, 'y' => 99.0, 'size' => 9, 'width' => 33, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.mobile'],
 
-            ['page' => 1, 'x' => 23.3, 'y' => 115.0, 'size' => 9, 'value' => 'applicant.birthdate'],
-            ['page' => 1, 'x' => 64.2, 'y' => 115.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.place_of_birth'],
-            ['page' => 1, 'x' => 124.1, 'y' => 115.0, 'size' => 9, 'value' => 'applicant.age'],
-            ['page' => 1, 'type' => 'check', 'x' => 146.9, 'y' => 111.7, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'MALE'],
-            ['page' => 1, 'type' => 'check', 'x' => 146.9, 'y' => 116.1, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'FEMALE'],
-            ['page' => 1, 'x' => 165.9, 'y' => 115.0, 'size' => 8, 'width' => 12, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d): ?string => self::withUnit(data_get($d, 'application_form.height_cm'), ' cm')],
-            ['page' => 1, 'x' => 178.9, 'y' => 115.0, 'size' => 8, 'width' => 12, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d): ?string => self::withUnit(data_get($d, 'application_form.weight_kg'), ' kg')],
+            ['page' => 1, 'x' => 27.3, 'y' => 112.0, 'size' => 9, 'value' => 'applicant.birthdate'],
+            ['page' => 1, 'x' => 76.5, 'y' => 112.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.place_of_birth'],
+            ['page' => 1, 'x' => 135.4, 'y' => 112.0, 'size' => 9, 'value' => 'applicant.age'],
+            ['page' => 1, 'type' => 'check', 'x' => 146.59, 'y' => 111.48, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'MALE'],
+            ['page' => 1, 'type' => 'check', 'x' => 146.59, 'y' => 115.85, 'size' => 7, 'value' => static fn (array $d): bool => strtoupper((string) (data_get($d, 'applicant.sex') ?? '')) === 'FEMALE'],
+            ['page' => 1, 'x' => 165.9, 'y' => 112.0, 'size' => 8, 'width' => 12, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d): ?string => self::withUnit(data_get($d, 'application_form.height_cm'), ' cm')],
+            ['page' => 1, 'x' => 178.9, 'y' => 112.0, 'size' => 8, 'width' => 12, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d): ?string => self::withUnit(data_get($d, 'application_form.weight_kg'), ' kg')],
 
-            ['page' => 1, 'x' => 23.3, 'y' => 126.0, 'size' => 9, 'value' => 'applicant.nationality'],
-            ['page' => 1, 'x' => 64.2, 'y' => 126.0, 'size' => 9, 'value' => 'applicant.nationality'],
-            ['page' => 1, 'x' => 104.3, 'y' => 126.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
+            ['page' => 1, 'x' => 27.3, 'y' => 125.0, 'size' => 9, 'value' => 'applicant.nationality'],
+            ['page' => 1, 'x' => 76.5, 'y' => 125.0, 'size' => 9, 'value' => 'applicant.nationality'],
+            ['page' => 1, 'x' => 116.2, 'y' => 126.0, 'size' => 9, 'width' => 55, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
 
-            ['page' => 1, 'x' => 56.0, 'y' => 129.2, 'size' => 8, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'application_form.source_of_fund_wealth'],
+            ['page' => 1, 'x' => 27.3, 'y' => 134.2, 'size' => 8, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'application_form.source_of_fund_wealth'],
             [
-                'page' => 1, 'x' => 153.0, 'y' => 129.2, 'size' => 8, 'width' => 37,
+                'page' => 1, 'x' => 150.0, 'y' => 129.2, 'size' => 8, 'width' => 37,
                 'shrink_to_fit' => true, 'min_size' => 6.0,
                 'value' => static fn (array $d): ?string => self::composeGovernmentId($d),
             ],
             [
-                'page' => 1, 'x' => 153.0, 'y' => 133.1, 'size' => 8, 'width' => 37,
+                'page' => 1, 'x' => 150.0, 'y' => 133.1, 'size' => 9, 'width' => 37,
                 'shrink_to_fit' => true, 'min_size' => 6.0,
                 'value' => static fn (array $d): ?string => data_get($d, 'application_form.id_type') === 'Others'
                     ? data_get($d, 'application_form.id_type_other')
                     : null,
             ],
 
-            ['page' => 1, 'x' => 23.3, 'y' => 143.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.employer_or_business'],
-            ['page' => 1, 'x' => 124.1, 'y' => 143.0, 'size' => 9, 'width' => 75, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.nature_of_business'],
+            ['page' => 1, 'x' => 27.3, 'y' => 142.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.employer_or_business'],
+            ['page' => 1, 'x' => 124.1, 'y' => 142.0, 'size' => 9, 'width' => 75, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.nature_of_business'],
 
-            ['page' => 1, 'x' => 23.3, 'y' => 150.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.office_address'],
-            ['page' => 1, 'x' => 124.1, 'y' => 150.0, 'size' => 9, 'width' => 75, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.email'],
+            ['page' => 1, 'x' => 27.3, 'y' => 149.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.office_address'],
+            ['page' => 1, 'x' => 124.1, 'y' => 149.0, 'size' => 9, 'width' => 75, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.email'],
 
-            ['page' => 1, 'x' => 23.3, 'y' => 157.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
+            ['page' => 1, 'x' => 27.3, 'y' => 157.0, 'size' => 9, 'width' => 100, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.position_or_designation'],
+            ['page' => 1, 'x' => 166.0, 'y' => 157.0, 'size' => 8, 'width' => 18, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'applicant.employer_date_employed'],
 
             // Only meaningful for a Credit Life rider on this loan -- reuses the same
             // recommended amount/term already printed on the other approved documents.
-            ['page' => 1, 'x' => 23.3, 'y' => 168.0, 'size' => 9, 'value' => 'loan.approved_amount'],
-            ['page' => 1, 'x' => 124.1, 'y' => 168.0, 'size' => 9, 'value' => 'loan.approved_term_label'],
+            ['page' => 1, 'x' => 27.3, 'y' => 170.5, 'size' => 9, 'value' => 'loan.approved_amount'],
+            ['page' => 1, 'x' => 124.1, 'y' => 170.5, 'size' => 9, 'value' => 'loan.approved_term_label'],
         ];
     }
 
@@ -104,13 +106,13 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
     private function beneficiaryFields(): array
     {
         $row = static fn (int $index, float $y): array => [
-            ['page' => 1, 'x' => 41.6, 'y' => $y, 'size' => 8, 'width' => 42, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name")],
-            ['page' => 1, 'x' => 85.0, 'y' => $y, 'size' => 8, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.birthdate")],
-            ['page' => 1, 'x' => 124.1, 'y' => $y, 'size' => 8, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name") !== null ? data_get($d, 'applicant.nationality') : null],
-            ['page' => 1, 'x' => 168.9, 'y' => $y, 'size' => 8, 'width' => 40, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.relationship")],
+            ['page' => 1, 'x' => 25.3, 'y' => $y, 'size' => 8, 'width' => 46, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name")],
+            ['page' => 1, 'x' => 76.0, 'y' => $y, 'size' => 8, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.birthdate")],
+            ['page' => 1, 'x' => 116.1, 'y' => $y, 'size' => 8, 'width' => 30, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.name") !== null ? data_get($d, 'applicant.nationality') : null],
+            ['page' => 1, 'x' => 152, 'y' => $y, 'size' => 8, 'width' => 35, 'shrink_to_fit' => true, 'min_size' => 6.0, 'align' => 'C', 'value' => static fn (array $d) => data_get($d, "beneficiaries.{$index}.relationship")],
         ];
 
-        return [...$row(0, 187.5), ...$row(1, 192.2)];
+        return [...$row(0, 186.5), ...$row(1, 191.5)];
     }
 
     /**
@@ -119,18 +121,18 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
     private function page1HealthFields(): array
     {
         return [
-            ...$this->healthRow(1, 207.45, 'gl_health_q01_weight_change'),
-            ...$this->healthRowQ2Header(1, 216.64),
-            ...$this->healthRow(1, 220.73, 'gl_health_q02a_neuro'),
-            ...$this->healthRow(1, 225.46, 'gl_health_q02b_respiratory'),
-            ...$this->healthRow(1, 229.48, 'gl_health_q02c_cardiac'),
-            ...$this->healthRow(1, 234.56, 'gl_health_q02d_digestive'),
-            ...$this->healthRow2e(1, 243.17),
-            ...$this->healthRow(1, 247.55, 'gl_health_q02f_musculoskeletal'),
-            ...$this->healthRow(1, 251.85, 'gl_health_q02g_oncology_blood'),
-            ...$this->healthRow(1, 256.30, 'gl_health_q02h_dermatologic'),
-            ...$this->healthRow(1, 264.55, 'gl_health_q02i_std_viral'),
-            ...$this->healthRow(1, 269.22, 'gl_health_q02j_other_illness'),
+            ...$this->healthRow(1, 207.25, 'gl_health_q01_weight_change'),
+            ...$this->healthRowQ2Header(1, 216.28),
+            ...$this->healthRow(1, 220.38, 'gl_health_q02a_neuro'),
+            ...$this->healthRow(1, 225.11, 'gl_health_q02b_respiratory'),
+            ...$this->healthRow(1, 229.12, 'gl_health_q02c_cardiac'),
+            ...$this->healthRow(1, 234.21, 'gl_health_q02d_digestive'),
+            ...$this->healthRow2e(1, 242.82),
+            ...$this->healthRow(1, 247.19, 'gl_health_q02f_musculoskeletal'),
+            ...$this->healthRow(1, 251.50, 'gl_health_q02g_oncology_blood'),
+            ...$this->healthRow(1, 255.94, 'gl_health_q02h_dermatologic'),
+            ...$this->healthRow(1, 264.35, 'gl_health_q02i_std_viral'),
+            ...$this->healthRow(1, 268.86, 'gl_health_q02j_other_illness'),
         ];
     }
 
@@ -144,43 +146,43 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // collected on the earlier, simpler Health declarations step) rather than a
             // GLAPI-only duplicate -- see LoanRequestDataService's comment on
             // health_hypertension_details ("GLAPI Q3").
-            ...$this->healthRow(2, 33.58, 'health_hypertension', section: 'health'),
-            ...$this->healthRow(2, 38.03, 'gl_health_q04_prescribed_drugs'),
-            ...$this->healthRow(2, 52.41, 'gl_health_q05_confinement_5yr'),
-            ...$this->healthRow(2, 62.44, 'gl_health_q06_abnormal_labs'),
-            ...$this->healthRow(2, 66.82, 'gl_health_q07_confinement_contemplated'),
-            ...$this->healthRow(2, 74.30, 'gl_health_q08_blood_transfusion'),
-            ...$this->healthRow(2, 78.31, 'gl_health_q09_other_disease'),
-            ...$this->healthRow(2, 85.72, 'gl_health_q10_narcotics'),
-            ...$this->healthRowSmoker(2, 90.02),
-            ...$this->healthRow(2, 97.50, 'gl_health_q12_alcohol'),
-            ...$this->healthRow(2, 104.99, 'gl_health_q13_advised_stop'),
-            ...$this->healthRow(2, 109.73, 'gl_health_q14_current_medication'),
+            ...$this->healthRow(2, 33.23, 'health_hypertension', section: 'health'),
+            ...$this->healthRow(2, 37.67, 'gl_health_q04_prescribed_drugs'),
+            ...$this->healthRow(2, 52.24, 'gl_health_q05_confinement_5yr'),
+            ...$this->healthRow(2, 62.09, 'gl_health_q06_abnormal_labs'),
+            ...$this->healthRow(2, 66.47, 'gl_health_q07_confinement_contemplated'),
+            ...$this->healthRow(2, 73.95, 'gl_health_q08_blood_transfusion'),
+            ...$this->healthRow(2, 77.96, 'gl_health_q09_other_disease'),
+            ...$this->healthRow(2, 85.37, 'gl_health_q10_narcotics'),
+            ...$this->healthRowSmoker(2, 89.67),
+            ...$this->healthRow(2, 97.15, 'gl_health_q12_alcohol'),
+            ...$this->healthRow(2, 104.64, 'gl_health_q13_advised_stop'),
+            ...$this->healthRow(2, 109.37, 'gl_health_q14_current_medication'),
             // Item 15 prints two sub-questions ("Are you pregnant?" / "Any
             // complications with pregnancy?") but only one Y/N checkbox pair, on the
             // "Any complications" line -- the wizard's single gl_health_q15_pregnancy
             // answer is printed there; its detail blank stays empty (not collected).
-            ...$this->healthRow(2, 120.51, 'gl_health_q15_pregnancy'),
-            ...$this->healthRow(2, 127.92, 'gl_health_q16_relative_pep'),
-            ...$this->healthRow(2, 135.40, 'gl_health_q17_pending_reinstatement'),
+            ...$this->healthRow(2, 120.16, 'gl_health_q15_pregnancy'),
+            ...$this->healthRow(2, 127.57, 'gl_health_q16_relative_pep'),
+            ...$this->healthRow(2, 135.05, 'gl_health_q17_pending_reinstatement'),
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 139.5, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 139.15, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_glapi') === true,
             ],
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 139.5, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 139.15, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_glapi') === false,
             ],
-            ['page' => 2, 'x' => 64.0, 'y' => 138.2, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_glapi_amount'],
+            ['page' => 2, 'x' => 64.0, 'y' => 137.5, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_glapi_amount'],
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 143.8, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_Y_X, 'y' => 143.45, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_other_companies') === true,
             ],
             [
-                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 143.8, 'size' => 7,
+                'page' => 2, 'type' => 'check', 'x' => self::HEALTH_N_X, 'y' => 143.45, 'size' => 7,
                 'value' => static fn (array $d) => data_get($d, 'health_glapi.gl_health_q17_with_other_companies') === false,
             ],
-            ['page' => 2, 'x' => 64.0, 'y' => 142.5, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_other_companies_amount'],
+            ['page' => 2, 'x' => 64.0, 'y' => 141.5, 'size' => 8, 'width' => 65, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'health_glapi.gl_health_q17_with_other_companies_amount'],
         ];
     }
 
@@ -194,8 +196,8 @@ class GeneraliPdfFieldMap implements ApprovedLoanPdfFieldMap
             // template artwork itself, not rendered here. "OF PROPOSED INSURED
             // INDIVIDUAL" is the borrower's own hand signature -- left blank, same as
             // AU's notarial hand-fill blanks.
-            ['page' => 2, 'x' => 11.5, 'y' => 247.8, 'size' => 9, 'width' => 75, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'notarial.signing_place'],
-            ['page' => 2, 'x' => 108.4, 'y' => 247.8, 'size' => 9, 'width' => 90, 'value' => 'loan.approved_date'],
+            ['page' => 2, 'x' => 37.5, 'y' => 250.5, 'size' => 9, 'width' => 66, 'shrink_to_fit' => true, 'min_size' => 6.0, 'value' => 'notarial.signing_place'],
+            ['page' => 2, 'x' => 112.4, 'y' => 250.5, 'size' => 9, 'width' => 69, 'value' => 'loan.approved_date'],
         ];
     }
 

@@ -1,11 +1,6 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
 import { Bell, HeartPulse } from 'lucide-react';
-import {
-    useEffect,
-    useMemo,
-    useState,
-    type FormEvent,
-} from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
     LoanRequestApplicantCard,
@@ -157,6 +152,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     current_position: '',
     nature_of_business: '',
     years_in_work_business: '',
+    employer_date_employed: '',
     gross_monthly_income: '',
     payday: '',
     save_for_reuse: false,
@@ -206,6 +202,7 @@ const toPersonForm = (
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
         years_in_work_business: person.years_in_work_business ?? '',
+        employer_date_employed: person.employer_date_employed ?? '',
         gross_monthly_income: toStringValue(person.gross_monthly_income),
         payday: person.payday ?? '',
     };
@@ -427,13 +424,12 @@ export default function StaffLoanRequestShow({
                       requestsDepedSalaryDeductionWaiverDocument(
                           currentRequest.id,
                       ).url,
-                  pensionDeductionWaiver: requestsPensionDeductionWaiverDocument(
-                      currentRequest.id,
-                  ).url,
+                  pensionDeductionWaiver:
+                      requestsPensionDeductionWaiverDocument(currentRequest.id)
+                          .url,
                   generaliApplicationForm:
-                      requestsGeneraliApplicationFormDocument(
-                          currentRequest.id,
-                      ).url,
+                      requestsGeneraliApplicationFormDocument(currentRequest.id)
+                          .url,
                   packageZip: requestsApprovedDocuments(currentRequest.id).url,
               }
             : null;
@@ -683,7 +679,12 @@ export default function StaffLoanRequestShow({
             grouped.set(sectionKey, existing);
         });
 
-        const priorityOrder = ['insurance', 'health_glapi', 'banking', 'barangay'];
+        const priorityOrder = [
+            'insurance',
+            'health_glapi',
+            'banking',
+            'barangay',
+        ];
         const priorityKeys = priorityOrder.filter((key) => grouped.has(key));
         const remainingKeys = Array.from(grouped.keys())
             .filter((key) => !priorityOrder.includes(key))
@@ -768,7 +769,6 @@ export default function StaffLoanRequestShow({
         );
     };
 
-
     const submittedAt = currentRequest.submitted_at
         ? formatDate(currentRequest.submitted_at)
         : null;
@@ -829,13 +829,6 @@ export default function StaffLoanRequestShow({
                   isProcessing: isWorkflowProcessing,
                   onSubmit: (payload: { reason: string }) =>
                       upgradeWorkflow(currentRequest.id, payload),
-              }
-            : undefined,
-        generateDocuments: canGenerateDocuments
-            ? {
-                  show: true,
-                  isProcessing: isWorkflowProcessing,
-                  onSubmit: () => submitGenerateDocuments(),
               }
             : undefined,
     };

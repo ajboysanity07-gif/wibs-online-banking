@@ -53,6 +53,7 @@ class LoanRequestPerson extends Model
         'current_position',
         'nature_of_business',
         'years_in_work_business',
+        'employer_date_employed',
         'gross_monthly_income',
         'payday',
     ];
@@ -113,6 +114,7 @@ class LoanRequestPerson extends Model
     {
         return [
             'birthdate' => 'date',
+            'employer_date_employed' => 'date',
             'gross_monthly_income' => 'decimal:2',
             'role' => LoanRequestPersonRole::class,
         ];

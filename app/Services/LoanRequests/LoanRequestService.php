@@ -1305,6 +1305,9 @@ class LoanRequestService
             'years_in_work_business' => $this->normalizeOptionalString(
                 $data['years_in_work_business'] ?? null,
             ),
+            'employer_date_employed' => $this->normalizeOptionalString(
+                $data['employer_date_employed'] ?? null,
+            ),
             'gross_monthly_income' => $this->normalizeDecimal(
                 $data['gross_monthly_income'] ?? null,
             ),

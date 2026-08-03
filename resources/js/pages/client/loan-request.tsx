@@ -142,6 +142,7 @@ const personWorkFields = new Set([
     'current_position',
     'nature_of_business',
     'years_in_work_business',
+    'employer_date_employed',
     'gross_monthly_income',
     'payday',
 ]);
@@ -204,6 +205,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     current_position: '',
     nature_of_business: '',
     years_in_work_business: '',
+    employer_date_employed: '',
     gross_monthly_income: '',
     payday: '',
     save_for_reuse: false,
@@ -254,6 +256,7 @@ const toPersonForm = (
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
         years_in_work_business: person.years_in_work_business ?? '',
+        employer_date_employed: person.employer_date_employed ?? '',
         gross_monthly_income: toStringValue(person.gross_monthly_income),
         payday: person.payday ?? '',
     };

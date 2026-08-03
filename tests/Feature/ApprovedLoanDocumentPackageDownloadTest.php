@@ -2024,6 +2024,8 @@ test('generali field map resolves applicant, beneficiary, and health data into t
     expect(data_get($documentData, 'health_glapi.health_hypertension_details'))->toBe('Controlled with medication');
     expect(data_get($documentData, 'health.health_smoking_status'))->toBe('none');
 
+    expect(data_get($documentData, 'applicant.employer_date_employed'))->toBe('06/01/2019');
+
     $fieldMap = new \App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap;
     $fields = $fieldMap->fields();
 
@@ -2058,13 +2060,13 @@ test('generali field map hardcodes principal membership, omits fax, and sources 
     $fields = (new \App\Services\LoanRequests\PdfFieldMaps\GeneraliPdfFieldMap)->fields();
 
     $membershipCheckbox = collect($fields)->first(
-        fn (array $field) => ($field['type'] ?? null) === 'check' && (float) $field['x'] === 170.1 && (float) $field['y'] === 54.9
+        fn (array $field) => ($field['type'] ?? null) === 'check' && (float) $field['x'] === 169.81 && (float) $field['y'] === 54.66
     );
     expect($membershipCheckbox)->not->toBeNull();
     expect(($membershipCheckbox['value'])($documentData))->toBeTrue();
 
     $beneficiaryCitizenship = collect($fields)->first(
-        fn (array $field) => ($field['x'] ?? null) === 124.1 && ($field['y'] ?? null) === 187.5
+        fn (array $field) => ($field['x'] ?? null) === 116.1 && ($field['y'] ?? null) === 186.5
     );
     expect($beneficiaryCitizenship)->not->toBeNull();
     expect(($beneficiaryCitizenship['value'])($documentData))->toBe('FILIPINO');
@@ -3797,6 +3799,7 @@ function approvedLoanDocumentsCreateLoanRequestPeopleSnapshots(
             'civil_status' => 'Married',
             'employer_business_name' => 'Sample Enterprise',
             'current_position' => 'Manager',
+            'employer_date_employed' => '2019-06-01',
             'payday' => '15/30',
         ]);
 

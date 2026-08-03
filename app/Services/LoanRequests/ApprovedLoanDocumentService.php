@@ -1414,6 +1414,7 @@ class ApprovedLoanDocumentService
             ),
             'position_or_designation' => $this->normalizeText($person?->current_position),
             'nature_of_business' => $this->normalizeText($person?->nature_of_business),
+            'employer_date_employed' => $this->formatShortDateValue($person?->employer_date_employed),
             'years_in_work_business' => $this->normalizeText(
                 $person?->years_in_work_business,
             ),

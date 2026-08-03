@@ -1041,6 +1041,7 @@ function acceptanceLoanRequestPayload(): array
             'current_position' => 'Analyst',
             'nature_of_business' => 'Services',
             'years_in_work_business' => '4 years',
+            'employer_date_employed' => '2018-01-15',
             'gross_monthly_income' => 20000,
             'payday' => '15th',
         ],

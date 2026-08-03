@@ -104,7 +104,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             'co_maker_1_signature_data' => $this->signatureDataRules(),
             'co_maker_2_signature_data' => $this->signatureDataRules(),
             'undertaking_accepted' => ['sometimes', 'boolean'],
-            ...$this->optionalPersonRules('applicant', true, true, true),
+            ...$this->optionalPersonRules('applicant', true, true, true, true),
             ...$this->coMakerRules('co_maker_1', $targetRole, LoanRequestPersonRole::CoMakerOne),
             ...$this->coMakerRules('co_maker_2', $targetRole, LoanRequestPersonRole::CoMakerTwo),
         ];
@@ -203,6 +203,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
         bool $includeSpouse,
         bool $includeChildren,
         bool $includeCivilHousing = false,
+        bool $includeDateEmployed = false,
     ): array {
         $rules = [
             "{$prefix}.first_name" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -235,6 +236,10 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
                 Rule::in(self::PAYDAY_OPTIONS),
             ],
         ];
+
+        if ($includeDateEmployed) {
+            $rules["{$prefix}.employer_date_employed"] = ['sometimes', 'nullable', 'date'];
+        }
 
         if ($includeCivilHousing) {
             $rules["{$prefix}.housing_status"] = [

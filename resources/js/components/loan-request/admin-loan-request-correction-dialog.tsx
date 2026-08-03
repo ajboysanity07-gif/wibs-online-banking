@@ -244,6 +244,7 @@ const personFieldLabels: Record<keyof LoanRequestPersonFormData, string> = {
     current_position: 'Current position',
     nature_of_business: 'Nature of business',
     years_in_work_business: 'Total years in work/business',
+    employer_date_employed: 'Date employed',
     gross_monthly_income: 'Gross monthly income',
     payday: 'Payday',
     // Saved co-maker reuse metadata -- never part of an admin correction,
@@ -306,6 +307,7 @@ const applicantRequiredFields: Array<keyof LoanRequestPersonFormData> = [
     'current_position',
     'nature_of_business',
     'years_in_work_business',
+    'employer_date_employed',
     'gross_monthly_income',
     'payday',
 ];
@@ -404,6 +406,7 @@ const applicantChangeFields: Array<keyof LoanRequestPersonFormData> = [
     'current_position',
     'nature_of_business',
     'years_in_work_business',
+    'employer_date_employed',
     'gross_monthly_income',
     'payday',
 ];
@@ -467,6 +470,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     current_position: '',
     nature_of_business: '',
     years_in_work_business: '',
+    employer_date_employed: '',
     gross_monthly_income: '',
     payday: '',
     save_for_reuse: false,
@@ -534,6 +538,7 @@ const toPersonForm = (
         current_position: person.current_position ?? '',
         nature_of_business: person.nature_of_business ?? '',
         years_in_work_business: person.years_in_work_business ?? '',
+        employer_date_employed: person.employer_date_employed ?? '',
         gross_monthly_income: toStringValue(person.gross_monthly_income),
         payday: person.payday ?? '',
     };

@@ -1239,6 +1239,39 @@ export function LoanRequestWorkFields({
                                 )}
                             />
                         </div>
+
+                        {prefix === 'applicant' ? (
+                            <div className="grid gap-2">
+                                <Label
+                                    htmlFor={`${prefix}_employer_date_employed`}
+                                >
+                                    Date employed
+                                </Label>
+                                <Input
+                                    id={`${prefix}_employer_date_employed`}
+                                    name={fieldName(
+                                        prefix,
+                                        'employer_date_employed',
+                                    )}
+                                    type="date"
+                                    value={values.employer_date_employed}
+                                    className="mt-1 block w-full"
+                                    onChange={(event) =>
+                                        onChange(
+                                            'employer_date_employed',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={fieldError(
+                                        errors,
+                                        prefix,
+                                        'employer_date_employed',
+                                    )}
+                                />
+                            </div>
+                        ) : null}
                     </div>
                 </>
             ) : null}

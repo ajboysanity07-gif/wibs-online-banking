@@ -43,6 +43,7 @@ export type LoanRequestPersonData = {
     current_position: string | null;
     nature_of_business: string | null;
     years_in_work_business: string | null;
+    employer_date_employed: string | null;
     gross_monthly_income: string | null;
     payday: string | null;
 };
@@ -85,6 +86,7 @@ export type LoanRequestPersonFormData = {
     current_position: string;
     nature_of_business: string;
     years_in_work_business: string;
+    employer_date_employed: string;
     gross_monthly_income: string;
     payday: string;
     // Saved co-maker reuse (co_maker_1/co_maker_2 only, unused for
@@ -160,9 +162,7 @@ export type LoanRequestCorrectionReportDismissPayload = {
 
 export type LoanRequestReadOnlyMap = Record<string, boolean>;
 
-export type LoanRequestWorkflowVersion =
-    | 'legacy_v1'
-    | 'document_workflow_v2';
+export type LoanRequestWorkflowVersion = 'legacy_v1' | 'document_workflow_v2';
 
 export type LoanRequestStatusValue =
     | 'draft'
@@ -307,6 +307,7 @@ export type LoanRequestDocumentChecklistItem = {
     key: LoanRequestDocumentKey;
     label: string;
     is_applicable: boolean;
+    unavailable_reason: string | null;
     status: LoanRequestDocumentReadinessStatus;
     status_label: string;
     template_version: string | null;
@@ -590,8 +591,8 @@ export type LoanRequestCorrectionPayload = Pick<
             | 'dependents'
         >
     > & {
-    change_reason: string;
-};
+        change_reason: string;
+    };
 
 export type LoanRequestCorrectionResult = {
     loanRequest: LoanRequestDetail;

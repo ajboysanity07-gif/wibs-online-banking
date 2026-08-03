@@ -120,6 +120,7 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
             'current_position' => 'Supervisor',
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '5 years',
+            'employer_date_employed' => '2017-05-20',
             'gross_monthly_income' => 32000,
             'payday' => '15th & 30th',
         ],
@@ -813,6 +814,7 @@ test('clients can save a loan request draft', function () {
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
+            'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
             'payday' => '15th & 30th',
         ],
@@ -1000,6 +1002,7 @@ test('loan request submissions persist snapshots and enter pending review', func
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
+            'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
             'payday' => '15th & 30th',
         ],
@@ -1277,6 +1280,117 @@ test('OFW applicant fails validation when employer fields are empty', function (
     $response->assertSessionHasErrors(['applicant.employer_business_name']);
 });
 
+test('non-pensioner applicant fails validation when employer date employed is missing', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000753']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Private',
+        'fname' => 'Private',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Private Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-PRV', 'lntype' => 'Private Loan']);
+
+    $payload = [
+        'typecode' => 'LN-PRV',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Private']), [
+            'employer_date_employed' => '',
+        ]),
+        'co_maker_1' => [],
+        'co_maker_2' => [],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload);
+
+    $response->assertSessionHasErrors(['applicant.employer_date_employed']);
+});
+
+test('applicant date employed is stored and co-makers do not require it', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->create(['acctno' => '000754']);
+    UserProfile::factory()->approved()->create(['user_id' => $user->user_id]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Private',
+        'fname' => 'Private',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Private Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->withLoanPrerequisites()->create(['user_id' => $user->user_id]);
+    DB::table('wlntype')->insert(['typecode' => 'LN-PRV', 'lntype' => 'Private Loan']);
+
+    $payload = [
+        'typecode' => 'LN-PRV',
+        'requested_amount' => 10000,
+        'requested_term' => 12,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'undertaking_accepted' => true,
+        ...validLoanRequestMemberSectionPayload(),
+        'applicant' => array_merge(pensionerPersonPayload(['employment_type' => 'Private']), [
+            'employer_date_employed' => '2019-06-01',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '5 years',
+        ]),
+        'co_maker_1' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Co',
+            'last_name' => 'Maker',
+            'cell_no' => '09222222222',
+            'birthplace_city' => 'Cebu',
+            'birthplace_province' => 'Cebu',
+            'address2' => 'Cebu City',
+            'address3' => 'Cebu',
+            'gross_monthly_income' => 18000,
+        ]),
+        'co_maker_2' => array_merge(pensionerPersonPayload(), [
+            'first_name' => 'Second',
+            'last_name' => 'Maker',
+            'cell_no' => '09333333333',
+            'birthplace_city' => 'Davao',
+            'birthplace_province' => 'Davao del Sur',
+            'address2' => 'Davao City',
+            'address3' => 'Davao del Sur',
+            'gross_monthly_income' => 16000,
+        ]),
+    ];
+
+    $this
+        ->actingAs($user)
+        ->post(route('client.loan-requests.store'), $payload)
+        ->assertSessionHasNoErrors();
+
+    $loanRequest = LoanRequest::query()->first();
+    $applicant = $loanRequest->people()
+        ->where('role', LoanRequestPersonRole::Applicant->value)
+        ->first();
+
+    expect($applicant->employer_date_employed->toDateString())->toBe('2019-06-01');
+});
+
 test('legacy applicant signature payload is ignored when signatures are collected physically', function () {
     Storage::fake('public');
 
@@ -1333,6 +1447,7 @@ test('legacy applicant signature payload is ignored when signatures are collecte
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
+            'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
             'payday' => '15th & 30th',
         ],
@@ -1602,6 +1717,7 @@ test('loan request submission validates housing status values', function () {
             'current_position' => 'Analyst',
             'nature_of_business' => 'Finance',
             'years_in_work_business' => '3 years',
+            'employer_date_employed' => '2018-03-15',
             'gross_monthly_income' => 25000,
             'payday' => '15th & 30th',
         ],
