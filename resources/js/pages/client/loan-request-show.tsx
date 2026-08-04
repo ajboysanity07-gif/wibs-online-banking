@@ -40,7 +40,6 @@ import {
     approvedDocuments as loanRequestApprovedDocuments,
     index as loanRequestsIndex,
     pdf as loanRequestPdf,
-    print as loanRequestPrint,
     show as loanRequestShow,
 } from '@/routes/client/loan-requests';
 import {
@@ -95,7 +94,9 @@ const booleanSelectValue = (value: unknown): string => {
     return '';
 };
 
-const termsSummaryValue = (value: string | number | null | undefined): string =>
+const termsSummaryValue = (
+    value: string | number | null | undefined,
+): string =>
     value === null || value === undefined || `${value}`.trim() === ''
         ? '--'
         : `${value}`;
@@ -171,7 +172,6 @@ export default function LoanRequestShow({
     const pdfHref = loanRequestPdf(loanRequest.id, {
         query: { download: 1 },
     }).url;
-    const printHref = loanRequestPrint(loanRequest.id).url;
     const approvedDocumentHrefs =
         currentLoanRequest.status === 'approved' ||
         currentLoanRequest.status === 'converted_to_loan'
@@ -248,7 +248,8 @@ export default function LoanRequestShow({
                 Object.entries(sectionDefinition.fields).forEach(
                     ([fieldKey, definition]) => {
                         fields.set(fieldKey, {
-                            sectionKey: sectionKey as keyof LoanRequestDataSections,
+                            sectionKey:
+                                sectionKey as keyof LoanRequestDataSections,
                             definition,
                         });
                     },
@@ -271,7 +272,9 @@ export default function LoanRequestShow({
                 key: fieldKey,
                 sectionKey: resolved.sectionKey,
                 definition: resolved.definition,
-                value: currentDataSections[resolved.sectionKey]?.[fieldKey] ?? null,
+                value:
+                    currentDataSections[resolved.sectionKey]?.[fieldKey] ??
+                    null,
             };
         })
         .filter(
@@ -374,8 +377,8 @@ export default function LoanRequestShow({
                             </p>
                             <p className="text-sm text-muted-foreground">
                                 Request {currentLoanRequest.reference} is
-                                currently under review by our team. We'll
-                                notify you once a decision has been made.
+                                currently under review by our team. We'll notify
+                                you once a decision has been made.
                             </p>
                         </div>
                         <LoanRequestStatusBadge
@@ -561,9 +564,11 @@ export default function LoanRequestShow({
                                         disabled={isMemberActionSubmitting}
                                     >
                                         <Link
-                                            href={loanRequestShow(
-                                                currentLoanRequest.id,
-                                            ).url}
+                                            href={
+                                                loanRequestShow(
+                                                    currentLoanRequest.id,
+                                                ).url
+                                            }
                                         >
                                             Refresh request
                                         </Link>
@@ -682,11 +687,14 @@ export default function LoanRequestShow({
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground">
-                                {currentLoanRequest.status === 'for_wibs_encoding'
+                                {currentLoanRequest.status ===
+                                'for_wibs_encoding'
                                     ? 'Your loan is currently being processed for release in the WIBS system.'
-                                    : currentLoanRequest.status === 'wibs_loan_created'
+                                    : currentLoanRequest.status ===
+                                        'wibs_loan_created'
                                       ? 'Your loan has been created in WIBS. A release date will be scheduled soon.'
-                                      : currentLoanRequest.status === 'release_scheduled'
+                                      : currentLoanRequest.status ===
+                                          'release_scheduled'
                                         ? `Your loan release has been scheduled${currentLoanRequest.wibs_release_date ? ' for ' + currentLoanRequest.wibs_release_date : ''}. Please coordinate with your branch.`
                                         : 'Your loan has been released. Please coordinate with your branch for the next steps.'}
                             </p>
@@ -702,7 +710,6 @@ export default function LoanRequestShow({
                 backHref={loanRequestsIndexHref}
                 backLabel="Back to loan requests"
                 pdfHref={pdfHref}
-                printHref={printHref}
                 approvedDocumentHrefs={approvedDocumentHrefs}
                 correctedRequestHref={correctedRequestHref}
                 auditTrail={currentAuditTrail}

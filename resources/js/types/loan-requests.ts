@@ -458,6 +458,7 @@ export type LoanRequestDetail = {
     corrected_request_status: LoanRequestStatusValue | null;
     correction_saved: boolean;
     requires_correction_before_approval: boolean;
+    is_first_processing_save: boolean;
     acctno: string | null;
     wibs_loan_reference: string | null;
     wibs_release_date: string | null;

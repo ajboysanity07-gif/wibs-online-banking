@@ -104,10 +104,6 @@ test('loan request audit trail component supports a compact sidebar mode', async
         componentFile,
         /compact\s*\?\s*'flex flex-col gap-1'\s*:\s*'flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'/,
     );
-    assert.match(
-        componentFile,
-        /compact\s*\?\s*'grid gap-2'\s*:\s*'grid gap-2 sm:grid-cols-2'/,
-    );
 
     assert.match(detailFile, /sidebarFooter\?: ReactNode;/);
     assert.match(detailFile, /\{sidebarFooter \?\? null\}/);
@@ -129,14 +125,63 @@ test('loan request audit trail component shows the most recent entry first and i
         componentFile,
         /orderedEntries\s*=\s*useMemo\(\(\)\s*=>\s*\[\.\.\.entries\]\.reverse\(\),\s*\[entries\]\)/,
     );
-    assert.match(componentFile, /orderedEntries\.map\(\(entry\)/);
+    assert.match(
+        componentFile,
+        /const \[latestEntry, \.\.\.olderEntries\] = orderedEntries;/,
+    );
+    assert.match(
+        componentFile,
+        /olderEntries\.map\(\(entry\)\s*=>\s*\n?\s*renderEntry\(entry, false\),?\s*\n?\)/,
+    );
     assert.match(
         componentFile,
         /from\s+'@\/components\/ui\/collapsible'/,
     );
     assert.match(componentFile, /<Collapsible open=\{open\} onOpenChange=\{setOpen\}>/);
-    assert.match(componentFile, /<CollapsibleTrigger asChild>/);
-    assert.match(componentFile, /<CollapsibleContent>/);
+    assert.match(componentFile, /useState\(false\)/);
+    assert.match(componentFile, /\{renderEntry\(latestEntry, true\)\}/);
+    assert.match(
+        componentFile,
+        /data-\[state=open\]:animate-collapsible-down/,
+    );
+    assert.match(
+        componentFile,
+        /data-\[state=closed\]:animate-collapsible-up/,
+    );
+});
+
+test('loan request audit trail component always shows the latest entry outside the collapsible content', async () => {
+    const componentFile = await readSource([
+        'resources',
+        'js',
+        'components',
+        'loan-request',
+        'loan-request-audit-trail.tsx',
+    ]);
+
+    const contentStart = componentFile.indexOf('<CardContent>');
+    const latestEntryIndex = componentFile.indexOf(
+        '{renderEntry(latestEntry, true)}',
+        contentStart,
+    );
+    const collapsibleContentIndex = componentFile.indexOf(
+        '<CollapsibleContent',
+        contentStart,
+    );
+
+    assert.ok(contentStart !== -1);
+    assert.ok(latestEntryIndex !== -1);
+    assert.ok(collapsibleContentIndex !== -1);
+    assert.ok(latestEntryIndex < collapsibleContentIndex);
+    assert.ok(
+        collapsibleContentIndex >
+            componentFile.indexOf('</CollapsibleTrigger>'),
+    );
+    assert.match(componentFile, /const hasOlderEntries = olderEntries\.length > 0;/);
+    assert.match(
+        componentFile,
+        /disabled=\{!hasOlderEntries\}/,
+    );
 });
 
 test('loan request detail page keeps the audit trail in the sidebar and offers a processing-details slot after co-makers', async () => {

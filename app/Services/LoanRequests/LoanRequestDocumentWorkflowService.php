@@ -5,6 +5,7 @@ namespace App\Services\LoanRequests;
 use App\LoanRequestDocumentKey;
 use App\LoanRequestDocumentReadinessStatus;
 use App\LoanRequestPersonRole;
+use App\LoanRequestStatus;
 use App\LoanRequestWorkflowVersion;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -416,6 +417,22 @@ class LoanRequestDocumentWorkflowService
         if ($blockers !== []) {
             throw ValidationException::withMessages([
                 'document' => implode(' ', array_filter($blockers, 'is_string')),
+            ]);
+        }
+
+        $status = $loanRequest->status instanceof LoanRequestStatus
+            ? $loanRequest->status->value
+            : (string) $loanRequest->status;
+
+        // Once approved, a document that is still current (not stale) is the
+        // final version handed off for release -- only a document flagged
+        // stale by a later data change may be regenerated at that point.
+        if (
+            in_array($status, [LoanRequestStatus::Approved->value, LoanRequestStatus::ConvertedToLoan->value], true)
+            && $document->readiness_status === LoanRequestDocumentReadinessStatus::GeneratedCurrent
+        ) {
+            throw ValidationException::withMessages([
+                'document' => 'This document is already finalized for the approved request and cannot be regenerated.',
             ]);
         }
 

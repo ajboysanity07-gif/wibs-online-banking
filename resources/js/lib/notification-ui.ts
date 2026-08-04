@@ -12,7 +12,11 @@ import {
     UserCog,
     XCircle,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, formatDisplayText } from '@/lib/formatters';
+import {
+    formatCurrency,
+    formatDateTime,
+    formatDisplayText,
+} from '@/lib/formatters';
 import { show as showAdminLoanRequest } from '@/routes/admin/requests';
 import { show as showClientLoanRequest } from '@/routes/client/loan-requests';
 import type { NotificationPayload } from '@/types/notifications';
@@ -103,7 +107,7 @@ const formatStatusLabel = (status?: string | null): string | null => {
     }
 
     if (status === 'approved') {
-        return 'Approved - For WIBS Processing';
+        return 'Approved';
     }
 
     if (status === 'declined') {
@@ -245,8 +249,7 @@ export const isLoanRequestNotification = (
 
 export const isAccountAccessNotification = (
     payload: NotificationPayload,
-): boolean =>
-    ACCOUNT_ACCESS_NOTIFICATION_TYPES.has(payload.type);
+): boolean => ACCOUNT_ACCESS_NOTIFICATION_TYPES.has(payload.type);
 
 export const resolveNotificationDestination = (
     payload: NotificationPayload,
@@ -479,16 +482,20 @@ export const buildNotificationMetadataChips = (
     const memberName = formatDisplayText(payload.member_name);
     const actorName = formatDisplayText(payload.actor_name);
     const actorLabel =
-        actorName !== '' &&
-        actorName.toLowerCase() !== memberName.toLowerCase()
+        actorName !== '' && actorName.toLowerCase() !== memberName.toLowerCase()
             ? `By ${actorName}`
             : null;
     const memberLabelIsInMessage = messageMentionsValue(
         payload.message,
         memberName,
     );
-    const actorLabelIsInMessage = messageMentionsValue(payload.message, actorName);
-    const requestedAmountChip = formatRequestedAmountChip(payload.requested_amount);
+    const actorLabelIsInMessage = messageMentionsValue(
+        payload.message,
+        actorName,
+    );
+    const requestedAmountChip = formatRequestedAmountChip(
+        payload.requested_amount,
+    );
     const isLoanNotification = isLoanRequestNotification(payload);
 
     pushChip(chips, seenLabels, statusLabel, resolveChipTone(payload.status));

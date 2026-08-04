@@ -112,6 +112,14 @@ class LoanRequestChange extends Model
         return $this->changedBy();
     }
 
+    public static function hasProcessingUpdate(LoanRequest $loanRequest): bool
+    {
+        return static::query()
+            ->where('loan_request_id', $loanRequest->id)
+            ->where('action', self::ACTION_PROCESSING_DETAILS_UPDATED)
+            ->exists();
+    }
+
     /**
      * @return array<string, string>
      */

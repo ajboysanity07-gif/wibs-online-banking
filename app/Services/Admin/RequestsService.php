@@ -29,7 +29,7 @@ class RequestsService
         'loanType' => 'loan_type_label_snapshot',
         'amount' => 'requested_amount',
         'status' => 'status',
-        'submitted' => 'submitted_at',
+        'submitted' => 'last_activity_at',
     ];
 
     public function __construct(
@@ -378,7 +378,8 @@ class RequestsService
                 'applicant',
                 'assignedOfficer.adminProfile',
                 'user',
-            ]);
+            ])
+            ->withMax(['changes as last_activity_at'], 'created_at');
     }
 
     private function applySort(Builder $query, ?string $sortBy, ?string $sortDirection): void
@@ -470,6 +471,8 @@ class RequestsService
             ?? (string) $request->status;
         $submittedAt = $request->submitted_at?->toDateTimeString()
             ?? $request->created_at?->toDateTimeString();
+        $lastActivityAt = $this->normalizeDateTime($request->last_activity_at ?? null)
+            ?? $submittedAt;
         $applicant = $request->applicant;
         $memberName = $applicant
             ? trim(sprintf('%s %s', $applicant->first_name, $applicant->last_name))
@@ -499,6 +502,7 @@ class RequestsService
             'loan_type' => $request->loan_type_label_snapshot,
             'requested_amount' => $request->requested_amount,
             'submitted_at' => $submittedAt,
+            'last_activity_at' => $lastActivityAt,
             'approved_amount' => $request->approved_amount,
             'reviewed_at' => $request->reviewed_at?->toDateTimeString(),
             'member_acctno' => $request->acctno,

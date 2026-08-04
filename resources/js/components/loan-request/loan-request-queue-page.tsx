@@ -412,10 +412,10 @@ export function LoanRequestQueuePage({
                 ),
             },
             {
-                accessorKey: 'submitted_at',
+                accessorKey: 'last_activity_at',
                 header: () => (
                     <SortableColumnHeader
-                        label="Submitted"
+                        label="Last Activity"
                         column="submitted"
                         sortBy={sortBy}
                         sortDirection={sortDirection}
@@ -424,7 +424,9 @@ export function LoanRequestQueuePage({
                 ),
                 cell: ({ row }) =>
                     formatDate(
-                        row.original.submitted_at ?? row.original.created_at,
+                        row.original.last_activity_at ??
+                            row.original.submitted_at ??
+                            row.original.created_at,
                     ),
             },
             {
@@ -1053,11 +1055,12 @@ export function LoanRequestQueuePage({
                                                 </div>
                                                 <div className="space-y-1">
                                                     <p className="text-muted-foreground">
-                                                        Submitted
+                                                        Last Activity
                                                     </p>
                                                     <p className="text-sm font-medium text-foreground">
                                                         {formatDate(
-                                                            item.submitted_at ??
+                                                            item.last_activity_at ??
+                                                                item.submitted_at ??
                                                                 item.created_at,
                                                         )}
                                                     </p>

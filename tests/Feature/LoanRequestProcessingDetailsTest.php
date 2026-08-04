@@ -486,7 +486,7 @@ test('saving authority to deduct officers records a reusable contact for the ins
         ->and($contact->officer_1_title)->toBe('HR Officer');
 });
 
-test('processing update with a blank reason succeeds and auto-generates an audit summary from the changed fields', function (): void {
+test('first processing update with a blank reason succeeds and auto-generates a first-save audit summary', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $member = createProcessingActor([Role::MEMBER], '950008');
 
@@ -518,10 +518,10 @@ test('processing update with a blank reason succeeds and auto-generates an audit
     expect($change)->not->toBeNull()
         ->and($change->reason)->not->toBeNull()
         ->and($change->reason)->not->toBe('')
-        ->and($change->reason)->toStartWith("Updated:\n- ");
+        ->and($change->reason)->toStartWith("First save.\nUpdated:\n- ");
 });
 
-test('processing update keeps the processor-provided reason instead of the auto-generated summary', function (): void {
+test('first processing update with a reason combines it with the auto-generated summary', function (): void {
     $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
     $member = createProcessingActor([Role::MEMBER], '950009');
 
@@ -551,7 +551,87 @@ test('processing update keeps the processor-provided reason instead of the auto-
         ->first();
 
     expect($change)->not->toBeNull()
-        ->and($change->reason)->toBe('Adjusted witness per updated municipal hall assignment.');
+        ->and($change->reason)->toStartWith("Reason: Adjusted witness per updated municipal hall assignment.\nUpdated:\n- ");
+});
+
+test('a second processing update with a blank reason fails validation', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950010');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => [
+                'witness_one_name' => 'Lianga Municipal Hall',
+            ],
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => [
+                'witness_one_name' => 'Barangay Hall',
+            ],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['reason']);
+});
+
+test('a second processing update with a reason succeeds and combines it with the auto-generated summary', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950011');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => [
+                'witness_one_name' => 'Lianga Municipal Hall',
+            ],
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'There was a typo on the form.',
+            'loan_request' => [],
+            'processing' => [
+                'other_charges_description' => 'Corrected charges description.',
+            ],
+        ])
+        ->assertOk();
+
+    $change = App\Models\LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('action', App\Models\LoanRequestChange::ACTION_PROCESSING_DETAILS_UPDATED)
+        ->latest('id')
+        ->first();
+
+    expect($change)->not->toBeNull()
+        ->and($change->reason)->toStartWith("Reason: There was a typo on the form.\nUpdated:\n- ");
 });
 
 /**

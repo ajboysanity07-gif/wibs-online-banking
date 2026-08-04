@@ -56,6 +56,16 @@ loan-requests:repair-owners        Fix orphaned request owners
 loan-requests:backfill-health-fields  Backfill health_smoking_status; report item 2e rows for review
 ```
 
+## UI Development Guidelines
+
+- Prioritize simple, clean, and user-friendly interfaces.
+- Review the workflow before changing UI.
+- Reduce unnecessary information and use progressive disclosure when appropriate.
+- Prefer shadcn/ui components over custom UI implementations.
+- Maintain consistency in spacing, layout, and component usage.
+- Refactor components when needed to keep the codebase maintainable.
+- Consider accessibility and usability.
+
 ## Hard Rules
 
 - `AppUser` everywhere — never `User`

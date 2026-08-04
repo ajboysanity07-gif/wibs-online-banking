@@ -21,7 +21,6 @@ import {
     MapPin,
     PencilLine,
     Phone,
-    Printer,
     Users,
     User as UserIcon,
     Wallet,
@@ -93,7 +92,6 @@ type Props = {
     backHref: string;
     backLabel: string;
     pdfHref: string;
-    printHref: string;
     approvedDocumentHrefs?: ApprovedDocumentHrefs | null;
     correctedRequestHref?: string | null;
     auditTrail: LoanRequestAuditEntry[];
@@ -107,6 +105,7 @@ type Props = {
     actionsPanelHeader?: ReactNode;
     processingDetails?: ReactNode;
     documentChecklistAvailable?: boolean;
+    showApprovedDocumentList?: boolean;
     wrapInShell?: boolean;
     hideSummaryHeader?: boolean;
     hideMainColumn?: boolean;
@@ -236,7 +235,7 @@ const statusLabels: Record<LoanRequestStatusValue, string> = {
     recommended_for_approval: 'For Loan Manager Review',
     awaiting_member_acceptance: 'Awaiting Member Acceptance',
     rejected: 'Rejected During Processing',
-    approved: 'Approved - For WIBS Processing',
+    approved: 'Approved',
     declined: 'Declined by Loan Manager',
     member_declined_terms: 'Member Declined Revised Terms',
     converted_to_loan: 'Converted to Loan',
@@ -986,7 +985,6 @@ export function LoanRequestDetailPage({
     backHref,
     backLabel,
     pdfHref,
-    printHref,
     approvedDocumentHrefs = null,
     correctedRequestHref = null,
     auditTrail,
@@ -1000,6 +998,7 @@ export function LoanRequestDetailPage({
     actionsPanelHeader,
     processingDetails,
     documentChecklistAvailable = false,
+    showApprovedDocumentList = true,
     wrapInShell = true,
     hideSummaryHeader = false,
     hideMainColumn = false,
@@ -1053,18 +1052,6 @@ export function LoanRequestDetailPage({
             : null;
     const approvalBlockedMessage = blockedMessage;
     const canApprove = showDecisionForm && approvalBlockedMessage === null;
-    const showDecisionSummary =
-        statusValue === 'needs_revision' ||
-        statusValue === 'recommended_for_approval' ||
-        statusValue === 'rejected' ||
-        statusValue === 'approved' ||
-        statusValue === 'declined' ||
-        statusValue === 'converted_to_loan' ||
-        statusValue === 'cancelled' ||
-        loanRequest.reviewed_by !== null ||
-        (loanRequest.review_remarks ?? '').trim() !== '' ||
-        loanRequest.approved_by !== null ||
-        loanRequest.declined_by !== null;
     const showCancellationAction =
         (cancellation?.show ?? false) &&
         typeof cancellation?.onSubmit === 'function';
@@ -1073,7 +1060,6 @@ export function LoanRequestDetailPage({
         approvedDocumentHrefs !== null;
     const showDownloadPdfAction =
         canDownloadPdf && !showApprovedDocuments && !documentChecklistAvailable;
-    const showPrintAction = canDownloadPdf && !documentChecklistAvailable;
     const approvedDocumentItems = showApprovedDocuments
         ? [
               {
@@ -1181,37 +1167,7 @@ export function LoanRequestDetailPage({
     const [decisionNotes, setDecisionNotes] = useState(() =>
         loanRequest.decision_notes ? loanRequest.decision_notes : '',
     );
-    const reviewedBy = loanRequest.reviewed_by?.name ?? '--';
-    const reviewedAt = displayDateValue(loanRequest.reviewed_at);
-    const assignedOfficer =
-        loanRequest.assigned_processor?.name ??
-        loanRequest.assigned_officer?.name ??
-        '--';
-    const reviewDecisionValue = displayText(loanRequest.review_decision);
-    const reviewRemarksValue = displayText(loanRequest.review_remarks);
-    const rejectedBy = loanRequest.rejected_by?.name ?? '--';
-    const rejectedAt = displayDateValue(loanRequest.rejected_at);
-    const rejectionReasonValue = displayText(loanRequest.rejection_reason);
     const approvalSignerName = decision?.approverName?.trim() || '--';
-    const approvedBy = loanRequest.approved_by?.name ?? '--';
-    const approvedAt = displayDateValue(loanRequest.approved_at);
-    const approvedAmountValue = displayCurrency(loanRequest.approved_amount);
-    const approvedTermValue =
-        loanRequest.approved_term !== null &&
-        loanRequest.approved_term !== undefined &&
-        `${loanRequest.approved_term}`.trim() !== ''
-            ? `${loanRequest.approved_term} months`
-            : '--';
-    const approvedInterestRateValue = displayValue(
-        loanRequest.approved_interest_rate,
-    );
-    const approvalRemarksValue = displayText(loanRequest.approval_remarks);
-    const decisionNotesValue = displayText(loanRequest.decision_notes);
-    const declinedBy = loanRequest.declined_by?.name ?? '--';
-    const declinedAt = displayDateValue(loanRequest.declined_at);
-    const declineReasonValue = displayText(loanRequest.decline_reason);
-    const cancelledBy = loanRequest.cancelled_by?.name ?? '--';
-    const cancelledAt = displayDateValue(loanRequest.cancelled_at);
     const cancellationReasonValue = displayText(
         loanRequest.cancellation_reason,
     );
@@ -1554,251 +1510,95 @@ export function LoanRequestDetailPage({
                         </CardContent>
                     </Card>
 
-                    {showDecisionForm || showDecisionSummary ? (
+                    {showDecisionForm ? (
                         <Card className="border-border/30 bg-card/50 shadow-sm">
                             <CardHeader>
                                 <CardTitle className="text-base">
-                                    Workflow details
+                                    Decision
                                 </CardTitle>
                                 <CardDescription>
-                                    Review the latest workflow notes and
-                                    decision details for this request.
+                                    Approve or decline this request. Past
+                                    decisions and remarks are recorded in the
+                                    audit trail below.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {showDecisionForm ? (
-                                    <>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="approved_amount">
-                                                Approved amount
-                                            </Label>
-                                            <Input
-                                                id="approved_amount"
-                                                type="number"
-                                                inputMode="decimal"
-                                                min="1"
-                                                step="0.01"
-                                                placeholder="Enter approved amount"
-                                                value={approvedAmount}
-                                                onChange={(event) =>
-                                                    setApprovedAmount(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                disabled={
-                                                    decision?.isProcessing
-                                                }
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="approved_term">
-                                                Approved term
-                                            </Label>
-                                            <MonthsInput
-                                                id="approved_term"
-                                                placeholder="Enter approved term"
-                                                value={approvedTerm}
-                                                onChange={(value) =>
-                                                    setApprovedTerm(value)
-                                                }
-                                                disabled={
-                                                    decision?.isProcessing
-                                                }
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="decision_notes">
-                                                Decision notes
-                                            </Label>
-                                            <textarea
-                                                id="decision_notes"
-                                                className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-                                                placeholder="Add optional notes for the member"
-                                                value={decisionNotes}
-                                                onChange={(event) =>
-                                                    setDecisionNotes(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                disabled={
-                                                    decision?.isProcessing
-                                                }
-                                            />
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            <Button
-                                                type="button"
-                                                onClick={openApprovalDialog}
-                                                disabled={
-                                                    decision?.isProcessing
-                                                }
-                                            >
-                                                Approve
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    decision?.onDecline?.({
-                                                        decision_notes:
-                                                            decisionNotes
-                                                                ? decisionNotes
-                                                                : null,
-                                                    })
-                                                }
-                                                disabled={
-                                                    decision?.isProcessing
-                                                }
-                                            >
-                                                Decline
-                                            </Button>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            {approvalBlockedMessage ??
-                                                'Only requests under review can be decided.'}
-                                        </p>
-                                    </>
-                                ) : (
-                                    <div className="space-y-3 text-sm">
-                                        <DetailRow
-                                            label="Status"
-                                            value={
-                                                statusLabels[statusValue] ??
-                                                '--'
-                                            }
-                                        />
-                                        {loanRequest.assigned_processor !==
-                                            null ||
-                                        loanRequest.assigned_officer !==
-                                            null ? (
-                                            <DetailRow
-                                                label="Assigned loan processor"
-                                                value={assignedOfficer}
-                                            />
-                                        ) : null}
-                                        <DetailRow
-                                            label="Reviewed by"
-                                            value={reviewedBy}
-                                        />
-                                        <DetailRow
-                                            label="Reviewed at"
-                                            value={reviewedAt}
-                                        />
-                                        {loanRequest.review_decision ? (
-                                            <DetailRow
-                                                label="Review decision"
-                                                value={reviewDecisionValue}
-                                            />
-                                        ) : null}
-                                        {loanRequest.review_remarks ? (
-                                            <DetailRow
-                                                label={
-                                                    statusValue ===
-                                                    'needs_revision'
-                                                        ? 'Revision remarks'
-                                                        : 'Review remarks'
-                                                }
-                                                value={reviewRemarksValue}
-                                            />
-                                        ) : null}
-                                        {statusValue === 'rejected' ? (
-                                            <>
-                                                <DetailRow
-                                                    label="Rejected by"
-                                                    value={rejectedBy}
-                                                />
-                                                <DetailRow
-                                                    label="Rejected at"
-                                                    value={rejectedAt}
-                                                />
-                                                <DetailRow
-                                                    label="Rejection reason"
-                                                    value={rejectionReasonValue}
-                                                />
-                                            </>
-                                        ) : null}
-                                        {statusValue === 'approved' ||
-                                        statusValue === 'converted_to_loan' ||
-                                        (statusValue === 'cancelled' &&
-                                            showApprovedCancellationHistory) ? (
-                                            <>
-                                                <DetailRow
-                                                    label="Approved by"
-                                                    value={approvedBy}
-                                                />
-                                                <DetailRow
-                                                    label="Approved at"
-                                                    value={approvedAt}
-                                                />
-                                                <DetailRow
-                                                    label="Approved amount"
-                                                    value={approvedAmountValue}
-                                                />
-                                                <DetailRow
-                                                    label="Approved term"
-                                                    value={approvedTermValue}
-                                                />
-                                                {loanRequest.approved_interest_rate !==
-                                                null ? (
-                                                    <DetailRow
-                                                        label="Approved interest rate"
-                                                        value={
-                                                            approvedInterestRateValue
-                                                        }
-                                                    />
-                                                ) : null}
-                                                {loanRequest.approval_remarks ? (
-                                                    <DetailRow
-                                                        label="Approval remarks"
-                                                        value={
-                                                            approvalRemarksValue
-                                                        }
-                                                    />
-                                                ) : null}
-                                            </>
-                                        ) : null}
-                                        {loanRequest.decision_notes ? (
-                                            <DetailRow
-                                                label="Decision notes"
-                                                value={decisionNotesValue}
-                                            />
-                                        ) : null}
-                                        {statusValue === 'declined' ? (
-                                            <>
-                                                <DetailRow
-                                                    label="Declined by"
-                                                    value={declinedBy}
-                                                />
-                                                <DetailRow
-                                                    label="Declined at"
-                                                    value={declinedAt}
-                                                />
-                                                <DetailRow
-                                                    label="Decline reason"
-                                                    value={declineReasonValue}
-                                                />
-                                            </>
-                                        ) : null}
-                                        {statusValue === 'cancelled' ? (
-                                            <>
-                                                <DetailRow
-                                                    label="Cancelled by"
-                                                    value={cancelledBy}
-                                                />
-                                                <DetailRow
-                                                    label="Cancelled at"
-                                                    value={cancelledAt}
-                                                />
-                                                <DetailRow
-                                                    label="Cancellation reason"
-                                                    value={
-                                                        cancellationReasonValue
-                                                    }
-                                                />
-                                            </>
-                                        ) : null}
-                                    </div>
-                                )}
+                                <div className="space-y-2">
+                                    <Label htmlFor="approved_amount">
+                                        Approved amount
+                                    </Label>
+                                    <Input
+                                        id="approved_amount"
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="1"
+                                        step="0.01"
+                                        placeholder="Enter approved amount"
+                                        value={approvedAmount}
+                                        onChange={(event) =>
+                                            setApprovedAmount(
+                                                event.target.value,
+                                            )
+                                        }
+                                        disabled={decision?.isProcessing}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="approved_term">
+                                        Approved term
+                                    </Label>
+                                    <MonthsInput
+                                        id="approved_term"
+                                        placeholder="Enter approved term"
+                                        value={approvedTerm}
+                                        onChange={(value) =>
+                                            setApprovedTerm(value)
+                                        }
+                                        disabled={decision?.isProcessing}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="decision_notes">
+                                        Decision notes
+                                    </Label>
+                                    <textarea
+                                        id="decision_notes"
+                                        className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="Add optional notes for the member"
+                                        value={decisionNotes}
+                                        onChange={(event) =>
+                                            setDecisionNotes(event.target.value)
+                                        }
+                                        disabled={decision?.isProcessing}
+                                    />
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button
+                                        type="button"
+                                        onClick={openApprovalDialog}
+                                        disabled={decision?.isProcessing}
+                                    >
+                                        Approve
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() =>
+                                            decision?.onDecline?.({
+                                                decision_notes: decisionNotes
+                                                    ? decisionNotes
+                                                    : null,
+                                            })
+                                        }
+                                        disabled={decision?.isProcessing}
+                                    >
+                                        Decline
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {approvalBlockedMessage ??
+                                        'Only requests under review can be decided.'}
+                                </p>
                             </CardContent>
                         </Card>
                     ) : null}
@@ -1835,25 +1635,6 @@ export function LoanRequestDetailPage({
                                 loanRequest={loanRequest}
                                 workflow={workflow}
                             />
-                            {showPrintAction ? (
-                                <div className="space-y-3">
-                                    <Button
-                                        asChild
-                                        variant="outline"
-                                        className="w-full justify-start"
-                                    >
-                                        <a
-                                            href={printHref}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                        >
-                                            <Printer />
-                                            Print application
-                                        </a>
-                                    </Button>
-                                    <Separator className="bg-border/40" />
-                                </div>
-                            ) : null}
                             {showDownloadPdfAction ? (
                                 <div className="space-y-3">
                                     <Button
@@ -1868,7 +1649,8 @@ export function LoanRequestDetailPage({
                                     <Separator className="bg-border/40" />
                                 </div>
                             ) : null}
-                            {showApprovedDocuments ? (
+                            {showApprovedDocuments &&
+                            showApprovedDocumentList ? (
                                 <div className="space-y-3">
                                     <div className="space-y-1">
                                         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">

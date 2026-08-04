@@ -37,7 +37,6 @@ import {
     approvedDocuments as requestsApprovedDocuments,
     index as requestsIndex,
     pdf as requestsPdf,
-    print as requestsPrint,
     show as requestsShow,
 } from '@/routes/admin/requests';
 import {
@@ -286,7 +285,6 @@ export default function LoanRequestShow({
     const pdfHref = requestsPdf(currentRequest.id, {
         query: { download: 1 },
     }).url;
-    const printHref = requestsPrint(currentRequest.id).url;
     const approvedDocumentHrefs =
         currentRequest.status === 'approved' ||
         currentRequest.status === 'converted_to_loan'
@@ -376,7 +374,13 @@ export default function LoanRequestShow({
         'pending_co_maker_signatures',
         'submitted',
     ].includes(currentRequest.status ?? '');
-    const canGenerateDocuments = canUpdateProcessing;
+    const canGenerateDocuments =
+        canUpdateProcessing ||
+        (!decision.isOwnRequest &&
+            hasWorkflowPermission('loan.review') &&
+            ['approved', 'converted_to_loan'].includes(
+                currentRequest.status ?? '',
+            ));
     const canDecide =
         currentRequest.status === 'under_review' && decision.canDecide;
     const canStartReview =
@@ -792,8 +796,8 @@ export default function LoanRequestShow({
                 backHref={requestsIndex().url}
                 backLabel="Back to requests"
                 pdfHref={pdfHref}
-                printHref={printHref}
                 documentChecklistAvailable={isProcessingStage}
+                showApprovedDocumentList={false}
                 approvedDocumentHrefs={approvedDocumentHrefs}
                 correctedRequestHref={correctedRequestHref}
                 auditTrail={currentAuditTrail}
@@ -829,6 +833,13 @@ export default function LoanRequestShow({
                                         documentKey as LoanRequestDocumentKey,
                                     );
                                 }}
+                                packageZipHref={
+                                    approvedDocumentHrefs?.packageZip ?? null
+                                }
+                                lockFinalizedDocuments={[
+                                    'approved',
+                                    'converted_to_loan',
+                                ].includes(currentRequest.status ?? '')}
                             />
                         </>
                     ) : undefined

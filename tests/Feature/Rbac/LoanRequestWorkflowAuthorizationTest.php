@@ -662,6 +662,11 @@ test('loan managers can approve recommended requests through the workflow route 
     expect($change->from_status)->toBe(LoanRequestStatus::RecommendedForApproval->value);
     expect($change->to_status)->toBe(LoanRequestStatus::Approved->value);
     expect($change->reason)->toBe('Approved by manager.');
+    expect($change->metadata_json)->toBe([
+        'approved_amount' => 22000,
+        'approved_term' => 18,
+        'approved_interest_rate' => 1.25,
+    ]);
 });
 
 test('approving a legacy-workflow request persists a changed approved_payment_frequency instead of silently dropping it', function () {

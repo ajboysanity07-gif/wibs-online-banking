@@ -15,6 +15,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { FieldMessage } from '@/components/ui/field-message';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -307,6 +308,8 @@ export function ProcessingDetailsPanel({
         });
     const [recommendationPreview, setRecommendationPreview] =
         useState<RecommendationPreviewState | null>(null);
+    const [reasonError, setReasonError] = useState<string | null>(null);
+    const isFirstProcessingSave = loanRequest.is_first_processing_save;
     const [isRecommendationPreviewLoading, setIsRecommendationPreviewLoading] =
         useState(false);
     const [recommendationPreviewError, setRecommendationPreviewError] =
@@ -521,6 +524,16 @@ export function ProcessingDetailsPanel({
         event: FormEvent<HTMLFormElement>,
     ) => {
         event.preventDefault();
+
+        if (!isFirstProcessingSave && processingForm.reason.trim() === '') {
+            setReasonError(
+                'Remarks are required — explain why you’re making this change.',
+            );
+
+            return;
+        }
+
+        setReasonError(null);
 
         const result = await updateProcessingDetails(loanRequest.id, {
             reason: processingForm.reason,
@@ -1345,21 +1358,34 @@ export function ProcessingDetailsPanel({
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
                                 Remarks{' '}
-                                <span className="text-xs font-normal text-muted-foreground">
-                                    (optional)
-                                </span>
+                                {isFirstProcessingSave && (
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        (optional)
+                                    </span>
+                                )}
                             </Label>
                             <textarea
                                 id="inline_processing_reason"
                                 className={textareaClassName}
-                                placeholder="Optional — add context beyond the auto-generated summary."
+                                placeholder={
+                                    isFirstProcessingSave
+                                        ? 'Optional — add context beyond the auto-generated summary.'
+                                        : 'Required — explain why you’re making this change.'
+                                }
                                 value={processingForm.reason}
-                                onChange={(event) =>
+                                aria-describedby="inline_processing_reason_message"
+                                aria-invalid={reasonError !== null}
+                                onChange={(event) => {
+                                    setReasonError(null);
                                     setProcessingForm((current) => ({
                                         ...current,
                                         reason: event.target.value,
-                                    }))
-                                }
+                                    }));
+                                }}
+                            />
+                            <FieldMessage
+                                id="inline_processing_reason_message"
+                                error={reasonError ?? undefined}
                             />
                         </div>
                         <Button

@@ -195,7 +195,19 @@ class LoanRequestPolicy
 
     public function generateDocuments(AppUser $user, LoanRequest $loanRequest): bool
     {
-        return $this->updateProcessingDetails($user, $loanRequest);
+        if ($this->updateProcessingDetails($user, $loanRequest)) {
+            return true;
+        }
+
+        // Once approved, regenerating a stale document no longer requires the
+        // assigned processor -- any loan.review holder can bring it current.
+        // The document-key–level lock against re-running already-current
+        // documents lives in LoanRequestDocumentWorkflowService::generateDocument.
+        return $this->canActOnAnotherUsersRequest($user, $loanRequest, Permission::LOAN_REVIEW)
+            && in_array($this->statusValue($loanRequest), [
+                LoanRequestStatus::Approved->value,
+                LoanRequestStatus::ConvertedToLoan->value,
+            ], true);
     }
 
     public function approve(AppUser $user, LoanRequest $loanRequest): bool

@@ -1,6 +1,7 @@
 <?php
 
 use App\LoanRequestStatus;
+use App\LoanRequestWorkflowVersion;
 use App\Models\AdminProfile;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
@@ -124,6 +125,63 @@ test('admin loan request detail page includes the full audit trail payload', fun
                 ) && collect($metadata)->contains(
                     fn ($item): bool => ($item['key'] ?? null) === 'approval_user_agent'
                         && ($item['value'] ?? null) === 'AuditTrailTest/1.0',
+                ),
+            ));
+});
+
+test('admin audit trail surfaces the approval terms recorded by the real approve workflow', function (): void {
+    Queue::fake();
+
+    $admin = createAuditTrailActor(
+        [Role::ADMIN],
+        withAdminProfile: true,
+        username: 'Approval Terms Admin',
+        fullname: 'Approval Terms Admin',
+    );
+    $loanManager = createAuditTrailActor(
+        [Role::LOAN_MANAGER],
+        username: 'Approval Terms Manager',
+    );
+    $member = createAuditTrailActor(
+        [Role::MEMBER],
+        acctno: '300007',
+        username: 'Approval Terms Member',
+    );
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::RecommendedForApproval,
+        'submitted_at' => now(),
+        'workflow_version' => LoanRequestWorkflowVersion::LegacyV1,
+    ]);
+
+    $this
+        ->actingAs($loanManager)
+        ->patchJson(route('spa.workflow.loan-requests.approve', $loanRequest), [
+            'approved_amount' => 22000,
+            'approved_term' => 18,
+            'approved_interest_rate' => 1.25,
+            'approval_remarks' => 'Approved by manager.',
+        ])
+        ->assertOk();
+
+    $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.show', $loanRequest))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/loan-request-show')
+            ->where(
+                'auditTrail.1.metadata',
+                fn ($metadata): bool => collect($metadata)->contains(
+                    fn ($item): bool => ($item['key'] ?? null) === 'approved_amount'
+                        && ($item['value'] ?? null) === '₱22,000.00',
+                ) && collect($metadata)->contains(
+                    fn ($item): bool => ($item['key'] ?? null) === 'approved_term'
+                        && ($item['value'] ?? null) === '18 months',
+                ) && collect($metadata)->contains(
+                    fn ($item): bool => ($item['key'] ?? null) === 'approved_interest_rate'
+                        && ($item['value'] ?? null) === '1.25%',
                 ),
             ));
 });

@@ -49,6 +49,7 @@ export type RequestPreview = {
     approved_amount: number | string | null;
     reviewed_at: string | null;
     submitted_at: string | null;
+    last_activity_at: string | null;
     assigned_officer: {
         user_id: number;
         name: string;

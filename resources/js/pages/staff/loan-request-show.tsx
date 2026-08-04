@@ -56,7 +56,6 @@ import {
     approvedDocuments as requestsApprovedDocuments,
     index as requestsIndex,
     pdf as requestsPdf,
-    print as requestsPrint,
     show as requestsShow,
 } from '@/routes/staff/loan-requests';
 import {
@@ -387,7 +386,6 @@ export default function StaffLoanRequestShow({
     const pdfHref = requestsPdf(currentRequest.id, {
         query: { download: 1 },
     }).url;
-    const printHref = requestsPrint(currentRequest.id).url;
     const approvedDocumentHrefs =
         currentRequest.status === 'approved' ||
         currentRequest.status === 'converted_to_loan'
@@ -611,7 +609,13 @@ export default function StaffLoanRequestShow({
             'needs_revision',
             'awaiting_member_information',
         ].includes(currentRequest.status ?? '');
-    const canGenerateDocuments = canUpdateProcessing;
+    const canGenerateDocuments =
+        canUpdateProcessing ||
+        (!isOwnRequest &&
+            hasWorkflowPermission('loan.review') &&
+            ['approved', 'converted_to_loan'].includes(
+                currentRequest.status ?? '',
+            ));
     const canRecommendApproval =
         !isOwnRequest &&
         currentRequest.status === 'under_review' &&
@@ -1259,6 +1263,13 @@ export default function StaffLoanRequestShow({
                                     documentKey as LoanRequestDocumentKey,
                                 );
                             }}
+                            packageZipHref={
+                                approvedDocumentHrefs?.packageZip ?? null
+                            }
+                            lockFinalizedDocuments={[
+                                'approved',
+                                'converted_to_loan',
+                            ].includes(currentRequest.status ?? '')}
                         />
                         {showWibsTrackingSection ? (
                             <Card className="border-border/30 bg-card/70 shadow-sm">
@@ -1495,8 +1506,8 @@ export default function StaffLoanRequestShow({
                             backHref={requestsIndex().url}
                             backLabel="Back to workflow queue"
                             pdfHref={pdfHref}
-                            printHref={printHref}
                             documentChecklistAvailable={isProcessingStage}
+                            showApprovedDocumentList={false}
                             approvedDocumentHrefs={approvedDocumentHrefs}
                             auditTrail={currentAuditTrail}
                             auditTrailAudience="staff"

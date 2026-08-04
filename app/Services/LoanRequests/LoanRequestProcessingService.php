@@ -37,6 +37,7 @@ class LoanRequestProcessingService
             $this->ensureProcessorEditableStatus($lockedLoanRequest);
 
             $reason = trim((string) ($payload['reason'] ?? ''));
+            $isFirstSave = ! LoanRequestChange::hasProcessingUpdate($lockedLoanRequest);
 
             $before = $this->editableSnapshot($lockedLoanRequest);
             $fromStatus = $this->statusValue($lockedLoanRequest);
@@ -151,9 +152,13 @@ class LoanRequestProcessingService
                 $allChangedFields,
             );
 
-            $auditReason = $reason !== ''
-                ? $reason
-                : $this->summarizeChangedFields($allChangedFields);
+            $fieldSummary = $this->summarizeChangedFields($allChangedFields);
+
+            $auditReason = match (true) {
+                $reason !== '' => "Reason: {$reason}\n{$fieldSummary}",
+                $isFirstSave => "First save.\n{$fieldSummary}",
+                default => $fieldSummary,
+            };
 
             $this->recordAudit(
                 $lockedLoanRequest,
@@ -781,7 +786,11 @@ class LoanRequestProcessingService
                     'approved_interest_rate',
                     'recommended_payment_frequency',
                 ],
-                [],
+                [
+                    'approved_amount' => $approvedAmount,
+                    'approved_term' => $approvedTerm,
+                    'approved_interest_rate' => $approvedInterestRate,
+                ],
                 $before,
                 $after,
             );

@@ -59,7 +59,7 @@ const statusFilters: Array<LoanRequestStatusFilterOption<StatusFilter>> = [
         value: 'awaiting_member_acceptance',
         label: 'Awaiting Member Acceptance',
     },
-    { value: 'approved', label: 'Approved - For WIBS Processing' },
+    { value: 'approved', label: 'Approved' },
     { value: 'declined', label: 'Declined by Loan Manager' },
     { value: 'member_declined_terms', label: 'Member Declined Terms' },
     { value: 'rejected', label: 'Rejected During Processing' },
@@ -117,8 +117,9 @@ export default function LoanRequestsPage({
     const summaryCounts = useMemo(
         () => ({
             total: items.length,
-            draft: items.filter((item) => normalizeStatus(item.status) === 'draft')
-                .length,
+            draft: items.filter(
+                (item) => normalizeStatus(item.status) === 'draft',
+            ).length,
             pendingReview: items.filter(
                 (item) => normalizeStatus(item.status) === 'pending_review',
             ).length,
@@ -223,8 +224,7 @@ export default function LoanRequestsPage({
                         {
                             label: 'In Processing',
                             value: summaryCounts.underReview,
-                            emphasisClassName:
-                                'text-sky-600 dark:text-sky-400',
+                            emphasisClassName: 'text-sky-600 dark:text-sky-400',
                         },
                         {
                             label: 'Awaiting Member Correction',

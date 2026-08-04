@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Workflow;
 
 use App\Models\AppUser;
+use App\Models\LoanRequestChange;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -63,7 +64,11 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => ['nullable', 'string', 'max:1000'],
+            'reason' => [
+                Rule::requiredIf(fn (): bool => $this->loanRequest !== null
+                    && LoanRequestChange::hasProcessingUpdate($this->loanRequest)),
+                'nullable', 'string', 'max:1000',
+            ],
             'loan_request' => ['sometimes', 'array:typecode,requested_amount,requested_term,loan_purpose,availment_status'],
             'loan_request.typecode' => ['sometimes', 'string', 'max:255'],
             'loan_request.requested_amount' => ['sometimes', 'numeric', 'min:1'],

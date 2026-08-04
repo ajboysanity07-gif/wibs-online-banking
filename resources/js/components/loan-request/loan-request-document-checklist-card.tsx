@@ -119,6 +119,8 @@ export type LoanRequestDocumentChecklistCardProps = {
     isProcessing: boolean;
     onGenerate: (documentKeys: string[]) => Promise<void>;
     onRegenerate: (documentKey: string) => Promise<void>;
+    packageZipHref?: string | null;
+    lockFinalizedDocuments?: boolean;
 };
 
 export const LoanRequestDocumentChecklistCard = ({
@@ -128,6 +130,8 @@ export const LoanRequestDocumentChecklistCard = ({
     isProcessing,
     onGenerate,
     onRegenerate,
+    packageZipHref = null,
+    lockFinalizedDocuments = false,
 }: LoanRequestDocumentChecklistCardProps) => {
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
     const [hideNotApplicable, setHideNotApplicable] = useState(true);
@@ -158,8 +162,15 @@ export const LoanRequestDocumentChecklistCard = ({
         [documentChecklist, hideNotApplicable],
     );
 
+    const isDocumentLocked = (
+        document: LoanRequestDocumentChecklistItem,
+    ): boolean =>
+        lockFinalizedDocuments && document.status === 'generated_current';
+
     const selectableKeys = sortedChecklist
-        .filter((document) => document.is_applicable)
+        .filter(
+            (document) => document.is_applicable && !isDocumentLocked(document),
+        )
         .map((document) => document.key);
     const allSelected =
         selectableKeys.length > 0 &&
@@ -200,6 +211,15 @@ export const LoanRequestDocumentChecklistCard = ({
             document.is_relaxed_old_record &&
             document.manual_fill_fields.length > 0,
     );
+
+    const applicableDocuments = documentChecklist.filter(
+        (document) => document.is_applicable,
+    );
+    const allDocumentsGenerated =
+        applicableDocuments.length > 0 &&
+        applicableDocuments.every(
+            (document) => (document.generated_version ?? 0) > 0,
+        );
 
     return (
         <Card className="border-border/30 bg-card/70 shadow-sm">
@@ -313,6 +333,7 @@ export const LoanRequestDocumentChecklistCard = ({
                         const hasMetadata =
                             document.generated_at || hasBeenGenerated;
                         const isPending = pendingKeys.has(document.key);
+                        const isLocked = isDocumentLocked(document);
 
                         return (
                             <div
@@ -329,7 +350,8 @@ export const LoanRequestDocumentChecklistCard = ({
                                                 )}
                                                 disabled={
                                                     !document.is_applicable ||
-                                                    isPending
+                                                    isPending ||
+                                                    isLocked
                                                 }
                                                 onCheckedChange={(checked) =>
                                                     toggleKey(
@@ -493,7 +515,8 @@ export const LoanRequestDocumentChecklistCard = ({
                                                         </a>
                                                     </DropdownMenuItem>
                                                     {hasBeenGenerated &&
-                                                    canGenerateDocuments ? (
+                                                    canGenerateDocuments &&
+                                                    !isLocked ? (
                                                         <DropdownMenuItem
                                                             onSelect={(
                                                                 event,
@@ -588,6 +611,31 @@ export const LoanRequestDocumentChecklistCard = ({
                         );
                     })}
                 </div>
+                {packageZipHref ? (
+                    <div className="mt-4 border-t border-border/40 pt-4">
+                        {allDocumentsGenerated ? (
+                            <Button
+                                asChild
+                                className="h-11 w-full justify-start px-3 shadow-sm"
+                            >
+                                <a
+                                    href={packageZipHref}
+                                    className="flex w-full min-w-0 items-center gap-2"
+                                >
+                                    <Download className="size-4 shrink-0" />
+                                    <span className="min-w-0 flex-1 text-left text-sm font-semibold">
+                                        Download All as ZIP
+                                    </span>
+                                </a>
+                            </Button>
+                        ) : (
+                            <p className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                                Generate every applicable document above to
+                                enable the ZIP download.
+                            </p>
+                        )}
+                    </div>
+                ) : null}
             </CardContent>
         </Card>
     );

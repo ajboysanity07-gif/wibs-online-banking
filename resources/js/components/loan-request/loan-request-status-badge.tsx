@@ -18,7 +18,7 @@ const statusLabels: Partial<Record<LoanRequestStatusValue, string>> = {
     recommended_for_approval: 'For Loan Manager Review',
     awaiting_member_acceptance: 'Awaiting Member Acceptance',
     rejected: 'Rejected During Processing',
-    approved: 'Approved - For WIBS Processing',
+    approved: 'Approved',
     declined: 'Declined by Loan Manager',
     member_declined_terms: 'Member Declined Revised Terms',
     converted_to_loan: 'Converted to Loan',

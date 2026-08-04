@@ -87,7 +87,7 @@ class LoanRequestPayloadSerializer
         LoanRequestStatus::RecommendedForApproval->value => 'For Loan Manager Review',
         LoanRequestStatus::AwaitingMemberAcceptance->value => 'Awaiting Member Acceptance',
         LoanRequestStatus::Rejected->value => 'Rejected During Processing',
-        LoanRequestStatus::Approved->value => 'Approved - For WIBS Processing',
+        LoanRequestStatus::Approved->value => 'Approved',
         LoanRequestStatus::Declined->value => 'Declined by Loan Manager',
         LoanRequestStatus::MemberDeclinedTerms->value => 'Member Declined Revised Terms',
         LoanRequestStatus::ConvertedToLoan->value => 'Converted to Loan',
@@ -127,6 +127,15 @@ class LoanRequestPayloadSerializer
         'loan_status' => 'Loan Status',
         'ledger_control_no' => 'Ledger Control No.',
         'ledger_trans_no' => 'Ledger Transaction No.',
+        'approved_amount' => 'Approved amount',
+        'approved_term' => 'Approved term',
+        'approved_interest_rate' => 'Approved interest rate',
+    ];
+
+    private const AUDIT_METADATA_VALUE_FORMATTERS = [
+        'approved_amount' => 'currency',
+        'approved_term' => 'months',
+        'approved_interest_rate' => 'percent',
     ];
 
     public function __construct(
@@ -297,6 +306,7 @@ class LoanRequestPayloadSerializer
                 $loanRequest,
                 $this->dataService->loadFlatValues($loanRequest),
             ),
+            'is_first_processing_save' => ! LoanRequestChange::hasProcessingUpdate($loanRequest),
         ];
     }
 
@@ -812,11 +822,25 @@ class LoanRequestPayloadSerializer
             $items[] = [
                 'key' => $key,
                 'label' => $label,
-                'value' => $normalizedValue,
+                'value' => $this->formatAuditMetadataValue($key, $normalizedValue),
             ];
         }
 
         return $items;
+    }
+
+    private function formatAuditMetadataValue(string $key, string $value): string
+    {
+        if (! is_numeric($value)) {
+            return $value;
+        }
+
+        return match (self::AUDIT_METADATA_VALUE_FORMATTERS[$key] ?? null) {
+            'currency' => '₱'.number_format((float) $value, 2),
+            'months' => $value.($value === '1' ? ' month' : ' months'),
+            'percent' => rtrim(rtrim(number_format((float) $value, 2), '0'), '.').'%',
+            default => $value,
+        };
     }
 
     private function resolveAuditReason(
