@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
-import { MonthsInput } from '@/components/loan-request/numeric-adorned-inputs';
+import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
+import {
+    CurrencyInput,
+    MonthsInput,
+    PercentInput,
+} from '@/components/loan-request/numeric-adorned-inputs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -186,7 +191,6 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
     const [isAssignOpen, setIsAssignOpen] = useState(false);
     const [isReassignOpen, setIsReassignOpen] = useState(false);
     const [isReturnToQueueOpen, setIsReturnToQueueOpen] = useState(false);
-    const [isStartReviewOpen, setIsStartReviewOpen] = useState(false);
     const [isRequestRevisionOpen, setIsRequestRevisionOpen] = useState(false);
     const [isRejectOpen, setIsRejectOpen] = useState(false);
     const [isRecommendOpen, setIsRecommendOpen] = useState(false);
@@ -213,7 +217,6 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
     const [returnToQueueReasonError, setReturnToQueueReasonError] = useState<
         string | null
     >(null);
-    const [startReviewRemarks, setStartReviewRemarks] = useState('');
     const [revisionRemarks, setRevisionRemarks] = useState('');
     const [revisionRemarksError, setRevisionRemarksError] = useState<
         string | null
@@ -299,17 +302,29 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
 
     useEffect(() => {
         const nextAmount =
-            loanRequest.approved_amount ?? loanRequest.requested_amount ?? '';
+            loanRequest.approved_amount ??
+            loanRequest.recommended_amount ??
+            loanRequest.requested_amount ??
+            '';
         const nextTerm =
-            loanRequest.approved_term ?? loanRequest.requested_term ?? '';
+            loanRequest.approved_term ??
+            loanRequest.recommended_term ??
+            loanRequest.requested_term ??
+            '';
+        const nextInterestRate =
+            loanRequest.approved_interest_rate !== null &&
+            loanRequest.approved_interest_rate !== undefined &&
+            `${loanRequest.approved_interest_rate}`.trim() !== ''
+                ? loanRequest.approved_interest_rate
+                : loanRequest.recommended_interest_rate;
 
         setApprovedAmount(`${nextAmount}`.trim() !== '' ? `${nextAmount}` : '');
         setApprovedTerm(`${nextTerm}`.trim() !== '' ? `${nextTerm}` : '');
         setApprovedInterestRate(
-            loanRequest.approved_interest_rate !== null &&
-                loanRequest.approved_interest_rate !== undefined &&
-                `${loanRequest.approved_interest_rate}`.trim() !== ''
-                ? `${loanRequest.approved_interest_rate}`
+            nextInterestRate !== null &&
+                nextInterestRate !== undefined &&
+                `${nextInterestRate}`.trim() !== ''
+                ? `${nextInterestRate}`
                 : '',
         );
         setApprovedPaymentFrequency(
@@ -323,7 +338,10 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         loanRequest.approved_term,
         loanRequest.approval_remarks,
         loanRequest.decline_category,
+        loanRequest.recommended_amount,
+        loanRequest.recommended_interest_rate,
         loanRequest.recommended_payment_frequency,
+        loanRequest.recommended_term,
         loanRequest.requested_amount,
         loanRequest.requested_term,
     ]);
@@ -438,19 +456,6 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         if (result) {
             setReturnToQueueReason('');
             setIsReturnToQueueOpen(false);
-        }
-    };
-
-    const submitStartReview = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const result = await workflow?.startReview?.onSubmit?.({
-            remarks: startReviewRemarks.trim() || null,
-        });
-
-        if (result) {
-            setStartReviewRemarks('');
-            setIsStartReviewOpen(false);
         }
     };
 
@@ -758,7 +763,11 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 type="button"
                                 className="w-full justify-start"
                                 disabled={workflow.startReview.isProcessing}
-                                onClick={() => setIsStartReviewOpen(true)}
+                                onClick={() =>
+                                    void workflow.startReview?.onSubmit?.({
+                                        remarks: null,
+                                    })
+                                }
                             >
                                 Start Review
                             </Button>
@@ -1151,58 +1160,6 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
             </Dialog>
 
             <Dialog
-                open={isStartReviewOpen}
-                onOpenChange={setIsStartReviewOpen}
-            >
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Start Review</DialogTitle>
-                        <DialogDescription>
-                            Move this request from Pending Review to Under
-                            Review. If the request is still unassigned, Start
-                            Review will also claim it for you.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form className="space-y-4" onSubmit={submitStartReview}>
-                        <div className="space-y-2">
-                            <Label htmlFor="start_review_remarks">
-                                Review remarks
-                            </Label>
-                            <textarea
-                                id="start_review_remarks"
-                                className={textareaClassName}
-                                maxLength={1000}
-                                value={startReviewRemarks}
-                                disabled={workflow?.startReview?.isProcessing}
-                                onChange={(event) =>
-                                    setStartReviewRemarks(event.target.value)
-                                }
-                            />
-                            <div className="text-right text-xs text-muted-foreground">
-                                {startReviewRemarks.length}/1000
-                            </div>
-                        </div>
-                        <DialogFooter className="gap-2 sm:gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={workflow?.startReview?.isProcessing}
-                                onClick={() => setIsStartReviewOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={workflow?.startReview?.isProcessing}
-                            >
-                                Start Review
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog
                 open={isRequestRevisionOpen}
                 onOpenChange={setIsRequestRevisionOpen}
             >
@@ -1396,18 +1353,13 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                                 <Label htmlFor="workflow_approved_amount">
                                     Approved amount
                                 </Label>
-                                <Input
+                                <CurrencyInput
                                     id="workflow_approved_amount"
-                                    type="number"
-                                    min="1"
-                                    step="0.01"
                                     required
                                     value={approvedAmount}
                                     className={inputClassName}
                                     disabled={workflow?.approve?.isProcessing}
-                                    onChange={(event) =>
-                                        setApprovedAmount(event.target.value)
-                                    }
+                                    onValueChange={setApprovedAmount}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -1428,34 +1380,37 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
                             <Label htmlFor="workflow_approved_interest_rate">
                                 Approved interest rate
                             </Label>
-                            <Input
+                            <PercentInput
                                 id="workflow_approved_interest_rate"
-                                type="number"
-                                min="0"
-                                step="0.01"
                                 value={approvedInterestRate}
                                 className={inputClassName}
                                 disabled={workflow?.approve?.isProcessing}
-                                onChange={(event) =>
-                                    setApprovedInterestRate(event.target.value)
-                                }
+                                onValueChange={setApprovedInterestRate}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="workflow_approved_payment_frequency">
                                 Payment frequency
                             </Label>
-                            <Input
-                                id="workflow_approved_payment_frequency"
-                                value={approvedPaymentFrequency}
-                                className={inputClassName}
+                            <Select
+                                value={approvedPaymentFrequency || undefined}
+                                onValueChange={setApprovedPaymentFrequency}
                                 disabled={workflow?.approve?.isProcessing}
-                                onChange={(event) =>
-                                    setApprovedPaymentFrequency(
-                                        event.target.value,
-                                    )
-                                }
-                            />
+                            >
+                                <SelectTrigger
+                                    id="workflow_approved_payment_frequency"
+                                    className="w-full"
+                                >
+                                    <SelectValue placeholder="Select payment frequency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {PAYDAY_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="workflow_approval_remarks">

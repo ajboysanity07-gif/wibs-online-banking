@@ -1782,6 +1782,33 @@ test('affidavit undertaking pdf prints payout bank details', function () {
         ->toContain('DAVAO BRANCH');
 });
 
+test('affidavit undertaking pdf prints the release account instead of the payout account when they differ', function () {
+    $admin = User::factory()->create();
+    AdminProfile::factory()->create(['user_id' => $admin->user_id]);
+
+    $loanRequest = approvedLoanDocumentsCreateApprovedLoanRequestWithPeople();
+
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_name', 'string', 'RURAL SAVINGS BANK');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_account_number', 'string', '9998887770');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'payout_bank_branch', 'string', 'DAVAO BRANCH');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_uses_payout_account', 'boolean', false);
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_bank_name', 'string', 'METRO CITY BANK');
+    approvedLoanDocumentsPersistDataEntry($loanRequest, 'release_account_number', 'string', '1122334455');
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('admin.requests.documents.affidavit-undertaking', $loanRequest));
+
+    $response->assertOk();
+    $text = approvedLoanDocumentsExtractPdfText($response);
+
+    expect($text)
+        ->toContain('METRO CITY BANK')
+        ->toContain('1122334455')
+        ->not->toContain('RURAL SAVINGS BANK')
+        ->not->toContain('9998887770');
+});
+
 test('affidavit undertaking pdf prints applicant identity and employment details', function () {
     $admin = User::factory()->create();
     AdminProfile::factory()->create(['user_id' => $admin->user_id]);

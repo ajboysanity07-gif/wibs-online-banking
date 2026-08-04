@@ -319,6 +319,8 @@ export type LoanRequestDocumentChecklistItem = {
     source_version: number | null;
     blockers: string[];
     failure_message: string | null;
+    is_relaxed_old_record: boolean;
+    manual_fill_fields: string[];
 };
 
 export type LoanRequestDocumentGenerationResult = {
@@ -421,7 +423,6 @@ export type LoanRequestDetail = {
     recommended_term: number | string | null;
     recommended_interest_rate: number | string | null;
     recommended_payment_frequency: string | null;
-    recommendation_remarks: string | null;
     reviewed_by: LoanRequestReviewer | null;
     reviewed_at: string | null;
     review_decision: string | null;

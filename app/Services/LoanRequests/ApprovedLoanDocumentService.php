@@ -920,6 +920,21 @@ class ApprovedLoanDocumentService
         $overrideProcessing = is_array($overrides['processing'] ?? null)
             ? $overrides['processing']
             : [];
+        $usesPayoutReleaseAccount = (bool) (
+            $overrideProcessing['release_uses_payout_account'] ?? $flatValues['release_uses_payout_account'] ?? true
+        );
+        $effectiveReleaseBankName = $usesPayoutReleaseAccount
+            ? ($overrideProcessing['payout_bank_name'] ?? $flatValues['payout_bank_name'] ?? null)
+            : ($overrideProcessing['release_bank_name'] ?? $flatValues['release_bank_name'] ?? null);
+        $effectiveReleaseAccountName = $usesPayoutReleaseAccount
+            ? ($overrideProcessing['payout_account_name'] ?? $flatValues['payout_account_name'] ?? null)
+            : ($overrideProcessing['release_account_name'] ?? $flatValues['release_account_name'] ?? null);
+        $effectiveReleaseAccountNumber = $usesPayoutReleaseAccount
+            ? ($overrideProcessing['payout_account_number'] ?? $flatValues['payout_account_number'] ?? null)
+            : ($overrideProcessing['release_account_number'] ?? $flatValues['release_account_number'] ?? null);
+        $effectiveReleaseAccountType = $usesPayoutReleaseAccount
+            ? ($overrideProcessing['payout_account_type'] ?? $flatValues['payout_account_type'] ?? null)
+            : ($overrideProcessing['release_account_type'] ?? $flatValues['release_account_type'] ?? null);
         $approverDisplayName = $loanRequest->approvedBy?->adminProfile?->fullname
             ?? $loanRequest->approvedBy?->name
             ?? $loanRequest->approvedBy?->username;
@@ -1170,9 +1185,6 @@ class ApprovedLoanDocumentService
                 'maturity_date_short' => $maturityDate?->format('m/d/Y'),
                 'term_days' => $approvedTerm !== null ? $approvedTerm * 25 : null,
                 'recommended_by' => $processorDisplayName,
-                'recommendation_remarks' => $this->normalizeText(
-                    $loanRequest->recommendation_remarks,
-                ),
                 'insurance_term' => $insuranceTerm,
                 'interest_rate_raw' => $interestRateRaw,
                 'service_charge_rate_raw' => $serviceChargeRateRaw,
@@ -1211,24 +1223,17 @@ class ApprovedLoanDocumentService
                 'payment_option' => $this->normalizeText(
                     $overrideProcessing['payment_option'] ?? $flatValues['payment_option'] ?? null,
                 ),
-                'payout_bank_name' => $this->normalizeText(
-                    $overrideProcessing['payout_bank_name'] ?? $flatValues['payout_bank_name'] ?? null,
-                ),
-                'payout_account_name' => $this->normalizeText(
-                    $overrideProcessing['payout_account_name'] ?? $flatValues['payout_account_name'] ?? null,
-                ),
-                'payout_account_number' => $this->normalizeText(
-                    $overrideProcessing['payout_account_number'] ?? $flatValues['payout_account_number'] ?? null,
-                ),
-                'payout_account_type' => $this->normalizeText(
-                    $overrideProcessing['payout_account_type'] ?? $flatValues['payout_account_type'] ?? null,
-                ),
+                'payout_bank_name' => $this->normalizeText($effectiveReleaseBankName),
+                'payout_account_name' => $this->normalizeText($effectiveReleaseAccountName),
+                'payout_account_number' => $this->normalizeText($effectiveReleaseAccountNumber),
+                'payout_account_type' => $this->normalizeText($effectiveReleaseAccountType),
                 'payout_atm_number' => $this->normalizeText(
                     $overrideProcessing['payout_atm_number'] ?? $flatValues['payout_atm_number'] ?? null,
                 ),
                 'payout_bank_branch' => $this->normalizeText(
                     $overrideProcessing['payout_bank_branch'] ?? $flatValues['payout_bank_branch'] ?? null,
                 ),
+                'release_uses_payout_account' => $usesPayoutReleaseAccount,
             ],
             'barangay' => [
                 'official_name' => $this->normalizeText(

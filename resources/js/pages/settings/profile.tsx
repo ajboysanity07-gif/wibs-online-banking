@@ -14,6 +14,7 @@ import {
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
+import { ReleaseAccountFields } from '@/components/loan-request/release-account-fields';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
@@ -116,6 +117,11 @@ type MemberApplicationProfileData = {
     payout_atm_number: string | null;
     payout_bank_branch: string | null;
     payout_atm_holder_name: string | null;
+    release_uses_payout_account: boolean | null;
+    release_bank_name: string | null;
+    release_account_name: string | null;
+    release_account_number: string | null;
+    release_account_type: string | null;
     source_of_fund_wealth: string | null;
     id_type: string | null;
     id_type_other: string | null;
@@ -159,7 +165,12 @@ const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'Postgraduate',
 ];
 const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner / Retired';
-const EMPLOYMENT_TYPE_OPTIONS = ['Regular', 'Contract', 'Self-Employed', PENSIONER_EMPLOYMENT_TYPE];
+const EMPLOYMENT_TYPE_OPTIONS = [
+    'Regular',
+    'Contract',
+    'Self-Employed',
+    PENSIONER_EMPLOYMENT_TYPE,
+];
 const CIVIL_STATUS_OPTIONS = [
     'Single',
     'Married',
@@ -176,8 +187,19 @@ const PAYDAY_OPTIONS = [
     'Monthly',
 ] as const;
 const ID_TYPE_OTHER_VALUE = 'Others';
-const ID_TYPE_OPTIONS = ['SSS', 'GSIS', 'TIN', 'Phil ID', ID_TYPE_OTHER_VALUE] as const;
-const RELEASE_METHOD_OPTIONS = ['ATM', 'Bank Transfer', 'Check', 'Cash'] as const;
+const ID_TYPE_OPTIONS = [
+    'SSS',
+    'GSIS',
+    'TIN',
+    'Phil ID',
+    ID_TYPE_OTHER_VALUE,
+] as const;
+const RELEASE_METHOD_OPTIONS = [
+    'ATM',
+    'Bank Transfer',
+    'Check',
+    'Cash',
+] as const;
 const NATURE_OF_BUSINESS_OTHER_VALUE = 'Other';
 const NATURE_OF_BUSINESS_OPTIONS = [
     'Retail',
@@ -251,6 +273,11 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'payout_atm_number',
         'payout_bank_branch',
         'payout_atm_holder_name',
+        'release_uses_payout_account',
+        'release_bank_name',
+        'release_account_name',
+        'release_account_number',
+        'release_account_type',
         'source_of_fund_wealth',
         'id_type',
         'id_type_other',
@@ -303,9 +330,7 @@ const focusInvalidField = (fieldName: string | null): void => {
                 : fieldName;
         const element =
             document.getElementById(fieldName) ??
-            document.querySelector(
-                `[name="${escaped}"]:not([type="hidden"])`,
-            );
+            document.querySelector(`[name="${escaped}"]:not([type="hidden"])`);
 
         if (!(element instanceof HTMLElement)) {
             return;
@@ -478,9 +503,7 @@ export default function Profile({
         .filter((value): value is string => Boolean(value && value.trim()))
         .join(' ');
     const memberDisplayName =
-        structuredMemberName ||
-        memberRecord?.bname?.trim() ||
-        '';
+        structuredMemberName || memberRecord?.bname?.trim() || '';
     const hasStructuredName = Boolean(memberRecord?.hasStructuredName);
     const memberFirstName = memberRecord?.fname?.trim() ?? '';
     const memberMiddleName = memberRecord?.mname?.trim() ?? '';
@@ -547,8 +570,10 @@ export default function Profile({
         memberApplicationProfile?.employer_business_address3?.trim() ?? '';
     const employerBusinessAddressZip =
         memberApplicationProfile?.employer_business_address_zip?.trim() ?? '';
-    const [employerBusinessAddressZipValue, setEmployerBusinessAddressZipValue] =
-        useState<string>(employerBusinessAddressZip);
+    const [
+        employerBusinessAddressZipValue,
+        setEmployerBusinessAddressZipValue,
+    ] = useState<string>(employerBusinessAddressZip);
     const employerBusinessProvinceSearch = useLocationSearch({
         initialQuery: employerBusinessAddress3,
         searchUrl: provinces.url(),
@@ -613,12 +638,26 @@ export default function Profile({
     );
     const initialAtmHolderName =
         memberApplicationProfile?.payout_atm_holder_name?.trim() ?? '';
-    const [atmHolderName, setAtmHolderName] = useState<string>(
-        initialAtmHolderName,
-    );
+    const [atmHolderName, setAtmHolderName] =
+        useState<string>(initialAtmHolderName);
     const [isOwnAtmCard, setIsOwnAtmCard] = useState<boolean>(
         initialAtmHolderName === '' ||
             initialAtmHolderName === memberDisplayName.trim(),
+    );
+    const [useSameReleaseAccount, setUseSameReleaseAccount] = useState<boolean>(
+        memberApplicationProfile?.release_uses_payout_account ?? true,
+    );
+    const [releaseBankName, setReleaseBankName] = useState<string>(
+        memberApplicationProfile?.release_bank_name ?? '',
+    );
+    const [releaseAccountName, setReleaseAccountName] = useState<string>(
+        memberApplicationProfile?.release_account_name ?? '',
+    );
+    const [releaseAccountNumber, setReleaseAccountNumber] = useState<string>(
+        memberApplicationProfile?.release_account_number ?? '',
+    );
+    const [releaseAccountType, setReleaseAccountType] = useState<string>(
+        memberApplicationProfile?.release_account_type ?? '',
     );
     const resolvedNatureOfBusiness =
         natureOfBusinessSelection === NATURE_OF_BUSINESS_OTHER_VALUE
@@ -668,9 +707,9 @@ export default function Profile({
             // Intentionally left empty: ZIP lookup is best-effort.
         }
     };
-    const availableTabs = (hasMemberAccess
-        ? PROFILE_TAB_ORDER
-        : ['account']) as ProfileTab[];
+    const availableTabs = (
+        hasMemberAccess ? PROFILE_TAB_ORDER : ['account']
+    ) as ProfileTab[];
     const resolvedActiveTab = hasMemberAccess ? activeTab : 'account';
     const activeTabIndex = availableTabs.indexOf(resolvedActiveTab);
     const previousTab =
@@ -815,219 +854,189 @@ export default function Profile({
             <h1 className="sr-only">Profile Settings</h1>
 
             <SettingsLayout>
-                <SurfaceCard variant="default" padding="lg" className="space-y-6">
+                <SurfaceCard
+                    variant="default"
+                    padding="lg"
+                    className="space-y-6"
+                >
                     <section className="max-w-3xl space-y-12">
-                                    <div className="space-y-6">
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                            <Heading
-                                                variant="small"
-                                                title="Profile information"
-                                                description="Update your profile details, photo, and contact information"
-                                            />
-                                            {hasMemberAccess && (
-                                                <Badge
-                                                    variant={
-                                                        isProfileComplete
-                                                            ? 'default'
-                                                            : 'secondary'
-                                                    }
-                                                >
-                                                    {isProfileComplete
-                                                        ? 'Profile complete'
-                                                        : 'Profile incomplete'}
-                                                </Badge>
+                        <div className="space-y-6">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <Heading
+                                    variant="small"
+                                    title="Profile information"
+                                    description="Update your profile details, photo, and contact information"
+                                />
+                                {hasMemberAccess && (
+                                    <Badge
+                                        variant={
+                                            isProfileComplete
+                                                ? 'default'
+                                                : 'secondary'
+                                        }
+                                    >
+                                        {isProfileComplete
+                                            ? 'Profile complete'
+                                            : 'Profile incomplete'}
+                                    </Badge>
+                                )}
+                            </div>
+
+                            {showOnboardingAlert && (
+                                <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
+                                    <AlertTitle>
+                                        Complete your profile to continue
+                                    </AlertTitle>
+                                    <AlertDescription>
+                                        Add the personal and work details below
+                                        to unlock your client dashboard.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {showMissingProfileFields ? (
+                                <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
+                                    <AlertTitle>
+                                        Missing required details
+                                    </AlertTitle>
+                                    <AlertDescription className="text-amber-900 dark:text-amber-100">
+                                        <p>
+                                            Complete the following required
+                                            fields to finish onboarding:
+                                        </p>
+                                        <ul className="mt-2 list-disc pl-5 text-sm">
+                                            {missingProfileFields.map(
+                                                (field) => (
+                                                    <li key={field}>{field}</li>
+                                                ),
                                             )}
-                                        </div>
+                                        </ul>
+                                    </AlertDescription>
+                                </Alert>
+                            ) : null}
 
-                                        {showOnboardingAlert && (
-                                            <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
-                                                <AlertTitle>
-                                                    Complete your profile to
-                                                    continue
-                                                </AlertTitle>
-                                                <AlertDescription>
-                                                    Add the personal and work
-                                                    details below to unlock your
-                                                    client dashboard.
-                                                </AlertDescription>
-                                            </Alert>
-                                        )}
+                            {status === 'membership-linked' && (
+                                <Alert className="border-green-200 bg-green-50 text-green-950 dark:border-green-800/50 dark:bg-green-950/40 dark:text-green-100">
+                                    <AlertTitle>Membership linked</AlertTitle>
+                                    <AlertDescription>
+                                        You now have member portal access.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
 
-                                        {showMissingProfileFields ? (
-                                            <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
-                                                <AlertTitle>
-                                                    Missing required details
-                                                </AlertTitle>
-                                                <AlertDescription className="text-amber-900 dark:text-amber-100">
-                                                    <p>
-                                                        Complete the following
-                                                        required fields to
-                                                        finish onboarding:
-                                                    </p>
-                                                    <ul className="mt-2 list-disc pl-5 text-sm">
-                                                        {missingProfileFields.map(
-                                                            (field) => (
-                                                                <li key={field}>
-                                                                    {field}
-                                                                </li>
-                                                            ),
-                                                        )}
-                                                    </ul>
-                                                </AlertDescription>
-                                            </Alert>
-                                        ) : null}
+                            <Form
+                                {...ProfileController.update.form()}
+                                options={{
+                                    preserveScroll: true,
+                                }}
+                                onSuccess={() => {
+                                    showSuccessToast(
+                                        adminToastCopy.success.updated(
+                                            'Profile',
+                                        ),
+                                        { id: 'profile-update' },
+                                    );
+                                }}
+                                onError={(formErrors) => {
+                                    showErrorToast(
+                                        formErrors,
+                                        adminToastCopy.error.updated('Profile'),
+                                        { id: 'profile-update' },
+                                    );
+                                    const nextTabWithErrors =
+                                        findFirstTabWithErrors(formErrors);
+                                    const firstInvalidField =
+                                        findFirstInvalidField(formErrors);
 
-                                        {status === 'membership-linked' && (
-                                            <Alert className="border-green-200 bg-green-50 text-green-950 dark:border-green-800/50 dark:bg-green-950/40 dark:text-green-100">
-                                                <AlertTitle>
-                                                    Membership linked
-                                                </AlertTitle>
-                                                <AlertDescription>
-                                                    You now have member portal
-                                                    access.
-                                                </AlertDescription>
-                                            </Alert>
-                                        )}
+                                    if (
+                                        nextTabWithErrors &&
+                                        (hasMemberAccess ||
+                                            nextTabWithErrors === 'account')
+                                    ) {
+                                        setActiveTab(nextTabWithErrors);
+                                    }
 
-                                        <Form
-                                            {...ProfileController.update.form()}
-                                            options={{
-                                                preserveScroll: true,
-                                            }}
-                                            onSuccess={() => {
-                                                showSuccessToast(
-                                                    adminToastCopy.success.updated(
-                                                        'Profile',
-                                                    ),
-                                                    { id: 'profile-update' },
+                                    focusInvalidField(firstInvalidField);
+                                }}
+                                encType="multipart/form-data"
+                                noValidate
+                                className="space-y-6"
+                            >
+                                {({
+                                    processing,
+                                    recentlySuccessful,
+                                    errors: formErrors,
+                                }) => (
+                                    <>
+                                        <Tabs
+                                            value={resolvedActiveTab}
+                                            onValueChange={(value) => {
+                                                setActiveTab(
+                                                    value as ProfileTab,
                                                 );
                                             }}
-                                            onError={(formErrors) => {
-                                                showErrorToast(
-                                                    formErrors,
-                                                    adminToastCopy.error.updated(
-                                                        'Profile',
-                                                    ),
-                                                    { id: 'profile-update' },
-                                                );
-                                                const nextTabWithErrors =
-                                                    findFirstTabWithErrors(
-                                                        formErrors,
-                                                    );
-                                                const firstInvalidField =
-                                                    findFirstInvalidField(
-                                                        formErrors,
-                                                    );
-
-                                                if (
-                                                    nextTabWithErrors &&
-                                                    (hasMemberAccess ||
-                                                        nextTabWithErrors ===
-                                                            'account')
-                                                ) {
-                                                    setActiveTab(
-                                                        nextTabWithErrors,
-                                                    );
-                                                }
-
-                                                focusInvalidField(
-                                                    firstInvalidField,
-                                                );
-                                            }}
-                                            encType="multipart/form-data"
-                                            noValidate
-                                            className="space-y-6"
+                                            className="flex w-full flex-col gap-6"
                                         >
-                                            {({
-                                                processing,
-                                                recentlySuccessful,
-                                                errors: formErrors,
-                                            }) => (
-                                                <>
-                                                    <Tabs
-                                                        value={
-                                                            resolvedActiveTab
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) => {
-                                                            setActiveTab(
-                                                                value as ProfileTab,
-                                                            );
-                                                        }}
-                                                        className="flex w-full flex-col gap-6"
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                <TabsList className="w-full flex-wrap justify-start gap-2">
+                                                    <TabsTrigger value="account">
+                                                        Account
+                                                    </TabsTrigger>
+                                                    {hasMemberAccess && (
+                                                        <>
+                                                            <TabsTrigger value="personal">
+                                                                Personal
+                                                            </TabsTrigger>
+                                                            <TabsTrigger value="work">
+                                                                Work &amp;
+                                                                Finances
+                                                            </TabsTrigger>
+                                                            <TabsTrigger value="bank">
+                                                                Bank &amp;
+                                                                Payout
+                                                            </TabsTrigger>
+                                                            <TabsTrigger value="dependents">
+                                                                Dependents
+                                                            </TabsTrigger>
+                                                        </>
+                                                    )}
+                                                </TabsList>
+                                                {showOnboardingSteps && (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="shrink-0"
                                                     >
-                                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                            <TabsList className="w-full flex-wrap justify-start gap-2">
-                                                                <TabsTrigger value="account">
-                                                                    Account
-                                                                </TabsTrigger>
-                                                                {hasMemberAccess && (
-                                                                    <>
-                                                                        <TabsTrigger value="personal">
-                                                                            Personal
-                                                                        </TabsTrigger>
-                                                                        <TabsTrigger value="work">
-                                                                            Work
-                                                                            &amp;
-                                                                            Finances
-                                                                        </TabsTrigger>
-                                                                        <TabsTrigger value="bank">
-                                                                            Bank
-                                                                            &amp;
-                                                                            Payout
-                                                                        </TabsTrigger>
-                                                                        <TabsTrigger value="dependents">
-                                                                            Dependents
-                                                                        </TabsTrigger>
-                                                                    </>
-                                                                )}
-                                                            </TabsList>
-                                                            {showOnboardingSteps && (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="shrink-0"
-                                                                >
-                                                                    Step{' '}
-                                                                    {activeTabIndex +
-                                                                        1}{' '}
-                                                                    of{' '}
-                                                                    {
-                                                                        availableTabs.length
-                                                                    }
-                                                                </Badge>
-                                                            )}
-                                                        </div>
+                                                        Step{' '}
+                                                        {activeTabIndex + 1} of{' '}
+                                                        {availableTabs.length}
+                                                    </Badge>
+                                                )}
+                                            </div>
 
-                                                        <TabsContent
-                                                            value="account"
-                                                            forceMount
-                                                            className="mt-0"
-                                                        >
-                                                            <SurfaceCard
-                                                                variant="muted"
-                                                                padding="md"
-                                                                className="space-y-6"
-                                                            >
-                                                                <div className="space-y-1">
-                                                                    <h3 className="text-base font-semibold tracking-tight">
-                                                                        Account
-                                                                    </h3>
-                                                                    <p className="text-sm text-muted-foreground">
-                                                                        Manage
-                                                                        your
-                                                                        profile
-                                                                        photo,
-                                                                        login
-                                                                        details,
-                                                                        and
-                                                                        contact
-                                                                        information.
-                                                                    </p>
-                                                                </div>
+                                            <TabsContent
+                                                value="account"
+                                                forceMount
+                                                className="mt-0"
+                                            >
+                                                <SurfaceCard
+                                                    variant="muted"
+                                                    padding="md"
+                                                    className="space-y-6"
+                                                >
+                                                    <div className="space-y-1">
+                                                        <h3 className="text-base font-semibold tracking-tight">
+                                                            Account
+                                                        </h3>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Manage your profile
+                                                            photo, login
+                                                            details, and contact
+                                                            information.
+                                                        </p>
+                                                    </div>
 
-                                                                <div className="space-y-6">
-                                                                    <div className="grid gap-3">
+                                                    <div className="space-y-6">
+                                                        <div className="grid gap-3">
                                                             <Label htmlFor="profile_photo">
                                                                 Profile picture
                                                             </Label>
@@ -1218,7 +1227,8 @@ export default function Profile({
                                                                     type="tel"
                                                                     className="mt-1 block w-full"
                                                                     defaultValue={
-                                                                        auth.user
+                                                                        auth
+                                                                            .user
                                                                             .phoneno ??
                                                                         ''
                                                                     }
@@ -1304,743 +1314,732 @@ export default function Profile({
                                                         className="space-y-6"
                                                     >
                                                         <div className="space-y-6">
-                                                                <div className="space-y-1">
-                                                                    <h3 className="text-base font-semibold">
-                                                                        Personal
-                                                                    </h3>
-                                                                    <p className="text-sm text-muted-foreground">
-                                                                        Review
-                                                                        your
-                                                                        verified
-                                                                        member
-                                                                        details
-                                                                        and keep
-                                                                        your
-                                                                        application
-                                                                        profile
-                                                                        updated.
-                                                                    </p>
-                                                                    <p className="text-xs text-muted-foreground">
-                                                                        Fields
-                                                                        with a
-                                                                        subtle
-                                                                        outline
-                                                                        come
-                                                                        from
-                                                                        your
-                                                                        verified
-                                                                        member
-                                                                        record
-                                                                        and are
-                                                                        read-only.
-                                                                    </p>
+                                                            <div className="space-y-1">
+                                                                <h3 className="text-base font-semibold">
+                                                                    Personal
+                                                                </h3>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Review your
+                                                                    verified
+                                                                    member
+                                                                    details and
+                                                                    keep your
+                                                                    application
+                                                                    profile
+                                                                    updated.
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    Fields with
+                                                                    a subtle
+                                                                    outline come
+                                                                    from your
+                                                                    verified
+                                                                    member
+                                                                    record and
+                                                                    are
+                                                                    read-only.
+                                                                </p>
+                                                            </div>
+
+                                                            {!memberRecord && (
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    No member
+                                                                    record was
+                                                                    found for
+                                                                    this
+                                                                    account.
+                                                                </p>
+                                                            )}
+
+                                                            <div className="grid gap-4 md:grid-cols-3">
+                                                                <div className="grid gap-2 md:col-span-3">
+                                                                    <Label htmlFor="member_full_name">
+                                                                        Member
+                                                                        full
+                                                                        name
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="member_full_name"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            hasWmasterValue(
+                                                                                memberDisplayName,
+                                                                            ) &&
+                                                                                WMASTER_VALUE_CLASS,
+                                                                        )}
+                                                                        defaultValue={
+                                                                            memberDisplayName
+                                                                        }
+                                                                        placeholder="Not available"
+                                                                        disabled
+                                                                    />
+                                                                </div>
+                                                                {hasStructuredName && (
+                                                                    <>
+                                                                        {memberFirstName !==
+                                                                            '' && (
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_first_name">
+                                                                                    First
+                                                                                    name
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_first_name"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberFirstName,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberFirstName
+                                                                                    }
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+                                                                        )}
+
+                                                                        {memberLastName !==
+                                                                            '' && (
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_last_name">
+                                                                                    Last
+                                                                                    name
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_last_name"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberLastName,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberLastName
+                                                                                    }
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+                                                                        )}
+
+                                                                        {memberMiddleName !==
+                                                                            '' && (
+                                                                            <div className="grid gap-2">
+                                                                                <Label htmlFor="member_middle_name">
+                                                                                    Middle
+                                                                                    name
+                                                                                </Label>
+
+                                                                                <Input
+                                                                                    id="member_middle_name"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        hasWmasterValue(
+                                                                                            memberMiddleName,
+                                                                                        ) &&
+                                                                                            WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberMiddleName
+                                                                                    }
+                                                                                    disabled
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="nickname">
+                                                                        Nickname
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="nickname"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.nickname ??
+                                                                            ''
+                                                                        }
+                                                                        name="nickname"
+                                                                        autoComplete="nickname"
+                                                                        placeholder="Preferred name"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.nickname
+                                                                        }
+                                                                    />
                                                                 </div>
 
-                                                                {!memberRecord && (
-                                                                    <p className="text-sm text-muted-foreground">
-                                                                        No
-                                                                        member
-                                                                        record
-                                                                        was
-                                                                        found
-                                                                        for this
-                                                                        account.
-                                                                    </p>
-                                                                )}
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="member_birthday">
+                                                                        Birthdate
+                                                                    </Label>
 
-                                                                <div className="grid gap-4 md:grid-cols-3">
-                                                                    <div className="grid gap-2 md:col-span-3">
-                                                                        <Label htmlFor="member_full_name">
-                                                                            Member
-                                                                            full
-                                                                            name
+                                                                    <Input
+                                                                        id="member_birthday"
+                                                                        type="date"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            hasWmasterValue(
+                                                                                memberRecord?.birthday,
+                                                                            ) &&
+                                                                                WMASTER_VALUE_CLASS,
+                                                                        )}
+                                                                        defaultValue={
+                                                                            memberRecord?.birthday ??
+                                                                            ''
+                                                                        }
+                                                                        disabled
+                                                                    />
+                                                                </div>
+
+                                                                {isBirthplaceLocked ? (
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="birthplace">
+                                                                            Birthplace
                                                                         </Label>
-
                                                                         <Input
-                                                                            id="member_full_name"
+                                                                            id="birthplace"
                                                                             className={cn(
                                                                                 'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberDisplayName,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
+                                                                                WMASTER_VALUE_CLASS,
                                                                             )}
                                                                             defaultValue={
-                                                                                memberDisplayName
+                                                                                memberBirthplace
                                                                             }
                                                                             placeholder="Not available"
                                                                             disabled
                                                                         />
-                                                                    </div>
-                                                                    {hasStructuredName && (
-                                                                        <>
-                                                                            {memberFirstName !==
-                                                                                '' && (
-                                                                                <div className="grid gap-2">
-                                                                                    <Label htmlFor="member_first_name">
-                                                                                        First
-                                                                                        name
-                                                                                    </Label>
-
-                                                                                    <Input
-                                                                                        id="member_first_name"
-                                                                                        className={cn(
-                                                                                            'mt-1 block w-full',
-                                                                                            hasWmasterValue(
-                                                                                                memberFirstName,
-                                                                                            ) &&
-                                                                                                WMASTER_VALUE_CLASS,
-                                                                                        )}
-                                                                                        defaultValue={
-                                                                                            memberFirstName
-                                                                                        }
-                                                                                        disabled
-                                                                                    />
-                                                                                </div>
-                                                                            )}
-
-                                                                            {memberLastName !==
-                                                                                '' && (
-                                                                                <div className="grid gap-2">
-                                                                                    <Label htmlFor="member_last_name">
-                                                                                        Last
-                                                                                        name
-                                                                                    </Label>
-
-                                                                                    <Input
-                                                                                        id="member_last_name"
-                                                                                        className={cn(
-                                                                                            'mt-1 block w-full',
-                                                                                            hasWmasterValue(
-                                                                                                memberLastName,
-                                                                                            ) &&
-                                                                                                WMASTER_VALUE_CLASS,
-                                                                                        )}
-                                                                                        defaultValue={
-                                                                                            memberLastName
-                                                                                        }
-                                                                                        disabled
-                                                                                    />
-                                                                                </div>
-                                                                            )}
-
-                                                                            {memberMiddleName !==
-                                                                                '' && (
-                                                                                <div className="grid gap-2">
-                                                                                    <Label htmlFor="member_middle_name">
-                                                                                        Middle
-                                                                                        name
-                                                                                    </Label>
-
-                                                                                    <Input
-                                                                                        id="member_middle_name"
-                                                                                        className={cn(
-                                                                                            'mt-1 block w-full',
-                                                                                            hasWmasterValue(
-                                                                                                memberMiddleName,
-                                                                                            ) &&
-                                                                                                WMASTER_VALUE_CLASS,
-                                                                                        )}
-                                                                                        defaultValue={
-                                                                                            memberMiddleName
-                                                                                        }
-                                                                                        disabled
-                                                                                    />
-                                                                                </div>
-                                                                            )}
-                                                                        </>
-                                                                    )}
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="nickname">
-                                                                            Nickname
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="nickname"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.nickname ??
-                                                                                ''
-                                                                            }
-                                                                            name="nickname"
-                                                                            autoComplete="nickname"
-                                                                            placeholder="Preferred name"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.nickname
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="member_birthday">
-                                                                            Birthdate
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="member_birthday"
-                                                                            type="date"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.birthday,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberRecord?.birthday ??
-                                                                                ''
-                                                                            }
-                                                                            disabled
-                                                                        />
-                                                                    </div>
-
-                                                                    {isBirthplaceLocked ? (
-                                                                        <div className="grid gap-2 md:col-span-2">
-                                                                            <Label htmlFor="birthplace">
-                                                                                Birthplace
-                                                                            </Label>
-                                                                            <Input
-                                                                                id="birthplace"
-                                                                                className={cn(
-                                                                                    'mt-1 block w-full',
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                                defaultValue={
-                                                                                    memberBirthplace
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                            <input
-                                                                                type="hidden"
-                                                                                name="birthplace_city"
-                                                                                value={
-                                                                                    memberBirthplaceCity
-                                                                                }
-                                                                            />
-                                                                            <input
-                                                                                type="hidden"
-                                                                                name="birthplace_province"
-                                                                                value={
-                                                                                    memberBirthplaceProvince
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                    ) : (
-                                                                        <>
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="birthplace_city">
-                                                                                    Birthplace
-                                                                                    city/municipality
-                                                                                </Label>
-                                                                                <LocationAutocompleteInput
-                                                                                    id="birthplace_city"
-                                                                                    name="birthplace_city"
-                                                                                    search={
-                                                                                        birthplaceCitySearch
-                                                                                    }
-                                                                                    placeholder="Select city or municipality"
-                                                                                    required
-                                                                                    inputClassName="mt-1 block w-full"
-                                                                                    loadingMessage="Searching city suggestions..."
-                                                                                    errorMessage="City suggestions are temporarily unavailable."
-                                                                                    onSelect={(
-                                                                                        suggestion,
-                                                                                    ) => {
-                                                                                        if (
-                                                                                            suggestion.province
-                                                                                        ) {
-                                                                                            birthplaceProvinceSearch.setSelectedValue(
-                                                                                                suggestion.province,
-                                                                                            );
-                                                                                        }
-                                                                                    }}
-                                                                                />
-
-                                                                                <InputError
-                                                                                    className="mt-2"
-                                                                                    message={
-                                                                                        formErrors.birthplace_city
-                                                                                    }
-                                                                                />
-                                                                            </div>
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="birthplace_province">
-                                                                                    Birthplace
-                                                                                    province
-                                                                                </Label>
-                                                                                <LocationAutocompleteInput
-                                                                                    id="birthplace_province"
-                                                                                    name="birthplace_province"
-                                                                                    search={
-                                                                                        birthplaceProvinceSearch
-                                                                                    }
-                                                                                    placeholder="Select province"
-                                                                                    inputClassName="mt-1 block w-full"
-                                                                                    loadingMessage="Searching province suggestions..."
-                                                                                    errorMessage="Province suggestions are temporarily unavailable."
-                                                                                    promptMessage="Type at least 2 characters to search provinces."
-                                                                                />
-
-                                                                                <InputError
-                                                                                    className="mt-2"
-                                                                                    message={
-                                                                                        formErrors.birthplace_province
-                                                                                    }
-                                                                                />
-                                                                            </div>
-                                                                        </>
-                                                                    )}
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="member_age">
-                                                                            Age
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="member_age"
-                                                                            type="number"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberAge,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberAge ??
-                                                                                ''
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
-                                                                    </div>
-
-                                                                    {memberAddressStreet !== '' ||
-                                                                    memberAddressCity !==
-                                                                        '' ||
-                                                                    memberAddressProvince !==
-                                                                        '' ? (
-                                                                        <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
-                                                                            <div className="grid gap-2 md:col-span-2">
-                                                                                <Label htmlFor="member_record_address1">
-                                                                                    Address
-                                                                                    (street)
-                                                                                </Label>
-
-                                                                                <Input
-                                                                                    id="member_record_address1"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        hasWmasterValue(
-                                                                                            memberAddressStreet,
-                                                                                        ) &&
-                                                                                            WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberAddressStreet
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                            </div>
-
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="member_record_address2">
-                                                                                    City/Municipality
-                                                                                </Label>
-
-                                                                                <Input
-                                                                                    id="member_record_address2"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        hasWmasterValue(
-                                                                                            memberAddressCity,
-                                                                                        ) &&
-                                                                                            WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberAddressCity
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                            </div>
-
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="member_record_address3">
-                                                                                    Province
-                                                                                </Label>
-
-                                                                                <Input
-                                                                                    id="member_record_address3"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        hasWmasterValue(
-                                                                                            memberAddressProvince,
-                                                                                        ) &&
-                                                                                            WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberAddressProvince
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                            </div>
-
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="member_record_address_zip">
-                                                                                    ZIP code
-                                                                                </Label>
-
-                                                                                <Input
-                                                                                    id="member_record_address_zip"
-                                                                                    className={cn(
-                                                                                        'mt-1 block w-full',
-                                                                                        hasWmasterValue(
-                                                                                            memberAddressZip,
-                                                                                        ) &&
-                                                                                            WMASTER_VALUE_CLASS,
-                                                                                    )}
-                                                                                    defaultValue={
-                                                                                        memberAddressZip
-                                                                                    }
-                                                                                    placeholder="Not available"
-                                                                                    disabled
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="grid gap-2 md:col-span-3">
-                                                                            <Label htmlFor="member_record_address">
-                                                                                Address
-                                                                            </Label>
-
-                                                                            <Input
-                                                                                id="member_record_address"
-                                                                                className={cn(
-                                                                                    'mt-1 block w-full',
-                                                                                    hasWmasterValue(
-                                                                                        memberDisplayAddress,
-                                                                                    ) &&
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                                defaultValue={
-                                                                                    memberDisplayAddress
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="length_of_stay">
-                                                                            Length
-                                                                            of
-                                                                            stay
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="length_of_stay"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.length_of_stay ??
-                                                                                ''
-                                                                            }
-                                                                            name="length_of_stay"
-                                                                            required
-                                                                            placeholder="e.g. 2 years"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.length_of_stay
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="member_housing_status">
-                                                                            Housing
-                                                                            status
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="member_housing_status"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.housing_status,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                memberRecord?.housing_status ??
-                                                                                ''
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="member_civil_status">
-                                                                            Civil
-                                                                            status
-                                                                        </Label>
-
-                                                                        <Select
-                                                                            value={
-                                                                                memberCivilStatus ||
-                                                                                undefined
-                                                                            }
-                                                                            disabled
-                                                                        >
-                                                                            <SelectTrigger
-                                                                                id="member_civil_status"
-                                                                                className={cn(
-                                                                                    'mt-1 w-full',
-                                                                                    hasWmasterValue(
-                                                                                        memberCivilStatus,
-                                                                                    ) &&
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                            >
-                                                                                <SelectValue placeholder="Not available" />
-                                                                            </SelectTrigger>
-                                                                            <SelectContent>
-                                                                                {CIVIL_STATUS_OPTIONS.map(
-                                                                                    (
-                                                                                        option,
-                                                                                    ) => (
-                                                                                        <SelectItem
-                                                                                            key={
-                                                                                                option
-                                                                                            }
-                                                                                            value={
-                                                                                                option
-                                                                                            }
-                                                                                        >
-                                                                                            {
-                                                                                                option
-                                                                                            }
-                                                                                        </SelectItem>
-                                                                                    ),
-                                                                                )}
-                                                                            </SelectContent>
-                                                                        </Select>
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="educational_attainment">
-                                                                            Educational
-                                                                            attainment
-                                                                        </Label>
-
-                                                                        <Select
-                                                                            value={
-                                                                                educationalAttainment ||
-                                                                                undefined
-                                                                            }
-                                                                            onValueChange={(
-                                                                                value,
-                                                                            ) => {
-                                                                                setEducationalAttainment(
-                                                                                    value,
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            <SelectTrigger
-                                                                                id="educational_attainment"
-                                                                                className="mt-1 w-full"
-                                                                            >
-                                                                                <SelectValue placeholder="Select educational attainment" />
-                                                                            </SelectTrigger>
-                                                                            <SelectContent>
-                                                                                {educationalAttainmentOptions.map(
-                                                                                    (
-                                                                                        option,
-                                                                                    ) => (
-                                                                                        <SelectItem
-                                                                                            key={
-                                                                                                option
-                                                                                            }
-                                                                                            value={
-                                                                                                option
-                                                                                            }
-                                                                                        >
-                                                                                            {
-                                                                                                option
-                                                                                            }
-                                                                                        </SelectItem>
-                                                                                    ),
-                                                                                )}
-                                                                            </SelectContent>
-                                                                        </Select>
-
                                                                         <input
                                                                             type="hidden"
-                                                                            name="educational_attainment"
+                                                                            name="birthplace_city"
                                                                             value={
-                                                                                educationalAttainment
+                                                                                memberBirthplaceCity
                                                                             }
                                                                         />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.educational_attainment
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="number_of_children">
-                                                                            No.
-                                                                            of
-                                                                            children
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="number_of_children"
-                                                                            type="number"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberRecord?.number_of_children,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                numberOfChildrenValue
-                                                                            }
-                                                                            name="number_of_children"
-                                                                            min={0}
-                                                                            inputMode="numeric"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.number_of_children
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="birthplace_province"
+                                                                            value={
+                                                                                memberBirthplaceProvince
                                                                             }
                                                                         />
                                                                     </div>
+                                                                ) : (
+                                                                    <>
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="birthplace_city">
+                                                                                Birthplace
+                                                                                city/municipality
+                                                                            </Label>
+                                                                            <LocationAutocompleteInput
+                                                                                id="birthplace_city"
+                                                                                name="birthplace_city"
+                                                                                search={
+                                                                                    birthplaceCitySearch
+                                                                                }
+                                                                                placeholder="Select city or municipality"
+                                                                                required
+                                                                                inputClassName="mt-1 block w-full"
+                                                                                loadingMessage="Searching city suggestions..."
+                                                                                errorMessage="City suggestions are temporarily unavailable."
+                                                                                onSelect={(
+                                                                                    suggestion,
+                                                                                ) => {
+                                                                                    if (
+                                                                                        suggestion.province
+                                                                                    ) {
+                                                                                        birthplaceProvinceSearch.setSelectedValue(
+                                                                                            suggestion.province,
+                                                                                        );
+                                                                                    }
+                                                                                }}
+                                                                            />
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="member_record_spouse_name">
-                                                                            Spouse
-                                                                            name
-                                                                        </Label>
-                                                                        {isSpouseNameLocked ? (
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.birthplace_city
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="birthplace_province">
+                                                                                Birthplace
+                                                                                province
+                                                                            </Label>
+                                                                            <LocationAutocompleteInput
+                                                                                id="birthplace_province"
+                                                                                name="birthplace_province"
+                                                                                search={
+                                                                                    birthplaceProvinceSearch
+                                                                                }
+                                                                                placeholder="Select province"
+                                                                                inputClassName="mt-1 block w-full"
+                                                                                loadingMessage="Searching province suggestions..."
+                                                                                errorMessage="Province suggestions are temporarily unavailable."
+                                                                                promptMessage="Type at least 2 characters to search provinces."
+                                                                            />
+
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.birthplace_province
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </>
+                                                                )}
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="member_age">
+                                                                        Age
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="member_age"
+                                                                        type="number"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            hasWmasterValue(
+                                                                                memberAge,
+                                                                            ) &&
+                                                                                WMASTER_VALUE_CLASS,
+                                                                        )}
+                                                                        defaultValue={
+                                                                            memberAge ??
+                                                                            ''
+                                                                        }
+                                                                        placeholder="Not available"
+                                                                        disabled
+                                                                    />
+                                                                </div>
+
+                                                                {memberAddressStreet !==
+                                                                    '' ||
+                                                                memberAddressCity !==
+                                                                    '' ||
+                                                                memberAddressProvince !==
+                                                                    '' ? (
+                                                                    <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
+                                                                        <div className="grid gap-2 md:col-span-2">
+                                                                            <Label htmlFor="member_record_address1">
+                                                                                Address
+                                                                                (street)
+                                                                            </Label>
+
                                                                             <Input
-                                                                                id="member_record_spouse_name"
+                                                                                id="member_record_address1"
                                                                                 className={cn(
                                                                                     'mt-1 block w-full',
-                                                                                    WMASTER_VALUE_CLASS,
+                                                                                    hasWmasterValue(
+                                                                                        memberAddressStreet,
+                                                                                    ) &&
+                                                                                        WMASTER_VALUE_CLASS,
                                                                                 )}
                                                                                 defaultValue={
-                                                                                    memberRecord?.spouse_name ??
-                                                                                    ''
+                                                                                    memberAddressStreet
                                                                                 }
                                                                                 placeholder="Not available"
                                                                                 disabled
                                                                             />
-                                                                        ) : (
-                                                                            <>
-                                                                                <Input
-                                                                                    id="member_record_spouse_name"
-                                                                                    className="mt-1 block w-full"
-                                                                                    defaultValue={
-                                                                                        memberApplicationProfile?.spouse_name ??
-                                                                                        ''
-                                                                                    }
-                                                                                    name="spouse_name"
-                                                                                    placeholder="Spouse name"
-                                                                                />
-                                                                                <InputError
-                                                                                    className="mt-2"
-                                                                                    message={
-                                                                                        formErrors.spouse_name
-                                                                                    }
-                                                                                />
-                                                                            </>
+                                                                        </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="member_record_address2">
+                                                                                City/Municipality
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_record_address2"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    hasWmasterValue(
+                                                                                        memberAddressCity,
+                                                                                    ) &&
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                                defaultValue={
+                                                                                    memberAddressCity
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="member_record_address3">
+                                                                                Province
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_record_address3"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    hasWmasterValue(
+                                                                                        memberAddressProvince,
+                                                                                    ) &&
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                                defaultValue={
+                                                                                    memberAddressProvince
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="member_record_address_zip">
+                                                                                ZIP
+                                                                                code
+                                                                            </Label>
+
+                                                                            <Input
+                                                                                id="member_record_address_zip"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    hasWmasterValue(
+                                                                                        memberAddressZip,
+                                                                                    ) &&
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                                defaultValue={
+                                                                                    memberAddressZip
+                                                                                }
+                                                                                placeholder="Not available"
+                                                                                disabled
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="grid gap-2 md:col-span-3">
+                                                                        <Label htmlFor="member_record_address">
+                                                                            Address
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="member_record_address"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberDisplayAddress,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
+                                                                            defaultValue={
+                                                                                memberDisplayAddress
+                                                                            }
+                                                                            placeholder="Not available"
+                                                                            disabled
+                                                                        />
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="length_of_stay">
+                                                                        Length
+                                                                        of stay
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="length_of_stay"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.length_of_stay ??
+                                                                            ''
+                                                                        }
+                                                                        name="length_of_stay"
+                                                                        required
+                                                                        placeholder="e.g. 2 years"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.length_of_stay
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="member_housing_status">
+                                                                        Housing
+                                                                        status
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="member_housing_status"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            hasWmasterValue(
+                                                                                memberRecord?.housing_status,
+                                                                            ) &&
+                                                                                WMASTER_VALUE_CLASS,
                                                                         )}
-                                                                    </div>
+                                                                        defaultValue={
+                                                                            memberRecord?.housing_status ??
+                                                                            ''
+                                                                        }
+                                                                        placeholder="Not available"
+                                                                        disabled
+                                                                    />
+                                                                </div>
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="spouse_age">
-                                                                            Spouse
-                                                                            age
-                                                                        </Label>
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="member_civil_status">
+                                                                        Civil
+                                                                        status
+                                                                    </Label>
 
+                                                                    <Select
+                                                                        value={
+                                                                            memberCivilStatus ||
+                                                                            undefined
+                                                                        }
+                                                                        disabled
+                                                                    >
+                                                                        <SelectTrigger
+                                                                            id="member_civil_status"
+                                                                            className={cn(
+                                                                                'mt-1 w-full',
+                                                                                hasWmasterValue(
+                                                                                    memberCivilStatus,
+                                                                                ) &&
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                            )}
+                                                                        >
+                                                                            <SelectValue placeholder="Not available" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {CIVIL_STATUS_OPTIONS.map(
+                                                                                (
+                                                                                    option,
+                                                                                ) => (
+                                                                                    <SelectItem
+                                                                                        key={
+                                                                                            option
+                                                                                        }
+                                                                                        value={
+                                                                                            option
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            option
+                                                                                        }
+                                                                                    </SelectItem>
+                                                                                ),
+                                                                            )}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="educational_attainment">
+                                                                        Educational
+                                                                        attainment
+                                                                    </Label>
+
+                                                                    <Select
+                                                                        value={
+                                                                            educationalAttainment ||
+                                                                            undefined
+                                                                        }
+                                                                        onValueChange={(
+                                                                            value,
+                                                                        ) => {
+                                                                            setEducationalAttainment(
+                                                                                value,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <SelectTrigger
+                                                                            id="educational_attainment"
+                                                                            className="mt-1 w-full"
+                                                                        >
+                                                                            <SelectValue placeholder="Select educational attainment" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {educationalAttainmentOptions.map(
+                                                                                (
+                                                                                    option,
+                                                                                ) => (
+                                                                                    <SelectItem
+                                                                                        key={
+                                                                                            option
+                                                                                        }
+                                                                                        value={
+                                                                                            option
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            option
+                                                                                        }
+                                                                                    </SelectItem>
+                                                                                ),
+                                                                            )}
+                                                                        </SelectContent>
+                                                                    </Select>
+
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="educational_attainment"
+                                                                        value={
+                                                                            educationalAttainment
+                                                                        }
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.educational_attainment
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="number_of_children">
+                                                                        No. of
+                                                                        children
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="number_of_children"
+                                                                        type="number"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            hasWmasterValue(
+                                                                                memberRecord?.number_of_children,
+                                                                            ) &&
+                                                                                WMASTER_VALUE_CLASS,
+                                                                        )}
+                                                                        defaultValue={
+                                                                            numberOfChildrenValue
+                                                                        }
+                                                                        name="number_of_children"
+                                                                        min={0}
+                                                                        inputMode="numeric"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.number_of_children
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="member_record_spouse_name">
+                                                                        Spouse
+                                                                        name
+                                                                    </Label>
+                                                                    {isSpouseNameLocked ? (
                                                                         <Input
-                                                                            id="spouse_age"
-                                                                            type="number"
-                                                                            className="mt-1 block w-full"
+                                                                            id="member_record_spouse_name"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                WMASTER_VALUE_CLASS,
+                                                                            )}
                                                                             defaultValue={
-                                                                                memberApplicationProfile?.spouse_age ??
+                                                                                memberRecord?.spouse_name ??
                                                                                 ''
                                                                             }
-                                                                            name="spouse_age"
-                                                                            inputMode="numeric"
-                                                                            min={
-                                                                                0
-                                                                            }
-                                                                            placeholder="Age"
+                                                                            placeholder="Not available"
+                                                                            disabled
                                                                         />
+                                                                    ) : (
+                                                                        <>
+                                                                            <Input
+                                                                                id="member_record_spouse_name"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberApplicationProfile?.spouse_name ??
+                                                                                    ''
+                                                                                }
+                                                                                name="spouse_name"
+                                                                                placeholder="Spouse name"
+                                                                            />
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.spouse_name
+                                                                                }
+                                                                            />
+                                                                        </>
+                                                                    )}
+                                                                </div>
 
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.spouse_age
-                                                                            }
-                                                                        />
-                                                                    </div>
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="spouse_age">
+                                                                        Spouse
+                                                                        age
+                                                                    </Label>
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="spouse_cell_no">
-                                                                            Spouse
-                                                                            cell
-                                                                            no.
-                                                                        </Label>
+                                                                    <Input
+                                                                        id="spouse_age"
+                                                                        type="number"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.spouse_age ??
+                                                                            ''
+                                                                        }
+                                                                        name="spouse_age"
+                                                                        inputMode="numeric"
+                                                                        min={0}
+                                                                        placeholder="Age"
+                                                                    />
 
-                                                                        <Input
-                                                                            id="spouse_cell_no"
-                                                                            type="tel"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.spouse_cell_no ??
-                                                                                ''
-                                                                            }
-                                                                            name="spouse_cell_no"
-                                                                            inputMode="numeric"
-                                                                            maxLength={
-                                                                                11
-                                                                            }
-                                                                            placeholder="09XXXXXXXXX"
-                                                                            onChange={
-                                                                                handleMobileNumberInput
-                                                                            }
-                                                                        />
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.spouse_age
+                                                                        }
+                                                                    />
+                                                                </div>
 
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.spouse_cell_no
-                                                                            }
-                                                                        />
-                                                                    </div>
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="spouse_cell_no">
+                                                                        Spouse
+                                                                        cell no.
+                                                                    </Label>
 
+                                                                    <Input
+                                                                        id="spouse_cell_no"
+                                                                        type="tel"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.spouse_cell_no ??
+                                                                            ''
+                                                                        }
+                                                                        name="spouse_cell_no"
+                                                                        inputMode="numeric"
+                                                                        maxLength={
+                                                                            11
+                                                                        }
+                                                                        placeholder="09XXXXXXXXX"
+                                                                        onChange={
+                                                                            handleMobileNumberInput
+                                                                        }
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.spouse_cell_no
+                                                                        }
+                                                                    />
                                                                 </div>
                                                             </div>
+                                                        </div>
                                                     </SurfaceCard>
                                                 </TabsContent>
                                             )}
@@ -2057,52 +2056,336 @@ export default function Profile({
                                                         className="space-y-6"
                                                     >
                                                         <div className="space-y-6">
-                                                                <div className="space-y-1">
-                                                                    <h3 className="text-base font-semibold">
-                                                                        Work
-                                                                        &amp;
-                                                                        Finances
-                                                                    </h3>
-                                                                    <p className="text-sm text-muted-foreground">
-                                                                        Keep
-                                                                        your
-                                                                        employment
-                                                                        and
-                                                                        income
-                                                                        details
-                                                                        up to
-                                                                        date.
-                                                                    </p>
+                                                            <div className="space-y-1">
+                                                                <h3 className="text-base font-semibold">
+                                                                    Work &amp;
+                                                                    Finances
+                                                                </h3>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    Keep your
+                                                                    employment
+                                                                    and income
+                                                                    details up
+                                                                    to date.
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="grid gap-4 md:grid-cols-2">
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employment_type">
+                                                                        Employment
+                                                                        type
+                                                                    </Label>
+
+                                                                    <Select
+                                                                        value={
+                                                                            employmentType ||
+                                                                            undefined
+                                                                        }
+                                                                        onValueChange={(
+                                                                            value,
+                                                                        ) => {
+                                                                            setEmploymentType(
+                                                                                value,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <SelectTrigger
+                                                                            id="employment_type"
+                                                                            className="mt-1 w-full"
+                                                                        >
+                                                                            <SelectValue placeholder="Select employment type" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {employmentTypeOptions.map(
+                                                                                (
+                                                                                    option,
+                                                                                ) => (
+                                                                                    <SelectItem
+                                                                                        key={
+                                                                                            option
+                                                                                        }
+                                                                                        value={
+                                                                                            option
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            option
+                                                                                        }
+                                                                                    </SelectItem>
+                                                                                ),
+                                                                            )}
+                                                                        </SelectContent>
+                                                                    </Select>
+
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="employment_type"
+                                                                        value={
+                                                                            employmentType
+                                                                        }
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employment_type
+                                                                        }
+                                                                    />
                                                                 </div>
 
-                                                                <div className="grid gap-4 md:grid-cols-2">
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employer_business_name">
+                                                                        Employer
+                                                                        or
+                                                                        business
+                                                                        name
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="employer_business_name"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.employer_business_name ??
+                                                                            ''
+                                                                        }
+                                                                        name="employer_business_name"
+                                                                        required={
+                                                                            !isPensioner
+                                                                        }
+                                                                        placeholder="Employer or business name"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_name
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                                <div className="grid gap-2 md:col-span-2">
+                                                                    <Label htmlFor="employer_business_address1">
+                                                                        Employer/Business
+                                                                        address
+                                                                        (street)
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="employer_business_address1"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            employerBusinessAddress1
+                                                                        }
+                                                                        name="employer_business_address1"
+                                                                        required
+                                                                        placeholder="Employer or business address"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address1
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employer_business_address2">
+                                                                        City/Municipality
+                                                                    </Label>
+
+                                                                    <LocationAutocompleteInput
+                                                                        id="employer_business_address2"
+                                                                        name="employer_business_address2"
+                                                                        search={
+                                                                            employerBusinessCitySearch
+                                                                        }
+                                                                        placeholder="Select city or municipality"
+                                                                        required
+                                                                        inputClassName="mt-1 block w-full"
+                                                                        loadingMessage="Searching city suggestions..."
+                                                                        errorMessage="City suggestions are temporarily unavailable."
+                                                                        onSelect={(
+                                                                            suggestion,
+                                                                        ) => {
+                                                                            if (
+                                                                                suggestion.province
+                                                                            ) {
+                                                                                employerBusinessProvinceSearch.setSelectedValue(
+                                                                                    suggestion.province,
+                                                                                );
+                                                                            }
+
+                                                                            void handleEmployerCitySelect(
+                                                                                suggestion.code,
+                                                                            );
+                                                                        }}
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address2
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employer_business_address3">
+                                                                        Province
+                                                                    </Label>
+
+                                                                    <LocationAutocompleteInput
+                                                                        id="employer_business_address3"
+                                                                        name="employer_business_address3"
+                                                                        search={
+                                                                            employerBusinessProvinceSearch
+                                                                        }
+                                                                        placeholder="Select province"
+                                                                        required
+                                                                        inputClassName="mt-1 block w-full"
+                                                                        loadingMessage="Searching province suggestions..."
+                                                                        errorMessage="Province suggestions are temporarily unavailable."
+                                                                        promptMessage="Type at least 2 characters to search provinces."
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address3
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employer_business_address_zip">
+                                                                        ZIP code
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="employer_business_address_zip"
+                                                                        className="mt-1 block w-full"
+                                                                        value={
+                                                                            employerBusinessAddressZipValue
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) =>
+                                                                            setEmployerBusinessAddressZipValue(
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        name="employer_business_address_zip"
+                                                                        inputMode="numeric"
+                                                                        autoComplete="postal-code"
+                                                                        placeholder="ZIP code"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address_zip
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="telephone_no">
+                                                                        Telephone
+                                                                        number
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="telephone_no"
+                                                                        type="tel"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            memberApplicationProfile?.telephone_no ??
+                                                                            ''
+                                                                        }
+                                                                        name="telephone_no"
+                                                                        placeholder="Telephone number"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.telephone_no
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="current_position">
+                                                                        Current
+                                                                        position
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="current_position"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isCurrentPositionFromWmaster &&
+                                                                                WMASTER_VALUE_CLASS,
+                                                                        )}
+                                                                        defaultValue={
+                                                                            resolvedCurrentPosition
+                                                                        }
+                                                                        name="current_position"
+                                                                        required={
+                                                                            !isPensioner
+                                                                        }
+                                                                        placeholder="Current position"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.current_position
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
                                                                     <div className="grid gap-2">
-                                                                        <Label htmlFor="employment_type">
-                                                                            Employment
-                                                                            type
+                                                                        <Label htmlFor="nature_of_business">
+                                                                            Nature
+                                                                            of
+                                                                            business
                                                                         </Label>
 
                                                                         <Select
                                                                             value={
-                                                                                employmentType ||
+                                                                                natureOfBusinessSelection ||
                                                                                 undefined
                                                                             }
                                                                             onValueChange={(
                                                                                 value,
                                                                             ) => {
-                                                                                setEmploymentType(
+                                                                                setNatureOfBusinessSelection(
                                                                                     value,
                                                                                 );
+
+                                                                                if (
+                                                                                    value !==
+                                                                                    NATURE_OF_BUSINESS_OTHER_VALUE
+                                                                                ) {
+                                                                                    setNatureOfBusinessOther(
+                                                                                        '',
+                                                                                    );
+                                                                                }
                                                                             }}
                                                                         >
                                                                             <SelectTrigger
-                                                                                id="employment_type"
+                                                                                id="nature_of_business"
                                                                                 className="mt-1 w-full"
                                                                             >
-                                                                                <SelectValue placeholder="Select employment type" />
+                                                                                <SelectValue placeholder="Select an industry" />
                                                                             </SelectTrigger>
                                                                             <SelectContent>
-                                                                                {employmentTypeOptions.map(
+                                                                                {NATURE_OF_BUSINESS_OPTIONS.map(
                                                                                     (
                                                                                         option,
                                                                                     ) => (
@@ -2125,459 +2408,175 @@ export default function Profile({
 
                                                                         <input
                                                                             type="hidden"
-                                                                            name="employment_type"
+                                                                            name="nature_of_business"
                                                                             value={
-                                                                                employmentType
+                                                                                resolvedNatureOfBusiness
                                                                             }
                                                                         />
 
                                                                         <InputError
                                                                             className="mt-2"
                                                                             message={
-                                                                                formErrors.employment_type
+                                                                                formErrors.nature_of_business
                                                                             }
                                                                         />
                                                                     </div>
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="employer_business_name">
-                                                                            Employer
-                                                                            or
-                                                                            business
-                                                                            name
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="employer_business_name"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.employer_business_name ??
-                                                                                ''
-                                                                            }
-                                                                            name="employer_business_name"
-                                                                            required={!isPensioner}
-                                                                            placeholder="Employer or business name"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.employer_business_name
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                    <div className="grid gap-2 md:col-span-2">
-                                                                        <Label htmlFor="employer_business_address1">
-                                                                            Employer/Business
-                                                                            address
-                                                                            (street)
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="employer_business_address1"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                employerBusinessAddress1
-                                                                            }
-                                                                            name="employer_business_address1"
-                                                                            required
-                                                                            placeholder="Employer or business address"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.employer_business_address1
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="employer_business_address2">
-                                                                            City/Municipality
-                                                                        </Label>
-
-                                                                        <LocationAutocompleteInput
-                                                                            id="employer_business_address2"
-                                                                            name="employer_business_address2"
-                                                                            search={
-                                                                                employerBusinessCitySearch
-                                                                            }
-                                                                            placeholder="Select city or municipality"
-                                                                            required
-                                                                            inputClassName="mt-1 block w-full"
-                                                                            loadingMessage="Searching city suggestions..."
-                                                                            errorMessage="City suggestions are temporarily unavailable."
-                                                                            onSelect={(
-                                                                                suggestion,
-                                                                            ) => {
-                                                                                if (
-                                                                                    suggestion.province
-                                                                                ) {
-                                                                                    employerBusinessProvinceSearch.setSelectedValue(
-                                                                                        suggestion.province,
-                                                                                    );
-                                                                                }
-
-                                                                                void handleEmployerCitySelect(
-                                                                                    suggestion.code,
-                                                                                );
-                                                                            }}
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.employer_business_address2
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="employer_business_address3">
-                                                                            Province
-                                                                        </Label>
-
-                                                                        <LocationAutocompleteInput
-                                                                            id="employer_business_address3"
-                                                                            name="employer_business_address3"
-                                                                            search={
-                                                                                employerBusinessProvinceSearch
-                                                                            }
-                                                                            placeholder="Select province"
-                                                                            required
-                                                                            inputClassName="mt-1 block w-full"
-                                                                            loadingMessage="Searching province suggestions..."
-                                                                            errorMessage="Province suggestions are temporarily unavailable."
-                                                                            promptMessage="Type at least 2 characters to search provinces."
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.employer_business_address3
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="employer_business_address_zip">
-                                                                            ZIP
-                                                                            code
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="employer_business_address_zip"
-                                                                            className="mt-1 block w-full"
-                                                                            value={
-                                                                                employerBusinessAddressZipValue
-                                                                            }
-                                                                            onChange={(
-                                                                                event,
-                                                                            ) =>
-                                                                                setEmployerBusinessAddressZipValue(
-                                                                                    event.target
-                                                                                        .value,
-                                                                                )
-                                                                            }
-                                                                            name="employer_business_address_zip"
-                                                                            inputMode="numeric"
-                                                                            autoComplete="postal-code"
-                                                                            placeholder="ZIP code"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.employer_business_address_zip
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="telephone_no">
-                                                                            Telephone
-                                                                            number
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="telephone_no"
-                                                                            type="tel"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                memberApplicationProfile?.telephone_no ??
-                                                                                ''
-                                                                            }
-                                                                            name="telephone_no"
-                                                                            placeholder="Telephone number"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.telephone_no
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="current_position">
-                                                                            Current
-                                                                            position
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="current_position"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                isCurrentPositionFromWmaster &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
-                                                                            defaultValue={
-                                                                                resolvedCurrentPosition
-                                                                            }
-                                                                            name="current_position"
-                                                                            required={!isPensioner}
-                                                                            placeholder="Current position"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.current_position
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                                                                    {natureOfBusinessSelection ===
+                                                                        NATURE_OF_BUSINESS_OTHER_VALUE && (
                                                                         <div className="grid gap-2">
-                                                                            <Label htmlFor="nature_of_business">
-                                                                                Nature
-                                                                                of
-                                                                                business
-                                                                            </Label>
-
-                                                                            <Select
-                                                                                value={
-                                                                                    natureOfBusinessSelection ||
-                                                                                    undefined
-                                                                                }
-                                                                                onValueChange={(
-                                                                                    value,
-                                                                                ) => {
-                                                                                    setNatureOfBusinessSelection(
-                                                                                        value,
-                                                                                    );
-
-                                                                                    if (
-                                                                                        value !==
-                                                                                        NATURE_OF_BUSINESS_OTHER_VALUE
-                                                                                    ) {
-                                                                                        setNatureOfBusinessOther(
-                                                                                            '',
-                                                                                        );
-                                                                                    }
-                                                                                }}
-                                                                            >
-                                                                                <SelectTrigger
-                                                                                    id="nature_of_business"
-                                                                                    className="mt-1 w-full"
-                                                                                >
-                                                                                    <SelectValue placeholder="Select an industry" />
-                                                                                </SelectTrigger>
-                                                                                <SelectContent>
-                                                                                    {NATURE_OF_BUSINESS_OPTIONS.map(
-                                                                                        (
-                                                                                            option,
-                                                                                        ) => (
-                                                                                            <SelectItem
-                                                                                                key={
-                                                                                                    option
-                                                                                                }
-                                                                                                value={
-                                                                                                    option
-                                                                                                }
-                                                                                            >
-                                                                                                {
-                                                                                                    option
-                                                                                                }
-                                                                                            </SelectItem>
-                                                                                        ),
-                                                                                    )}
-                                                                                </SelectContent>
-                                                                            </Select>
-
-                                                                            <input
-                                                                                type="hidden"
-                                                                                name="nature_of_business"
-                                                                                value={
-                                                                                    resolvedNatureOfBusiness
-                                                                                }
-                                                                            />
-
-                                                                            <InputError
-                                                                                className="mt-2"
-                                                                                message={
-                                                                                    formErrors.nature_of_business
-                                                                                }
-                                                                            />
-                                                                        </div>
-
-                                                                        {natureOfBusinessSelection ===
-                                                                            NATURE_OF_BUSINESS_OTHER_VALUE && (
-                                                                            <div className="grid gap-2">
-                                                                                <Label htmlFor="nature_of_business_other">
-                                                                                    Specify
-                                                                                    industry
-                                                                                </Label>
-
-                                                                                <Input
-                                                                                    id="nature_of_business_other"
-                                                                                    className="mt-1 block w-full"
-                                                                                    value={
-                                                                                        natureOfBusinessOther
-                                                                                    }
-                                                                                    name="nature_of_business_other"
-                                                                                    placeholder="Describe your industry"
-                                                                                    onChange={(
-                                                                                        event,
-                                                                                    ) => {
-                                                                                        setNatureOfBusinessOther(
-                                                                                            event
-                                                                                                .target
-                                                                                                .value,
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                            </div>
-                                                                        )}
-
-                                                                        <div className="grid gap-2 md:col-span-2">
-                                                                            <Label htmlFor="years_in_work_business">
-                                                                                Years
-                                                                                in
-                                                                                work
-                                                                                or
-                                                                                business
+                                                                            <Label htmlFor="nature_of_business_other">
+                                                                                Specify
+                                                                                industry
                                                                             </Label>
 
                                                                             <Input
-                                                                                id="years_in_work_business"
+                                                                                id="nature_of_business_other"
                                                                                 className="mt-1 block w-full"
-                                                                                defaultValue={
-                                                                                    memberApplicationProfile?.years_in_work_business ??
-                                                                                    ''
+                                                                                value={
+                                                                                    natureOfBusinessOther
                                                                                 }
-                                                                                name="years_in_work_business"
-                                                                                placeholder="e.g. 5 years"
-                                                                            />
-
-                                                                            <InputError
-                                                                                className="mt-2"
-                                                                                message={
-                                                                                    formErrors.years_in_work_business
-                                                                                }
+                                                                                name="nature_of_business_other"
+                                                                                placeholder="Describe your industry"
+                                                                                onChange={(
+                                                                                    event,
+                                                                                ) => {
+                                                                                    setNatureOfBusinessOther(
+                                                                                        event
+                                                                                            .target
+                                                                                            .value,
+                                                                                    );
+                                                                                }}
                                                                             />
                                                                         </div>
-                                                                    </div>
+                                                                    )}
 
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="gross_monthly_income">
-                                                                            Gross
-                                                                            monthly
-                                                                            income
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="years_in_work_business">
+                                                                            Years
+                                                                            in
+                                                                            work
+                                                                            or
+                                                                            business
                                                                         </Label>
 
-                                                                        <CurrencyInput
-                                                                            id="gross_monthly_income"
-                                                                            value={
-                                                                                grossMonthlyIncome
+                                                                        <Input
+                                                                            id="years_in_work_business"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                memberApplicationProfile?.years_in_work_business ??
+                                                                                ''
                                                                             }
-                                                                            onValueChange={
-                                                                                setGrossMonthlyIncome
-                                                                            }
-                                                                            required
-                                                                        />
-
-                                                                        <input
-                                                                            type="hidden"
-                                                                            name="gross_monthly_income"
-                                                                            value={
-                                                                                grossMonthlyIncome
-                                                                            }
+                                                                            name="years_in_work_business"
+                                                                            placeholder="e.g. 5 years"
                                                                         />
 
                                                                         <InputError
                                                                             className="mt-2"
                                                                             message={
-                                                                                formErrors.gross_monthly_income
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="payday">
-                                                                            Payday
-                                                                        </Label>
-
-                                                                        <Select
-                                                                            value={
-                                                                                paydaySelection ||
-                                                                                undefined
-                                                                            }
-                                                                            onValueChange={(
-                                                                                value,
-                                                                            ) => {
-                                                                                setPaydaySelection(
-                                                                                    value,
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            <SelectTrigger
-                                                                                id="payday"
-                                                                                className="mt-1 w-full"
-                                                                            >
-                                                                                <SelectValue placeholder="Select payday" />
-                                                                            </SelectTrigger>
-                                                                            <SelectContent>
-                                                                                {PAYDAY_OPTIONS.map(
-                                                                                    (
-                                                                                        option,
-                                                                                    ) => (
-                                                                                        <SelectItem
-                                                                                            key={
-                                                                                                option
-                                                                                            }
-                                                                                            value={
-                                                                                                option
-                                                                                            }
-                                                                                        >
-                                                                                            {
-                                                                                                option
-                                                                                            }
-                                                                                        </SelectItem>
-                                                                                    ),
-                                                                                )}
-                                                                            </SelectContent>
-                                                                        </Select>
-
-                                                                        <input
-                                                                            type="hidden"
-                                                                            name="payday"
-                                                                            value={
-                                                                                paydaySelection
-                                                                            }
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.payday
+                                                                                formErrors.years_in_work_business
                                                                             }
                                                                         />
                                                                     </div>
                                                                 </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="gross_monthly_income">
+                                                                        Gross
+                                                                        monthly
+                                                                        income
+                                                                    </Label>
+
+                                                                    <CurrencyInput
+                                                                        id="gross_monthly_income"
+                                                                        value={
+                                                                            grossMonthlyIncome
+                                                                        }
+                                                                        onValueChange={
+                                                                            setGrossMonthlyIncome
+                                                                        }
+                                                                        required
+                                                                    />
+
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="gross_monthly_income"
+                                                                        value={
+                                                                            grossMonthlyIncome
+                                                                        }
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.gross_monthly_income
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="payday">
+                                                                        Payday
+                                                                    </Label>
+
+                                                                    <Select
+                                                                        value={
+                                                                            paydaySelection ||
+                                                                            undefined
+                                                                        }
+                                                                        onValueChange={(
+                                                                            value,
+                                                                        ) => {
+                                                                            setPaydaySelection(
+                                                                                value,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <SelectTrigger
+                                                                            id="payday"
+                                                                            className="mt-1 w-full"
+                                                                        >
+                                                                            <SelectValue placeholder="Select payday" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {PAYDAY_OPTIONS.map(
+                                                                                (
+                                                                                    option,
+                                                                                ) => (
+                                                                                    <SelectItem
+                                                                                        key={
+                                                                                            option
+                                                                                        }
+                                                                                        value={
+                                                                                            option
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            option
+                                                                                        }
+                                                                                    </SelectItem>
+                                                                                ),
+                                                                            )}
+                                                                        </SelectContent>
+                                                                    </Select>
+
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="payday"
+                                                                        value={
+                                                                            paydaySelection
+                                                                        }
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.payday
+                                                                        }
+                                                                    />
+                                                                </div>
                                                             </div>
+                                                        </div>
                                                     </SurfaceCard>
                                                 </TabsContent>
                                             )}
@@ -2600,16 +2599,20 @@ export default function Profile({
                                                                     Payout
                                                                 </h3>
                                                                 <p className="text-sm text-muted-foreground">
-                                                                    Keep your
-                                                                    payout bank
+                                                                    Bank name,
                                                                     account
-                                                                    details up
-                                                                    to date.
-                                                                    These are
-                                                                    used to
-                                                                    pre-fill
-                                                                    future loan
-                                                                    requests.
+                                                                    name,
+                                                                    account
+                                                                    number,
+                                                                    account
+                                                                    type, and
+                                                                    release
+                                                                    method are
+                                                                    required
+                                                                    before you
+                                                                    can start a
+                                                                    loan
+                                                                    request.
                                                                 </p>
                                                             </div>
 
@@ -2635,31 +2638,6 @@ export default function Profile({
                                                                         className="mt-2"
                                                                         message={
                                                                             formErrors.payout_bank_name
-                                                                        }
-                                                                    />
-                                                                </div>
-
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="payout_bank_branch">
-                                                                        Bank
-                                                                        branch
-                                                                    </Label>
-
-                                                                    <Input
-                                                                        id="payout_bank_branch"
-                                                                        className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            memberApplicationProfile?.payout_bank_branch ??
-                                                                            ''
-                                                                        }
-                                                                        name="payout_bank_branch"
-                                                                        placeholder="Bank branch"
-                                                                    />
-
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.payout_bank_branch
                                                                         }
                                                                     />
                                                                 </div>
@@ -2801,111 +2779,249 @@ export default function Profile({
                                                                     />
                                                                 </div>
 
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="payout_atm_number">
-                                                                        ATM
-                                                                        card
-                                                                        number
-                                                                    </Label>
+                                                                {releaseMethod ===
+                                                                'ATM' ? (
+                                                                    <>
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="payout_bank_branch">
+                                                                                Bank
+                                                                                branch
+                                                                            </Label>
 
-                                                                    <Input
-                                                                        id="payout_atm_number"
-                                                                        className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            memberApplicationProfile?.payout_atm_number ??
-                                                                            ''
-                                                                        }
-                                                                        name="payout_atm_number"
-                                                                        placeholder="ATM card number"
-                                                                    />
+                                                                            <Input
+                                                                                id="payout_bank_branch"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberApplicationProfile?.payout_bank_branch ??
+                                                                                    ''
+                                                                                }
+                                                                                name="payout_bank_branch"
+                                                                                placeholder="Bank branch"
+                                                                            />
 
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.payout_atm_number
-                                                                        }
-                                                                    />
-                                                                </div>
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.payout_bank_branch
+                                                                                }
+                                                                            />
+                                                                        </div>
 
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="payout_atm_holder_name">
-                                                                        ATM
-                                                                        card
-                                                                        holder
-                                                                        name{' '}
-                                                                        <span className="text-muted-foreground">
-                                                                            (if
-                                                                            not
-                                                                            you)
-                                                                        </span>
-                                                                    </Label>
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="payout_atm_number">
+                                                                                ATM
+                                                                                card
+                                                                                number
+                                                                            </Label>
 
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Checkbox
-                                                                            id="payout_atm_holder_name_is_own"
-                                                                            checked={
-                                                                                isOwnAtmCard
+                                                                            <Input
+                                                                                id="payout_atm_number"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberApplicationProfile?.payout_atm_number ??
+                                                                                    ''
+                                                                                }
+                                                                                name="payout_atm_number"
+                                                                                placeholder="ATM card number"
+                                                                            />
+
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.payout_atm_number
+                                                                                }
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="payout_atm_holder_name">
+                                                                                ATM
+                                                                                card
+                                                                                holder
+                                                                                name{' '}
+                                                                                <span className="text-muted-foreground">
+                                                                                    (if
+                                                                                    not
+                                                                                    you)
+                                                                                </span>
+                                                                            </Label>
+
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Checkbox
+                                                                                    id="payout_atm_holder_name_is_own"
+                                                                                    checked={
+                                                                                        isOwnAtmCard
+                                                                                    }
+                                                                                    onCheckedChange={(
+                                                                                        checked,
+                                                                                    ) => {
+                                                                                        const next =
+                                                                                            checked ===
+                                                                                            true;
+                                                                                        setIsOwnAtmCard(
+                                                                                            next,
+                                                                                        );
+                                                                                        setAtmHolderName(
+                                                                                            next
+                                                                                                ? memberDisplayName
+                                                                                                : '',
+                                                                                        );
+                                                                                    }}
+                                                                                />
+                                                                                <Label
+                                                                                    htmlFor="payout_atm_holder_name_is_own"
+                                                                                    className="text-sm font-normal"
+                                                                                >
+                                                                                    This
+                                                                                    is
+                                                                                    my
+                                                                                    own
+                                                                                    ATM
+                                                                                    card
+                                                                                </Label>
+                                                                            </div>
+
+                                                                            {!isOwnAtmCard ? (
+                                                                                <>
+                                                                                    <Input
+                                                                                        id="payout_atm_holder_name"
+                                                                                        className="mt-1 block w-full"
+                                                                                        value={
+                                                                                            atmHolderName
+                                                                                        }
+                                                                                        onChange={(
+                                                                                            event,
+                                                                                        ) =>
+                                                                                            setAtmHolderName(
+                                                                                                event
+                                                                                                    .target
+                                                                                                    .value,
+                                                                                            )
+                                                                                        }
+                                                                                        name="payout_atm_holder_name"
+                                                                                        placeholder="ATM card holder name"
+                                                                                    />
+
+                                                                                    <InputError
+                                                                                        className="mt-2"
+                                                                                        message={
+                                                                                            formErrors.payout_atm_holder_name
+                                                                                        }
+                                                                                    />
+                                                                                </>
+                                                                            ) : null}
+                                                                        </div>
+                                                                    </>
+                                                                ) : null}
+
+                                                                {releaseMethod ===
+                                                                'Bank Transfer' ? (
+                                                                    <>
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="release_uses_payout_account"
+                                                                            value={
+                                                                                useSameReleaseAccount
+                                                                                    ? '1'
+                                                                                    : '0'
                                                                             }
-                                                                            onCheckedChange={(
-                                                                                checked,
+                                                                        />
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="release_bank_name"
+                                                                            value={
+                                                                                releaseBankName
+                                                                            }
+                                                                        />
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="release_account_name"
+                                                                            value={
+                                                                                releaseAccountName
+                                                                            }
+                                                                        />
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="release_account_number"
+                                                                            value={
+                                                                                releaseAccountNumber
+                                                                            }
+                                                                        />
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="release_account_type"
+                                                                            value={
+                                                                                releaseAccountType
+                                                                            }
+                                                                        />
+                                                                        <ReleaseAccountFields
+                                                                            idPrefix="release_account"
+                                                                            useSameAccount={
+                                                                                useSameReleaseAccount
+                                                                            }
+                                                                            onToggleSameAccount={
+                                                                                setUseSameReleaseAccount
+                                                                            }
+                                                                            values={{
+                                                                                bank_name:
+                                                                                    releaseBankName,
+                                                                                account_name:
+                                                                                    releaseAccountName,
+                                                                                account_number:
+                                                                                    releaseAccountNumber,
+                                                                                account_type:
+                                                                                    releaseAccountType,
+                                                                            }}
+                                                                            errors={{
+                                                                                bank_name:
+                                                                                    formErrors.release_bank_name,
+                                                                                account_name:
+                                                                                    formErrors.release_account_name,
+                                                                                account_number:
+                                                                                    formErrors.release_account_number,
+                                                                                account_type:
+                                                                                    formErrors.release_account_type,
+                                                                            }}
+                                                                            onChange={(
+                                                                                field,
+                                                                                value,
                                                                             ) => {
-                                                                                const next =
-                                                                                    checked ===
-                                                                                    true;
-                                                                                setIsOwnAtmCard(
-                                                                                    next,
-                                                                                );
-                                                                                setAtmHolderName(
-                                                                                    next
-                                                                                        ? memberDisplayName
-                                                                                        : '',
-                                                                                );
+                                                                                if (
+                                                                                    field ===
+                                                                                    'bank_name'
+                                                                                )
+                                                                                    setReleaseBankName(
+                                                                                        value,
+                                                                                    );
+                                                                                if (
+                                                                                    field ===
+                                                                                    'account_name'
+                                                                                )
+                                                                                    setReleaseAccountName(
+                                                                                        value,
+                                                                                    );
+                                                                                if (
+                                                                                    field ===
+                                                                                    'account_number'
+                                                                                )
+                                                                                    setReleaseAccountNumber(
+                                                                                        value,
+                                                                                    );
+                                                                                if (
+                                                                                    field ===
+                                                                                    'account_type'
+                                                                                )
+                                                                                    setReleaseAccountType(
+                                                                                        value,
+                                                                                    );
                                                                             }}
                                                                         />
-                                                                        <Label
-                                                                            htmlFor="payout_atm_holder_name_is_own"
-                                                                            className="text-sm font-normal"
-                                                                        >
-                                                                            This
-                                                                            is
-                                                                            my
-                                                                            own
-                                                                            ATM
-                                                                            card
-                                                                        </Label>
-                                                                    </div>
-
-                                                                    <Input
-                                                                        id="payout_atm_holder_name"
-                                                                        className="mt-1 block w-full"
-                                                                        value={
-                                                                            atmHolderName
-                                                                        }
-                                                                        disabled={
-                                                                            isOwnAtmCard
-                                                                        }
-                                                                        onChange={(
-                                                                            event,
-                                                                        ) =>
-                                                                            setAtmHolderName(
-                                                                                event
-                                                                                    .target
-                                                                                    .value,
-                                                                            )
-                                                                        }
-                                                                        name="payout_atm_holder_name"
-                                                                        placeholder="ATM card holder name"
-                                                                    />
-
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.payout_atm_holder_name
-                                                                        }
-                                                                    />
-                                                                </div>
+                                                                    </>
+                                                                ) : null}
                                                             </div>
                                                         </div>
+
+                                                        <Separator />
 
                                                         <div className="space-y-6">
                                                             <div className="space-y-1">
@@ -2929,8 +3045,7 @@ export default function Profile({
                                                                     <Label htmlFor="source_of_fund_wealth">
                                                                         Source
                                                                         of fund
-                                                                        /
-                                                                        wealth
+                                                                        / wealth
                                                                     </Label>
 
                                                                     <Input
@@ -2955,8 +3070,7 @@ export default function Profile({
                                                                 <div className="grid gap-2">
                                                                     <Label htmlFor="id_type">
                                                                         Government
-                                                                        ID
-                                                                        type
+                                                                        ID type
                                                                     </Label>
 
                                                                     <Select
@@ -3062,7 +3176,7 @@ export default function Profile({
                                                                     </div>
                                                                 )}
 
-                                                                 <div className="grid gap-2">
+                                                                <div className="grid gap-2">
                                                                     <Label htmlFor="id_number">
                                                                         ID
                                                                         number
@@ -3089,6 +3203,8 @@ export default function Profile({
                                                             </div>
                                                         </div>
 
+                                                        <Separator />
+
                                                         <div className="space-y-6">
                                                             <div className="space-y-1">
                                                                 <h3 className="text-base font-semibold">
@@ -3096,9 +3212,8 @@ export default function Profile({
                                                                     details
                                                                 </h3>
                                                                 <p className="text-sm text-muted-foreground">
-                                                                    Required
-                                                                    for the
-                                                                    Generali
+                                                                    Required for
+                                                                    the Generali
                                                                     Health
                                                                     Statement.
                                                                 </p>
@@ -3123,7 +3238,7 @@ export default function Profile({
                                                                             placeholder="e.g. 165"
                                                                         />
 
-                                                                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                                                        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
                                                                             cm
                                                                         </span>
                                                                     </div>
@@ -3154,7 +3269,7 @@ export default function Profile({
                                                                             placeholder="e.g. 65"
                                                                         />
 
-                                                                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                                                                        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
                                                                             kg
                                                                         </span>
                                                                     </div>
@@ -3193,15 +3308,14 @@ export default function Profile({
                                                                     dependents'
                                                                     names and
                                                                     birthdates
-                                                                    up to
-                                                                    date.
+                                                                    up to date.
                                                                     These are
                                                                     used to
                                                                     pre-fill
                                                                     future loan
                                                                     requests.
-                                                                    Changes
-                                                                    here save
+                                                                    Changes here
+                                                                    save
                                                                     immediately.
                                                                 </p>
                                                             </div>
@@ -3274,9 +3388,7 @@ export default function Profile({
                                                             !previousTab
                                                         }
                                                         onClick={() => {
-                                                            if (
-                                                                !previousTab
-                                                            ) {
+                                                            if (!previousTab) {
                                                                 return;
                                                             }
 
@@ -3322,9 +3434,7 @@ export default function Profile({
                                                 </Button>
 
                                                 <Transition
-                                                    show={
-                                                        recentlySuccessful
-                                                    }
+                                                    show={recentlySuccessful}
                                                     enter="transition ease-in-out"
                                                     enterFrom="opacity-0"
                                                     leave="transition ease-in-out"
@@ -3336,159 +3446,153 @@ export default function Profile({
                                                 </Transition>
                                             </div>
                                         </div>
-                                                </>
-                                            )}
-                                        </Form>
-                                    </div>
+                                    </>
+                                )}
+                            </Form>
+                        </div>
 
-                                    {!hasMemberAccess && (
-                                        <div className="space-y-6">
-                                            <Separator />
+                        {!hasMemberAccess && (
+                            <div className="space-y-6">
+                                <Separator />
 
-                                            <div className="space-y-1">
-                                                <h3 className="text-base font-semibold tracking-tight">
-                                                    Link your WIBS membership
-                                                </h3>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Already a WIBS member? Enter
-                                                    your WIBS account number to
-                                                    link your membership and gain
-                                                    member portal access. Your
-                                                    account number is created
-                                                    when you register as a member
-                                                    at the WIBS office — if you
-                                                    don&apos;t have one yet, set
-                                                    up your membership there
-                                                    first.
-                                                </p>
+                                <div className="space-y-1">
+                                    <h3 className="text-base font-semibold tracking-tight">
+                                        Link your WIBS membership
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Already a WIBS member? Enter your WIBS
+                                        account number to link your membership
+                                        and gain member portal access. Your
+                                        account number is created when you
+                                        register as a member at the WIBS office
+                                        — if you don&apos;t have one yet, set up
+                                        your membership there first.
+                                    </p>
+                                </div>
+
+                                <Form
+                                    {...LinkMembershipController.store.form()}
+                                    options={{ preserveScroll: true }}
+                                    onSuccess={() => {
+                                        showSuccessToast(
+                                            'Membership linked — you now have member portal access.',
+                                            { id: 'link-membership' },
+                                        );
+                                    }}
+                                    onError={(formErrors) => {
+                                        showErrorToast(
+                                            formErrors,
+                                            adminToastCopy.error.updated(
+                                                'Membership link',
+                                            ),
+                                            { id: 'link-membership' },
+                                        );
+                                    }}
+                                    className="space-y-4"
+                                >
+                                    {({ processing, errors: linkErrors }) => (
+                                        <>
+                                            <div className="grid gap-4 md:grid-cols-2">
+                                                <div className="grid gap-2 md:col-span-2">
+                                                    <Label htmlFor="link_accntno">
+                                                        WIBS account number
+                                                    </Label>
+                                                    <Input
+                                                        id="link_accntno"
+                                                        name="accntno"
+                                                        className="mt-1 block w-full"
+                                                        placeholder="e.g. 003001"
+                                                        autoComplete="off"
+                                                    />
+                                                    <InputError
+                                                        className="mt-2"
+                                                        message={
+                                                            linkErrors.accntno
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="link_last_name">
+                                                        Last name
+                                                    </Label>
+                                                    <Input
+                                                        id="link_last_name"
+                                                        name="last_name"
+                                                        className="mt-1 block w-full"
+                                                        placeholder="Last name"
+                                                        autoComplete="family-name"
+                                                    />
+                                                    <InputError
+                                                        className="mt-2"
+                                                        message={
+                                                            linkErrors.last_name
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="link_first_name">
+                                                        First name
+                                                    </Label>
+                                                    <Input
+                                                        id="link_first_name"
+                                                        name="first_name"
+                                                        className="mt-1 block w-full"
+                                                        placeholder="First name"
+                                                        autoComplete="given-name"
+                                                    />
+                                                    <InputError
+                                                        className="mt-2"
+                                                        message={
+                                                            linkErrors.first_name
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="link_middle_initial">
+                                                        Middle initial{' '}
+                                                        <span className="text-muted-foreground">
+                                                            (optional)
+                                                        </span>
+                                                    </Label>
+                                                    <Input
+                                                        id="link_middle_initial"
+                                                        name="middle_initial"
+                                                        className="mt-1 block w-full"
+                                                        placeholder="M"
+                                                        maxLength={1}
+                                                        autoComplete="off"
+                                                    />
+                                                    <InputError
+                                                        className="mt-2"
+                                                        message={
+                                                            linkErrors.middle_initial
+                                                        }
+                                                    />
+                                                </div>
                                             </div>
 
-                                            <Form
-                                                {...LinkMembershipController.store.form()}
-                                                options={{ preserveScroll: true }}
-                                                onSuccess={() => {
-                                                    showSuccessToast(
-                                                        'Membership linked — you now have member portal access.',
-                                                        { id: 'link-membership' },
-                                                    );
-                                                }}
-                                                onError={(formErrors) => {
-                                                    showErrorToast(
-                                                        formErrors,
-                                                        adminToastCopy.error.updated(
-                                                            'Membership link',
-                                                        ),
-                                                        { id: 'link-membership' },
-                                                    );
-                                                }}
-                                                className="space-y-4"
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
                                             >
-                                                {({ processing, errors: linkErrors }) => (
-                                                    <>
-                                                        <div className="grid gap-4 md:grid-cols-2">
-                                                            <div className="grid gap-2 md:col-span-2">
-                                                                <Label htmlFor="link_accntno">
-                                                                    WIBS account
-                                                                    number
-                                                                </Label>
-                                                                <Input
-                                                                    id="link_accntno"
-                                                                    name="accntno"
-                                                                    className="mt-1 block w-full"
-                                                                    placeholder="e.g. 003001"
-                                                                    autoComplete="off"
-                                                                />
-                                                                <InputError
-                                                                    className="mt-2"
-                                                                    message={
-                                                                        linkErrors.accntno
-                                                                    }
-                                                                />
-                                                            </div>
-
-                                                            <div className="grid gap-2">
-                                                                <Label htmlFor="link_last_name">
-                                                                    Last name
-                                                                </Label>
-                                                                <Input
-                                                                    id="link_last_name"
-                                                                    name="last_name"
-                                                                    className="mt-1 block w-full"
-                                                                    placeholder="Last name"
-                                                                    autoComplete="family-name"
-                                                                />
-                                                                <InputError
-                                                                    className="mt-2"
-                                                                    message={
-                                                                        linkErrors.last_name
-                                                                    }
-                                                                />
-                                                            </div>
-
-                                                            <div className="grid gap-2">
-                                                                <Label htmlFor="link_first_name">
-                                                                    First name
-                                                                </Label>
-                                                                <Input
-                                                                    id="link_first_name"
-                                                                    name="first_name"
-                                                                    className="mt-1 block w-full"
-                                                                    placeholder="First name"
-                                                                    autoComplete="given-name"
-                                                                />
-                                                                <InputError
-                                                                    className="mt-2"
-                                                                    message={
-                                                                        linkErrors.first_name
-                                                                    }
-                                                                />
-                                                            </div>
-
-                                                            <div className="grid gap-2">
-                                                                <Label htmlFor="link_middle_initial">
-                                                                    Middle initial{' '}
-                                                                    <span className="text-muted-foreground">
-                                                                        (optional)
-                                                                    </span>
-                                                                </Label>
-                                                                <Input
-                                                                    id="link_middle_initial"
-                                                                    name="middle_initial"
-                                                                    className="mt-1 block w-full"
-                                                                    placeholder="M"
-                                                                    maxLength={1}
-                                                                    autoComplete="off"
-                                                                />
-                                                                <InputError
-                                                                    className="mt-2"
-                                                                    message={
-                                                                        linkErrors.middle_initial
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        <Button
-                                                            type="submit"
-                                                            disabled={processing}
-                                                        >
-                                                            Link membership
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </Form>
-                                        </div>
+                                                Link membership
+                                            </Button>
+                                        </>
                                     )}
+                                </Form>
+                            </div>
+                        )}
 
-                                    <ProfileImageCropModal
-                                        isOpen={showProfilePhotoCropModal}
-                                        onClose={handleProfilePhotoCropClose}
-                                        onSave={handleProfilePhotoCropSave}
-                                        imagePreviewUrl={
-                                            profilePhotoDraftPreview
-                                        }
-                                    />
-                                </section>
+                        <ProfileImageCropModal
+                            isOpen={showProfilePhotoCropModal}
+                            onClose={handleProfilePhotoCropClose}
+                            onSave={handleProfilePhotoCropSave}
+                            imagePreviewUrl={profilePhotoDraftPreview}
+                        />
+                    </section>
                 </SurfaceCard>
             </SettingsLayout>
         </AppLayout>

@@ -100,6 +100,8 @@ class LoanRequestStoreRequest extends FormRequest
         'gl_health_q17_with_other_companies',
         'gl_health_q17_with_other_companies_amount',
         'health_recent_hospitalization',
+        'applicant_pep_status',
+        'applicant_pep_status_details',
     ];
 
     private const HEALTH_GLAPI_BOOLEAN_KEYS = [
@@ -133,6 +135,7 @@ class LoanRequestStoreRequest extends FormRequest
         'gl_health_q17_with_glapi',
         'gl_health_q17_with_other_companies',
         'health_recent_hospitalization',
+        'applicant_pep_status',
     ];
 
     private const HEALTH_GLAPI_AMOUNT_KEYS = [
@@ -142,7 +145,9 @@ class LoanRequestStoreRequest extends FormRequest
 
     /**
      * Dependents (Form B) fixed slots: child x3, sibling x3, parent x2,
-     * extended x3. Never required on submit -- see LoanRequestDataService.
+     * extended x3. Names/birthdates/cycle numbers are never required on
+     * submit -- see LoanRequestDataService. Cycle status is conditionally
+     * required -- see cycleStatusRequiredRule().
      *
      * @var list<string>
      */
@@ -193,6 +198,8 @@ class LoanRequestStoreRequest extends FormRequest
         'dependent_extended_3_cycle_number',
         'dependent_spouse_cycle_status',
         'dependent_spouse_cycle_number',
+        'applicant_cycle_status',
+        'applicant_cycle_number',
     ];
 
     private const DEPENDENT_DATE_KEYS = [
@@ -222,6 +229,7 @@ class LoanRequestStoreRequest extends FormRequest
         'dependent_extended_2_cycle_status',
         'dependent_extended_3_cycle_status',
         'dependent_spouse_cycle_status',
+        'applicant_cycle_status',
     ];
 
     private const DEPENDENT_CYCLE_NUMBER_KEYS = [
@@ -237,6 +245,7 @@ class LoanRequestStoreRequest extends FormRequest
         'dependent_extended_2_cycle_number',
         'dependent_extended_3_cycle_number',
         'dependent_spouse_cycle_number',
+        'applicant_cycle_number',
     ];
 
     /**
@@ -256,7 +265,12 @@ class LoanRequestStoreRequest extends FormRequest
             }
 
             if (in_array($key, self::DEPENDENT_CYCLE_STATUS_KEYS, true)) {
-                $rules["dependents.{$key}"] = ['sometimes', 'nullable', 'string', Rule::in(['New', 'Old'])];
+                $rules["dependents.{$key}"] = [
+                    'nullable',
+                    'string',
+                    Rule::in(['New', 'Old']),
+                    ...$this->cycleStatusRequiredRule($key),
+                ];
 
                 continue;
             }
@@ -282,6 +296,30 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * Cycle status becomes required once the thing it describes is actually
+     * on the request: a dependent slot with a name filled in, a spouse when
+     * married, or the applicant unconditionally (shown unconditionally in
+     * the UI). Left optional otherwise so an empty/inapplicable slot doesn't
+     * block submission.
+     *
+     * @return array<int, ValidationRule|string>
+     */
+    private function cycleStatusRequiredRule(string $key): array
+    {
+        if ($key === 'applicant_cycle_status') {
+            return ['required'];
+        }
+
+        if ($key === 'dependent_spouse_cycle_status') {
+            return [Rule::requiredIf($this->input('applicant.civil_status') === 'Married')];
+        }
+
+        $nameKey = str_replace('_cycle_status', '_name', $key);
+
+        return [Rule::requiredIf(filled($this->input("dependents.{$nameKey}")))];
     }
 
     /**
@@ -368,16 +406,39 @@ class LoanRequestStoreRequest extends FormRequest
             'health.health_smoking_status' => ['required', 'string', Rule::in(['none', 'light', 'heavy'])],
             'health.health_hypertension' => ['required', 'boolean'],
             ...$this->healthGlapiRules(),
-            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name'],
+            'banking' => ['required', 'array:payout_bank_name,payout_account_name,payout_account_number,payout_account_type,release_method,payment_option,payout_atm_number,payout_bank_branch,payout_atm_holder_name,release_uses_payout_account,release_bank_name,release_account_name,release_account_number,release_account_type'],
             'banking.payout_bank_name' => ['required', 'string', 'max:255'],
             'banking.payout_account_name' => ['required', 'string', 'max:255'],
             'banking.payout_account_number' => ['required', 'string', 'max:255'],
             'banking.payout_account_type' => ['required', 'string', 'max:255'],
             'banking.release_method' => ['required', 'string', 'max:255', Rule::in(array_column(LoanReleaseMethod::cases(), 'value'))],
             'banking.payment_option' => ['required', 'string', 'max:255', Rule::in(array_column(LoanPaymentOption::cases(), 'value'))],
-            'banking.payout_atm_number' => ['nullable', 'string', 'max:255'],
+            'banking.payout_atm_number' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::Atm->value),
+                'nullable', 'string', 'max:255',
+            ],
             'banking.payout_bank_branch' => ['nullable', 'string', 'max:255'],
-            'banking.payout_atm_holder_name' => ['nullable', 'string', 'max:255'],
+            'banking.payout_atm_holder_name' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === LoanReleaseMethod::Atm->value),
+                'nullable', 'string', 'max:255',
+            ],
+            'banking.release_uses_payout_account' => ['nullable', 'boolean'],
+            'banking.release_bank_name' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
+                'nullable', 'string', 'max:255',
+            ],
+            'banking.release_account_name' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
+                'nullable', 'string', 'max:255',
+            ],
+            'banking.release_account_number' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
+                'nullable', 'string', 'max:255',
+            ],
+            'banking.release_account_type' => [
+                Rule::requiredIf(fn () => $this->input('banking.release_method') === 'Bank Transfer' && ! $this->boolean('banking.release_uses_payout_account', true)),
+                'nullable', 'string', 'max:255',
+            ],
             'barangay' => ['required', 'array:barangay_official_designation,barangay_agency_name,barangay_agency_address'],
             'barangay.barangay_official_designation' => ['nullable', 'string', 'max:255'],
             'barangay.barangay_agency_name' => ['nullable', 'string', 'max:255'],

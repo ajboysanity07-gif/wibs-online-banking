@@ -550,6 +550,10 @@ test('admin correction sends member notification', function () {
             'gross_monthly_income' => 22000,
             'payday' => '15th',
         ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
+            'dependent_spouse_cycle_status' => 'New',
+        ],
     ];
 
     $this
@@ -687,6 +691,10 @@ test('loan processor correcting an unassigned request becomes its assigned offic
                 'years_in_work_business' => '8 years',
                 'gross_monthly_income' => 22000,
                 'payday' => '15th',
+            ],
+            'dependents' => [
+                'applicant_cycle_status' => 'New',
+                'dependent_spouse_cycle_status' => 'New',
             ],
         ])
         ->assertOk();

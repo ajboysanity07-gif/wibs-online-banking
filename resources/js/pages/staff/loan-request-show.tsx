@@ -1,5 +1,5 @@
 ﻿import { Head, router, usePage } from '@inertiajs/react';
-import { Bell, HeartPulse } from 'lucide-react';
+import { Bell, CheckCircle2, Clock, HeartPulse } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { LoanRequestAuditTrail } from '@/components/loan-request/loan-request-audit-trail';
 import {
@@ -50,6 +50,7 @@ import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow'
 import AppLayout from '@/layouts/app-layout';
 import { adminApi } from '@/lib/api/admin';
 import { formatDate, formatDateTime } from '@/lib/formatters';
+import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import {
     approvedDocuments as requestsApprovedDocuments,
@@ -582,6 +583,13 @@ export default function StaffLoanRequestShow({
         'under_review',
         'needs_revision',
         'awaiting_member_information',
+        'recommended_for_approval',
+        'awaiting_member_acceptance',
+    ].includes(currentRequest.status ?? '');
+    const showProcessingSection = ![
+        'draft',
+        'pending_co_maker_signatures',
+        'submitted',
     ].includes(currentRequest.status ?? '');
     const showWibsTrackingSection =
         hasWorkflowPermission('loan.wibs_encode') &&
@@ -762,17 +770,45 @@ export default function StaffLoanRequestShow({
 
     const submitGenerateDocuments = async (
         documentKey?: LoanRequestDocumentKey,
+        silent = false,
     ) => {
-        await generateDocuments(
+        return generateDocuments(
             currentRequest.id,
             documentKey ? { document_key: documentKey } : {},
+            { silent },
         );
     };
 
     const submitGenerateSelectedDocuments = async (documentKeys: string[]) => {
+        let successCount = 0;
+        let failureCount = 0;
+
         for (const documentKey of documentKeys) {
-            await submitGenerateDocuments(
+            const result = await submitGenerateDocuments(
                 documentKey as LoanRequestDocumentKey,
+                true,
+            );
+
+            if (result) {
+                successCount += 1;
+            } else {
+                failureCount += 1;
+            }
+        }
+
+        if (failureCount === 0) {
+            showSuccessToast(
+                `Document generation completed (${successCount} of ${documentKeys.length}).`,
+            );
+        } else if (successCount === 0) {
+            showErrorToast(
+                null,
+                `Failed to generate ${failureCount} document${failureCount === 1 ? '' : 's'}.`,
+            );
+        } else {
+            showErrorToast(
+                null,
+                `Generated ${successCount} of ${documentKeys.length} documents; ${failureCount} failed.`,
             );
         }
     };
@@ -861,6 +897,7 @@ export default function StaffLoanRequestShow({
                   ].includes(status)
               ) {
                   return {
+                      tone: 'pending' as const,
                       title: 'Not ready for your review yet',
                       description: processorName
                           ? `${processorName} is currently reviewing this request.`
@@ -870,6 +907,7 @@ export default function StaffLoanRequestShow({
 
               if (status === 'recommended_for_approval') {
                   return {
+                      tone: 'ready' as const,
                       title: 'Ready for your decision',
                       description:
                           'Review the package below and Approve or Decline.',
@@ -882,14 +920,6 @@ export default function StaffLoanRequestShow({
 
     const actionsHeaderContent = (
         <>
-            {managerStageAlert ? (
-                <Alert className="border-primary/30 bg-primary/5">
-                    <AlertTitle>{managerStageAlert.title}</AlertTitle>
-                    <AlertDescription>
-                        {managerStageAlert.description}
-                    </AlertDescription>
-                </Alert>
-            ) : null}
             <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
                     Workflow:{' '}
@@ -1170,6 +1200,27 @@ export default function StaffLoanRequestShow({
                     loanStatus={currentRequest.applicant_loan_status}
                     className="mt-4"
                 />
+                {managerStageAlert ? (
+                    <Alert
+                        className={`mt-4 border-2 shadow-sm ${
+                            managerStageAlert.tone === 'ready'
+                                ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground'
+                                : 'border-amber-500/40 bg-amber-500/10 text-foreground'
+                        }`}
+                    >
+                        {managerStageAlert.tone === 'ready' ? (
+                            <CheckCircle2 className="size-4 text-emerald-700 dark:text-emerald-300" />
+                        ) : (
+                            <Clock className="size-4 text-amber-700 dark:text-amber-200" />
+                        )}
+                        <AlertTitle className="line-clamp-none text-base font-semibold">
+                            {managerStageAlert.title}
+                        </AlertTitle>
+                        <AlertDescription className="text-foreground/90">
+                            {managerStageAlert.description}
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
             </section>
             <section className="mx-auto mb-6 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -1181,7 +1232,7 @@ export default function StaffLoanRequestShow({
                             coMakerOne={currentCoMakerOne}
                             coMakerTwo={currentCoMakerTwo}
                         />
-                        {isProcessingStage ? (
+                        {showProcessingSection ? (
                             <ProcessingDetailsPanel
                                 loanRequest={currentRequest}
                                 applicant={currentApplicant}
@@ -1201,10 +1252,13 @@ export default function StaffLoanRequestShow({
                             canGenerateDocuments={canGenerateDocuments}
                             isProcessing={isWorkflowProcessing}
                             onGenerate={(documentKeys) =>
-                                void submitGenerateSelectedDocuments(
-                                    documentKeys,
-                                )
+                                submitGenerateSelectedDocuments(documentKeys)
                             }
+                            onRegenerate={async (documentKey) => {
+                                await submitGenerateDocuments(
+                                    documentKey as LoanRequestDocumentKey,
+                                );
+                            }}
                         />
                         {showWibsTrackingSection ? (
                             <Card className="border-border/30 bg-card/70 shadow-sm">
@@ -1447,16 +1501,18 @@ export default function StaffLoanRequestShow({
                             auditTrail={currentAuditTrail}
                             auditTrailAudience="staff"
                             workflow={{
-                                claim: canClaim
-                                    ? {
-                                          show: true,
-                                          isProcessing: isWorkflowProcessing,
-                                          onSubmit: () =>
-                                              claimLoanRequest(
-                                                  currentRequest.id,
-                                              ),
-                                      }
-                                    : undefined,
+                                claim:
+                                    canClaim && !canStartReview
+                                        ? {
+                                              show: true,
+                                              isProcessing:
+                                                  isWorkflowProcessing,
+                                              onSubmit: () =>
+                                                  claimLoanRequest(
+                                                      currentRequest.id,
+                                                  ),
+                                          }
+                                        : undefined,
                                 assign: canAssign
                                     ? {
                                           show: true,

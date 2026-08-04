@@ -210,7 +210,6 @@ type LoanRequestWorkflowProcessingUpdatePayload = {
     recommended_term?: number | string | null;
     recommended_interest_rate?: number | string | null;
     recommended_payment_frequency?: string | null;
-    recommendation_remarks?: string | null;
 };
 
 type LoanRequestRecommendationPreviewPayload = {

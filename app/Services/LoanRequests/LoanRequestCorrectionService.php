@@ -13,11 +13,30 @@ use Illuminate\Validation\ValidationException;
 
 class LoanRequestCorrectionService
 {
+    /**
+     * Data-section keys the correction dialog collects edits for. Each is an
+     * EAV section on LoanRequestDataService, not a LoanRequest/LoanRequestPerson
+     * column, so fillSubmittedDetails()/upsertPeopleSnapshots() never touch
+     * them -- they must be flattened and persisted separately via
+     * applyStaffUpdates(), the same mechanism the staff processing panel uses.
+     *
+     * @var list<string>
+     */
+    private const DATA_SECTION_KEYS = [
+        'insurance',
+        'health',
+        'health_glapi',
+        'banking',
+        'barangay',
+        'dependents',
+    ];
+
     public function __construct(
         private LoanRequestDecisionService $decisionService,
         private LoanRequestService $loanRequestService,
         private LoanRequestPayloadSerializer $serializer,
         private LoanRequestAssignmentService $assignmentService,
+        private LoanRequestDataService $dataService,
     ) {}
 
     /**
@@ -30,7 +49,13 @@ class LoanRequestCorrectionService
      *     availment_status: string,
      *     applicant: array<string, mixed>,
      *     co_maker_1: array<string, mixed>,
-     *     co_maker_2: array<string, mixed>
+     *     co_maker_2: array<string, mixed>,
+     *     insurance?: array<string, mixed>,
+     *     health?: array<string, mixed>,
+     *     health_glapi?: array<string, mixed>,
+     *     banking?: array<string, mixed>,
+     *     barangay?: array<string, mixed>,
+     *     dependents?: array<string, mixed>
      * }  $payload
      */
     public function correct(
@@ -67,12 +92,19 @@ class LoanRequestCorrectionService
                 $payload,
             );
 
+            $changedDataFields = $this->dataService->applyStaffUpdates(
+                $lockedLoanRequest,
+                $actor,
+                $this->flattenDataSectionUpdates($payload),
+                $payload['change_reason'],
+            );
+
             $updated = $lockedLoanRequest->refresh();
             $updated->load('people', 'reviewedBy');
             $after = $this->serializer->serializeDetail($updated);
             $changedFields = $this->detectChangedFields($before, $after);
 
-            if ($changedFields === []) {
+            if ($changedFields === [] && $changedDataFields === []) {
                 throw ValidationException::withMessages([
                     'correction' => 'Please change at least one field before saving the correction.',
                 ]);
@@ -85,7 +117,10 @@ class LoanRequestCorrectionService
                 'reason' => $payload['change_reason'],
                 'before_json' => $before,
                 'after_json' => $after,
-                'changed_fields_json' => $changedFields,
+                'changed_fields_json' => array_values(array_unique([
+                    ...$changedFields,
+                    ...$changedDataFields,
+                ])),
             ]);
 
             return $updated;
@@ -94,6 +129,36 @@ class LoanRequestCorrectionService
         $this->notifyMemberOfCorrection($updated, $actor);
 
         return $updated;
+    }
+
+    /**
+     * Flattens the payload's data-section arrays (insurance/health/etc, each
+     * keyed by field key) into the single flat field_key => value map
+     * applyStaffUpdates() expects. Fields absent from the payload are left
+     * untouched -- applyStaffUpdates() only ever changes keys it's given.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function flattenDataSectionUpdates(array $payload): array
+    {
+        $updates = [];
+
+        foreach (self::DATA_SECTION_KEYS as $sectionKey) {
+            $section = $payload[$sectionKey] ?? null;
+
+            if (! is_array($section)) {
+                continue;
+            }
+
+            foreach ($section as $fieldKey => $value) {
+                if (is_string($fieldKey)) {
+                    $updates[$fieldKey] = $value;
+                }
+            }
+        }
+
+        return $updates;
     }
 
     private function notifyMemberOfCorrection(LoanRequest $loanRequest, AppUser $actor): void

@@ -11,6 +11,7 @@ use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
 use App\Models\LoanRequestDataChange;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoanRequestProcessingService
@@ -37,12 +38,6 @@ class LoanRequestProcessingService
 
             $reason = trim((string) ($payload['reason'] ?? ''));
 
-            if ($reason === '') {
-                throw ValidationException::withMessages([
-                    'reason' => 'A reason is required for processing updates.',
-                ]);
-            }
-
             $before = $this->editableSnapshot($lockedLoanRequest);
             $fromStatus = $this->statusValue($lockedLoanRequest);
 
@@ -67,7 +62,6 @@ class LoanRequestProcessingService
                 'recommended_term',
                 'recommended_interest_rate',
                 'recommended_payment_frequency',
-                'recommendation_remarks',
             ] as $field) {
                 if (array_key_exists($field, $payload)) {
                     $lockedLoanRequest->setAttribute($field, $payload[$field]);
@@ -157,11 +151,15 @@ class LoanRequestProcessingService
                 $allChangedFields,
             );
 
+            $auditReason = $reason !== ''
+                ? $reason
+                : $this->summarizeChangedFields($allChangedFields);
+
             $this->recordAudit(
                 $lockedLoanRequest,
                 $actor,
                 LoanRequestChange::ACTION_PROCESSING_DETAILS_UPDATED,
-                $reason,
+                $auditReason,
                 $fromStatus,
                 $this->statusValue($lockedLoanRequest),
                 $allChangedFields,
@@ -172,6 +170,43 @@ class LoanRequestProcessingService
 
             return $lockedLoanRequest->refresh()->loadMissing('people', 'dataEntries');
         });
+    }
+
+    /**
+     * Builds a human-readable audit reason from changed field keys when the
+     * processor left the Remarks box blank -- one bullet per changed field,
+     * e.g. "Updated:\n- Recommended Term\n- Interest Rate". The audit trail
+     * renders this with whitespace-pre-wrap, so the bullets display as a
+     * list. Caps the listed labels so the summary stays within the audit
+     * column's length limit.
+     *
+     * @param  list<string>  $changedFields
+     */
+    private function summarizeChangedFields(array $changedFields): string
+    {
+        $maxLabels = 6;
+        $labels = array_map(
+            fn (string $fieldKey): string => $this->dataService->fieldLabel($fieldKey)
+                !== $fieldKey
+                ? $this->dataService->fieldLabel($fieldKey)
+                : Str::headline((string) Str::of($fieldKey)->afterLast('.')),
+            array_slice($changedFields, 0, $maxLabels),
+        );
+
+        $bullets = implode("\n", array_map(
+            fn (string $label): string => "- {$label}",
+            $labels,
+        ));
+
+        $summary = "Updated:\n{$bullets}";
+
+        $remaining = count($changedFields) - $maxLabels;
+
+        if ($remaining > 0) {
+            $summary .= "\n(+{$remaining} more)";
+        }
+
+        return Str::limit($summary, 1000, '');
     }
 
     /**
@@ -1095,7 +1130,6 @@ class LoanRequestProcessingService
                 'recommended_term' => $loanRequest->recommended_term,
                 'recommended_interest_rate' => $loanRequest->recommended_interest_rate,
                 'recommended_payment_frequency' => $loanRequest->recommended_payment_frequency,
-                'recommendation_remarks' => $loanRequest->recommendation_remarks,
             ],
             'applicant' => $loanRequest->people
                 ->firstWhere('role', \App\LoanRequestPersonRole::Applicant)?->toArray() ?? [],

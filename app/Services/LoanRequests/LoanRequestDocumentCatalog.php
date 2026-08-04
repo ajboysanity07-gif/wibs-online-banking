@@ -36,7 +36,6 @@ class LoanRequestDocumentCatalog
                 'loan_request.recommended_term',
                 'loan_request.recommended_interest_rate',
                 'loan_request.recommended_payment_frequency',
-                'loan_request.recommendation_remarks',
                 'loan_request.approved_amount',
                 'loan_request.approved_term',
                 'loan_request.approved_interest_rate',
@@ -110,6 +109,9 @@ class LoanRequestDocumentCatalog
                 'payout_account_number',
                 'payout_atm_number',
                 'payout_bank_branch',
+                'release_uses_payout_account',
+                'release_bank_name',
+                'release_account_number',
                 'guaranteed_net_take_home_pay',
             ],
             'source_paths' => [
@@ -516,9 +518,12 @@ class LoanRequestDocumentCatalog
             'requires_financials' => false,
         ],
         'generali_application_form' => [
-            'template_version' => 'generali-application-form-v1',
+            'template_version' => 'generali-application-form-v2',
             'applicability' => 'always',
-            'required_fields' => [],
+            'required_fields' => [
+                'applicant_pep_status',
+                'applicant_cycle_status',
+            ],
             'source_fields' => [
                 'beneficiary_primary_name',
                 'beneficiary_primary_relationship',

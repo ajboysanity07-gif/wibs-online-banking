@@ -244,7 +244,6 @@ class LoanRequestPayloadSerializer
             'recommended_term' => $loanRequest->recommended_term,
             'recommended_interest_rate' => $loanRequest->recommended_interest_rate,
             'recommended_payment_frequency' => $loanRequest->recommended_payment_frequency,
-            'recommendation_remarks' => $loanRequest->recommendation_remarks,
             'reviewed_by' => $this->serializeActor($loanRequest->reviewedBy),
             'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
             'review_decision' => $loanRequest->review_decision,

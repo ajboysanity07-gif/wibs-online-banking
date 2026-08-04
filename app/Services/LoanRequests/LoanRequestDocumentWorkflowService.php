@@ -62,6 +62,18 @@ class LoanRequestDocumentWorkflowService
      */
     private const REQUEST_GENERATION_LOCK_TTL_SECONDS = 120;
 
+    /**
+     * Requests submitted before this date are treated as "old records" for
+     * document-readiness purposes: their applicable documents are allowed to
+     * generate even when required data is incomplete (missing required fields,
+     * unconfirmed member fields, or unmet financial rules), because the member
+     * fills the gaps in by hand on the printed copy. Requests submitted on or
+     * after this date keep strict per-field gating. Intentionally separate from
+     * LoanRequestDocumentCatalog::LEGACY_DOCUMENT_EXEMPTION_CUTOFF, which
+     * instead marks pre-cutoff documents NotApplicable entirely.
+     */
+    private const DOCUMENT_DATA_RELAXATION_CUTOFF = '2026-08-04';
+
     public function __construct(
         private LoanRequestDataService $dataService,
         private ApprovedLoanDocumentService $approvedLoanDocumentService,
@@ -100,6 +112,8 @@ class LoanRequestDocumentWorkflowService
                     'source_version' => $document->source_version,
                     'blockers' => $document->failure_information_json['blockers'] ?? [],
                     'failure_message' => $document->failure_information_json['message'] ?? null,
+                    'is_relaxed_old_record' => (bool) ($document->metadata_json['relaxed_old_record'] ?? false),
+                    'manual_fill_fields' => $document->metadata_json['manual_fill_fields'] ?? [],
                 ];
             })
             ->values()
@@ -197,6 +211,8 @@ class LoanRequestDocumentWorkflowService
                         $documentKey,
                     ),
                     'workflow_version' => $this->workflowVersionValue($loanRequest),
+                    'relaxed_old_record' => (bool) ($state['relaxed_old_record'] ?? false),
+                    'manual_fill_fields' => $state['manual_fill_fields'] ?? [],
                 ],
             ];
         });
@@ -556,15 +572,63 @@ class LoanRequestDocumentWorkflowService
 
         $blockers = [];
         $memberActionNeeded = false;
+        $isRelaxedOldRecord = $this->isRelaxedOldRecord($loanRequest);
+
+        foreach ($this->documentCatalog->templateBlockers($documentKey) as $message) {
+            $blockers[] = $message;
+        }
+
+        if ($isRelaxedOldRecord) {
+            // Old records are allowed to generate documents even with
+            // incomplete data — the member fills the blanks in by hand on the
+            // printed copy. Only operational template blockers still apply.
+            // The still-missing fields are surfaced separately (not as
+            // blockers) so staff get a heads-up that they must be filled out
+            // manually by the member in person during release.
+            $manualFillFieldKeys = $this->missingRequiredFieldKeys(
+                $requiredFields,
+                $loanRequest,
+                $flatValues,
+            );
+            $manualFillFields = array_map(
+                fn (string $fieldKey): string => $this->fieldLabel($fieldKey),
+                $manualFillFieldKeys,
+            );
+            $blockers = array_values(array_unique(array_filter(
+                $blockers,
+                static fn (mixed $message): bool => is_string($message) && trim($message) !== '',
+            )));
+            $status = $blockers === []
+                ? LoanRequestDocumentReadinessStatus::ReadyToGenerate
+                : ($memberActionNeeded
+                    ? LoanRequestDocumentReadinessStatus::AwaitingMemberConfirmation
+                    : LoanRequestDocumentReadinessStatus::Incomplete);
+
+            return [
+                'is_applicable' => true,
+                'status' => $status,
+                'source_hash' => sha1(json_encode(
+                    $this->sourceHashPayload($loanRequest, $documentKey, $flatValues, true),
+                ) ?: $documentKey->value),
+                'failure_information' => $blockers === []
+                    ? null
+                    : [
+                        'message' => $memberActionNeeded
+                            ? 'Member confirmation is required before this document can be generated.'
+                            : 'Document data is incomplete.',
+                        'blockers' => $blockers,
+                    ],
+                'required_fields' => $requiredFields,
+                'relaxed_old_record' => true,
+                'manual_fill_fields' => array_values(array_unique($manualFillFields)),
+            ];
+        }
+
         $missingFields = $this->missingRequiredFieldKeys(
             $requiredFields,
             $loanRequest,
             $flatValues,
         );
-
-        foreach ($this->documentCatalog->templateBlockers($documentKey) as $message) {
-            $blockers[] = $message;
-        }
 
         foreach ($missingFields as $fieldKey) {
             $blockers[] = sprintf(
@@ -670,6 +734,12 @@ class LoanRequestDocumentWorkflowService
                     'payout_account_number' => $flatValues['payout_account_number'] ?? null,
                     'payout_account_type' => $flatValues['payout_account_type'] ?? null,
                     'payout_atm_number' => $flatValues['payout_atm_number'] ?? null,
+                    'payout_bank_branch' => $flatValues['payout_bank_branch'] ?? null,
+                    'release_uses_payout_account' => $flatValues['release_uses_payout_account'] ?? null,
+                    'release_bank_name' => $flatValues['release_bank_name'] ?? null,
+                    'release_account_name' => $flatValues['release_account_name'] ?? null,
+                    'release_account_number' => $flatValues['release_account_number'] ?? null,
+                    'release_account_type' => $flatValues['release_account_type'] ?? null,
                     'health_smoking_status' => $flatValues['health_smoking_status'] ?? null,
                     'health_hypertension' => $flatValues['health_hypertension'] ?? null,
                     'health_recent_hospitalization' => $flatValues['health_recent_hospitalization'] ?? null,
@@ -905,6 +975,14 @@ class LoanRequestDocumentWorkflowService
             $conditionalFields[] = 'beneficiary_secondary_birthdate';
         }
 
+        if (($flatValues['applicant_pep_status'] ?? null) === true) {
+            $conditionalFields[] = 'applicant_pep_status_details';
+        }
+
+        if (($flatValues['applicant_cycle_status'] ?? null) === 'Old') {
+            $conditionalFields[] = 'applicant_cycle_number';
+        }
+
         return array_values(array_unique($conditionalFields));
     }
 
@@ -1117,6 +1195,17 @@ class LoanRequestDocumentWorkflowService
         return $loanRequest->workflow_version instanceof LoanRequestWorkflowVersion
             ? $loanRequest->workflow_version->value
             : (string) ($loanRequest->workflow_version ?? LoanRequestWorkflowVersion::LegacyV1->value);
+    }
+
+    private function isRelaxedOldRecord(LoanRequest $loanRequest): bool
+    {
+        $referenceDate = $loanRequest->submitted_at ?? $loanRequest->created_at;
+
+        if ($referenceDate === null) {
+            return false;
+        }
+
+        return $referenceDate->lt(self::DOCUMENT_DATA_RELAXATION_CUTOFF);
     }
 
     /**

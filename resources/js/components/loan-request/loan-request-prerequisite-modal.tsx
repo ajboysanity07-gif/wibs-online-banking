@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { AtmHolderCheckboxField } from '@/components/loan-request/atm-holder-checkbox-field';
+import { ReleaseAccountFields } from '@/components/loan-request/release-account-fields';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -35,6 +37,11 @@ export type LoanPrerequisiteProfile = {
     payout_atm_number: string | null;
     payout_bank_branch: string | null;
     payout_atm_holder_name: string | null;
+    release_uses_payout_account: boolean | null;
+    release_bank_name: string | null;
+    release_account_name: string | null;
+    release_account_number: string | null;
+    release_account_type: string | null;
     source_of_fund_wealth: string | null;
     id_type: string | null;
     id_type_other: string | null;
@@ -54,6 +61,12 @@ const toFormState = (profile: LoanPrerequisiteProfile): FormState => ({
     payout_atm_number: profile.payout_atm_number ?? '',
     payout_bank_branch: profile.payout_bank_branch ?? '',
     payout_atm_holder_name: profile.payout_atm_holder_name ?? '',
+    release_uses_payout_account:
+        (profile.release_uses_payout_account ?? true) ? '1' : '0',
+    release_bank_name: profile.release_bank_name ?? '',
+    release_account_name: profile.release_account_name ?? '',
+    release_account_number: profile.release_account_number ?? '',
+    release_account_type: profile.release_account_type ?? '',
     source_of_fund_wealth: profile.source_of_fund_wealth ?? '',
     id_type: profile.id_type ?? '',
     id_type_other: profile.id_type_other ?? '',
@@ -65,12 +78,14 @@ const toFormState = (profile: LoanPrerequisiteProfile): FormState => ({
 type Props = {
     open: boolean;
     profile: LoanPrerequisiteProfile;
+    applicantFullName?: string;
     onSaved: (profile: LoanPrerequisiteProfile) => void;
 };
 
 export function LoanRequestPrerequisiteModal({
     open,
     profile,
+    applicantFullName,
     onSaved,
 }: Props) {
     const [data, setData] = useState<FormState>(() => toFormState(profile));
@@ -156,9 +171,7 @@ export function LoanRequestPrerequisiteModal({
                                         )
                                     }
                                 />
-                                <InputError
-                                    message={errors.payout_bank_name}
-                                />
+                                <InputError message={errors.payout_bank_name} />
                             </div>
 
                             <div className="grid gap-2">
@@ -247,6 +260,109 @@ export function LoanRequestPrerequisiteModal({
                                 </Select>
                                 <InputError message={errors.release_method} />
                             </div>
+
+                            {data.release_method === 'ATM' ? (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="prereq_payout_bank_branch">
+                                            Bank branch
+                                        </Label>
+                                        <Input
+                                            id="prereq_payout_bank_branch"
+                                            value={data.payout_bank_branch}
+                                            onChange={(event) =>
+                                                setField(
+                                                    'payout_bank_branch',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={errors.payout_bank_branch}
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="prereq_payout_atm_number">
+                                            ATM card number
+                                        </Label>
+                                        <Input
+                                            id="prereq_payout_atm_number"
+                                            placeholder="ATM card number"
+                                            value={data.payout_atm_number}
+                                            onChange={(event) =>
+                                                setField(
+                                                    'payout_atm_number',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={errors.payout_atm_number}
+                                        />
+                                    </div>
+
+                                    <AtmHolderCheckboxField
+                                        id="prereq_payout_atm_holder_name"
+                                        label="ATM card holder name"
+                                        value={data.payout_atm_holder_name}
+                                        applicantFullName={
+                                            applicantFullName ?? ''
+                                        }
+                                        error={errors.payout_atm_holder_name}
+                                        onChange={(value) =>
+                                            setField(
+                                                'payout_atm_holder_name',
+                                                value,
+                                            )
+                                        }
+                                    />
+                                </>
+                            ) : null}
+
+                            {data.release_method === 'Bank Transfer' ? (
+                                <ReleaseAccountFields
+                                    idPrefix="prereq_release_account"
+                                    useSameAccount={
+                                        data.release_uses_payout_account !== '0'
+                                    }
+                                    onToggleSameAccount={(useSameAccount) =>
+                                        setField(
+                                            'release_uses_payout_account',
+                                            useSameAccount ? '1' : '0',
+                                        )
+                                    }
+                                    values={{
+                                        bank_name: data.release_bank_name,
+                                        account_name: data.release_account_name,
+                                        account_number:
+                                            data.release_account_number,
+                                        account_type: data.release_account_type,
+                                    }}
+                                    errors={{
+                                        bank_name: errors.release_bank_name,
+                                        account_name:
+                                            errors.release_account_name,
+                                        account_number:
+                                            errors.release_account_number,
+                                        account_type:
+                                            errors.release_account_type,
+                                    }}
+                                    onChange={(field, value) => {
+                                        const fieldMap = {
+                                            bank_name: 'release_bank_name',
+                                            account_name:
+                                                'release_account_name',
+                                            account_number:
+                                                'release_account_number',
+                                            account_type:
+                                                'release_account_type',
+                                        } as const;
+
+                                        setField(fieldMap[field], value);
+                                    }}
+                                />
+                            ) : null}
                         </div>
                     </div>
 
@@ -372,7 +488,7 @@ export function LoanRequestPrerequisiteModal({
                                     />
                                     <span
                                         className={cn(
-                                            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground',
+                                            'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground',
                                         )}
                                     >
                                         cm
@@ -400,7 +516,7 @@ export function LoanRequestPrerequisiteModal({
                                     />
                                     <span
                                         className={cn(
-                                            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground',
+                                            'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground',
                                         )}
                                     >
                                         kg

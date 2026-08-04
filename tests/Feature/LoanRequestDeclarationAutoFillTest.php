@@ -229,7 +229,7 @@ test('most recent loan by date_rel lands in slot 1', function (): void {
         );
 });
 
-test('draft exists -> auto-fill is never applied', function (): void {
+test('draft exists -> declarations are still recomputed from account records', function (): void {
     createWlnmasterFeatureTable();
     $member = createAutoFillMember('000001');
 
@@ -252,7 +252,8 @@ test('draft exists -> auto-fill is never applied', function (): void {
         ->get(route('client.loan-requests.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('autoFilledDeclarations', [])
+            ->where('autoFilledDeclarations.declaration_existing_loans', true)
+            ->where('autoFilledDeclarations.declaration_pending_cases', false)
             ->where('draft.status', LoanRequestStatus::Draft->value)
         );
 });

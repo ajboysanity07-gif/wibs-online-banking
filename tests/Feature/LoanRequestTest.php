@@ -180,6 +180,10 @@ function validLoanRequestCorrectionPayload(array $overrides = []): array
             'gross_monthly_income' => 22000,
             'payday' => '15th',
         ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
+            'dependent_spouse_cycle_status' => 'New',
+        ],
     ];
 
     return array_replace_recursive($payload, $overrides);
@@ -226,6 +230,9 @@ function validLoanRequestMemberSectionPayload(array $overrides = []): array
             'declaration_pending_cases' => false,
             'declaration_truth_confirmation' => true,
             'declaration_data_privacy_consent' => true,
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
         ],
     ];
 
@@ -851,6 +858,89 @@ test('clients can save a loan request draft', function () {
         ->patch(route('client.loan-requests.draft'), $payload);
 
     expect(LoanRequest::query()->count())->toBe(1);
+});
+
+test('clients can save applicant PEP status and cycle status via the loan request draft', function () {
+    $user = User::factory()->create([
+        'acctno' => '000713',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Member, Loan',
+        'fname' => 'Loan',
+        'lname' => 'Member',
+        'birthday' => '1990-04-10',
+        'address' => 'Loan Street',
+        'civilstat' => 'Single',
+        'occupation' => 'Analyst',
+    ]);
+    MemberApplicationProfile::factory()->completed()->create([
+        'user_id' => $user->user_id,
+    ]);
+    DB::table('wlntype')->insert([
+        'typecode' => 'LN-004',
+        'lntype' => 'Personal',
+    ]);
+
+    $payload = [
+        'typecode' => 'LN-004',
+        'requested_amount' => 12000,
+        'requested_term' => 10,
+        'loan_purpose' => 'Home repair',
+        'availment_status' => 'New',
+        'health_glapi' => [
+            'applicant_pep_status' => true,
+            'applicant_pep_status_details' => 'Barangay Councilor, since 2020',
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'Old',
+            'applicant_cycle_number' => 3,
+        ],
+        'applicant' => [
+            'first_name' => 'Loan',
+            'last_name' => 'Member',
+            'birthdate' => '1990-04-10',
+            'birthplace_city' => 'Manila',
+            'birthplace_province' => 'Metro Manila',
+            'address1' => 'Loan Street',
+            'address2' => 'Manila',
+            'address3' => 'Metro Manila',
+            'length_of_stay' => '5 years',
+            'housing_status' => 'OWNED',
+            'cell_no' => '09123456789',
+            'civil_status' => 'Single',
+            'educational_attainment' => 'College',
+            'employment_type' => 'Private',
+            'employer_business_name' => 'Loan Company',
+            'employer_business_address1' => 'Loan City Center',
+            'employer_business_address2' => 'Manila',
+            'employer_business_address3' => 'Metro Manila',
+            'current_position' => 'Analyst',
+            'nature_of_business' => 'Finance',
+            'years_in_work_business' => '3 years',
+            'employer_date_employed' => '2018-03-15',
+            'gross_monthly_income' => 25000,
+            'payday' => '15th & 30th',
+        ],
+    ];
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('client.loan-requests.draft'), $payload);
+
+    $response->assertRedirect(route('client.loan-requests.create'));
+
+    $draft = LoanRequest::query()->first();
+    $flatValues = app(App\Services\LoanRequests\LoanRequestDataService::class)
+        ->loadFlatValues($draft);
+
+    expect($flatValues['applicant_pep_status'])->toBeTrue()
+        ->and($flatValues['applicant_pep_status_details'])->toBe('Barangay Councilor, since 2020')
+        ->and($flatValues['applicant_cycle_status'])->toBe('Old')
+        ->and((int) $flatValues['applicant_cycle_number'])->toBe(3);
 });
 
 test('loan request form resumes existing draft', function () {
@@ -2466,7 +2556,6 @@ test('admin loan request page exposes processing data sections needed to set rec
             'recommended_term' => 10,
             'recommended_interest_rate' => 1.5,
             'recommended_payment_frequency' => 'Monthly',
-            'recommendation_remarks' => 'Recommend approval after full review.',
         ])
         ->assertOk()
         ->assertJsonPath('data.loanRequest.recommended_amount', '24000.00');
@@ -2799,6 +2888,102 @@ test('admin can cancel a pending loan request before decision', function (LoanRe
     'submitted' => [LoanRequestStatus::Submitted],
     'legacy pending co-maker signatures' => [LoanRequestStatus::PendingCoMakerSignatures],
 ]);
+
+test('loan manager cannot cancel a request no loan processor has picked up yet', function () {
+    $manager = User::factory()->create([
+        'acctno' => '000622',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $manager->user_id,
+    ]);
+    Role::attachNamedRole($manager, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create([
+        'acctno' => '000623',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now()->subHour()->startOfSecond(),
+    ]);
+
+    $this
+        ->actingAs($manager)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Trying to cancel before processing.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('status');
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::PendingReview);
+    expect($loanRequest->cancelled_by)->toBeNull();
+});
+
+test('loan manager can cancel a request once a loan processor has started it', function () {
+    $manager = User::factory()->create([
+        'acctno' => '000624',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $manager->user_id,
+    ]);
+    Role::attachNamedRole($manager, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create([
+        'acctno' => '000625',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now()->subHour()->startOfSecond(),
+    ]);
+
+    $this
+        ->actingAs($manager)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Member asked to stop the application.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Cancelled->value);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
+    expect($loanRequest->cancelled_by)->toBe($manager->user_id);
+});
+
+test('loan processor can cancel a request even before another processor picks it up', function () {
+    $processor = User::factory()->create([
+        'acctno' => '000626',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $processor->user_id,
+    ]);
+    Role::attachNamedRole($processor, Role::LOAN_PROCESSOR);
+
+    $member = User::factory()->create([
+        'acctno' => '000627',
+    ]);
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::PendingReview,
+        'submitted_at' => now()->subHour()->startOfSecond(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson("/spa/admin/requests/{$loanRequest->id}/cancel", [
+            'cancellation_reason' => 'Duplicate application.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.loanRequest.status', LoanRequestStatus::Cancelled->value);
+
+    $loanRequest->refresh();
+
+    expect($loanRequest->status)->toBe(LoanRequestStatus::Cancelled);
+    expect($loanRequest->cancelled_by)->toBe($processor->user_id);
+});
 
 test('admin can cancel an approved loan request with a reason', function () {
     $reviewer = User::factory()->create([
@@ -3821,6 +4006,119 @@ test('admin can correct under review loan request details and people snapshots',
         'loanRequest.loan_purpose',
         'applicant.first_name',
     );
+});
+
+test('admin correction persists health, health_glapi, dependents, insurance, banking, and barangay edits', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000523',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create([
+        'acctno' => '000524',
+    ]);
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-OLD',
+        'loan_type_label_snapshot' => 'Old Loan',
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now()->subDay(),
+    ]);
+    createLoanRequestPeopleSnapshots($loanRequest);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/corrections",
+            validLoanRequestCorrectionPayload([
+                'insurance' => [
+                    'beneficiary_primary_name' => 'Corrected Beneficiary',
+                ],
+                'health' => [
+                    'health_smoking_status' => 'light',
+                    'health_hypertension' => true,
+                ],
+                'health_glapi' => [
+                    'applicant_pep_status' => true,
+                    'applicant_pep_status_details' => 'Barangay Councilor, since 2020',
+                ],
+                'banking' => [
+                    'payout_bank_name' => 'Corrected Bank',
+                ],
+                'barangay' => [
+                    'barangay_official_designation' => 'Councilor',
+                ],
+                'dependents' => [
+                    'applicant_cycle_status' => 'Old',
+                    'applicant_cycle_number' => 3,
+                ],
+            ]),
+        );
+
+    $response->assertOk();
+
+    $loanRequest->refresh();
+    $flatValues = app(App\Services\LoanRequests\LoanRequestDataService::class)
+        ->loadFlatValues($loanRequest);
+
+    expect($flatValues['beneficiary_primary_name'])->toBe('Corrected Beneficiary')
+        ->and($flatValues['health_smoking_status'])->toBe('light')
+        ->and($flatValues['health_hypertension'])->toBeTrue()
+        ->and($flatValues['applicant_pep_status'])->toBeTrue()
+        ->and($flatValues['applicant_pep_status_details'])->toBe('Barangay Councilor, since 2020')
+        ->and($flatValues['payout_bank_name'])->toBe('Corrected Bank')
+        ->and($flatValues['barangay_official_designation'])->toBe('Councilor')
+        ->and($flatValues['applicant_cycle_status'])->toBe('Old')
+        ->and((int) $flatValues['applicant_cycle_number'])->toBe(3);
+
+    $dataChanges = App\Models\LoanRequestDataChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->pluck('field_key');
+
+    expect($dataChanges)->toContain(
+        'beneficiary_primary_name',
+        'health_smoking_status',
+        'applicant_pep_status',
+        'payout_bank_name',
+        'applicant_cycle_status',
+    );
+});
+
+test('admin correction rejects health_glapi fields outside the narrowed PEP whitelist', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000525',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create([
+        'acctno' => '000526',
+    ]);
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'typecode' => 'LN-OLD',
+        'loan_type_label_snapshot' => 'Old Loan',
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now()->subDay(),
+    ]);
+    createLoanRequestPeopleSnapshots($loanRequest);
+
+    $response = $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$loanRequest->id}/corrections",
+            validLoanRequestCorrectionPayload([
+                'health_glapi' => [
+                    'gl_health_q01_weight_change' => true,
+                ],
+            ]),
+        );
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['health_glapi']);
 });
 
 test('non admins cannot correct loan requests', function () {

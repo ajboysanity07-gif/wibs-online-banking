@@ -71,7 +71,7 @@ class LoanRequestService
      *     dataSectionDefinitions: array<string, mixed>,
      *     insurancePrefilledFromProfile: bool,
      *     initialStep: int,
-     *     autoFilledDeclarations: array<string, bool|string|float|null>|\stdClass,
+     *     autoFilledDeclarations: array<string, bool|string|float|null>,
      *     draft: array{
      *         id: int,
      *         status: string,
@@ -98,9 +98,7 @@ class LoanRequestService
         $applicantReadOnly = $this->buildApplicantReadOnlyMap($user);
         $memberName = $this->resolveMemberName($user);
 
-        $autoFilledDeclarations = $draft === null
-            ? $this->declarationAutoFillService->getDeclarationData($user)
-            : (object) [];
+        $autoFilledDeclarations = $this->declarationAutoFillService->getDeclarationData($user);
 
         if ($draft !== null) {
             $draft->loadMissing('people');
@@ -494,6 +492,8 @@ class LoanRequestService
             );
             $loanRequest->save();
 
+            $payload = $this->applySystemDeclarations($user, $payload);
+
             $this->upsertPeopleSnapshots($loanRequest, $payload);
             $this->dataService->syncMemberSections($loanRequest, $payload);
 
@@ -571,6 +571,8 @@ class LoanRequestService
             );
             $loanRequest->workflow_version = LoanRequestWorkflowVersion::DocumentWorkflowV2;
             $loanRequest->save();
+
+            $payload = $this->applySystemDeclarations($user, $payload);
 
             $this->upsertPeopleSnapshots($loanRequest, $payload);
             $this->dataService->syncMemberSections($loanRequest, $payload);
@@ -1113,6 +1115,28 @@ class LoanRequestService
                 ]
                 : null,
         ];
+    }
+
+    /**
+     * Overrides the two declarations answers that are always system-derived
+     * (existing loans / pending cases) with fresh values, so the member's
+     * wizard cannot persist a different answer than the account records show.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function applySystemDeclarations(AppUser $user, array $payload): array
+    {
+        if (! is_array($payload['declarations'] ?? null)) {
+            return $payload;
+        }
+
+        $systemDeclarations = $this->declarationAutoFillService->getDeclarationData($user);
+
+        $payload['declarations']['declaration_existing_loans'] = $systemDeclarations['declaration_existing_loans'];
+        $payload['declarations']['declaration_pending_cases'] = $systemDeclarations['declaration_pending_cases'];
+
+        return $payload;
     }
 
     private function getActiveEditableRequest(AppUser $user): ?LoanRequest

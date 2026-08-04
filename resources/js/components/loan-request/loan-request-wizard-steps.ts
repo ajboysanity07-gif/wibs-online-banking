@@ -116,13 +116,14 @@ export const loanRequestWizardSteps: LoanRequestWizardStep[] = [
         id: 'insurance',
         title: 'Insurance & beneficiaries',
         description:
-            'Provide beneficiary details required for document generation.',
+            'Provide beneficiary details -- who receives the insurance payout -- required for document generation.',
         group: 'insurance-health',
     },
     {
         id: 'dependents',
         title: 'Dependents',
-        description: 'Add any dependents applicable to you (optional).',
+        description:
+            'Add dependents covered under your group life insurance plan (optional) -- separate from your beneficiaries above.',
         group: 'insurance-health',
     },
     {

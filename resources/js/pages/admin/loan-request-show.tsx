@@ -32,6 +32,7 @@ import { useLoanRequestWorkflow } from '@/hooks/admin/use-loan-request-workflow'
 import { useUpdateLoanRequestDecision } from '@/hooks/admin/use-update-loan-request-decision';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/formatters';
+import { showErrorToast, showSuccessToast } from '@/lib/toast';
 import {
     approvedDocuments as requestsApprovedDocuments,
     index as requestsIndex,
@@ -367,6 +368,13 @@ export default function LoanRequestShow({
         'under_review',
         'needs_revision',
         'awaiting_member_information',
+        'recommended_for_approval',
+        'awaiting_member_acceptance',
+    ].includes(currentRequest.status ?? '');
+    const showProcessingSection = ![
+        'draft',
+        'pending_co_maker_signatures',
+        'submitted',
     ].includes(currentRequest.status ?? '');
     const canGenerateDocuments = canUpdateProcessing;
     const canDecide =
@@ -425,6 +433,7 @@ export default function LoanRequestShow({
                   ].includes(status)
               ) {
                   return {
+                      tone: 'pending' as const,
                       title: 'Not ready for your review yet',
                       description: processorName
                           ? `${processorName} is currently reviewing this request.`
@@ -434,6 +443,7 @@ export default function LoanRequestShow({
 
               if (status === 'recommended_for_approval') {
                   return {
+                      tone: 'ready' as const,
                       title: 'Ready for your decision',
                       description:
                           'Review the package below and Approve or Decline.',
@@ -443,12 +453,6 @@ export default function LoanRequestShow({
               return null;
           })()
         : null;
-    const actionsPanelHeader = managerStageAlert ? (
-        <Alert className="border-primary/30 bg-primary/5">
-            <AlertTitle>{managerStageAlert.title}</AlertTitle>
-            <AlertDescription>{managerStageAlert.description}</AlertDescription>
-        </Alert>
-    ) : undefined;
     const canCorrect =
         currentRequest.status === 'under_review' && !decision.isOwnRequest;
     const requiresCorrectionBeforeApproval =
@@ -537,17 +541,45 @@ export default function LoanRequestShow({
 
     const submitGenerateDocuments = async (
         documentKey?: LoanRequestDocumentKey,
+        silent = false,
     ) => {
-        await generateDocuments(
+        return generateDocuments(
             currentRequest.id,
             documentKey ? { document_key: documentKey } : {},
+            { silent },
         );
     };
 
     const submitGenerateSelectedDocuments = async (documentKeys: string[]) => {
+        let successCount = 0;
+        let failureCount = 0;
+
         for (const documentKey of documentKeys) {
-            await submitGenerateDocuments(
+            const result = await submitGenerateDocuments(
                 documentKey as LoanRequestDocumentKey,
+                true,
+            );
+
+            if (result) {
+                successCount += 1;
+            } else {
+                failureCount += 1;
+            }
+        }
+
+        if (failureCount === 0) {
+            showSuccessToast(
+                `Document generation completed (${successCount} of ${documentKeys.length}).`,
+            );
+        } else if (successCount === 0) {
+            showErrorToast(
+                null,
+                `Failed to generate ${failureCount} document${failureCount === 1 ? '' : 's'}.`,
+            );
+        } else {
+            showErrorToast(
+                null,
+                `Generated ${successCount} of ${documentKeys.length} documents; ${failureCount} failed.`,
             );
         }
     };
@@ -766,9 +798,9 @@ export default function LoanRequestShow({
                 correctedRequestHref={correctedRequestHref}
                 auditTrail={currentAuditTrail}
                 auditTrailAudience="staff"
-                actionsPanelHeader={actionsPanelHeader}
+                stageAlert={managerStageAlert}
                 processingDetails={
-                    isProcessingStage ? (
+                    showProcessingSection ? (
                         <>
                             <ProcessingDetailsPanel
                                 loanRequest={currentRequest}
@@ -788,10 +820,15 @@ export default function LoanRequestShow({
                                 canGenerateDocuments={canGenerateDocuments}
                                 isProcessing={isWorkflowProcessing}
                                 onGenerate={(documentKeys) =>
-                                    void submitGenerateSelectedDocuments(
+                                    submitGenerateSelectedDocuments(
                                         documentKeys,
                                     )
                                 }
+                                onRegenerate={async (documentKey) => {
+                                    await submitGenerateDocuments(
+                                        documentKey as LoanRequestDocumentKey,
+                                    );
+                                }}
                             />
                         </>
                     ) : undefined
@@ -848,14 +885,15 @@ export default function LoanRequestShow({
                         }),
                 }}
                 workflow={{
-                    claim: canClaim
-                        ? {
-                              show: true,
-                              isProcessing: isWorkflowProcessing,
-                              onSubmit: () =>
-                                  claimLoanRequest(currentRequest.id),
-                          }
-                        : undefined,
+                    claim:
+                        canClaim && !canStartReview
+                            ? {
+                                  show: true,
+                                  isProcessing: isWorkflowProcessing,
+                                  onSubmit: () =>
+                                      claimLoanRequest(currentRequest.id),
+                              }
+                            : undefined,
                     assign: canAssign
                         ? {
                               show: true,

@@ -144,13 +144,15 @@ const WIZARD_STEPS: Array<LoanRequestWizardStep & { id: WizardStepId }> = [
     {
         id: 'insurance',
         title: 'Insurance & beneficiaries',
-        description: 'Review beneficiary details for document generation.',
+        description:
+            'Review beneficiary details -- who receives the insurance payout -- for document generation.',
         group: 'insurance',
     },
     {
         id: 'dependents',
         title: 'Dependents',
-        description: 'Review dependents on file for this applicant.',
+        description:
+            'Review dependents covered under the group life insurance plan -- separate from the beneficiaries above.',
         group: 'dependents',
     },
     {
@@ -162,7 +164,8 @@ const WIZARD_STEPS: Array<LoanRequestWizardStep & { id: WizardStepId }> = [
     {
         id: 'banking',
         title: 'Banking & payout',
-        description: 'Review bank account and payout details. Barangay info is optional.',
+        description:
+            'Review bank account and payout details. Barangay info is optional.',
         group: 'banking',
     },
     {
@@ -268,6 +271,10 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         health_smoking_status: 'Smoking status',
         health_hypertension: 'Hypertension',
     },
+    health_glapi: {
+        applicant_pep_status: 'Applicant is a Politically Exposed Person (PEP)',
+        applicant_pep_status_details: 'PEP role, function, and date assumed',
+    },
     banking: {
         payout_bank_name: 'Payout bank name',
         payout_account_name: 'Payout account name',
@@ -276,6 +283,11 @@ const dataSectionFieldLabels: Record<string, Record<string, string>> = {
         release_method: 'Release method',
         payment_option: 'Payment option',
         payout_atm_number: 'ATM number',
+        release_uses_payout_account: 'Releases funds to the payout account',
+        release_bank_name: 'Release bank name',
+        release_account_name: 'Release account name',
+        release_account_number: 'Release account number',
+        release_account_type: 'Release account type',
     },
     barangay: {
         barangay_official_designation: 'Barangay official designation',
@@ -307,7 +319,6 @@ const applicantRequiredFields: Array<keyof LoanRequestPersonFormData> = [
     'current_position',
     'nature_of_business',
     'years_in_work_business',
-    'employer_date_employed',
     'gross_monthly_income',
     'payday',
 ];
@@ -607,7 +618,7 @@ type ReportContextFieldProps = {
 const ReportContextField = ({ label, value }: ReportContextFieldProps) => (
     <div className="space-y-1.5">
         <p className={reportContextFieldTitleClassName}>{label}</p>
-        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/95">
+        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap text-foreground/95">
             {value}
         </p>
     </div>
@@ -662,7 +673,9 @@ const CorrectionReportContextCard = ({
             <div
                 className={cn(
                     'grid gap-3',
-                    showMeta ? 'lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]' : '',
+                    showMeta
+                        ? 'lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]'
+                        : '',
                 )}
             >
                 <div className="grid gap-3">
@@ -710,9 +723,8 @@ const humanizeFieldKey = (key: string): string =>
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
-const isBlank = (
-    value: string | boolean | null | undefined,
-): boolean => `${value ?? ''}`.trim() === '';
+const isBlank = (value: string | boolean | null | undefined): boolean =>
+    `${value ?? ''}`.trim() === '';
 
 const isDigits = (value: string, length: number): boolean =>
     new RegExp(`^\\d{${length}}$`).test(value.trim());
@@ -771,9 +783,7 @@ const formatChangeValue = (
     return trimmed;
 };
 
-const validateLoanDetails = (
-    data: CorrectionFormData,
-): ValidationErrors => {
+const validateLoanDetails = (data: CorrectionFormData): ValidationErrors => {
     const validationErrors: ValidationErrors = {};
 
     if (isBlank(data.typecode)) {
@@ -1053,9 +1063,17 @@ const validateStepData = (
                 },
             );
         case 'co_maker_1':
-            return validatePerson('co_maker_1', data.co_maker_1, coMakerRequiredFields);
+            return validatePerson(
+                'co_maker_1',
+                data.co_maker_1,
+                coMakerRequiredFields,
+            );
         case 'co_maker_2':
-            return validatePerson('co_maker_2', data.co_maker_2, coMakerRequiredFields);
+            return validatePerson(
+                'co_maker_2',
+                data.co_maker_2,
+                coMakerRequiredFields,
+            );
         case 'review':
             return validateChangeReason(data.change_reason);
         default:
@@ -1068,10 +1086,15 @@ const validateAllRequiredFields = (
 ): ValidationErrors => {
     return {
         ...validateLoanDetails(data),
-        ...validatePerson('applicant', data.applicant, applicantRequiredFields, {
-            validateChildren: true,
-            validateSpouse: true,
-        }),
+        ...validatePerson(
+            'applicant',
+            data.applicant,
+            applicantRequiredFields,
+            {
+                validateChildren: true,
+                validateSpouse: true,
+            },
+        ),
         ...validatePerson('co_maker_1', data.co_maker_1, coMakerRequiredFields),
         ...validatePerson('co_maker_2', data.co_maker_2, coMakerRequiredFields),
         ...validateChangeReason(data.change_reason),
@@ -1144,7 +1167,8 @@ function CorrectionDialogForm({
             loanRequest,
         ],
     );
-    const [formData, setFormData] = useState<CorrectionFormData>(initialFormData);
+    const [formData, setFormData] =
+        useState<CorrectionFormData>(initialFormData);
     const [clientErrors, setClientErrors] = useState<ValidationErrors>({});
 
     const availableLoanTypes = useMemo(() => {
@@ -1183,7 +1207,11 @@ function CorrectionDialogForm({
             changes.push({
                 field,
                 label: loanFieldLabels[field],
-                before: formatChangeValue(field, beforeValue, availableLoanTypes),
+                before: formatChangeValue(
+                    field,
+                    beforeValue,
+                    availableLoanTypes,
+                ),
                 after: formatChangeValue(field, afterValue, availableLoanTypes),
             });
 
@@ -1231,6 +1259,13 @@ function CorrectionDialogForm({
             initialFormData.health ?? {},
             formData.health,
             dataSectionFieldLabels.health,
+        );
+
+        const healthGlapiChanges = buildDataSectionChanges(
+            'health_glapi',
+            initialFormData.health_glapi ?? {},
+            formData.health_glapi,
+            dataSectionFieldLabels.health_glapi,
         );
 
         const bankingChanges = buildDataSectionChanges(
@@ -1313,7 +1348,7 @@ function CorrectionDialogForm({
                 id: 'health',
                 title: 'Health basic info',
                 description: 'Smoking status and hypertension.',
-                changes: healthChanges,
+                changes: [...healthChanges, ...healthGlapiChanges],
             },
             {
                 id: 'banking',
@@ -1348,6 +1383,26 @@ function CorrectionDialogForm({
     const mergedErrors = useMemo(
         () => ({ ...errors, ...clientErrors }),
         [clientErrors, errors],
+    );
+
+    // Correction is scoped to just the applicant's own PEP self-attestation --
+    // the other ~66 GLAPI health-questionnaire fields are member-only and have
+    // no editing surface here, mirroring how the 'health' section above is
+    // narrowed to smoking status/hypertension rather than exposing the full
+    // health questionnaire.
+    const pepDefinition = useMemo(
+        () => ({
+            label: dataSectionDefinitions.health_glapi?.label ?? 'GLAPI',
+            fields: {
+                applicant_pep_status:
+                    dataSectionDefinitions.health_glapi?.fields
+                        ?.applicant_pep_status,
+                applicant_pep_status_details:
+                    dataSectionDefinitions.health_glapi?.fields
+                        ?.applicant_pep_status_details,
+            },
+        }),
+        [dataSectionDefinitions.health_glapi],
     );
 
     const handleLoanDetailChange = (field: LoanDetailField, value: string) => {
@@ -1393,6 +1448,7 @@ function CorrectionDialogForm({
             sectionKey:
                 | 'insurance'
                 | 'health'
+                | 'health_glapi'
                 | 'banking'
                 | 'barangay'
                 | 'dependents',
@@ -1481,6 +1537,17 @@ function CorrectionDialogForm({
             applicant: formData.applicant,
             co_maker_1: formData.co_maker_1,
             co_maker_2: formData.co_maker_2,
+            insurance: formData.insurance,
+            dependents: formData.dependents,
+            health: formData.health,
+            health_glapi: {
+                applicant_pep_status:
+                    formData.health_glapi.applicant_pep_status,
+                applicant_pep_status_details:
+                    formData.health_glapi.applicant_pep_status_details,
+            },
+            banking: formData.banking,
+            barangay: formData.barangay,
             change_reason: formData.change_reason.trim(),
         });
     };
@@ -1504,13 +1571,12 @@ function CorrectionDialogForm({
                         <Info className="size-4" />
                         <AlertTitle>What you can correct here</AlertTitle>
                         <AlertDescription>
-                            This covers loan terms, applicant/co-maker
-                            profiles, insurance beneficiaries, basic health
-                            info, banking, and dependents. The full health
-                            questionnaire and the member&apos;s declarations
-                            are the member&apos;s own sworn statements — they
-                            can only be corrected by the member directly, not
-                            here.
+                            This covers loan terms, applicant/co-maker profiles,
+                            insurance beneficiaries, basic health info, banking,
+                            and dependents. The full health questionnaire and
+                            the member&apos;s declarations are the member&apos;s
+                            own sworn statements — they can only be corrected by
+                            the member directly, not here.
                         </AlertDescription>
                     </Alert>
 
@@ -1531,11 +1597,7 @@ function CorrectionDialogForm({
                 <div className="flex min-h-0 flex-1">
                     <LoanRequestWizardShell
                         currentStep={currentStep}
-                        onStepClick={(index) => {
-                            if (index <= currentStep) {
-                                moveToStep(index);
-                            }
-                        }}
+                        onStepClick={moveToStep}
                         steps={WIZARD_STEPS}
                         groupMeta={WIZARD_STEP_GROUP_META}
                         contentClassName="overflow-y-auto px-6 pt-5 pb-28 sm:px-7"
@@ -1580,7 +1642,17 @@ function CorrectionDialogForm({
                                         )}
                                     />
                                 </LoanRequestSectionCard>
-                                <LoanRequestSectionCard title="Applicant work & finances">
+                                <LoanRequestSectionCard
+                                    title="Applicant work & finances"
+                                    description={
+                                        isBlank(
+                                            formData.applicant
+                                                .employer_date_employed,
+                                        )
+                                            ? 'Date employed is optional — leave it blank if unknown for this request.'
+                                            : undefined
+                                    }
+                                >
                                     <LoanRequestWorkFields
                                         prefix="applicant"
                                         values={formData.applicant}
@@ -1656,7 +1728,7 @@ function CorrectionDialogForm({
                                 <LoanRequestInsuranceBeneficiariesStep
                                     sectionKey="insurance"
                                     title="Insurance and beneficiaries"
-                                    description="Review beneficiary details that will be used in loan documents."
+                                    description="Review beneficiary details -- who receives the insurance payout -- used in loan documents."
                                     values={formData.insurance}
                                     definition={
                                         dataSectionDefinitions.insurance
@@ -1676,7 +1748,7 @@ function CorrectionDialogForm({
                                 <LoanRequestDependentsStep
                                     sectionKey="dependents"
                                     title="Dependents"
-                                    description="Review dependents on file for this applicant."
+                                    description="Review dependents covered under the group life insurance plan -- separate from the beneficiaries above."
                                     values={formData.dependents}
                                     definition={
                                         dataSectionDefinitions.dependents
@@ -1707,6 +1779,15 @@ function CorrectionDialogForm({
                                     definition={dataSectionDefinitions.health}
                                     errors={mergedErrors}
                                     onChange={updateDataSection('health')}
+                                />
+                                <LoanRequestDataSectionStep
+                                    sectionKey="health_glapi"
+                                    title="Politically Exposed Person (PEP) status"
+                                    description="Applicant's self-attested PEP status for the Generali Individual Application Form."
+                                    values={formData.health_glapi}
+                                    definition={pepDefinition}
+                                    errors={mergedErrors}
+                                    onChange={updateDataSection('health_glapi')}
                                 />
                             </div>
                         </LoanRequestAnimatedStep>
@@ -1853,17 +1934,20 @@ function CorrectionDialogForm({
                                 >
                                     <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
                                         <div className="flex items-start gap-2">
-                                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+                                            <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-400" />
                                             <p className="text-xs text-muted-foreground">
                                                 Member declarations cannot be
-                                                modified by staff. These represent
-                                                the member's sworn statements.
+                                                modified by staff. These
+                                                represent the member's sworn
+                                                statements.
                                             </p>
                                         </div>
 
                                         <div className="mt-4 space-y-2 text-sm">
                                             <div className="flex items-center justify-between">
-                                                <span>Existing loans declared:</span>
+                                                <span>
+                                                    Existing loans declared:
+                                                </span>
                                                 <span className="font-medium">
                                                     {formData.declarations
                                                         .declaration_existing_loans
@@ -1872,7 +1956,9 @@ function CorrectionDialogForm({
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span>Pending cases declared:</span>
+                                                <span>
+                                                    Pending cases declared:
+                                                </span>
                                                 <span className="font-medium">
                                                     {formData.declarations
                                                         .declaration_pending_cases
@@ -1890,7 +1976,9 @@ function CorrectionDialogForm({
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span>Data privacy consent:</span>
+                                                <span>
+                                                    Data privacy consent:
+                                                </span>
                                                 <span className="font-medium">
                                                     {formData.declarations
                                                         .declaration_data_privacy_consent

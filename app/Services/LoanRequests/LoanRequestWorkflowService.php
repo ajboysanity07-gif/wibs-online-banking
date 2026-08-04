@@ -572,7 +572,6 @@ class LoanRequestWorkflowService
             'recommended_term' => $loanRequest->recommended_term,
             'recommended_interest_rate' => $loanRequest->recommended_interest_rate,
             'recommended_payment_frequency' => $loanRequest->recommended_payment_frequency,
-            'recommendation_remarks' => $loanRequest->recommendation_remarks,
             'reviewed_by' => $loanRequest->reviewed_by,
             'reviewed_at' => $loanRequest->reviewed_at?->toDateTimeString(),
             'review_decision' => $loanRequest->review_decision,
@@ -631,7 +630,6 @@ class LoanRequestWorkflowService
             'recommended_term' => 'Recommended term is required before recommendation.',
             'recommended_interest_rate' => 'Recommended interest rate is required before recommendation.',
             'recommended_payment_frequency' => 'Recommended payment frequency is required before recommendation.',
-            'recommendation_remarks' => 'Recommendation remarks are required before recommendation.',
         ] as $field => $message) {
             $value = $loanRequest->getAttribute($field);
 

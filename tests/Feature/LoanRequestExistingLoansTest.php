@@ -78,6 +78,34 @@ test('declarations section exposes the 3 existing-loan slots gated by declaratio
 test('draft endpoint persists the 3 existing-loan slots', function (): void {
     $member = createExistingLoansTestMember('003101');
 
+    // declaration_existing_loans is now always system-derived (see
+    // LoanRequestService::applySystemDeclarations), so this needs a real
+    // wlnmaster row for the flag to persist as true.
+    if (! Schema::hasTable('wlnmaster')) {
+        Schema::create('wlnmaster', function (Blueprint $table): void {
+            $table->string('acctno');
+            $table->string('lnnumber');
+            $table->string('lntype')->nullable();
+            $table->string('lnstatus')->nullable();
+            $table->decimal('principal', 15, 2)->nullable();
+            $table->decimal('balance', 15, 2)->nullable();
+            $table->date('date_rel')->nullable();
+            $table->date('date_mat')->nullable();
+            $table->date('lastmove')->nullable();
+        });
+    }
+
+    DB::table('wlnmaster')->insert([
+        'acctno' => '003101',
+        'lnnumber' => 'LN-003101',
+        'lntype' => 'Salary loan',
+        'lnstatus' => 'ACT',
+        'principal' => 15000.50,
+        'balance' => 8000,
+        'date_rel' => '2024-01-15',
+        'date_mat' => '2025-01-15',
+    ]);
+
     $loanRequest = LoanRequest::factory()->forUser($member)->create([
         'status' => LoanRequestStatus::Draft,
         'acctno' => $member->acctno,
@@ -125,6 +153,32 @@ test('save-draft rejects a non-numeric existing-loan amount', function (): void 
             ],
         ])
         ->assertUnprocessable();
+});
+
+test('save-draft ignores a client-submitted declaration_existing_loans that disagrees with account records', function (): void {
+    $member = createExistingLoansTestMember('003104');
+
+    // No wlnmaster row for this account -> system truth is false, even
+    // though the member's payload claims true.
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::Draft,
+        'acctno' => $member->acctno,
+    ]);
+
+    $this->actingAs($member)
+        ->patchJson(route('client.loan-requests.save-draft', $loanRequest), [
+            'declarations' => [
+                'declaration_existing_loans' => true,
+                'declaration_pending_cases' => true,
+            ],
+        ])
+        ->assertNoContent();
+
+    $values = collect($loanRequest->fresh()->dataEntries)
+        ->mapWithKeys(fn ($entry) => [$entry->field_key => $entry->value_json['value'] ?? null]);
+
+    expect($values->get('declaration_existing_loans'))->toBeFalse();
+    expect($values->get('declaration_pending_cases'))->toBeFalse();
 });
 
 test('declarations submit request rejects an unknown existing-loan key', function (): void {

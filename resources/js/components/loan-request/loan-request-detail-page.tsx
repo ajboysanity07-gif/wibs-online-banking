@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import type { LucideIcon } from 'lucide-react';
 import {
     Activity,
     Baby,
@@ -7,6 +8,7 @@ import {
     Building2,
     Calendar,
     CalendarDays,
+    CheckCircle2,
     ChevronDown,
     Clock,
     Download,
@@ -25,7 +27,6 @@ import {
     Wallet,
     Zap,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import {
     Fragment,
     useEffect,
@@ -102,6 +103,7 @@ type Props = {
     correction?: CorrectionProps;
     correctedCopy?: CorrectedCopyProps;
     workflow?: LoanRequestWorkflowProps;
+    stageAlert?: LoanRequestStageAlert | null;
     actionsPanelHeader?: ReactNode;
     processingDetails?: ReactNode;
     documentChecklistAvailable?: boolean;
@@ -109,6 +111,12 @@ type Props = {
     hideSummaryHeader?: boolean;
     hideMainColumn?: boolean;
     sidebarFooter?: ReactNode;
+};
+
+export type LoanRequestStageAlert = {
+    tone: 'pending' | 'ready';
+    title: string;
+    description: string;
 };
 
 type ApprovedDocumentHrefs = {
@@ -988,6 +996,7 @@ export function LoanRequestDetailPage({
     correction,
     correctedCopy,
     workflow,
+    stageAlert = null,
     actionsPanelHeader,
     processingDetails,
     documentChecklistAvailable = false,
@@ -1370,6 +1379,29 @@ export function LoanRequestDetailPage({
                     availmentStatus={availmentStatus}
                     loanPurpose={loanPurpose}
                 />
+            ) : null}
+
+            {stageAlert ? (
+                <Alert
+                    className={cn(
+                        'border-2 shadow-sm',
+                        stageAlert.tone === 'ready'
+                            ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground'
+                            : 'border-amber-500/40 bg-amber-500/10 text-foreground',
+                    )}
+                >
+                    {stageAlert.tone === 'ready' ? (
+                        <CheckCircle2 className="size-4 text-emerald-700 dark:text-emerald-300" />
+                    ) : (
+                        <Clock className="size-4 text-amber-700 dark:text-amber-200" />
+                    )}
+                    <AlertTitle className="line-clamp-none text-base font-semibold">
+                        {stageAlert.title}
+                    </AlertTitle>
+                    <AlertDescription className="text-foreground/90">
+                        {stageAlert.description}
+                    </AlertDescription>
+                </Alert>
             ) : null}
 
             {showCancelledNotice ? (

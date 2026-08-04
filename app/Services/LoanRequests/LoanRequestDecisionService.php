@@ -6,6 +6,7 @@ use App\LoanRequestStatus;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Models\LoanRequestChange;
+use App\Models\Permission;
 use App\Notifications\LoanRequestCancelledNotification;
 use App\Notifications\LoanRequestDecisionNotification;
 use App\Support\SchemaCapabilities;
@@ -139,8 +140,15 @@ class LoanRequestDecisionService
             return false;
         }
 
-        return $this->isApproved($loanRequest)
-            || $this->isPendingDecision($loanRequest);
+        if (! ($this->isApproved($loanRequest) || $this->isPendingDecision($loanRequest))) {
+            return false;
+        }
+
+        if ($this->isManagerOnlyActor($actor) && $this->isUnclaimedByProcessor($loanRequest)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function canMemberCancel(LoanRequest $loanRequest, AppUser $actor): bool
@@ -267,6 +275,12 @@ class LoanRequestDecisionService
             ]);
         }
 
+        if ($this->isManagerOnlyActor($actor) && $this->isUnclaimedByProcessor($loanRequest)) {
+            throw ValidationException::withMessages([
+                'status' => "This request hasn't been picked up by a loan processor yet. Only a loan processor can cancel it at this stage.",
+            ]);
+        }
+
         if ($this->isApproved($loanRequest)) {
             $this->ensureNoGeneratedLoanRecords($loanRequest);
         }
@@ -321,6 +335,34 @@ class LoanRequestDecisionService
     private function isApproved(LoanRequest $loanRequest): bool
     {
         return $this->statusValue($loanRequest) === LoanRequestStatus::Approved->value;
+    }
+
+    /**
+     * True while the request hasn't yet been claimed/processed by a loan
+     * processor (i.e. no processing stage has started).
+     */
+    private function isUnclaimedByProcessor(LoanRequest $loanRequest): bool
+    {
+        return in_array(
+            $this->statusValue($loanRequest),
+            [
+                LoanRequestStatus::PendingCoMakerSignatures->value,
+                LoanRequestStatus::Submitted->value,
+                LoanRequestStatus::PendingReview->value,
+            ],
+            true,
+        );
+    }
+
+    private function isManagerOnlyActor(AppUser $actor): bool
+    {
+        $isManager = $actor->hasPermission(Permission::LOAN_APPROVE)
+            || $actor->hasPermission(Permission::LOAN_DECLINE);
+
+        $isProcessor = $actor->hasPermission(Permission::LOAN_REVIEW)
+            || $actor->hasPermission(Permission::LOAN_CLAIM);
+
+        return $isManager && ! $isProcessor;
     }
 
     private function statusValue(LoanRequest $loanRequest): string

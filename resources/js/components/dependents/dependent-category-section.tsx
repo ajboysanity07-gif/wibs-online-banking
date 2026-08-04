@@ -1,11 +1,15 @@
+import { Baby, Heart, UserRound, UsersRound, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { ComponentType } from 'react';
 
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import type { LoanRequestDataSectionDefinition } from '@/types/loan-requests';
 
 export type DependentCategoryConfig = {
     key: string;
@@ -14,15 +18,27 @@ export type DependentCategoryConfig = {
     // Falls back to `${label}s` when omitted.
     pluralLabel?: string;
     cap: number;
+    icon: ComponentType<{ className?: string }>;
 };
 
 // Row caps are provisional -- see LoanRequestDataService::FIELD_DEFINITIONS
 // and MemberDependentProfile::CATEGORY_CAPS.
 export const DEPENDENT_CATEGORIES: DependentCategoryConfig[] = [
-    { key: 'child', label: 'Child', pluralLabel: 'Children', cap: 3 },
-    { key: 'sibling', label: 'Sibling', cap: 3 },
-    { key: 'parent', label: 'Parent', cap: 2 },
-    { key: 'extended', label: 'Extended family member', cap: 3 },
+    {
+        key: 'child',
+        label: 'Child',
+        pluralLabel: 'Children',
+        cap: 3,
+        icon: Baby,
+    },
+    { key: 'sibling', label: 'Sibling', cap: 3, icon: UserRound },
+    { key: 'parent', label: 'Parent', cap: 2, icon: Heart },
+    {
+        key: 'extended',
+        label: 'Extended family member',
+        cap: 3,
+        icon: UsersRound,
+    },
 ];
 
 export function dependentCategoryPluralLabel(
@@ -45,7 +61,7 @@ export type DependentSlotAttribute = (typeof DEPENDENT_SLOT_ATTRIBUTES)[number];
 const DEPENDENT_ATTRIBUTE_LABELS: Record<DependentSlotAttribute, string> = {
     name: 'Name',
     birthdate: 'Birthdate',
-    cycle_status: 'Insurance status',
+    cycle_status: 'Group life coverage status',
     cycle_number: 'Cycle number',
 };
 
@@ -92,7 +108,6 @@ function defaultSlotFieldLabel(attribute: DependentSlotAttribute): string {
 export function DependentCategorySection({
     category,
     values,
-    definition,
     errors,
     errorKeyPrefix = '',
     withNameAttribute = false,
@@ -101,7 +116,6 @@ export function DependentCategorySection({
 }: {
     category: DependentCategoryConfig;
     values: DependentValues;
-    definition?: LoanRequestDataSectionDefinition | null;
     errors: Record<string, string | undefined>;
     errorKeyPrefix?: string;
     withNameAttribute?: boolean;
@@ -132,15 +146,13 @@ export function DependentCategorySection({
         setVisibleSlots((current) => Math.max(1, current - 1));
     };
 
-    const renderTextField = (
-        slot: number,
-        attribute: 'name' | 'birthdate',
-    ) => {
+    const renderTextField = (slot: number, attribute: 'name' | 'birthdate') => {
         const fieldKey = slotFieldKey(category.key, slot, attribute);
-        const field = definition?.fields[fieldKey];
-        const label = field?.label ?? defaultSlotFieldLabel(attribute);
+        const label = defaultSlotFieldLabel(attribute);
         const type = attribute === 'birthdate' ? 'date' : 'text';
-        const errorKey = errorKeyPrefix ? `${errorKeyPrefix}.${fieldKey}` : fieldKey;
+        const errorKey = errorKeyPrefix
+            ? `${errorKeyPrefix}.${fieldKey}`
+            : fieldKey;
         const value = values[fieldKey];
 
         return (
@@ -165,40 +177,52 @@ export function DependentCategorySection({
     const renderCycleFields = (slot: number) => {
         const statusKey = slotFieldKey(category.key, slot, 'cycle_status');
         const numberKey = slotFieldKey(category.key, slot, 'cycle_number');
-        const statusField = definition?.fields[statusKey];
-        const numberField = definition?.fields[numberKey];
-        const statusLabel =
-            statusField?.label ?? defaultSlotFieldLabel('cycle_status');
-        const numberLabel =
-            numberField?.label ?? defaultSlotFieldLabel('cycle_number');
-        const statusErrorKey = errorKeyPrefix ? `${errorKeyPrefix}.${statusKey}` : statusKey;
-        const numberErrorKey = errorKeyPrefix ? `${errorKeyPrefix}.${numberKey}` : numberKey;
+        const statusLabel = defaultSlotFieldLabel('cycle_status');
+        const numberLabel = defaultSlotFieldLabel('cycle_number');
+        const statusErrorKey = errorKeyPrefix
+            ? `${errorKeyPrefix}.${statusKey}`
+            : statusKey;
+        const numberErrorKey = errorKeyPrefix
+            ? `${errorKeyPrefix}.${numberKey}`
+            : numberKey;
         const statusValue = values[statusKey];
         const numberValue = values[numberKey];
 
         return (
-            <div key={statusKey} className="grid gap-2">
-                <Label htmlFor={statusKey}>{statusLabel}</Label>
-                <p className="text-xs text-muted-foreground">
-                    {CYCLE_STATUS_HELP_TEXT}
-                </p>
+            <div
+                key={statusKey}
+                className="grid gap-3 rounded-md bg-muted/40 p-3"
+            >
+                <div className="grid gap-1.5">
+                    <Label htmlFor={statusKey}>{statusLabel}</Label>
+                    <p className="text-xs text-muted-foreground">
+                        {CYCLE_STATUS_HELP_TEXT}
+                    </p>
+                </div>
                 <ToggleGroup
                     id={statusKey}
                     type="single"
                     variant="outline"
                     value={statusValue ? `${statusValue}` : ''}
                     onValueChange={(nextValue: string) => {
-                        onChange(statusKey, nextValue === '' ? null : nextValue);
+                        onChange(
+                            statusKey,
+                            nextValue === '' ? null : nextValue,
+                        );
 
                         if (nextValue !== 'Old') {
                             onChange(numberKey, null);
                         }
                     }}
                     aria-label={statusLabel}
-                    className="w-fit"
+                    className="w-full"
                 >
-                    <ToggleGroupItem value="New">New</ToggleGroupItem>
-                    <ToggleGroupItem value="Old">Old</ToggleGroupItem>
+                    <ToggleGroupItem value="New" className="flex-1">
+                        New
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="Old" className="flex-1">
+                        Old
+                    </ToggleGroupItem>
                 </ToggleGroup>
                 {withNameAttribute ? (
                     // ToggleGroup renders plain buttons, not a native radio
@@ -214,7 +238,7 @@ export function DependentCategorySection({
                 <InputError message={errors[statusErrorKey]} />
 
                 {statusValue === 'Old' ? (
-                    <div className="grid gap-2 pt-2">
+                    <div className="grid animate-in gap-2 pt-1 duration-150 fade-in slide-in-from-top-1 sm:max-w-xs">
                         <Label htmlFor={numberKey}>{numberLabel}</Label>
                         <Input
                             id={numberKey}
@@ -222,7 +246,9 @@ export function DependentCategorySection({
                             type="number"
                             min={1}
                             value={numberValue ? `${numberValue}` : ''}
-                            onChange={(event) => onChange(numberKey, event.target.value)}
+                            onChange={(event) =>
+                                onChange(numberKey, event.target.value)
+                            }
                         />
                         <InputError message={errors[numberErrorKey]} />
                     </div>
@@ -235,47 +261,71 @@ export function DependentCategorySection({
         );
     };
 
+    const canRemoveSlot = (slot: number) => slot > 1 || visibleSlots > 1;
+
     const renderSlot = (slot: number) => {
         return (
-            <div
-                key={slot}
-                className="space-y-3 rounded-md border border-border/50 bg-muted/5 p-4"
-            >
-                <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">
-                        {category.label} {slot}
-                    </p>
-                    {slot > 1 || visibleSlots > 1 ? (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveSlot(slot)}
-                        >
-                            Remove
-                        </Button>
+            <Card key={slot} className="gap-3 py-4">
+                <CardContent className="space-y-3 px-4">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                            {category.label} {slot}
+                        </p>
+                        {canRemoveSlot(slot) ? (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleRemoveSlot(slot)}
+                                aria-label={`Remove ${category.label.toLowerCase()} ${slot}`}
+                            >
+                                <X className="size-4" />
+                            </Button>
+                        ) : null}
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {renderTextField(slot, 'name')}
+                        {renderTextField(slot, 'birthdate')}
+                    </div>
+                    {showCycleFields ? (
+                        <>
+                            <Separator />
+                            {renderCycleFields(slot)}
+                        </>
                     ) : null}
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                    {renderTextField(slot, 'name')}
-                    {renderTextField(slot, 'birthdate')}
-                    {showCycleFields ? renderCycleFields(slot) : null}
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         );
     };
 
+    const atCap = visibleSlots >= category.cap;
+    const Icon = category.icon;
+
     return (
         <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">
-                {dependentCategoryPluralLabel(category)}
-            </p>
-            <div className="space-y-3">
-                {Array.from({ length: visibleSlots }, (_, index) => index + 1).map(
-                    renderSlot,
-                )}
+            <div className="flex items-center gap-2">
+                <Icon className="size-4 text-muted-foreground" />
+                <p className="text-sm font-semibold text-foreground">
+                    {dependentCategoryPluralLabel(category)}
+                </p>
+                <Badge variant="secondary" className="font-normal">
+                    {visibleSlots} of {category.cap}
+                </Badge>
             </div>
-            {visibleSlots < category.cap ? (
+            <div className="space-y-3">
+                {Array.from(
+                    { length: visibleSlots },
+                    (_, index) => index + 1,
+                ).map(renderSlot)}
+            </div>
+            {atCap ? (
+                <p className="text-xs text-muted-foreground">
+                    Maximum of {category.cap}{' '}
+                    {dependentCategoryPluralLabel(category).toLowerCase()}{' '}
+                    reached.
+                </p>
+            ) : (
                 <Button
                     type="button"
                     variant="outline"
@@ -288,108 +338,164 @@ export function DependentCategorySection({
                 >
                     + Add another {category.label.toLowerCase()}
                 </Button>
-            ) : null}
+            )}
         </div>
     );
 }
 
 export const SPOUSE_CYCLE_STATUS_KEY = 'dependent_spouse_cycle_status';
 export const SPOUSE_CYCLE_NUMBER_KEY = 'dependent_spouse_cycle_number';
+export const APPLICANT_CYCLE_STATUS_KEY = 'applicant_cycle_status';
+export const APPLICANT_CYCLE_NUMBER_KEY = 'applicant_cycle_number';
 
 /**
- * Spouse New/Old + cycle number -- a singleton, not a repeatable-category
- * slot, so it gets its own small section rather than going through
- * DependentCategorySection. Same reveal-on-selection pattern: cycle number
- * only appears once "Old" is selected.
+ * New/Old + cycle number for a singleton (not a repeatable-category slot,
+ * e.g. Spouse or the Applicant themselves), so it gets its own small section
+ * rather than going through DependentCategorySection. Same reveal-on-selection
+ * pattern: cycle number only appears once "Old" is selected.
  */
-export function DependentSpouseCycleSection({
+export function SingletonCycleSection({
+    label,
+    statusKey,
+    numberKey,
     values,
-    definition,
     errors,
     errorKeyPrefix = '',
     withNameAttribute = false,
     onChange,
 }: {
+    label: string;
+    statusKey: string;
+    numberKey: string;
     values: DependentValues;
-    definition?: LoanRequestDataSectionDefinition | null;
     errors: Record<string, string | undefined>;
     errorKeyPrefix?: string;
     withNameAttribute?: boolean;
     onChange: (field: string, value: string | number | boolean | null) => void;
 }) {
-    const statusField = definition?.fields[SPOUSE_CYCLE_STATUS_KEY];
-    const numberField = definition?.fields[SPOUSE_CYCLE_NUMBER_KEY];
-    const statusLabel = statusField?.label ?? 'Insurance status';
-    const numberLabel = numberField?.label ?? 'Cycle number';
+    const statusLabel = 'Group life coverage status';
+    const numberLabel = 'Cycle number';
     const statusErrorKey = errorKeyPrefix
-        ? `${errorKeyPrefix}.${SPOUSE_CYCLE_STATUS_KEY}`
-        : SPOUSE_CYCLE_STATUS_KEY;
+        ? `${errorKeyPrefix}.${statusKey}`
+        : statusKey;
     const numberErrorKey = errorKeyPrefix
-        ? `${errorKeyPrefix}.${SPOUSE_CYCLE_NUMBER_KEY}`
-        : SPOUSE_CYCLE_NUMBER_KEY;
-    const statusValue = values[SPOUSE_CYCLE_STATUS_KEY];
-    const numberValue = values[SPOUSE_CYCLE_NUMBER_KEY];
+        ? `${errorKeyPrefix}.${numberKey}`
+        : numberKey;
+    const statusValue = values[statusKey];
+    const numberValue = values[numberKey];
 
     return (
         <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">Spouse</p>
-            <div className="space-y-3 rounded-md border border-border/50 bg-muted/5 p-4">
-                <div className="grid gap-2 sm:max-w-sm">
-                    <Label htmlFor={SPOUSE_CYCLE_STATUS_KEY}>{statusLabel}</Label>
-                    <p className="text-xs text-muted-foreground">
-                        {CYCLE_STATUS_HELP_TEXT}
-                    </p>
+            <div className="flex items-center gap-2">
+                <UserRound className="size-4 text-muted-foreground" />
+                <p className="text-sm font-semibold text-foreground">{label}</p>
+            </div>
+            <Card className="gap-3 py-4">
+                <CardContent className="grid gap-3 px-4">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor={statusKey}>{statusLabel}</Label>
+                        <p className="text-xs text-muted-foreground">
+                            {CYCLE_STATUS_HELP_TEXT}
+                        </p>
+                    </div>
                     <ToggleGroup
-                        id={SPOUSE_CYCLE_STATUS_KEY}
+                        id={statusKey}
                         type="single"
                         variant="outline"
                         value={statusValue ? `${statusValue}` : ''}
                         onValueChange={(nextValue: string) => {
                             onChange(
-                                SPOUSE_CYCLE_STATUS_KEY,
+                                statusKey,
                                 nextValue === '' ? null : nextValue,
                             );
 
                             if (nextValue !== 'Old') {
-                                onChange(SPOUSE_CYCLE_NUMBER_KEY, null);
+                                onChange(numberKey, null);
                             }
                         }}
                         aria-label={statusLabel}
-                        className="w-fit"
+                        className="w-full"
                     >
-                        <ToggleGroupItem value="New">New</ToggleGroupItem>
-                        <ToggleGroupItem value="Old">Old</ToggleGroupItem>
+                        <ToggleGroupItem value="New" className="flex-1">
+                            New
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="Old" className="flex-1">
+                            Old
+                        </ToggleGroupItem>
                     </ToggleGroup>
                     {withNameAttribute ? (
                         <input
                             type="hidden"
-                            name={SPOUSE_CYCLE_STATUS_KEY}
+                            name={statusKey}
                             value={statusValue ? `${statusValue}` : ''}
                         />
                     ) : null}
                     <InputError message={errors[statusErrorKey]} />
-                </div>
 
-                {statusValue === 'Old' ? (
-                    <div className="grid gap-2 sm:max-w-sm">
-                        <Label htmlFor={SPOUSE_CYCLE_NUMBER_KEY}>{numberLabel}</Label>
-                        <Input
-                            id={SPOUSE_CYCLE_NUMBER_KEY}
-                            name={withNameAttribute ? SPOUSE_CYCLE_NUMBER_KEY : undefined}
-                            type="number"
-                            min={1}
-                            value={numberValue ? `${numberValue}` : ''}
-                            onChange={(event) =>
-                                onChange(SPOUSE_CYCLE_NUMBER_KEY, event.target.value)
-                            }
-                        />
-                        <InputError message={errors[numberErrorKey]} />
-                    </div>
-                ) : withNameAttribute ? (
-                    <input type="hidden" name={SPOUSE_CYCLE_NUMBER_KEY} value="" />
-                ) : null}
-            </div>
+                    {statusValue === 'Old' ? (
+                        <div className="grid animate-in gap-2 duration-150 fade-in slide-in-from-top-1">
+                            <Label htmlFor={numberKey}>{numberLabel}</Label>
+                            <Input
+                                id={numberKey}
+                                name={withNameAttribute ? numberKey : undefined}
+                                type="number"
+                                min={1}
+                                value={numberValue ? `${numberValue}` : ''}
+                                onChange={(event) =>
+                                    onChange(numberKey, event.target.value)
+                                }
+                            />
+                            <InputError message={errors[numberErrorKey]} />
+                        </div>
+                    ) : withNameAttribute ? (
+                        <input type="hidden" name={numberKey} value="" />
+                    ) : null}
+                </CardContent>
+            </Card>
         </div>
+    );
+}
+
+/**
+ * Spouse New/Old + cycle number -- thin wrapper around SingletonCycleSection
+ * kept for existing call sites.
+ */
+export function DependentSpouseCycleSection(props: {
+    values: DependentValues;
+    errors: Record<string, string | undefined>;
+    errorKeyPrefix?: string;
+    withNameAttribute?: boolean;
+    onChange: (field: string, value: string | number | boolean | null) => void;
+}) {
+    return (
+        <SingletonCycleSection
+            {...props}
+            label="Spouse"
+            statusKey={SPOUSE_CYCLE_STATUS_KEY}
+            numberKey={SPOUSE_CYCLE_NUMBER_KEY}
+        />
+    );
+}
+
+/**
+ * Applicant's own New/Old + cycle number -- unconditional (unlike Spouse,
+ * which only applies when married), feeds the Generali Individual
+ * Application Form's cycle-status fields.
+ */
+export function ApplicantCycleSection(props: {
+    values: DependentValues;
+    errors: Record<string, string | undefined>;
+    errorKeyPrefix?: string;
+    withNameAttribute?: boolean;
+    onChange: (field: string, value: string | number | boolean | null) => void;
+}) {
+    return (
+        <SingletonCycleSection
+            {...props}
+            label="Applicant"
+            statusKey={APPLICANT_CYCLE_STATUS_KEY}
+            numberKey={APPLICANT_CYCLE_NUMBER_KEY}
+        />
     );
 }
 
@@ -424,7 +530,7 @@ export function summarizeDependents(
 
                 const cycleStatusLabel =
                     cycleStatus === 'Old' && cycleNumber
-                        ? `Old (cycle ${cycleNumber})`
+                        ? `Old · cycle ${cycleNumber}`
                         : cycleStatus
                           ? `${cycleStatus}`
                           : '';

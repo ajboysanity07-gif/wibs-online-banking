@@ -596,6 +596,27 @@ class LoanRequestDataService
             'type' => 'number',
             'detail_of' => 'gl_health_q17_with_other_companies',
         ],
+        // Generali Individual Application Form's own PEP question ("Are you a
+        // Politically Exposed Person?") -- distinct from gl_health_q16_relative_pep,
+        // which asks about a relative, not the applicant. Self-attested by the
+        // applicant like the other GLAPI health questions.
+        'applicant_pep_status' => [
+            'label' => 'Applicant is a Politically Exposed Person (PEP)',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'health_glapi',
+            'type' => 'boolean',
+        ],
+        'applicant_pep_status_details' => [
+            'label' => 'PEP role, function, and date assumed',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'health_glapi',
+            'type' => 'string',
+            'detail_of' => 'applicant_pep_status',
+        ],
 
         'payout_bank_name' => [
             'label' => 'Payout bank name',
@@ -663,6 +684,46 @@ class LoanRequestDataService
         ],
         'payout_atm_holder_name' => [
             'label' => 'ATM card holder name (if not the borrower)',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'release_uses_payout_account' => [
+            'label' => 'Releases funds to the payout account',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => false,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'boolean',
+        ],
+        'release_bank_name' => [
+            'label' => 'Release bank name',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'release_account_name' => [
+            'label' => 'Release account name',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'release_account_number' => [
+            'label' => 'Release account number',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'banking',
+            'type' => 'string',
+        ],
+        'release_account_type' => [
+            'label' => 'Release account type',
             'owner' => self::OWNER_MEMBER,
             'sensitive' => true,
             'required_on_submit' => false,
@@ -1070,52 +1131,18 @@ class LoanRequestDataService
             'section' => 'processing',
             'type' => 'date',
         ],
-        // Generali Individual Application Form's own PEP question ("Are you a
-        // Politically Exposed Person?") -- distinct from gl_health_q16_relative_pep,
-        // which asks about a relative, not the applicant. Staff-entered like the
-        // other one-off document fields above, since no wizard step collects it.
-        'applicant_pep_status' => [
-            'label' => 'Applicant is a Politically Exposed Person (PEP)',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'boolean',
-        ],
-        'applicant_pep_status_details' => [
-            'label' => 'PEP role, function, and date assumed',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-            'detail_of' => 'applicant_pep_status',
-        ],
-        'applicant_cycle_status' => [
-            'label' => 'Applicant enrollment cycle status',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'string',
-        ],
-        'applicant_cycle_number' => [
-            'label' => 'Applicant enrollment cycle number',
-            'owner' => self::OWNER_STAFF,
-            'sensitive' => false,
-            'required_on_submit' => false,
-            'section' => 'processing',
-            'type' => 'number',
-        ],
-
         // Dependents (Form B). Fixed slots per category rather than a truly
         // dynamic array because this EAV field system needs stable field
         // keys -- caps (child x3, sibling x3, parent x2, extended x3) are
-        // provisional. cycle_status ('New'|'Old', enforced by the form
-        // request) and cycle_number (required only when 'Old') mirror the
-        // physical form's per-entity cycle field, including for Spouse
-        // (a singleton, not a repeatable slot). Relationship and Occupation
-        // were removed: the physical form has no such columns for any
+        // provisional. cycle_status ('New'|'Old') is required once the slot
+        // it belongs to is actually in use (name filled in, or married for
+        // Spouse, or unconditionally for Applicant) and cycle_number is
+        // required only when 'Old' -- both enforced by
+        // LoanRequestStoreRequest, not reflected in required_on_submit below
+        // since that flag can't express "conditional". Mirrors the physical
+        // form's per-entity cycle field, including for Spouse (a singleton,
+        // not a repeatable slot). Relationship and Occupation were removed:
+        // the physical form has no such columns for any
         // dependent category.
         'dependent_child_1_name' => [
             'label' => 'Child 1 name',
@@ -1519,6 +1546,26 @@ class LoanRequestDataService
             'type' => 'number',
             'visible_when' => ['field' => 'applicant.civil_status', 'equals' => 'Married'],
         ],
+        // Applicant's own enrollment cycle -- same New/Old + cycle-number
+        // concept as the per-dependent cycle fields above, but for the
+        // applicant, and unconditional (unlike Spouse, which only applies
+        // when married). Feeds the Generali Individual Application Form.
+        'applicant_cycle_status' => [
+            'label' => 'Applicant cycle status',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => true,
+            'section' => 'dependents',
+            'type' => 'string',
+        ],
+        'applicant_cycle_number' => [
+            'label' => 'Applicant cycle number',
+            'owner' => self::OWNER_MEMBER,
+            'sensitive' => true,
+            'required_on_submit' => false,
+            'section' => 'dependents',
+            'type' => 'number',
+        ],
     ];
 
     /**
@@ -1747,12 +1794,6 @@ class LoanRequestDataService
     ): array {
         $normalizedReason = trim($reason);
 
-        if ($normalizedReason === '') {
-            throw ValidationException::withMessages([
-                'reason' => 'A reason is required for processing updates.',
-            ]);
-        }
-
         $changedFields = [];
 
         foreach ($updates as $fieldKey => $value) {
@@ -1769,10 +1810,22 @@ class LoanRequestDataService
                 continue;
             }
 
-            $confirmedByMember = $definition['sensitive'] ? false : ($entry?->confirmed_by_member ?? false);
-            $confirmedAt = $definition['sensitive']
-                ? null
-                : $entry?->confirmed_by_member_at;
+            // A sensitive field with no prior entry was never captured by the
+            // member's own submission (e.g. a field added after this request
+            // was already in flight) -- treat it as a legacy backfill and
+            // trust the staff-relayed answer. A sensitive field that already
+            // has an entry still requires the member to reconfirm any edit.
+            $isLegacyBackfill = $definition['sensitive'] && $entry === null;
+            $confirmedByMember = match (true) {
+                ! $definition['sensitive'] => $entry?->confirmed_by_member ?? false,
+                $isLegacyBackfill => true,
+                default => false,
+            };
+            $confirmedAt = match (true) {
+                ! $definition['sensitive'] => $entry?->confirmed_by_member_at,
+                $isLegacyBackfill => now(),
+                default => null,
+            };
 
             $entry = $this->persistField(
                 $loanRequest,
@@ -1789,7 +1842,9 @@ class LoanRequestDataService
                 'field_key' => $fieldKey,
                 'before_value_json' => ['value' => $before],
                 'after_value_json' => ['value' => $after],
-                'reason' => $normalizedReason,
+                'reason' => $normalizedReason !== ''
+                    ? $normalizedReason
+                    : 'Updated '.$definition['label'],
                 'information_source' => '',
                 'metadata_json' => [
                     'section' => $definition['section'],

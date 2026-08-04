@@ -34,7 +34,6 @@ import {
 import type { LoanRequestProcessingDetailsPayload } from '@/hooks/admin/use-loan-request-workflow';
 import { adminApi } from '@/lib/api/admin';
 import { formatCurrency } from '@/lib/formatters';
-import { showErrorToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import type {
     LoanManagerOption,
@@ -143,6 +142,48 @@ const withWitnessTwoAutoFill = (
     };
 };
 
+const SNAPSHOT_HIDDEN_FIELDS = new Set(['witness_two_id']);
+
+const SNAPSHOT_BARANGAY_FIELDS = [
+    'barangay_official_name',
+    'barangay_official_title',
+];
+
+const SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS = [
+    'authority_to_deduct_institution_name',
+    'authority_to_deduct_officer_1_name',
+    'authority_to_deduct_officer_1_title',
+    'authority_to_deduct_officer_2_name',
+    'authority_to_deduct_officer_2_title',
+    'authority_to_deduct_officers_unknown',
+];
+
+const SNAPSHOT_DEPED_FIELDS = [
+    'deped_school_id_number',
+    'deped_deduction_amount',
+];
+
+const SNAPSHOT_PENSION_FIELDS = [
+    'pension_provider',
+    'pension_bank_name',
+    'pension_atm_card_number',
+    'pension_deduction_amount',
+];
+
+const SNAPSHOT_ATM_FIELDS = [
+    'atm_salary_deduction_bank_name',
+    'atm_salary_deduction_card_number',
+    'atm_salary_deduction_amount',
+];
+
+const SNAPSHOT_GATED_FIELDS = new Set([
+    ...SNAPSHOT_BARANGAY_FIELDS,
+    ...SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS,
+    ...SNAPSHOT_DEPED_FIELDS,
+    ...SNAPSHOT_PENSION_FIELDS,
+    ...SNAPSHOT_ATM_FIELDS,
+]);
+
 const PROCESSING_CHARGE_DEFAULTS: Record<string, number> = {
     loan_security_rate: 0.02,
     savings_rate: 0.02,
@@ -160,7 +201,9 @@ const withProcessingChargeDefaults = (
     )) {
         const current = next[key];
         const isBlank =
-            current === null || current === undefined || `${current}`.trim() === '';
+            current === null ||
+            current === undefined ||
+            `${current}`.trim() === '';
 
         if (isBlank) {
             next = { ...next, [key]: defaultValue };
@@ -197,7 +240,6 @@ type InlineProcessingFormState = {
     recommended_term: string;
     recommended_interest_rate: string;
     recommended_payment_frequency: string;
-    recommendation_remarks: string;
     reason: string;
 };
 
@@ -261,7 +303,6 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
-            recommendation_remarks: loanRequest.recommendation_remarks ?? '',
             reason: '',
         });
     const [recommendationPreview, setRecommendationPreview] =
@@ -278,8 +319,7 @@ export function ProcessingDetailsPanel({
         typeof setTimeout
     > | null>(null);
     const officersUnknown =
-        processingForm.processing.authority_to_deduct_officers_unknown ===
-        true;
+        processingForm.processing.authority_to_deduct_officers_unknown === true;
 
     useEffect(() => {
         setProcessingForm({
@@ -299,7 +339,6 @@ export function ProcessingDetailsPanel({
             ),
             recommended_payment_frequency:
                 loanRequest.recommended_payment_frequency ?? '',
-            recommendation_remarks: loanRequest.recommendation_remarks ?? '',
             reason: '',
         });
         setShowSecondOfficer(
@@ -311,7 +350,6 @@ export function ProcessingDetailsPanel({
         loanManagers,
         loanRequest.assigned_processor,
         loanRequest.authority_to_deduct_guidance,
-        loanRequest.recommendation_remarks,
         loanRequest.recommended_amount,
         loanRequest.recommended_interest_rate,
         loanRequest.recommended_payment_frequency,
@@ -484,14 +522,6 @@ export function ProcessingDetailsPanel({
     ) => {
         event.preventDefault();
 
-        if (processingForm.reason.trim() === '') {
-            showErrorToast(
-                null,
-                'Remarks are required before saving processing details.',
-            );
-            return;
-        }
-
         const result = await updateProcessingDetails(loanRequest.id, {
             reason: processingForm.reason,
             loan_request: buildLoanRequestPassthrough(),
@@ -502,8 +532,6 @@ export function ProcessingDetailsPanel({
                 processingForm.recommended_interest_rate || null,
             recommended_payment_frequency:
                 processingForm.recommended_payment_frequency || null,
-            recommendation_remarks:
-                processingForm.recommendation_remarks || null,
         });
 
         if (result) {
@@ -519,6 +547,28 @@ export function ProcessingDetailsPanel({
         `${loanRequest.recommended_term}`.trim() !== ''
             ? `${loanRequest.recommended_term} months`
             : '—';
+
+    const renderSnapshotField = (fieldKey: string) => {
+        const field = dataSectionDefinitions.processing.fields[fieldKey];
+
+        if (!field) {
+            return null;
+        }
+
+        const value = processingForm.processing[fieldKey];
+        const display =
+            field.type === 'boolean'
+                ? value === true
+                    ? 'Yes'
+                    : value === false
+                      ? 'No'
+                      : '—'
+                : snapshotDisplay(value as string | number | null);
+
+        return (
+            <SnapshotRow key={fieldKey} label={field.label} value={display} />
+        );
+    };
 
     const renderProcessingSectionLabel = (
         title: string,
@@ -646,8 +696,7 @@ export function ProcessingDetailsPanel({
                     <Input
                         id={`inline_processing_${fieldKey}`}
                         type={
-                            field.type === 'number' ||
-                            field.type === 'integer'
+                            field.type === 'number' || field.type === 'integer'
                                 ? 'number'
                                 : 'text'
                         }
@@ -807,24 +856,6 @@ export function ProcessingDetailsPanel({
                                 </Select>
                             </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="inline_recommendation_remarks">
-                                Recommendation remarks
-                            </Label>
-                            <textarea
-                                id="inline_recommendation_remarks"
-                                className={textareaClassName}
-                                value={processingForm.recommendation_remarks}
-                                onChange={(event) =>
-                                    setProcessingForm((current) => ({
-                                        ...current,
-                                        recommendation_remarks:
-                                            event.target.value,
-                                    }))
-                                }
-                            />
-                        </div>
-
                         {renderProcessingSectionLabel('Charges & fees')}
                         <div className="grid gap-4 sm:grid-cols-2">
                             {renderProcessingField('service_charge_rate', {
@@ -863,9 +894,12 @@ export function ProcessingDetailsPanel({
                             {renderProcessingField('other_charges_amount', {
                                 onBlur: scheduleGnthpRecalculation,
                             })}
-                            {renderProcessingField('other_charges_description', {
-                                onBlur: scheduleGnthpRecalculation,
-                            })}
+                            {renderProcessingField(
+                                'other_charges_description',
+                                {
+                                    onBlur: scheduleGnthpRecalculation,
+                                },
+                            )}
                             {renderProcessingField('penalty_rate_per_month', {
                                 onBlur: scheduleGnthpRecalculation,
                             })}
@@ -908,9 +942,10 @@ export function ProcessingDetailsPanel({
                                                             all deductions
                                                             (finance charges,
                                                             insurance, loan
-                                                            security, documentary
-                                                            stamp, notarial fee,
-                                                            and other charges).
+                                                            security,
+                                                            documentary stamp,
+                                                            notarial fee, and
+                                                            other charges).
                                                         </p>
                                                     </TooltipContent>
                                                 </Tooltip>
@@ -998,9 +1033,7 @@ export function ProcessingDetailsPanel({
                                             dataSectionDefinitions.processing
                                                 .fields.witness_two_name?.label
                                         }
-                                        <TooltipProvider
-                                            delayDuration={0}
-                                        >
+                                        <TooltipProvider delayDuration={0}>
                                             <Tooltip>
                                                 <TooltipTrigger>
                                                     <Info className="size-3.5 text-muted-foreground" />
@@ -1021,8 +1054,10 @@ export function ProcessingDetailsPanel({
                                         value={
                                             typeof processingForm.processing
                                                 .witness_two_id === 'number'
-                                                ? String(processingForm.processing
-                                                      .witness_two_id)
+                                                ? String(
+                                                      processingForm.processing
+                                                          .witness_two_id,
+                                                  )
                                                 : undefined
                                         }
                                         onValueChange={(value) => {
@@ -1091,8 +1126,8 @@ export function ProcessingDetailsPanel({
                             )}
                         </div>
 
-                        {loanRequest.authority_to_deduct_guidance?.applicable !==
-                            false && (
+                        {loanRequest.authority_to_deduct_guidance
+                            ?.applicable !== false && (
                             <>
                                 {renderProcessingSectionLabel(
                                     'Authority to Deduct',
@@ -1118,7 +1153,7 @@ export function ProcessingDetailsPanel({
                                             '' && (
                                             <button
                                                 type="button"
-                                                className="text-sm text-primary hover:underline sm:col-span-2 text-left"
+                                                className="text-left text-sm text-primary hover:underline sm:col-span-2"
                                                 onClick={() => {
                                                     const savedContact =
                                                         loanRequest
@@ -1193,8 +1228,8 @@ export function ProcessingDetailsPanel({
                                         />
                                         <span>
                                             I don&apos;t know the officer
-                                            information yet — leave these
-                                            fields blank
+                                            information yet — leave these fields
+                                            blank
                                         </span>
                                     </label>
                                     {renderProcessingField(
@@ -1240,7 +1275,7 @@ export function ProcessingDetailsPanel({
                                         !officersUnknown && (
                                             <button
                                                 type="button"
-                                                className="text-sm text-primary hover:underline sm:col-span-2 text-left"
+                                                className="text-left text-sm text-primary hover:underline sm:col-span-2"
                                                 onClick={() =>
                                                     setShowSecondOfficer(true)
                                                 }
@@ -1252,8 +1287,7 @@ export function ProcessingDetailsPanel({
                                 </div>
                             </>
                         )}
-                        {loanRequest.waiver_applicability?.deped
-                            .applicable && (
+                        {loanRequest.waiver_applicability?.deped.applicable && (
                             <>
                                 {renderProcessingSectionLabel(
                                     'DepEd Salary Deduction Waiver',
@@ -1277,9 +1311,7 @@ export function ProcessingDetailsPanel({
                                 )}
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {renderProcessingField('pension_provider')}
-                                    {renderProcessingField(
-                                        'pension_bank_name',
-                                    )}
+                                    {renderProcessingField('pension_bank_name')}
                                     {renderProcessingField(
                                         'pension_atm_card_number',
                                     )}
@@ -1312,11 +1344,15 @@ export function ProcessingDetailsPanel({
                         <Separator className="bg-border/40" />
                         <div className="grid gap-2">
                             <Label htmlFor="inline_processing_reason">
-                                Remarks
+                                Remarks{' '}
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    (optional)
+                                </span>
                             </Label>
                             <textarea
                                 id="inline_processing_reason"
                                 className={textareaClassName}
+                                placeholder="Optional — add context beyond the auto-generated summary."
                                 value={processingForm.reason}
                                 onChange={(event) =>
                                     setProcessingForm((current) => ({
@@ -1360,38 +1396,84 @@ export function ProcessingDetailsPanel({
                                 )}
                             />
                         </div>
-                        <SnapshotRow
-                            label="Recommendation remarks"
-                            value={snapshotDisplay(
-                                loanRequest.recommendation_remarks,
-                            )}
-                        />
                         <Separator className="bg-border/40" />
                         <div className="grid gap-4 sm:grid-cols-2">
                             {Object.entries(
                                 dataSectionDefinitions.processing.fields,
-                            ).map(([fieldKey, field]) => {
-                                const value = dataSections.processing[fieldKey];
-                                const display =
-                                    field.type === 'boolean'
-                                        ? value === true
-                                            ? 'Yes'
-                                            : value === false
-                                              ? 'No'
-                                              : '—'
-                                        : snapshotDisplay(
-                                              value as string | number | null,
-                                          );
-
-                                return (
-                                    <SnapshotRow
-                                        key={fieldKey}
-                                        label={field.label}
-                                        value={display}
-                                    />
-                                );
-                            })}
+                            )
+                                .filter(
+                                    ([fieldKey]) =>
+                                        !SNAPSHOT_HIDDEN_FIELDS.has(fieldKey) &&
+                                        !SNAPSHOT_GATED_FIELDS.has(fieldKey),
+                                )
+                                .map(([fieldKey]) =>
+                                    renderSnapshotField(fieldKey),
+                                )}
                         </div>
+
+                        {loanRequest.authority_to_deduct_guidance?.category ===
+                            'blgu' && (
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {SNAPSHOT_BARANGAY_FIELDS.map((fieldKey) =>
+                                    renderSnapshotField(fieldKey),
+                                )}
+                            </div>
+                        )}
+
+                        {loanRequest.authority_to_deduct_guidance
+                            ?.applicable !== false && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Authority to Deduct',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {SNAPSHOT_AUTHORITY_TO_DEDUCT_FIELDS.map(
+                                        (fieldKey) =>
+                                            renderSnapshotField(fieldKey),
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {loanRequest.waiver_applicability?.deped.applicable && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'DepEd Salary Deduction Waiver',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {SNAPSHOT_DEPED_FIELDS.map((fieldKey) =>
+                                        renderSnapshotField(fieldKey),
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {loanRequest.waiver_applicability?.pension
+                            .applicable && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'Pension Deduction Waiver',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {SNAPSHOT_PENSION_FIELDS.map((fieldKey) =>
+                                        renderSnapshotField(fieldKey),
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {loanRequest.waiver_applicability?.atm.applicable && (
+                            <>
+                                {renderProcessingSectionLabel(
+                                    'ATM Salary Deduction Waiver',
+                                )}
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {SNAPSHOT_ATM_FIELDS.map((fieldKey) =>
+                                        renderSnapshotField(fieldKey),
+                                    )}
+                                </div>
+                            </>
+                        )}
                         <p className="text-xs text-muted-foreground">
                             Only the assigned loan processor can edit processing
                             terms.

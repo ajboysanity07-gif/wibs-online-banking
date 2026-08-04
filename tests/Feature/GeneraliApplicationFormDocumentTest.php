@@ -240,9 +240,9 @@ test('application_form data block resolves pep, cycle, and id fields from proces
             'id_number' => '123-456-789',
         ],
     );
-    generaliApplicationFormPersistDataEntry($loanRequest, 'processing', 'applicant_pep_status', 'boolean', true);
-    generaliApplicationFormPersistDataEntry($loanRequest, 'processing', 'applicant_pep_status_details', 'string', 'Barangay Councilor, since 2020');
-    generaliApplicationFormPersistDataEntry($loanRequest, 'processing', 'applicant_cycle_status', 'string', 'New');
+    generaliApplicationFormPersistDataEntry($loanRequest, 'health_glapi', 'applicant_pep_status', 'boolean', true);
+    generaliApplicationFormPersistDataEntry($loanRequest, 'health_glapi', 'applicant_pep_status_details', 'string', 'Barangay Councilor, since 2020');
+    generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'applicant_cycle_status', 'string', 'New');
     generaliApplicationFormPersistDataEntry($loanRequest, 'processing', 'employer_date_employed', 'string', '2019-06-01');
 
     $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());

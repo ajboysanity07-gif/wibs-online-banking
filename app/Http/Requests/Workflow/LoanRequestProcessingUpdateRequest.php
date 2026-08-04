@@ -63,7 +63,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => ['required', 'string', 'max:1000'],
+            'reason' => ['nullable', 'string', 'max:1000'],
             'loan_request' => ['sometimes', 'array:typecode,requested_amount,requested_term,loan_purpose,availment_status'],
             'loan_request.typecode' => ['sometimes', 'string', 'max:255'],
             'loan_request.requested_amount' => ['sometimes', 'numeric', 'min:1'],
@@ -159,7 +159,10 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'processing.authority_to_deduct_officer_2_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_officer_2_title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.authority_to_deduct_officers_unknown' => ['sometimes', 'nullable', 'boolean'],
-            'processing.guaranteed_net_take_home_pay' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            // System-computed (gross income minus amortization); can legitimately
+            // go negative, and the submitted value is discarded/recomputed
+            // server-side regardless — see LoanRequestProcessingService::processProcessingUpdate().
+            'processing.guaranteed_net_take_home_pay' => ['sometimes', 'nullable', 'numeric'],
             'processing.deped_school_id_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'processing.deped_deduction_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'processing.pension_provider' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -178,7 +181,6 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'recommended_term' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:360'],
             'recommended_interest_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'recommended_payment_frequency' => ['sometimes', 'nullable', 'string', Rule::in(self::PAYDAY_OPTIONS)],
-            'recommendation_remarks' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
 

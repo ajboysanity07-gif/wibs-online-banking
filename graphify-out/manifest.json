@@ -10,7 +10,7 @@
     "semantic_hash": "5cd9ae4fc688353236c3b92e8f06dfcc"
   },
   ".claude/settings.json": {
-    "mtime": 1785721882.1963737,
+    "mtime": 1785742112.4474218,
     "ast_hash": "9426457098af25ab661759612bc3e71c",
     "semantic_hash": ""
   },
@@ -185,7 +185,7 @@
     "semantic_hash": "720e43966044d47e1b46ea48ea4a4421"
   },
   "app/Http/Controllers/Admin/LoanRequestController.php": {
-    "mtime": 1785740417.678358,
+    "mtime": 1785742112.4485135,
     "ast_hash": "838a96140363221b50f7dcad91ba1520",
     "semantic_hash": ""
   },
@@ -225,7 +225,7 @@
     "semantic_hash": "09e6c7495713caeea27c53e336e27fd3"
   },
   "app/Http/Controllers/Admin/ReportingController.php": {
-    "mtime": 1785740483.857829,
+    "mtime": 1785742112.4497225,
     "ast_hash": "7f75992d9fe28795f84ce026a948ef96",
     "semantic_hash": ""
   },
@@ -490,7 +490,7 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Spa/Superadmin/AuditController.php": {
-    "mtime": 1785740520.3327448,
+    "mtime": 1785742112.4507325,
     "ast_hash": "2c69db01fd64b0a8d53dbac44719b38d",
     "semantic_hash": ""
   },
@@ -505,7 +505,7 @@
     "semantic_hash": "17352f6eff9620f333e50b016f409f18"
   },
   "app/Http/Controllers/Staff/LoanRequestController.php": {
-    "mtime": 1785740403.9989505,
+    "mtime": 1785742112.4507325,
     "ast_hash": "cb1536907ca5fab56c8645b2a97467c6",
     "semantic_hash": ""
   },
@@ -595,8 +595,8 @@
     "semantic_hash": "e49d364decfb5ecc0635e6c440e852ce"
   },
   "app/Http/Requests/Admin/LoanRequestCorrectionRequest.php": {
-    "mtime": 1785676365.400917,
-    "ast_hash": "474cc7e9b9f0401d733ba155641e53ed",
+    "mtime": 1785833520.3558583,
+    "ast_hash": "9cc9230be490d2a57456c91ff253541f",
     "semantic_hash": ""
   },
   "app/Http/Requests/Admin/LoanRequestDeclineRequest.php": {
@@ -690,8 +690,8 @@
     "semantic_hash": "677d53f2b4eba3378feadc2f2ea62f80"
   },
   "app/Http/Requests/Client/LoanRequestDraftRequest.php": {
-    "mtime": 1785729390.277574,
-    "ast_hash": "8bd9aa5beb4fd2ab259ea484b059990e",
+    "mtime": 1785833520.3569105,
+    "ast_hash": "4b2e9ee93dc4534f244cf2a9ce93badf",
     "semantic_hash": ""
   },
   "app/Http/Requests/Client/LoanRequestGenerateSignatureLinkRequest.php": {
@@ -700,18 +700,18 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/Client/LoanRequestPrerequisiteRequest.php": {
-    "mtime": 1785692474.14957,
-    "ast_hash": "ecec7e0611ce1a693c89945eecc8178e",
+    "mtime": 1785833520.3583782,
+    "ast_hash": "3c7fed6e3b8ba22c322dbc7d91c7d6ad",
     "semantic_hash": ""
   },
   "app/Http/Requests/Client/LoanRequestResolveActionRequest.php": {
-    "mtime": 1785676365.4019468,
-    "ast_hash": "8df0c51809e57aca6ac13c36effe2a87",
+    "mtime": 1785833520.3593743,
+    "ast_hash": "c9984c298ec19783897437907fdd3804",
     "semantic_hash": ""
   },
   "app/Http/Requests/Client/LoanRequestStoreRequest.php": {
-    "mtime": 1785729172.7813,
-    "ast_hash": "237e9cb1e41e59702b7633f7b068385d",
+    "mtime": 1785833520.3593743,
+    "ast_hash": "d8dc299f99d7bc88adca5c413682c506",
     "semantic_hash": ""
   },
   "app/Http/Requests/Client/MemberLoanPaymentsExportRequest.php": {
@@ -725,8 +725,8 @@
     "semantic_hash": "0cf54b6de5b93b8fb940d2a80ff022ae"
   },
   "app/Http/Requests/Client/SaveDraftRequest.php": {
-    "mtime": 1785729363.4135227,
-    "ast_hash": "a09d06342e71cbd4f4f86fed1d50bc41",
+    "mtime": 1785833520.360803,
+    "ast_hash": "7e26168e5d8d52c2e7aacc071f909601",
     "semantic_hash": ""
   },
   "app/Http/Requests/Settings/LinkMembershipRequest.php": {
@@ -745,8 +745,8 @@
     "semantic_hash": "58b33239167751eb5dfb62f81f4f41da"
   },
   "app/Http/Requests/Settings/ProfileUpdateRequest.php": {
-    "mtime": 1785692478.7916687,
-    "ast_hash": "88813e0639be1a2778d6e7b9a3599756",
+    "mtime": 1785833520.361803,
+    "ast_hash": "c8ad876f7fe869ef681cee5ae28aced3",
     "semantic_hash": ""
   },
   "app/Http/Requests/Settings/TwoFactorAuthenticationRequest.php": {
@@ -830,8 +830,8 @@
     "semantic_hash": "1b9c822604b74344cb827bf642fea230"
   },
   "app/Http/Requests/Workflow/LoanRequestProcessingUpdateRequest.php": {
-    "mtime": 1785676365.4037333,
-    "ast_hash": "726be32f773c1cac7d3a69c07cf64ec1",
+    "mtime": 1785833520.3633032,
+    "ast_hash": "b571e0ab1a7a711b139d24fb0754305a",
     "semantic_hash": ""
   },
   "app/Http/Requests/Workflow/LoanRequestRecommendApprovalRequest.php": {
@@ -860,8 +860,8 @@
     "semantic_hash": "1271ef2f908a8a67708b85b24853306f"
   },
   "app/Http/Requests/Workflow/LoanRequestRequestMemberActionRequest.php": {
-    "mtime": 1785676365.4047327,
-    "ast_hash": "cd57eba76f5265416bf6f3baf3a3716b",
+    "mtime": 1785833520.3633032,
+    "ast_hash": "aedf2700121726bfc9fef1bdf444f1ca",
     "semantic_hash": ""
   },
   "app/Http/Requests/Workflow/LoanRequestRequestRevisionRequest.php": {
@@ -1060,9 +1060,9 @@
     "semantic_hash": "4e96f43435c2ee9ee657a4927d9f462c"
   },
   "app/Models/LoanRequest.php": {
-    "mtime": 1785423357.9000366,
-    "ast_hash": "c9ecb6ece5e6e67e28ef318875be71a1",
-    "semantic_hash": "c9ecb6ece5e6e67e28ef318875be71a1"
+    "mtime": 1785833520.3658102,
+    "ast_hash": "656f1a7fccb555be7c01f56602c2f7e0",
+    "semantic_hash": ""
   },
   "app/Models/LoanRequestChange.php": {
     "mtime": 1785676365.4058802,
@@ -1105,8 +1105,8 @@
     "semantic_hash": "f07ff8dd9f4c3421e6e0a815526994d9"
   },
   "app/Models/MemberApplicationProfile.php": {
-    "mtime": 1785692465.7870767,
-    "ast_hash": "13e3ada8540c88a03a436c2b1be7e6c5",
+    "mtime": 1785833520.36711,
+    "ast_hash": "8bf0b92a4c92682f6aef6cfad2826b19",
     "semantic_hash": ""
   },
   "app/Models/MemberDependent.php": {
@@ -1300,7 +1300,7 @@
     "semantic_hash": "8a4d1a3bcbdb8e5b3f28ac24a9cbac26"
   },
   "app/Services/Admin/MemberLoans/MemberLoanExportService.php": {
-    "mtime": 1785740340.1266475,
+    "mtime": 1785742112.452813,
     "ast_hash": "b0282865e6ba90ddf759feccdd6aa627",
     "semantic_hash": ""
   },
@@ -1340,8 +1340,8 @@
     "semantic_hash": "183909eb65f1302030a0cdb60f49a670"
   },
   "app/Services/LoanRequests/ApprovedLoanDocumentService.php": {
-    "mtime": 1785740361.5785244,
-    "ast_hash": "c771ea077e0062e1d1800f5a4ee2a531",
+    "mtime": 1785833520.3695087,
+    "ast_hash": "e2e79cdcb8dd2d7d14b58f9e82a911ba",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/ApprovedLoanExcelTemplateService.php": {
@@ -1395,23 +1395,23 @@
     "semantic_hash": "139b6ddca3e7081ff3b90fb6b09a0247"
   },
   "app/Services/LoanRequests/LoanRequestCorrectionService.php": {
-    "mtime": 1785423357.9447064,
-    "ast_hash": "e32b1092cbec38651d050d3d38d3ff26",
+    "mtime": 1785833520.370536,
+    "ast_hash": "a6bae4aff25a6f97eac46cbf14dad1a3",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestDataService.php": {
-    "mtime": 1785676365.4093418,
-    "ast_hash": "6c4c7f6876f6aade07d4a11c27bc4882",
+    "mtime": 1785833520.372038,
+    "ast_hash": "428c2850f80f441583b6347953467ddf",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestDecisionService.php": {
-    "mtime": 1785423357.9460444,
-    "ast_hash": "a9191e573035f0e6318c36081a66f437",
-    "semantic_hash": "a9191e573035f0e6318c36081a66f437"
+    "mtime": 1785833520.3730412,
+    "ast_hash": "72d5d4cc1666557f0611406b231f32bf",
+    "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestDocumentCatalog.php": {
-    "mtime": 1785736781.4116101,
-    "ast_hash": "10f15e7670b1468460decdd1f9ac64b4",
+    "mtime": 1785833520.3740575,
+    "ast_hash": "ab086e462c5e2211d543b4768d1e2ea0",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestDocumentStorage.php": {
@@ -1420,8 +1420,8 @@
     "semantic_hash": "b6948b731d42b133398941e2bd81ebdc"
   },
   "app/Services/LoanRequests/LoanRequestDocumentWorkflowService.php": {
-    "mtime": 1785740374.755139,
-    "ast_hash": "8f666a62f469998a37f1032c6b1fda4a",
+    "mtime": 1785833520.376536,
+    "ast_hash": "6ed2fb3cd48a0471b521d06c4f500044",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestNotificationService.php": {
@@ -1430,29 +1430,29 @@
     "semantic_hash": "03970799f0425f36f362d70b823487d9"
   },
   "app/Services/LoanRequests/LoanRequestPayloadSerializer.php": {
-    "mtime": 1785676365.4115736,
-    "ast_hash": "691bf2aef974eaac8b0e978a9ed4c97d",
+    "mtime": 1785833520.3780332,
+    "ast_hash": "a015bd8a1da4d603b4b352e7d98f6b68",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestPdfService.php": {
-    "mtime": 1785740386.6186423,
+    "mtime": 1785742112.456191,
     "ast_hash": "d19411e9cc0c6d5b8ae3823cca9d6471",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestProcessingService.php": {
-    "mtime": 1785676365.4115736,
-    "ast_hash": "99ac9c37cdb7db3340e0eaf20958e7e9",
+    "mtime": 1785833520.381615,
+    "ast_hash": "7a7663ef0230171bbad93c7455e146c2",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestService.php": {
-    "mtime": 1785728769.1693423,
-    "ast_hash": "00ba56ad435a23edda1a762c05202f6d",
+    "mtime": 1785833520.3826215,
+    "ast_hash": "e8162e3dc0939d520904b38b1eb8b1ef",
     "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanRequestWorkflowService.php": {
-    "mtime": 1785423357.9535286,
-    "ast_hash": "a45532ca9636b75185d3fdbfd9fa1321",
-    "semantic_hash": "a45532ca9636b75185d3fdbfd9fa1321"
+    "mtime": 1785833520.3851116,
+    "ast_hash": "ec44abecb70c5ad5373d87ea25755a8a",
+    "semantic_hash": ""
   },
   "app/Services/LoanRequests/LoanSecurityAgreementPdfService.php": {
     "mtime": 1785588177.539816,
@@ -1610,8 +1610,8 @@
     "semantic_hash": "77b14badf2b95aee854c64d175b984e5"
   },
   "app/Support/SettingsPageData.php": {
-    "mtime": 1785692483.3174582,
-    "ast_hash": "10336f743cac959e2b8292bcb9a2c384",
+    "mtime": 1785833520.3861084,
+    "ast_hash": "25f08579195d053b6cc9a39ac6ce5986",
     "semantic_hash": ""
   },
   "artisan": {
@@ -2335,8 +2335,8 @@
     "semantic_hash": "82dab99e121eed166d063fdfa7d4321a"
   },
   "resources/js/components/dependents/dependent-category-section.tsx": {
-    "mtime": 1785423359.7534177,
-    "ast_hash": "dc59b604ddf0a8f225a16fe2bac99c81",
+    "mtime": 1785833520.4762003,
+    "ast_hash": "56f8574c422d8545d3576d00de1b7bef",
     "semantic_hash": ""
   },
   "resources/js/components/heading.tsx": {
@@ -2350,8 +2350,8 @@
     "semantic_hash": "8b901d7500f02ca60c1bffb3e3d8a699"
   },
   "resources/js/components/loan-request/admin-loan-request-correction-dialog.tsx": {
-    "mtime": 1785730650.8529623,
-    "ast_hash": "97f4be1a325ffe3e7966d5515d5e9a58",
+    "mtime": 1785833520.4773147,
+    "ast_hash": "6edd583be882dabd587de6f2c7ba3cfe",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/boolean-yes-no-field.tsx": {
@@ -2365,33 +2365,33 @@
     "semantic_hash": "cac18e19703b2a0f25588e8e2ede6f79"
   },
   "resources/js/components/loan-request/loan-request-audit-trail.tsx": {
-    "mtime": 1785423359.762227,
-    "ast_hash": "ed7424560f53e4eac3cf8fdedb8b4dc7",
-    "semantic_hash": "ed7424560f53e4eac3cf8fdedb8b4dc7"
+    "mtime": 1785833854.2758586,
+    "ast_hash": "47ccd9040ee2b41e11b044d53fc0ccd9",
+    "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-detail-page.tsx": {
-    "mtime": 1785676365.4470086,
-    "ast_hash": "74f13fb0e8f907a6cacbaad5d840ea67",
+    "mtime": 1785833520.4795837,
+    "ast_hash": "5a76c5ccdd430a58e1dfbf83933b54e5",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-fields.tsx": {
-    "mtime": 1785729711.0791607,
-    "ast_hash": "54b1a6787e30e727afe38ffbb476f11c",
+    "mtime": 1785833520.4810524,
+    "ast_hash": "2f6dc569d35d944a90b50ac01058a47b",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-page-sections.tsx": {
-    "mtime": 1785423359.7679033,
-    "ast_hash": "4ebb5762ca3640c32051fd02fa7b705c",
+    "mtime": 1785833520.482068,
+    "ast_hash": "f4fe135210bfb7622d105958ef4a47d5",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-prerequisite-modal.tsx": {
-    "mtime": 1785693958.9677317,
-    "ast_hash": "e98027a868c01ceab08ddd93dcbcf58c",
+    "mtime": 1785833520.4825742,
+    "ast_hash": "9ea7c2384567c3e2de1cbfdb1221dded",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-queue-page.tsx": {
-    "mtime": 1785676365.4481423,
-    "ast_hash": "2f68977dfcf4d00c4dd19553b3af70a7",
+    "mtime": 1785833520.4839973,
+    "ast_hash": "5671e75ba39fec6f35add16dd77ca743",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-records-card.tsx": {
@@ -2415,8 +2415,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-steps.tsx": {
-    "mtime": 1785676365.450615,
-    "ast_hash": "c25a0e1d322dd02dee556a6c2b1f5d2e",
+    "mtime": 1785833520.4859953,
+    "ast_hash": "6c167aa0a46c203c8423dd732f942c26",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-summary-panel.tsx": {
@@ -2430,13 +2430,13 @@
     "semantic_hash": "24caf1f4ddf0956898b101578112598c"
   },
   "resources/js/components/loan-request/loan-request-wizard-steps.ts": {
-    "mtime": 1785676365.451766,
-    "ast_hash": "10a6d3ba592f8422d934494459ae2975",
+    "mtime": 1785833520.486991,
+    "ast_hash": "0288de6f422a229e4dd9d9e34e68b391",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-workflow-actions.tsx": {
-    "mtime": 1785736873.8966076,
-    "ast_hash": "7cd1e78a9b679822b0a443e3f95f36a2",
+    "mtime": 1785833520.4884243,
+    "ast_hash": "b2edc911167c99f7753424b63816f75c",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/numeric-adorned-inputs.tsx": {
@@ -2585,9 +2585,9 @@
     "semantic_hash": "b2da721877e23277bbcc1e39eda0e7ea"
   },
   "resources/js/components/ui/alert.tsx": {
-    "mtime": 1785423359.8225372,
-    "ast_hash": "7619350dd91783451f14c705e6b82d43",
-    "semantic_hash": "7619350dd91783451f14c705e6b82d43"
+    "mtime": 1785833520.4914477,
+    "ast_hash": "400f701fef19499ba61bf94ce5003d9b",
+    "semantic_hash": ""
   },
   "resources/js/components/ui/avatar.tsx": {
     "mtime": 1785423359.823534,
@@ -2815,8 +2815,8 @@
     "semantic_hash": "e7e8dfe9ddbaf839d793f51f386956ef"
   },
   "resources/js/hooks/admin/use-loan-request-workflow.ts": {
-    "mtime": 1785423359.8961217,
-    "ast_hash": "bbbc2c41007141ad99a0ab43e858b54a",
+    "mtime": 1785833520.4929502,
+    "ast_hash": "d55842060d770a4e82c7725c7bfa1f4c",
     "semantic_hash": ""
   },
   "resources/js/hooks/admin/use-member-accounts-summary.ts": {
@@ -3010,8 +3010,8 @@
     "semantic_hash": "5743253217cf0df13d6eb9c563a3c66e"
   },
   "resources/js/lib/api/admin.ts": {
-    "mtime": 1785676365.4541974,
-    "ast_hash": "34039986f6666b7688d3931a30d6f596",
+    "mtime": 1785833520.493965,
+    "ast_hash": "5bccf15414fbebe3a5acb07b2413d84c",
     "semantic_hash": ""
   },
   "resources/js/lib/api/client.ts": {
@@ -3105,8 +3105,8 @@
     "semantic_hash": ""
   },
   "resources/js/pages/admin/loan-request-show.tsx": {
-    "mtime": 1785736968.8935685,
-    "ast_hash": "b4e201e267744ab1396620ac595680fb",
+    "mtime": 1785833520.495031,
+    "ast_hash": "04d2c0aa6c1c9cc05288cc142ce90bd5",
     "semantic_hash": ""
   },
   "resources/js/pages/admin/member-loan-payments.tsx": {
@@ -3220,8 +3220,8 @@
     "semantic_hash": ""
   },
   "resources/js/pages/client/loan-request.tsx": {
-    "mtime": 1785729674.6518116,
-    "ast_hash": "78893e4a5002eb6cfad6f6486a3504a1",
+    "mtime": 1785833520.49604,
+    "ast_hash": "385e4b7d8bae2ffc2460df6654535c8e",
     "semantic_hash": ""
   },
   "resources/js/pages/client/loan-requests.tsx": {
@@ -3270,8 +3270,8 @@
     "semantic_hash": "01444db510b27cd42f7a9d3cba45cd3f"
   },
   "resources/js/pages/settings/profile.tsx": {
-    "mtime": 1785692574.3403454,
-    "ast_hash": "c87d30ba36bdeb4a9e0ad2416cacf1ed",
+    "mtime": 1785833520.498297,
+    "ast_hash": "d596413cfc35168e45ea19b23fec9a1c",
     "semantic_hash": ""
   },
   "resources/js/pages/settings/security.tsx": {
@@ -3285,8 +3285,8 @@
     "semantic_hash": "5a43eb5ca2ee9e760be1da4a9823c15b"
   },
   "resources/js/pages/staff/loan-request-show.tsx": {
-    "mtime": 1785736919.2374163,
-    "ast_hash": "e0e0630947a5f3ccc3269f3c51a7f93c",
+    "mtime": 1785833520.4992926,
+    "ast_hash": "20828bd45216ad8fffa850f232f79ccd",
     "semantic_hash": ""
   },
   "resources/js/pages/staff/loan-requests.tsx": {
@@ -3365,8 +3365,8 @@
     "semantic_hash": "33ef16d483e43c58427be314c11c5164"
   },
   "resources/js/types/loan-requests.ts": {
-    "mtime": 1785736813.7292364,
-    "ast_hash": "287cc5aff369720e52deaa681382ee98",
+    "mtime": 1785833520.500289,
+    "ast_hash": "a41e0ea762b640a97c15c1729e216cdd",
     "semantic_hash": ""
   },
   "resources/js/types/navigation.ts": {
@@ -3440,9 +3440,9 @@
     "semantic_hash": "93b31f06845c56523f5fe45209ce42b2"
   },
   "resources/views/reports/partials/loan-request-styles.blade.php": {
-    "mtime": 1785423360.1132956,
-    "ast_hash": "597c6f8e3815bdd76c768f1426a3ea17",
-    "semantic_hash": "597c6f8e3815bdd76c768f1426a3ea17"
+    "mtime": 1785833520.5027366,
+    "ast_hash": "70a3193274cf1d7f32686badc432bb87",
+    "semantic_hash": ""
   },
   "resources/views/reports/partials/report-header.blade.php": {
     "mtime": 1785423360.1152883,
@@ -3515,7 +3515,7 @@
     "semantic_hash": "257cd6a152dc394d6b7c0f40deefb175"
   },
   "tests/Feature/Admin/MemberLoanDetailsTest.php": {
-    "mtime": 1785740576.587716,
+    "mtime": 1785742112.5303955,
     "ast_hash": "d846449a8d605c2086e32714d473735c",
     "semantic_hash": ""
   },
@@ -3545,8 +3545,8 @@
     "semantic_hash": "6041fa99842bc1de088a8fbfc81c3b67"
   },
   "tests/Feature/ApprovedLoanDocumentPackageDownloadTest.php": {
-    "mtime": 1785740430.6117277,
-    "ast_hash": "99265292bf1bd8f804cb4ed2df5d0318",
+    "mtime": 1785833520.5037508,
+    "ast_hash": "f50ad7e7a310cdeb42d8d75b6115f861",
     "semantic_hash": ""
   },
   "tests/Feature/ApprovedLoanPdfTemplateServiceBoldFontTest.php": {
@@ -3705,8 +3705,8 @@
     "semantic_hash": "58cb72869a39bdf21fe30cb3886c193a"
   },
   "tests/Feature/LoanRequestCorrectedWorkflowTest.php": {
-    "mtime": 1785732558.8883152,
-    "ast_hash": "5aecf9d318ef23fc424da60bf513f358",
+    "mtime": 1785833520.5060675,
+    "ast_hash": "3ed9d23729c728ecb1939225d0f3e02b",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestCorrectionReportTest.php": {
@@ -3715,8 +3715,8 @@
     "semantic_hash": "7d8a30cc2ae99fcadb828ddebe65aad3"
   },
   "tests/Feature/LoanRequestDependentsCycleValidationTest.php": {
-    "mtime": 1785676365.4769518,
-    "ast_hash": "1409591c9b1b6f5da2f8b6f08710489d",
+    "mtime": 1785833520.5075924,
+    "ast_hash": "4425352229b024b43c05126825a5c210",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestDependentsProfileSyncTest.php": {
@@ -3725,8 +3725,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestDocumentApplicabilityTest.php": {
-    "mtime": 1785737084.6225774,
-    "ast_hash": "c4c8fa4f6c4a6c6f7fb47d6400dec076",
+    "mtime": 1785833520.5086172,
+    "ast_hash": "1dba8dedc913b53663bfd2c92216a67c",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestDocumentGenerationLockResilienceTest.php": {
@@ -3735,7 +3735,7 @@
     "semantic_hash": "90a584929ad4af1e1b337e0126a90bea"
   },
   "tests/Feature/LoanRequestGenerateDocumentsBulkTest.php": {
-    "mtime": 1785737163.8548107,
+    "mtime": 1785742112.5337114,
     "ast_hash": "d3a6b9e6a810bb267e1b437676eb13e1",
     "semantic_hash": ""
   },
@@ -3760,8 +3760,8 @@
     "semantic_hash": "30d83b13f25f31070e392c6102e8db63"
   },
   "tests/Feature/LoanRequestPhaseFiveWorkflowTest.php": {
-    "mtime": 1785734858.1895523,
-    "ast_hash": "d5e12f1a99130d84b1cb47f26feb5cef",
+    "mtime": 1785833520.5096235,
+    "ast_hash": "ee30c67812007b63b731a8210f0ee609",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestPhoneValidationTest.php": {
@@ -3770,13 +3770,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestPrerequisiteTest.php": {
-    "mtime": 1785732764.3088324,
-    "ast_hash": "247c3793df3261091b1597fde4e50a62",
+    "mtime": 1785833520.5107086,
+    "ast_hash": "a02880cf2fc78ae94077920e0d66e40a",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestProcessingDetailsTest.php": {
-    "mtime": 1785676365.4817746,
-    "ast_hash": "6b0fa665c139dc094e2adfb7e96bc4f3",
+    "mtime": 1785833520.5117958,
+    "ast_hash": "972c8ad3c9413478e389c6f207fe7759",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestRecommendationPreviewTest.php": {
@@ -3785,13 +3785,13 @@
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestTest.php": {
-    "mtime": 1785732722.7989068,
-    "ast_hash": "54fd0fa4f91bb526d07200458eea2590",
+    "mtime": 1785833520.5132957,
+    "ast_hash": "4a453b6047acceac07ebd16b3bf0311a",
     "semantic_hash": ""
   },
   "tests/Feature/LoanWorkflowAcceptanceTest.php": {
-    "mtime": 1785738324.6100118,
-    "ast_hash": "45a77bac5ebff1457093b8236689e258",
+    "mtime": 1785833520.514646,
+    "ast_hash": "293b9fbe0b32b3d3e2251217f2c1c068",
     "semantic_hash": ""
   },
   "tests/Feature/LoanWorkflowDeploymentCheckCommandTest.php": {
@@ -4035,8 +4035,8 @@
     "semantic_hash": ""
   },
   "tests/js/loan-request-audit-trail-ui.test.mjs": {
-    "mtime": 1785423360.5141642,
-    "ast_hash": "bceba65b61b0b945d17571482ef0d031",
+    "mtime": 1785833903.7217872,
+    "ast_hash": "a83f0998426d4083da8785e9120a3148",
     "semantic_hash": ""
   },
   "tests/js/loan-request-correction-approval.test.mjs": {
@@ -4060,8 +4060,8 @@
     "semantic_hash": "1abd79d7d077d0eee04345dcab87c4cf"
   },
   "tests/js/loan-request-processing-submit-guard.test.mjs": {
-    "mtime": 1785423360.532068,
-    "ast_hash": "0d498a7dc945c87990dd32b62e1c1043",
+    "mtime": 1785833520.514646,
+    "ast_hash": "33abb8985cda620affc29698b6a9fd44",
     "semantic_hash": ""
   },
   "tests/js/loan-request-staff-access-ui.test.mjs": {
@@ -5800,8 +5800,8 @@
     "semantic_hash": ""
   },
   "docs/document-generation-phase-1-field-map.md": {
-    "mtime": 1785676365.4152026,
-    "ast_hash": "a5ec4f891a2d592690974f13b04399b5",
+    "mtime": 1785833520.387105,
+    "ast_hash": "856d04bd2ba94ead05000a1ba4ac5aae",
     "semantic_hash": ""
   },
   "docs/loan-workflow-production-deployment.md": {
@@ -6190,8 +6190,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestExistingLoansTest.php": {
-    "mtime": 1785423360.3992977,
-    "ast_hash": "98beca52c321090519d1ed1a24067157",
+    "mtime": 1785833520.5086172,
+    "ast_hash": "42a822a040aea1717044e0e66134a80a",
     "semantic_hash": ""
   },
   "docs/USER_MANUAL.html": {
@@ -6235,8 +6235,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/GeneraliApplicationFormDocumentTest.php": {
-    "mtime": 1785423360.3729947,
-    "ast_hash": "6693c713f478d143592b629011597e8a",
+    "mtime": 1785833520.5049944,
+    "ast_hash": "109bb2c177649b146f8125efed856629",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Client/SavedCoMakerController.php": {
@@ -6295,8 +6295,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/processing-details-panel.tsx": {
-    "mtime": 1785676365.4527652,
-    "ast_hash": "a162384152747a05772360113485798f",
+    "mtime": 1785833520.4904428,
+    "ast_hash": "7eff2d1a7047a6a50d86febe4b1bda14",
     "semantic_hash": ""
   },
   "app/Http/Middleware/EnsureMustChangePassword.php": {
@@ -6350,8 +6350,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-document-checklist-card.tsx": {
-    "mtime": 1785737029.4381492,
-    "ast_hash": "86d1734425684ab93b1cc37a3a8da48d",
+    "mtime": 1785833520.4795837,
+    "ast_hash": "3718c58e7172aec5dea667a5131e4249",
     "semantic_hash": ""
   },
   "app/LoanPaymentOption.php": {
@@ -6410,8 +6410,8 @@
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestDeclarationAutoFillTest.php": {
-    "mtime": 1785562097.8341408,
-    "ast_hash": "039a97b74b34b8981e8e63ce58576271",
+    "mtime": 1785833520.5060675,
+    "ast_hash": "57a2f6e2fbcbd9fc4cbf0aecfaa5af99",
     "semantic_hash": ""
   },
   "tests/Feature/LoanRequestLoanStatusDashboardTest.php": {
@@ -6547,6 +6547,56 @@
   "app/Support/DocumentFilename.php": {
     "mtime": 1785740841.014246,
     "ast_hash": "dba62396ce04165bd1c2e7e232e83e9a",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_03_075222_drop_recommendation_remarks_from_loan_requests_table.php": {
+    "mtime": 1785743550.9092546,
+    "ast_hash": "68a9c7f46d28a24e03056290d21f226f",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_04_000000_add_release_account_fields_to_member_application_profiles_table.php": {
+    "mtime": 1785808838.4869075,
+    "ast_hash": "31e9fd0116a36a5fb4f71e881dfd99ce",
+    "semantic_hash": ""
+  },
+  "resources/js/components/loan-request/atm-holder-checkbox-field.tsx": {
+    "mtime": 1785807873.4415061,
+    "ast_hash": "c7fa34f5c66fe610543beaec223f4c4a",
+    "semantic_hash": ""
+  },
+  "resources/js/components/loan-request/release-account-fields.tsx": {
+    "mtime": 1785808746.085387,
+    "ast_hash": "751408bd21523516d1d482925f71e938",
+    "semantic_hash": ""
+  },
+  "tests/Feature/LoanRequestApplyStaffUpdatesLegacyBackfillTest.php": {
+    "mtime": 1785813158.7624614,
+    "ast_hash": "39434f72ad4ae6ed2b860b13544c1674",
+    "semantic_hash": ""
+  },
+  "tests/Feature/LoanRequestOldRecordDocumentExemptionTest.php": {
+    "mtime": 1785817551.368671,
+    "ast_hash": "2937df52103ef40eac49fb76c0ea24d9",
+    "semantic_hash": ""
+  },
+  "tests/Feature/LoanRequestRequestMemberActionTest.php": {
+    "mtime": 1785812516.0579224,
+    "ast_hash": "8cd2a6620a98c8baba4d45666e1a5bfb",
+    "semantic_hash": ""
+  },
+  "tests/js/loan-request-correction-legacy-employer-date.test.mjs": {
+    "mtime": 1785769519.3680968,
+    "ast_hash": "7e3787fcfc561506199015cd34cfae3d",
+    "semantic_hash": ""
+  },
+  "tests/js/loan-request-correction-step-navigation.test.mjs": {
+    "mtime": 1785814330.689482,
+    "ast_hash": "e2b40f2a13aa4549cfae0e40e25078a8",
+    "semantic_hash": ""
+  },
+  "tests/js/loan-request-document-checklist-manual-fill-caveat-ui.test.mjs": {
+    "mtime": 1785819626.7654784,
+    "ast_hash": "6e7de523370ed3ae28e6f1dcf7392fde",
     "semantic_hash": ""
   }
 }

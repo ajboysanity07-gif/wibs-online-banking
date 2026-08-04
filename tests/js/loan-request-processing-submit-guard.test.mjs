@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-test('processing details submit guards against an empty remarks/reason before saving', async () => {
+test('processing details submit no longer requires remarks/reason before saving', async () => {
     const file = await readFile(
         resolve(
             'resources',
@@ -26,25 +26,17 @@ test('processing details submit guards against an empty remarks/reason before sa
 
     const submitFnBody = submitFnMatch[0];
 
-    assert.match(
+    assert.doesNotMatch(
         submitFnBody,
         /processingForm\.reason\.trim\(\) === ''/,
-        'guard must check reason for empty value',
+        'remarks are optional now — the empty-reason guard must be gone',
     );
+
+    // The reason field must still be forwarded as-is (the backend fills in
+    // an auto-generated summary when it's blank).
     assert.match(
         submitFnBody,
-        /showErrorToast\(/,
-        'guard must surface a message rather than relying on native validation',
-    );
-
-    // The guard's early return must come before updateProcessingDetails is
-    // called, otherwise an empty submit would still reach the API.
-    const guardIndex = submitFnBody.indexOf("processingForm.reason.trim()");
-    const apiCallIndex = submitFnBody.indexOf('updateProcessingDetails(');
-
-    assert.ok(guardIndex !== -1 && apiCallIndex !== -1);
-    assert.ok(
-        guardIndex < apiCallIndex,
-        'guard check must run before updateProcessingDetails is called',
+        /reason:\s*processingForm\.reason/,
+        'reason must still be submitted to updateProcessingDetails',
     );
 });

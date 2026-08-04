@@ -279,6 +279,7 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::in(array_column(LoanReleaseMethod::cases(), 'value')),
             ],
             'payout_atm_number' => [
+                Rule::requiredIf(fn () => $this->input('release_method') === LoanReleaseMethod::Atm->value),
                 'nullable',
                 'string',
                 'max:255',
@@ -289,6 +290,35 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
             ],
             'payout_atm_holder_name' => [
+                Rule::requiredIf(fn () => $this->input('release_method') === LoanReleaseMethod::Atm->value),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'release_uses_payout_account' => [
+                'nullable',
+                'boolean',
+            ],
+            'release_bank_name' => [
+                Rule::requiredIf(fn () => $this->input('release_method') === 'Bank Transfer' && ! $this->boolean('release_uses_payout_account', true)),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'release_account_name' => [
+                Rule::requiredIf(fn () => $this->input('release_method') === 'Bank Transfer' && ! $this->boolean('release_uses_payout_account', true)),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'release_account_number' => [
+                Rule::requiredIf(fn () => $this->input('release_method') === 'Bank Transfer' && ! $this->boolean('release_uses_payout_account', true)),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'release_account_type' => [
+                Rule::requiredIf(fn () => $this->input('release_method') === 'Bank Transfer' && ! $this->boolean('release_uses_payout_account', true)),
                 'nullable',
                 'string',
                 'max:255',

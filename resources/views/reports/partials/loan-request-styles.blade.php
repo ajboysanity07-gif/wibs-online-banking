@@ -166,7 +166,7 @@
         margin-top: 10px;
     }
     .section-group--signature {
-        margin-top: 8px;
+        margin-top: 40px;
         page-break-inside: avoid;
         break-inside: avoid;
     }
@@ -231,9 +231,6 @@
         font-weight: 600;
         line-height: 1;
         text-align: center;
-    }
-    .section-group--signature {
-        margin-top: 80px;
     }
     @media print {
         html,

@@ -60,7 +60,6 @@ test('processing update with loan_request passthrough preserves loan details whi
         'recommended_term' => 10,
         'recommended_interest_rate' => 1.5,
         'recommended_payment_frequency' => '15th & 30th',
-        'recommendation_remarks' => 'Recommend approval after full review.',
     ];
 
     $this
@@ -284,6 +283,56 @@ test('processing update recomputes guaranteed_net_take_home_pay when a contribut
 });
 
 /**
+ * Regression guard: GNTHP (gross income minus amortization) can legitimately
+ * go negative when the applicant doesn't qualify at the recommended terms —
+ * the frontend previews this negative figure into the disabled GNTHP field
+ * and resubmits it verbatim on the next save. The validation rule must not
+ * reject the request for that, since the value is discarded/recomputed
+ * server-side anyway (see the "ignores a manually submitted value" test above).
+ */
+test('processing update accepts a negative previewed guaranteed_net_take_home_pay', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950012');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'recommended_payment_frequency' => 'Monthly',
+        'submitted_at' => now(),
+    ]);
+
+    LoanRequestPerson::factory()
+        ->forLoanRequest($loanRequest)
+        ->role(LoanRequestPersonRole::Applicant)
+        ->create(['gross_monthly_income' => 1000]);
+
+    // Same terms as the happy-path case above (monthly amortization 2875.00),
+    // but income is too low: GNTHP = 1000 - 2875.00 = -1875.00.
+    $response = $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Recorded verified processing terms.',
+            'information_source' => 'Verified staff review',
+            'loan_request' => [],
+            'processing' => [
+                'savings_rate' => 0.02,
+                'guaranteed_net_take_home_pay' => -1875.00,
+            ],
+            'recommended_amount' => 25000,
+            'recommended_term' => 12,
+            'recommended_interest_rate' => 0.36,
+            'recommended_payment_frequency' => 'Monthly',
+        ])
+        ->assertOk();
+
+    $response->assertJsonPath(
+        'data.dataSections.processing.guaranteed_net_take_home_pay',
+        fn (mixed $value): bool => abs(((float) $value) - (-1875.0)) < 0.01,
+    );
+});
+
+/**
  * Regression guard for the Charges & Fees "did not appear populated after
  * reload" investigation: confirmed via a real Playwright browser session
  * (typed input -> outgoing PATCH payload -> save response -> hard reload)
@@ -338,7 +387,6 @@ test('processing update round-trips all Charges & Fees fields through save respo
         'recommended_term' => null,
         'recommended_interest_rate' => null,
         'recommended_payment_frequency' => null,
-        'recommendation_remarks' => null,
     ];
 
     $expectedInsuranceTerm = (int) $chargesAndFees['insurance_term'];
@@ -436,6 +484,74 @@ test('saving authority to deduct officers records a reusable contact for the ins
     expect($contact)->not->toBeNull()
         ->and($contact->officer_1_name)->toBe('Maria Santos')
         ->and($contact->officer_1_title)->toBe('HR Officer');
+});
+
+test('processing update with a blank reason succeeds and auto-generates an audit summary from the changed fields', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950008');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => '',
+            'loan_request' => [],
+            'processing' => [
+                'witness_one_name' => 'Lianga Municipal Hall',
+            ],
+        ])
+        ->assertOk();
+
+    $change = App\Models\LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('action', App\Models\LoanRequestChange::ACTION_PROCESSING_DETAILS_UPDATED)
+        ->latest('id')
+        ->first();
+
+    expect($change)->not->toBeNull()
+        ->and($change->reason)->not->toBeNull()
+        ->and($change->reason)->not->toBe('')
+        ->and($change->reason)->toStartWith("Updated:\n- ");
+});
+
+test('processing update keeps the processor-provided reason instead of the auto-generated summary', function (): void {
+    $processor = createProcessingActor([Role::LOAN_PROCESSOR]);
+    $member = createProcessingActor([Role::MEMBER], '950009');
+
+    $loanRequest = LoanRequest::factory()->forUser($member)->create([
+        'status' => LoanRequestStatus::UnderReview,
+        'workflow_version' => LoanRequestWorkflowVersion::DocumentWorkflowV2,
+        'assigned_officer_id' => $processor->user_id,
+        'typecode' => 'LN-050',
+        'submitted_at' => now(),
+    ]);
+
+    $this
+        ->actingAs($processor)
+        ->patchJson(route('spa.workflow.loan-requests.processing-details', $loanRequest), [
+            'reason' => 'Adjusted witness per updated municipal hall assignment.',
+            'loan_request' => [],
+            'processing' => [
+                'witness_one_name' => 'Lianga Municipal Hall',
+            ],
+        ])
+        ->assertOk();
+
+    $change = App\Models\LoanRequestChange::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('action', App\Models\LoanRequestChange::ACTION_PROCESSING_DETAILS_UPDATED)
+        ->latest('id')
+        ->first();
+
+    expect($change)->not->toBeNull()
+        ->and($change->reason)->toBe('Adjusted witness per updated municipal hall assignment.');
 });
 
 /**

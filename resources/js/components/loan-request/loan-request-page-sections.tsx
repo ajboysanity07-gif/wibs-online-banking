@@ -10,7 +10,11 @@ import {
     CommandList,
 } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 type LoanRequestPageHeroProps = {
@@ -76,7 +80,9 @@ export function LoanRequestPageHero({
                         <div className="flex flex-wrap gap-2">{badges}</div>
                     ) : null}
                 </div>
-                {cta ? <div className="self-start sm:self-auto">{cta}</div> : null}
+                {cta ? (
+                    <div className="self-start sm:self-auto">{cta}</div>
+                ) : null}
             </div>
         </section>
     );
@@ -121,9 +127,7 @@ export function LoanRequestStatusFilters<TValue extends string>({
     onChange,
 }: LoanRequestStatusFiltersProps<TValue>) {
     const [open, setOpen] = useState(false);
-    const activeOption = options.find(
-        (option) => option.value === activeValue,
-    );
+    const activeOption = options.find((option) => option.value === activeValue);
 
     return (
         <div className="space-y-1">
@@ -137,16 +141,13 @@ export function LoanRequestStatusFilters<TValue extends string>({
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-full justify-between font-normal sm:w-72"
+                        className="w-full justify-between font-normal"
                     >
                         {activeOption?.label ?? 'All'}
                         <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                    align="start"
-                    className="w-72 p-0"
-                >
+                <PopoverContent align="start" className="w-72 p-0">
                     <Command>
                         <CommandInput placeholder="Search status..." />
                         <CommandList>

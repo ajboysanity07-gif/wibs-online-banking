@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import {
+    ApplicantCycleSection,
     DEPENDENT_CATEGORIES,
     DependentCategorySection,
     type DependentCategoryConfig,
@@ -13,8 +14,8 @@ import {
     summarizeDependents,
 } from '@/components/dependents/dependent-category-section';
 import InputError from '@/components/input-error';
+import { AtmHolderCheckboxField } from '@/components/loan-request/atm-holder-checkbox-field';
 import { BooleanYesNoField } from '@/components/loan-request/boolean-yes-no-field';
-import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
 import {
     LoanRequestPersonalFields,
     LoanRequestWorkFields,
@@ -24,8 +25,12 @@ import {
     CurrencyInput,
     MonthsInput,
 } from '@/components/loan-request/numeric-adorned-inputs';
+import { ReleaseAccountFields } from '@/components/loan-request/release-account-fields';
+import { SmokingStatusField } from '@/components/loan-request/smoking-status-field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,7 +67,12 @@ import type {
 
 const AVAILMENT_OPTIONS = ['New', 'Re-Loan', 'Restructured'] as const;
 
-const RELEASE_METHOD_OPTIONS = ['ATM', 'Bank Transfer', 'Check', 'Cash'] as const;
+const RELEASE_METHOD_OPTIONS = [
+    'ATM',
+    'Bank Transfer',
+    'Check',
+    'Cash',
+] as const;
 const PAYMENT_OPTION_OPTIONS = [
     'Salary Deduction',
     'ATM Deduction',
@@ -138,9 +148,7 @@ export function LoanRequestLoanDetailsStep({
                         value={data.requested_term}
                         placeholder="e.g. 12"
                         required
-                        onChange={(value) =>
-                            onChange('requested_term', value)
-                        }
+                        onChange={(value) => onChange('requested_term', value)}
                     />
                     <InputError message={errors.requested_term} />
                 </div>
@@ -200,13 +208,19 @@ type ApplicantPersonalStepProps = PersonStepProps & {
     section: 'basic' | 'contact' | 'family';
 };
 
-const PERSONAL_STEP_TITLES: Record<ApplicantPersonalStepProps['section'], string> = {
+const PERSONAL_STEP_TITLES: Record<
+    ApplicantPersonalStepProps['section'],
+    string
+> = {
     basic: 'My personal data',
     contact: 'Address & contact',
     family: 'Family & background',
 };
 
-const PERSONAL_STEP_DESCS: Record<ApplicantPersonalStepProps['section'], string> = {
+const PERSONAL_STEP_DESCS: Record<
+    ApplicantPersonalStepProps['section'],
+    string
+> = {
     basic: 'Confirm your basic personal details.',
     contact: 'Confirm your address and contact details.',
     family: 'Confirm civil status, education, and family details.',
@@ -272,7 +286,8 @@ export function LoanRequestApplicantWorkStep({
                     <Alert className="border-border/50 bg-muted/10">
                         <AlertTitle>Physical signatures</AlertTitle>
                         <AlertDescription>
-                            Signatures will be collected physically upon loan release.
+                            Signatures will be collected physically upon loan
+                            release.
                         </AlertDescription>
                     </Alert>
                 </>
@@ -343,9 +358,7 @@ function SavedCoMakerPicker({
                                 type="button"
                                 variant="secondary"
                                 size="sm"
-                                onClick={() =>
-                                    onLoadSavedCoMaker?.(option.id)
-                                }
+                                onClick={() => onLoadSavedCoMaker?.(option.id)}
                             >
                                 Use this
                             </Button>
@@ -412,7 +425,8 @@ export function LoanRequestCoMakerStep({
                             <Alert className="border-border/50 bg-muted/10">
                                 <AlertTitle>Physical signatures</AlertTitle>
                                 <AlertDescription>
-                                    Signatures will be collected physically upon loan release.
+                                    Signatures will be collected physically upon
+                                    loan release.
                                 </AlertDescription>
                             </Alert>
                             <div className="flex items-center gap-2">
@@ -427,7 +441,8 @@ export function LoanRequestCoMakerStep({
                                     htmlFor={`${prefix}_save_for_reuse`}
                                     className="text-sm font-normal"
                                 >
-                                    Save this co-maker&apos;s details so I can reuse them on a future loan
+                                    Save this co-maker&apos;s details so I can
+                                    reuse them on a future loan
                                 </Label>
                             </div>
                         </>
@@ -494,7 +509,9 @@ const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (
         {items.map((item) => (
             <div key={item.label} className="space-y-1">
                 <p className="text-xs text-muted-foreground">{item.label}</p>
-                <p className="text-sm font-medium wrap-break-word">{item.value}</p>
+                <p className="text-sm font-medium wrap-break-word">
+                    {item.value}
+                </p>
             </div>
         ))}
     </div>
@@ -523,6 +540,7 @@ type DataSectionStepProps = {
         LoanRequestFormData,
         | 'insurance'
         | 'health'
+        | 'health_glapi'
         | 'banking'
         | 'barangay'
         | 'declarations'
@@ -532,75 +550,12 @@ type DataSectionStepProps = {
     values: LoanRequestDataSectionValues;
     definition: LoanRequestDataSectionDefinition;
     errors: Record<string, string | undefined>;
-    onChange: (
-        field: string,
-        value: string | number | boolean | null,
-    ) => void;
+    onChange: (field: string, value: string | number | boolean | null) => void;
     // Source of truth for the "This is my own ATM card" checkbox
     // (payout_atm_holder_name, banking section only) -- omit for sections
     // that don't render that field.
     applicantFullName?: string;
 };
-
-type AtmHolderFieldProps = {
-    id: string;
-    label: string;
-    value: LoanRequestDataFieldValue;
-    applicantFullName: string;
-    error?: string;
-    onChange: (value: string) => void;
-};
-
-// "This is my own ATM card" defaults to checked when the stored value is
-// empty or already matches the applicant's own name (e.g. prefilled from a
-// prior submission) -- unchecked only when it holds a genuinely different
-// name. Checking it disables manual entry and writes the applicant's name;
-// unchecking clears the field for manual entry.
-function AtmHolderCheckboxField({
-    id,
-    label,
-    value,
-    applicantFullName,
-    error,
-    onChange,
-}: AtmHolderFieldProps) {
-    const stringValue = value ? `${value}` : '';
-    const [isOwnCard, setIsOwnCard] = useState(
-        () =>
-            stringValue.trim() === '' ||
-            stringValue.trim() === applicantFullName.trim(),
-    );
-
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="flex items-center gap-2">
-                <Checkbox
-                    id={`${id}_is_own`}
-                    checked={isOwnCard}
-                    onCheckedChange={(checked) => {
-                        const next = checked === true;
-                        setIsOwnCard(next);
-                        onChange(next ? applicantFullName : '');
-                    }}
-                />
-                <Label
-                    htmlFor={`${id}_is_own`}
-                    className="text-sm font-normal"
-                >
-                    This is my own ATM card
-                </Label>
-            </div>
-            <Input
-                id={id}
-                value={stringValue}
-                disabled={isOwnCard}
-                onChange={(event) => onChange(event.target.value)}
-            />
-            <InputError message={error} />
-        </div>
-    );
-}
 
 // declaration_truth_confirmation and declaration_data_privacy_consent are
 // agreements the applicant must actively accept, not factual Yes/No
@@ -689,7 +644,10 @@ function ExistingLoansTable({
                         const amountValue = values[amountKey];
 
                         return (
-                            <tr key={slot} className="border-b border-border/30 last:border-b-0">
+                            <tr
+                                key={slot}
+                                className="border-b border-border/30 last:border-b-0"
+                            >
                                 <td className="p-2 align-top">
                                     <Input
                                         id={`${sectionKey}_${dateKey}`}
@@ -697,11 +655,16 @@ function ExistingLoansTable({
                                         aria-label={`Existing loan ${slot} date`}
                                         value={dateValue ? `${dateValue}` : ''}
                                         onChange={(event) =>
-                                            onChange(dateKey, event.target.value)
+                                            onChange(
+                                                dateKey,
+                                                event.target.value,
+                                            )
                                         }
                                     />
                                     <InputError
-                                        message={errors[`${sectionKey}.${dateKey}`]}
+                                        message={
+                                            errors[`${sectionKey}.${dateKey}`]
+                                        }
                                     />
                                 </td>
                                 <td className="p-2 align-top">
@@ -711,11 +674,16 @@ function ExistingLoansTable({
                                         aria-label={`Existing loan ${slot} type`}
                                         value={typeValue ? `${typeValue}` : ''}
                                         onChange={(event) =>
-                                            onChange(typeKey, event.target.value)
+                                            onChange(
+                                                typeKey,
+                                                event.target.value,
+                                            )
                                         }
                                     />
                                     <InputError
-                                        message={errors[`${sectionKey}.${typeKey}`]}
+                                        message={
+                                            errors[`${sectionKey}.${typeKey}`]
+                                        }
                                     />
                                 </td>
                                 <td className="p-2 align-top">
@@ -724,13 +692,20 @@ function ExistingLoansTable({
                                         type="number"
                                         step="0.01"
                                         aria-label={`Existing loan ${slot} amount`}
-                                        value={amountValue ? `${amountValue}` : ''}
+                                        value={
+                                            amountValue ? `${amountValue}` : ''
+                                        }
                                         onChange={(event) =>
-                                            onChange(amountKey, event.target.value)
+                                            onChange(
+                                                amountKey,
+                                                event.target.value,
+                                            )
                                         }
                                     />
                                     <InputError
-                                        message={errors[`${sectionKey}.${amountKey}`]}
+                                        message={
+                                            errors[`${sectionKey}.${amountKey}`]
+                                        }
                                     />
                                 </td>
                             </tr>
@@ -772,6 +747,36 @@ export function LoanRequestDataSectionStep({
                         return null;
                     }
 
+                    // ATM-only payout details -- irrelevant once a member
+                    // picks any other release method.
+                    if (
+                        (fieldKey === 'payout_bank_branch' ||
+                            fieldKey === 'payout_atm_number' ||
+                            fieldKey === 'payout_atm_holder_name') &&
+                        values.release_method !== 'ATM'
+                    ) {
+                        return null;
+                    }
+
+                    // The release-account fields render together as a single
+                    // group anchored on release_uses_payout_account (see
+                    // below), not as individual generic fields in this grid.
+                    if (
+                        fieldKey === 'release_bank_name' ||
+                        fieldKey === 'release_account_name' ||
+                        fieldKey === 'release_account_number' ||
+                        fieldKey === 'release_account_type'
+                    ) {
+                        return null;
+                    }
+
+                    if (
+                        fieldKey === 'release_uses_payout_account' &&
+                        values.release_method !== 'Bank Transfer'
+                    ) {
+                        return null;
+                    }
+
                     if (fieldKey === 'declaration_existing_loans') {
                         return (
                             <div
@@ -786,10 +791,15 @@ export function LoanRequestDataSectionStep({
                                     value={value}
                                     aria-label={field.label}
                                     fullWidth={sectionKey === 'declarations'}
+                                    disabled
                                     onChange={(nextValue) =>
                                         onChange(fieldKey, nextValue)
                                     }
                                 />
+                                <p className="text-xs text-muted-foreground">
+                                    Automatically determined from your account
+                                    records.
+                                </p>
                                 <InputError message={errors[errorKey]} />
                                 {value === true && (
                                     <ExistingLoansTable
@@ -815,10 +825,7 @@ export function LoanRequestDataSectionStep({
                                         checked={value === true}
                                         aria-label={field.label}
                                         onCheckedChange={(checked) =>
-                                            onChange(
-                                                fieldKey,
-                                                checked === true,
-                                            )
+                                            onChange(fieldKey, checked === true)
                                         }
                                     />
                                     <Label
@@ -912,12 +919,77 @@ export function LoanRequestDataSectionStep({
                                 key={fieldKey}
                                 id={`${sectionKey}_${fieldKey}`}
                                 label={field.label}
-                                value={value}
+                                value={value ? `${value}` : ''}
                                 applicantFullName={applicantFullName ?? ''}
                                 error={errors[errorKey]}
                                 onChange={(nextValue) =>
                                     onChange(fieldKey, nextValue)
                                 }
+                            />
+                        );
+                    }
+
+                    if (fieldKey === 'release_uses_payout_account') {
+                        const releaseBankName = values.release_bank_name;
+                        const releaseAccountName = values.release_account_name;
+                        const releaseAccountNumber =
+                            values.release_account_number;
+                        const releaseAccountType = values.release_account_type;
+
+                        return (
+                            <ReleaseAccountFields
+                                key={fieldKey}
+                                idPrefix={`${sectionKey}_release_account`}
+                                useSameAccount={value !== false}
+                                onToggleSameAccount={(useSameAccount) =>
+                                    onChange(fieldKey, useSameAccount)
+                                }
+                                values={{
+                                    bank_name: releaseBankName
+                                        ? `${releaseBankName}`
+                                        : '',
+                                    account_name: releaseAccountName
+                                        ? `${releaseAccountName}`
+                                        : '',
+                                    account_number: releaseAccountNumber
+                                        ? `${releaseAccountNumber}`
+                                        : '',
+                                    account_type: releaseAccountType
+                                        ? `${releaseAccountType}`
+                                        : '',
+                                }}
+                                errors={{
+                                    bank_name:
+                                        errors[
+                                            `${sectionKey}.release_bank_name`
+                                        ],
+                                    account_name:
+                                        errors[
+                                            `${sectionKey}.release_account_name`
+                                        ],
+                                    account_number:
+                                        errors[
+                                            `${sectionKey}.release_account_number`
+                                        ],
+                                    account_type:
+                                        errors[
+                                            `${sectionKey}.release_account_type`
+                                        ],
+                                }}
+                                onChange={(releaseField, releaseValue) => {
+                                    const fieldMap = {
+                                        bank_name: 'release_bank_name',
+                                        account_name: 'release_account_name',
+                                        account_number:
+                                            'release_account_number',
+                                        account_type: 'release_account_type',
+                                    } as const;
+
+                                    onChange(
+                                        fieldMap[releaseField],
+                                        releaseValue,
+                                    );
+                                }}
                             />
                         );
                     }
@@ -939,15 +1011,28 @@ export function LoanRequestDataSectionStep({
                                 {field.label}
                             </Label>
                             {field.type === 'boolean' ? (
-                                <BooleanYesNoField
-                                    id={`${sectionKey}_${fieldKey}`}
-                                    value={value}
-                                    aria-label={field.label}
-                                    fullWidth={isFullWidthToggle}
-                                    onChange={(nextValue) =>
-                                        onChange(fieldKey, nextValue)
-                                    }
-                                />
+                                <>
+                                    <BooleanYesNoField
+                                        id={`${sectionKey}_${fieldKey}`}
+                                        value={value}
+                                        aria-label={field.label}
+                                        fullWidth={isFullWidthToggle}
+                                        disabled={
+                                            fieldKey ===
+                                            'declaration_pending_cases'
+                                        }
+                                        onChange={(nextValue) =>
+                                            onChange(fieldKey, nextValue)
+                                        }
+                                    />
+                                    {fieldKey ===
+                                        'declaration_pending_cases' && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Automatically determined from your
+                                            account records.
+                                        </p>
+                                    )}
+                                </>
                             ) : isNotesField ? (
                                 <textarea
                                     id={`${sectionKey}_${fieldKey}`}
@@ -968,7 +1053,7 @@ export function LoanRequestDataSectionStep({
                                             ? 'number'
                                             : field.type === 'date'
                                               ? 'date'
-                                            : 'text'
+                                              : 'text'
                                     }
                                     step={
                                         field.type === 'number'
@@ -1407,7 +1492,10 @@ export function LoanRequestHealthQuestionnaireStep({
     // the displayed badge number, so a virtual item's number reflects its
     // actual position among everything that comes before it -- not the
     // literal source-form item number it was thematically anchored to.
-    const sequence = useMemo(() => buildGlapiSequence(definition), [definition]);
+    const sequence = useMemo(
+        () => buildGlapiSequence(definition),
+        [definition],
+    );
 
     const badgeNumbers = useMemo(() => {
         const map: Record<string, string> = {};
@@ -1595,7 +1683,9 @@ export function LoanRequestHealthQuestionnaireStep({
                             }
                         }}
                     />
-                    <InputError message={errors['health.health_hypertension']} />
+                    <InputError
+                        message={errors['health.health_hypertension']}
+                    />
                 </div>
                 {detailsField && value === true ? (
                     <div className={childWrapperClassName(1)}>
@@ -1634,9 +1724,7 @@ export function LoanRequestHealthQuestionnaireStep({
         );
     };
 
-    const renderVirtualItem = (
-        key: GlapiVirtualItem['key'],
-    ): ReactNode => {
+    const renderVirtualItem = (key: GlapiVirtualItem['key']): ReactNode => {
         const content =
             key === 'health_hypertension'
                 ? renderHypertensionItem()
@@ -1806,7 +1894,10 @@ function isDependentSpouseVisible(
         return true;
     }
 
-    return crossSectionValues[field.visible_when.field] === field.visible_when.equals;
+    return (
+        crossSectionValues[field.visible_when.field] ===
+        field.visible_when.equals
+    );
 }
 
 /**
@@ -1836,7 +1927,10 @@ export function LoanRequestDependentsStep({
     const visibleCategories = DEPENDENT_CATEGORIES.filter((category) =>
         isDependentCategoryVisible(category, definition, crossSectionValues),
     );
-    const spouseVisible = isDependentSpouseVisible(definition, crossSectionValues);
+    const spouseVisible = isDependentSpouseVisible(
+        definition,
+        crossSectionValues,
+    );
     const spouseCycleStatus = values[SPOUSE_CYCLE_STATUS_KEY];
     const spouseCycleNumber = values[SPOUSE_CYCLE_NUMBER_KEY];
     const hasSpouseCycleData = spouseVisible && Boolean(spouseCycleStatus);
@@ -1861,47 +1955,112 @@ export function LoanRequestDependentsStep({
                 ? summaryCounts.join(', ') + ' on file'
                 : 'No dependents on file';
 
+        // Cycle status is now required on submit, but this on-file profile
+        // data may predate that requirement -- the read-only summary below
+        // has no inputs to attach a validation error to, so surface it here
+        // instead of leaving the member stuck on a silent submit failure.
+        const missingCycleStatusNames: string[] = [];
+
+        if (spouseVisible && !spouseCycleStatus) {
+            missingCycleStatusNames.push('Spouse');
+        }
+
+        summaries.forEach(({ rows }) => {
+            rows.forEach((row) => {
+                if (!row.cycleStatus) {
+                    missingCycleStatusNames.push(row.name);
+                }
+            });
+        });
+
         return (
             <LoanRequestSectionCard
                 title={title}
                 description={description}
                 contentClassName="space-y-6"
             >
-                <div className="space-y-4 rounded-md border border-border/50 bg-muted/5 p-4">
-                    <p className="text-sm font-semibold text-foreground">
+                {/* Applicant's own cycle status isn't part of
+                MemberDependentProfile, so there's no Settings equivalent to
+                defer to here -- it stays editable even when the rest of this
+                step is a read-only profile summary. */}
+                <ApplicantCycleSection
+                    values={values}
+                    errors={errors}
+                    errorKeyPrefix="dependents"
+                    onChange={onChange}
+                />
+                {missingCycleStatusNames.length > 0 ? (
+                    <Alert variant="destructive">
+                        <AlertTitle>
+                            Missing required coverage status
+                        </AlertTitle>
+                        <AlertDescription>
+                            {missingCycleStatusNames.join(', ')}{' '}
+                            {missingCycleStatusNames.length === 1
+                                ? 'is'
+                                : 'are'}{' '}
+                            missing a group life coverage status (New/Old).{' '}
+                            <a
+                                href={editInSettingsHref}
+                                className="font-medium underline underline-offset-2"
+                            >
+                                Edit in Settings
+                            </a>{' '}
+                            to complete it before submitting.
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+                <div className="space-y-4">
+                    <p className="text-sm font-medium text-foreground">
                         {totalLabel}
                     </p>
-                    {hasSpouseCycleData ? (
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                                Spouse
-                            </p>
-                            <ul className="list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">
-                                <li>
-                                    {spouseCycleStatus === 'Old' && spouseCycleNumber
-                                        ? `Old (cycle ${spouseCycleNumber})`
-                                        : `${spouseCycleStatus}`}
-                                </li>
-                            </ul>
-                        </div>
-                    ) : null}
-                    {summaries.map(({ category, rows }) => (
-                        <div key={category.key} className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                                {dependentCategoryPluralLabel(category)}
-                            </p>
-                            <ul className="list-disc space-y-0.5 pl-5 text-sm text-muted-foreground">
-                                {rows.map((row, index) => (
-                                    <li key={`${category.key}-${index}`}>
-                                        {row.name}
-                                        {row.cycleStatus
-                                            ? ` -- ${row.cycleStatus}`
-                                            : ''}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    ))}
+                    <div className="space-y-3">
+                        {hasSpouseCycleData ? (
+                            <Card className="gap-2 py-3">
+                                <CardContent className="flex items-center justify-between gap-2 px-4 text-sm">
+                                    <span className="font-semibold text-foreground">
+                                        Spouse
+                                    </span>
+                                    <Badge
+                                        variant="outline"
+                                        className="font-normal"
+                                    >
+                                        {spouseCycleStatus === 'Old' &&
+                                        spouseCycleNumber
+                                            ? `Old · cycle ${spouseCycleNumber}`
+                                            : `${spouseCycleStatus}`}
+                                    </Badge>
+                                </CardContent>
+                            </Card>
+                        ) : null}
+                        {summaries.map(({ category, rows }) => (
+                            <Card key={category.key} className="gap-2 py-3">
+                                <CardContent className="space-y-1.5 px-4">
+                                    <p className="text-sm font-semibold text-foreground">
+                                        {dependentCategoryPluralLabel(category)}
+                                    </p>
+                                    {rows.map((row, index) => (
+                                        <div
+                                            key={`${category.key}-${index}`}
+                                            className="flex items-center justify-between gap-2 text-sm"
+                                        >
+                                            <span className="text-muted-foreground">
+                                                {row.name}
+                                            </span>
+                                            {row.cycleStatus ? (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="font-normal"
+                                                >
+                                                    {row.cycleStatus}
+                                                </Badge>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                     <Button type="button" variant="outline" size="sm" asChild>
                         <a href={editInSettingsHref}>Edit in Settings</a>
                     </Button>
@@ -1916,10 +2075,15 @@ export function LoanRequestDependentsStep({
             description={description}
             contentClassName="space-y-6"
         >
+            <ApplicantCycleSection
+                values={values}
+                errors={errors}
+                errorKeyPrefix="dependents"
+                onChange={onChange}
+            />
             {spouseVisible ? (
                 <DependentSpouseCycleSection
                     values={values}
-                    definition={definition}
                     errors={errors}
                     errorKeyPrefix="dependents"
                     onChange={onChange}
@@ -1930,7 +2094,6 @@ export function LoanRequestDependentsStep({
                     key={category.key}
                     category={category}
                     values={values}
-                    definition={definition}
                     errors={errors}
                     errorKeyPrefix="dependents"
                     onChange={onChange}
@@ -1981,7 +2144,10 @@ export function LoanRequestReviewStep({
             label: 'Birthplace',
             value: displayText(resolveBirthplace(data.applicant)),
         },
-        { label: 'Address', value: displayText(resolveAddress(data.applicant)) },
+        {
+            label: 'Address',
+            value: displayText(resolveAddress(data.applicant)),
+        },
         {
             label: 'Length of stay',
             value: displayText(data.applicant.length_of_stay),
@@ -2026,9 +2192,7 @@ export function LoanRequestReviewStep({
         },
         {
             label: 'Employer/Business address',
-            value: displayText(
-                resolveEmployerBusinessAddress(data.applicant),
-            ),
+            value: displayText(resolveEmployerBusinessAddress(data.applicant)),
         },
         {
             label: 'Telephone no.',
@@ -2108,7 +2272,15 @@ export function LoanRequestReviewStep({
         { label: 'Payday', value: formatPayday(person.payday) },
     ];
 
-    const buildSectionItems = (sectionKey: 'insurance' | 'health' | 'health_glapi' | 'banking' | 'barangay' | 'declarations') =>
+    const buildSectionItems = (
+        sectionKey:
+            | 'insurance'
+            | 'health'
+            | 'health_glapi'
+            | 'banking'
+            | 'barangay'
+            | 'declarations',
+    ) =>
         Object.entries(sectionDefinitions[sectionKey]?.fields ?? {}).map(
             ([fieldKey, field]) => ({
                 label: field.label,
@@ -2129,7 +2301,9 @@ export function LoanRequestReviewStep({
     ).map((sectionKeys) => ({
         key: sectionKeys[0],
         title: sectionDefinitions[sectionKeys[0]]?.label ?? sectionKeys[0],
-        items: sectionKeys.flatMap((sectionKey) => buildSectionItems(sectionKey)),
+        items: sectionKeys.flatMap((sectionKey) =>
+            buildSectionItems(sectionKey),
+        ),
     }));
 
     return (

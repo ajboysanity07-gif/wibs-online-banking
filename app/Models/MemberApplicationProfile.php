@@ -54,6 +54,11 @@ class MemberApplicationProfile extends Model
         'payout_atm_number',
         'payout_bank_branch',
         'payout_atm_holder_name',
+        'release_uses_payout_account',
+        'release_bank_name',
+        'release_account_name',
+        'release_account_number',
+        'release_account_type',
         'beneficiary_primary_name',
         'beneficiary_primary_relationship',
         'beneficiary_primary_birthdate',
@@ -167,6 +172,11 @@ class MemberApplicationProfile extends Model
             'payout_atm_number',
             'payout_bank_branch',
             'payout_atm_holder_name',
+            'release_uses_payout_account',
+            'release_bank_name',
+            'release_account_name',
+            'release_account_number',
+            'release_account_type',
         ];
     }
 
@@ -386,6 +396,7 @@ class MemberApplicationProfile extends Model
             'beneficiary_primary_birthdate' => 'date',
             'beneficiary_secondary_birthdate' => 'date',
             'profile_completed_at' => 'datetime',
+            'release_uses_payout_account' => 'boolean',
         ];
     }
 }

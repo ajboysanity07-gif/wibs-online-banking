@@ -99,6 +99,8 @@ class SaveDraftRequest extends FormRequest
         'gl_health_q17_with_other_companies',
         'gl_health_q17_with_other_companies_amount',
         'health_recent_hospitalization',
+        'applicant_pep_status',
+        'applicant_pep_status_details',
     ];
 
     private const HEALTH_GLAPI_BOOLEAN_KEYS = [
@@ -132,6 +134,7 @@ class SaveDraftRequest extends FormRequest
         'gl_health_q17_with_glapi',
         'gl_health_q17_with_other_companies',
         'health_recent_hospitalization',
+        'applicant_pep_status',
     ];
 
     private const HEALTH_GLAPI_AMOUNT_KEYS = [
@@ -192,6 +195,8 @@ class SaveDraftRequest extends FormRequest
         'dependent_extended_3_cycle_number',
         'dependent_spouse_cycle_status',
         'dependent_spouse_cycle_number',
+        'applicant_cycle_status',
+        'applicant_cycle_number',
     ];
 
     private const DEPENDENT_DATE_KEYS = [
@@ -221,6 +226,7 @@ class SaveDraftRequest extends FormRequest
         'dependent_extended_2_cycle_status',
         'dependent_extended_3_cycle_status',
         'dependent_spouse_cycle_status',
+        'applicant_cycle_status',
     ];
 
     private const DEPENDENT_CYCLE_NUMBER_KEYS = [
@@ -236,6 +242,7 @@ class SaveDraftRequest extends FormRequest
         'dependent_extended_2_cycle_number',
         'dependent_extended_3_cycle_number',
         'dependent_spouse_cycle_number',
+        'applicant_cycle_number',
     ];
 
     /**
@@ -384,6 +391,11 @@ class SaveDraftRequest extends FormRequest
             'banking.payout_atm_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_bank_branch' => ['sometimes', 'nullable', 'string', 'max:255'],
             'banking.payout_atm_holder_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.release_uses_payout_account' => ['sometimes', 'nullable', 'boolean'],
+            'banking.release_bank_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.release_account_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.release_account_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'banking.release_account_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay' => ['sometimes', 'nullable', 'array'],
             'barangay.barangay_official_designation' => ['sometimes', 'nullable', 'string', 'max:255'],
             'barangay.barangay_agency_name' => ['sometimes', 'nullable', 'string', 'max:255'],

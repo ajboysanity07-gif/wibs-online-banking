@@ -15,9 +15,10 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useLocationSearch } from '@/hooks/use-location-search';
+import api from '@/lib/api';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
-import { cities, provinces } from '@/routes/api/locations';
+import { cities, provinces, zip } from '@/routes/api/locations';
 import type {
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
@@ -31,13 +32,12 @@ const EDUCATIONAL_ATTAINMENT_OPTIONS = [
     'Postgraduate',
 ];
 const PENSIONER_EMPLOYMENT_TYPE = 'Pensioner';
-const EMPLOYMENT_TYPE_OPTIONS = [
-    'Private',
-    'Government',
-    'Self Employed',
-    'Retired',
-    PENSIONER_EMPLOYMENT_TYPE,
-    'OFW',
+const EMPLOYMENT_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
+    { value: 'Private', label: 'Private' },
+    { value: 'Government', label: 'Government' },
+    { value: 'Self Employed', label: 'Self Employed' },
+    { value: PENSIONER_EMPLOYMENT_TYPE, label: 'Pensioner / Retired' },
+    { value: 'OFW', label: 'OFW' },
 ];
 const CIVIL_STATUS_OPTIONS = [
     'Single',
@@ -178,7 +178,8 @@ export function LoanRequestPersonalFields({
 
     const isReadOnly = (field: string) => Boolean(readOnly?.[field]);
     const hasReadOnlyFields = Object.values(readOnly ?? {}).some(Boolean);
-    const hasFamilySection = includeCivilHousing || includeChildren || includeSpouse;
+    const hasFamilySection =
+        includeCivilHousing || includeChildren || includeSpouse;
     const birthplaceProvinceSearch = useLocationSearch({
         initialQuery: values.birthplace_province,
         searchUrl: provinces.url(),
@@ -225,10 +226,7 @@ export function LoanRequestPersonalFields({
     const updateMobileField =
         (field: keyof LoanRequestPersonFormData) =>
         (event: ChangeEvent<HTMLInputElement>) => {
-            onChange(
-                field,
-                normalizeMobileNumberInput(event.target.value),
-            );
+            onChange(field, normalizeMobileNumberInput(event.target.value));
         };
 
     return (
@@ -239,631 +237,665 @@ export function LoanRequestPersonalFields({
                     you need changes.
                 </div>
             ) : null}
-            {(section === 'all' || section === 'basic') ? (
-            <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_first_name`}
-                        label="First name"
-                        isReadOnly={isReadOnly('first_name')}
-                    />
-                    <Input
-                        id={`${prefix}_first_name`}
-                        name={fieldName(prefix, 'first_name')}
-                        value={values.first_name}
-                        readOnly={isReadOnly('first_name')}
-                        required
-                        className={cn(
-                            'mt-1 block w-full',
-                            isReadOnly('first_name') && readOnlyInputClass,
-                        )}
-                        onChange={updateField('first_name')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'first_name')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_last_name`}
-                        label="Last name"
-                        isReadOnly={isReadOnly('last_name')}
-                    />
-                    <Input
-                        id={`${prefix}_last_name`}
-                        name={fieldName(prefix, 'last_name')}
-                        value={values.last_name}
-                        readOnly={isReadOnly('last_name')}
-                        required
-                        className={cn(
-                            'mt-1 block w-full',
-                            isReadOnly('last_name') && readOnlyInputClass,
-                        )}
-                        onChange={updateField('last_name')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'last_name')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_middle_name`}
-                        label="Middle name"
-                        isReadOnly={isReadOnly('middle_name')}
-                    />
-                    <Input
-                        id={`${prefix}_middle_name`}
-                        name={fieldName(prefix, 'middle_name')}
-                        value={values.middle_name}
-                        readOnly={isReadOnly('middle_name')}
-                        className={cn(
-                            'mt-1 block w-full',
-                            isReadOnly('middle_name') && readOnlyInputClass,
-                        )}
-                        onChange={updateField('middle_name')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'middle_name')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_nickname`}
-                        label="Nickname"
-                    />
-                    <Input
-                        id={`${prefix}_nickname`}
-                        name={fieldName(prefix, 'nickname')}
-                        value={values.nickname}
-                        className="mt-1 block w-full"
-                        onChange={updateField('nickname')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'nickname')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_birthdate`}
-                        label="Birthdate"
-                        isReadOnly={isReadOnly('birthdate')}
-                    />
-                    <BirthdateInput
-                        id={`${prefix}_birthdate`}
-                        name={fieldName(prefix, 'birthdate')}
-                        value={values.birthdate}
-                        readOnly={isReadOnly('birthdate')}
-                        required
-                        className={cn(
-                            isReadOnly('birthdate') && readOnlyInputClass,
-                        )}
-                        onValueChange={(value) => onChange('birthdate', value)}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'birthdate')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_birthplace_city`}
-                        label="Birthplace city/municipality"
-                        isReadOnly={isReadOnly('birthplace_city')}
-                    />
-                    <LocationAutocompleteInput
-                        id={`${prefix}_birthplace_city`}
-                        name={fieldName(prefix, 'birthplace_city')}
-                        search={birthplaceCitySearch}
-                        placeholder="Select city or municipality"
-                        required
-                        readOnly={isReadOnly('birthplace_city')}
-                        inputClassName={birthplaceCityInputClass}
-                        loadingMessage="Searching city suggestions..."
-                        errorMessage="City suggestions are temporarily unavailable."
-                        onSelect={(suggestion) => {
-                            if (suggestion.province) {
-                                birthplaceProvinceSearch.setSelectedValue(
-                                    suggestion.province,
-                                );
-                                onChange(
-                                    'birthplace_province',
-                                    suggestion.province,
-                                );
-                            }
-                        }}
-                        onValueChange={(value) =>
-                            onChange('birthplace_city', value)
-                        }
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'birthplace_city')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_birthplace_province`}
-                        label="Birthplace province"
-                        isReadOnly={isReadOnly('birthplace_province')}
-                    />
-                    <LocationAutocompleteInput
-                        id={`${prefix}_birthplace_province`}
-                        name={fieldName(prefix, 'birthplace_province')}
-                        search={birthplaceProvinceSearch}
-                        placeholder="Select province"
-                        required
-                        readOnly={isReadOnly('birthplace_province')}
-                        inputClassName={birthplaceProvinceInputClass}
-                        loadingMessage="Searching province suggestions..."
-                        errorMessage="Province suggestions are temporarily unavailable."
-                        promptMessage="Type at least 2 characters to search provinces."
-                        onValueChange={(value) =>
-                            onChange('birthplace_province', value)
-                        }
-                    />
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'birthplace_province',
-                        )}
-                    />
-                </div>
-
-                {includeCivilHousing ? (
+            {section === 'all' || section === 'basic' ? (
+                <div className="grid gap-5 md:grid-cols-2">
                     <div className="grid gap-2">
                         <FieldLabel
-                            htmlFor={`${prefix}_sex`}
-                            label="Sex"
-                            isReadOnly={isReadOnly('sex')}
-                        />
-                        <Select
-                            value={values.sex || undefined}
-                            onValueChange={(value) => onChange('sex', value)}
-                            disabled={isReadOnly('sex')}
-                        >
-                            <SelectTrigger
-                                id={`${prefix}_sex`}
-                                className={cn(
-                                    'mt-1 w-full',
-                                    isReadOnly('sex') && readOnlyInputClass,
-                                )}
-                            >
-                                <SelectValue placeholder="Select sex" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {SEX_OPTIONS.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={fieldError(errors, prefix, 'sex')} />
-                    </div>
-                ) : null}
-            </div>
-            ) : null}
-
-            {section === 'all' ? <Separator className="bg-border/40" /> : null}
-
-            {(section === 'all' || section === 'contact') ? (
-            <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2 md:col-span-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_address1`}
-                        label="Address (street)"
-                        isReadOnly={isReadOnly('address1')}
-                    />
-                    <Input
-                        id={`${prefix}_address1`}
-                        name={fieldName(prefix, 'address1')}
-                        value={values.address1}
-                        readOnly={isReadOnly('address1')}
-                        required
-                        className={cn(
-                            'mt-1 block w-full',
-                            isReadOnly('address1') && readOnlyInputClass,
-                        )}
-                        onChange={updateField('address1')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'address1')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_address2`}
-                        label="City/Municipality"
-                        isReadOnly={isReadOnly('address2')}
-                    />
-                    <LocationAutocompleteInput
-                        id={`${prefix}_address2`}
-                        name={fieldName(prefix, 'address2')}
-                        search={addressCitySearch}
-                        placeholder="Select city or municipality"
-                        required
-                        readOnly={isReadOnly('address2')}
-                        inputClassName={addressCityInputClass}
-                        loadingMessage="Searching city suggestions..."
-                        errorMessage="City suggestions are temporarily unavailable."
-                        onSelect={(suggestion) => {
-                            if (suggestion.province) {
-                                addressProvinceSearch.setSelectedValue(
-                                    suggestion.province,
-                                );
-                                onChange('address3', suggestion.province);
-                            }
-                        }}
-                        onValueChange={(value) => onChange('address2', value)}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'address2')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_address3`}
-                        label="Province"
-                        isReadOnly={isReadOnly('address3')}
-                    />
-                    <LocationAutocompleteInput
-                        id={`${prefix}_address3`}
-                        name={fieldName(prefix, 'address3')}
-                        search={addressProvinceSearch}
-                        placeholder="Select province"
-                        required
-                        readOnly={isReadOnly('address3')}
-                        inputClassName={addressProvinceInputClass}
-                        loadingMessage="Searching province suggestions..."
-                        errorMessage="Province suggestions are temporarily unavailable."
-                        promptMessage="Type at least 2 characters to search provinces."
-                        onValueChange={(value) => onChange('address3', value)}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'address3')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_address_zip`}
-                        label="ZIP code"
-                        isReadOnly={isReadOnly('address_zip')}
-                    />
-                    <Input
-                        id={`${prefix}_address_zip`}
-                        name={fieldName(prefix, 'address_zip')}
-                        value={values.address_zip}
-                        inputMode="numeric"
-                        autoComplete="postal-code"
-                        readOnly={isReadOnly('address_zip')}
-                        className={cn(
-                            'mt-1 block w-full',
-                            isReadOnly('address_zip') && readOnlyInputClass,
-                        )}
-                        onChange={updateField('address_zip')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'address_zip')}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_length_of_stay`}
-                        label="Length of stay"
-                    />
-                    <Input
-                        id={`${prefix}_length_of_stay`}
-                        name={fieldName(prefix, 'length_of_stay')}
-                        value={values.length_of_stay}
-                        className="mt-1 block w-full"
-                        placeholder="e.g. 2 years"
-                        required
-                        onChange={updateField('length_of_stay')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'length_of_stay')}
-                    />
-                </div>
-
-                {includeCivilHousing ? (
-                    <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_housing_status`}
-                            label="Housing status"
-                            isReadOnly={isReadOnly('housing_status')}
-                        />
-                        <Select
-                            value={values.housing_status || undefined}
-                            onValueChange={(value) =>
-                                onChange('housing_status', value)
-                            }
-                            disabled={isReadOnly('housing_status')}
-                        >
-                            <SelectTrigger
-                                id={`${prefix}_housing_status`}
-                                className={cn(
-                                    'mt-1 w-full',
-                                    isReadOnly('housing_status') &&
-                                        readOnlyInputClass,
-                                )}
-                            >
-                                <SelectValue placeholder="Select housing status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {HOUSING_STATUS_OPTIONS.map((option) => (
-                                    <SelectItem
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'housing_status',
-                            )}
-                        />
-                    </div>
-                ) : null}
-
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_cell_no`}
-                        label="Cell no."
-                    />
-                    <Input
-                        id={`${prefix}_cell_no`}
-                        name={fieldName(prefix, 'cell_no')}
-                        value={values.cell_no}
-                        className="mt-1 block w-full"
-                        inputMode="numeric"
-                        maxLength={11}
-                        placeholder="09XXXXXXXXX"
-                        required
-                        onChange={updateMobileField('cell_no')}
-                    />
-                    <InputError
-                        message={fieldError(errors, prefix, 'cell_no')}
-                    />
-                </div>
-
-                {!hasFamilySection ? (
-                    <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_educational_attainment`}
-                            label="Educational attainment"
-                        />
-                        <Select
-                            value={educationalAttainment || undefined}
-                            onValueChange={(value) =>
-                                onChange('educational_attainment', value)
-                            }
-                        >
-                            <SelectTrigger
-                                id={`${prefix}_educational_attainment`}
-                                className="mt-1 w-full"
-                            >
-                                <SelectValue placeholder="Select attainment" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {educationalAttainmentOptions.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'educational_attainment',
-                            )}
-                        />
-                    </div>
-                ) : null}
-            </div>
-            ) : null}
-
-            {section === 'all' ? <Separator className="bg-border/40" /> : null}
-
-            {(section === 'all' || section === 'family') ? (
-            <div className="grid gap-5 md:grid-cols-2">
-                {includeCivilHousing ? (
-                    <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_civil_status`}
-                            label="Civil status"
-                            isReadOnly={isReadOnly('civil_status')}
-                        />
-                        <Select
-                            value={values.civil_status || undefined}
-                            onValueChange={(value) =>
-                                onChange('civil_status', value)
-                            }
-                            disabled={isReadOnly('civil_status')}
-                        >
-                            <SelectTrigger
-                                id={`${prefix}_civil_status`}
-                                className={cn(
-                                    'mt-1 w-full',
-                                    isReadOnly('civil_status') &&
-                                        readOnlyInputClass,
-                                )}
-                            >
-                                <SelectValue placeholder="Select civil status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {CIVIL_STATUS_OPTIONS.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError
-                            message={fieldError(errors, prefix, 'civil_status')}
-                        />
-                    </div>
-                ) : null}
-
-                {hasFamilySection ? (
-                <div className="grid gap-2">
-                    <FieldLabel
-                        htmlFor={`${prefix}_educational_attainment`}
-                        label="Educational attainment"
-                    />
-                    <Select
-                        value={educationalAttainment || undefined}
-                        onValueChange={(value) =>
-                            onChange('educational_attainment', value)
-                        }
-                    >
-                        <SelectTrigger
-                            id={`${prefix}_educational_attainment`}
-                            className="mt-1 w-full"
-                        >
-                            <SelectValue placeholder="Select attainment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {educationalAttainmentOptions.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'educational_attainment',
-                        )}
-                    />
-                </div>
-                ) : null}
-
-                {includeChildren ? (
-                    <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_number_of_children`}
-                            label="No. of children"
-                            isReadOnly={isReadOnly('number_of_children')}
+                            htmlFor={`${prefix}_first_name`}
+                            label="First name"
+                            isReadOnly={isReadOnly('first_name')}
                         />
                         <Input
-                            id={`${prefix}_number_of_children`}
-                            type="number"
-                            name={fieldName(prefix, 'number_of_children')}
-                            value={values.number_of_children}
-                            readOnly={isReadOnly('number_of_children')}
+                            id={`${prefix}_first_name`}
+                            name={fieldName(prefix, 'first_name')}
+                            value={values.first_name}
+                            readOnly={isReadOnly('first_name')}
                             required
                             className={cn(
                                 'mt-1 block w-full',
-                                isReadOnly('number_of_children') &&
-                                    readOnlyInputClass,
+                                isReadOnly('first_name') && readOnlyInputClass,
                             )}
-                            onChange={updateField('number_of_children')}
+                            onChange={updateField('first_name')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'first_name')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_last_name`}
+                            label="Last name"
+                            isReadOnly={isReadOnly('last_name')}
+                        />
+                        <Input
+                            id={`${prefix}_last_name`}
+                            name={fieldName(prefix, 'last_name')}
+                            value={values.last_name}
+                            readOnly={isReadOnly('last_name')}
+                            required
+                            className={cn(
+                                'mt-1 block w-full',
+                                isReadOnly('last_name') && readOnlyInputClass,
+                            )}
+                            onChange={updateField('last_name')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'last_name')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_middle_name`}
+                            label="Middle name"
+                            isReadOnly={isReadOnly('middle_name')}
+                        />
+                        <Input
+                            id={`${prefix}_middle_name`}
+                            name={fieldName(prefix, 'middle_name')}
+                            value={values.middle_name}
+                            readOnly={isReadOnly('middle_name')}
+                            className={cn(
+                                'mt-1 block w-full',
+                                isReadOnly('middle_name') && readOnlyInputClass,
+                            )}
+                            onChange={updateField('middle_name')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'middle_name')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_nickname`}
+                            label="Nickname"
+                        />
+                        <Input
+                            id={`${prefix}_nickname`}
+                            name={fieldName(prefix, 'nickname')}
+                            value={values.nickname}
+                            className="mt-1 block w-full"
+                            onChange={updateField('nickname')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'nickname')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_birthdate`}
+                            label="Birthdate"
+                            isReadOnly={isReadOnly('birthdate')}
+                        />
+                        <BirthdateInput
+                            id={`${prefix}_birthdate`}
+                            name={fieldName(prefix, 'birthdate')}
+                            value={values.birthdate}
+                            readOnly={isReadOnly('birthdate')}
+                            required
+                            className={cn(
+                                isReadOnly('birthdate') && readOnlyInputClass,
+                            )}
+                            onValueChange={(value) =>
+                                onChange('birthdate', value)
+                            }
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'birthdate')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_birthplace_city`}
+                            label="Birthplace city/municipality"
+                            isReadOnly={isReadOnly('birthplace_city')}
+                        />
+                        <LocationAutocompleteInput
+                            id={`${prefix}_birthplace_city`}
+                            name={fieldName(prefix, 'birthplace_city')}
+                            search={birthplaceCitySearch}
+                            placeholder="Select city or municipality"
+                            required
+                            readOnly={isReadOnly('birthplace_city')}
+                            inputClassName={birthplaceCityInputClass}
+                            loadingMessage="Searching city suggestions..."
+                            errorMessage="City suggestions are temporarily unavailable."
+                            onSelect={(suggestion) => {
+                                if (suggestion.province) {
+                                    birthplaceProvinceSearch.setSelectedValue(
+                                        suggestion.province,
+                                    );
+                                    onChange(
+                                        'birthplace_province',
+                                        suggestion.province,
+                                    );
+                                }
+                            }}
+                            onValueChange={(value) =>
+                                onChange('birthplace_city', value)
+                            }
                         />
                         <InputError
                             message={fieldError(
                                 errors,
                                 prefix,
-                                'number_of_children',
+                                'birthplace_city',
                             )}
                         />
                     </div>
-                ) : null}
 
-                {includeSpouse ? (
-                    <>
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_birthplace_province`}
+                            label="Birthplace province"
+                            isReadOnly={isReadOnly('birthplace_province')}
+                        />
+                        <LocationAutocompleteInput
+                            id={`${prefix}_birthplace_province`}
+                            name={fieldName(prefix, 'birthplace_province')}
+                            search={birthplaceProvinceSearch}
+                            placeholder="Select province"
+                            required
+                            readOnly={isReadOnly('birthplace_province')}
+                            inputClassName={birthplaceProvinceInputClass}
+                            loadingMessage="Searching province suggestions..."
+                            errorMessage="Province suggestions are temporarily unavailable."
+                            promptMessage="Type at least 2 characters to search provinces."
+                            onValueChange={(value) =>
+                                onChange('birthplace_province', value)
+                            }
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'birthplace_province',
+                            )}
+                        />
+                    </div>
+
+                    {includeCivilHousing ? (
                         <div className="grid gap-2">
                             <FieldLabel
-                                htmlFor={`${prefix}_spouse_name`}
-                                label="Spouse name"
-                                isReadOnly={isReadOnly('spouse_name')}
+                                htmlFor={`${prefix}_sex`}
+                                label="Sex"
+                                isReadOnly={isReadOnly('sex')}
+                            />
+                            <Select
+                                value={values.sex || undefined}
+                                onValueChange={(value) =>
+                                    onChange('sex', value)
+                                }
+                                disabled={isReadOnly('sex')}
+                            >
+                                <SelectTrigger
+                                    id={`${prefix}_sex`}
+                                    className={cn(
+                                        'mt-1 w-full',
+                                        isReadOnly('sex') && readOnlyInputClass,
+                                    )}
+                                >
+                                    <SelectValue placeholder="Select sex" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {SEX_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={fieldError(errors, prefix, 'sex')}
+                            />
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
+
+            {section === 'all' ? <Separator className="bg-border/40" /> : null}
+
+            {section === 'all' || section === 'contact' ? (
+                <div className="grid gap-5 md:grid-cols-2">
+                    <div className="grid gap-2 md:col-span-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_address1`}
+                            label="Address (street)"
+                            isReadOnly={isReadOnly('address1')}
+                        />
+                        <Input
+                            id={`${prefix}_address1`}
+                            name={fieldName(prefix, 'address1')}
+                            value={values.address1}
+                            readOnly={isReadOnly('address1')}
+                            required
+                            className={cn(
+                                'mt-1 block w-full',
+                                isReadOnly('address1') && readOnlyInputClass,
+                            )}
+                            onChange={updateField('address1')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'address1')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_address2`}
+                            label="City/Municipality"
+                            isReadOnly={isReadOnly('address2')}
+                        />
+                        <LocationAutocompleteInput
+                            id={`${prefix}_address2`}
+                            name={fieldName(prefix, 'address2')}
+                            search={addressCitySearch}
+                            placeholder="Select city or municipality"
+                            required
+                            readOnly={isReadOnly('address2')}
+                            inputClassName={addressCityInputClass}
+                            loadingMessage="Searching city suggestions..."
+                            errorMessage="City suggestions are temporarily unavailable."
+                            onSelect={(suggestion) => {
+                                if (suggestion.province) {
+                                    addressProvinceSearch.setSelectedValue(
+                                        suggestion.province,
+                                    );
+                                    onChange('address3', suggestion.province);
+                                }
+                            }}
+                            onValueChange={(value) =>
+                                onChange('address2', value)
+                            }
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'address2')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_address3`}
+                            label="Province"
+                            isReadOnly={isReadOnly('address3')}
+                        />
+                        <LocationAutocompleteInput
+                            id={`${prefix}_address3`}
+                            name={fieldName(prefix, 'address3')}
+                            search={addressProvinceSearch}
+                            placeholder="Select province"
+                            required
+                            readOnly={isReadOnly('address3')}
+                            inputClassName={addressProvinceInputClass}
+                            loadingMessage="Searching province suggestions..."
+                            errorMessage="Province suggestions are temporarily unavailable."
+                            promptMessage="Type at least 2 characters to search provinces."
+                            onValueChange={(value) =>
+                                onChange('address3', value)
+                            }
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'address3')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_address_zip`}
+                            label="ZIP code"
+                            isReadOnly={isReadOnly('address_zip')}
+                        />
+                        <Input
+                            id={`${prefix}_address_zip`}
+                            name={fieldName(prefix, 'address_zip')}
+                            value={values.address_zip}
+                            inputMode="numeric"
+                            autoComplete="postal-code"
+                            readOnly={isReadOnly('address_zip')}
+                            className={cn(
+                                'mt-1 block w-full',
+                                isReadOnly('address_zip') && readOnlyInputClass,
+                            )}
+                            onChange={updateField('address_zip')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'address_zip')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_length_of_stay`}
+                            label="Length of stay"
+                        />
+                        <Input
+                            id={`${prefix}_length_of_stay`}
+                            name={fieldName(prefix, 'length_of_stay')}
+                            value={values.length_of_stay}
+                            className="mt-1 block w-full"
+                            placeholder="e.g. 2 years"
+                            required
+                            onChange={updateField('length_of_stay')}
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'length_of_stay',
+                            )}
+                        />
+                    </div>
+
+                    {includeCivilHousing ? (
+                        <div className="grid gap-2">
+                            <FieldLabel
+                                htmlFor={`${prefix}_housing_status`}
+                                label="Housing status"
+                                isReadOnly={isReadOnly('housing_status')}
+                            />
+                            <Select
+                                value={values.housing_status || undefined}
+                                onValueChange={(value) =>
+                                    onChange('housing_status', value)
+                                }
+                                disabled={isReadOnly('housing_status')}
+                            >
+                                <SelectTrigger
+                                    id={`${prefix}_housing_status`}
+                                    className={cn(
+                                        'mt-1 w-full',
+                                        isReadOnly('housing_status') &&
+                                            readOnlyInputClass,
+                                    )}
+                                >
+                                    <SelectValue placeholder="Select housing status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {HOUSING_STATUS_OPTIONS.map((option) => (
+                                        <SelectItem
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'housing_status',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_cell_no`}
+                            label="Cell no."
+                        />
+                        <Input
+                            id={`${prefix}_cell_no`}
+                            name={fieldName(prefix, 'cell_no')}
+                            value={values.cell_no}
+                            className="mt-1 block w-full"
+                            inputMode="numeric"
+                            maxLength={11}
+                            placeholder="09XXXXXXXXX"
+                            required
+                            onChange={updateMobileField('cell_no')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'cell_no')}
+                        />
+                    </div>
+
+                    {!hasFamilySection ? (
+                        <div className="grid gap-2">
+                            <FieldLabel
+                                htmlFor={`${prefix}_educational_attainment`}
+                                label="Educational attainment"
+                            />
+                            <Select
+                                value={educationalAttainment || undefined}
+                                onValueChange={(value) =>
+                                    onChange('educational_attainment', value)
+                                }
+                            >
+                                <SelectTrigger
+                                    id={`${prefix}_educational_attainment`}
+                                    className="mt-1 w-full"
+                                >
+                                    <SelectValue placeholder="Select attainment" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {educationalAttainmentOptions.map(
+                                        (option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'educational_attainment',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
+
+            {section === 'all' ? <Separator className="bg-border/40" /> : null}
+
+            {section === 'all' || section === 'family' ? (
+                <div className="grid gap-5 md:grid-cols-2">
+                    {includeCivilHousing ? (
+                        <div className="grid gap-2">
+                            <FieldLabel
+                                htmlFor={`${prefix}_civil_status`}
+                                label="Civil status"
+                                isReadOnly={isReadOnly('civil_status')}
+                            />
+                            <Select
+                                value={values.civil_status || undefined}
+                                onValueChange={(value) =>
+                                    onChange('civil_status', value)
+                                }
+                                disabled={isReadOnly('civil_status')}
+                            >
+                                <SelectTrigger
+                                    id={`${prefix}_civil_status`}
+                                    className={cn(
+                                        'mt-1 w-full',
+                                        isReadOnly('civil_status') &&
+                                            readOnlyInputClass,
+                                    )}
+                                >
+                                    <SelectValue placeholder="Select civil status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {CIVIL_STATUS_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'civil_status',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {hasFamilySection ? (
+                        <div className="grid gap-2">
+                            <FieldLabel
+                                htmlFor={`${prefix}_educational_attainment`}
+                                label="Educational attainment"
+                            />
+                            <Select
+                                value={educationalAttainment || undefined}
+                                onValueChange={(value) =>
+                                    onChange('educational_attainment', value)
+                                }
+                            >
+                                <SelectTrigger
+                                    id={`${prefix}_educational_attainment`}
+                                    className="mt-1 w-full"
+                                >
+                                    <SelectValue placeholder="Select attainment" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {educationalAttainmentOptions.map(
+                                        (option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ),
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'educational_attainment',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {includeChildren ? (
+                        <div className="grid gap-2">
+                            <FieldLabel
+                                htmlFor={`${prefix}_number_of_children`}
+                                label="No. of children"
+                                isReadOnly={isReadOnly('number_of_children')}
                             />
                             <Input
-                                id={`${prefix}_spouse_name`}
-                                name={fieldName(prefix, 'spouse_name')}
-                                value={values.spouse_name}
-                                readOnly={isReadOnly('spouse_name')}
+                                id={`${prefix}_number_of_children`}
+                                type="number"
+                                name={fieldName(prefix, 'number_of_children')}
+                                value={values.number_of_children}
+                                readOnly={isReadOnly('number_of_children')}
+                                required
                                 className={cn(
                                     'mt-1 block w-full',
-                                    isReadOnly('spouse_name') &&
+                                    isReadOnly('number_of_children') &&
                                         readOnlyInputClass,
                                 )}
-                                onChange={updateField('spouse_name')}
+                                onChange={updateField('number_of_children')}
                             />
                             <InputError
                                 message={fieldError(
                                     errors,
                                     prefix,
-                                    'spouse_name',
+                                    'number_of_children',
                                 )}
                             />
                         </div>
+                    ) : null}
 
-                        <div className="grid gap-2">
-                            <FieldLabel
-                                htmlFor={`${prefix}_spouse_age`}
-                                label="Spouse age"
-                            />
-                            <Input
-                                id={`${prefix}_spouse_age`}
-                                type="number"
-                                name={fieldName(prefix, 'spouse_age')}
-                                value={values.spouse_age}
-                                className="mt-1 block w-full"
-                                onChange={updateField('spouse_age')}
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'spouse_age',
-                                )}
-                            />
-                        </div>
+                    {includeSpouse ? (
+                        <>
+                            <div className="grid gap-2">
+                                <FieldLabel
+                                    htmlFor={`${prefix}_spouse_name`}
+                                    label="Spouse name"
+                                    isReadOnly={isReadOnly('spouse_name')}
+                                />
+                                <Input
+                                    id={`${prefix}_spouse_name`}
+                                    name={fieldName(prefix, 'spouse_name')}
+                                    value={values.spouse_name}
+                                    readOnly={isReadOnly('spouse_name')}
+                                    className={cn(
+                                        'mt-1 block w-full',
+                                        isReadOnly('spouse_name') &&
+                                            readOnlyInputClass,
+                                    )}
+                                    onChange={updateField('spouse_name')}
+                                />
+                                <InputError
+                                    message={fieldError(
+                                        errors,
+                                        prefix,
+                                        'spouse_name',
+                                    )}
+                                />
+                            </div>
 
-                        <div className="grid gap-2">
-                            <FieldLabel
-                                htmlFor={`${prefix}_spouse_cell_no`}
-                                label="Spouse cell no."
-                            />
-                            <Input
-                                id={`${prefix}_spouse_cell_no`}
-                                name={fieldName(prefix, 'spouse_cell_no')}
-                                value={values.spouse_cell_no}
-                                className="mt-1 block w-full"
-                                inputMode="numeric"
-                                maxLength={11}
-                                placeholder="09XXXXXXXXX"
-                                onChange={updateMobileField('spouse_cell_no')}
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'spouse_cell_no',
-                                )}
-                            />
-                        </div>
-                    </>
-                ) : null}
-            </div>
+                            <div className="grid gap-2">
+                                <FieldLabel
+                                    htmlFor={`${prefix}_spouse_age`}
+                                    label="Spouse age"
+                                />
+                                <Input
+                                    id={`${prefix}_spouse_age`}
+                                    type="number"
+                                    name={fieldName(prefix, 'spouse_age')}
+                                    value={values.spouse_age}
+                                    className="mt-1 block w-full"
+                                    onChange={updateField('spouse_age')}
+                                />
+                                <InputError
+                                    message={fieldError(
+                                        errors,
+                                        prefix,
+                                        'spouse_age',
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <FieldLabel
+                                    htmlFor={`${prefix}_spouse_cell_no`}
+                                    label="Spouse cell no."
+                                />
+                                <Input
+                                    id={`${prefix}_spouse_cell_no`}
+                                    name={fieldName(prefix, 'spouse_cell_no')}
+                                    value={values.spouse_cell_no}
+                                    className="mt-1 block w-full"
+                                    inputMode="numeric"
+                                    maxLength={11}
+                                    placeholder="09XXXXXXXXX"
+                                    onChange={updateMobileField(
+                                        'spouse_cell_no',
+                                    )}
+                                />
+                                <InputError
+                                    message={fieldError(
+                                        errors,
+                                        prefix,
+                                        'spouse_cell_no',
+                                    )}
+                                />
+                            </div>
+                        </>
+                    ) : null}
+                </div>
             ) : null}
         </div>
     );
@@ -890,9 +922,14 @@ export function LoanRequestWorkFields({
     const employmentTypeOptions = useMemo(() => {
         if (
             employmentType !== '' &&
-            !EMPLOYMENT_TYPE_OPTIONS.includes(employmentType)
+            !EMPLOYMENT_TYPE_OPTIONS.some(
+                (option) => option.value === employmentType,
+            )
         ) {
-            return [employmentType, ...EMPLOYMENT_TYPE_OPTIONS];
+            return [
+                { value: employmentType, label: employmentType },
+                ...EMPLOYMENT_TYPE_OPTIONS,
+            ];
         }
 
         return EMPLOYMENT_TYPE_OPTIONS;
@@ -908,6 +945,27 @@ export function LoanRequestWorkFields({
             province: values.employer_business_address3 || undefined,
         },
     });
+
+    const handleEmployerCitySelect = async (code: string) => {
+        if (!code) {
+            return;
+        }
+
+        try {
+            const response = await api.get(zip.url(), {
+                params: { locality_code: code },
+            });
+            const resolvedZip = (
+                response.data as { zip?: string | null }
+            ).zip?.trim();
+
+            if (resolvedZip) {
+                onChange('employer_business_address_zip', resolvedZip);
+            }
+        } catch {
+            // Intentionally left empty: ZIP lookup is best-effort.
+        }
+    };
 
     const [natureOfBusinessSelection, setNatureOfBusinessSelection] =
         useState<string>(() =>
@@ -942,206 +1000,239 @@ export function LoanRequestWorkFields({
 
     return (
         <div className="space-y-7">
-            {(section === 'all' || section === 'employment') ? (
-            <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_employment_type`}>
-                        Employment
-                    </Label>
-                    <Select
-                        value={employmentType || undefined}
-                        onValueChange={(value) =>
-                            onChange('employment_type', value)
-                        }
-                    >
-                        <SelectTrigger
-                            id={`${prefix}_employment_type`}
-                            className="mt-1 w-full"
+            {section === 'all' || section === 'employment' ? (
+                <div className="grid gap-5 md:grid-cols-2">
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${prefix}_employment_type`}>
+                            Employment
+                        </Label>
+                        <Select
+                            value={employmentType || undefined}
+                            onValueChange={(value) =>
+                                onChange('employment_type', value)
+                            }
                         >
-                            <SelectValue placeholder="Select employment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {employmentTypeOptions.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={fieldError(errors, prefix, 'employment_type')}
-                    />
-                </div>
+                            <SelectTrigger
+                                id={`${prefix}_employment_type`}
+                                className="mt-1 w-full"
+                            >
+                                <SelectValue placeholder="Select employment" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {employmentTypeOptions.map((option) => (
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'employment_type',
+                            )}
+                        />
+                    </div>
 
-                {!isPensioner ? (
-                    <div className="grid gap-2">
-                        <Label htmlFor={`${prefix}_employer_business_name`}>
-                            Employer/Business name
-                        </Label>
-                        <Input
-                            id={`${prefix}_employer_business_name`}
-                            name={fieldName(prefix, 'employer_business_name')}
-                            value={values.employer_business_name}
-                            className="mt-1 block w-full"
-                            onChange={(event) =>
-                                onChange(
+                    {!isPensioner ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor={`${prefix}_employer_business_name`}>
+                                Employer/Business name
+                            </Label>
+                            <Input
+                                id={`${prefix}_employer_business_name`}
+                                name={fieldName(
+                                    prefix,
                                     'employer_business_name',
-                                    event.target.value,
-                                )
-                            }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'employer_business_name',
-                            )}
-                        />
-                    </div>
-                ) : null}
+                                )}
+                                value={values.employer_business_name}
+                                className="mt-1 block w-full"
+                                onChange={(event) =>
+                                    onChange(
+                                        'employer_business_name',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_name',
+                                )}
+                            />
+                        </div>
+                    ) : null}
 
-                {!isPensioner ? (
-                    <div className="grid gap-2 md:col-span-2">
-                        <Label htmlFor={`${prefix}_employer_business_address1`}>
-                            Employer/Business address (street)
-                        </Label>
-                        <Input
-                            id={`${prefix}_employer_business_address1`}
-                            name={fieldName(prefix, 'employer_business_address1')}
-                            value={values.employer_business_address1}
-                            className="mt-1 block w-full"
-                            onChange={(event) =>
-                                onChange(
+                    {!isPensioner ? (
+                        <div className="grid gap-2 md:col-span-2">
+                            <Label
+                                htmlFor={`${prefix}_employer_business_address1`}
+                            >
+                                Employer/Business address (street)
+                            </Label>
+                            <Input
+                                id={`${prefix}_employer_business_address1`}
+                                name={fieldName(
+                                    prefix,
                                     'employer_business_address1',
-                                    event.target.value,
-                                )
-                            }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'employer_business_address1',
-                            )}
-                        />
-                    </div>
-                ) : null}
+                                )}
+                                value={values.employer_business_address1}
+                                className="mt-1 block w-full"
+                                onChange={(event) =>
+                                    onChange(
+                                        'employer_business_address1',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address1',
+                                )}
+                            />
+                        </div>
+                    ) : null}
 
-                {!isPensioner ? (
-                    <div className="grid gap-2">
-                        <Label htmlFor={`${prefix}_employer_business_address2`}>
-                            City/Municipality
-                        </Label>
-                        <LocationAutocompleteInput
-                            id={`${prefix}_employer_business_address2`}
-                            name={fieldName(
-                                prefix,
-                                'employer_business_address2',
-                            )}
-                            search={employerCitySearch}
-                            placeholder="Select city or municipality"
-                            inputClassName="mt-1 block w-full"
-                            loadingMessage="Searching city suggestions..."
-                            errorMessage="City suggestions are temporarily unavailable."
-                            onSelect={(suggestion) => {
-                                if (suggestion.province) {
-                                    employerProvinceSearch.setSelectedValue(
-                                        suggestion.province,
+                    {!isPensioner ? (
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor={`${prefix}_employer_business_address2`}
+                            >
+                                City/Municipality
+                            </Label>
+                            <LocationAutocompleteInput
+                                id={`${prefix}_employer_business_address2`}
+                                name={fieldName(
+                                    prefix,
+                                    'employer_business_address2',
+                                )}
+                                search={employerCitySearch}
+                                placeholder="Select city or municipality"
+                                inputClassName="mt-1 block w-full"
+                                loadingMessage="Searching city suggestions..."
+                                errorMessage="City suggestions are temporarily unavailable."
+                                onSelect={(suggestion) => {
+                                    if (suggestion.province) {
+                                        employerProvinceSearch.setSelectedValue(
+                                            suggestion.province,
+                                        );
+                                        onChange(
+                                            'employer_business_address3',
+                                            suggestion.province,
+                                        );
+                                    }
+
+                                    void handleEmployerCitySelect(
+                                        suggestion.code,
                                     );
+                                }}
+                                onValueChange={(value) =>
+                                    onChange(
+                                        'employer_business_address2',
+                                        value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address2',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {!isPensioner ? (
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor={`${prefix}_employer_business_address3`}
+                            >
+                                Province
+                            </Label>
+                            <LocationAutocompleteInput
+                                id={`${prefix}_employer_business_address3`}
+                                name={fieldName(
+                                    prefix,
+                                    'employer_business_address3',
+                                )}
+                                search={employerProvinceSearch}
+                                placeholder="Select province"
+                                inputClassName="mt-1 block w-full"
+                                loadingMessage="Searching province suggestions..."
+                                errorMessage="Province suggestions are temporarily unavailable."
+                                promptMessage="Type at least 2 characters to search provinces."
+                                onValueChange={(value) =>
                                     onChange(
                                         'employer_business_address3',
-                                        suggestion.province,
-                                    );
+                                        value,
+                                    )
                                 }
-                            }}
-                            onValueChange={(value) =>
-                                onChange('employer_business_address2', value)
-                            }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'employer_business_address2',
-                            )}
-                        />
-                    </div>
-                ) : null}
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address3',
+                                )}
+                            />
+                        </div>
+                    ) : null}
 
-                {!isPensioner ? (
-                    <div className="grid gap-2">
-                        <Label htmlFor={`${prefix}_employer_business_address3`}>
-                            Province
-                        </Label>
-                        <LocationAutocompleteInput
-                            id={`${prefix}_employer_business_address3`}
-                            name={fieldName(
-                                prefix,
-                                'employer_business_address3',
-                            )}
-                            search={employerProvinceSearch}
-                            placeholder="Select province"
-                            inputClassName="mt-1 block w-full"
-                            loadingMessage="Searching province suggestions..."
-                            errorMessage="Province suggestions are temporarily unavailable."
-                            promptMessage="Type at least 2 characters to search provinces."
-                            onValueChange={(value) =>
-                                onChange('employer_business_address3', value)
-                            }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'employer_business_address3',
-                            )}
-                        />
-                    </div>
-                ) : null}
-
-                {!isPensioner ? (
-                    <div className="grid gap-2">
-                        <Label
-                            htmlFor={`${prefix}_employer_business_address_zip`}
-                        >
-                            ZIP code
-                        </Label>
-                        <Input
-                            id={`${prefix}_employer_business_address_zip`}
-                            name={fieldName(
-                                prefix,
-                                'employer_business_address_zip',
-                            )}
-                            value={values.employer_business_address_zip}
-                            inputMode="numeric"
-                            autoComplete="postal-code"
-                            className="mt-1 block w-full"
-                            onChange={(event) =>
-                                onChange(
+                    {!isPensioner ? (
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor={`${prefix}_employer_business_address_zip`}
+                            >
+                                ZIP code
+                            </Label>
+                            <Input
+                                id={`${prefix}_employer_business_address_zip`}
+                                name={fieldName(
+                                    prefix,
                                     'employer_business_address_zip',
-                                    event.target.value,
-                                )
-                            }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'employer_business_address_zip',
-                            )}
-                        />
-                    </div>
-                ) : null}
-            </div>
+                                )}
+                                value={values.employer_business_address_zip}
+                                inputMode="numeric"
+                                autoComplete="postal-code"
+                                className="mt-1 block w-full"
+                                onChange={(event) =>
+                                    onChange(
+                                        'employer_business_address_zip',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address_zip',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+                </div>
             ) : null}
 
             {(section === 'all' || section === 'income') && !isPensioner ? (
                 <>
-                    {section === 'all' ? <Separator className="bg-border/40" /> : null}
+                    {section === 'all' ? (
+                        <Separator className="bg-border/40" />
+                    ) : null}
 
                     <div className="grid gap-5 md:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor={`${prefix}_telephone_no`}>Tel. no.</Label>
+                            <Label htmlFor={`${prefix}_telephone_no`}>
+                                Tel. no.
+                            </Label>
                             <Input
                                 id={`${prefix}_telephone_no`}
                                 name={fieldName(prefix, 'telephone_no')}
@@ -1152,7 +1243,11 @@ export function LoanRequestWorkFields({
                                 }
                             />
                             <InputError
-                                message={fieldError(errors, prefix, 'telephone_no')}
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'telephone_no',
+                                )}
                             />
                         </div>
 
@@ -1166,11 +1261,18 @@ export function LoanRequestWorkFields({
                                 value={values.current_position}
                                 className="mt-1 block w-full"
                                 onChange={(event) =>
-                                    onChange('current_position', event.target.value)
+                                    onChange(
+                                        'current_position',
+                                        event.target.value,
+                                    )
                                 }
                             />
                             <InputError
-                                message={fieldError(errors, prefix, 'current_position')}
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'current_position',
+                                )}
                             />
                         </div>
 
@@ -1189,11 +1291,16 @@ export function LoanRequestWorkFields({
                                     <SelectValue placeholder="Select nature of business" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {NATURE_OF_BUSINESS_OPTIONS.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option}
-                                        </SelectItem>
-                                    ))}
+                                    {NATURE_OF_BUSINESS_OPTIONS.map(
+                                        (option) => (
+                                            <SelectItem
+                                                key={option}
+                                                value={option}
+                                            >
+                                                {option}
+                                            </SelectItem>
+                                        ),
+                                    )}
                                 </SelectContent>
                             </Select>
                             {natureOfBusinessSelection ===
@@ -1220,7 +1327,10 @@ export function LoanRequestWorkFields({
                             </Label>
                             <Input
                                 id={`${prefix}_years_in_work_business`}
-                                name={fieldName(prefix, 'years_in_work_business')}
+                                name={fieldName(
+                                    prefix,
+                                    'years_in_work_business',
+                                )}
                                 value={values.years_in_work_business}
                                 className="mt-1 block w-full"
                                 placeholder="e.g. 5 years"
@@ -1276,58 +1386,58 @@ export function LoanRequestWorkFields({
                 </>
             ) : null}
 
-            {(section === 'all' || (section === 'income' && !isPensioner)) ? (
+            {section === 'all' || (section === 'income' && !isPensioner) ? (
                 <Separator className="bg-border/40" />
             ) : null}
 
-            {(section === 'all' || section === 'income') ? (
-            <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_gross_monthly_income`}>
-                        Gross monthly income
-                    </Label>
-                    <CurrencyInput
-                        id={`${prefix}_gross_monthly_income`}
-                        value={values.gross_monthly_income}
-                        onValueChange={(value) =>
-                            onChange('gross_monthly_income', value)
-                        }
-                        required
-                    />
-                    <InputError
-                        message={fieldError(
-                            errors,
-                            prefix,
-                            'gross_monthly_income',
-                        )}
-                    />
-                </div>
+            {section === 'all' || section === 'income' ? (
+                <div className="grid gap-5 md:grid-cols-2">
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${prefix}_gross_monthly_income`}>
+                            Gross monthly income
+                        </Label>
+                        <CurrencyInput
+                            id={`${prefix}_gross_monthly_income`}
+                            value={values.gross_monthly_income}
+                            onValueChange={(value) =>
+                                onChange('gross_monthly_income', value)
+                            }
+                            required
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'gross_monthly_income',
+                            )}
+                        />
+                    </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor={`${prefix}_payday`}>Payday</Label>
-                    <Select
-                        value={values.payday || undefined}
-                        onValueChange={(value) => onChange('payday', value)}
-                    >
-                        <SelectTrigger
-                            id={`${prefix}_payday`}
-                            className="mt-1 w-full"
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${prefix}_payday`}>Payday</Label>
+                        <Select
+                            value={values.payday || undefined}
+                            onValueChange={(value) => onChange('payday', value)}
                         >
-                            <SelectValue placeholder="Select payday" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {PAYDAY_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {option}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={fieldError(errors, prefix, 'payday')}
-                    />
+                            <SelectTrigger
+                                id={`${prefix}_payday`}
+                                className="mt-1 w-full"
+                            >
+                                <SelectValue placeholder="Select payday" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {PAYDAY_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError
+                            message={fieldError(errors, prefix, 'payday')}
+                        />
+                    </div>
                 </div>
-            </div>
             ) : null}
         </div>
     );

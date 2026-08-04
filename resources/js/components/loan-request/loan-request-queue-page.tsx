@@ -38,7 +38,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     Select,
     SelectContent,
@@ -108,7 +112,9 @@ type RequestRowActionsMenuProps = {
     officerOptions: LoanRequestAssignmentOfficerOption[];
     isProcessing: boolean;
     onClaim: () => void;
-    onOpenAssign: (officerOptions: LoanRequestAssignmentOfficerOption[]) => void;
+    onOpenAssign: (
+        officerOptions: LoanRequestAssignmentOfficerOption[],
+    ) => void;
     onOpenReassign: (
         officerOptions: LoanRequestAssignmentOfficerOption[],
         currentOfficerName: string,
@@ -266,9 +272,7 @@ export function LoanRequestQueuePage({
     const [minAmount, setMinAmount] = useState('');
     const [maxAmount, setMaxAmount] = useState('');
     const [sortBy, setSortBy] = useState<string | null>(null);
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
-        'desc',
-    );
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [page, setPage] = useState(1);
     const [perPage] = useState(10);
     const [assignmentDialog, setAssignmentDialog] = useState<{
@@ -440,9 +444,7 @@ export function LoanRequestQueuePage({
                                 requestId={requestId}
                                 showRequestHref={showRequestHref}
                                 officerOptions={meta.assignmentOfficers ?? []}
-                                isProcessing={
-                                    processingIds[requestId] ?? false
-                                }
+                                isProcessing={processingIds[requestId] ?? false}
                                 onClaim={() => claimLoanRequest(requestId)}
                                 onOpenAssign={(officerOptions) =>
                                     setAssignmentDialog({
@@ -492,12 +494,9 @@ export function LoanRequestQueuePage({
               )
     ).sort((left, right) => left.localeCompare(right));
     const totalResults = meta.total;
-    const pageStart =
-        totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
+    const pageStart = totalResults > 0 ? (meta.page - 1) * meta.perPage + 1 : 0;
     const pageEnd =
-        totalResults > 0
-            ? Math.min(meta.page * meta.perPage, totalResults)
-            : 0;
+        totalResults > 0 ? Math.min(meta.page * meta.perPage, totalResults) : 0;
     const resultsLabel = meta.available
         ? totalResults > 0
             ? `Showing ${pageStart}-${pageEnd} of ${formatCountLabel(
@@ -588,14 +587,12 @@ export function LoanRequestQueuePage({
                   {
                       label: 'Reported',
                       value: summaryCounts.reported,
-                      emphasisClassName:
-                          'text-amber-600 dark:text-amber-400',
+                      emphasisClassName: 'text-amber-600 dark:text-amber-400',
                   },
                   {
                       label: 'Open correction reports',
                       value: meta.openCorrectionReports,
-                      emphasisClassName:
-                          'text-amber-600 dark:text-amber-400',
+                      emphasisClassName: 'text-amber-600 dark:text-amber-400',
                   },
               ]
             : []),
@@ -636,15 +633,6 @@ export function LoanRequestQueuePage({
 
                 <section className="rounded-2xl border border-border/40 bg-card/60 p-4 shadow-sm sm:p-5">
                     <div className="space-y-4">
-                        <LoanRequestStatusFilters
-                            options={statusOptions}
-                            activeValue={statusFilter}
-                            onChange={(nextStatus) => {
-                                setStatusFilter(nextStatus);
-                                setPage(1);
-                            }}
-                        />
-
                         <LoanRequestSearchBox
                             value={search}
                             onChange={(nextSearch) => {
@@ -679,6 +667,15 @@ export function LoanRequestQueuePage({
                                         className="w-80 sm:w-96"
                                     >
                                         <div className="space-y-4">
+                                            <LoanRequestStatusFilters
+                                                options={statusOptions}
+                                                activeValue={statusFilter}
+                                                onChange={(nextStatus) => {
+                                                    setStatusFilter(nextStatus);
+                                                    setPage(1);
+                                                }}
+                                            />
+
                                             {workspace === 'staff' &&
                                             (meta.assignmentFilters?.length ??
                                                 0) > 0 ? (
@@ -750,11 +747,10 @@ export function LoanRequestQueuePage({
                                             ) : null}
 
                                             {workspace === 'staff' &&
-                                            (meta.assignmentOfficers
-                                                ?.length ?? 0) > 0 &&
+                                            (meta.assignmentOfficers?.length ??
+                                                0) > 0 &&
                                             (assignmentFilter === null ||
-                                                assignmentFilter ===
-                                                    'all') ? (
+                                                assignmentFilter === 'all') ? (
                                                 <div className="space-y-1">
                                                     <span className="text-xs font-medium text-muted-foreground">
                                                         Loan officer
@@ -769,8 +765,7 @@ export function LoanRequestQueuePage({
                                                             value,
                                                         ) => {
                                                             setOfficerId(
-                                                                value ===
-                                                                    'all'
+                                                                value === 'all'
                                                                     ? null
                                                                     : Number(
                                                                           value,
@@ -810,9 +805,7 @@ export function LoanRequestQueuePage({
                                                 </span>
                                                 <Select
                                                     value={loanType ?? 'all'}
-                                                    onValueChange={(
-                                                        value,
-                                                    ) => {
+                                                    onValueChange={(value) => {
                                                         setLoanType(
                                                             value === 'all'
                                                                 ? null
@@ -831,9 +824,7 @@ export function LoanRequestQueuePage({
                                                         {loanTypeOptions.map(
                                                             (option) => (
                                                                 <SelectItem
-                                                                    key={
-                                                                        option
-                                                                    }
+                                                                    key={option}
                                                                     value={
                                                                         option
                                                                     }
@@ -899,9 +890,7 @@ export function LoanRequestQueuePage({
                                                     onClick={() => {
                                                         setSearch('');
                                                         setLoanType(null);
-                                                        setStatusFilter(
-                                                            'all',
-                                                        );
+                                                        setStatusFilter('all');
                                                         setAssignmentFilter(
                                                             null,
                                                         );
@@ -971,7 +960,7 @@ export function LoanRequestQueuePage({
 
                         <div className="md:hidden">
                             {showSkeleton ? (
-                                <div className="space-y-3 px-2 pb-3 pt-4">
+                                <div className="space-y-3 px-2 pt-4 pb-3">
                                     {Array.from({ length: 3 }).map(
                                         (_, index) => (
                                             <div
@@ -996,7 +985,7 @@ export function LoanRequestQueuePage({
                                     )}
                                 </div>
                             ) : items.length > 0 ? (
-                                <div className="space-y-3 px-2 pb-3 pt-4">
+                                <div className="space-y-3 px-2 pt-4 pb-3">
                                     {items.map((item, index) => (
                                         <div
                                             key={
@@ -1129,7 +1118,7 @@ export function LoanRequestQueuePage({
                                     ))}
                                 </div>
                             ) : (
-                                <div className="px-4 pb-6 pt-6 text-center text-sm text-muted-foreground">
+                                <div className="px-4 pt-6 pb-6 text-center text-sm text-muted-foreground">
                                     {emptyMessage}
                                 </div>
                             )}

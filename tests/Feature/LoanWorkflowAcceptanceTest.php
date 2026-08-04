@@ -998,6 +998,10 @@ function acceptanceLoanRequestPayload(): array
         'health_glapi' => [
             'gl_health_q02e_diabetes' => false,
             'health_recent_hospitalization' => false,
+            'applicant_pep_status' => false,
+        ],
+        'dependents' => [
+            'applicant_cycle_status' => 'New',
         ],
         'banking' => [
             'payout_bank_name' => 'WIBS Cooperative Bank',
@@ -1137,7 +1141,6 @@ function acceptanceProcessingPayload(): array
         'recommended_term' => 12,
         'recommended_interest_rate' => 1.5,
         'recommended_payment_frequency' => '15th & 30th',
-        'recommendation_remarks' => 'Recommend approval after full review.',
     ];
 }
 

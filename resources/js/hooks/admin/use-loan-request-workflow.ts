@@ -73,7 +73,6 @@ export type LoanRequestProcessingDetailsPayload = {
     recommended_term?: number | string | null;
     recommended_interest_rate?: number | string | null;
     recommended_payment_frequency?: string | null;
-    recommendation_remarks?: string | null;
 };
 
 export type LoanRequestMemberActionPayload = {
@@ -131,6 +130,14 @@ type LoanRequestWorkflowOptions = {
     ) => void;
 };
 
+export type LoanRequestWorkflowRunOptions = {
+    // Suppresses the per-call success/error toast. Used when a caller is
+    // looping through several sequential requests (e.g. bulk document
+    // generation) and wants to show a single summary toast once the whole
+    // batch finishes instead of one toast per request.
+    silent?: boolean;
+};
+
 const successCopy: Record<LoanRequestWorkflowAction, string> = {
     claim: 'Loan request claimed successfully.',
     assign: 'Loan request assigned successfully.',
@@ -161,7 +168,8 @@ const errorCopy: Record<LoanRequestWorkflowAction, string> = {
     reject: 'Failed to reject the loan request.',
     updateProcessingDetails: 'Failed to save processing details.',
     requestMemberAction: 'Failed to request member action.',
-    rejectDuringProcessing: 'Failed to reject the loan request during processing.',
+    rejectDuringProcessing:
+        'Failed to reject the loan request during processing.',
     generateDocuments: 'Failed to generate the required documents.',
     recommendApproval: 'Failed to recommend the request for approval.',
     approve: 'Failed to approve the loan request.',
@@ -171,9 +179,7 @@ const errorCopy: Record<LoanRequestWorkflowAction, string> = {
     upgradeWorkflow: 'Failed to upgrade the workflow.',
 };
 
-export function useLoanRequestWorkflow(
-    options?: LoanRequestWorkflowOptions,
-) {
+export function useLoanRequestWorkflow(options?: LoanRequestWorkflowOptions) {
     const [processingIds, setProcessingIds] = useState<Record<number, boolean>>(
         {},
     );
@@ -183,6 +189,7 @@ export function useLoanRequestWorkflow(
             loanRequestId: number,
             action: LoanRequestWorkflowAction,
             payload: LoanRequestWorkflowPayload = {},
+            runOptions?: LoanRequestWorkflowRunOptions,
         ) => {
             setProcessingIds((current) => ({
                 ...current,
@@ -192,141 +199,149 @@ export function useLoanRequestWorkflow(
             const toastId = `loan-request-workflow-${action}-${loanRequestId}`;
 
             try {
-                const result = await (async (): Promise<LoanRequestWorkflowResult> => {
-                    if (action === 'claim') {
-                        return adminApi.claimLoanRequest(
-                            loanRequestId,
-                            payload as LoanRequestClaimPayload,
+                const result =
+                    await (async (): Promise<LoanRequestWorkflowResult> => {
+                        if (action === 'claim') {
+                            return adminApi.claimLoanRequest(
+                                loanRequestId,
+                                payload as LoanRequestClaimPayload,
+                            );
+                        }
+
+                        if (action === 'assign') {
+                            return adminApi.updateLoanRequestAssignment(
+                                loanRequestId,
+                                {
+                                    ...(payload as LoanRequestAssignmentPayload),
+                                    action: 'assign',
+                                },
+                            );
+                        }
+
+                        if (action === 'reassign') {
+                            return adminApi.updateLoanRequestAssignment(
+                                loanRequestId,
+                                {
+                                    ...(payload as LoanRequestAssignmentPayload),
+                                    action: 'reassign',
+                                },
+                            );
+                        }
+
+                        if (action === 'returnToQueue') {
+                            return adminApi.returnLoanRequestToQueue(
+                                loanRequestId,
+                                payload as LoanRequestReturnToQueuePayload,
+                            );
+                        }
+
+                        if (action === 'startReview') {
+                            return adminApi.startLoanRequestReview(
+                                loanRequestId,
+                                payload as LoanRequestStartReviewPayload,
+                            );
+                        }
+
+                        if (action === 'requestRevision') {
+                            return adminApi.requestLoanRequestRevision(
+                                loanRequestId,
+                                payload as LoanRequestRequestRevisionPayload,
+                            );
+                        }
+
+                        if (action === 'reject') {
+                            return adminApi.rejectLoanRequestForWorkflow(
+                                loanRequestId,
+                                payload as LoanRequestRejectPayload,
+                            );
+                        }
+
+                        if (action === 'recommendApproval') {
+                            return adminApi.recommendLoanRequestApproval(
+                                loanRequestId,
+                                payload as LoanRequestRecommendApprovalPayload,
+                            );
+                        }
+
+                        if (action === 'updateProcessingDetails') {
+                            return adminApi.updateLoanRequestProcessingDetails(
+                                loanRequestId,
+                                payload as LoanRequestProcessingDetailsPayload,
+                            );
+                        }
+
+                        if (action === 'requestMemberAction') {
+                            return adminApi.requestLoanRequestMemberAction(
+                                loanRequestId,
+                                payload as LoanRequestMemberActionPayload,
+                            );
+                        }
+
+                        if (action === 'rejectDuringProcessing') {
+                            return adminApi.rejectLoanRequestDuringProcessing(
+                                loanRequestId,
+                                payload as LoanRequestRejectDuringProcessingPayload,
+                            );
+                        }
+
+                        if (action === 'generateDocuments') {
+                            return adminApi.generateLoanRequestDocuments(
+                                loanRequestId,
+                                payload as LoanRequestGenerateDocumentsPayload,
+                            );
+                        }
+
+                        if (action === 'approve') {
+                            return adminApi.approveLoanRequestForWorkflow(
+                                loanRequestId,
+                                payload as LoanRequestWorkflowApprovePayload,
+                            );
+                        }
+
+                        if (action === 'decline') {
+                            return adminApi.declineLoanRequestForWorkflow(
+                                loanRequestId,
+                                payload as LoanRequestWorkflowDeclinePayload,
+                            );
+                        }
+
+                        if (action === 'returnForProcessing') {
+                            return adminApi.returnLoanRequestForProcessing(
+                                loanRequestId,
+                                payload as LoanRequestReturnForProcessingPayload,
+                            );
+                        }
+
+                        if (action === 'reopen') {
+                            return adminApi.reopenLoanRequestForProcessing(
+                                loanRequestId,
+                                payload as LoanRequestReopenPayload,
+                            );
+                        }
+
+                        if (action === 'upgradeWorkflow') {
+                            return adminApi.upgradeLoanRequestWorkflow(
+                                loanRequestId,
+                                payload as LoanRequestUpgradeWorkflowPayload,
+                            );
+                        }
+
+                        throw new Error(
+                            `Unsupported workflow action: ${action}`,
                         );
-                    }
+                    })();
 
-                    if (action === 'assign') {
-                        return adminApi.updateLoanRequestAssignment(
-                            loanRequestId,
-                            {
-                                ...(payload as LoanRequestAssignmentPayload),
-                                action: 'assign',
-                            },
-                        );
-                    }
+                if (!runOptions?.silent) {
+                    showSuccessToast(successCopy[action], { id: toastId });
+                }
 
-                    if (action === 'reassign') {
-                        return adminApi.updateLoanRequestAssignment(
-                            loanRequestId,
-                            {
-                                ...(payload as LoanRequestAssignmentPayload),
-                                action: 'reassign',
-                            },
-                        );
-                    }
-
-                    if (action === 'returnToQueue') {
-                        return adminApi.returnLoanRequestToQueue(
-                            loanRequestId,
-                            payload as LoanRequestReturnToQueuePayload,
-                        );
-                    }
-
-                    if (action === 'startReview') {
-                        return adminApi.startLoanRequestReview(
-                            loanRequestId,
-                            payload as LoanRequestStartReviewPayload,
-                        );
-                    }
-
-                    if (action === 'requestRevision') {
-                        return adminApi.requestLoanRequestRevision(
-                            loanRequestId,
-                            payload as LoanRequestRequestRevisionPayload,
-                        );
-                    }
-
-                    if (action === 'reject') {
-                        return adminApi.rejectLoanRequestForWorkflow(
-                            loanRequestId,
-                            payload as LoanRequestRejectPayload,
-                        );
-                    }
-
-                    if (action === 'recommendApproval') {
-                        return adminApi.recommendLoanRequestApproval(
-                            loanRequestId,
-                            payload as LoanRequestRecommendApprovalPayload,
-                        );
-                    }
-
-                    if (action === 'updateProcessingDetails') {
-                        return adminApi.updateLoanRequestProcessingDetails(
-                            loanRequestId,
-                            payload as LoanRequestProcessingDetailsPayload,
-                        );
-                    }
-
-                    if (action === 'requestMemberAction') {
-                        return adminApi.requestLoanRequestMemberAction(
-                            loanRequestId,
-                            payload as LoanRequestMemberActionPayload,
-                        );
-                    }
-
-                    if (action === 'rejectDuringProcessing') {
-                        return adminApi.rejectLoanRequestDuringProcessing(
-                            loanRequestId,
-                            payload as LoanRequestRejectDuringProcessingPayload,
-                        );
-                    }
-
-                    if (action === 'generateDocuments') {
-                        return adminApi.generateLoanRequestDocuments(
-                            loanRequestId,
-                            payload as LoanRequestGenerateDocumentsPayload,
-                        );
-                    }
-
-                    if (action === 'approve') {
-                        return adminApi.approveLoanRequestForWorkflow(
-                            loanRequestId,
-                            payload as LoanRequestWorkflowApprovePayload,
-                        );
-                    }
-
-                    if (action === 'decline') {
-                        return adminApi.declineLoanRequestForWorkflow(
-                            loanRequestId,
-                            payload as LoanRequestWorkflowDeclinePayload,
-                        );
-                    }
-
-                    if (action === 'returnForProcessing') {
-                        return adminApi.returnLoanRequestForProcessing(
-                            loanRequestId,
-                            payload as LoanRequestReturnForProcessingPayload,
-                        );
-                    }
-
-                    if (action === 'reopen') {
-                        return adminApi.reopenLoanRequestForProcessing(
-                            loanRequestId,
-                            payload as LoanRequestReopenPayload,
-                        );
-                    }
-
-                    if (action === 'upgradeWorkflow') {
-                        return adminApi.upgradeLoanRequestWorkflow(
-                            loanRequestId,
-                            payload as LoanRequestUpgradeWorkflowPayload,
-                        );
-                    }
-
-                    throw new Error(`Unsupported workflow action: ${action}`);
-                })();
-
-                showSuccessToast(successCopy[action], { id: toastId });
                 options?.onUpdated?.(result, action);
 
                 return result;
             } catch (error) {
-                showErrorToast(error, errorCopy[action], { id: toastId });
+                if (!runOptions?.silent) {
+                    showErrorToast(error, errorCopy[action], { id: toastId });
+                }
 
                 return null;
             } finally {
@@ -386,7 +401,8 @@ export function useLoanRequestWorkflow(
         generateDocuments: (
             loanRequestId: number,
             payload: LoanRequestGenerateDocumentsPayload = {},
-        ) => runAction(loanRequestId, 'generateDocuments', payload),
+            runOptions?: LoanRequestWorkflowRunOptions,
+        ) => runAction(loanRequestId, 'generateDocuments', payload, runOptions),
         recommendApproval: (
             loanRequestId: number,
             payload: LoanRequestRecommendApprovalPayload = {},
