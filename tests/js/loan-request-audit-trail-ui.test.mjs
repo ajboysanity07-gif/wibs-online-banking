@@ -116,6 +116,29 @@ test('loan request audit trail component supports a compact sidebar mode', async
     assert.match(staffPageFile, /sidebarFooter=\{sidebarFooterContent\}/);
 });
 
+test('loan request audit trail component shows the most recent entry first and is collapsible', async () => {
+    const componentFile = await readSource([
+        'resources',
+        'js',
+        'components',
+        'loan-request',
+        'loan-request-audit-trail.tsx',
+    ]);
+
+    assert.match(
+        componentFile,
+        /orderedEntries\s*=\s*useMemo\(\(\)\s*=>\s*\[\.\.\.entries\]\.reverse\(\),\s*\[entries\]\)/,
+    );
+    assert.match(componentFile, /orderedEntries\.map\(\(entry\)/);
+    assert.match(
+        componentFile,
+        /from\s+'@\/components\/ui\/collapsible'/,
+    );
+    assert.match(componentFile, /<Collapsible open=\{open\} onOpenChange=\{setOpen\}>/);
+    assert.match(componentFile, /<CollapsibleTrigger asChild>/);
+    assert.match(componentFile, /<CollapsibleContent>/);
+});
+
 test('loan request detail page keeps the audit trail in the sidebar and offers a processing-details slot after co-makers', async () => {
     const detailFile = await readSource([
         'resources',
