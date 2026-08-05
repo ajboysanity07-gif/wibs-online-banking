@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
-import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { LocationCombobox } from '@/components/location-combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -384,20 +383,58 @@ export function LoanRequestPersonalFields({
 
                     <div className="grid gap-2">
                         <FieldLabel
+                            htmlFor={`${prefix}_birthplace_province`}
+                            label="Birthplace province"
+                            isReadOnly={isReadOnly('birthplace_province')}
+                        />
+                        <LocationCombobox
+                            id={`${prefix}_birthplace_province`}
+                            name={fieldName(prefix, 'birthplace_province')}
+                            search={birthplaceProvinceSearch}
+                            placeholder="Select province"
+                            required
+                            readOnly={isReadOnly('birthplace_province')}
+                            inputClassName={birthplaceProvinceInputClass}
+                            loadingMessage="Searching province suggestions..."
+                            errorMessage="Province suggestions are temporarily unavailable."
+                            promptMessage="Type at least 2 characters to search provinces."
+                            onValueChange={(value) =>
+                                onChange('birthplace_province', value)
+                            }
+                            onSelect={() => {
+                                if (!isReadOnly('birthplace_city')) {
+                                    birthplaceCitySearch.setSelectedValue('');
+                                    onChange('birthplace_city', '');
+                                }
+                            }}
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'birthplace_province',
+                            )}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
                             htmlFor={`${prefix}_birthplace_city`}
                             label="Birthplace city/municipality"
                             isReadOnly={isReadOnly('birthplace_city')}
                         />
-                        <LocationAutocompleteInput
+                        <LocationCombobox
                             id={`${prefix}_birthplace_city`}
                             name={fieldName(prefix, 'birthplace_city')}
                             search={birthplaceCitySearch}
                             placeholder="Select city or municipality"
                             required
                             readOnly={isReadOnly('birthplace_city')}
+                            disabled={!values.birthplace_province}
                             inputClassName={birthplaceCityInputClass}
                             loadingMessage="Searching city suggestions..."
                             errorMessage="City suggestions are temporarily unavailable."
+                            promptMessage="Select a province first."
                             onSelect={(suggestion) => {
                                 if (suggestion.province) {
                                     birthplaceProvinceSearch.setSelectedValue(
@@ -418,36 +455,6 @@ export function LoanRequestPersonalFields({
                                 errors,
                                 prefix,
                                 'birthplace_city',
-                            )}
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_birthplace_province`}
-                            label="Birthplace province"
-                            isReadOnly={isReadOnly('birthplace_province')}
-                        />
-                        <LocationAutocompleteInput
-                            id={`${prefix}_birthplace_province`}
-                            name={fieldName(prefix, 'birthplace_province')}
-                            search={birthplaceProvinceSearch}
-                            placeholder="Select province"
-                            required
-                            readOnly={isReadOnly('birthplace_province')}
-                            inputClassName={birthplaceProvinceInputClass}
-                            loadingMessage="Searching province suggestions..."
-                            errorMessage="Province suggestions are temporarily unavailable."
-                            promptMessage="Type at least 2 characters to search provinces."
-                            onValueChange={(value) =>
-                                onChange('birthplace_province', value)
-                            }
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'birthplace_province',
                             )}
                         />
                     </div>
@@ -516,10 +523,14 @@ export function LoanRequestPersonalFields({
                                 onChange('address3', value)
                             }
                             onSelect={() => {
-                                addressCitySearch.setSelectedValue('');
-                                onChange('address2', '');
-                                addressBarangaySearch.setSelectedValue('');
-                                onChange('address_barangay', '');
+                                if (!isReadOnly('address2')) {
+                                    addressCitySearch.setSelectedValue('');
+                                    onChange('address2', '');
+                                }
+                                if (!isReadOnly('address_barangay')) {
+                                    addressBarangaySearch.setSelectedValue('');
+                                    onChange('address_barangay', '');
+                                }
                                 onChange('address_zip', '');
                             }}
                         />
@@ -557,8 +568,10 @@ export function LoanRequestPersonalFields({
                                     onChange('address3', suggestion.province);
                                 }
 
-                                addressBarangaySearch.setSelectedValue('');
-                                onChange('address_barangay', '');
+                                if (!isReadOnly('address_barangay')) {
+                                    addressBarangaySearch.setSelectedValue('');
+                                    onChange('address_barangay', '');
+                                }
                                 void handleAddressCitySelect(suggestion.code);
                             }}
                         />
