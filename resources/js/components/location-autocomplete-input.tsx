@@ -79,7 +79,6 @@ export function LocationAutocompleteInput({
         <div className="relative">
             <Input
                 id={id}
-                name={name}
                 className={inputClassName}
                 value={search.query}
                 required={required}
@@ -152,6 +151,10 @@ export function LocationAutocompleteInput({
                     )}
                 </div>
             )}
+
+            {name ? (
+                <input type="hidden" name={name} value={search.selectedValue} />
+            ) : null}
         </div>
     );
 }

@@ -144,6 +144,7 @@ type ProfileCompletion = {
     isComplete: boolean;
     completedAt: string | null;
     missingFields: string[];
+    missingFieldKeys: string[];
 };
 
 type Props = {
@@ -157,6 +158,8 @@ type Props = {
     onboarding?: boolean;
 };
 const WMASTER_VALUE_CLASS = 'border-ring/40 ring-1 ring-ring/20';
+const MISSING_FIELD_CLASS =
+    'border-amber-400 ring-1 ring-amber-300 dark:border-amber-500/70 dark:ring-amber-500/30';
 const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 const PROFILE_PHOTO_ALLOWED_TYPES = new Set([
     'image/jpeg',
@@ -299,6 +302,16 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'weight_kg',
     ],
     dependents: DEPENDENT_FIELD_KEYS,
+};
+
+const tabForField = (field: string): ProfileTab | null => {
+    for (const tab of PROFILE_TAB_ORDER) {
+        if (PROFILE_TAB_FIELDS[tab].includes(field)) {
+            return tab;
+        }
+    }
+
+    return null;
 };
 
 const findFirstTabWithErrors = (
@@ -548,6 +561,18 @@ export default function Profile({
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const missingProfileFields = profileCompletion?.missingFields ?? [];
+    const missingFieldKeys = profileCompletion?.missingFieldKeys ?? [];
+    const missingFieldKeySet = new Set(missingFieldKeys);
+    const isFieldMissing = (field: string) => missingFieldKeySet.has(field);
+    const jumpToField = (field: string) => {
+        const tab = tabForField(field);
+
+        if (tab && (hasMemberAccess || tab === 'account')) {
+            setActiveTab(tab);
+        }
+
+        focusInvalidField(field);
+    };
     const showOnboardingAlert =
         onboarding && hasMemberAccess && !isProfileComplete;
     const showMissingProfileFields =
@@ -995,11 +1020,36 @@ export default function Profile({
                                             Complete the following required
                                             fields to finish onboarding:
                                         </p>
-                                        <ul className="mt-2 list-disc pl-5 text-sm">
+                                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
                                             {missingProfileFields.map(
-                                                (field) => (
-                                                    <li key={field}>{field}</li>
-                                                ),
+                                                (label, index) => {
+                                                    const fieldKey =
+                                                        missingFieldKeys[index];
+
+                                                    if (!fieldKey) {
+                                                        return (
+                                                            <li key={label}>
+                                                                {label}
+                                                            </li>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <li key={fieldKey}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    jumpToField(
+                                                                        fieldKey,
+                                                                    )
+                                                                }
+                                                                className="underline decoration-amber-500/60 underline-offset-2 hover:text-amber-950 dark:hover:text-white"
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                },
                                             )}
                                         </ul>
                                     </AlertDescription>
@@ -1639,7 +1689,13 @@ export default function Profile({
                                                                                 }
                                                                                 placeholder="Select city or municipality"
                                                                                 required
-                                                                                inputClassName="mt-1 block w-full"
+                                                                                inputClassName={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    isFieldMissing(
+                                                                                        'birthplace_city',
+                                                                                    ) &&
+                                                                                        MISSING_FIELD_CLASS,
+                                                                                )}
                                                                                 loadingMessage="Searching city suggestions..."
                                                                                 errorMessage="City suggestions are temporarily unavailable."
                                                                                 onSelect={(
@@ -1728,7 +1784,13 @@ export default function Profile({
                                                                             }
                                                                             placeholder="Select province"
                                                                             required
-                                                                            inputClassName="mt-1 block w-full"
+                                                                            inputClassName={cn(
+                                                                                'mt-1 block w-full',
+                                                                                isFieldMissing(
+                                                                                    'home_address3',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                             loadingMessage="Searching province suggestions..."
                                                                             errorMessage="Province suggestions are temporarily unavailable."
                                                                             promptMessage="Type at least 2 characters to search provinces."
@@ -1769,7 +1831,13 @@ export default function Profile({
                                                                             disabled={
                                                                                 !homeProvinceSearch.selectedValue
                                                                             }
-                                                                            inputClassName="mt-1 block w-full"
+                                                                            inputClassName={cn(
+                                                                                'mt-1 block w-full',
+                                                                                isFieldMissing(
+                                                                                    'home_address2',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                             loadingMessage="Searching city suggestions..."
                                                                             errorMessage="City suggestions are temporarily unavailable."
                                                                             promptMessage="Select a province first."
@@ -1851,7 +1919,13 @@ export default function Profile({
                                                                             disabled={
                                                                                 !homeCitySearch.selectedValue
                                                                             }
-                                                                            inputClassName="mt-1 block w-full"
+                                                                            inputClassName={cn(
+                                                                                'mt-1 block w-full',
+                                                                                isFieldMissing(
+                                                                                    'home_address_barangay',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                             loadingMessage="Loading barangays..."
                                                                             errorMessage="Barangay suggestions are temporarily unavailable."
                                                                             promptMessage="Select a city or municipality first."
@@ -1873,7 +1947,13 @@ export default function Profile({
 
                                                                         <Input
                                                                             id="home_address1"
-                                                                            className="mt-1 block w-full"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
+                                                                                isFieldMissing(
+                                                                                    'home_address1',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                             defaultValue={
                                                                                 homeAddress1
                                                                             }
@@ -1899,7 +1979,13 @@ export default function Profile({
 
                                                                     <Input
                                                                         id="length_of_stay"
-                                                                        className="mt-1 block w-full"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isFieldMissing(
+                                                                                'length_of_stay',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         defaultValue={
                                                                             memberApplicationProfile?.length_of_stay ??
                                                                             ''
@@ -2010,7 +2096,13 @@ export default function Profile({
                                                                     >
                                                                         <SelectTrigger
                                                                             id="educational_attainment"
-                                                                            className="mt-1 w-full"
+                                                                            className={cn(
+                                                                                'mt-1 w-full',
+                                                                                isFieldMissing(
+                                                                                    'educational_attainment',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                         >
                                                                             <SelectValue placeholder="Select educational attainment" />
                                                                         </SelectTrigger>
@@ -2239,7 +2331,13 @@ export default function Profile({
                                                                     >
                                                                         <SelectTrigger
                                                                             id="employment_type"
-                                                                            className="mt-1 w-full"
+                                                                            className={cn(
+                                                                                'mt-1 w-full',
+                                                                                isFieldMissing(
+                                                                                    'employment_type',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                         >
                                                                             <SelectValue placeholder="Select employment type" />
                                                                         </SelectTrigger>
@@ -2291,7 +2389,13 @@ export default function Profile({
 
                                                                     <Input
                                                                         id="employer_business_name"
-                                                                        className="mt-1 block w-full"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isFieldMissing(
+                                                                                'employer_business_name',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         defaultValue={
                                                                             memberApplicationProfile?.employer_business_name ??
                                                                             ''
@@ -2445,7 +2549,13 @@ export default function Profile({
                                                                         disabled={
                                                                             !employerBusinessCitySearch.selectedValue
                                                                         }
-                                                                        inputClassName="mt-1 block w-full"
+                                                                        inputClassName={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isFieldMissing(
+                                                                                'employer_business_address_barangay',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         loadingMessage="Loading barangays..."
                                                                         errorMessage="Barangay suggestions are temporarily unavailable."
                                                                         promptMessage="Select a city or municipality first."
@@ -2523,6 +2633,10 @@ export default function Profile({
                                                                             'mt-1 block w-full',
                                                                             isCurrentPositionFromWmaster &&
                                                                                 WMASTER_VALUE_CLASS,
+                                                                            isFieldMissing(
+                                                                                'current_position',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
                                                                         )}
                                                                         defaultValue={
                                                                             resolvedCurrentPosition
@@ -2683,6 +2797,12 @@ export default function Profile({
 
                                                                     <CurrencyInput
                                                                         id="gross_monthly_income"
+                                                                        className={cn(
+                                                                            isFieldMissing(
+                                                                                'gross_monthly_income',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         value={
                                                                             grossMonthlyIncome
                                                                         }
@@ -2728,7 +2848,13 @@ export default function Profile({
                                                                     >
                                                                         <SelectTrigger
                                                                             id="payday"
-                                                                            className="mt-1 w-full"
+                                                                            className={cn(
+                                                                                'mt-1 w-full',
+                                                                                isFieldMissing(
+                                                                                    'payday',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                         >
                                                                             <SelectValue placeholder="Select payday" />
                                                                         </SelectTrigger>

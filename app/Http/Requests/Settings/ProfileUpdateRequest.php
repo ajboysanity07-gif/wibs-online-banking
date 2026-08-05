@@ -197,11 +197,13 @@ class ProfileUpdateRequest extends FormRequest
                 $memberRequirement('birthplace_city'),
                 'string',
                 'max:255',
+                new ValidPsgcLocality,
             ],
             'birthplace_province' => [
                 $memberRequirement('birthplace_province'),
                 'string',
                 'max:255',
+                new ValidPsgcProvince,
             ],
             'birthplace' => [
                 'nullable',

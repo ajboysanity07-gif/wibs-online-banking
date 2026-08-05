@@ -111,6 +111,74 @@ test('incomplete profile updates stay on onboarding with missing fields', functi
         ));
 });
 
+test('profile update rejects a fabricated birthplace city and province', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'Not A Real City',
+            'birthplace_province' => 'Not A Real Province',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Barangay Poblacion',
+            'home_address2' => 'Tagum City',
+            'home_address3' => 'Davao del Norte',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    $response->assertSessionHasErrors(['birthplace_city', 'birthplace_province']);
+
+    expect($user->refresh()->memberApplicationProfile)->toBeNull();
+});
+
+test('profile update accepts a real birthplace city and province', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile)->not->toBeNull();
+    expect($memberProfile->birthplace_city)->toBe('City of Batac');
+    expect($memberProfile->birthplace_province)->toBe('Ilocos Norte');
+});
+
 test('admin profile page is displayed', function () {
     $user = User::factory()->create([
         'acctno' => null,

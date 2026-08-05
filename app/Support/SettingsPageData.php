@@ -217,8 +217,12 @@ class SettingsPageData
             : null;
 
         $profileMissingFields = [];
+        $profileMissingFieldKeys = [];
 
         if ($user !== null && $hasMemberAccess) {
+            $profileMissingFieldKeys = $user->missingMemberApplicationProfileFields(
+                $memberApplicationProfile,
+            );
             $profileMissingFields = $user->missingMemberApplicationProfileFieldLabels(
                 $memberApplicationProfile,
             );
@@ -229,6 +233,7 @@ class SettingsPageData
             'isComplete' => $user?->memberApplicationProfileIsComplete() ?? false,
             'completedAt' => $memberApplicationProfile?->profile_completed_at?->toDateTimeString(),
             'missingFields' => $profileMissingFields,
+            'missingFieldKeys' => $profileMissingFieldKeys,
         ];
 
         return [
