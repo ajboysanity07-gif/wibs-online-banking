@@ -7,6 +7,7 @@ use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
 use App\Rules\ValidPostalCode;
+use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use App\Support\LocationComposer;
@@ -516,7 +517,7 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.birthplace_city" => ['required', 'string', 'max:255'],
             "{$prefix}.birthplace_province" => ['required', 'string', 'max:255'],
             "{$prefix}.address1" => ['required', 'string', 'max:255'],
-            "{$prefix}.address_barangay" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.address_barangay" => ['nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input("{$prefix}.address2"), $this->input("{$prefix}.address3"))],
             "{$prefix}.address2" => ['required', 'string', 'max:255', new ValidPsgcLocality],
             "{$prefix}.address3" => ['required', 'string', 'max:255', new ValidPsgcProvince],
             "{$prefix}.address_zip" => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
@@ -526,7 +527,7 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.employer_business_address1" => [$employerRule, 'string', 'max:255'],
-            "{$prefix}.employer_business_address_barangay" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.employer_business_address_barangay" => ['nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input("{$prefix}.employer_business_address2"), $this->input("{$prefix}.employer_business_address3"))],
             "{$prefix}.employer_business_address2" => [$employerRule, 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             "{$prefix}.employer_business_address3" => [$employerRule, 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             "{$prefix}.employer_business_address_zip" => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],

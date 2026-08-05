@@ -1,6 +1,7 @@
 <?php
 
 use App\Rules\ValidPostalCode;
+use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use Illuminate\Support\Facades\Cache;
@@ -20,6 +21,10 @@ beforeEach(function () {
     Config::set(
         'locations.providers.ph-zipcodes.testing_data_path',
         base_path('tests/Fixtures/ph-zipcodes.json'),
+    );
+    Config::set(
+        'locations.providers.ph-barangays.testing_data_path',
+        base_path('tests/Fixtures/ph-barangays.json'),
     );
 });
 
@@ -63,4 +68,55 @@ test('valid postal code rule accepts a known zip and rejects a made-up one', fun
 
     expect($passing->passes())->toBeTrue();
     expect($failing->fails())->toBeTrue();
+});
+
+test('valid psgc barangay rule accepts a known barangay and rejects a made-up one', function () {
+    $passing = Validator::make(
+        ['barangay' => 'Aglipay'],
+        ['barangay' => [new ValidPsgcBarangay('Batac City')]],
+    );
+    $failing = Validator::make(
+        ['barangay' => 'Not A Real Barangay'],
+        ['barangay' => [new ValidPsgcBarangay('Batac City')]],
+    );
+
+    expect($passing->passes())->toBeTrue();
+    expect($failing->fails())->toBeTrue();
+});
+
+test('valid psgc barangay rule rejects a barangay from a different municipality', function () {
+    $failing = Validator::make(
+        ['barangay' => 'Aglipay'],
+        ['barangay' => [new ValidPsgcBarangay('Davao City')]],
+    );
+
+    expect($failing->fails())->toBeTrue();
+});
+
+test('valid psgc barangay rule fails without a selected municipality', function () {
+    $failing = Validator::make(
+        ['barangay' => 'Aglipay'],
+        ['barangay' => [new ValidPsgcBarangay(null)]],
+    );
+
+    expect($failing->fails())->toBeTrue();
+});
+
+test('valid psgc barangay rule disambiguates same-named municipalities by province', function () {
+    $cebu = Validator::make(
+        ['barangay' => 'Baring'],
+        ['barangay' => [new ValidPsgcBarangay('Carmen', 'Cebu')]],
+    );
+    $davao = Validator::make(
+        ['barangay' => 'Alejal'],
+        ['barangay' => [new ValidPsgcBarangay('Carmen', 'Davao del Norte')]],
+    );
+    $mismatch = Validator::make(
+        ['barangay' => 'Alejal'],
+        ['barangay' => [new ValidPsgcBarangay('Carmen', 'Cebu')]],
+    );
+
+    expect($cebu->passes())->toBeTrue();
+    expect($davao->passes())->toBeTrue();
+    expect($mismatch->fails())->toBeTrue();
 });

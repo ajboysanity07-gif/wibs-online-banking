@@ -16,6 +16,7 @@ import InputError from '@/components/input-error';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { ReleaseAccountFields } from '@/components/loan-request/release-account-fields';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
+import { LocationCombobox } from '@/components/location-combobox';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
 } from '@/components/profile/profile-image-crop-modal';
@@ -45,7 +46,7 @@ import { createCroppedImageFile } from '@/lib/image-crop';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { adminToastCopy, showErrorToast, showSuccessToast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-import { cities, provinces, zip } from '@/routes/api/locations';
+import { barangays, cities, provinces, zip } from '@/routes/api/locations';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import type { BreadcrumbItem } from '@/types';
@@ -156,7 +157,6 @@ type Props = {
     onboarding?: boolean;
 };
 const WMASTER_VALUE_CLASS = 'border-ring/40 ring-1 ring-ring/20';
-
 const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 const PROFILE_PHOTO_ALLOWED_TYPES = new Set([
     'image/jpeg',
@@ -570,6 +570,8 @@ export default function Profile({
         params: {
             province: birthplaceProvinceSearch.query || undefined,
         },
+        clientFilter: true,
+        limit: 500,
     });
     const homeAddress1 =
         memberApplicationProfile?.home_address1?.trim() ||
@@ -603,6 +605,18 @@ export default function Profile({
         params: {
             province: homeProvinceSearch.query || undefined,
         },
+        clientFilter: true,
+        limit: 500,
+    });
+    const homeBarangaySearch = useLocationSearch({
+        initialQuery: homeAddressBarangay,
+        searchUrl: barangays.url(),
+        params: {
+            municipality: homeCitySearch.selectedValue || undefined,
+            province: homeProvinceSearch.query || undefined,
+        },
+        clientFilter: true,
+        limit: 500,
     });
     const employerBusinessAddress1 =
         memberApplicationProfile?.employer_business_address1?.trim() ?? '';
@@ -629,6 +643,18 @@ export default function Profile({
         params: {
             province: employerBusinessProvinceSearch.query || undefined,
         },
+        clientFilter: true,
+        limit: 500,
+    });
+    const employerBusinessBarangaySearch = useLocationSearch({
+        initialQuery: employerBusinessAddressBarangay,
+        searchUrl: barangays.url(),
+        params: {
+            municipality: employerBusinessCitySearch.selectedValue || undefined,
+            province: employerBusinessProvinceSearch.query || undefined,
+        },
+        clientFilter: true,
+        limit: 500,
     });
     const [educationalAttainment, setEducationalAttainment] = useState<string>(
         memberApplicationProfile?.educational_attainment?.trim() ?? '',
@@ -1689,101 +1715,12 @@ export default function Profile({
                                                                 </div>
 
                                                                 <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
-                                                                    <div className="grid gap-2 md:col-span-2">
-                                                                        <Label htmlFor="home_address1">
-                                                                            Address
-                                                                            (street)
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="home_address1"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                homeAddress1
-                                                                            }
-                                                                            name="home_address1"
-                                                                            required
-                                                                            placeholder="Home address"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.home_address1
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="home_address_barangay">
-                                                                            Barangay
-                                                                        </Label>
-
-                                                                        <Input
-                                                                            id="home_address_barangay"
-                                                                            className="mt-1 block w-full"
-                                                                            defaultValue={
-                                                                                homeAddressBarangay
-                                                                            }
-                                                                            name="home_address_barangay"
-                                                                            placeholder="Barangay"
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.home_address_barangay
-                                                                            }
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="grid gap-2">
-                                                                        <Label htmlFor="home_address2">
-                                                                            City/Municipality
-                                                                        </Label>
-
-                                                                        <LocationAutocompleteInput
-                                                                            id="home_address2"
-                                                                            name="home_address2"
-                                                                            search={
-                                                                                homeCitySearch
-                                                                            }
-                                                                            placeholder="Select city or municipality"
-                                                                            required
-                                                                            inputClassName="mt-1 block w-full"
-                                                                            loadingMessage="Searching city suggestions..."
-                                                                            errorMessage="City suggestions are temporarily unavailable."
-                                                                            onSelect={(
-                                                                                suggestion,
-                                                                            ) => {
-                                                                                if (
-                                                                                    suggestion.province
-                                                                                ) {
-                                                                                    homeProvinceSearch.setSelectedValue(
-                                                                                        suggestion.province,
-                                                                                    );
-                                                                                }
-
-                                                                                void handleHomeCitySelect(
-                                                                                    suggestion.code,
-                                                                                );
-                                                                            }}
-                                                                        />
-
-                                                                        <InputError
-                                                                            className="mt-2"
-                                                                            message={
-                                                                                formErrors.home_address2
-                                                                            }
-                                                                        />
-                                                                    </div>
-
                                                                     <div className="grid gap-2">
                                                                         <Label htmlFor="home_address3">
                                                                             Province
                                                                         </Label>
 
-                                                                        <LocationAutocompleteInput
+                                                                        <LocationCombobox
                                                                             id="home_address3"
                                                                             name="home_address3"
                                                                             search={
@@ -1795,12 +1732,71 @@ export default function Profile({
                                                                             loadingMessage="Searching province suggestions..."
                                                                             errorMessage="Province suggestions are temporarily unavailable."
                                                                             promptMessage="Type at least 2 characters to search provinces."
+                                                                            onSelect={() => {
+                                                                                homeCitySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                homeBarangaySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                setHomeAddressZipValue(
+                                                                                    '',
+                                                                                );
+                                                                            }}
                                                                         />
 
                                                                         <InputError
                                                                             className="mt-2"
                                                                             message={
                                                                                 formErrors.home_address3
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="home_address2">
+                                                                            City/Municipality
+                                                                        </Label>
+
+                                                                        <LocationCombobox
+                                                                            id="home_address2"
+                                                                            name="home_address2"
+                                                                            search={
+                                                                                homeCitySearch
+                                                                            }
+                                                                            placeholder="Select city or municipality"
+                                                                            required
+                                                                            disabled={
+                                                                                !homeProvinceSearch.selectedValue
+                                                                            }
+                                                                            inputClassName="mt-1 block w-full"
+                                                                            loadingMessage="Searching city suggestions..."
+                                                                            errorMessage="City suggestions are temporarily unavailable."
+                                                                            promptMessage="Select a province first."
+                                                                            onSelect={(
+                                                                                suggestion,
+                                                                            ) => {
+                                                                                if (
+                                                                                    suggestion.province
+                                                                                ) {
+                                                                                    homeProvinceSearch.setSelectedValue(
+                                                                                        suggestion.province,
+                                                                                    );
+                                                                                }
+
+                                                                                homeBarangaySearch.setSelectedValue(
+                                                                                    '',
+                                                                                );
+                                                                                void handleHomeCitySelect(
+                                                                                    suggestion.code,
+                                                                                );
+                                                                            }}
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address2
                                                                             }
                                                                         />
                                                                     </div>
@@ -1829,13 +1825,67 @@ export default function Profile({
                                                                             name="home_address_zip"
                                                                             inputMode="numeric"
                                                                             autoComplete="postal-code"
-                                                                            placeholder="ZIP code"
+                                                                            placeholder="Auto-filled from city"
                                                                         />
 
                                                                         <InputError
                                                                             className="mt-2"
                                                                             message={
                                                                                 formErrors.home_address_zip
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="home_address_barangay">
+                                                                            Barangay
+                                                                        </Label>
+
+                                                                        <LocationCombobox
+                                                                            id="home_address_barangay"
+                                                                            name="home_address_barangay"
+                                                                            search={
+                                                                                homeBarangaySearch
+                                                                            }
+                                                                            placeholder="Select barangay"
+                                                                            disabled={
+                                                                                !homeCitySearch.selectedValue
+                                                                            }
+                                                                            inputClassName="mt-1 block w-full"
+                                                                            loadingMessage="Loading barangays..."
+                                                                            errorMessage="Barangay suggestions are temporarily unavailable."
+                                                                            promptMessage="Select a city or municipality first."
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address_barangay
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="home_address1">
+                                                                            Address
+                                                                            (street)
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="home_address1"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                homeAddress1
+                                                                            }
+                                                                            name="home_address1"
+                                                                            required
+                                                                            placeholder="Home address"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address1
                                                                             }
                                                                         />
                                                                     </div>
@@ -2260,102 +2310,12 @@ export default function Profile({
                                                                         }
                                                                     />
                                                                 </div>
-                                                                <div className="grid gap-2 md:col-span-2">
-                                                                    <Label htmlFor="employer_business_address1">
-                                                                        Employer/Business
-                                                                        address
-                                                                        (street)
-                                                                    </Label>
-
-                                                                    <Input
-                                                                        id="employer_business_address1"
-                                                                        className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            employerBusinessAddress1
-                                                                        }
-                                                                        name="employer_business_address1"
-                                                                        required
-                                                                        placeholder="Employer or business address"
-                                                                    />
-
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.employer_business_address1
-                                                                        }
-                                                                    />
-                                                                </div>
-
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="employer_business_address_barangay">
-                                                                        Barangay
-                                                                    </Label>
-
-                                                                    <Input
-                                                                        id="employer_business_address_barangay"
-                                                                        className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            employerBusinessAddressBarangay
-                                                                        }
-                                                                        name="employer_business_address_barangay"
-                                                                        placeholder="Barangay"
-                                                                    />
-
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.employer_business_address_barangay
-                                                                        }
-                                                                    />
-                                                                </div>
-
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="employer_business_address2">
-                                                                        City/Municipality
-                                                                    </Label>
-
-                                                                    <LocationAutocompleteInput
-                                                                        id="employer_business_address2"
-                                                                        name="employer_business_address2"
-                                                                        search={
-                                                                            employerBusinessCitySearch
-                                                                        }
-                                                                        placeholder="Select city or municipality"
-                                                                        required
-                                                                        inputClassName="mt-1 block w-full"
-                                                                        loadingMessage="Searching city suggestions..."
-                                                                        errorMessage="City suggestions are temporarily unavailable."
-                                                                        onSelect={(
-                                                                            suggestion,
-                                                                        ) => {
-                                                                            if (
-                                                                                suggestion.province
-                                                                            ) {
-                                                                                employerBusinessProvinceSearch.setSelectedValue(
-                                                                                    suggestion.province,
-                                                                                );
-                                                                            }
-
-                                                                            void handleEmployerCitySelect(
-                                                                                suggestion.code,
-                                                                            );
-                                                                        }}
-                                                                    />
-
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.employer_business_address2
-                                                                        }
-                                                                    />
-                                                                </div>
-
                                                                 <div className="grid gap-2">
                                                                     <Label htmlFor="employer_business_address3">
                                                                         Province
                                                                     </Label>
 
-                                                                    <LocationAutocompleteInput
+                                                                    <LocationCombobox
                                                                         id="employer_business_address3"
                                                                         name="employer_business_address3"
                                                                         search={
@@ -2367,12 +2327,71 @@ export default function Profile({
                                                                         loadingMessage="Searching province suggestions..."
                                                                         errorMessage="Province suggestions are temporarily unavailable."
                                                                         promptMessage="Type at least 2 characters to search provinces."
+                                                                        onSelect={() => {
+                                                                            employerBusinessCitySearch.setSelectedValue(
+                                                                                '',
+                                                                            );
+                                                                            employerBusinessBarangaySearch.setSelectedValue(
+                                                                                '',
+                                                                            );
+                                                                            setEmployerBusinessAddressZipValue(
+                                                                                '',
+                                                                            );
+                                                                        }}
                                                                     />
 
                                                                     <InputError
                                                                         className="mt-2"
                                                                         message={
                                                                             formErrors.employer_business_address3
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employer_business_address2">
+                                                                        City/Municipality
+                                                                    </Label>
+
+                                                                    <LocationCombobox
+                                                                        id="employer_business_address2"
+                                                                        name="employer_business_address2"
+                                                                        search={
+                                                                            employerBusinessCitySearch
+                                                                        }
+                                                                        placeholder="Select city or municipality"
+                                                                        required
+                                                                        disabled={
+                                                                            !employerBusinessProvinceSearch.selectedValue
+                                                                        }
+                                                                        inputClassName="mt-1 block w-full"
+                                                                        loadingMessage="Searching city suggestions..."
+                                                                        errorMessage="City suggestions are temporarily unavailable."
+                                                                        promptMessage="Select a province first."
+                                                                        onSelect={(
+                                                                            suggestion,
+                                                                        ) => {
+                                                                            if (
+                                                                                suggestion.province
+                                                                            ) {
+                                                                                employerBusinessProvinceSearch.setSelectedValue(
+                                                                                    suggestion.province,
+                                                                                );
+                                                                            }
+
+                                                                            employerBusinessBarangaySearch.setSelectedValue(
+                                                                                '',
+                                                                            );
+                                                                            void handleEmployerCitySelect(
+                                                                                suggestion.code,
+                                                                            );
+                                                                        }}
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address2
                                                                         }
                                                                     />
                                                                 </div>
@@ -2400,13 +2419,68 @@ export default function Profile({
                                                                         name="employer_business_address_zip"
                                                                         inputMode="numeric"
                                                                         autoComplete="postal-code"
-                                                                        placeholder="ZIP code"
+                                                                        placeholder="Auto-filled from city"
                                                                     />
 
                                                                     <InputError
                                                                         className="mt-2"
                                                                         message={
                                                                             formErrors.employer_business_address_zip
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employer_business_address_barangay">
+                                                                        Barangay
+                                                                    </Label>
+
+                                                                    <LocationCombobox
+                                                                        id="employer_business_address_barangay"
+                                                                        name="employer_business_address_barangay"
+                                                                        search={
+                                                                            employerBusinessBarangaySearch
+                                                                        }
+                                                                        placeholder="Select barangay"
+                                                                        disabled={
+                                                                            !employerBusinessCitySearch.selectedValue
+                                                                        }
+                                                                        inputClassName="mt-1 block w-full"
+                                                                        loadingMessage="Loading barangays..."
+                                                                        errorMessage="Barangay suggestions are temporarily unavailable."
+                                                                        promptMessage="Select a city or municipality first."
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address_barangay
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2 md:col-span-2">
+                                                                    <Label htmlFor="employer_business_address1">
+                                                                        Employer/Business
+                                                                        address
+                                                                        (street)
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="employer_business_address1"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            employerBusinessAddress1
+                                                                        }
+                                                                        name="employer_business_address1"
+                                                                        required
+                                                                        placeholder="Employer or business address"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address1
                                                                         }
                                                                     />
                                                                 </div>

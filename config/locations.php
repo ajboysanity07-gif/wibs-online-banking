@@ -20,5 +20,9 @@ return [
             'data_path' => base_path('resources/data/ph-zipcodes.json'),
             'testing_data_path' => base_path('tests/Fixtures/ph-zipcodes.json'),
         ],
+        'ph-barangays' => [
+            'data_path' => base_path('resources/data/ph-barangays.json'),
+            'testing_data_path' => base_path('tests/Fixtures/ph-barangays.json'),
+        ],
     ],
 ];

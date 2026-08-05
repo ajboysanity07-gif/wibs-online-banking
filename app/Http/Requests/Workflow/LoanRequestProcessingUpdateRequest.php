@@ -5,6 +5,7 @@ namespace App\Http\Requests\Workflow;
 use App\Models\AppUser;
 use App\Models\LoanRequestChange;
 use App\Rules\ValidPostalCode;
+use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use App\Services\LoanRequests\LoanManagerWitnessResolver;
@@ -92,7 +93,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'applicant.birthplace_city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.birthplace_province' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.address1' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'applicant.address_barangay' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'applicant.address_barangay' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input('applicant.address2'), $this->input('applicant.address3'))],
             'applicant.address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'applicant.address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'applicant.address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
@@ -100,7 +101,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'applicant.employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.employer_business_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'applicant.employer_business_address1' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'applicant.employer_business_address_barangay' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'applicant.employer_business_address_barangay' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input('applicant.employer_business_address2'), $this->input('applicant.employer_business_address3'))],
             'applicant.employer_business_address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'applicant.employer_business_address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'applicant.employer_business_address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
@@ -116,7 +117,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_1.birthplace_city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_1.birthplace_province' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_1.address1' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_1.address_barangay' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'co_maker_1.address_barangay' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input('co_maker_1.address2'), $this->input('co_maker_1.address3'))],
             'co_maker_1.address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_1.address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_1.address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
@@ -124,7 +125,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_1.employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_1.employer_business_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_1.employer_business_address1' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_1.employer_business_address_barangay' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'co_maker_1.employer_business_address_barangay' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input('co_maker_1.employer_business_address2'), $this->input('co_maker_1.employer_business_address3'))],
             'co_maker_1.employer_business_address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_1.employer_business_address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_1.employer_business_address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
@@ -140,7 +141,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_2.birthplace_city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.birthplace_province' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.address1' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_2.address_barangay' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'co_maker_2.address_barangay' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input('co_maker_2.address2'), $this->input('co_maker_2.address3'))],
             'co_maker_2.address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_2.address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_2.address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
@@ -148,7 +149,7 @@ class LoanRequestProcessingUpdateRequest extends FormRequest
             'co_maker_2.employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.employer_business_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'co_maker_2.employer_business_address1' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'co_maker_2.employer_business_address_barangay' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'co_maker_2.employer_business_address_barangay' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcBarangay($this->input('co_maker_2.employer_business_address2'), $this->input('co_maker_2.employer_business_address3'))],
             'co_maker_2.employer_business_address2' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcLocality],
             'co_maker_2.employer_business_address3' => ['sometimes', 'nullable', 'string', 'max:255', new ValidPsgcProvince],
             'co_maker_2.employer_business_address_zip' => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],

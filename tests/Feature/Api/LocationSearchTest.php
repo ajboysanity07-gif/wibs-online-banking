@@ -8,10 +8,15 @@ use Illuminate\Support\Facades\Config;
 beforeEach(function () {
     Config::set('cache.default', 'array');
     Cache::store()->flush();
+    Config::set('locations.cache_store', 'array');
     Config::set('locations.provider', 'ph-address');
     Config::set(
         'locations.providers.ph-address.testing_data_path',
         base_path('tests/Fixtures/ph-address.json'),
+    );
+    Config::set(
+        'locations.providers.ph-barangays.testing_data_path',
+        base_path('tests/Fixtures/ph-barangays.json'),
     );
 
     $this->user = User::factory()->create();
@@ -82,6 +87,39 @@ test('city search returns davao suggestions', function () {
     expect($values)->toContain('City of Davao');
 });
 
+test('city search endpoint returns a province\'s full city list without a search term', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.cities', ['search' => '', 'province' => 'Davao del Norte']));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'ok' => true,
+            'available' => true,
+        ]);
+
+    $data = collect($response->json('data'));
+
+    expect($data)->not->toBeEmpty();
+    expect($data->pluck('province')->unique()->all())->toBe(['Davao del Norte']);
+    expect($data->pluck('label'))->toContain('Carmen, Davao del Norte');
+});
+
+test('city search endpoint returns empty data for an empty search without a province', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.cities', ['search' => '']));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'ok' => true,
+            'available' => true,
+            'data' => [],
+        ]);
+});
+
 test('province search returns davao provinces', function () {
     $response = $this
         ->actingAs($this->user)
@@ -93,4 +131,81 @@ test('province search returns davao provinces', function () {
 
     expect($labels)->toContain('Davao del Norte');
     expect($labels)->toContain('Davao del Sur');
+});
+
+test('barangay search endpoint returns suggestions scoped to a municipality', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.barangays', [
+            'municipality' => 'Davao City',
+            'search' => 'Acacia',
+        ]));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'ok' => true,
+            'available' => true,
+        ])
+        ->assertJsonPath('data.0.label', 'Acacia')
+        ->assertJsonPath('data.0.value', 'Acacia')
+        ->assertJsonPath('data.0.type', 'barangay');
+});
+
+test('barangay search endpoint disambiguates a same-named municipality using the province param', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.barangays', [
+            'municipality' => 'Carmen',
+            'province' => 'Davao del Norte',
+            'search' => 'Alejal',
+        ]));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'ok' => true,
+            'available' => true,
+        ])
+        ->assertJsonPath('data.0.label', 'Alejal');
+});
+
+test('barangay search endpoint returns empty data without a municipality', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.barangays', ['search' => 'Aca']));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'ok' => true,
+            'available' => true,
+            'data' => [],
+        ]);
+});
+
+test('barangay search endpoint returns empty data for an unknown municipality', function () {
+    $response = $this
+        ->actingAs($this->user)
+        ->get(route('api.locations.barangays', [
+            'municipality' => 'Not A Real City',
+            'search' => 'Aca',
+        ]));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'ok' => true,
+            'available' => true,
+            'data' => [],
+        ]);
+});
+
+test('barangay search endpoint requires authentication', function () {
+    $response = $this->get(route('api.locations.barangays', [
+        'municipality' => 'Davao City',
+        'search' => 'Aca',
+    ]));
+
+    $response->assertRedirect(route('login'));
 });

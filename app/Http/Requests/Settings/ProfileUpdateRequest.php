@@ -7,6 +7,7 @@ use App\LoanReleaseMethod;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
 use App\Rules\ValidPostalCode;
+use App\Rules\ValidPsgcBarangay;
 use App\Rules\ValidPsgcLocality;
 use App\Rules\ValidPsgcProvince;
 use App\Support\LocationComposer;
@@ -257,6 +258,7 @@ class ProfileUpdateRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
+                new ValidPsgcBarangay($this->input('employer_business_address2'), $this->input('employer_business_address3')),
             ],
             'employer_business_address2' => [
                 $memberRequirement('employer_business_address2'),
@@ -292,6 +294,7 @@ class ProfileUpdateRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
+                new ValidPsgcBarangay($this->input('home_address2'), $this->input('home_address3')),
             ],
             'home_address2' => [
                 $memberRequirement('home_address2'),

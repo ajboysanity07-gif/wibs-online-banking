@@ -11,6 +11,8 @@ class PsgcService
 
     private const CACHE_DATASET = 'locations.dataset.v3';
 
+    private const CACHE_BARANGAYS = 'locations.barangays.v1';
+
     private const CODE_LENGTH = 10;
 
     private const NCR_REGION_CODE = '1300000000';
@@ -35,6 +37,7 @@ class PsgcService
     public function warm(): void
     {
         $this->dataset();
+        $this->barangays();
     }
 
     /**
@@ -232,6 +235,179 @@ class PsgcService
     /**
      * @return array{available: bool, results: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string}>}
      */
+    public function searchBarangays(
+        string $municipality,
+        string $query,
+        int $limit = 15,
+        ?string $province = null,
+    ): array {
+        $municipality = trim($municipality);
+
+        if ($municipality === '') {
+            return [
+                'available' => true,
+                'results' => [],
+            ];
+        }
+
+        $limit = max(1, min($limit, 500));
+        $municipalityCode = $this->municipalityCodeForName($municipality, $province);
+
+        if ($municipalityCode === null) {
+            return [
+                'available' => true,
+                'results' => [],
+            ];
+        }
+
+        $barangays = $this->barangays();
+
+        if ($barangays === []) {
+            return [
+                'available' => false,
+                'results' => [],
+            ];
+        }
+
+        $candidates = $this->resolveBarangayCandidates($municipalityCode, $barangays);
+
+        if ($candidates === []) {
+            return [
+                'available' => true,
+                'results' => [],
+            ];
+        }
+
+        $province = $this->provinceForMunicipality($municipalityCode);
+        $region = $this->regionForMunicipality($municipalityCode);
+        $query = trim($query);
+
+        if ($query === '') {
+            return [
+                'available' => true,
+                'results' => $this->buildBarangayResults(
+                    $candidates,
+                    $province,
+                    $region,
+                    $limit,
+                ),
+            ];
+        }
+
+        $needle = Str::lower($query);
+        $tokens = $this->searchTokens($needle);
+        $matches = [];
+
+        foreach ($candidates as $barangay) {
+            $name = Str::lower($barangay['name']);
+
+            if (! $this->matchesAllTokens($name, $tokens)) {
+                continue;
+            }
+
+            $score = 2;
+
+            if ($name === $needle) {
+                $score = 0;
+            } elseif (str_starts_with($name, $needle)) {
+                $score = 1;
+            }
+
+            $matches[] = [$score, $barangay];
+        }
+
+        usort($matches, static function (array $left, array $right): int {
+            if ($left[0] !== $right[0]) {
+                return $left[0] <=> $right[0];
+            }
+
+            return strcmp($left[1]['name'], $right[1]['name']);
+        });
+
+        return [
+            'available' => true,
+            'results' => $this->buildBarangayResults(
+                array_map(
+                    static fn (array $match): array => $match[1],
+                    $matches,
+                ),
+                $province,
+                $region,
+                $limit,
+            ),
+        ];
+    }
+
+    /**
+     * @param  list<array{code: string, name: string}>  $barangays
+     * @return list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string}>
+     */
+    private function buildBarangayResults(
+        array $barangays,
+        ?string $province,
+        ?string $region,
+        int $limit,
+    ): array {
+        $results = [];
+
+        foreach ($barangays as $barangay) {
+            $results[] = [
+                'code' => $barangay['code'],
+                'name' => $barangay['name'],
+                'type' => 'barangay',
+                'province' => $province,
+                'region' => $region,
+                'label' => $barangay['name'],
+                'value' => $barangay['name'],
+            ];
+
+            if (count($results) >= $limit) {
+                break;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Whether $value is a known barangay of the given municipality (matched by
+     * name or PSGC code). Used for value-uniformity validation.
+     */
+    public function isKnownBarangay(string $municipality, string $value, ?string $province = null): bool
+    {
+        $municipality = trim($municipality);
+
+        if ($municipality === '') {
+            return false;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            return false;
+        }
+
+        $municipalityCode = $this->municipalityCodeForName($municipality, $province);
+
+        if ($municipalityCode === null) {
+            return false;
+        }
+
+        $needle = Str::lower($value);
+        $candidates = $this->resolveBarangayCandidates($municipalityCode, $this->productionBarangays());
+
+        foreach ($candidates as $barangay) {
+            if (Str::lower($barangay['name']) === $needle) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{available: bool, results: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string}>}
+     */
     public function searchProvinces(string $query, int $limit = 15): array
     {
         $query = trim($query);
@@ -316,15 +492,16 @@ class PsgcService
         ?string $province = null,
     ): array {
         $query = trim($query);
+        $provinceFilter = trim((string) $province);
 
-        if ($query === '') {
+        if ($query === '' && $provinceFilter === '') {
             return [
                 'available' => true,
                 'results' => [],
             ];
         }
 
-        $limit = max(1, min($limit, 20));
+        $limit = max(1, min($limit, 500));
         $birthplaces = $this->birthplaces();
 
         if ($birthplaces === []) {
@@ -336,7 +513,6 @@ class PsgcService
 
         $needle = Str::lower($query);
         $tokens = $this->searchTokens($needle);
-        $provinceFilter = trim((string) $province);
         $provinceFilter = $provinceFilter !== '' ? Str::lower($provinceFilter) : '';
         $matches = [];
 
@@ -427,6 +603,249 @@ class PsgcService
         }
 
         return true;
+    }
+
+    /**
+     * Resolve a municipality by its bare name ("City of Cebu", "Carmen"), its
+     * labeled value ("City of Cebu, Cebu"), or its 10-digit PSGC code to the
+     * municipality PSGC code used as the barangays dataset key.
+     */
+    private function municipalityCodeForName(string $value, ?string $province = null): ?string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{10}$/', $value) === 1) {
+            return $value;
+        }
+
+        $needle = Str::lower($value);
+        $needleBase = $this->cityBaseName($needle);
+        $provinceNeedle = $province !== null ? trim($province) : '';
+        $provinceNeedle = $provinceNeedle !== '' ? Str::lower($provinceNeedle) : null;
+
+        // Municipality names aren't unique nationwide (~115 pairs share a
+        // name across different provinces, e.g. three "Carmen"s). Without a
+        // province to disambiguate we fall back to the first match, same as
+        // before -- but prefer an exact province match when one is given.
+        $fallbackCode = null;
+
+        foreach ($this->birthplaces() as $birthplace) {
+            $name = Str::lower($birthplace['name']);
+
+            $isMatch = $name === $needle
+                || Str::lower($birthplace['value']) === $needle
+                || ($birthplace['type'] === 'city' && $this->cityBaseName($name) === $needleBase);
+
+            if (! $isMatch) {
+                continue;
+            }
+
+            if ($provinceNeedle === null) {
+                return $birthplace['code'];
+            }
+
+            $birthplaceProvince = is_string($birthplace['province'])
+                ? Str::lower($birthplace['province'])
+                : null;
+
+            if ($birthplaceProvince === $provinceNeedle) {
+                return $birthplace['code'];
+            }
+
+            $fallbackCode ??= $birthplace['code'];
+        }
+
+        return $fallbackCode;
+    }
+
+    /**
+     * Resolve the barangay list for a municipality code. Handles PSGC's
+     * Manila exception: "City of Manila" (the umbrella city-level code) has
+     * no direct barangay entries -- its ~900 barangays are split across
+     * PSGC codes for Manila's 14 numbered districts (Tondo I/II, Binondo,
+     * Quiapo, etc.), which share the city's region+province code prefix.
+     * Those district codes are *also* independently selectable as their own
+     * "city" in the birthplace/city search (so residents who picked e.g.
+     * "Tondo I/II" directly already resolve correctly without this
+     * fallback) -- this only kicks in for the small remainder who picked
+     * the "City of Manila" umbrella entry itself.
+     *
+     * Only falls back when the resolved code has zero direct barangay
+     * entries, which today is uniquely true for "City of Manila" -- no
+     * other municipality/city in the dataset has a bare zero-entry code, so
+     * merging by prefix can't currently pull in an unrelated neighboring
+     * town's barangays by mistake.
+     *
+     * @param  array<string, list<array{code: string, name: string}>>  $barangayMap
+     * @return list<array{code: string, name: string}>
+     */
+    private function resolveBarangayCandidates(string $municipalityCode, array $barangayMap): array
+    {
+        if (($barangayMap[$municipalityCode] ?? []) !== []) {
+            return $barangayMap[$municipalityCode];
+        }
+
+        $prefix = substr($municipalityCode, 0, 5);
+        $merged = [];
+
+        foreach ($barangayMap as $code => $list) {
+            $code = (string) $code;
+
+            if ($code === $municipalityCode || ! str_starts_with($code, $prefix)) {
+                continue;
+            }
+
+            array_push($merged, ...$list);
+        }
+
+        return $merged;
+    }
+
+    private function provinceForMunicipality(string $municipalityCode): ?string
+    {
+        foreach ($this->birthplaces() as $birthplace) {
+            if ($birthplace['code'] === $municipalityCode) {
+                return $birthplace['province'];
+            }
+        }
+
+        return null;
+    }
+
+    private function regionForMunicipality(string $municipalityCode): ?string
+    {
+        foreach ($this->birthplaces() as $birthplace) {
+            if ($birthplace['code'] === $municipalityCode) {
+                return $birthplace['region'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, list<array{code: string, name: string}>>
+     */
+    private function barangays(): array
+    {
+        $store = $this->cache();
+        $cached = $store->get(self::CACHE_BARANGAYS);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $path = $this->resolveBarangayPath();
+
+        if ($path === null) {
+            return [];
+        }
+
+        $contents = file_get_contents($path);
+
+        if ($contents === false) {
+            return [];
+        }
+
+        try {
+            $payload = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        $barangays = [];
+
+        if (is_array($payload)) {
+            foreach ($payload as $code => $list) {
+                if ((! is_string($code) && ! is_int($code)) || ! is_array($list)) {
+                    continue;
+                }
+
+                $code = (string) $code;
+                $filtered = [];
+
+                foreach ($list as $entry) {
+                    if (
+                        ! is_array($entry)
+                        || ! is_string($entry['code'] ?? null)
+                        || ! is_string($entry['name'] ?? null)
+                        || trim($entry['name']) === ''
+                    ) {
+                        continue;
+                    }
+
+                    $filtered[] = [
+                        'code' => $entry['code'],
+                        'name' => trim($entry['name']),
+                    ];
+                }
+
+                if ($filtered !== []) {
+                    $barangays[$code] = $filtered;
+                }
+            }
+        }
+
+        if ($barangays !== []) {
+            $store->put(self::CACHE_BARANGAYS, $barangays, $this->cacheTtl());
+        }
+
+        return $barangays;
+    }
+
+    /**
+     * The real barangays dataset, used by isKnownBarangay() for
+     * value-uniformity validation. Deliberately ignores the testing_data_path
+     * override -- see productionDataset() for the same reasoning.
+     *
+     * @return array<string, list<array{code: string, name: string}>>
+     */
+    private function productionBarangays(): array
+    {
+        static $cached = null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $path = base_path('resources/data/ph-barangays.json');
+
+        if (! is_file($path)) {
+            return $cached = [];
+        }
+
+        $contents = file_get_contents($path);
+
+        if ($contents === false) {
+            return $cached = [];
+        }
+
+        try {
+            $payload = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return $cached = [];
+        }
+
+        return $cached = is_array($payload) ? $payload : [];
+    }
+
+    private function resolveBarangayPath(): ?string
+    {
+        $config = config('locations.providers.ph-barangays', []);
+
+        $path = app()->environment('testing')
+            ? ($config['testing_data_path'] ?? null)
+            : ($config['data_path'] ?? null);
+
+        if (! is_string($path) || $path === '' || ! is_file($path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     /**

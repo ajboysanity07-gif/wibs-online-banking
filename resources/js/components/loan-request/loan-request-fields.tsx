@@ -4,6 +4,7 @@ import InputError from '@/components/input-error';
 import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
+import { LocationCombobox } from '@/components/location-combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -18,7 +19,7 @@ import { useLocationSearch } from '@/hooks/use-location-search';
 import api from '@/lib/api';
 import { normalizeMobileNumberInput } from '@/lib/phone';
 import { cn } from '@/lib/utils';
-import { cities, provinces, zip } from '@/routes/api/locations';
+import { barangays, cities, provinces, zip } from '@/routes/api/locations';
 import type {
     LoanRequestPersonFormData,
     LoanRequestReadOnlyMap,
@@ -190,6 +191,8 @@ export function LoanRequestPersonalFields({
         params: {
             province: values.birthplace_province || undefined,
         },
+        clientFilter: true,
+        limit: 500,
     });
     const addressProvinceSearch = useLocationSearch({
         initialQuery: values.address3,
@@ -201,6 +204,18 @@ export function LoanRequestPersonalFields({
         params: {
             province: values.address3 || undefined,
         },
+        clientFilter: true,
+        limit: 500,
+    });
+    const addressBarangaySearch = useLocationSearch({
+        initialQuery: values.address_barangay,
+        searchUrl: barangays.url(),
+        params: {
+            municipality: values.address2 || undefined,
+            province: values.address3 || undefined,
+        },
+        clientFilter: true,
+        limit: 500,
     });
 
     const handleAddressCitySelect = async (code: string) => {
@@ -480,98 +495,13 @@ export function LoanRequestPersonalFields({
 
             {section === 'all' || section === 'contact' ? (
                 <div className="grid gap-5 md:grid-cols-2">
-                    <div className="grid gap-2 md:col-span-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_address1`}
-                            label="Address (street)"
-                            isReadOnly={isReadOnly('address1')}
-                        />
-                        <Input
-                            id={`${prefix}_address1`}
-                            name={fieldName(prefix, 'address1')}
-                            value={values.address1}
-                            readOnly={isReadOnly('address1')}
-                            required
-                            className={cn(
-                                'mt-1 block w-full',
-                                isReadOnly('address1') && readOnlyInputClass,
-                            )}
-                            onChange={updateField('address1')}
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'address1')}
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_address_barangay`}
-                            label="Barangay"
-                            isReadOnly={isReadOnly('address_barangay')}
-                        />
-                        <Input
-                            id={`${prefix}_address_barangay`}
-                            name={fieldName(prefix, 'address_barangay')}
-                            value={values.address_barangay}
-                            readOnly={isReadOnly('address_barangay')}
-                            className={cn(
-                                'mt-1 block w-full',
-                                isReadOnly('address_barangay') &&
-                                    readOnlyInputClass,
-                            )}
-                            onChange={updateField('address_barangay')}
-                        />
-                        <InputError
-                            message={fieldError(
-                                errors,
-                                prefix,
-                                'address_barangay',
-                            )}
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <FieldLabel
-                            htmlFor={`${prefix}_address2`}
-                            label="City/Municipality"
-                            isReadOnly={isReadOnly('address2')}
-                        />
-                        <LocationAutocompleteInput
-                            id={`${prefix}_address2`}
-                            name={fieldName(prefix, 'address2')}
-                            search={addressCitySearch}
-                            placeholder="Select city or municipality"
-                            required
-                            readOnly={isReadOnly('address2')}
-                            inputClassName={addressCityInputClass}
-                            loadingMessage="Searching city suggestions..."
-                            errorMessage="City suggestions are temporarily unavailable."
-                            onSelect={(suggestion) => {
-                                if (suggestion.province) {
-                                    addressProvinceSearch.setSelectedValue(
-                                        suggestion.province,
-                                    );
-                                    onChange('address3', suggestion.province);
-                                }
-
-                                void handleAddressCitySelect(suggestion.code);
-                            }}
-                            onValueChange={(value) =>
-                                onChange('address2', value)
-                            }
-                        />
-                        <InputError
-                            message={fieldError(errors, prefix, 'address2')}
-                        />
-                    </div>
-
                     <div className="grid gap-2">
                         <FieldLabel
                             htmlFor={`${prefix}_address3`}
                             label="Province"
                             isReadOnly={isReadOnly('address3')}
                         />
-                        <LocationAutocompleteInput
+                        <LocationCombobox
                             id={`${prefix}_address3`}
                             name={fieldName(prefix, 'address3')}
                             search={addressProvinceSearch}
@@ -585,9 +515,55 @@ export function LoanRequestPersonalFields({
                             onValueChange={(value) =>
                                 onChange('address3', value)
                             }
+                            onSelect={() => {
+                                addressCitySearch.setSelectedValue('');
+                                onChange('address2', '');
+                                addressBarangaySearch.setSelectedValue('');
+                                onChange('address_barangay', '');
+                                onChange('address_zip', '');
+                            }}
                         />
                         <InputError
                             message={fieldError(errors, prefix, 'address3')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_address2`}
+                            label="City/Municipality"
+                            isReadOnly={isReadOnly('address2')}
+                        />
+                        <LocationCombobox
+                            id={`${prefix}_address2`}
+                            name={fieldName(prefix, 'address2')}
+                            search={addressCitySearch}
+                            placeholder="Select city or municipality"
+                            required
+                            readOnly={isReadOnly('address2')}
+                            disabled={!values.address3}
+                            inputClassName={addressCityInputClass}
+                            loadingMessage="Searching city suggestions..."
+                            errorMessage="City suggestions are temporarily unavailable."
+                            promptMessage="Select a province first."
+                            onValueChange={(value) =>
+                                onChange('address2', value)
+                            }
+                            onSelect={(suggestion) => {
+                                if (suggestion.province) {
+                                    addressProvinceSearch.setSelectedValue(
+                                        suggestion.province,
+                                    );
+                                    onChange('address3', suggestion.province);
+                                }
+
+                                addressBarangaySearch.setSelectedValue('');
+                                onChange('address_barangay', '');
+                                void handleAddressCitySelect(suggestion.code);
+                            }}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'address2')}
                         />
                     </div>
 
@@ -612,6 +588,63 @@ export function LoanRequestPersonalFields({
                         />
                         <InputError
                             message={fieldError(errors, prefix, 'address_zip')}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_address_barangay`}
+                            label="Barangay"
+                            isReadOnly={isReadOnly('address_barangay')}
+                        />
+                        <LocationCombobox
+                            id={`${prefix}_address_barangay`}
+                            name={fieldName(prefix, 'address_barangay')}
+                            search={addressBarangaySearch}
+                            placeholder="Select barangay"
+                            readOnly={isReadOnly('address_barangay')}
+                            disabled={!values.address2}
+                            inputClassName={cn(
+                                'mt-1 block w-full',
+                                isReadOnly('address_barangay') &&
+                                    readOnlyInputClass,
+                            )}
+                            loadingMessage="Loading barangays..."
+                            errorMessage="Barangay suggestions are temporarily unavailable."
+                            promptMessage="Select a city or municipality first."
+                            onValueChange={(value) =>
+                                onChange('address_barangay', value)
+                            }
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'address_barangay',
+                            )}
+                        />
+                    </div>
+
+                    <div className="grid gap-2 md:col-span-2">
+                        <FieldLabel
+                            htmlFor={`${prefix}_address1`}
+                            label="Address (street)"
+                            isReadOnly={isReadOnly('address1')}
+                        />
+                        <Input
+                            id={`${prefix}_address1`}
+                            name={fieldName(prefix, 'address1')}
+                            value={values.address1}
+                            readOnly={isReadOnly('address1')}
+                            required
+                            className={cn(
+                                'mt-1 block w-full',
+                                isReadOnly('address1') && readOnlyInputClass,
+                            )}
+                            onChange={updateField('address1')}
+                        />
+                        <InputError
+                            message={fieldError(errors, prefix, 'address1')}
                         />
                     </div>
 
@@ -992,6 +1025,18 @@ export function LoanRequestWorkFields({
         params: {
             province: values.employer_business_address3 || undefined,
         },
+        clientFilter: true,
+        limit: 500,
+    });
+    const employerBarangaySearch = useLocationSearch({
+        initialQuery: values.employer_business_address_barangay,
+        searchUrl: barangays.url(),
+        params: {
+            municipality: values.employer_business_address2 || undefined,
+            province: values.employer_business_address3 || undefined,
+        },
+        clientFilter: true,
+        limit: 500,
     });
 
     const handleEmployerCitySelect = async (code: string) => {
@@ -1117,129 +1162,13 @@ export function LoanRequestWorkFields({
                     ) : null}
 
                     {!isPensioner ? (
-                        <div className="grid gap-2 md:col-span-2">
-                            <Label
-                                htmlFor={`${prefix}_employer_business_address1`}
-                            >
-                                Employer/Business address (street)
-                            </Label>
-                            <Input
-                                id={`${prefix}_employer_business_address1`}
-                                name={fieldName(
-                                    prefix,
-                                    'employer_business_address1',
-                                )}
-                                value={values.employer_business_address1}
-                                className="mt-1 block w-full"
-                                onChange={(event) =>
-                                    onChange(
-                                        'employer_business_address1',
-                                        event.target.value,
-                                    )
-                                }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address1',
-                                )}
-                            />
-                        </div>
-                    ) : null}
-
-                    {!isPensioner ? (
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={`${prefix}_employer_business_address_barangay`}
-                            >
-                                Barangay
-                            </Label>
-                            <Input
-                                id={`${prefix}_employer_business_address_barangay`}
-                                name={fieldName(
-                                    prefix,
-                                    'employer_business_address_barangay',
-                                )}
-                                value={
-                                    values.employer_business_address_barangay
-                                }
-                                className="mt-1 block w-full"
-                                onChange={(event) =>
-                                    onChange(
-                                        'employer_business_address_barangay',
-                                        event.target.value,
-                                    )
-                                }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address_barangay',
-                                )}
-                            />
-                        </div>
-                    ) : null}
-
-                    {!isPensioner ? (
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor={`${prefix}_employer_business_address2`}
-                            >
-                                City/Municipality
-                            </Label>
-                            <LocationAutocompleteInput
-                                id={`${prefix}_employer_business_address2`}
-                                name={fieldName(
-                                    prefix,
-                                    'employer_business_address2',
-                                )}
-                                search={employerCitySearch}
-                                placeholder="Select city or municipality"
-                                inputClassName="mt-1 block w-full"
-                                loadingMessage="Searching city suggestions..."
-                                errorMessage="City suggestions are temporarily unavailable."
-                                onSelect={(suggestion) => {
-                                    if (suggestion.province) {
-                                        employerProvinceSearch.setSelectedValue(
-                                            suggestion.province,
-                                        );
-                                        onChange(
-                                            'employer_business_address3',
-                                            suggestion.province,
-                                        );
-                                    }
-
-                                    void handleEmployerCitySelect(
-                                        suggestion.code,
-                                    );
-                                }}
-                                onValueChange={(value) =>
-                                    onChange(
-                                        'employer_business_address2',
-                                        value,
-                                    )
-                                }
-                            />
-                            <InputError
-                                message={fieldError(
-                                    errors,
-                                    prefix,
-                                    'employer_business_address2',
-                                )}
-                            />
-                        </div>
-                    ) : null}
-
-                    {!isPensioner ? (
                         <div className="grid gap-2">
                             <Label
                                 htmlFor={`${prefix}_employer_business_address3`}
                             >
                                 Province
                             </Label>
-                            <LocationAutocompleteInput
+                            <LocationCombobox
                                 id={`${prefix}_employer_business_address3`}
                                 name={fieldName(
                                     prefix,
@@ -1257,12 +1186,82 @@ export function LoanRequestWorkFields({
                                         value,
                                     )
                                 }
+                                onSelect={() => {
+                                    employerCitySearch.setSelectedValue('');
+                                    onChange('employer_business_address2', '');
+                                    employerBarangaySearch.setSelectedValue('');
+                                    onChange(
+                                        'employer_business_address_barangay',
+                                        '',
+                                    );
+                                    onChange(
+                                        'employer_business_address_zip',
+                                        '',
+                                    );
+                                }}
                             />
                             <InputError
                                 message={fieldError(
                                     errors,
                                     prefix,
                                     'employer_business_address3',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {!isPensioner ? (
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor={`${prefix}_employer_business_address2`}
+                            >
+                                City/Municipality
+                            </Label>
+                            <LocationCombobox
+                                id={`${prefix}_employer_business_address2`}
+                                name={fieldName(
+                                    prefix,
+                                    'employer_business_address2',
+                                )}
+                                search={employerCitySearch}
+                                placeholder="Select city or municipality"
+                                disabled={!values.employer_business_address3}
+                                inputClassName="mt-1 block w-full"
+                                loadingMessage="Searching city suggestions..."
+                                errorMessage="City suggestions are temporarily unavailable."
+                                promptMessage="Select a province first."
+                                onValueChange={(value) =>
+                                    onChange(
+                                        'employer_business_address2',
+                                        value,
+                                    )
+                                }
+                                onSelect={(suggestion) => {
+                                    if (suggestion.province) {
+                                        employerProvinceSearch.setSelectedValue(
+                                            suggestion.province,
+                                        );
+                                        onChange(
+                                            'employer_business_address3',
+                                            suggestion.province,
+                                        );
+                                    }
+
+                                    employerBarangaySearch.setSelectedValue('');
+                                    onChange(
+                                        'employer_business_address_barangay',
+                                        '',
+                                    );
+                                    void handleEmployerCitySelect(
+                                        suggestion.code,
+                                    );
+                                }}
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address2',
                                 )}
                             />
                         </div>
@@ -1296,6 +1295,75 @@ export function LoanRequestWorkFields({
                                     errors,
                                     prefix,
                                     'employer_business_address_zip',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {!isPensioner ? (
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor={`${prefix}_employer_business_address_barangay`}
+                            >
+                                Barangay
+                            </Label>
+                            <LocationCombobox
+                                id={`${prefix}_employer_business_address_barangay`}
+                                name={fieldName(
+                                    prefix,
+                                    'employer_business_address_barangay',
+                                )}
+                                search={employerBarangaySearch}
+                                placeholder="Select barangay"
+                                disabled={!values.employer_business_address2}
+                                inputClassName="mt-1 block w-full"
+                                loadingMessage="Loading barangays..."
+                                errorMessage="Barangay suggestions are temporarily unavailable."
+                                promptMessage="Select a city or municipality first."
+                                onValueChange={(value) =>
+                                    onChange(
+                                        'employer_business_address_barangay',
+                                        value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address_barangay',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {!isPensioner ? (
+                        <div className="grid gap-2 md:col-span-2">
+                            <Label
+                                htmlFor={`${prefix}_employer_business_address1`}
+                            >
+                                Employer/Business address (street)
+                            </Label>
+                            <Input
+                                id={`${prefix}_employer_business_address1`}
+                                name={fieldName(
+                                    prefix,
+                                    'employer_business_address1',
+                                )}
+                                value={values.employer_business_address1}
+                                className="mt-1 block w-full"
+                                onChange={(event) =>
+                                    onChange(
+                                        'employer_business_address1',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address1',
                                 )}
                             />
                         </div>
