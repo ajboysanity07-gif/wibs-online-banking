@@ -6,6 +6,9 @@ use App\LoanPaymentOption;
 use App\LoanReleaseMethod;
 use App\Models\AppUser;
 use App\Models\LoanRequest;
+use App\Rules\ValidPostalCode;
+use App\Rules\ValidPsgcLocality;
+use App\Rules\ValidPsgcProvince;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -513,16 +516,20 @@ class LoanRequestStoreRequest extends FormRequest
             "{$prefix}.birthplace_city" => ['required', 'string', 'max:255'],
             "{$prefix}.birthplace_province" => ['required', 'string', 'max:255'],
             "{$prefix}.address1" => ['required', 'string', 'max:255'],
-            "{$prefix}.address2" => ['required', 'string', 'max:255'],
-            "{$prefix}.address3" => ['required', 'string', 'max:255'],
+            "{$prefix}.address_barangay" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.address2" => ['required', 'string', 'max:255', new ValidPsgcLocality],
+            "{$prefix}.address3" => ['required', 'string', 'max:255', new ValidPsgcProvince],
+            "{$prefix}.address_zip" => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
             "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
             "{$prefix}.cell_no" => ['required', 'string', 'digits:11'],
             "{$prefix}.educational_attainment" => ['required', 'string', 'max:255'],
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.employer_business_address1" => [$employerRule, 'string', 'max:255'],
-            "{$prefix}.employer_business_address2" => [$employerRule, 'string', 'max:255'],
-            "{$prefix}.employer_business_address3" => [$employerRule, 'string', 'max:255'],
+            "{$prefix}.employer_business_address_barangay" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.employer_business_address2" => [$employerRule, 'nullable', 'string', 'max:255', new ValidPsgcLocality],
+            "{$prefix}.employer_business_address3" => [$employerRule, 'nullable', 'string', 'max:255', new ValidPsgcProvince],
+            "{$prefix}.employer_business_address_zip" => ['sometimes', 'nullable', 'string', 'max:20', new ValidPostalCode],
             "{$prefix}.telephone_no" => ['nullable', 'string', 'max:20'],
             "{$prefix}.current_position" => [$employerRule, 'string', 'max:255'],
             "{$prefix}.nature_of_business" => [$employerRule, 'string', 'max:255'],
@@ -613,6 +620,9 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         $person['address1'] = $address1;
+        $person['address_barangay'] = $this->normalizeOptionalString(
+            $person['address_barangay'] ?? null,
+        );
         $person['address2'] = $address2;
         $person['address3'] = $address3;
 
@@ -642,6 +652,9 @@ class LoanRequestStoreRequest extends FormRequest
         }
 
         $person['employer_business_address1'] = $employerAddress1;
+        $person['employer_business_address_barangay'] = $this->normalizeOptionalString(
+            $person['employer_business_address_barangay'] ?? null,
+        );
         $person['employer_business_address2'] = $employerAddress2;
         $person['employer_business_address3'] = $employerAddress3;
 

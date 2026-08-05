@@ -73,6 +73,7 @@ type MemberRecord = {
     birthday: string | null;
     address: string | null;
     address1: string | null;
+    barangay: string | null;
     address2: string | null;
     address3: string | null;
     zip_code: string | null;
@@ -91,6 +92,12 @@ type MemberApplicationProfileData = {
     birthplace_city: string | null;
     birthplace_province: string | null;
     length_of_stay: string | null;
+    home_address: string | null;
+    home_address1: string | null;
+    home_address_barangay: string | null;
+    home_address2: string | null;
+    home_address3: string | null;
+    home_address_zip: string | null;
     number_of_children: number | null;
     spouse_name: string | null;
     educational_attainment: string | null;
@@ -100,6 +107,7 @@ type MemberApplicationProfileData = {
     employer_business_name: string | null;
     employer_business_address: string | null;
     employer_business_address1: string | null;
+    employer_business_address_barangay: string | null;
     employer_business_address2: string | null;
     employer_business_address3: string | null;
     employer_business_address_zip: string | null;
@@ -244,6 +252,11 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'birthplace_province',
         'birthplace',
         'length_of_stay',
+        'home_address1',
+        'home_address_barangay',
+        'home_address2',
+        'home_address3',
+        'home_address_zip',
         'number_of_children',
         'spouse_name',
         'spouse_age',
@@ -517,10 +530,6 @@ export default function Profile({
     const memberAddressCity = memberRecord?.address2?.trim() ?? '';
     const memberAddressProvince = memberRecord?.address3?.trim() ?? '';
     const memberAddressZip = memberRecord?.zip_code?.trim() ?? '';
-    const memberDisplayAddress =
-        memberRecord?.display_address?.trim() ||
-        memberRecord?.address?.trim() ||
-        '';
     const memberCivilStatus = normalizeCivilStatusValue(
         memberRecord?.civilstat ?? '',
     );
@@ -562,8 +571,44 @@ export default function Profile({
             province: birthplaceProvinceSearch.query || undefined,
         },
     });
+    const homeAddress1 =
+        memberApplicationProfile?.home_address1?.trim() ||
+        memberAddressStreet ||
+        '';
+    const homeAddressBarangay =
+        memberApplicationProfile?.home_address_barangay?.trim() ||
+        memberRecord?.barangay?.trim() ||
+        '';
+    const homeAddress2 =
+        memberApplicationProfile?.home_address2?.trim() ||
+        memberAddressCity ||
+        '';
+    const homeAddress3 =
+        memberApplicationProfile?.home_address3?.trim() ||
+        memberAddressProvince ||
+        '';
+    const homeAddressZip =
+        memberApplicationProfile?.home_address_zip?.trim() ||
+        memberAddressZip ||
+        '';
+    const [homeAddressZipValue, setHomeAddressZipValue] =
+        useState<string>(homeAddressZip);
+    const homeProvinceSearch = useLocationSearch({
+        initialQuery: homeAddress3,
+        searchUrl: provinces.url(),
+    });
+    const homeCitySearch = useLocationSearch({
+        initialQuery: homeAddress2,
+        searchUrl: cities.url(),
+        params: {
+            province: homeProvinceSearch.query || undefined,
+        },
+    });
     const employerBusinessAddress1 =
         memberApplicationProfile?.employer_business_address1?.trim() ?? '';
+    const employerBusinessAddressBarangay =
+        memberApplicationProfile?.employer_business_address_barangay?.trim() ??
+        '';
     const employerBusinessAddress2 =
         memberApplicationProfile?.employer_business_address2?.trim() ?? '';
     const employerBusinessAddress3 =
@@ -702,6 +747,26 @@ export default function Profile({
 
             if (resolvedZip) {
                 setEmployerBusinessAddressZipValue(resolvedZip);
+            }
+        } catch {
+            // Intentionally left empty: ZIP lookup is best-effort.
+        }
+    };
+    const handleHomeCitySelect = async (code: string) => {
+        if (!code) {
+            return;
+        }
+
+        try {
+            const response = await api.get(zip.url(), {
+                params: { locality_code: code },
+            });
+            const resolvedZip = (
+                response.data as { zip?: string | null }
+            ).zip?.trim();
+
+            if (resolvedZip) {
+                setHomeAddressZipValue(resolvedZip);
             }
         } catch {
             // Intentionally left empty: ZIP lookup is best-effort.
@@ -1623,126 +1688,158 @@ export default function Profile({
                                                                     />
                                                                 </div>
 
-                                                                {memberAddressStreet !==
-                                                                    '' ||
-                                                                memberAddressCity !==
-                                                                    '' ||
-                                                                memberAddressProvince !==
-                                                                    '' ? (
-                                                                    <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
-                                                                        <div className="grid gap-2 md:col-span-2">
-                                                                            <Label htmlFor="member_record_address1">
-                                                                                Address
-                                                                                (street)
-                                                                            </Label>
-
-                                                                            <Input
-                                                                                id="member_record_address1"
-                                                                                className={cn(
-                                                                                    'mt-1 block w-full',
-                                                                                    hasWmasterValue(
-                                                                                        memberAddressStreet,
-                                                                                    ) &&
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                                defaultValue={
-                                                                                    memberAddressStreet
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-
-                                                                        <div className="grid gap-2">
-                                                                            <Label htmlFor="member_record_address2">
-                                                                                City/Municipality
-                                                                            </Label>
-
-                                                                            <Input
-                                                                                id="member_record_address2"
-                                                                                className={cn(
-                                                                                    'mt-1 block w-full',
-                                                                                    hasWmasterValue(
-                                                                                        memberAddressCity,
-                                                                                    ) &&
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                                defaultValue={
-                                                                                    memberAddressCity
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-
-                                                                        <div className="grid gap-2">
-                                                                            <Label htmlFor="member_record_address3">
-                                                                                Province
-                                                                            </Label>
-
-                                                                            <Input
-                                                                                id="member_record_address3"
-                                                                                className={cn(
-                                                                                    'mt-1 block w-full',
-                                                                                    hasWmasterValue(
-                                                                                        memberAddressProvince,
-                                                                                    ) &&
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                                defaultValue={
-                                                                                    memberAddressProvince
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-
-                                                                        <div className="grid gap-2">
-                                                                            <Label htmlFor="member_record_address_zip">
-                                                                                ZIP
-                                                                                code
-                                                                            </Label>
-
-                                                                            <Input
-                                                                                id="member_record_address_zip"
-                                                                                className={cn(
-                                                                                    'mt-1 block w-full',
-                                                                                    hasWmasterValue(
-                                                                                        memberAddressZip,
-                                                                                    ) &&
-                                                                                        WMASTER_VALUE_CLASS,
-                                                                                )}
-                                                                                defaultValue={
-                                                                                    memberAddressZip
-                                                                                }
-                                                                                placeholder="Not available"
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="grid gap-2 md:col-span-3">
-                                                                        <Label htmlFor="member_record_address">
+                                                                <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
+                                                                    <div className="grid gap-2 md:col-span-2">
+                                                                        <Label htmlFor="home_address1">
                                                                             Address
+                                                                            (street)
                                                                         </Label>
 
                                                                         <Input
-                                                                            id="member_record_address"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberDisplayAddress,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
+                                                                            id="home_address1"
+                                                                            className="mt-1 block w-full"
                                                                             defaultValue={
-                                                                                memberDisplayAddress
+                                                                                homeAddress1
                                                                             }
-                                                                            placeholder="Not available"
-                                                                            disabled
+                                                                            name="home_address1"
+                                                                            required
+                                                                            placeholder="Home address"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address1
+                                                                            }
                                                                         />
                                                                     </div>
-                                                                )}
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="home_address_barangay">
+                                                                            Barangay
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="home_address_barangay"
+                                                                            className="mt-1 block w-full"
+                                                                            defaultValue={
+                                                                                homeAddressBarangay
+                                                                            }
+                                                                            name="home_address_barangay"
+                                                                            placeholder="Barangay"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address_barangay
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="home_address2">
+                                                                            City/Municipality
+                                                                        </Label>
+
+                                                                        <LocationAutocompleteInput
+                                                                            id="home_address2"
+                                                                            name="home_address2"
+                                                                            search={
+                                                                                homeCitySearch
+                                                                            }
+                                                                            placeholder="Select city or municipality"
+                                                                            required
+                                                                            inputClassName="mt-1 block w-full"
+                                                                            loadingMessage="Searching city suggestions..."
+                                                                            errorMessage="City suggestions are temporarily unavailable."
+                                                                            onSelect={(
+                                                                                suggestion,
+                                                                            ) => {
+                                                                                if (
+                                                                                    suggestion.province
+                                                                                ) {
+                                                                                    homeProvinceSearch.setSelectedValue(
+                                                                                        suggestion.province,
+                                                                                    );
+                                                                                }
+
+                                                                                void handleHomeCitySelect(
+                                                                                    suggestion.code,
+                                                                                );
+                                                                            }}
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address2
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="home_address3">
+                                                                            Province
+                                                                        </Label>
+
+                                                                        <LocationAutocompleteInput
+                                                                            id="home_address3"
+                                                                            name="home_address3"
+                                                                            search={
+                                                                                homeProvinceSearch
+                                                                            }
+                                                                            placeholder="Select province"
+                                                                            required
+                                                                            inputClassName="mt-1 block w-full"
+                                                                            loadingMessage="Searching province suggestions..."
+                                                                            errorMessage="Province suggestions are temporarily unavailable."
+                                                                            promptMessage="Type at least 2 characters to search provinces."
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address3
+                                                                            }
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid gap-2">
+                                                                        <Label htmlFor="home_address_zip">
+                                                                            ZIP
+                                                                            code
+                                                                        </Label>
+
+                                                                        <Input
+                                                                            id="home_address_zip"
+                                                                            className="mt-1 block w-full"
+                                                                            value={
+                                                                                homeAddressZipValue
+                                                                            }
+                                                                            onChange={(
+                                                                                event,
+                                                                            ) =>
+                                                                                setHomeAddressZipValue(
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                                )
+                                                                            }
+                                                                            name="home_address_zip"
+                                                                            inputMode="numeric"
+                                                                            autoComplete="postal-code"
+                                                                            placeholder="ZIP code"
+                                                                        />
+
+                                                                        <InputError
+                                                                            className="mt-2"
+                                                                            message={
+                                                                                formErrors.home_address_zip
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
 
                                                                 <div className="grid gap-2">
                                                                     <Label htmlFor="length_of_stay">
@@ -2185,6 +2282,29 @@ export default function Profile({
                                                                         className="mt-2"
                                                                         message={
                                                                             formErrors.employer_business_address1
+                                                                        }
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="employer_business_address_barangay">
+                                                                        Barangay
+                                                                    </Label>
+
+                                                                    <Input
+                                                                        id="employer_business_address_barangay"
+                                                                        className="mt-1 block w-full"
+                                                                        defaultValue={
+                                                                            employerBusinessAddressBarangay
+                                                                        }
+                                                                        name="employer_business_address_barangay"
+                                                                        placeholder="Barangay"
+                                                                    />
+
+                                                                    <InputError
+                                                                        className="mt-2"
+                                                                        message={
+                                                                            formErrors.employer_business_address_barangay
                                                                         }
                                                                     />
                                                                 </div>

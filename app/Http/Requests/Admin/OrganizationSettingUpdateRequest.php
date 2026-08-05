@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\ValidPsgcLocality;
+use App\Rules\ValidPsgcProvince;
 use App\Services\OrganizationSettingsService;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -29,8 +31,8 @@ class OrganizationSettingUpdateRequest extends FormRequest
             'company_name' => ['required', 'string', 'max:255'],
             'business_address' => ['nullable', 'string'],
             'business_address1' => ['nullable', 'string', 'max:255'],
-            'business_address2' => ['nullable', 'string', 'max:255'],
-            'business_address3' => ['nullable', 'string', 'max:255'],
+            'business_address2' => ['nullable', 'string', 'max:255', new ValidPsgcLocality],
+            'business_address3' => ['nullable', 'string', 'max:255', new ValidPsgcProvince],
             'portal_label' => ['nullable', 'string', 'max:255'],
             'logo_preset' => [
                 'nullable',

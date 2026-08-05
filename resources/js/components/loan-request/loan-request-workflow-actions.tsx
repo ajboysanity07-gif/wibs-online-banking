@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { PAYDAY_OPTIONS } from '@/components/loan-request/loan-request-fields';
 import {
@@ -226,13 +226,59 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         string | null
     >(null);
     const [recommendRemarks, setRecommendRemarks] = useState('');
-    const [approvedAmount, setApprovedAmount] = useState('');
-    const [approvedTerm, setApprovedTerm] = useState('');
-    const [approvedInterestRate, setApprovedInterestRate] = useState('');
-    const [approvedPaymentFrequency, setApprovedPaymentFrequency] =
-        useState('');
-    const [approvalRemarks, setApprovalRemarks] = useState('');
-    const [declineCategory, setDeclineCategory] = useState('');
+    const [approvedAmount, setApprovedAmount] = useState(() => {
+        const initial =
+            loanRequest.approved_amount ??
+            loanRequest.recommended_amount ??
+            loanRequest.requested_amount ??
+            '';
+        return `${initial}`.trim() !== '' ? `${initial}` : '';
+    });
+    const [approvedTerm, setApprovedTerm] = useState(() => {
+        const initial =
+            loanRequest.approved_term ??
+            loanRequest.recommended_term ??
+            loanRequest.requested_term ??
+            '';
+        return `${initial}`.trim() !== '' ? `${initial}` : '';
+    });
+    const [approvedInterestRate, setApprovedInterestRate] = useState(() => {
+        const nextInterestRate =
+            loanRequest.approved_interest_rate !== null &&
+            loanRequest.approved_interest_rate !== undefined &&
+            `${loanRequest.approved_interest_rate}`.trim() !== ''
+                ? loanRequest.approved_interest_rate
+                : loanRequest.recommended_interest_rate;
+        return nextInterestRate !== null &&
+            nextInterestRate !== undefined &&
+            `${nextInterestRate}`.trim() !== ''
+            ? `${nextInterestRate}`
+            : '';
+    });
+    const [approvedPaymentFrequency, setApprovedPaymentFrequency] = useState(
+        () => loanRequest.recommended_payment_frequency ?? '',
+    );
+    const [approvalRemarks, setApprovalRemarks] = useState(
+        () => loanRequest.approval_remarks ?? '',
+    );
+    const [declineCategory, setDeclineCategory] = useState(
+        () => loanRequest.decline_category ?? '',
+    );
+    const approvalSyncKey = [
+        loanRequest.approved_amount ?? '',
+        loanRequest.approved_interest_rate ?? '',
+        loanRequest.approved_term ?? '',
+        loanRequest.approval_remarks ?? '',
+        loanRequest.decline_category ?? '',
+        loanRequest.recommended_amount ?? '',
+        loanRequest.recommended_interest_rate ?? '',
+        loanRequest.recommended_payment_frequency ?? '',
+        loanRequest.recommended_term ?? '',
+        loanRequest.requested_amount ?? '',
+        loanRequest.requested_term ?? '',
+    ].join('|');
+    const [lastApprovalSyncKey, setLastApprovalSyncKey] =
+        useState<string>(approvalSyncKey);
     const [declineReason, setDeclineReason] = useState('');
     const [declineReasonError, setDeclineReasonError] = useState<string | null>(
         null,
@@ -300,24 +346,40 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         Boolean(workflow?.reopen?.show) ||
         Boolean(workflow?.upgradeWorkflow?.show);
 
-    useEffect(() => {
-        const nextAmount =
-            loanRequest.approved_amount ??
-            loanRequest.recommended_amount ??
-            loanRequest.requested_amount ??
-            '';
-        const nextTerm =
-            loanRequest.approved_term ??
-            loanRequest.recommended_term ??
-            loanRequest.requested_term ??
-            '';
-        const nextInterestRate =
-            loanRequest.approved_interest_rate !== null &&
-            loanRequest.approved_interest_rate !== undefined &&
-            `${loanRequest.approved_interest_rate}`.trim() !== ''
-                ? loanRequest.approved_interest_rate
-                : loanRequest.recommended_interest_rate;
+    const nextAmount =
+        loanRequest.approved_amount ??
+        loanRequest.recommended_amount ??
+        loanRequest.requested_amount ??
+        '';
+    const nextTerm =
+        loanRequest.approved_term ??
+        loanRequest.recommended_term ??
+        loanRequest.requested_term ??
+        '';
+    const nextInterestRate =
+        loanRequest.approved_interest_rate !== null &&
+        loanRequest.approved_interest_rate !== undefined &&
+        `${loanRequest.approved_interest_rate}`.trim() !== ''
+            ? loanRequest.approved_interest_rate
+            : loanRequest.recommended_interest_rate;
 
+    const effectiveAssignOfficerId =
+        assignOfficerOptions.length > 0 &&
+        !assignOfficerOptions.some(
+            (officer) => `${officer.user_id}` === assignOfficerUserId,
+        )
+            ? `${assignOfficerOptions[0].user_id}`
+            : assignOfficerUserId;
+    const effectiveReassignOfficerId =
+        reassignOfficerOptions.length > 0 &&
+        !reassignOfficerOptions.some(
+            (officer) => `${officer.user_id}` === reassignOfficerUserId,
+        )
+            ? `${reassignOfficerOptions[0].user_id}`
+            : reassignOfficerUserId;
+
+    if (approvalSyncKey !== lastApprovalSyncKey) {
+        setLastApprovalSyncKey(approvalSyncKey);
         setApprovedAmount(`${nextAmount}`.trim() !== '' ? `${nextAmount}` : '');
         setApprovedTerm(`${nextTerm}`.trim() !== '' ? `${nextTerm}` : '');
         setApprovedInterestRate(
@@ -332,41 +394,15 @@ export function LoanRequestWorkflowActions({ loanRequest, workflow }: Props) {
         );
         setApprovalRemarks(loanRequest.approval_remarks ?? '');
         setDeclineCategory(loanRequest.decline_category ?? '');
-    }, [
-        loanRequest.approved_amount,
-        loanRequest.approved_interest_rate,
-        loanRequest.approved_term,
-        loanRequest.approval_remarks,
-        loanRequest.decline_category,
-        loanRequest.recommended_amount,
-        loanRequest.recommended_interest_rate,
-        loanRequest.recommended_payment_frequency,
-        loanRequest.recommended_term,
-        loanRequest.requested_amount,
-        loanRequest.requested_term,
-    ]);
+    }
 
-    useEffect(() => {
-        if (
-            assignOfficerOptions.length > 0 &&
-            !assignOfficerOptions.some(
-                (officer) => `${officer.user_id}` === assignOfficerUserId,
-            )
-        ) {
-            setAssignOfficerUserId(`${assignOfficerOptions[0].user_id}`);
-        }
-    }, [assignOfficerOptions, assignOfficerUserId]);
+    if (effectiveAssignOfficerId !== assignOfficerUserId) {
+        setAssignOfficerUserId(effectiveAssignOfficerId);
+    }
 
-    useEffect(() => {
-        if (
-            reassignOfficerOptions.length > 0 &&
-            !reassignOfficerOptions.some(
-                (officer) => `${officer.user_id}` === reassignOfficerUserId,
-            )
-        ) {
-            setReassignOfficerUserId(`${reassignOfficerOptions[0].user_id}`);
-        }
-    }, [reassignOfficerOptions, reassignOfficerUserId]);
+    if (effectiveReassignOfficerId !== reassignOfficerUserId) {
+        setReassignOfficerUserId(effectiveReassignOfficerId);
+    }
 
     if (
         !hasAssignmentActions &&

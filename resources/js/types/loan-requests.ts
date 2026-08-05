@@ -19,6 +19,7 @@ export type LoanRequestPersonData = {
     birthplace_province: string | null;
     address: string | null;
     address1: string | null;
+    address_barangay: string | null;
     address2: string | null;
     address3: string | null;
     address_zip: string | null;
@@ -36,6 +37,7 @@ export type LoanRequestPersonData = {
     employer_business_name: string | null;
     employer_business_address: string | null;
     employer_business_address1: string | null;
+    employer_business_address_barangay: string | null;
     employer_business_address2: string | null;
     employer_business_address3: string | null;
     employer_business_address_zip: string | null;
@@ -63,6 +65,7 @@ export type LoanRequestPersonFormData = {
     birthplace_city: string;
     birthplace_province: string;
     address1: string;
+    address_barangay: string;
     address2: string;
     address3: string;
     address_zip: string;
@@ -79,6 +82,7 @@ export type LoanRequestPersonFormData = {
     employment_type: string;
     employer_business_name: string;
     employer_business_address1: string;
+    employer_business_address_barangay: string;
     employer_business_address2: string;
     employer_business_address3: string;
     employer_business_address_zip: string;

@@ -9,6 +9,7 @@ uses(Tests\TestCase::class);
 beforeEach(function () {
     Config::set('cache.default', 'array');
     Cache::store()->flush();
+    Config::set('locations.cache_store', 'array');
     Config::set('locations.provider', 'ph-address');
     Config::set(
         'locations.providers.ph-address.testing_data_path',
@@ -54,4 +55,22 @@ test('psgc service caches dataset responses', function () {
     $service->searchBirthplaces('Batac');
 
     expect(Cache::has('locations.dataset.v3'))->toBeTrue();
+});
+
+test('psgc service recognizes known localities in either bare or labeled form', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->isKnownLocality('City of Batac'))->toBeTrue();
+    expect($service->isKnownLocality('City of Batac, Ilocos Norte'))->toBeTrue();
+    expect($service->isKnownLocality('Batac City'))->toBeTrue();
+    expect($service->isKnownLocality('Not A Real City'))->toBeFalse();
+    expect($service->isKnownLocality(''))->toBeFalse();
+});
+
+test('psgc service recognizes known provinces', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->isKnownProvince('Ilocos Norte'))->toBeTrue();
+    expect($service->isKnownProvince('Not A Real Province'))->toBeFalse();
+    expect($service->isKnownProvince(''))->toBeFalse();
 });

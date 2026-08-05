@@ -1172,6 +1172,7 @@ class LoanRequestPayloadSerializer
         $birthplace = $birthplace !== '' ? $birthplace : $legacyBirthplace;
 
         $address1 = $this->normalizeOptionalString($person['address1'] ?? null);
+        $addressBarangay = $this->normalizeOptionalString($person['address_barangay'] ?? null);
         $address2 = $this->normalizeOptionalString($person['address2'] ?? null);
         $address3 = $this->normalizeOptionalString($person['address3'] ?? null);
         $legacyAddress = $this->normalizeOptionalString($person['address'] ?? null);
@@ -1183,11 +1184,14 @@ class LoanRequestPayloadSerializer
             $address3 = $parsed['address3'];
         }
 
-        $address = LocationComposer::compose($address1, $address2, $address3);
+        $address = LocationComposer::compose($address1, $address2, $address3, $addressBarangay);
         $address = $address !== '' ? $address : $legacyAddress;
 
         $employerAddress1 = $this->normalizeOptionalString(
             $person['employer_business_address1'] ?? null,
+        );
+        $employerAddressBarangay = $this->normalizeOptionalString(
+            $person['employer_business_address_barangay'] ?? null,
         );
         $employerAddress2 = $this->normalizeOptionalString(
             $person['employer_business_address2'] ?? null,
@@ -1217,6 +1221,7 @@ class LoanRequestPayloadSerializer
             $employerAddress1,
             $employerAddress2,
             $employerAddress3,
+            $employerAddressBarangay,
         );
         $employerBusinessAddress = $employerBusinessAddress !== ''
             ? $employerBusinessAddress
@@ -1229,11 +1234,13 @@ class LoanRequestPayloadSerializer
             'birthplace_province' => $birthplaceProvince,
             'address' => $address,
             'address1' => $address1,
+            'address_barangay' => $addressBarangay,
             'address2' => $address2,
             'address3' => $address3,
             'address_zip' => $this->normalizeOptionalString($person['address_zip'] ?? null),
             'employer_business_address' => $employerBusinessAddress,
             'employer_business_address1' => $employerAddress1,
+            'employer_business_address_barangay' => $employerAddressBarangay,
             'employer_business_address2' => $employerAddress2,
             'employer_business_address3' => $employerAddress3,
             'employer_business_address_zip' => $this->normalizeOptionalString(

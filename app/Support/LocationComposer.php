@@ -8,9 +8,11 @@ class LocationComposer
         ?string $address1,
         ?string $address2,
         ?string $address3,
+        ?string $barangay = null,
     ): string {
         $parts = [
             $address1,
+            $barangay,
             $address2,
             $address3,
         ];

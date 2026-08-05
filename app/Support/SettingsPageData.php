@@ -41,7 +41,8 @@ class SettingsPageData
                 $birthplaceParts = LocationComposer::parseLegacyBirthplace(
                     $user->wmaster->birthplace,
                 );
-                $address1 = trim((string) $user->wmaster->address2);
+                $address1 = trim((string) $user->wmaster->address1);
+                $addressBarangay = trim((string) $user->wmaster->address2);
                 $address2 = trim((string) $user->wmaster->address3);
                 $address3 = trim((string) $user->wmaster->address4);
                 $zipCode = trim((string) $user->wmaster->zone_number);
@@ -49,6 +50,7 @@ class SettingsPageData
                     $address1 !== '' ? $address1 : null,
                     $address2 !== '' ? $address2 : null,
                     $address3 !== '' ? $address3 : null,
+                    $addressBarangay !== '' ? $addressBarangay : null,
                 );
                 $displayAddress = $displayAddress !== ''
                     ? $displayAddress
@@ -74,6 +76,7 @@ class SettingsPageData
                     'birthday' => $user->wmaster->birthday?->toDateString(),
                     'address' => $user->wmaster->address,
                     'address1' => $address1 !== '' ? $address1 : null,
+                    'barangay' => $addressBarangay !== '' ? $addressBarangay : null,
                     'address2' => $address2 !== '' ? $address2 : null,
                     'address3' => $address3 !== '' ? $address3 : null,
                     'zip_code' => $zipCode !== '' ? $zipCode : null,
@@ -137,6 +140,25 @@ class SettingsPageData
             $profileEmployerAddress3 = $parsed['address3'];
         }
 
+        $profileHomeAddress1 = $memberApplicationProfile?->home_address1;
+        $profileHomeAddress2 = $memberApplicationProfile?->home_address2;
+        $profileHomeAddress3 = $memberApplicationProfile?->home_address3;
+
+        if (
+            $memberApplicationProfile !== null
+            && ! $hasProfileValue($profileHomeAddress1)
+            && ! $hasProfileValue($profileHomeAddress2)
+            && ! $hasProfileValue($profileHomeAddress3)
+            && $hasProfileValue($memberApplicationProfile->home_address)
+        ) {
+            $parsed = LocationComposer::parseLegacyAddress(
+                $memberApplicationProfile->home_address,
+            );
+            $profileHomeAddress1 = $parsed['address1'];
+            $profileHomeAddress2 = $parsed['address2'];
+            $profileHomeAddress3 = $parsed['address3'];
+        }
+
         $memberProfilePayload = $memberApplicationProfile
             ? [
                 'nickname' => $memberApplicationProfile->nickname,
@@ -145,6 +167,12 @@ class SettingsPageData
                 'birthplace_province' => $profileBirthplaceProvince,
                 'educational_attainment' => $memberApplicationProfile->educational_attainment,
                 'length_of_stay' => $memberApplicationProfile->length_of_stay,
+                'home_address' => $memberApplicationProfile->home_address,
+                'home_address1' => $profileHomeAddress1,
+                'home_address_barangay' => $memberApplicationProfile->home_address_barangay,
+                'home_address2' => $profileHomeAddress2,
+                'home_address3' => $profileHomeAddress3,
+                'home_address_zip' => $memberApplicationProfile->home_address_zip,
                 'number_of_children' => $memberApplicationProfile->number_of_children,
                 'spouse_name' => $memberApplicationProfile->spouse_name,
                 'spouse_age' => $memberApplicationProfile->spouse_age,
@@ -153,6 +181,7 @@ class SettingsPageData
                 'employer_business_name' => $memberApplicationProfile->employer_business_name,
                 'employer_business_address' => $memberApplicationProfile->employer_business_address,
                 'employer_business_address1' => $profileEmployerAddress1,
+                'employer_business_address_barangay' => $memberApplicationProfile->employer_business_address_barangay,
                 'employer_business_address2' => $profileEmployerAddress2,
                 'employer_business_address3' => $profileEmployerAddress3,
                 'employer_business_address_zip' => $memberApplicationProfile->employer_business_address_zip,

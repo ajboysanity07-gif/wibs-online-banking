@@ -954,6 +954,7 @@ test('profile information can be updated', function () {
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'employer_business_address1' => 'Acme Plaza',
+            'employer_business_address_barangay' => 'Barangay Poblacion',
             'employer_business_address2' => 'Tagum City',
             'employer_business_address3' => 'Davao del Norte',
             'employer_business_address_zip' => '8100',
@@ -993,9 +994,10 @@ test('profile information can be updated', function () {
     expect($memberProfile->employment_type)->toBe('Regular');
     expect($memberProfile->employer_business_name)->toBe('Acme Corp');
     expect($memberProfile->employer_business_address)->toBe(
-        'Acme Plaza, Tagum City, Davao del Norte',
+        'Acme Plaza, Barangay Poblacion, Tagum City, Davao del Norte',
     );
     expect($memberProfile->employer_business_address1)->toBe('Acme Plaza');
+    expect($memberProfile->employer_business_address_barangay)->toBe('Barangay Poblacion');
     expect($memberProfile->employer_business_address2)->toBe('Tagum City');
     expect($memberProfile->employer_business_address3)->toBe('Davao del Norte');
     expect($memberProfile->employer_business_address_zip)->toBe('8100');

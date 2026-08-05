@@ -54,6 +54,11 @@ export const useLocationSearch = ({
     const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
     const [error, setError] = useState<string | null>(null);
     const blurTimeoutRef = useRef<number | null>(null);
+    // Only a selection from the dropdown (or the initial server-provided
+    // value) counts as "committed" -- free-typed text that was never
+    // selected is reverted on blur so submitted data always comes from the
+    // API, keeping address2/address3/zip uniform.
+    const committedValueRef = useRef<string>(initialQuery);
 
     const resetSearchState = () => {
         setSuggestions([]);
@@ -173,10 +178,16 @@ export const useLocationSearch = ({
     const handleBlur = () => {
         blurTimeoutRef.current = window.setTimeout(() => {
             setOpen(false);
+
+            if (query !== committedValueRef.current) {
+                setQueryState(committedValueRef.current);
+                resetSearchState();
+            }
         }, 120);
     };
 
     const setSelectedValue = (value: string) => {
+        committedValueRef.current = value;
         setQueryState(value);
         setOpen(false);
         resetSearchState();

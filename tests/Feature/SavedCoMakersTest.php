@@ -251,3 +251,35 @@ test('the owning member can load and delete their own saved co-maker', function 
 
     expect(MemberCoMaker::query()->whereKey($saved->id)->exists())->toBeFalse();
 });
+
+test('barangay flows through applicant/co-maker submission and saved co-maker reuse', function (): void {
+    $member = createSavedCoMakerTestMember('004407');
+
+    submitLoanWithCoMakers($member, [
+        'first_name' => 'Juan',
+        'last_name' => 'DelaCruz',
+        'address_barangay' => 'Barangay Uno',
+        'employer_business_address_barangay' => 'Barangay Dos',
+        'save_for_reuse' => true,
+        'saved_co_maker_label' => 'Juan - officemate',
+    ]);
+
+    $loanRequest = LoanRequest::query()->first();
+    $coMakerOne = LoanRequestPerson::query()
+        ->where('loan_request_id', $loanRequest->id)
+        ->where('role', 'co_maker_1')
+        ->first();
+
+    expect($coMakerOne->address_barangay)->toBe('Barangay Uno');
+    expect($coMakerOne->employer_business_address_barangay)->toBe('Barangay Dos');
+    expect($coMakerOne->composedAddress())->toContain('Barangay Uno');
+    expect($coMakerOne->composedEmployerBusinessAddress())->toContain('Barangay Dos');
+
+    $profile = MemberApplicationProfile::query()->where('user_id', $member->user_id)->first();
+    $saved = MemberCoMaker::query()
+        ->where('member_application_profile_id', $profile->id)
+        ->first();
+
+    expect($saved->address_barangay)->toBe('Barangay Uno');
+    expect($saved->employer_business_address_barangay)->toBe('Barangay Dos');
+});

@@ -179,6 +179,7 @@ const resolveAddress = (person?: LoanRequestPersonData | null): string => {
         person.address1,
         person.address2,
         person.address3,
+        person.address_barangay,
     );
 
     return composed !== '' ? composed : (person.address ?? '');
@@ -195,6 +196,7 @@ const resolveEmployerBusinessAddress = (
         person.employer_business_address1,
         person.employer_business_address2,
         person.employer_business_address3,
+        person.employer_business_address_barangay,
     );
 
     return composed !== ''
@@ -1167,6 +1169,34 @@ export function LoanRequestDetailPage({
     const [decisionNotes, setDecisionNotes] = useState(() =>
         loanRequest.decision_notes ? loanRequest.decision_notes : '',
     );
+    const [approvalSource, setApprovalSource] = useState(
+        () =>
+            `${loanRequest.approved_amount ?? ''}|${loanRequest.requested_amount ?? ''}|${loanRequest.approved_term ?? ''}|${loanRequest.requested_term ?? ''}|${loanRequest.decision_notes ?? ''}`,
+    );
+
+    const nextApprovalSource = `${loanRequest.approved_amount ?? ''}|${loanRequest.requested_amount ?? ''}|${loanRequest.approved_term ?? ''}|${loanRequest.requested_term ?? ''}|${loanRequest.decision_notes ?? ''}`;
+
+    if (nextApprovalSource !== approvalSource) {
+        setApprovalSource(nextApprovalSource);
+        setApprovedAmount(
+            `${loanRequest.approved_amount ?? loanRequest.requested_amount ?? ''}`.trim() !==
+                ''
+                ? `${
+                      loanRequest.approved_amount ??
+                      loanRequest.requested_amount ??
+                      ''
+                  }`
+                : '',
+        );
+        setApprovedTerm(
+            `${loanRequest.approved_term ?? loanRequest.requested_term ?? ''}`.trim() !==
+                ''
+                ? `${loanRequest.approved_term ?? loanRequest.requested_term ?? ''}`
+                : '',
+        );
+        setDecisionNotes(loanRequest.decision_notes ?? '');
+    }
+
     const approvalSignerName = decision?.approverName?.trim() || '--';
     const cancellationReasonValue = displayText(
         loanRequest.cancellation_reason,
@@ -1177,23 +1207,6 @@ export function LoanRequestDetailPage({
     const correctedRequestStatus = displayText(
         loanRequest.corrected_request_status,
     );
-
-    useEffect(() => {
-        const nextAmount =
-            loanRequest.approved_amount ?? loanRequest.requested_amount ?? '';
-        const nextTerm =
-            loanRequest.approved_term ?? loanRequest.requested_term ?? '';
-
-        setApprovedAmount(`${nextAmount}`.trim() !== '' ? `${nextAmount}` : '');
-        setApprovedTerm(`${nextTerm}`.trim() !== '' ? `${nextTerm}` : '');
-        setDecisionNotes(loanRequest.decision_notes ?? '');
-    }, [
-        loanRequest.approved_amount,
-        loanRequest.approved_term,
-        loanRequest.decision_notes,
-        loanRequest.requested_amount,
-        loanRequest.requested_term,
-    ]);
 
     const closeApprovalDialog = (force = false) => {
         if (decision?.isProcessing && !force) {

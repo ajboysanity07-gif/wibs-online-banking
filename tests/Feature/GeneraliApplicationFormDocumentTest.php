@@ -255,6 +255,26 @@ test('application_form data block resolves pep, cycle, and id fields from proces
         ->and($documentData['application_form']['id_number'])->toBe('123-456-789');
 });
 
+test('applicant address line folds in barangay for documents with separate city/province boxes', function () {
+    $loanRequest = generaliApplicationFormCreateApprovedLoanRequestWithApplicant([
+        'address1' => '123 Loan Street',
+        'address_barangay' => 'Barangay Uno',
+        'address2' => 'Loan City',
+        'address3' => 'Loan Province',
+        'employer_business_address1' => 'Office Plaza',
+        'employer_business_address_barangay' => 'Barangay Dos',
+        'employer_business_address2' => 'Office City',
+        'employer_business_address3' => 'Office Province',
+    ]);
+
+    $documentData = generaliApplicationFormBuildDocumentData($loanRequest->fresh());
+
+    expect($documentData['applicant']['address_line'])->toBe('123 Loan Street, Barangay Uno')
+        ->and($documentData['applicant']['address_city'])->toBe('Loan City')
+        ->and($documentData['applicant']['address_province'])->toBe('Loan Province')
+        ->and($documentData['applicant']['office_address_line'])->toBe('Office Plaza, Barangay Dos');
+});
+
 test('dependents data block resolves spouse and category rows with computed age', function () {
     $loanRequest = generaliApplicationFormCreateApprovedLoanRequestWithApplicant();
     generaliApplicationFormPersistDataEntry($loanRequest, 'dependents', 'dependent_spouse_cycle_status', 'string', 'Old');

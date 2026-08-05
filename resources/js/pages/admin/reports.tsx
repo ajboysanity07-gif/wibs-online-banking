@@ -30,11 +30,16 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Reports', href: '#' },
 ];
 
-const REPORT_DEFINITIONS: { type: ReportType; label: string; description: string }[] = [
+const REPORT_DEFINITIONS: {
+    type: ReportType;
+    label: string;
+    description: string;
+}[] = [
     {
         type: 'monthly-applications',
         label: 'Monthly Applications',
-        description: 'All loan applications with status, amounts, and decision dates.',
+        description:
+            'All loan applications with status, amounts, and decision dates.',
     },
     {
         type: 'rejection-reasons',
@@ -44,16 +49,22 @@ const REPORT_DEFINITIONS: { type: ReportType; label: string; description: string
     {
         type: 'turnaround-time',
         label: 'Turnaround Time',
-        description: 'Processing days from submission to decision per application.',
+        description:
+            'Processing days from submission to decision per application.',
     },
     {
         type: 'processor-workload',
         label: 'Processor Workload',
-        description: 'Per-processor totals: assigned, approved, rejected, and average processing days.',
+        description:
+            'Per-processor totals: assigned, approved, rejected, and average processing days.',
     },
 ];
 
-export default function Reports({ reportingMetrics, canExport, dateRange }: Props) {
+export default function Reports({
+    reportingMetrics,
+    canExport,
+    dateRange,
+}: Props) {
     const [from, setFrom] = useState(dateRange.from ?? '');
     const [to, setTo] = useState(dateRange.to ?? '');
 
@@ -70,7 +81,7 @@ export default function Reports({ reportingMetrics, canExport, dateRange }: Prop
         if (from) params.set('from', from);
         if (to) params.set('to', to);
         const qs = params.toString() ? `?${params.toString()}` : '';
-        window.location.href = exportReport(type).url + qs;
+        window.location.assign(exportReport(type).url + qs);
     }
 
     return (
@@ -123,26 +134,35 @@ export default function Reports({ reportingMetrics, canExport, dateRange }: Prop
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>Pending</CardDescription>
-                            <CardTitle className="text-3xl">{reportingMetrics.pending_count}</CardTitle>
+                            <CardTitle className="text-3xl">
+                                {reportingMetrics.pending_count}
+                            </CardTitle>
                         </CardHeader>
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>Approved</CardDescription>
-                            <CardTitle className="text-3xl">{reportingMetrics.approved_count}</CardTitle>
+                            <CardTitle className="text-3xl">
+                                {reportingMetrics.approved_count}
+                            </CardTitle>
                         </CardHeader>
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
                             <CardDescription>Approval rate</CardDescription>
-                            <CardTitle className="text-3xl">{reportingMetrics.approval_rate}%</CardTitle>
+                            <CardTitle className="text-3xl">
+                                {reportingMetrics.approval_rate}%
+                            </CardTitle>
                         </CardHeader>
                     </Card>
                     <Card className="rounded-2xl border-border/40 bg-card/70 shadow-sm">
                         <CardHeader>
-                            <CardDescription>Avg processing days</CardDescription>
+                            <CardDescription>
+                                Avg processing days
+                            </CardDescription>
                             <CardTitle className="text-3xl">
-                                {reportingMetrics.average_processing_days ?? '--'}
+                                {reportingMetrics.average_processing_days ??
+                                    '--'}
                             </CardTitle>
                         </CardHeader>
                     </Card>
@@ -156,7 +176,9 @@ export default function Reports({ reportingMetrics, canExport, dateRange }: Prop
                         >
                             <CardHeader>
                                 <CardTitle>{def.label}</CardTitle>
-                                <CardDescription>{def.description}</CardDescription>
+                                <CardDescription>
+                                    {def.description}
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <Button
@@ -170,7 +192,8 @@ export default function Reports({ reportingMetrics, canExport, dateRange }: Prop
                                 </Button>
                                 {!canExport ? (
                                     <p className="mt-2 text-xs text-muted-foreground">
-                                        You do not have permission to export reports.
+                                        You do not have permission to export
+                                        reports.
                                     </p>
                                 ) : null}
                             </CardContent>

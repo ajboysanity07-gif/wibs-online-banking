@@ -13,6 +13,8 @@ class PsgcService
 
     private const CODE_LENGTH = 10;
 
+    private const NCR_REGION_CODE = '1300000000';
+
     private const SMALL_WORDS = [
         'Of',
         'And',
@@ -25,6 +27,129 @@ class PsgcService
     ];
 
     public function __construct(private LocationProvider $provider) {}
+
+    /**
+     * Force-build and cache the dataset, e.g. from a deploy warm-up step so
+     * the first real request doesn't pay the cold-cache cost.
+     */
+    public function warm(): void
+    {
+        $this->dataset();
+    }
+
+    /**
+     * Whether $value exactly matches a known city/municipality, either by
+     * its bare name (as produced by the address2 city-search autocomplete,
+     * e.g. "City of Manila") or its labeled value (as produced by the
+     * birthplace autocomplete, e.g. "City of Manila, Metro Manila").
+     */
+    public function isKnownLocality(string $value): bool
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return false;
+        }
+
+        $needle = Str::lower($value);
+        $needleBase = $this->cityBaseName($needle);
+
+        foreach ($this->productionDataset()['birthplaces'] as $birthplace) {
+            $name = Str::lower($birthplace['name']);
+
+            if ($name === $needle || Str::lower($birthplace['value']) === $needle) {
+                return true;
+            }
+
+            if ($birthplace['type'] === 'city' && $this->cityBaseName($name) === $needleBase) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Reduces "City of Cebu", "Cebu City" and "cebu" to the same "cebu" base
+     * so city-name variants that differ only in "City of"/"City" phrasing
+     * are treated as the same locality.
+     */
+    private function cityBaseName(string $lowerName): string
+    {
+        $base = preg_replace('/^city of\s+/', '', $lowerName) ?? $lowerName;
+        $base = preg_replace('/\s+city$/', '', $base) ?? $base;
+
+        return trim($base);
+    }
+
+    /**
+     * Whether $value exactly matches a known province name, as produced by
+     * the address3 autocomplete.
+     */
+    public function isKnownProvince(string $value): bool
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return false;
+        }
+
+        $needle = Str::lower($value);
+
+        foreach ($this->productionDataset()['provinces'] as $province) {
+            if (Str::lower($province['value']) === $needle) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The real PSGC dataset, used by isKnownLocality()/isKnownProvince() for
+     * value-uniformity validation. Unlike dataset() (used by the search
+     * endpoints), this deliberately ignores the testing_data_path override
+     * so validation reflects real-world coverage even under test -- the
+     * small search fixtures exist to keep autocomplete-result assertions
+     * deterministic, not to constrain what counts as a "real" address.
+     *
+     * @return array{
+     *     birthplaces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>,
+     *     provinces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>
+     * }
+     */
+    private function productionDataset(): array
+    {
+        static $cached = null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $path = base_path('resources/data/ph-address-normalized.json');
+
+        if (! is_file($path)) {
+            return $cached = ['birthplaces' => [], 'provinces' => []];
+        }
+
+        $contents = file_get_contents($path);
+
+        if ($contents === false) {
+            return $cached = ['birthplaces' => [], 'provinces' => []];
+        }
+
+        try {
+            $payload = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return $cached = ['birthplaces' => [], 'provinces' => []];
+        }
+
+        if (! is_array($payload) || ! isset($payload['birthplaces'], $payload['provinces'])) {
+            return $cached = ['birthplaces' => [], 'provinces' => []];
+        }
+
+        return $cached = $payload;
+    }
 
     /**
      * @return array{available: bool, results: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string}>}
@@ -332,19 +457,70 @@ class PsgcService
      */
     private function dataset(): array
     {
-        $cached = Cache::get(self::CACHE_DATASET);
+        $cached = $this->cache()->get(self::CACHE_DATASET);
 
         if (is_array($cached)) {
             return $cached;
         }
 
-        $dataset = $this->buildDataset();
+        $dataset = $this->loadPrecomputedDataset() ?? $this->buildDataset();
 
         if ($dataset !== []) {
-            Cache::put(self::CACHE_DATASET, $dataset, $this->cacheTtl());
+            $this->cache()->put(self::CACHE_DATASET, $dataset, $this->cacheTtl());
         }
 
         return $dataset;
+    }
+
+    /**
+     * Load the dataset precomputed at build/deploy time (see the
+     * `locations:warm --regenerate` command), skipping the runtime regex
+     * normalization in buildDataset() entirely. Falls back to null when the
+     * precomputed file hasn't been generated (e.g. local dev).
+     *
+     * @return array{
+     *     birthplaces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>,
+     *     provinces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>
+     * }|null
+     */
+    private function loadPrecomputedDataset(): ?array
+    {
+        // Tests point the raw provider at small fixtures via
+        // testing_data_path; the precomputed file is always built from the
+        // real dataset, so it must be skipped in testing or fixture-driven
+        // tests would see production data instead.
+        if (app()->environment('testing')) {
+            return null;
+        }
+
+        $path = config('locations.providers.ph-address.normalized_path');
+
+        if (! is_string($path) || $path === '' || ! is_file($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path);
+
+        if ($contents === false) {
+            return null;
+        }
+
+        try {
+            $payload = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        if (! is_array($payload) || ! isset($payload['birthplaces'], $payload['provinces'])) {
+            return null;
+        }
+
+        return $payload;
+    }
+
+    private function cache(): \Illuminate\Contracts\Cache\Repository
+    {
+        return Cache::store(config('locations.cache_store', 'file'));
     }
 
     /**
@@ -353,7 +529,7 @@ class PsgcService
      *     provinces: list<array{code: string, name: string, type: string, province: ?string, region: ?string, label: string, value: string, name_lower: string}>
      * }|array{}
      */
-    private function buildDataset(): array
+    public function buildDataset(): array
     {
         $rawDataset = $this->provider->dataset();
 
@@ -378,6 +554,30 @@ class PsgcService
         }
 
         $provinceSuggestions = [];
+
+        // Metro Manila (NCR) has no constituent provinces in PSGC -- its
+        // cities' `province_code` is null -- but forms need a selectable
+        // "province" value for them, so the region itself is offered as one.
+        foreach ($regions as $code => $name) {
+            $code = (string) $code;
+
+            if ($code === '') {
+                continue;
+            }
+
+            $displayName = $code === self::NCR_REGION_CODE ? 'Metro Manila' : $name;
+
+            $provinceSuggestions[] = [
+                'code' => $code,
+                'name' => $displayName,
+                'type' => 'province',
+                'province' => null,
+                'region' => null,
+                'label' => $displayName,
+                'value' => $displayName,
+                'name_lower' => Str::lower($displayName),
+            ];
+        }
 
         foreach ($provinces as $code => $name) {
             $code = (string) $code;
@@ -450,6 +650,14 @@ class PsgcService
         }
         $province = $provinceCode !== null ? ($provinces[$provinceCode] ?? null) : null;
         $region = $regionCode !== null ? ($regions[$regionCode] ?? null) : null;
+
+        // NCR has no constituent provinces, so its cities' `province` would
+        // otherwise be null; fall back to the common "Metro Manila" name so
+        // address3 autofill and validation have a selectable value.
+        if ($province === null && $regionCode === self::NCR_REGION_CODE) {
+            $province = 'Metro Manila';
+        }
+
         $suffix = $province ?? $region;
         $label = $suffix !== null ? sprintf('%s, %s', $displayName, $suffix) : $displayName;
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { buildOfficerLabel } from '@/components/loan-request/loan-request-workflow-actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,13 +44,14 @@ export function AssignOfficerDialog({
     const [reason, setReason] = useState('');
     const [reasonError, setReasonError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!open) {
+    const handleOpenChange = (nextOpen: boolean) => {
+        if (!nextOpen) {
             setOfficerUserId('');
             setReason('');
             setReasonError(null);
         }
-    }, [open]);
+        onOpenChange(nextOpen);
+    };
 
     const selectedOfficer =
         officerOptions.find(
@@ -69,11 +70,11 @@ export function AssignOfficerDialog({
         }
 
         await onSubmit(selectedOfficer.user_id, reason.trim());
-        onOpenChange(false);
+        handleOpenChange(false);
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>
@@ -150,7 +151,7 @@ export function AssignOfficerDialog({
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={() => onOpenChange(false)}
+                        onClick={() => handleOpenChange(false)}
                         disabled={isProcessing}
                     >
                         Cancel

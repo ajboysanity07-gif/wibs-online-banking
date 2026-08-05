@@ -129,6 +129,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     birthplace_city: '',
     birthplace_province: '',
     address1: '',
+    address_barangay: '',
     address2: '',
     address3: '',
     address_zip: '',
@@ -145,6 +146,7 @@ const emptyPerson: LoanRequestPersonFormData = {
     employment_type: '',
     employer_business_name: '',
     employer_business_address1: '',
+    employer_business_address_barangay: '',
     employer_business_address2: '',
     employer_business_address3: '',
     employer_business_address_zip: '',
@@ -433,7 +435,25 @@ export default function StaffLoanRequestShow({
               }
             : null;
 
-    useEffect(() => {
+    const [correctionSource, setCorrectionSource] = useState({
+        request: currentRequest,
+        applicant: currentApplicant,
+        coMakerOne: currentCoMakerOne,
+        coMakerTwo: currentCoMakerTwo,
+    });
+
+    if (
+        correctionSource.request !== currentRequest ||
+        correctionSource.applicant !== currentApplicant ||
+        correctionSource.coMakerOne !== currentCoMakerOne ||
+        correctionSource.coMakerTwo !== currentCoMakerTwo
+    ) {
+        setCorrectionSource({
+            request: currentRequest,
+            applicant: currentApplicant,
+            coMakerOne: currentCoMakerOne,
+            coMakerTwo: currentCoMakerTwo,
+        });
         setCorrectionForm({
             loan_request: {
                 requested_amount: toStringValue(
@@ -448,15 +468,8 @@ export default function StaffLoanRequestShow({
             co_maker_2: toPersonForm(currentCoMakerTwo),
             reason: '',
         });
-    }, [
-        currentApplicant,
-        currentCoMakerOne,
-        currentCoMakerTwo,
-        currentRequest.availment_status,
-        currentRequest.loan_purpose,
-        currentRequest.requested_amount,
-        currentRequest.requested_term,
-    ]);
+    }
+
     const hasWorkflowPermission = (
         permission: LoanRequestWorkflowPermission,
     ): boolean => workflowPermissions.includes(permission);

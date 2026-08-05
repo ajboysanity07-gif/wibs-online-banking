@@ -9,6 +9,7 @@ uses(Tests\TestCase::class);
 beforeEach(function () {
     Config::set('cache.default', 'array');
     Cache::store()->flush();
+    Config::set('locations.cache_store', 'array');
     Config::set(
         'locations.providers.ph-zipcodes.testing_data_path',
         base_path('tests/Fixtures/ph-zipcodes.json'),
@@ -43,4 +44,13 @@ test('zip code service caches the dataset', function () {
     $service->lookup('1606801000');
 
     expect(Cache::has('locations.zipcodes.v1'))->toBeTrue();
+});
+
+test('zip code service recognizes known zip codes', function () {
+    $service = app(ZipCodeService::class);
+
+    expect($service->isKnownZip('8309'))->toBeTrue();
+    expect($service->isKnownZip('99999'))->toBeFalse();
+    expect($service->isKnownZip(''))->toBeFalse();
+    expect($service->isKnownZip(null))->toBeFalse();
 });

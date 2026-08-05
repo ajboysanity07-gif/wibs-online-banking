@@ -493,7 +493,12 @@ const resolveBirthplace = (person: LoanRequestPersonFormData): string =>
     composeBirthplace(person.birthplace_city, person.birthplace_province);
 
 const resolveAddress = (person: LoanRequestPersonFormData): string =>
-    composeAddress(person.address1, person.address2, person.address3);
+    composeAddress(
+        person.address1,
+        person.address2,
+        person.address3,
+        person.address_barangay,
+    );
 
 const resolveEmployerBusinessAddress = (
     person: LoanRequestPersonFormData,
@@ -502,6 +507,7 @@ const resolveEmployerBusinessAddress = (
         person.employer_business_address1,
         person.employer_business_address2,
         person.employer_business_address3,
+        person.employer_business_address_barangay,
     );
 
 const SummaryGrid = ({ items }: { items: SummaryItem[] }) => (

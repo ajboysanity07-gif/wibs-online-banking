@@ -13,22 +13,9 @@ const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').r
 
 const convertMarkdownToHtml = (markdown) => {
   const lines = markdown.split(/\r?\n/);
-  const htmlLines = [];
   let inCodeBlock = false;
   let codeBuffer = [];
   let listType = null;
-
-  const flushParagraph = (paragraph) => {
-    if (!paragraph.trim()) return '';
-    return `<p>${paragraph.trim()}</p>`;
-  };
-
-  const flushList = (type) => {
-    if (!type) return '';
-    const tag = type === 'ol' ? 'ol' : 'ul';
-    const items = type === 'ol' ? htmlLines.splice(0, htmlLines.length) : htmlLines.splice(0, htmlLines.length);
-    return `<${tag}>${items.join('')}</${tag}>`;
-  };
 
   const formattedLines = [];
   let paragraphBuffer = [];

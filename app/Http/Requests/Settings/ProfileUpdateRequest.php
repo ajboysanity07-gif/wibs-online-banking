@@ -6,6 +6,9 @@ use App\Concerns\ProfileValidationRules;
 use App\LoanReleaseMethod;
 use App\Models\MemberApplicationProfile;
 use App\Models\MemberDependentProfile;
+use App\Rules\ValidPostalCode;
+use App\Rules\ValidPsgcLocality;
+use App\Rules\ValidPsgcProvince;
 use App\Support\LocationComposer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -65,6 +68,9 @@ class ProfileUpdateRequest extends FormRequest
         $employerAddress1 = $this->normalizeOptionalString(
             $this->input('employer_business_address1'),
         );
+        $employerAddressBarangay = $this->normalizeOptionalString(
+            $this->input('employer_business_address_barangay'),
+        );
         $employerAddress2 = $this->normalizeOptionalString(
             $this->input('employer_business_address2'),
         );
@@ -90,12 +96,57 @@ class ProfileUpdateRequest extends FormRequest
         if ($employerAddress1 !== null || $employerAddress2 !== null || $employerAddress3 !== null) {
             $this->merge([
                 'employer_business_address1' => $employerAddress1,
+                'employer_business_address_barangay' => $employerAddressBarangay,
                 'employer_business_address2' => $employerAddress2,
                 'employer_business_address3' => $employerAddress3,
                 'employer_business_address' => LocationComposer::compose(
                     $employerAddress1,
                     $employerAddress2,
                     $employerAddress3,
+                    $employerAddressBarangay,
+                ),
+            ]);
+        }
+
+        $homeAddress1 = $this->normalizeOptionalString(
+            $this->input('home_address1'),
+        );
+        $homeAddressBarangay = $this->normalizeOptionalString(
+            $this->input('home_address_barangay'),
+        );
+        $homeAddress2 = $this->normalizeOptionalString(
+            $this->input('home_address2'),
+        );
+        $homeAddress3 = $this->normalizeOptionalString(
+            $this->input('home_address3'),
+        );
+        $legacyHomeAddress = $this->normalizeOptionalString(
+            $this->input('home_address'),
+        );
+
+        if (
+            $homeAddress1 === null
+            && $homeAddress2 === null
+            && $homeAddress3 === null
+            && $legacyHomeAddress !== null
+        ) {
+            $parsed = LocationComposer::parseLegacyAddress($legacyHomeAddress);
+            $homeAddress1 = $parsed['address1'];
+            $homeAddress2 = $parsed['address2'];
+            $homeAddress3 = $parsed['address3'];
+        }
+
+        if ($homeAddress1 !== null || $homeAddress2 !== null || $homeAddress3 !== null) {
+            $this->merge([
+                'home_address1' => $homeAddress1,
+                'home_address_barangay' => $homeAddressBarangay,
+                'home_address2' => $homeAddress2,
+                'home_address3' => $homeAddress3,
+                'home_address' => LocationComposer::compose(
+                    $homeAddress1,
+                    $homeAddress2,
+                    $homeAddress3,
+                    $homeAddressBarangay,
                 ),
             ]);
         }
@@ -202,22 +253,67 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:255',
             ],
-            'employer_business_address2' => [
-                $memberRequirement('employer_business_address2'),
+            'employer_business_address_barangay' => [
+                'nullable',
                 'string',
                 'max:255',
             ],
-            'employer_business_address3' => [
-                $memberRequirement('employer_business_address3'),
+            'employer_business_address2' => [
+                $memberRequirement('employer_business_address2'),
+                'nullable',
                 'string',
                 'max:255',
+                new ValidPsgcLocality,
+            ],
+            'employer_business_address3' => [
+                $memberRequirement('employer_business_address3'),
+                'nullable',
+                'string',
+                'max:255',
+                new ValidPsgcProvince,
             ],
             'employer_business_address_zip' => [
                 'nullable',
                 'string',
                 'max:20',
+                new ValidPostalCode,
             ],
             'employer_business_address' => [
+                'nullable',
+                'string',
+                'max:500',
+            ],
+            'home_address1' => [
+                $memberRequirement('home_address1'),
+                'string',
+                'max:255',
+            ],
+            'home_address_barangay' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'home_address2' => [
+                $memberRequirement('home_address2'),
+                'nullable',
+                'string',
+                'max:255',
+                new ValidPsgcLocality,
+            ],
+            'home_address3' => [
+                $memberRequirement('home_address3'),
+                'nullable',
+                'string',
+                'max:255',
+                new ValidPsgcProvince,
+            ],
+            'home_address_zip' => [
+                'nullable',
+                'string',
+                'max:20',
+                new ValidPostalCode,
+            ],
+            'home_address' => [
                 'nullable',
                 'string',
                 'max:500',
@@ -398,6 +494,10 @@ class ProfileUpdateRequest extends FormRequest
             'educational_attainment.required' => 'Educational attainment is required to complete your profile.',
             'employment_type.required' => 'Employment type is required to complete your profile.',
             'employer_business_name.required' => 'Employer or business name is required to complete your profile.',
+            'employer_business_address1.required' => 'Employer or business address is required to complete your profile.',
+            'home_address1.required' => 'Home address is required to complete your profile.',
+            'home_address2.required' => 'Home address city or municipality is required to complete your profile.',
+            'home_address3.required' => 'Home address province is required to complete your profile.',
             'current_position.required' => 'Current position is required to complete your profile.',
             'gross_monthly_income.required' => 'Gross monthly income is required to complete your profile.',
             'payday.required' => 'Payday is required to complete your profile.',
@@ -416,6 +516,11 @@ class ProfileUpdateRequest extends FormRequest
             'birthplace_city' => 'birthplace city',
             'birthplace_province' => 'birthplace province',
             'employer_business_address1' => 'employer or business address',
+            'home_address1' => 'home address',
+            'home_address_barangay' => 'home address barangay',
+            'home_address2' => 'home address city or municipality',
+            'home_address3' => 'home address province',
+            'home_address_zip' => 'home address ZIP code',
             'years_in_work_business' => 'years in work or business',
         ];
     }

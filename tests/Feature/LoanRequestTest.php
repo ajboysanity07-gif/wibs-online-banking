@@ -3867,6 +3867,38 @@ test('admin corrected request can be approved after a saved correction audit exi
     Queue::assertPushed(SendLoanDecisionSmsJob::class);
 });
 
+test('corrected request update rejects an address2/address3 that was never selected from the PSGC dropdown', function () {
+    $admin = User::factory()->create([
+        'acctno' => '000538',
+    ]);
+    AdminProfile::factory()->create([
+        'user_id' => $admin->user_id,
+    ]);
+    Role::attachNamedRole($admin, Role::LOAN_MANAGER);
+
+    $member = User::factory()->create([
+        'acctno' => '000539',
+    ]);
+
+    $corrected = LoanRequest::factory()->forUser($member)->create([
+        'acctno' => $member->acctno,
+        'status' => LoanRequestStatus::UnderReview,
+        'submitted_at' => now(),
+    ]);
+    createLoanRequestPeopleSnapshots($corrected);
+
+    $this
+        ->actingAs($admin)
+        ->patchJson(
+            "/spa/admin/requests/{$corrected->id}/corrections",
+            validLoanRequestCorrectionPayload([
+                'applicant' => ['address2' => 'Not A Real City'],
+            ]),
+        )
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['applicant.address2']);
+});
+
 test('corrected request approval is blocked when correction audit history is unavailable', function () {
     Queue::fake();
 

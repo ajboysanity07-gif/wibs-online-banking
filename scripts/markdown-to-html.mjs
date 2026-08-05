@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import puppeteer from 'puppeteer';
 
 const [inputPath, outputPath] = process.argv.slice(2);
 if (!inputPath || !outputPath) {

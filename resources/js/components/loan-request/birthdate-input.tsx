@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { PatternFormat } from 'react-number-format';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -64,14 +64,12 @@ export function BirthdateInput({
     disabled,
 }: BirthdateInputProps) {
     const [displayValue, setDisplayValue] = useState(() => isoToDisplay(value));
-    const lastEmittedValue = useRef(value);
+    const [lastProcessedValue, setLastProcessedValue] = useState(value);
 
-    useEffect(() => {
-        if (value !== lastEmittedValue.current) {
-            setDisplayValue(isoToDisplay(value));
-            lastEmittedValue.current = value;
-        }
-    }, [value]);
+    if (value !== lastProcessedValue) {
+        setLastProcessedValue(value);
+        setDisplayValue(isoToDisplay(value));
+    }
 
     return (
         <PatternFormat
@@ -86,7 +84,7 @@ export function BirthdateInput({
 
                 const iso = digitsToIso(values.value);
 
-                lastEmittedValue.current = iso;
+                setLastProcessedValue(iso);
                 onValueChange(iso);
             }}
             onBlur={onBlur}

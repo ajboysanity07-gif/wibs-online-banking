@@ -143,6 +143,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             "{$prefix}.birthplace_city" => ['required', 'string', 'max:255'],
             "{$prefix}.birthplace_province" => ['required', 'string', 'max:255'],
             "{$prefix}.address1" => ['required', 'string', 'max:255'],
+            "{$prefix}.address_barangay" => ['nullable', 'string', 'max:255'],
             "{$prefix}.address2" => ['required', 'string', 'max:255'],
             "{$prefix}.address3" => ['required', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['required', 'string', 'max:255'],
@@ -151,6 +152,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             "{$prefix}.employment_type" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_address1" => ['required', 'string', 'max:255'],
+            "{$prefix}.employer_business_address_barangay" => ['nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_address2" => ['required', 'string', 'max:255'],
             "{$prefix}.employer_business_address3" => ['required', 'string', 'max:255'],
             "{$prefix}.telephone_no" => ['nullable', 'string', 'max:20'],
@@ -214,6 +216,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             "{$prefix}.birthplace_city" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.birthplace_province" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.address1" => ['sometimes', 'nullable', 'string', 'max:255'],
+            "{$prefix}.address_barangay" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.address2" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.address3" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.length_of_stay" => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -222,6 +225,7 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
             "{$prefix}.employment_type" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_name" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_address1" => ['sometimes', 'nullable', 'string', 'max:255'],
+            "{$prefix}.employer_business_address_barangay" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_address2" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.employer_business_address3" => ['sometimes', 'nullable', 'string', 'max:255'],
             "{$prefix}.telephone_no" => ['sometimes', 'nullable', 'string', 'max:20'],
@@ -326,6 +330,9 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
         }
 
         $person['address1'] = $address1;
+        $person['address_barangay'] = $this->normalizeOptionalString(
+            $person['address_barangay'] ?? null,
+        );
         $person['address2'] = $address2;
         $person['address3'] = $address3;
 
@@ -355,6 +362,9 @@ class LoanRequestGenerateSignatureLinkRequest extends FormRequest
         }
 
         $person['employer_business_address1'] = $employerAddress1;
+        $person['employer_business_address_barangay'] = $this->normalizeOptionalString(
+            $person['employer_business_address_barangay'] ?? null,
+        );
         $person['employer_business_address2'] = $employerAddress2;
         $person['employer_business_address3'] = $employerAddress3;
 

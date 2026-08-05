@@ -118,12 +118,14 @@ class LoanRequestPdfService
             $person['address1'] ?? null,
             $person['address2'] ?? null,
             $person['address3'] ?? null,
+            $person['address_barangay'] ?? null,
         );
         $address = $address !== '' ? $address : ($person['address'] ?? null);
         $employerBusinessAddress = LocationComposer::compose(
             $person['employer_business_address1'] ?? null,
             $person['employer_business_address2'] ?? null,
             $person['employer_business_address3'] ?? null,
+            $person['employer_business_address_barangay'] ?? null,
         );
         $employerBusinessAddress = $employerBusinessAddress !== ''
             ? $employerBusinessAddress

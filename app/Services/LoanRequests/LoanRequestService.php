@@ -1289,6 +1289,7 @@ class LoanRequestService
             'birthplace_province' => $birthplaceValues['province'],
             'address' => $addressValues['legacy'],
             'address1' => $addressValues['address1'],
+            'address_barangay' => $addressValues['barangay'],
             'address2' => $addressValues['address2'],
             'address3' => $addressValues['address3'],
             'address_zip' => $this->normalizeOptionalString($data['address_zip'] ?? null),
@@ -1314,6 +1315,7 @@ class LoanRequestService
             ),
             'employer_business_address' => $employerAddressValues['legacy'],
             'employer_business_address1' => $employerAddressValues['address1'],
+            'employer_business_address_barangay' => $employerAddressValues['barangay'],
             'employer_business_address2' => $employerAddressValues['address2'],
             'employer_business_address3' => $employerAddressValues['address3'],
             'employer_business_address_zip' => $this->normalizeOptionalString(
@@ -1551,11 +1553,13 @@ class LoanRequestService
             'birthplace_province' => $birthplaceValues['province'],
             'address' => $addressValues['legacy'],
             'address1' => $addressValues['address1'],
+            'address_barangay' => $addressValues['barangay'],
             'address2' => $addressValues['address2'],
             'address3' => $addressValues['address3'],
             'address_zip' => $this->normalizeOptionalString($person['address_zip'] ?? null),
             'employer_business_address' => $employerAddressValues['legacy'],
             'employer_business_address1' => $employerAddressValues['address1'],
+            'employer_business_address_barangay' => $employerAddressValues['barangay'],
             'employer_business_address2' => $employerAddressValues['address2'],
             'employer_business_address3' => $employerAddressValues['address3'],
             'employer_business_address_zip' => $this->normalizeOptionalString(
@@ -1594,7 +1598,7 @@ class LoanRequestService
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array{address1: string|null, address2: string|null, address3: string|null, legacy: string|null}
+     * @return array{address1: string|null, barangay: string|null, address2: string|null, address3: string|null, legacy: string|null}
      */
     private function resolveAddressValues(
         array $data,
@@ -1603,6 +1607,9 @@ class LoanRequestService
     ): array {
         $address1 = $this->normalizeOptionalString(
             $data[$prefix.'address1'] ?? null,
+        );
+        $barangay = $this->normalizeOptionalString(
+            $data[$prefix.'address_barangay'] ?? null,
         );
         $address2 = $this->normalizeOptionalString(
             $data[$prefix.'address2'] ?? null,
@@ -1619,11 +1626,12 @@ class LoanRequestService
             $address3 = $parsed['address3'];
         }
 
-        $composed = LocationComposer::compose($address1, $address2, $address3);
+        $composed = LocationComposer::compose($address1, $address2, $address3, $barangay);
         $legacyValue = $composed !== '' ? $composed : $legacy;
 
         return [
             'address1' => $address1,
+            'barangay' => $barangay,
             'address2' => $address2,
             'address3' => $address3,
             'legacy' => $legacyValue,
@@ -1821,7 +1829,8 @@ class LoanRequestService
                 : $this->normalizeOptionalString($profile?->birthplace);
         }
 
-        $address1 = $this->normalizeOptionalString($wmaster?->address2);
+        $address1 = $this->normalizeOptionalString($wmaster?->address1);
+        $addressBarangay = $this->normalizeOptionalString($wmaster?->address2);
         $address2 = $this->normalizeOptionalString($wmaster?->address3);
         $address3 = $this->normalizeOptionalString($wmaster?->address4);
 
@@ -1838,7 +1847,25 @@ class LoanRequestService
             }
         }
 
-        $address = LocationComposer::compose($address1, $address2, $address3);
+        if ($address1 === null) {
+            $address1 = $this->normalizeOptionalString($profile?->home_address1);
+        }
+
+        if ($addressBarangay === null) {
+            $addressBarangay = $this->normalizeOptionalString(
+                $profile?->home_address_barangay,
+            );
+        }
+
+        if ($address2 === null) {
+            $address2 = $this->normalizeOptionalString($profile?->home_address2);
+        }
+
+        if ($address3 === null) {
+            $address3 = $this->normalizeOptionalString($profile?->home_address3);
+        }
+
+        $address = LocationComposer::compose($address1, $address2, $address3, $addressBarangay);
         $address = $address !== ''
             ? $address
             : $this->normalizeOptionalString($wmaster?->displayAddress());
@@ -1909,9 +1936,12 @@ class LoanRequestService
             'birthplace_province' => $birthplaceProvince,
             'address' => $address,
             'address1' => $address1,
+            'address_barangay' => $addressBarangay,
             'address2' => $address2,
             'address3' => $address3,
-            'address_zip' => $this->normalizeOptionalString($wmaster?->zone_number),
+            'address_zip' => $this->normalizeOptionalString(
+                $wmaster?->zone_number ?? $profile?->home_address_zip,
+            ),
             'length_of_stay' => $profile?->length_of_stay,
             'housing_status' => $wmaster?->restype !== null
                 ? (string) $wmaster->restype
@@ -1975,7 +2005,8 @@ class LoanRequestService
             );
         }
 
-        $address1 = $this->normalizeOptionalString($wmaster?->address2);
+        $address1 = $this->normalizeOptionalString($wmaster?->address1);
+        $addressBarangay = $this->normalizeOptionalString($wmaster?->address2);
         $address2 = $this->normalizeOptionalString($wmaster?->address3);
         $address3 = $this->normalizeOptionalString($wmaster?->address4);
         $addressZip = $this->normalizeOptionalString($wmaster?->zone_number);
@@ -2010,6 +2041,7 @@ class LoanRequestService
             'birthplace_province' => $birthplaceProvince !== null,
             'address' => $hasAddress,
             'address1' => $address1 !== null,
+            'address_barangay' => $addressBarangay !== null,
             'address2' => $address2 !== null,
             'address3' => $address3 !== null,
             'address_zip' => $addressZip !== null,

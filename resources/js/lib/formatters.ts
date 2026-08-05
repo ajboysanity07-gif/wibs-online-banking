@@ -67,7 +67,9 @@ export const composeAddress = (
     address1?: string | null,
     address2?: string | null,
     address3?: string | null,
-): string => normalizeLocationParts([address1, address2, address3]).join(', ');
+    barangay?: string | null,
+): string =>
+    normalizeLocationParts([address1, barangay, address2, address3]).join(', ');
 
 export const composeBirthplace = (
     city?: string | null,

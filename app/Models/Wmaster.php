@@ -34,6 +34,7 @@ class Wmaster extends Model
         'phone',
         'email_address',
         'address',
+        'address1',
         'address2',
         'address3',
         'address4',

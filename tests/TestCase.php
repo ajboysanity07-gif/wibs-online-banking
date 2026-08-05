@@ -31,6 +31,16 @@ abstract class TestCase extends BaseTestCase
         if (File::isDirectory($realCustomFontsDirectory)) {
             File::copyDirectory($realCustomFontsDirectory, storage_path('app/fonts/tcpdf'));
         }
+
+        // The 'file' cache store resolves to the real (non-isolated)
+        // storage path at config-load time, before useStoragePath() above
+        // runs -- so a stale PSGC/zip dataset cached on a developer's or
+        // CI's disk from a real artisan run would otherwise leak into every
+        // test. Forget those keys so each test starts with a clean slate.
+        \Illuminate\Support\Facades\Cache::store(config('locations.cache_store', 'file'))
+            ->forget('locations.dataset.v3');
+        \Illuminate\Support\Facades\Cache::store(config('locations.cache_store', 'file'))
+            ->forget('locations.zipcodes.v1');
     }
 
     protected function tearDown(): void

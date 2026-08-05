@@ -11,6 +11,57 @@ class ZipCodeService
     private const CACHE_KEY = 'locations.zipcodes.v1';
 
     /**
+     * Force-build and cache the zip map, e.g. from a deploy warm-up step so
+     * the first real request doesn't pay the cold-cache cost.
+     */
+    public function warm(): void
+    {
+        $this->zipcodes();
+    }
+
+    /**
+     * Whether $zip is one of the canonical postal codes in the dataset, for
+     * any locality. Deliberately reads the real committed dataset directly
+     * rather than the environment-aware zipcodes() (which honors
+     * testing_data_path) -- see PsgcService::productionDataset() for the
+     * same reasoning: value-uniformity validation should reflect real-world
+     * coverage even under test.
+     */
+    public function isKnownZip(?string $zip): bool
+    {
+        $zip = trim((string) $zip);
+
+        if ($zip === '') {
+            return false;
+        }
+
+        return in_array($zip, $this->productionZipcodes(), true);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function productionZipcodes(): array
+    {
+        static $cached = null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $path = base_path('resources/data/ph-zipcodes.json');
+
+        if (! is_file($path)) {
+            return $cached = [];
+        }
+
+        $contents = file_get_contents($path);
+        $payload = $contents !== false ? json_decode($contents, true) : null;
+
+        return $cached = is_array($payload) ? $payload : [];
+    }
+
+    /**
      * Resolve the canonical postal code for a PSGC locality code.
      */
     public function lookup(?string $localityCode): ?string
@@ -37,7 +88,8 @@ class ZipCodeService
      */
     private function zipcodes(): array
     {
-        $cached = Cache::get(self::CACHE_KEY);
+        $store = Cache::store(config('locations.cache_store', 'file'));
+        $cached = $store->get(self::CACHE_KEY);
 
         if (is_array($cached)) {
             return $cached;
@@ -46,7 +98,7 @@ class ZipCodeService
         $zipcodes = $this->loadZipcodes();
 
         if ($zipcodes !== []) {
-            Cache::put(self::CACHE_KEY, $zipcodes, 86400);
+            $store->put(self::CACHE_KEY, $zipcodes, 86400);
         }
 
         return $zipcodes;

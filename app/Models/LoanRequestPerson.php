@@ -29,6 +29,7 @@ class LoanRequestPerson extends Model
         'birthplace_province',
         'address',
         'address1',
+        'address_barangay',
         'address2',
         'address3',
         'address_zip',
@@ -46,6 +47,7 @@ class LoanRequestPerson extends Model
         'employer_business_name',
         'employer_business_address',
         'employer_business_address1',
+        'employer_business_address_barangay',
         'employer_business_address2',
         'employer_business_address3',
         'employer_business_address_zip',
@@ -83,6 +85,7 @@ class LoanRequestPerson extends Model
             $this->address1,
             $this->address2,
             $this->address3,
+            $this->address_barangay,
         );
 
         if ($composed !== '') {
@@ -98,6 +101,7 @@ class LoanRequestPerson extends Model
             $this->employer_business_address1,
             $this->employer_business_address2,
             $this->employer_business_address3,
+            $this->employer_business_address_barangay,
         );
 
         if ($composed !== '') {

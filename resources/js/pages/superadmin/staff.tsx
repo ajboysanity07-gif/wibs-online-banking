@@ -603,7 +603,7 @@ export default function SuperadminStaffPage() {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [promoteDialog.query, promoteDialog.open]);
+    }, [promoteDialog.query, promoteDialog.open, promoteDialog.step]);
 
     const showSkeleton = loading && items.length === 0;
     const searchValue = search.trim();

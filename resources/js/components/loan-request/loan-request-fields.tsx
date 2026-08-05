@@ -202,6 +202,25 @@ export function LoanRequestPersonalFields({
             province: values.address3 || undefined,
         },
     });
+
+    const handleAddressCitySelect = async (code: string) => {
+        if (!code) {
+            return;
+        }
+
+        try {
+            const response = await api.get(zip.url(), {
+                params: { locality_code: code },
+            });
+            const resolvedZip = (
+                response.data as { zip?: string | null }
+            ).zip?.trim();
+
+            onChange('address_zip', resolvedZip ?? '');
+        } catch {
+            // Intentionally left empty: ZIP lookup is best-effort.
+        }
+    };
     const birthplaceProvinceInputClass = cn(
         'mt-1 block w-full',
         isReadOnly('birthplace_province') && readOnlyInputClass,
@@ -486,6 +505,33 @@ export function LoanRequestPersonalFields({
 
                     <div className="grid gap-2">
                         <FieldLabel
+                            htmlFor={`${prefix}_address_barangay`}
+                            label="Barangay"
+                            isReadOnly={isReadOnly('address_barangay')}
+                        />
+                        <Input
+                            id={`${prefix}_address_barangay`}
+                            name={fieldName(prefix, 'address_barangay')}
+                            value={values.address_barangay}
+                            readOnly={isReadOnly('address_barangay')}
+                            className={cn(
+                                'mt-1 block w-full',
+                                isReadOnly('address_barangay') &&
+                                    readOnlyInputClass,
+                            )}
+                            onChange={updateField('address_barangay')}
+                        />
+                        <InputError
+                            message={fieldError(
+                                errors,
+                                prefix,
+                                'address_barangay',
+                            )}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <FieldLabel
                             htmlFor={`${prefix}_address2`}
                             label="City/Municipality"
                             isReadOnly={isReadOnly('address2')}
@@ -507,6 +553,8 @@ export function LoanRequestPersonalFields({
                                     );
                                     onChange('address3', suggestion.province);
                                 }
+
+                                void handleAddressCitySelect(suggestion.code);
                             }}
                             onValueChange={(value) =>
                                 onChange('address2', value)
@@ -555,12 +603,12 @@ export function LoanRequestPersonalFields({
                             value={values.address_zip}
                             inputMode="numeric"
                             autoComplete="postal-code"
-                            readOnly={isReadOnly('address_zip')}
+                            readOnly
+                            placeholder="Auto-filled from city"
                             className={cn(
                                 'mt-1 block w-full',
-                                isReadOnly('address_zip') && readOnlyInputClass,
+                                readOnlyInputClass,
                             )}
-                            onChange={updateField('address_zip')}
                         />
                         <InputError
                             message={fieldError(errors, prefix, 'address_zip')}
@@ -1103,6 +1151,40 @@ export function LoanRequestWorkFields({
                     {!isPensioner ? (
                         <div className="grid gap-2">
                             <Label
+                                htmlFor={`${prefix}_employer_business_address_barangay`}
+                            >
+                                Barangay
+                            </Label>
+                            <Input
+                                id={`${prefix}_employer_business_address_barangay`}
+                                name={fieldName(
+                                    prefix,
+                                    'employer_business_address_barangay',
+                                )}
+                                value={
+                                    values.employer_business_address_barangay
+                                }
+                                className="mt-1 block w-full"
+                                onChange={(event) =>
+                                    onChange(
+                                        'employer_business_address_barangay',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={fieldError(
+                                    errors,
+                                    prefix,
+                                    'employer_business_address_barangay',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {!isPensioner ? (
+                        <div className="grid gap-2">
+                            <Label
                                 htmlFor={`${prefix}_employer_business_address2`}
                             >
                                 City/Municipality
@@ -1202,13 +1284,12 @@ export function LoanRequestWorkFields({
                                 value={values.employer_business_address_zip}
                                 inputMode="numeric"
                                 autoComplete="postal-code"
-                                className="mt-1 block w-full"
-                                onChange={(event) =>
-                                    onChange(
-                                        'employer_business_address_zip',
-                                        event.target.value,
-                                    )
-                                }
+                                readOnly
+                                placeholder="Auto-filled from city"
+                                className={cn(
+                                    'mt-1 block w-full',
+                                    readOnlyInputClass,
+                                )}
                             />
                             <InputError
                                 message={fieldError(

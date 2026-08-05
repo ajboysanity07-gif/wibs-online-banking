@@ -1356,9 +1356,14 @@ class ApprovedLoanDocumentService
         $composedOfficeAddress = $this->normalizeText(
             $person?->composedEmployerBusinessAddress(),
         );
-        $addressLine = $this->normalizeText($person?->address1) ?? $composedAddress;
-        $officeAddressLine = $this->normalizeText($person?->employer_business_address1)
-            ?? $composedOfficeAddress;
+        $addressLine = $this->composeAddressLine(
+            $person?->address1,
+            $person?->address_barangay,
+        ) ?? $composedAddress;
+        $officeAddressLine = $this->composeAddressLine(
+            $person?->employer_business_address1,
+            $person?->employer_business_address_barangay,
+        ) ?? $composedOfficeAddress;
 
         return [
             'full_name' => $this->personFullName($person),
@@ -2018,6 +2023,24 @@ class ApprovedLoanDocumentService
         $trimmed = trim($value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    /**
+     * Street line plus barangay for documents (Generali, Grepalife) that
+     * render city/province as their own boxes -- there's no dedicated
+     * barangay box on those templates, so it rides along with the street
+     * line instead of needing new PDF coordinates.
+     */
+    private function composeAddressLine(?string $street, ?string $barangay): ?string
+    {
+        $street = $this->normalizeText($street);
+        $barangay = $this->normalizeText($barangay);
+
+        if ($street === null) {
+            return $barangay;
+        }
+
+        return $barangay !== null ? "{$street}, {$barangay}" : $street;
     }
 
     private function normalizeSignaturePath(?string $value): ?string

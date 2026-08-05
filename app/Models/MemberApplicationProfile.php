@@ -29,6 +29,12 @@ class MemberApplicationProfile extends Model
         'birthplace_province',
         'educational_attainment',
         'length_of_stay',
+        'home_address',
+        'home_address1',
+        'home_address_barangay',
+        'home_address2',
+        'home_address3',
+        'home_address_zip',
         'number_of_children',
         'spouse_name',
         'spouse_age',
@@ -37,6 +43,7 @@ class MemberApplicationProfile extends Model
         'employer_business_name',
         'employer_business_address',
         'employer_business_address1',
+        'employer_business_address_barangay',
         'employer_business_address2',
         'employer_business_address3',
         'employer_business_address_zip',
@@ -114,6 +121,7 @@ class MemberApplicationProfile extends Model
             $this->employer_business_address1,
             $this->employer_business_address2,
             $this->employer_business_address3,
+            $this->employer_business_address_barangay,
         );
 
         if ($composed !== '') {
@@ -121,6 +129,22 @@ class MemberApplicationProfile extends Model
         }
 
         return trim((string) $this->employer_business_address);
+    }
+
+    public function composedHomeAddress(): string
+    {
+        $composed = LocationComposer::compose(
+            $this->home_address1,
+            $this->home_address2,
+            $this->home_address3,
+            $this->home_address_barangay,
+        );
+
+        if ($composed !== '') {
+            return $composed;
+        }
+
+        return trim((string) $this->home_address);
     }
 
     /**
@@ -135,6 +159,12 @@ class MemberApplicationProfile extends Model
             'birthplace_province',
             'educational_attainment',
             'length_of_stay',
+            'home_address',
+            'home_address1',
+            'home_address_barangay',
+            'home_address2',
+            'home_address3',
+            'home_address_zip',
             'number_of_children',
             'spouse_name',
             'spouse_age',
@@ -143,6 +173,7 @@ class MemberApplicationProfile extends Model
             'employer_business_name',
             'employer_business_address',
             'employer_business_address1',
+            'employer_business_address_barangay',
             'employer_business_address2',
             'employer_business_address3',
             'employer_business_address_zip',
@@ -303,8 +334,13 @@ class MemberApplicationProfile extends Model
             'birthplace_city',
             'educational_attainment',
             'length_of_stay',
+            'home_address1',
+            'home_address_barangay',
+            'home_address2',
+            'home_address3',
             'employment_type',
             'employer_business_name',
+            'employer_business_address_barangay',
             'current_position',
             'gross_monthly_income',
             'payday',
@@ -318,7 +354,7 @@ class MemberApplicationProfile extends Model
      */
     public static function pensionerOptionalFields(): array
     {
-        return ['employer_business_name', 'current_position', 'payday'];
+        return ['employer_business_name', 'employer_business_address_barangay', 'current_position', 'payday'];
     }
 
     public function hasRequiredFields(): bool
@@ -365,8 +401,13 @@ class MemberApplicationProfile extends Model
             'birthplace_city' => 'Birthplace city',
             'educational_attainment' => 'Educational attainment',
             'length_of_stay' => 'Length of stay',
+            'home_address1' => 'Home address (street)',
+            'home_address_barangay' => 'Home address barangay',
+            'home_address2' => 'Home address city/municipality',
+            'home_address3' => 'Home address province',
             'employment_type' => 'Employment type',
             'employer_business_name' => 'Employer or business name',
+            'employer_business_address_barangay' => 'Employer address barangay',
             'current_position' => 'Current position',
             'gross_monthly_income' => 'Gross monthly income',
             'payday' => 'Payday',
