@@ -151,6 +151,32 @@ class AppUser extends Authenticatable
         return $this->memberApplicationProfileHasRequiredFields();
     }
 
+    /**
+     * Values sourced from the core-banking record that credit a profile's
+     * required fields even when the member hasn't self-reported them --
+     * mirrors the spouse_name/birthplace lock/fallback pattern in Settings.
+     *
+     * @return array<string, mixed>
+     */
+    private function memberApplicationProfileWmasterOverrides(): array
+    {
+        if (! Schema::hasTable('wmaster')) {
+            return [];
+        }
+
+        $this->loadMissing('wmaster');
+        $wmaster = $this->wmaster;
+
+        if ($wmaster === null) {
+            return [];
+        }
+
+        return [
+            'civil_status' => $wmaster->civilstat,
+            'housing_status' => $wmaster->restype,
+        ];
+    }
+
     public function memberApplicationProfileHasRequiredFields(
         ?MemberApplicationProfile $memberProfile = null,
     ): bool {
@@ -163,7 +189,7 @@ class AppUser extends Authenticatable
             return false;
         }
 
-        return $memberProfile->hasRequiredFields();
+        return $memberProfile->hasRequiredFields($this->memberApplicationProfileWmasterOverrides());
     }
 
     /**
@@ -181,7 +207,7 @@ class AppUser extends Authenticatable
             return MemberApplicationProfile::completionRequiredFields();
         }
 
-        return $memberProfile->missingRequiredFields();
+        return $memberProfile->missingRequiredFields($this->memberApplicationProfileWmasterOverrides());
     }
 
     /**

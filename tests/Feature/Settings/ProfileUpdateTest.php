@@ -163,6 +163,8 @@ test('profile update accepts a real birthplace city and province', function () {
             'home_address_barangay' => 'Aglipay',
             'home_address2' => 'Batac City',
             'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
@@ -542,6 +544,12 @@ test('profile information can be updated with payout bank details', function () 
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
@@ -619,6 +627,12 @@ test('profile information can be updated with source of fund and government id d
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'current_position' => 'Analyst',
@@ -1017,8 +1031,10 @@ test('profile information can be updated', function () {
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
             'number_of_children' => 2,
+            'civil_status' => 'Married',
+            'housing_status' => 'OWNED',
             'spouse_name' => 'Renee Santos',
-            'spouse_age' => 32,
+            'spouse_birthdate' => '1992-05-14',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
             'employer_business_address1' => 'Acme Plaza',
@@ -1056,8 +1072,10 @@ test('profile information can be updated', function () {
     expect($memberProfile->educational_attainment)->toBe('High School');
     expect($memberProfile->length_of_stay)->toBe('2 years');
     expect($memberProfile->number_of_children)->toBe(2);
+    expect($memberProfile->civil_status)->toBe('Married');
+    expect($memberProfile->housing_status)->toBe('OWNED');
     expect($memberProfile->spouse_name)->toBe('Renee Santos');
-    expect($memberProfile->spouse_age)->toBe(32);
+    expect($memberProfile->spouse_birthdate->toDateString())->toBe('1992-05-14');
     expect($memberProfile->spouse_cell_no)->toBe('09123456780');
     expect($memberProfile->employment_type)->toBe('Regular');
     expect($memberProfile->employer_business_name)->toBe('Acme Corp');
@@ -1372,14 +1390,230 @@ test('member application profile table excludes canonical member fields', functi
     expect(Schema::hasColumn('member_application_profiles', 'birthdate'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'age'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'address'))->toBeFalse();
-    expect(Schema::hasColumn('member_application_profiles', 'civil_status'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'occupation'))->toBeFalse();
-    expect(Schema::hasColumn('member_application_profiles', 'housing_status'))->toBeFalse();
     expect(Schema::hasColumn('member_application_profiles', 'bname'))->toBeFalse();
 });
 
 test('member application profile table includes spouse name', function () {
     expect(Schema::hasColumn('member_application_profiles', 'spouse_name'))->toBeTrue();
+});
+
+test('member application profile table includes civil status and housing status fallbacks', function () {
+    // Deliberate exception to the canonical-fields exclusion above: unlike
+    // occupation/address/birthdate, civil_status and housing_status are
+    // lifestyle attributes safe for the member to self-report when wmaster
+    // has no value, mirroring the spouse_name fallback pattern.
+    expect(Schema::hasColumn('member_application_profiles', 'civil_status'))->toBeTrue();
+    expect(Schema::hasColumn('member_application_profiles', 'housing_status'))->toBeTrue();
+});
+
+test('civil status and housing status are self-reportable when wmaster has no value', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'RENT',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile->civil_status)->toBe('Single');
+    expect($memberProfile->housing_status)->toBe('RENT');
+});
+
+test('civil status and housing status stay locked once wmaster has a value', function () {
+    $user = User::factory()->create([
+        'acctno' => '000902',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Santos, Maria',
+        'civilstat' => 'Married',
+        'restype' => 'OWNED',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'spouse_name' => 'Renee Santos',
+            'spouse_birthdate' => '1992-05-14',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    // civil_status/housing_status weren't submitted (disabled inputs aren't
+    // posted once wmaster already has a value for them), yet the profile is
+    // still considered complete because wmaster's value is credited.
+    $response->assertSessionHasNoErrors()->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile->civil_status)->toBeNull();
+    expect($memberProfile->housing_status)->toBeNull();
+});
+
+test('spouse name and birthdate are not required when civil status is Single', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    $response->assertSessionHasNoErrors()->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile->hasRequiredFields())->toBeTrue();
+    expect($memberProfile->spouse_name)->toBeNull();
+    expect($memberProfile->spouse_birthdate)->toBeNull();
+});
+
+test('spouse name and birthdate are required when civil status is not Single', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Married',
+            'housing_status' => 'OWNED',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    $response->assertSessionHasErrors(['spouse_name', 'spouse_birthdate']);
+});
+
+test('spouse birthdate persists on the member application profile', function () {
+    $user = User::factory()->create();
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Married',
+            'housing_status' => 'OWNED',
+            'spouse_name' => 'Renee Santos',
+            'spouse_birthdate' => '1992-05-14',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile->spouse_birthdate->toDateString())->toBe('1992-05-14');
 });
 
 test('user can delete their account', function () {

@@ -36,8 +36,11 @@ class MemberApplicationProfile extends Model
         'home_address3',
         'home_address_zip',
         'number_of_children',
+        'civil_status',
+        'housing_status',
         'spouse_name',
         'spouse_age',
+        'spouse_birthdate',
         'spouse_cell_no',
         'employment_type',
         'employer_business_name',
@@ -166,8 +169,11 @@ class MemberApplicationProfile extends Model
             'home_address3',
             'home_address_zip',
             'number_of_children',
+            'civil_status',
+            'housing_status',
             'spouse_name',
             'spouse_age',
+            'spouse_birthdate',
             'spouse_cell_no',
             'employment_type',
             'employer_business_name',
@@ -338,6 +344,10 @@ class MemberApplicationProfile extends Model
             'home_address_barangay',
             'home_address2',
             'home_address3',
+            'civil_status',
+            'housing_status',
+            'spouse_name',
+            'spouse_birthdate',
             'employment_type',
             'employer_business_name',
             'employer_business_address_barangay',
@@ -357,26 +367,51 @@ class MemberApplicationProfile extends Model
         return ['employer_business_name', 'employer_business_address_barangay', 'current_position', 'payday'];
     }
 
-    public function hasRequiredFields(): bool
+    /**
+     * Spouse fields don't apply to Single members -- skipped in
+     * missingRequiredFields() when the effective civil status is Single.
+     *
+     * @return list<string>
+     */
+    public static function spouseFieldsOptionalWhenSingle(): array
     {
-        return $this->missingRequiredFields() === [];
+        return ['spouse_name', 'spouse_birthdate'];
     }
 
     /**
+     * @param  array<string, mixed>  $wmasterOverrides  Values sourced from the
+     *                                                  core-banking record (e.g. civil_status, housing_status), used to
+     *                                                  credit fields the member hasn't self-reported but wmaster already has.
+     */
+    public function hasRequiredFields(array $wmasterOverrides = []): bool
+    {
+        return $this->missingRequiredFields($wmasterOverrides) === [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $wmasterOverrides
      * @return list<string>
      */
-    public function missingRequiredFields(): array
+    public function missingRequiredFields(array $wmasterOverrides = []): array
     {
         $missing = [];
         $isPensioner = trim((string) ($this->employment_type ?? '')) === self::PENSIONER_EMPLOYMENT_TYPE;
-        $optionalForPensioner = $isPensioner ? self::pensionerOptionalFields() : [];
+        $effectiveCivilStatus = trim((string) ($wmasterOverrides['civil_status'] ?? $this->civil_status ?? ''));
+        $isSingle = $effectiveCivilStatus === 'Single';
+
+        $optional = [
+            ...($isPensioner ? self::pensionerOptionalFields() : []),
+            ...($isSingle ? self::spouseFieldsOptionalWhenSingle() : []),
+        ];
 
         foreach (self::completionRequiredFields() as $field) {
-            if (in_array($field, $optionalForPensioner, true)) {
+            if (in_array($field, $optional, true)) {
                 continue;
             }
 
-            $value = $this->getAttribute($field);
+            $value = array_key_exists($field, $wmasterOverrides)
+                ? $wmasterOverrides[$field]
+                : $this->getAttribute($field);
 
             if ($value === null) {
                 $missing[] = $field;
@@ -405,6 +440,10 @@ class MemberApplicationProfile extends Model
             'home_address_barangay' => 'Home address barangay',
             'home_address2' => 'Home address city/municipality',
             'home_address3' => 'Home address province',
+            'civil_status' => 'Civil status',
+            'housing_status' => 'Housing status',
+            'spouse_name' => 'Spouse name',
+            'spouse_birthdate' => 'Spouse birthdate',
             'employment_type' => 'Employment type',
             'employer_business_name' => 'Employer or business name',
             'employer_business_address_barangay' => 'Employer address barangay',
@@ -415,15 +454,16 @@ class MemberApplicationProfile extends Model
     }
 
     /**
+     * @param  array<string, mixed>  $wmasterOverrides
      * @return list<string>
      */
-    public function missingRequiredFieldLabels(): array
+    public function missingRequiredFieldLabels(array $wmasterOverrides = []): array
     {
         $labels = self::completionRequiredFieldLabels();
 
         return array_values(array_map(
             static fn (string $field): string => $labels[$field] ?? $field,
-            $this->missingRequiredFields(),
+            $this->missingRequiredFields($wmasterOverrides),
         ));
     }
 
@@ -436,6 +476,7 @@ class MemberApplicationProfile extends Model
             'gross_monthly_income' => 'decimal:2',
             'beneficiary_primary_birthdate' => 'date',
             'beneficiary_secondary_birthdate' => 'date',
+            'spouse_birthdate' => 'date',
             'profile_completed_at' => 'datetime',
             'release_uses_payout_account' => 'boolean',
         ];

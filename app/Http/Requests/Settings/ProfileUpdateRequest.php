@@ -221,6 +221,14 @@ class ProfileUpdateRequest extends FormRequest
                 'min:0',
                 'max:255',
             ],
+            'civil_status' => [
+                $memberRequirement('civil_status'),
+                Rule::in(['Single', 'Married', 'Separated', 'Widowed']),
+            ],
+            'housing_status' => [
+                $memberRequirement('housing_status'),
+                Rule::in(['OWNED', 'RENT']),
+            ],
             'spouse_name' => [
                 $memberRequirement('spouse_name'),
                 'string',
@@ -231,11 +239,9 @@ class ProfileUpdateRequest extends FormRequest
                 'string',
                 'max:150',
             ],
-            'spouse_age' => [
-                $memberRequirement('spouse_age'),
-                'integer',
-                'min:0',
-                'max:120',
+            'spouse_birthdate' => [
+                $memberRequirement('spouse_birthdate'),
+                'date',
             ],
             'spouse_cell_no' => [
                 $memberRequirement('spouse_cell_no'),
@@ -506,6 +512,10 @@ class ProfileUpdateRequest extends FormRequest
             'current_position.required' => 'Current position is required to complete your profile.',
             'gross_monthly_income.required' => 'Gross monthly income is required to complete your profile.',
             'payday.required' => 'Payday is required to complete your profile.',
+            'civil_status.required' => 'Civil status is required to complete your profile.',
+            'housing_status.required' => 'Housing status is required to complete your profile.',
+            'spouse_name.required' => 'Spouse name is required to complete your profile.',
+            'spouse_birthdate.required' => 'Spouse birthdate is required to complete your profile.',
         ];
     }
 
@@ -517,6 +527,9 @@ class ProfileUpdateRequest extends FormRequest
         return [
             'phoneno' => 'phone number',
             'spouse_cell_no' => 'spouse cell number',
+            'spouse_birthdate' => 'spouse birthdate',
+            'civil_status' => 'civil status',
+            'housing_status' => 'housing status',
             'gross_monthly_income' => 'gross monthly income',
             'birthplace_city' => 'birthplace city',
             'birthplace_province' => 'birthplace province',
@@ -542,9 +555,47 @@ class ProfileUpdateRequest extends FormRequest
             return 'nullable';
         }
 
+        // civil_status/housing_status are disabled (and so never submitted)
+        // once the core-banking record already has a value for them.
+        if ($field === 'civil_status' && $this->wmasterFieldHasValue('civilstat')) {
+            return 'nullable';
+        }
+
+        if ($field === 'housing_status' && $this->wmasterFieldHasValue('restype')) {
+            return 'nullable';
+        }
+
+        if (
+            in_array($field, MemberApplicationProfile::spouseFieldsOptionalWhenSingle(), true)
+            && $this->effectiveCivilStatusIsSingle()
+        ) {
+            return 'nullable';
+        }
+
         return in_array($field, MemberApplicationProfile::completionRequiredFields(), true)
             ? 'required'
             : 'nullable';
+    }
+
+    private function wmasterFieldHasValue(string $wmasterColumn): bool
+    {
+        $wmaster = $this->user()?->wmaster;
+
+        return $wmaster !== null && trim((string) $wmaster->{$wmasterColumn}) !== '';
+    }
+
+    /**
+     * The spouse section is hidden (and its fields never submitted) once
+     * civil status resolves to Single -- either from wmaster, when locked,
+     * or from the submitted input, when self-reported.
+     */
+    private function effectiveCivilStatusIsSingle(): bool
+    {
+        $value = $this->wmasterFieldHasValue('civilstat')
+            ? $this->user()?->wmaster?->civilstat
+            : $this->input('civil_status');
+
+        return strtoupper(trim((string) $value)) === 'SINGLE';
     }
 
     private function normalizeOptionalString(mixed $value): ?string

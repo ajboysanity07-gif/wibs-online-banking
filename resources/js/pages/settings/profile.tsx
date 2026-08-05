@@ -13,9 +13,9 @@ import {
 } from '@/components/dependents/dependent-category-section';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { BirthdateInput } from '@/components/loan-request/birthdate-input';
 import { CurrencyInput } from '@/components/loan-request/numeric-adorned-inputs';
 import { ReleaseAccountFields } from '@/components/loan-request/release-account-fields';
-import { LocationAutocompleteInput } from '@/components/location-autocomplete-input';
 import { LocationCombobox } from '@/components/location-combobox';
 import ProfileImageCropModal, {
     type ProfileImageCropResult,
@@ -100,9 +100,11 @@ type MemberApplicationProfileData = {
     home_address3: string | null;
     home_address_zip: string | null;
     number_of_children: number | null;
+    civil_status: string | null;
+    housing_status: string | null;
     spouse_name: string | null;
     educational_attainment: string | null;
-    spouse_age: number | null;
+    spouse_birthdate: string | null;
     spouse_cell_no: string | null;
     employment_type: string | null;
     employer_business_name: string | null;
@@ -188,6 +190,10 @@ const CIVIL_STATUS_OPTIONS = [
     'Separated',
     'Widowed',
 ] as const;
+const HOUSING_STATUS_OPTIONS = [
+    { value: 'OWNED', label: 'Owned' },
+    { value: 'RENT', label: 'Rent' },
+] as const;
 const PAYDAY_OPTIONS = [
     'Daily',
     'Weekly',
@@ -261,8 +267,10 @@ const PROFILE_TAB_FIELDS: Record<ProfileTab, string[]> = {
         'home_address3',
         'home_address_zip',
         'number_of_children',
+        'civil_status',
+        'housing_status',
         'spouse_name',
-        'spouse_age',
+        'spouse_birthdate',
         'spouse_cell_no',
         'educational_attainment',
     ],
@@ -559,6 +567,8 @@ export default function Profile({
         memberCurrentPosition === '' && hasWmasterValue(memberOccupation);
     const isBirthplaceLocked = hasWmasterValue(memberBirthplace);
     const isSpouseNameLocked = hasWmasterValue(memberRecord?.spouse_name);
+    const isCivilStatusLocked = hasWmasterValue(memberCivilStatus);
+    const isHousingStatusLocked = hasWmasterValue(memberRecord?.housing_status);
     const isProfileComplete = Boolean(profileCompletion?.isComplete);
     const missingProfileFields = profileCompletion?.missingFields ?? [];
     const missingFieldKeys = profileCompletion?.missingFieldKeys ?? [];
@@ -684,6 +694,20 @@ export default function Profile({
     const [educationalAttainment, setEducationalAttainment] = useState<string>(
         memberApplicationProfile?.educational_attainment?.trim() ?? '',
     );
+    const [civilStatusValue, setCivilStatusValue] = useState<string>(
+        memberApplicationProfile?.civil_status?.trim() ?? '',
+    );
+    const [housingStatusValue, setHousingStatusValue] = useState<string>(
+        memberApplicationProfile?.housing_status?.trim() ?? '',
+    );
+    const [spouseBirthdateValue, setSpouseBirthdateValue] = useState<string>(
+        memberApplicationProfile?.spouse_birthdate ?? '',
+    );
+    const spouseAge = calculateAge(spouseBirthdateValue || null);
+    const effectiveCivilStatus = normalizeCivilStatusValue(
+        isCivilStatusLocked ? memberCivilStatus : civilStatusValue,
+    );
+    const isSingle = effectiveCivilStatus === 'Single';
     const educationalAttainmentOptions =
         educationalAttainment !== '' &&
         !EDUCATIONAL_ATTAINMENT_OPTIONS.includes(educationalAttainment)
@@ -1677,11 +1701,48 @@ export default function Profile({
                                                                 ) : (
                                                                     <>
                                                                         <div className="grid gap-2">
+                                                                            <Label htmlFor="birthplace_province">
+                                                                                Birthplace
+                                                                                province
+                                                                            </Label>
+                                                                            <LocationCombobox
+                                                                                id="birthplace_province"
+                                                                                name="birthplace_province"
+                                                                                search={
+                                                                                    birthplaceProvinceSearch
+                                                                                }
+                                                                                placeholder="Select province"
+                                                                                required
+                                                                                inputClassName={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    isFieldMissing(
+                                                                                        'birthplace_province',
+                                                                                    ) &&
+                                                                                        MISSING_FIELD_CLASS,
+                                                                                )}
+                                                                                loadingMessage="Searching province suggestions..."
+                                                                                errorMessage="Province suggestions are temporarily unavailable."
+                                                                                promptMessage="Type at least 2 characters to search provinces."
+                                                                                onSelect={() => {
+                                                                                    birthplaceCitySearch.setSelectedValue(
+                                                                                        '',
+                                                                                    );
+                                                                                }}
+                                                                            />
+
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.birthplace_province
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        <div className="grid gap-2">
                                                                             <Label htmlFor="birthplace_city">
                                                                                 Birthplace
                                                                                 city/municipality
                                                                             </Label>
-                                                                            <LocationAutocompleteInput
+                                                                            <LocationCombobox
                                                                                 id="birthplace_city"
                                                                                 name="birthplace_city"
                                                                                 search={
@@ -1689,6 +1750,9 @@ export default function Profile({
                                                                                 }
                                                                                 placeholder="Select city or municipality"
                                                                                 required
+                                                                                disabled={
+                                                                                    !birthplaceProvinceSearch.selectedValue
+                                                                                }
                                                                                 inputClassName={cn(
                                                                                     'mt-1 block w-full',
                                                                                     isFieldMissing(
@@ -1698,6 +1762,7 @@ export default function Profile({
                                                                                 )}
                                                                                 loadingMessage="Searching city suggestions..."
                                                                                 errorMessage="City suggestions are temporarily unavailable."
+                                                                                promptMessage="Select a province first."
                                                                                 onSelect={(
                                                                                     suggestion,
                                                                                 ) => {
@@ -1715,31 +1780,6 @@ export default function Profile({
                                                                                 className="mt-2"
                                                                                 message={
                                                                                     formErrors.birthplace_city
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                        <div className="grid gap-2">
-                                                                            <Label htmlFor="birthplace_province">
-                                                                                Birthplace
-                                                                                province
-                                                                            </Label>
-                                                                            <LocationAutocompleteInput
-                                                                                id="birthplace_province"
-                                                                                name="birthplace_province"
-                                                                                search={
-                                                                                    birthplaceProvinceSearch
-                                                                                }
-                                                                                placeholder="Select province"
-                                                                                inputClassName="mt-1 block w-full"
-                                                                                loadingMessage="Searching province suggestions..."
-                                                                                errorMessage="Province suggestions are temporarily unavailable."
-                                                                                promptMessage="Type at least 2 characters to search provinces."
-                                                                            />
-
-                                                                            <InputError
-                                                                                className="mt-2"
-                                                                                message={
-                                                                                    formErrors.birthplace_province
                                                                                 }
                                                                             />
                                                                         </div>
@@ -2004,75 +2044,201 @@ export default function Profile({
                                                                 </div>
 
                                                                 <div className="grid gap-2">
-                                                                    <Label htmlFor="member_housing_status">
+                                                                    <Label
+                                                                        htmlFor={
+                                                                            isHousingStatusLocked
+                                                                                ? 'member_housing_status'
+                                                                                : 'housing_status'
+                                                                        }
+                                                                    >
                                                                         Housing
                                                                         status
                                                                     </Label>
 
-                                                                    <Input
-                                                                        id="member_housing_status"
-                                                                        className={cn(
-                                                                            'mt-1 block w-full',
-                                                                            hasWmasterValue(
-                                                                                memberRecord?.housing_status,
-                                                                            ) &&
+                                                                    {isHousingStatusLocked ? (
+                                                                        <Input
+                                                                            id="member_housing_status"
+                                                                            className={cn(
+                                                                                'mt-1 block w-full',
                                                                                 WMASTER_VALUE_CLASS,
-                                                                        )}
-                                                                        defaultValue={
-                                                                            memberRecord?.housing_status ??
-                                                                            ''
-                                                                        }
-                                                                        placeholder="Not available"
-                                                                        disabled
-                                                                    />
+                                                                            )}
+                                                                            defaultValue={
+                                                                                memberRecord?.housing_status ??
+                                                                                ''
+                                                                            }
+                                                                            placeholder="Not available"
+                                                                            disabled
+                                                                        />
+                                                                    ) : (
+                                                                        <>
+                                                                            <Select
+                                                                                value={
+                                                                                    housingStatusValue ||
+                                                                                    undefined
+                                                                                }
+                                                                                onValueChange={
+                                                                                    setHousingStatusValue
+                                                                                }
+                                                                            >
+                                                                                <SelectTrigger
+                                                                                    id="housing_status"
+                                                                                    className={cn(
+                                                                                        'mt-1 w-full',
+                                                                                        isFieldMissing(
+                                                                                            'housing_status',
+                                                                                        ) &&
+                                                                                            MISSING_FIELD_CLASS,
+                                                                                    )}
+                                                                                >
+                                                                                    <SelectValue placeholder="Select housing status" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {HOUSING_STATUS_OPTIONS.map(
+                                                                                        (
+                                                                                            option,
+                                                                                        ) => (
+                                                                                            <SelectItem
+                                                                                                key={
+                                                                                                    option.value
+                                                                                                }
+                                                                                                value={
+                                                                                                    option.value
+                                                                                                }
+                                                                                            >
+                                                                                                {
+                                                                                                    option.label
+                                                                                                }
+                                                                                            </SelectItem>
+                                                                                        ),
+                                                                                    )}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                            <input
+                                                                                type="hidden"
+                                                                                name="housing_status"
+                                                                                value={
+                                                                                    housingStatusValue
+                                                                                }
+                                                                            />
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.housing_status
+                                                                                }
+                                                                            />
+                                                                        </>
+                                                                    )}
                                                                 </div>
 
                                                                 <div className="grid gap-2">
-                                                                    <Label htmlFor="member_civil_status">
+                                                                    <Label
+                                                                        htmlFor={
+                                                                            isCivilStatusLocked
+                                                                                ? 'member_civil_status'
+                                                                                : 'civil_status'
+                                                                        }
+                                                                    >
                                                                         Civil
                                                                         status
                                                                     </Label>
 
-                                                                    <Select
-                                                                        value={
-                                                                            memberCivilStatus ||
-                                                                            undefined
-                                                                        }
-                                                                        disabled
-                                                                    >
-                                                                        <SelectTrigger
-                                                                            id="member_civil_status"
-                                                                            className={cn(
-                                                                                'mt-1 w-full',
-                                                                                hasWmasterValue(
-                                                                                    memberCivilStatus,
-                                                                                ) &&
-                                                                                    WMASTER_VALUE_CLASS,
-                                                                            )}
+                                                                    {isCivilStatusLocked ? (
+                                                                        <Select
+                                                                            value={
+                                                                                memberCivilStatus ||
+                                                                                undefined
+                                                                            }
+                                                                            disabled
                                                                         >
-                                                                            <SelectValue placeholder="Not available" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {CIVIL_STATUS_OPTIONS.map(
-                                                                                (
-                                                                                    option,
-                                                                                ) => (
-                                                                                    <SelectItem
-                                                                                        key={
-                                                                                            option
-                                                                                        }
-                                                                                        value={
-                                                                                            option
-                                                                                        }
-                                                                                    >
-                                                                                        {
-                                                                                            option
-                                                                                        }
-                                                                                    </SelectItem>
-                                                                                ),
-                                                                            )}
-                                                                        </SelectContent>
-                                                                    </Select>
+                                                                            <SelectTrigger
+                                                                                id="member_civil_status"
+                                                                                className={cn(
+                                                                                    'mt-1 w-full',
+                                                                                    WMASTER_VALUE_CLASS,
+                                                                                )}
+                                                                            >
+                                                                                <SelectValue placeholder="Not available" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {CIVIL_STATUS_OPTIONS.map(
+                                                                                    (
+                                                                                        option,
+                                                                                    ) => (
+                                                                                        <SelectItem
+                                                                                            key={
+                                                                                                option
+                                                                                            }
+                                                                                            value={
+                                                                                                option
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                option
+                                                                                            }
+                                                                                        </SelectItem>
+                                                                                    ),
+                                                                                )}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Select
+                                                                                value={
+                                                                                    civilStatusValue ||
+                                                                                    undefined
+                                                                                }
+                                                                                onValueChange={
+                                                                                    setCivilStatusValue
+                                                                                }
+                                                                            >
+                                                                                <SelectTrigger
+                                                                                    id="civil_status"
+                                                                                    className={cn(
+                                                                                        'mt-1 w-full',
+                                                                                        isFieldMissing(
+                                                                                            'civil_status',
+                                                                                        ) &&
+                                                                                            MISSING_FIELD_CLASS,
+                                                                                    )}
+                                                                                >
+                                                                                    <SelectValue placeholder="Select civil status" />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    {CIVIL_STATUS_OPTIONS.map(
+                                                                                        (
+                                                                                            option,
+                                                                                        ) => (
+                                                                                            <SelectItem
+                                                                                                key={
+                                                                                                    option
+                                                                                                }
+                                                                                                value={
+                                                                                                    option
+                                                                                                }
+                                                                                            >
+                                                                                                {
+                                                                                                    option
+                                                                                                }
+                                                                                            </SelectItem>
+                                                                                        ),
+                                                                                    )}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                            <input
+                                                                                type="hidden"
+                                                                                name="civil_status"
+                                                                                value={
+                                                                                    civilStatusValue
+                                                                                }
+                                                                            />
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.civil_status
+                                                                                }
+                                                                            />
+                                                                        </>
+                                                                    )}
                                                                 </div>
 
                                                                 <div className="grid gap-2">
@@ -2176,107 +2342,129 @@ export default function Profile({
                                                                     />
                                                                 </div>
 
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="member_record_spouse_name">
-                                                                        Spouse
-                                                                        name
-                                                                    </Label>
-                                                                    {isSpouseNameLocked ? (
-                                                                        <Input
-                                                                            id="member_record_spouse_name"
-                                                                            className={cn(
-                                                                                'mt-1 block w-full',
-                                                                                WMASTER_VALUE_CLASS,
+                                                                {!isSingle && (
+                                                                    <>
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="member_record_spouse_name">
+                                                                                Spouse
+                                                                                name
+                                                                            </Label>
+                                                                            {isSpouseNameLocked ? (
+                                                                                <Input
+                                                                                    id="member_record_spouse_name"
+                                                                                    className={cn(
+                                                                                        'mt-1 block w-full',
+                                                                                        WMASTER_VALUE_CLASS,
+                                                                                    )}
+                                                                                    defaultValue={
+                                                                                        memberRecord?.spouse_name ??
+                                                                                        ''
+                                                                                    }
+                                                                                    placeholder="Not available"
+                                                                                    disabled
+                                                                                />
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Input
+                                                                                        id="member_record_spouse_name"
+                                                                                        className="mt-1 block w-full"
+                                                                                        defaultValue={
+                                                                                            memberApplicationProfile?.spouse_name ??
+                                                                                            ''
+                                                                                        }
+                                                                                        name="spouse_name"
+                                                                                        placeholder="Spouse name"
+                                                                                    />
+                                                                                    <InputError
+                                                                                        className="mt-2"
+                                                                                        message={
+                                                                                            formErrors.spouse_name
+                                                                                        }
+                                                                                    />
+                                                                                </>
                                                                             )}
-                                                                            defaultValue={
-                                                                                memberRecord?.spouse_name ??
-                                                                                ''
-                                                                            }
-                                                                            placeholder="Not available"
-                                                                            disabled
-                                                                        />
-                                                                    ) : (
-                                                                        <>
-                                                                            <Input
-                                                                                id="member_record_spouse_name"
-                                                                                className="mt-1 block w-full"
-                                                                                defaultValue={
-                                                                                    memberApplicationProfile?.spouse_name ??
-                                                                                    ''
+                                                                        </div>
+
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="spouse_birthdate">
+                                                                                Spouse
+                                                                                birthdate
+                                                                            </Label>
+
+                                                                            <BirthdateInput
+                                                                                id="spouse_birthdate"
+                                                                                name="spouse_birthdate"
+                                                                                value={
+                                                                                    spouseBirthdateValue
                                                                                 }
-                                                                                name="spouse_name"
-                                                                                placeholder="Spouse name"
+                                                                                onValueChange={
+                                                                                    setSpouseBirthdateValue
+                                                                                }
                                                                             />
+
                                                                             <InputError
                                                                                 className="mt-2"
                                                                                 message={
-                                                                                    formErrors.spouse_name
+                                                                                    formErrors.spouse_birthdate
                                                                                 }
                                                                             />
-                                                                        </>
-                                                                    )}
-                                                                </div>
+                                                                        </div>
 
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="spouse_age">
-                                                                        Spouse
-                                                                        age
-                                                                    </Label>
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="spouse_age_display">
+                                                                                Spouse
+                                                                                age
+                                                                            </Label>
 
-                                                                    <Input
-                                                                        id="spouse_age"
-                                                                        type="number"
-                                                                        className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            memberApplicationProfile?.spouse_age ??
-                                                                            ''
-                                                                        }
-                                                                        name="spouse_age"
-                                                                        inputMode="numeric"
-                                                                        min={0}
-                                                                        placeholder="Age"
-                                                                    />
+                                                                            <Input
+                                                                                id="spouse_age_display"
+                                                                                type="number"
+                                                                                className="mt-1 block w-full"
+                                                                                value={
+                                                                                    spouseAge ??
+                                                                                    ''
+                                                                                }
+                                                                                placeholder="Computed from birthdate"
+                                                                                disabled
+                                                                                readOnly
+                                                                            />
+                                                                        </div>
 
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.spouse_age
-                                                                        }
-                                                                    />
-                                                                </div>
+                                                                        <div className="grid gap-2">
+                                                                            <Label htmlFor="spouse_cell_no">
+                                                                                Spouse
+                                                                                cell
+                                                                                no.
+                                                                            </Label>
 
-                                                                <div className="grid gap-2">
-                                                                    <Label htmlFor="spouse_cell_no">
-                                                                        Spouse
-                                                                        cell no.
-                                                                    </Label>
+                                                                            <Input
+                                                                                id="spouse_cell_no"
+                                                                                type="tel"
+                                                                                className="mt-1 block w-full"
+                                                                                defaultValue={
+                                                                                    memberApplicationProfile?.spouse_cell_no ??
+                                                                                    ''
+                                                                                }
+                                                                                name="spouse_cell_no"
+                                                                                inputMode="numeric"
+                                                                                maxLength={
+                                                                                    11
+                                                                                }
+                                                                                placeholder="09XXXXXXXXX"
+                                                                                onChange={
+                                                                                    handleMobileNumberInput
+                                                                                }
+                                                                            />
 
-                                                                    <Input
-                                                                        id="spouse_cell_no"
-                                                                        type="tel"
-                                                                        className="mt-1 block w-full"
-                                                                        defaultValue={
-                                                                            memberApplicationProfile?.spouse_cell_no ??
-                                                                            ''
-                                                                        }
-                                                                        name="spouse_cell_no"
-                                                                        inputMode="numeric"
-                                                                        maxLength={
-                                                                            11
-                                                                        }
-                                                                        placeholder="09XXXXXXXXX"
-                                                                        onChange={
-                                                                            handleMobileNumberInput
-                                                                        }
-                                                                    />
-
-                                                                    <InputError
-                                                                        className="mt-2"
-                                                                        message={
-                                                                            formErrors.spouse_cell_no
-                                                                        }
-                                                                    />
-                                                                </div>
+                                                                            <InputError
+                                                                                className="mt-2"
+                                                                                message={
+                                                                                    formErrors.spouse_cell_no
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </SurfaceCard>
