@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\Locations\PsgcService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -171,10 +172,24 @@ class AppUser extends Authenticatable
             return [];
         }
 
-        return [
-            'civil_status' => $wmaster->civilstat,
-            'housing_status' => $wmaster->restype,
-        ];
+        $parts = $wmaster->resolvedAddressParts(app(PsgcService::class));
+
+        // Only credit fields wmaster actually has a value for -- an absent
+        // wmaster value must never shadow one the member already
+        // self-reported for a *different* field wmaster doesn't cover.
+        return array_filter(
+            [
+                'civil_status' => $wmaster->civilstat,
+                'housing_status' => $wmaster->restype,
+                'spouse_name' => $wmaster->spouse,
+                'birthplace_city' => $parts['birthplace_city'],
+                'home_address1' => $parts['address1'],
+                'home_address_barangay' => $parts['barangay'],
+                'home_address2' => $parts['address2'],
+                'home_address3' => $parts['address3'],
+            ],
+            static fn (mixed $value): bool => $value !== null && trim((string) $value) !== '',
+        );
     }
 
     public function memberApplicationProfileHasRequiredFields(

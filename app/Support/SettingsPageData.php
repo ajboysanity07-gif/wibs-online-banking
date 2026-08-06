@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\MemberDependentProfile;
 use App\Services\LoanRequests\DependentsProfileSyncService;
+use App\Services\Locations\PsgcService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -18,6 +19,7 @@ class SettingsPageData
     public static function fromRequest(Request $request, string $initialTab): array
     {
         $schema = app(SchemaCapabilities::class);
+        $psgc = app(PsgcService::class);
         $user = $request->user();
         $user?->loadMissing(
             'adminProfile',
@@ -38,19 +40,12 @@ class SettingsPageData
 
             if ($user->wmaster !== null) {
                 $hasStructuredName = $user->wmaster->hasStructuredNameParts();
-                $birthplaceParts = LocationComposer::parseLegacyBirthplace(
-                    $user->wmaster->birthplace,
-                );
-                $address1 = trim((string) $user->wmaster->address1);
-                $addressBarangay = trim((string) $user->wmaster->address2);
-                $address2 = trim((string) $user->wmaster->address3);
-                $address3 = trim((string) $user->wmaster->address4);
-                $zipCode = trim((string) $user->wmaster->zone_number);
+                $parts = $user->wmaster->resolvedAddressParts($psgc);
                 $displayAddress = LocationComposer::compose(
-                    $address1 !== '' ? $address1 : null,
-                    $address2 !== '' ? $address2 : null,
-                    $address3 !== '' ? $address3 : null,
-                    $addressBarangay !== '' ? $addressBarangay : null,
+                    $parts['address1'],
+                    $parts['address2'],
+                    $parts['address3'],
+                    $parts['barangay'],
                 );
                 $displayAddress = $displayAddress !== ''
                     ? $displayAddress
@@ -71,15 +66,18 @@ class SettingsPageData
                     'lname' => $user->wmaster->lname,
                     'mname' => $user->wmaster->mname,
                     'birthplace' => $user->wmaster->birthplace,
-                    'birthplace_city' => $birthplaceParts['city'],
-                    'birthplace_province' => $birthplaceParts['province'],
+                    'birthplace_city' => $parts['birthplace_city'],
+                    'birthplace_province' => $parts['birthplace_province'],
                     'birthday' => $user->wmaster->birthday?->toDateString(),
                     'address' => $user->wmaster->address,
-                    'address1' => $address1 !== '' ? $address1 : null,
-                    'barangay' => $addressBarangay !== '' ? $addressBarangay : null,
-                    'address2' => $address2 !== '' ? $address2 : null,
-                    'address3' => $address3 !== '' ? $address3 : null,
-                    'zip_code' => $zipCode !== '' ? $zipCode : null,
+                    'address1' => $parts['address1'],
+                    'barangay' => $parts['barangay'],
+                    'barangay_raw' => $parts['barangay_raw'],
+                    'address2' => $parts['address2'],
+                    'address2_raw' => $parts['address2_raw'],
+                    'address3' => $parts['address3'],
+                    'address3_raw' => $parts['address3_raw'],
+                    'zip_code' => $parts['zip_code'],
                     'display_address' => $displayAddress,
                     'civilstat' => $user->wmaster->civilstat,
                     'occupation' => $user->wmaster->occupation,

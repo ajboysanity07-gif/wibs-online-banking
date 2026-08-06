@@ -565,6 +565,13 @@ class ProfileUpdateRequest extends FormRequest
             return 'nullable';
         }
 
+        // spouse_name is disabled (and so never submitted) once the
+        // core-banking record already has a value for it -- mirrors the
+        // civil_status/housing_status carve-outs above.
+        if ($field === 'spouse_name' && $this->wmasterFieldHasValue('spouse')) {
+            return 'nullable';
+        }
+
         if (
             in_array($field, MemberApplicationProfile::spouseFieldsOptionalWhenSingle(), true)
             && $this->effectiveCivilStatusIsSingle()

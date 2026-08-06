@@ -1,0 +1,436 @@
+[     980ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[    1113ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[    1811ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[  198094ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[  198664ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[  198987ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[  547697ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[  548173ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[  548819ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[  562786ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[  563300ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[  563897ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1185180ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1185705ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1186056ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1187691ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785933830340:0
+[ 1187691ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1187692ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1187694ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933830342:0
+[ 1187698ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1188102ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1188222ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933830810:0
+[ 1188222ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1193417ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1193523ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1194872ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1195468ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1196456ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1196611ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785933839272:0
+[ 1196611ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1196611ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1196614ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933839275:0
+[ 1196616ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1197159ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1200080ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1200184ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1200604ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1205959ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1206499ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1206944ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1207014ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785933849674:0
+[ 1207014ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1207014ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1207018ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933849678:0
+[ 1207020ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1207593ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1212893ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1213636ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1213854ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933856385:0
+[ 1213855ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1213856ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785933856383:0
+[ 1213856ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1213860ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1214114ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1214228ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933856822:0
+[ 1214229ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1214543ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1219455ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785933862112:0
+[ 1219456ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1219456ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1219458ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933862120:0
+[ 1219462ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1219998ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1220091ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785933862706:0
+[ 1220092ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1220098ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1220104ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 1222796ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1222916ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1223620ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1310097ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1311631ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1312055ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1337855ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1339431ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1340086ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1392860ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1393629ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1396259ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1408463ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1408723ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1410226ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1419578ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1420436ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1421077ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1421816ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1421873ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785934064502:0
+[ 1421874ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785934064506:0
+[ 1421941ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1421984ms] Failed to fetch dynamically imported module: http://[::1]:5173/resources/js/pages/auth/login.tsx?t=1785934064506
+[ 1422428ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1428997ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1429109ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1430117ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1489502ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1489968ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785934065092:0
+[ 1489972ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785934065145:0
+[ 1490754ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1491120ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1496872ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1497010ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1497417ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1578956ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1579486ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1579787ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1674003ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1674468ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1674774ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1719914ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1720229ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1720513ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1734441ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1734943ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1735239ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1807555ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1808100ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1808506ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 1825559ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 1825660ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 1826241ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 2476570ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2476955ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2477313ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935119972:0
+[ 2477313ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2477313ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2477315ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935119974:0
+[ 2477318ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2477561ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 2477876ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2478064ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2478177ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2481947ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2482060ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2483990ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2484732ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2485553ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935128214:0
+[ 2485553ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2485555ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935128212:0
+[ 2485556ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2485563ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2485910ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 2486067ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2486186ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935128778:0
+[ 2486186ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2491517ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935134184:0
+[ 2491517ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2491517ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2491519ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935134186:0
+[ 2491522ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2491989ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2492070ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935134681:0
+[ 2492070ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2497899ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935140558:0
+[ 2497899ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2497899ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2497900ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935140560:0
+[ 2497904ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2498466ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2498576ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935141161:0
+[ 2498576ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2504452ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935147111:0
+[ 2504452ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2504453ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2504455ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935147120:0
+[ 2504461ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2504986ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2513735ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2514562ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2515584ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 2826310ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2826870ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2827600ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 2831560ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2832268ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2833395ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 2833488ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935476148:0
+[ 2833489ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2833489ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2833491ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935476152:0
+[ 2833493ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2834009ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2834120ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935476713:0
+[ 2834120ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2834125ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2838740ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2839086ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2840813ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 2841480ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2842312ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2842613ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935485214:0
+[ 2842613ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2842613ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2842615ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935485216:0
+[ 2842618ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2843039ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2843120ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935485732:0
+[ 2843120ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2849241ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785935491901:0
+[ 2849241ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2849242ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935491899:0
+[ 2849244ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2849247ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2849748ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 2855990ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2857305ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2857419ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785935499994:0
+[ 2857421ms] Failed to fetch dynamically imported module: http://[::1]:5173/resources/js/pages/auth/login.tsx?t=1785935493542
+[ 2870981ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 2871076ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 2871846ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 3161492ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3162001ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3162607ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 3200208ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3200844ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3201509ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 3901477ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3902014ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3902299ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 3920097ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 3920641ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 3921169ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 4571986ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 4572801ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 4573184ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5544146ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5544836ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5545832ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5549062ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5549947ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5550597ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5580831ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5581337ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5582350ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5582882ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5583860ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5592059ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5592864ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5593185ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5660000ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5660529ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5661738ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5718823ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5719442ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5720805ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5721780ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785938364438:0
+[ 5721780ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938364441:0
+[ 5721780ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5721780ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5721785ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5722300ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5726112ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5726200ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5726776ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5731357ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5731957ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5732534ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5732993ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785938375655:0
+[ 5732993ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5732993ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5732995ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938375659:0
+[ 5732998ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5733476ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5736527ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5736628ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5737811ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5743046ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5743842ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5744040ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785938386693:0
+[ 5744040ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938386692:0
+[ 5744040ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5744043ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5744044ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5744163ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5744485ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5747411ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5747526ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5747955ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5749410ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5750154ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5750361ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938392843:0
+[ 5750361ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5750441ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938393043:0
+[ 5750441ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 5753783ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5753887ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5754338ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5762361ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5762939ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5763255ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 5986361ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 5986911ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 5988534ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6033394ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6033862ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6034436ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6127217ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6127639ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6127940ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6153025ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6153440ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6153723ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6159990ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6160407ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6160691ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6207646ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6207755ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6208002ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6209123ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785938851788:0
+[ 6209123ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6209124ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6209126ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938851790:0
+[ 6209129ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6209558ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6209662ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938852260:0
+[ 6209662ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6211837ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6211939ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6212208ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6232889ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6233004ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6233614ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6234093ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785938876751:0
+[ 6234093ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6234093ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6234096ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938876752:0
+[ 6234125ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6234560ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6234664ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785938877266:0
+[ 6234664ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6234859ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6234962ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6236218ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6236317ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6236566ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6348149ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6348661ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6348985ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6378325ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6378767ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6379113ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6385578ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6386020ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6386299ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6468519ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6468971ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6469282ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6542505ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6542615ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6542879ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6544214ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785939186859:0
+[ 6544214ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785939186861:0
+[ 6544215ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6544215ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6544220ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6544846ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6545010ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6545137ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6545601ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6547203ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6547311ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6547656ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6569421ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6569518ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6570113ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6570547ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785939213206:0
+[ 6570547ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6570548ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6570549ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785939213210:0
+[ 6570553ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6571023ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6571132ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785939213729:0
+[ 6571132ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6571317ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6571414ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6571747ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6572864ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6572959ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6573187ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6572864ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6572959ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6573187ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6619711ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6619819ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6620077ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6621674ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785939264293:0
+[ 6621675ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6621675ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785939264270:0
+[ 6621720ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6621721ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6622495ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6622780ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6624179ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6624318ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6625129ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6661332ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6661437ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6662024ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6663801ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/index.ts?t=1785939306402:0
+[ 6663801ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://[::1]:5173/resources/js/routes/password/index.ts?t=1785939306406:0
+[ 6663801ms] [ERROR] [vite] Failed to reload /resources/js/layouts/auth/auth-simple-layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6663801ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6663853ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6664421ms] [ERROR] [vite] Failed to reload /resources/js/pages/auth/login.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:8000/login:112
+[ 6664753ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6665021ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6666544ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6666659ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6666940ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6709969ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6710412ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6710691ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6759841ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6760303ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6760590ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6776475ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6777012ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6777790ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 6786554ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 6786987ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 6787275ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[ 7671067ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[ 7671566ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[ 7672143ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[11133337ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[11133813ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[11134190ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[11144503ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[11144934ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[11145202ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[11154223ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[11154643ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[11154912ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0
+[11457774ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:53
+[11458224ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8000/login:112
+[11458805ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:8000/storage/branding/favicons/xWXC72wLitGWj1yBO4Cc8PdY876JsssF44mpo9Kw.png:0

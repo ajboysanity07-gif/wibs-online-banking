@@ -75,8 +75,11 @@ type MemberRecord = {
     address: string | null;
     address1: string | null;
     barangay: string | null;
+    barangay_raw: string | null;
     address2: string | null;
+    address2_raw: string | null;
     address3: string | null;
+    address3_raw: string | null;
     zip_code: string | null;
     display_address: string | null;
     civilstat: string | null;
@@ -162,6 +165,18 @@ type Props = {
 const WMASTER_VALUE_CLASS = 'border-ring/40 ring-1 ring-ring/20';
 const MISSING_FIELD_CLASS =
     'border-amber-400 ring-1 ring-amber-300 dark:border-amber-500/70 dark:ring-amber-500/30';
+
+function OriginalValueHint({ value }: { value: string | null }) {
+    if (!value) {
+        return null;
+    }
+
+    return (
+        <p className="text-xs text-muted-foreground">
+            On record: <span className="font-medium">{value}</span>
+        </p>
+    );
+}
 const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 const PROFILE_PHOTO_ALLOWED_TYPES = new Set([
     'image/jpeg',
@@ -630,6 +645,27 @@ export default function Profile({
         '';
     const [homeAddressZipValue, setHomeAddressZipValue] =
         useState<string>(homeAddressZip);
+    const homeAddressBarangayRawHint =
+        !memberApplicationProfile?.home_address_barangay?.trim() &&
+        memberRecord?.barangay_raw &&
+        memberRecord.barangay_raw.trim().toLowerCase() !==
+            homeAddressBarangay.toLowerCase()
+            ? memberRecord.barangay_raw.trim()
+            : null;
+    const homeAddress2RawHint =
+        !memberApplicationProfile?.home_address2?.trim() &&
+        memberRecord?.address2_raw &&
+        memberRecord.address2_raw.trim().toLowerCase() !==
+            homeAddress2.toLowerCase()
+            ? memberRecord.address2_raw.trim()
+            : null;
+    const homeAddress3RawHint =
+        !memberApplicationProfile?.home_address3?.trim() &&
+        memberRecord?.address3_raw &&
+        memberRecord.address3_raw.trim().toLowerCase() !==
+            homeAddress3.toLowerCase()
+            ? memberRecord.address3_raw.trim()
+            : null;
     const homeProvinceSearch = useLocationSearch({
         initialQuery: homeAddress3,
         searchUrl: provinces.url(),
@@ -1036,13 +1072,11 @@ export default function Profile({
 
                             {showMissingProfileFields ? (
                                 <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100">
-                                    <AlertTitle>
-                                        Missing required details
-                                    </AlertTitle>
+                                    <AlertTitle>Finish your profile</AlertTitle>
                                     <AlertDescription className="text-amber-900 dark:text-amber-100">
                                         <p>
-                                            Complete the following required
-                                            fields to finish onboarding:
+                                            A few required fields still need
+                                            your input to finish onboarding:
                                         </p>
                                         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
                                             {missingProfileFields.map(
@@ -1815,6 +1849,11 @@ export default function Profile({
                                                                         <Label htmlFor="home_address3">
                                                                             Province
                                                                         </Label>
+                                                                        <OriginalValueHint
+                                                                            value={
+                                                                                homeAddress3RawHint
+                                                                            }
+                                                                        />
 
                                                                         <LocationCombobox
                                                                             id="home_address3"
@@ -1859,6 +1898,11 @@ export default function Profile({
                                                                         <Label htmlFor="home_address2">
                                                                             City/Municipality
                                                                         </Label>
+                                                                        <OriginalValueHint
+                                                                            value={
+                                                                                homeAddress2RawHint
+                                                                            }
+                                                                        />
 
                                                                         <LocationCombobox
                                                                             id="home_address2"
@@ -1948,6 +1992,11 @@ export default function Profile({
                                                                         <Label htmlFor="home_address_barangay">
                                                                             Barangay
                                                                         </Label>
+                                                                        <OriginalValueHint
+                                                                            value={
+                                                                                homeAddressBarangayRawHint
+                                                                            }
+                                                                        />
 
                                                                         <LocationCombobox
                                                                             id="home_address_barangay"
@@ -2367,7 +2416,13 @@ export default function Profile({
                                                                                 <>
                                                                                     <Input
                                                                                         id="member_record_spouse_name"
-                                                                                        className="mt-1 block w-full"
+                                                                                        className={cn(
+                                                                                            'mt-1 block w-full',
+                                                                                            isFieldMissing(
+                                                                                                'spouse_name',
+                                                                                            ) &&
+                                                                                                MISSING_FIELD_CLASS,
+                                                                                        )}
                                                                                         defaultValue={
                                                                                             memberApplicationProfile?.spouse_name ??
                                                                                             ''
@@ -2394,6 +2449,12 @@ export default function Profile({
                                                                             <BirthdateInput
                                                                                 id="spouse_birthdate"
                                                                                 name="spouse_birthdate"
+                                                                                className={cn(
+                                                                                    isFieldMissing(
+                                                                                        'spouse_birthdate',
+                                                                                    ) &&
+                                                                                        MISSING_FIELD_CLASS,
+                                                                                )}
                                                                                 value={
                                                                                     spouseBirthdateValue
                                                                                 }
@@ -3133,7 +3194,13 @@ export default function Profile({
 
                                                                     <Input
                                                                         id="payout_bank_name"
-                                                                        className="mt-1 block w-full"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isFieldMissing(
+                                                                                'payout_bank_name',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         defaultValue={
                                                                             memberApplicationProfile?.payout_bank_name ??
                                                                             ''
@@ -3158,7 +3225,13 @@ export default function Profile({
 
                                                                     <Input
                                                                         id="payout_account_name"
-                                                                        className="mt-1 block w-full"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isFieldMissing(
+                                                                                'payout_account_name',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         defaultValue={
                                                                             memberApplicationProfile?.payout_account_name ??
                                                                             ''
@@ -3183,7 +3256,13 @@ export default function Profile({
 
                                                                     <Input
                                                                         id="payout_account_number"
-                                                                        className="mt-1 block w-full"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isFieldMissing(
+                                                                                'payout_account_number',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         defaultValue={
                                                                             memberApplicationProfile?.payout_account_number ??
                                                                             ''
@@ -3208,7 +3287,13 @@ export default function Profile({
 
                                                                     <Input
                                                                         id="payout_account_type"
-                                                                        className="mt-1 block w-full"
+                                                                        className={cn(
+                                                                            'mt-1 block w-full',
+                                                                            isFieldMissing(
+                                                                                'payout_account_type',
+                                                                            ) &&
+                                                                                MISSING_FIELD_CLASS,
+                                                                        )}
                                                                         defaultValue={
                                                                             memberApplicationProfile?.payout_account_type ??
                                                                             ''
@@ -3246,7 +3331,13 @@ export default function Profile({
                                                                     >
                                                                         <SelectTrigger
                                                                             id="release_method"
-                                                                            className="mt-1 w-full"
+                                                                            className={cn(
+                                                                                'mt-1 w-full',
+                                                                                isFieldMissing(
+                                                                                    'release_method',
+                                                                                ) &&
+                                                                                    MISSING_FIELD_CLASS,
+                                                                            )}
                                                                         >
                                                                             <SelectValue placeholder="Select release method" />
                                                                         </SelectTrigger>
@@ -3324,7 +3415,13 @@ export default function Profile({
 
                                                                             <Input
                                                                                 id="payout_atm_number"
-                                                                                className="mt-1 block w-full"
+                                                                                className={cn(
+                                                                                    'mt-1 block w-full',
+                                                                                    isFieldMissing(
+                                                                                        'payout_atm_number',
+                                                                                    ) &&
+                                                                                        MISSING_FIELD_CLASS,
+                                                                                )}
                                                                                 defaultValue={
                                                                                     memberApplicationProfile?.payout_atm_number ??
                                                                                     ''
@@ -3389,11 +3486,25 @@ export default function Profile({
                                                                                 </Label>
                                                                             </div>
 
-                                                                            {!isOwnAtmCard ? (
+                                                                            {isOwnAtmCard ? (
+                                                                                <input
+                                                                                    type="hidden"
+                                                                                    name="payout_atm_holder_name"
+                                                                                    value={
+                                                                                        memberDisplayName
+                                                                                    }
+                                                                                />
+                                                                            ) : (
                                                                                 <>
                                                                                     <Input
                                                                                         id="payout_atm_holder_name"
-                                                                                        className="mt-1 block w-full"
+                                                                                        className={cn(
+                                                                                            'mt-1 block w-full',
+                                                                                            isFieldMissing(
+                                                                                                'payout_atm_holder_name',
+                                                                                            ) &&
+                                                                                                MISSING_FIELD_CLASS,
+                                                                                        )}
                                                                                         value={
                                                                                             atmHolderName
                                                                                         }
@@ -3417,7 +3528,7 @@ export default function Profile({
                                                                                         }
                                                                                     />
                                                                                 </>
-                                                                            ) : null}
+                                                                            )}
                                                                         </div>
                                                                     </>
                                                                 ) : null}
@@ -3490,6 +3601,27 @@ export default function Profile({
                                                                                 account_type:
                                                                                     formErrors.release_account_type,
                                                                             }}
+                                                                            missingFields={{
+                                                                                bank_name:
+                                                                                    isFieldMissing(
+                                                                                        'release_bank_name',
+                                                                                    ),
+                                                                                account_name:
+                                                                                    isFieldMissing(
+                                                                                        'release_account_name',
+                                                                                    ),
+                                                                                account_number:
+                                                                                    isFieldMissing(
+                                                                                        'release_account_number',
+                                                                                    ),
+                                                                                account_type:
+                                                                                    isFieldMissing(
+                                                                                        'release_account_type',
+                                                                                    ),
+                                                                            }}
+                                                                            missingFieldClassName={
+                                                                                MISSING_FIELD_CLASS
+                                                                            }
                                                                             onChange={(
                                                                                 field,
                                                                                 value,

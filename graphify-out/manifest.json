@@ -745,8 +745,8 @@
     "semantic_hash": "58b33239167751eb5dfb62f81f4f41da"
   },
   "app/Http/Requests/Settings/ProfileUpdateRequest.php": {
-    "mtime": 1785935473.6246693,
-    "ast_hash": "ae1abd1265a066aafaa636892c19023c",
+    "mtime": 1785939303.4634418,
+    "ast_hash": "29493f2805ad02ab5e8242c190ea5bdd",
     "semantic_hash": ""
   },
   "app/Http/Requests/Settings/TwoFactorAuthenticationRequest.php": {
@@ -1050,8 +1050,8 @@
     "semantic_hash": "964df8d1046e26b60e316340d0b6661b"
   },
   "app/Models/AppUser.php": {
-    "mtime": 1785423357.897751,
-    "ast_hash": "d1225f47dabde13285a7708d6b11aff2",
+    "mtime": 1785939303.4634418,
+    "ast_hash": "8396e897aac4c1e08dd4dad505e49c14",
     "semantic_hash": ""
   },
   "app/Models/DocumentAccessLog.php": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": "f07ff8dd9f4c3421e6e0a815526994d9"
   },
   "app/Models/MemberApplicationProfile.php": {
-    "mtime": 1785905455.4694293,
-    "ast_hash": "349594c0f7e638c8781a61bd93f446ba",
+    "mtime": 1785939303.4646118,
+    "ast_hash": "f5f8b5f5f6052825ab05cad55766e63c",
     "semantic_hash": ""
   },
   "app/Models/MemberDependent.php": {
@@ -1610,8 +1610,8 @@
     "semantic_hash": "77b14badf2b95aee854c64d175b984e5"
   },
   "app/Support/SettingsPageData.php": {
-    "mtime": 1785934131.5962985,
-    "ast_hash": "d493c8e40f21840636a51435480d6ddf",
+    "mtime": 1785939303.4646118,
+    "ast_hash": "c2ab679226e36b947df5f076b958ff45",
     "semantic_hash": ""
   },
   "artisan": {
@@ -2005,7 +2005,7 @@
     "semantic_hash": "aca8fe5c892d270a4c6f2a9b297c6cc0"
   },
   "database/migrations/2026_05_14_114929_create_loan_request_correction_reports_table.php": {
-    "mtime": 1785857253.764556,
+    "mtime": 1785938675.5117116,
     "ast_hash": "8f8c0f79074ecdf4db0d01af966436f0",
     "semantic_hash": "8f8c0f79074ecdf4db0d01af966436f0"
   },
@@ -2375,8 +2375,8 @@
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-fields.tsx": {
-    "mtime": 1785934131.6591198,
-    "ast_hash": "d6312886b85dfb522cfda17f83fffe74",
+    "mtime": 1785943796.1352167,
+    "ast_hash": "0aee0ed3e5239f270fd2acbfa607d951",
     "semantic_hash": ""
   },
   "resources/js/components/loan-request/loan-request-page-sections.tsx": {
@@ -3270,8 +3270,8 @@
     "semantic_hash": "01444db510b27cd42f7a9d3cba45cd3f"
   },
   "resources/js/pages/settings/profile.tsx": {
-    "mtime": 1785935705.2174535,
-    "ast_hash": "23a2af309588aa7b33be949694ce9d73",
+    "mtime": 1785939303.4658315,
+    "ast_hash": "db06f58392cd2a4650e61a342704aee8",
     "semantic_hash": ""
   },
   "resources/js/pages/settings/security.tsx": {
@@ -3910,8 +3910,8 @@
     "semantic_hash": "cdd68cfafaa25bc3796d30cc125f56cb"
   },
   "tests/Feature/Settings/ProfileUpdateTest.php": {
-    "mtime": 1785934376.3495562,
-    "ast_hash": "de0ab04f7b6d9c81e9ee024ad7e696b9",
+    "mtime": 1785939428.0508041,
+    "ast_hash": "9c8e1e7d83cc4325c1b1fe2bc020731e",
     "semantic_hash": ""
   },
   "tests/Feature/Settings/TwoFactorAuthenticationTest.php": {
@@ -6655,12 +6655,12 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_08_05_120000_add_home_address_to_member_application_profiles_table.php": {
-    "mtime": 1785905368.7363904,
+    "mtime": 1785938675.5132253,
     "ast_hash": "01a6755f00594be7ee39a993594c594c",
     "semantic_hash": ""
   },
   "database/migrations/2026_08_05_120001_add_zip_to_member_co_makers_table.php": {
-    "mtime": 1785905376.3214955,
+    "mtime": 1785938675.5137293,
     "ast_hash": "dd0dafdbfd5fffd88372623e7f7495d3",
     "semantic_hash": ""
   },
@@ -6712,6 +6712,11 @@
   ".playwright-mcp/page-2026-08-05T12-24-03-954Z.yml": {
     "mtime": 1785932643.9561062,
     "ast_hash": "91b2e1af04afb6bd378d0dbdd4bdaeaa",
+    "semantic_hash": ""
+  },
+  "database/migrations/2026_08_05_130000_add_civil_status_housing_status_spouse_birthdate_to_member_application_profiles_table.php": {
+    "mtime": 1785938176.4679925,
+    "ast_hash": "e33d299726407129d19e96a5e3226ec9",
     "semantic_hash": ""
   }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\LoanReleaseMethod;
 use App\Support\LocationComposer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -354,7 +355,38 @@ class MemberApplicationProfile extends Model
             'current_position',
             'gross_monthly_income',
             'payday',
+            ...self::loanPrerequisiteBankFields(),
         ];
+    }
+
+    /**
+     * Bank & Payout fields required only once the member has chosen a
+     * release_method that needs them -- mirrors the Rule::requiredIf
+     * conditions already enforced in ProfileUpdateRequest/LoanRequestStoreRequest.
+     *
+     * @return list<string>
+     */
+    private function conditionallyRequiredBankFields(): array
+    {
+        $releaseMethod = trim((string) ($this->release_method ?? ''));
+        $required = [];
+
+        if ($releaseMethod === LoanReleaseMethod::Atm->value) {
+            $required[] = 'payout_atm_number';
+            $required[] = 'payout_atm_holder_name';
+        }
+
+        if ($releaseMethod === LoanReleaseMethod::BankTransfer->value && ! $this->release_uses_payout_account) {
+            array_push(
+                $required,
+                'release_bank_name',
+                'release_account_name',
+                'release_account_number',
+                'release_account_type',
+            );
+        }
+
+        return $required;
     }
 
     /**
@@ -404,7 +436,7 @@ class MemberApplicationProfile extends Model
             ...($isSingle ? self::spouseFieldsOptionalWhenSingle() : []),
         ];
 
-        foreach (self::completionRequiredFields() as $field) {
+        foreach ([...self::completionRequiredFields(), ...$this->conditionallyRequiredBankFields()] as $field) {
             if (in_array($field, $optional, true)) {
                 continue;
             }
@@ -450,6 +482,17 @@ class MemberApplicationProfile extends Model
             'current_position' => 'Current position',
             'gross_monthly_income' => 'Gross monthly income',
             'payday' => 'Payday',
+            'payout_bank_name' => 'Bank name',
+            'payout_account_name' => 'Account name',
+            'payout_account_number' => 'Account number',
+            'payout_account_type' => 'Account type',
+            'release_method' => 'Release method',
+            'payout_atm_number' => 'ATM card number',
+            'payout_atm_holder_name' => 'ATM card holder name',
+            'release_bank_name' => 'Release bank name',
+            'release_account_name' => 'Release account name',
+            'release_account_number' => 'Release account number',
+            'release_account_type' => 'Release account type',
         ];
     }
 

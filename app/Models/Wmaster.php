@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\Locations\PsgcService;
+use App\Support\LocationComposer;
 use App\Support\PersonName;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -156,6 +158,62 @@ class Wmaster extends Model
         $parts = array_values(array_filter($parts, static fn (string $value): bool => $value !== ''));
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * Resolves this record's address and birthplace into canonical PSGC
+     * form (title-cased, abbreviations expanded, matched against the real
+     * dataset where possible), alongside the raw pre-normalization values so
+     * callers can show members what was originally on file. The single
+     * source of truth for both the Settings display (SettingsPageData) and
+     * the profile-completeness credit (AppUser::memberApplicationProfileWmasterOverrides())
+     * so the two can't drift out of sync.
+     *
+     * @return array{
+     *     address1: ?string,
+     *     barangay: ?string,
+     *     barangay_raw: ?string,
+     *     address2: ?string,
+     *     address2_raw: ?string,
+     *     address3: ?string,
+     *     address3_raw: ?string,
+     *     zip_code: ?string,
+     *     birthplace_city: ?string,
+     *     birthplace_province: ?string,
+     * }
+     */
+    public function resolvedAddressParts(PsgcService $psgc): array
+    {
+        $address1 = trim((string) $this->address1);
+        $rawCity = trim((string) $this->address3);
+        $rawProvince = trim((string) $this->address4);
+        $rawBarangay = trim((string) $this->address2);
+
+        $province = $psgc->resolveProvinceName($rawProvince);
+        $city = $psgc->resolveLocalityName($rawCity);
+        $barangay = $psgc->resolveBarangayName(
+            $rawBarangay,
+            $city,
+            $province !== '' ? $province : null,
+        );
+        $zipCode = trim((string) $this->zone_number);
+
+        $birthplaceParts = LocationComposer::parseLegacyBirthplace($this->birthplace);
+        $birthplaceCity = $psgc->resolveLocalityName((string) ($birthplaceParts['city'] ?? ''));
+        $birthplaceProvince = $psgc->resolveProvinceName((string) ($birthplaceParts['province'] ?? ''));
+
+        return [
+            'address1' => $address1 !== '' ? $address1 : null,
+            'barangay' => $barangay !== '' ? $barangay : null,
+            'barangay_raw' => $rawBarangay !== '' ? $rawBarangay : null,
+            'address2' => $city !== '' ? $city : null,
+            'address2_raw' => $rawCity !== '' ? $rawCity : null,
+            'address3' => $province !== '' ? $province : null,
+            'address3_raw' => $rawProvince !== '' ? $rawProvince : null,
+            'zip_code' => $zipCode !== '' ? $zipCode : null,
+            'birthplace_city' => $birthplaceCity !== '' ? $birthplaceCity : null,
+            'birthplace_province' => $birthplaceProvince !== '' ? $birthplaceProvince : null,
+        ];
     }
 
     public function displayName(): string

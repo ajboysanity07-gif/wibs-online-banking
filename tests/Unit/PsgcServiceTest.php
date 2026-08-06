@@ -186,3 +186,41 @@ test('psgc service disambiguates same-named municipalities by province when vali
     expect($service->isKnownBarangay('Carmen', 'Alejal', 'Cebu'))->toBeFalse();
     expect($service->isKnownBarangay('Carmen', 'Tambad', 'Cotabato'))->toBeTrue();
 });
+
+test('psgc service resolves legacy province codes to their canonical name', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->resolveProvinceName('DDN'))->toBe('Davao del Norte');
+    expect($service->resolveProvinceName('ddn'))->toBe('Davao del Norte');
+    expect($service->resolveProvinceName('SDS'))->toBe('Surigao del Sur');
+});
+
+test('psgc service normalizes ALL CAPS province names to canonical PSGC casing', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->resolveProvinceName('DAVAO DEL NORTE'))->toBe('Davao del Norte');
+    expect($service->resolveProvinceName(''))->toBe('');
+});
+
+test('psgc service best-effort title-cases an unrecognized province value', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->resolveProvinceName('XYZ'))->toBe('Xyz');
+});
+
+test('psgc service normalizes ALL CAPS city names to canonical PSGC casing', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->resolveLocalityName('TAGUM CITY'))->toBe('City of Tagum');
+    expect($service->resolveLocalityName(''))->toBe('');
+    expect($service->resolveLocalityName('NOT A REAL CITY'))->toBe('Not A Real City');
+});
+
+test('psgc service normalizes ALL CAPS barangay names scoped to their municipality', function () {
+    $service = app(PsgcService::class);
+
+    expect($service->resolveBarangayName('MAGUGPO POBLACION', 'City of Tagum', 'Davao del Norte'))
+        ->toBe('Magugpo Poblacion');
+    expect($service->resolveBarangayName('', 'City of Tagum', 'Davao del Norte'))->toBe('');
+    expect($service->resolveBarangayName('SOME BARANGAY', '', null))->toBe('Some Barangay');
+});

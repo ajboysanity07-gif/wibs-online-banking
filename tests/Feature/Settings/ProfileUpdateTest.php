@@ -170,6 +170,11 @@ test('profile update accepts a real birthplace city and province', function () {
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -277,7 +282,7 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.lname', 'Santos')
             ->where('memberRecord.mname', 'L')
             ->where('memberRecord.birthplace', 'Quezon City')
-            ->where('memberRecord.birthplace_city', 'Quezon City')
+            ->where('memberRecord.birthplace_city', 'City of Quezon')
             ->where('memberRecord.birthplace_province', null)
             ->where('memberRecord.birthday', '1991-04-12')
             ->where('memberRecord.address', 'Legacy Address')
@@ -296,6 +301,172 @@ test('profile page loads member record information from wmaster', function () {
             ->where('memberRecord.number_of_children', '2')
             ->where('memberRecord.hasStructuredName', true)
         );
+});
+
+test('profile page normalizes ALL CAPS and abbreviated wmaster address into canonical PSGC form', function () {
+    $user = User::factory()->create([
+        'acctno' => '000908',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Reyes, Carlo',
+        'birthplace' => 'TAGUM CITY, DDN',
+        'address' => 'LEGACY',
+        'address2' => 'MAGUGPO POBLACION',
+        'address3' => 'TAGUM CITY',
+        'address4' => 'DDN',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberRecord.barangay', 'Magugpo Poblacion')
+            ->where('memberRecord.barangay_raw', 'MAGUGPO POBLACION')
+            ->where('memberRecord.address2', 'City of Tagum')
+            ->where('memberRecord.address2_raw', 'TAGUM CITY')
+            ->where('memberRecord.address3', 'Davao del Norte')
+            ->where('memberRecord.address3_raw', 'DDN')
+            ->where('memberRecord.birthplace_city', 'City of Tagum')
+            ->where('memberRecord.birthplace_province', 'Davao del Norte')
+        );
+});
+
+test('profile page best-effort title-cases an unrecognized wmaster province code', function () {
+    $user = User::factory()->create([
+        'acctno' => '000909',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Reyes, Nina',
+        'address' => 'LEGACY',
+        'address3' => 'SOME CITY',
+        'address4' => 'XYZ',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where('memberRecord.address3', 'Xyz')
+        );
+});
+
+test('profile page credits home address, spouse name, and birthplace city fields sourced from wmaster', function () {
+    $user = User::factory()->create([
+        'acctno' => '000910',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Reyes, Elena',
+        'birthplace' => 'TAGUM CITY, DDN',
+        'address' => 'LEGACY',
+        'address2' => 'MAGUGPO POBLACION',
+        'address3' => 'TAGUM CITY',
+        'address4' => 'DDN',
+        'civilstat' => 'Married',
+        'restype' => 'OWNED',
+        'spouse' => 'Renee Santos',
+    ]);
+
+    MemberApplicationProfile::factory()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/profile')
+            ->where(
+                'profileCompletion.missingFieldKeys',
+                fn ($keys) => ! collect($keys)->contains('civil_status')
+                    && ! collect($keys)->contains('housing_status')
+                    && ! collect($keys)->contains('spouse_name')
+                    && ! collect($keys)->contains('birthplace_city')
+                    && ! collect($keys)->contains('home_address_barangay')
+                    && ! collect($keys)->contains('home_address2')
+                    && ! collect($keys)->contains('home_address3')
+                    && collect($keys)->contains('spouse_birthdate'),
+            )
+        );
+});
+
+test('profile can be saved when spouse name is locked by wmaster and civil status is not single', function () {
+    $user = User::factory()->create([
+        'acctno' => '000911',
+    ]);
+    UserProfile::factory()->approved()->create([
+        'user_id' => $user->user_id,
+    ]);
+
+    DB::table('wmaster')->insert([
+        'acctno' => $user->acctno,
+        'bname' => 'Santos, Renee',
+        'civilstat' => 'Married',
+        'restype' => 'OWNED',
+        'spouse' => 'Miguel Santos',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'username' => 'TestUser',
+            'email' => 'test@example.com',
+            'phoneno' => '09123456789',
+            'birthplace_city' => 'City of Batac',
+            'birthplace_province' => 'Ilocos Norte',
+            'educational_attainment' => 'High School',
+            'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'spouse_birthdate' => '1992-05-14',
+            'employment_type' => 'Regular',
+            'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
+            'current_position' => 'Analyst',
+            'gross_monthly_income' => '35000.00',
+            'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
+        ]);
+
+    $response->assertSessionHasNoErrors()->assertRedirect(route('client.dashboard'));
+
+    $memberProfile = $user->refresh()->memberApplicationProfile;
+
+    expect($memberProfile->spouse_name)->toBeNull();
+    expect($memberProfile->spouse_birthdate->toDateString())->toBe('1992-05-14');
 });
 
 test('profile page falls back to legacy address when structured address is missing', function () {
@@ -370,7 +541,7 @@ test('profile page exposes wmaster birthplace data', function () {
             ->where('memberApplicationProfile.birthplace_city', 'Davao City')
             ->where('memberApplicationProfile.birthplace_province', null)
             ->where('memberRecord.birthplace', 'Bacolod City')
-            ->where('memberRecord.birthplace_city', 'Bacolod City')
+            ->where('memberRecord.birthplace_city', 'City of Bacolod')
             ->where('memberRecord.birthplace_province', null)
         );
 });
@@ -676,7 +847,7 @@ test('id type other is required when id type is Others', function () {
     $response->assertSessionHasErrors(['id_type_other']);
 });
 
-test('onboarding is not blocked by empty source of fund or bank and payout fields', function () {
+test('onboarding is not blocked by empty source of fund or government id fields', function () {
     $user = User::factory()->create();
     UserProfile::factory()->approved()->create([
         'user_id' => $user->user_id,
@@ -692,11 +863,25 @@ test('onboarding is not blocked by empty source of fund or bank and payout field
             'birthplace_province' => 'Cebu',
             'educational_attainment' => 'High School',
             'length_of_stay' => '2 years',
+            'home_address1' => '123 Main Street',
+            'home_address_barangay' => 'Aglipay',
+            'home_address2' => 'Batac City',
+            'home_address3' => 'Ilocos Norte',
+            'civil_status' => 'Single',
+            'housing_status' => 'OWNED',
             'employment_type' => 'Regular',
             'employer_business_name' => 'Acme Corp',
+            'employer_business_address_barangay' => 'Aglipay',
+            'employer_business_address2' => 'Batac City',
+            'employer_business_address3' => 'Ilocos Norte',
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
         ]);
 
     $response
@@ -1437,6 +1622,11 @@ test('civil status and housing status are self-reportable when wmaster has no va
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -1486,6 +1676,11 @@ test('civil status and housing status stay locked once wmaster has a value', fun
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
         ]);
 
     // civil_status/housing_status weren't submitted (disabled inputs aren't
@@ -1529,6 +1724,11 @@ test('spouse name and birthdate are not required when civil status is Single', f
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
         ]);
 
     $response->assertSessionHasNoErrors()->assertRedirect(route('client.dashboard'));
@@ -1607,6 +1807,11 @@ test('spouse birthdate persists on the member application profile', function () 
             'current_position' => 'Analyst',
             'gross_monthly_income' => '35000.00',
             'payday' => '15th',
+            'payout_bank_name' => 'BDO',
+            'payout_account_name' => 'Test User',
+            'payout_account_number' => '1234567890',
+            'payout_account_type' => 'Savings',
+            'release_method' => 'Cash',
         ]);
 
     $response->assertSessionHasNoErrors();
@@ -1654,4 +1859,13 @@ test('correct password must be provided to delete account', function () {
         ->assertRedirect(route('profile.edit'));
 
     expect($user->fresh())->not->toBeNull();
+});
+
+test('profile page submits atm card holder name via hidden input when using own card', function () {
+    $contents = file_get_contents(
+        base_path('resources/js/pages/settings/profile.tsx'),
+    );
+
+    expect($contents)->toContain('name="payout_atm_holder_name"');
+    expect($contents)->toContain('{isOwnAtmCard ? (');
 });

@@ -2,6 +2,7 @@ import InputError from '@/components/input-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 export type ReleaseAccountValues = {
     bank_name: string;
@@ -14,12 +15,18 @@ export type ReleaseAccountErrors = Partial<
     Record<keyof ReleaseAccountValues, string>
 >;
 
+export type ReleaseAccountMissingFields = Partial<
+    Record<keyof ReleaseAccountValues, boolean>
+>;
+
 type Props = {
     idPrefix: string;
     useSameAccount: boolean;
     onToggleSameAccount: (useSameAccount: boolean) => void;
     values: ReleaseAccountValues;
     errors?: ReleaseAccountErrors;
+    missingFields?: ReleaseAccountMissingFields;
+    missingFieldClassName?: string;
     onChange: (field: keyof ReleaseAccountValues, value: string) => void;
 };
 
@@ -32,6 +39,8 @@ export function ReleaseAccountFields({
     onToggleSameAccount,
     values,
     errors,
+    missingFields,
+    missingFieldClassName,
     onChange,
 }: Props) {
     return (
@@ -60,6 +69,10 @@ export function ReleaseAccountFields({
                         </Label>
                         <Input
                             id={`${idPrefix}_bank_name`}
+                            className={cn(
+                                missingFields?.bank_name &&
+                                    missingFieldClassName,
+                            )}
                             value={values.bank_name}
                             onChange={(event) =>
                                 onChange('bank_name', event.target.value)
@@ -74,6 +87,10 @@ export function ReleaseAccountFields({
                         </Label>
                         <Input
                             id={`${idPrefix}_account_name`}
+                            className={cn(
+                                missingFields?.account_name &&
+                                    missingFieldClassName,
+                            )}
                             value={values.account_name}
                             onChange={(event) =>
                                 onChange('account_name', event.target.value)
@@ -88,6 +105,10 @@ export function ReleaseAccountFields({
                         </Label>
                         <Input
                             id={`${idPrefix}_account_number`}
+                            className={cn(
+                                missingFields?.account_number &&
+                                    missingFieldClassName,
+                            )}
                             value={values.account_number}
                             onChange={(event) =>
                                 onChange('account_number', event.target.value)
@@ -102,6 +123,10 @@ export function ReleaseAccountFields({
                         </Label>
                         <Input
                             id={`${idPrefix}_account_type`}
+                            className={cn(
+                                missingFields?.account_type &&
+                                    missingFieldClassName,
+                            )}
                             placeholder="e.g. Savings"
                             value={values.account_type}
                             onChange={(event) =>

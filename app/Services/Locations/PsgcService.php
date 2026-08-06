@@ -17,6 +17,16 @@ class PsgcService
 
     private const NCR_REGION_CODE = '1300000000';
 
+    /**
+     * Legacy wmaster province codes -> canonical PSGC province name. Seeded
+     * from known examples; not exhaustive, since the full set of codes used
+     * in production wmaster data isn't visible from the dataset alone.
+     */
+    private const PROVINCE_ABBREVIATIONS = [
+        'DDN' => 'Davao del Norte',
+        'SDS' => 'Surigao del Sur',
+    ];
+
     private const SMALL_WORDS = [
         'Of',
         'And',
@@ -106,6 +116,112 @@ class PsgcService
         }
 
         return false;
+    }
+
+    /**
+     * Normalizes a raw, possibly ALL-CAPS or abbreviated legacy province
+     * name (e.g. from wmaster) into canonical PSGC form. Abbreviation codes
+     * (e.g. "DDN") are expanded first; otherwise the value is title-cased
+     * and matched case-insensitively against the real dataset so casing
+     * (e.g. "del") comes out correct. Unrecognized values are returned
+     * best-effort title-cased rather than blanked out.
+     */
+    public function resolveProvinceName(string $raw): string
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return '';
+        }
+
+        $abbreviation = self::PROVINCE_ABBREVIATIONS[Str::upper($raw)] ?? null;
+
+        if ($abbreviation !== null) {
+            return $abbreviation;
+        }
+
+        $normalized = $this->normalizeName($raw);
+        $needle = Str::lower($normalized);
+
+        foreach ($this->productionDataset()['provinces'] as $province) {
+            if (Str::lower($province['value']) === $needle) {
+                return $province['value'];
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Normalizes a raw, possibly ALL-CAPS legacy city/municipality name into
+     * canonical PSGC form, matching the same "City of X"/"X City" base-name
+     * comparison isKnownLocality() uses. Falls back to best-effort
+     * title-casing when no canonical match is found.
+     */
+    public function resolveLocalityName(string $raw): string
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return '';
+        }
+
+        $normalized = $this->normalizeName($raw);
+        $needle = Str::lower($normalized);
+        $needleBase = $this->cityBaseName($needle);
+
+        foreach ($this->productionDataset()['birthplaces'] as $birthplace) {
+            $name = Str::lower($birthplace['name']);
+
+            if ($name === $needle) {
+                return $birthplace['name'];
+            }
+
+            if ($birthplace['type'] === 'city' && $this->cityBaseName($name) === $needleBase) {
+                return $birthplace['name'];
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Normalizes a raw, possibly ALL-CAPS legacy barangay name into
+     * canonical PSGC form, scoped to the given (already-resolved)
+     * municipality/city name. Falls back to best-effort title-casing when
+     * the municipality can't be resolved or no canonical match is found.
+     */
+    public function resolveBarangayName(string $raw, string $municipality, ?string $province = null): string
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return '';
+        }
+
+        $normalized = $this->normalizeName($raw);
+        $municipality = trim($municipality);
+
+        if ($municipality === '') {
+            return $normalized;
+        }
+
+        $municipalityCode = $this->municipalityCodeForName($municipality, $province);
+
+        if ($municipalityCode === null) {
+            return $normalized;
+        }
+
+        $needle = Str::lower($normalized);
+        $candidates = $this->resolveBarangayCandidates($municipalityCode, $this->productionBarangays());
+
+        foreach ($candidates as $barangay) {
+            if (Str::lower($barangay['name']) === $needle) {
+                return $barangay['name'];
+            }
+        }
+
+        return $normalized;
     }
 
     /**
